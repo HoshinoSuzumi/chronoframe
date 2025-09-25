@@ -18,7 +18,7 @@ const emit = defineEmits<{
   'visibility-change': [
     { index: number; isVisible: boolean; date: string | Date },
   ]
-  openViewer: [number]
+  openViewer: [number, any?]
 }>()
 
 const itemKey = computed(() => {
@@ -71,7 +71,7 @@ const itemVariants = {
       :photo="photo"
       :index="index"
       @visibility-change="emit('visibility-change', $event)"
-      @open-viewer="emit('openViewer', $event)"
+      @open-viewer="(index, transitionData) => emit('openViewer', index, transitionData)"
     />
   </motion.div>
 </template>

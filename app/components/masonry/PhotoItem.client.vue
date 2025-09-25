@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { formatCameraInfo } from '~/utils/camera'
 import { motion, useDomRef } from 'motion-v'
+import type { TransitionData } from '~/stores/viewer'
 
 interface Props {
   photo: Photo
@@ -12,7 +13,7 @@ const emit = defineEmits<{
   'visibility-change': [
     { index: number; isVisible: boolean; date: string | Date },
   ]
-  openViewer: [number]
+  openViewer: [number, TransitionData?]
 }>()
 
 // Constants
@@ -253,9 +254,24 @@ const handleClick = (event: Event) => {
     return
   }
 
-  // On desktop, always allow opening the viewer
-  // Otherwise, open the viewer
-  emit('openViewer', props.index)
+  // 启动转场动画
+  event.preventDefault()
+  event.stopPropagation()
+  
+  if (photoRef.value) {
+    const rect = photoRef.value.getBoundingClientRect()
+    const imageElement = photoRef.value.querySelector('img') as HTMLImageElement
+    
+    emit('openViewer', props.index, {
+      sourceRect: rect,
+      photoId: props.photo.id,
+      imageUrl: imageElement?.src || props.photo.thumbnailUrl || '',
+      thumbnailHash: props.photo.thumbnailHash || undefined,
+    })
+  } else {
+    // 如果无法获取位置信息，回退到普通打开方式
+    emit('openViewer', props.index)
+  }
 }
 
 // Process LivePhoto when it becomes visible

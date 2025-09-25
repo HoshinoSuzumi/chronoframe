@@ -240,8 +240,19 @@ onMounted(() => {
   })
 })
 
-const handleOpenViewer = (index: number) => {
-  router.push(`/${displayPhotos.value[index]?.id}`)
+const { executeTransition } = usePhotoTransition()
+
+const handleOpenViewer = (index: number, transitionData?: any) => {
+  const photo = displayPhotos.value[index]
+  if (!photo) return
+
+  if (transitionData) {
+    // 使用转场动画
+    executeTransition(transitionData, index)
+  } else {
+    // 回退到普通导航
+    router.push(`/${photo.id}`)
+  }
 }
 </script>
 
@@ -295,7 +306,7 @@ const handleOpenViewer = (index: number) => {
           :has-animated
           :first-screen-items="FIRST_SCREEN_ITEMS_COUNT"
           @visibility-change="handleVisibilityChange"
-          @open-viewer="handleOpenViewer($event)"
+          @open-viewer="(index, transitionData) => handleOpenViewer(index, transitionData)"
         />
       </div>
     </div>

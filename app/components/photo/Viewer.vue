@@ -30,6 +30,10 @@ const containerRef = ref<HTMLDivElement>()
 const swiperRef = ref<SwiperType>()
 const loadingIndicatorRef = ref<LoadingIndicatorRef>()
 
+// 转场状态
+const viewerState = useViewerState()
+const { isTransitioning } = storeToRefs(viewerState)
+
 // State
 const isImageZoomed = ref(false)
 const showExifPanel = ref(false)
@@ -411,7 +415,7 @@ const swiperModules = [Navigation, Keyboard, Virtual]
     <!-- 主内容区域 -->
     <AnimatePresence>
       <motion.div
-        v-if="isOpen"
+        v-if="isOpen && !isTransitioning"
         ref="containerRef"
         :initial="{ opacity: 0 }"
         :animate="{ opacity: 1 }"
@@ -522,7 +526,7 @@ const swiperModules = [Navigation, Keyboard, Virtual]
                   class="flex items-center justify-center"
                 >
                   <motion.div
-                    :initial="{ opacity: 0.5, scale: 0.95 }"
+                    :initial="{ opacity: 0.5, scale: 0.6 }"
                     :animate="{ opacity: 1, scale: 1 }"
                     :exit="{ opacity: 0, scale: 0.95 }"
                     :transition="{ type: 'spring', duration: 0.4, bounce: 0 }"
@@ -548,6 +552,7 @@ const swiperModules = [Navigation, Keyboard, Virtual]
                       }"
                       :loading-indicator-ref="loadingIndicatorRef || null"
                       :is-current-image="index === currentIndex"
+                      data-progressive-image
                       :src="photo.originalUrl!"
                       :thumbnail-src="photo.thumbnailUrl!"
                       :alt="photo.title || ''"
