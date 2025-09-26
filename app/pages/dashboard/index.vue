@@ -28,9 +28,14 @@ const { data: healthStatus, refresh: refreshHealth } =
     server: false,
   })
 
-const { user } = useUserSession()
+const { user, loggedIn } = useUserSession()
 const router = useRouter()
 const isLoading = ref(false)
+
+// 调试：打印用户信息
+watchEffect(() => {
+  console.log('用户信息:', { user: user.value, loggedIn: loggedIn.value })
+})
 
 // 跳转到前台展示页
 const goToFrontend = () => {
@@ -57,8 +62,8 @@ onBeforeUnmount(() => {
 <template>
   <div class="flex flex-col gap-6 h-full p-4">
     <div class="flex items-center justify-between">
-      <div class="flex items-center gap-4">
-        <h1 class="text-2xl font-bold">仪表板概览</h1>
+      <h1 class="text-2xl font-bold">仪表板概览</h1>
+      <div class="flex items-center gap-3">
         <!-- 用户头像，点击跳转到前台展示页 -->
         <div 
           class="cursor-pointer hover:opacity-80 transition-opacity"
@@ -78,15 +83,15 @@ onBeforeUnmount(() => {
             <UIcon name="i-tabler-user" class="w-5 h-5 text-primary" />
           </div>
         </div>
+        <UButton
+          icon="i-tabler-refresh"
+          variant="outline"
+          :loading="isLoading"
+          @click="refreshData"
+        >
+          刷新
+        </UButton>
       </div>
-      <UButton
-        icon="i-tabler-refresh"
-        variant="outline"
-        :loading="isLoading"
-        @click="refreshData"
-      >
-        刷新
-      </UButton>
     </div>
 
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">

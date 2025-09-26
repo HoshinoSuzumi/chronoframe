@@ -35,6 +35,17 @@ export default defineOAuthGitHubEventHandler({
     } else if (userFromEmail.isAdmin === 0) {
       throw _accessDeniedError
     } else {
+      // 更新现有用户的头像（如果GitHub头像有变化）
+      if (user.avatar_url && userFromEmail.avatar !== user.avatar_url) {
+        db.update(tables.users)
+          .set({ avatar: user.avatar_url })
+          .where(eq(tables.users.id, userFromEmail.id))
+          .run()
+        
+        // 更新用户对象
+        userFromEmail.avatar = user.avatar_url
+      }
+      
       await setUserSession(
         event,
         { user: userFromEmail },
