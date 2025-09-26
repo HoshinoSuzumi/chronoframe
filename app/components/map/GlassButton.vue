@@ -25,7 +25,7 @@ withDefaults(
     type="button"
     :class="
       twMerge(
-        'pointer-events-auto flex size-10 items-center justify-center rounded-xl bg-black/20 text-white backdrop-blur-md border border-white/10 shadow-lg shadow-black/25 overflow-hidden',
+        'pointer-events-auto flex size-10 items-center justify-center rounded-xl bg-white/80 text-neutral-700 backdrop-blur-md border border-neutral-100 shadow-lg shadow-neutral-300/25 dark:bg-black/20 dark:text-white dark:border-white/10 dark:shadow-black/25 overflow-hidden',
         $props.class,
       )
     "

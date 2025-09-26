@@ -258,16 +258,17 @@ onBeforeRouteLeave(() => {
       class="w-full h-full"
     >
       <ClientOnly>
+        <!-- mapbox://styles/hoshinosuzumi/cmev0eujf01dw01pje3g9cmlg -->
         <MapboxMap
           class="w-full h-full"
           :map-id="generateRandomKey()"
           :options="{
-            style: 'mapbox://styles/hoshinosuzumi/cmev0eujf01dw01pje3g9cmlg',
+            style: 'mapbox://styles/mapbox/standard',
             zoom: mapViewState.zoom,
             center: [mapViewState.longitude, mapViewState.latitude],
             config: {
               basemap: {
-                lightPreset: 'night',
+                lightPreset: $colorMode.value === 'dark' ? 'night' : 'day',
                 colorThemes: 'faded',
               },
             },

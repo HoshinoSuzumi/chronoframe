@@ -85,7 +85,7 @@ const sizeDelta = computed(() => {
                 class="h-full w-full object-cover opacity-50"
               />
               <div
-                class="from-blue/60 to-purple/80 dark:from-blue/70 dark:to-purple/90 absolute inset-0 bg-gradient-to-br"
+                class="absolute inset-0 bg-gradient-to-br from-blue/40 to-purple/60 dark:from-blue/60 dark:to-purple/80"
               />
             </div>
 
@@ -94,7 +94,7 @@ const sizeDelta = computed(() => {
               :class="
                 twMerge(
                   'relative flex flex-col justify-center items-center rounded-full border shadow-lg hover:shadow-xl',
-                  'border-white/30 bg-black/60 hover:bg-black/80',
+                  'border-white/50 bg-white/80 hover:bg-white/90 dark:border-white/30 dark:bg-black/60 dark:hover:bg-black/80',
                 )
               "
               :style="{
@@ -108,7 +108,7 @@ const sizeDelta = computed(() => {
 
               <!-- Cluster count -->
               <span
-                class="text-white text-sm font-bold drop-shadow leading-none"
+                class="text-neutral-800 dark:text-white text-sm font-bold drop-shadow leading-none"
               >
                 {{ pointCount }}
               </span>
@@ -128,7 +128,7 @@ const sizeDelta = computed(() => {
               :side-offset="8"
             >
               <motion.div
-                class="bg-black/50 backdrop-blur-md border border-neutral-700 rounded-lg shadow-lg w-xs max-w-xs overflow-hidden relative"
+                class="bg-white/50 dark:bg-black/50 backdrop-blur-md border border-neutral-100 dark:border-neutral-700 rounded-lg shadow-lg w-xs max-w-xs overflow-hidden relative"
                 :initial="{ opacity: 0, scale: 0.95, y: 4 }"
                 :animate="{ opacity: 1, scale: 1, y: 0 }"
                 :exit="{ opacity: 0, scale: 0.95, y: 4 }"
@@ -137,12 +137,12 @@ const sizeDelta = computed(() => {
                 <!-- Cluster preview -->
                 <div class="relative overflow-hidden p-3 space-y-3">
                   <div class="flex items-center justify-between">
-                    <h3 class="text-sm font-semibold">
+                    <h3 class="text-sm font-semibold text-neutral-900 dark:text-white">
                       {{
                         $t('map.cluster.nearbyPhotos', [clusteredPhotos.length])
                       }}
                     </h3>
-                    <div class="text-muted text-[10px]">
+                    <div class="text-neutral-500 dark:text-muted text-[10px]">
                       {{ $t('map.cluster.details') }}
                     </div>
                   </div>
@@ -181,12 +181,12 @@ const sizeDelta = computed(() => {
                       </NuxtLink>
                       <!-- Hover overlay -->
                       <div
-                        class="absolute inset-0 bg-black/20 duration-300 flex justify-center items-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer pointer-events-none"
+                        class="absolute inset-0 bg-white/30 dark:bg-black/20 duration-300 flex justify-center items-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer pointer-events-none"
                       >
                         <div
-                          class="rounded-full bg-black/50 p-2 backdrop-blur-sm flex justify-center items-center"
+                          class="rounded-full bg-white/80 dark:bg-black/50 p-2 backdrop-blur-sm flex justify-center items-center"
                         >
-                          <Icon name="tabler:external-link" />
+                          <Icon name="tabler:external-link" class="text-neutral-700 dark:text-white" />
                         </div>
                       </div>
                       <!-- Show +N overlay for the last image if there are more -->
@@ -195,9 +195,9 @@ const sizeDelta = computed(() => {
                           index === clusterCount - 1 &&
                           clusteredPhotos.length > clusterCount
                         "
-                        class="absolute inset-0 bg-black/60 flex items-center justify-center cursor-pointer pointer-events-none"
+                        class="absolute inset-0 bg-white/80 dark:bg-black/60 flex items-center justify-center cursor-pointer pointer-events-none"
                       >
-                        <span class="text-white text-lg font-bold">
+                        <span class="text-neutral-800 dark:text-white text-lg font-bold">
                           +{{ clusteredPhotos.length - clusterCount }}
                         </span>
                       </div>
@@ -211,7 +211,7 @@ const sizeDelta = computed(() => {
                         clusteredPhotos.length &&
                         clusteredPhotos.some((p) => p.city)
                       "
-                      class="flex items-center gap-1 text-xs text-muted font-medium mt-2"
+                      class="flex items-center gap-1 text-xs text-neutral-600 dark:text-muted font-medium mt-2"
                     >
                       <Icon
                         name="tabler:map-pin"
@@ -232,7 +232,7 @@ const sizeDelta = computed(() => {
                         clusteredPhotos.length &&
                         clusteredPhotos.some((p) => p.dateTaken)
                       "
-                      class="flex items-center gap-1 text-xs text-muted font-medium mt-2"
+                      class="flex items-center gap-1 text-xs text-neutral-600 dark:text-muted font-medium mt-2"
                     >
                       <Icon
                         name="tabler:calendar-week"

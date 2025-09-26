@@ -15,6 +15,8 @@ useHead({
   title: $t('title.photos'),
 })
 
+const MAX_FILE_SIZE = 256 // in MB
+
 const dayjs = useDayjs()
 
 const { status, refresh } = usePhotos()
@@ -52,7 +54,6 @@ interface UploadingFile {
 
 const uploadingFiles = ref<Map<string, UploadingFile>>(new Map())
 
-// 重写的文件上传和处理函数
 const uploadImage = async (file: File) => {
   const fileName = file.name
   const fileId = `${Date.now()}-${fileName}`
@@ -535,25 +536,26 @@ const validateFile = (file: File): { valid: boolean; error?: string } => {
     'image/heic',
     'image/heif',
     'video/quicktime', // MOV 文件
-    'video/mp4', // MP4 文件（备用）
   ]
 
   const isValidImageType = allowedTypes.includes(file.type)
+  const isValidImageExtension = ['.heic', '.heif'].some((ext) =>
+    file.name.toLowerCase().endsWith(ext),
+  )
   const isValidVideoExtension = file.name.toLowerCase().endsWith('.mov')
 
-  if (!isValidImageType && !isValidVideoExtension) {
+  if (!isValidImageType && !isValidImageExtension && !isValidVideoExtension) {
     return {
       valid: false,
       error: `不支持的文件格式: ${file.type}。请选择 JPEG、PNG、HEIC 格式的图片或 MOV 格式的 LivePhoto 视频。`,
     }
   }
 
-  // 检查文件大小 (128MB 限制)
-  const maxSize = 128 * 1024 * 1024 // 128MB
+  const maxSize = MAX_FILE_SIZE * 1024 * 1024
   if (file.size > maxSize) {
     return {
       valid: false,
-      error: `文件太大: ${(file.size / 1024 / 1024).toFixed(2)}MB。最大支持 128MB。`,
+      error: `文件太大: ${(file.size / 1024 / 1024).toFixed(2)}MB。最大支持 ${MAX_FILE_SIZE}MB。`,
     }
   }
 
@@ -1025,7 +1027,7 @@ onUnmounted(() => {
       <UFileUpload
         v-model="selectedFiles"
         label="选择照片"
-        description="支持 JPEG、PNG、HEIC 格式照片，以及 MOV 格式 LivePhoto 视频，最大 256MB"
+        :description="`支持 JPEG、PNG、HEIC 格式照片，以及 MOV 格式 LivePhoto 视频，最大 ${MAX_FILE_SIZE}MB`"
         layout="list"
         size="xl"
         accept="image/jpeg,image/png,image/heic,image/heif,video/quicktime,.mov"
