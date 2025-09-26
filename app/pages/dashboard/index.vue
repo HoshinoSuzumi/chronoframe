@@ -29,14 +29,7 @@ const { data: healthStatus, refresh: refreshHealth } =
     server: false,
   })
 
-const { user } = useUserSession()
-const router = useRouter()
 const isLoading = ref(false)
-
-// 跳转到前台展示页
-const goToFrontend = () => {
-  router.push('/')
-}
 
 const refreshData = async () => {
   isLoading.value = true
@@ -58,28 +51,7 @@ onBeforeUnmount(() => {
 <template>
   <div class="flex flex-col gap-6 h-full p-4">
     <div class="flex items-center justify-between">
-      <div class="flex items-center gap-4">
-        <h1 class="text-2xl font-bold">仪表板概览</h1>
-        <!-- 用户头像，点击跳转到前台展示页 -->
-        <div 
-          class="cursor-pointer hover:opacity-80 transition-opacity"
-          @click="goToFrontend"
-          title="点击查看前台展示页"
-        >
-          <img
-            v-if="user?.avatar"
-            :src="user.avatar"
-            :alt="user.username || '用户头像'"
-            class="w-10 h-10 rounded-full object-cover border-2 border-primary/20 hover:border-primary/40 transition-colors"
-          />
-          <div
-            v-else
-            class="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center border-2 border-primary/20 hover:border-primary/40 transition-colors"
-          >
-            <UIcon name="i-tabler-user" class="w-5 h-5 text-primary" />
-          </div>
-        </div>
-      </div>
+      <h1 class="text-2xl font-bold">仪表板概览</h1>
       <UButton
         icon="i-tabler-refresh"
         variant="outline"
