@@ -17,6 +17,7 @@ interface SystemHealth {
     active: boolean
     queued: number
   }
+  environment?: string
 }
 
 const { data: photos, refresh: refreshPhotos } = await useFetch('/api/photos', {
@@ -117,6 +118,13 @@ onBeforeUnmount(() => {
           <div>
             <p class="text-sm text-neutral-500 dark:text-neutral-400">
               内存使用率
+              <span 
+                v-if="healthStatus?.environment" 
+                class="text-xs ml-1 px-1 py-0.5 bg-primary/10 text-primary rounded"
+                :title="`运行环境: ${healthStatus.environment}`"
+              >
+                {{ healthStatus.environment }}
+              </span>
             </p>
             <p class="text-2xl font-bold">
               {{
@@ -127,6 +135,13 @@ onBeforeUnmount(() => {
                     )
                   : 0
               }}%
+            </p>
+            <p class="text-xs text-neutral-400 mt-1">
+              {{
+                healthStatus?.memory
+                  ? `${Math.round(healthStatus.memory.used / 1024 / 1024 / 1024 * 100) / 100}GB / ${Math.round(healthStatus.memory.total / 1024 / 1024 / 1024 * 100) / 100}GB`
+                  : '系统内存'
+              }}
             </p>
           </div>
           <UIcon
