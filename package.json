@@ -58,6 +58,7 @@
     "reka-ui": "^2.5.0",
     "sharp": "^0.34.3",
     "swiper": "^11.2.10",
+    "systeminformation": "^5.27.10",
     "tailwind-merge": "^3.3.1",
     "tailwindcss": "^4.1.12",
     "thumbhash": "^0.1.1",
