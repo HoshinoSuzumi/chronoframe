@@ -18,11 +18,6 @@ const items = ref<NavigationMenuItem[]>([
     icon: 'tabler:map-pin-cog',
     to: '/dashboard/location',
   },
-  {
-    label: '前台展示',
-    icon: 'tabler:eye',
-    to: '/',
-  },
 ])
 
 const route = useRoute()
