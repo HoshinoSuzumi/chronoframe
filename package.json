@@ -95,7 +95,8 @@
     "prettier": "^3.6.2",
     "sass-embedded": "^1.93.2",
     "typescript": "^5.0.0",
-    "vitepress": "2.0.0-alpha.12"
+    "vitepress": "2.0.0-alpha.12",
+    "vitest": "^2.1.4"
   },
   "pnpm": {
     "peerDependencyRules": {

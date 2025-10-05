@@ -14,6 +14,7 @@ data
 
 # Node dependencies
 node_modules
+node-compile-cache
 
 # Logs
 logs
