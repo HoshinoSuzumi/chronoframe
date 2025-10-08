@@ -1,6 +1,21 @@
 @import 'tailwindcss';
 @import '@nuxt/ui';
 
+/* 需要你去阿里妈妈(iconfont.cn)官网生成字体文件 */
+/* 链接地址：https://www.iconfont.cn/fonts/detail?spm=a313x.fonts_index.i1.d9df05512.67e03a81J7Okrt&cnid=IhcTcFymWeyf */
+/* 输入要生成的文字，点击代码引用，复制到此处 */
+@font-face {
+  font-family: "AlimamaDongFangDaKai";
+  src: url("//at.alicdn.com/wf/webfont/uoyBX1BZj3Nf/knFAF2pNEQPA.woff2") format("woff2"), url("//at.alicdn.com/wf/webfont/uoyBX1BZj3Nf/lvucAxqixIv1.woff") format("woff");
+  font-variation-settings: normal;
+  font-display: swap;
+}
+
+.webfont {
+  font-family: "AlimamaDongFangDaKai";
+  font-variation-settings: normal; /* Chrome 140 以下版本需要 */
+}
+
 :root {
   --ui-text-dimmed: var(--ui-color-neutral-400);
   --ui-text-muted: var(--ui-color-neutral-500);

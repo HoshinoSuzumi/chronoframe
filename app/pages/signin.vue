@@ -1,6 +1,6 @@
 <script lang="ts" setup>
 useHead({
-  title: 'Sign In',
+  title: $t('auth.form.signin.title'),
 })
 
 const { fetch: fetchUserSession } = useUserSession()
@@ -42,7 +42,6 @@ const onAuthSubmit = async (event: any) => {
     class="w-full min-h-svh flex flex-col items-center justify-center p-4 pb-12"
   >
     <AuthForm
-      icon="tabler:photo-circle"
       :title="$t('auth.form.signin.title')"
       :subtitle="$t('auth.form.signin.subtitle', [config.public.app.title])"
       :loading="isLoading"

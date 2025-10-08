@@ -867,7 +867,7 @@ const swiperModules = [Navigation, Keyboard, Virtual]
                             }"
                             :while-tap="{ scale: 0.88 }"
                             :class="[
-                              'pointer-events-auto flex items-center justify-center gap-2',
+                              'pointer-events-auto flex items-center justify-center gap-2 cursor-pointer',
                               'px-4 h-11 rounded-full',
                               'backdrop-blur-xl border shadow-lg',
                               'transition-all duration-200',
@@ -927,7 +927,7 @@ const swiperModules = [Navigation, Keyboard, Virtual]
                 >
                   <Icon
                     name="tabler:chevron-left"
-                    class="text-xl"
+                    class="text-xl cursor-pointer"
                   />
                 </button>
 
@@ -939,7 +939,7 @@ const swiperModules = [Navigation, Keyboard, Virtual]
                 >
                   <Icon
                     name="tabler:chevron-right"
-                    class="text-xl"
+                    class="text-xl cursor-pointer"
                   />
                 </button>
               </template>

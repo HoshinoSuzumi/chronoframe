@@ -493,7 +493,7 @@ onUnmounted(() => {
     @touchcancel="handleTouchEnd"
     @contextmenu.prevent=""
   >
-    <div class="relative group overflow-hidden transition-all duration-300">
+    <div class="relative group overflow-hidden transition-all duration-300 rounded-lg">
       <!-- Container with fixed aspect ratio -->
       <div
         class="w-full relative"
@@ -578,7 +578,7 @@ onUnmounted(() => {
           <div class="flex flex-col">
             <p
               v-if="photo.title"
-              class="text-base font-medium text-ellipsis line-clamp-1"
+              class="text-base font-medium text-ellipsis line-clamp-2"
             >
               {{ photo.title }}
             </p>

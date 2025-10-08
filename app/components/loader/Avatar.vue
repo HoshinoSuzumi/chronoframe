@@ -1,4 +1,6 @@
 <script lang="ts" setup>
+import TanmantangIcon from '~/components/icon/TanmantangIcon.vue'
+
 const config = useRuntimeConfig()
 </script>
 
@@ -15,11 +17,9 @@ const config = useRuntimeConfig()
         :src="config.public.app.avatarUrl"
         alt="Loading..."
       />
-      <img
-        v-else
-        class="w-full h-full object-cover"
-        src="~/assets/images/avatar.webp"
-        alt="Loading..."
+      <TanmantangIcon 
+        v-else 
+        class="w-full h-full object-cover" 
       />
     </div>
   </div>
