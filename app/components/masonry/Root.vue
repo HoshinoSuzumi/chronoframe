@@ -261,7 +261,7 @@ const updateDateRange = () => {
   } else if (uniqueCities.length <= 3) {
     visibleCities.value = uniqueCities.join('、')
   } else {
-    visibleCities.value = `${uniqueCities.slice(0, 2).join('、')} `+$t('ui.indexPanelCountCity',uniqueCities.length)
+    visibleCities.value = `${uniqueCities.slice(0, 2).join('、')} `+$t('ui.indexPanelCountCity',{ count: uniqueCities.length })
   }
 
   if (visibleDates.length === 0) {

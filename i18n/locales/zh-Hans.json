@@ -108,7 +108,7 @@
       "totalPhotosWithRange": "{range}, 共 @:plural.photo",
       "noPhotosTip": "还没有照片，快去上传一些吧！"
     },
-    "indexPanelCountCity":"等 {0} 个城市"
+    "indexPanelCountCity":"等 {count} 个城市"
   },
   "minimap": {
     "loading": "加载小地图..."
