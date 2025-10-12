@@ -45,7 +45,7 @@
     "better-sqlite3": "^12.2.0",
     "cloudflare": "^4.5.0",
     "dayjs-nuxt": "2.1.11",
-    "db0": "^0.3.2",
+    "db0": "^0.3.4",
     "drizzle-orm": "^0.44.4",
     "es-toolkit": "^1.39.10",
     "exiftool-vendored": "^30.3.0",
