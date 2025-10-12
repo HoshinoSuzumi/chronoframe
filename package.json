@@ -58,7 +58,7 @@
     "nuxt-mapbox": "1.6.4",
     "nuxt-og-image": "5.1.11",
     "pinia": "^3.0.3",
-    "reka-ui": "^2.5.0",
+    "reka-ui": "^2.5.1",
     "sharp": "^0.34.4",
     "swiper": "^11.2.10",
     "systeminformation": "^5.27.10",
