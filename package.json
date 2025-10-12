@@ -40,7 +40,7 @@
     "@tailwindcss/vite": "^4.1.12",
     "@unhead/vue": "^2.0.5",
     "@vingle/bmp-js": "^0.2.5",
-    "@vueuse/nuxt": "13.8.0",
+    "@vueuse/nuxt": "13.9.0",
     "@yeger/vue-masonry-wall": "^5.1.0",
     "better-sqlite3": "^12.2.0",
     "cloudflare": "^4.5.0",
