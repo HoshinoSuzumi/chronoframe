@@ -92,7 +92,7 @@
     "concurrently": "^9.2.0",
     "consola": "^3.4.2",
     "dayjs": "^1.11.15",
-    "drizzle-kit": "^0.31.4",
+    "drizzle-kit": "^0.31.5",
     "eslint": "^9.33.0",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-prettier": "^5.5.4",
