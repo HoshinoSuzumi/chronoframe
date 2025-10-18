@@ -82,10 +82,9 @@ const updateHeaderWidth = () => {
     return
   }
 
-  const columnElement =
-    masonryWrapper.value?.querySelector<HTMLElement>(
-      '.masonry-wall .masonry-column',
-    )
+  const columnElement = masonryWrapper.value?.querySelector<HTMLElement>(
+    '.masonry-wall .masonry-column',
+  )
 
   if (columnElement) {
     headerColumnWidth.value = columnElement.getBoundingClientRect().width
@@ -262,7 +261,9 @@ const updateDateRange = () => {
   } else if (uniqueCities.length <= 3) {
     visibleCities.value = uniqueCities.join('、')
   } else {
-    visibleCities.value = `${uniqueCities.slice(0, 2).join('、')} `+$t('ui.indexPanelCountCity',{ count: uniqueCities.length })
+    visibleCities.value =
+      `${uniqueCities.slice(0, 2).join('、')} ` +
+      $t('ui.indexPanelCountCity', { count: uniqueCities.length })
   }
 
   if (visibleDates.length === 0) {
@@ -302,7 +303,7 @@ const handleScroll = () => {
 const scrollToTop = () => {
   window.scrollTo({
     top: 0,
-    behavior: 'smooth'
+    behavior: 'smooth',
   })
 }
 
@@ -370,7 +371,7 @@ watch(currentPhotoIndex, (newIndex) => {
       :is-visible="!!dateRange && showFloatingActions"
       :is-mobile="isMobile"
     />
-    
+
     <!-- Back to Top Button -->
     <motion.div
       v-if="showFloatingActions"
@@ -384,11 +385,11 @@ watch(currentPhotoIndex, (newIndex) => {
         <UButton
           variant="soft"
           color="neutral"
-          class="cursor-pointer bg-white/80 dark:bg-neutral-900/80 backdrop-blur-sm p-3 rounded-full shadow-lg hover:bg-white dark:hover:bg-neutral-800 transition-all duration-300"
+          class="cursor-pointer bg-white/80 dark:bg-neutral-900/80 backdrop-blur-sm flex justify-center items-center rounded-full shadow-lg hover:bg-white dark:hover:bg-neutral-800 transition-all duration-300 border border-neutral-200/50 dark:border-neutral-700/50"
           icon="tabler:arrow-up"
-          size="sm"
+          size="lg"
+          :aria-label="$t('ui.action.backtotop.ariaLabel') || '回到顶部'"
           @click="scrollToTop"
-          aria-label="回到顶部"
         />
       </UTooltip>
     </motion.div>
@@ -463,8 +464,8 @@ watch(currentPhotoIndex, (newIndex) => {
   padding-top: var(--masonry-header-offset, 0px);
 }
 
-.masonry-wall-with-header :deep(.masonry-column:first-child .masonry-item:first-child) {
+.masonry-wall-with-header
+  :deep(.masonry-column:first-child .masonry-item:first-child) {
   margin-top: 0;
 }
 </style>
-
