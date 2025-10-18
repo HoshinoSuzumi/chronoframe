@@ -101,6 +101,9 @@
         "text": {
           "prefix": "Check out this photo:"
         }
+      },
+      "backtotop": {
+        "tooltip": "Back to Top"
       }
     },
     "stats": {

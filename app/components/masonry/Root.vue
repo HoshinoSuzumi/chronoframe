@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { motion } from 'motion-v'
 interface Props {
   photos: Photo[]
   columns?: number | 'auto'
@@ -298,6 +299,13 @@ const handleScroll = () => {
   showFloatingActions.value = scrollTop > 500
 }
 
+const scrollToTop = () => {
+  window.scrollTo({
+    top: 0,
+    behavior: 'smooth'
+  })
+}
+
 onMounted(() => {
   window.addEventListener('scroll', handleScroll, { passive: true })
   window.addEventListener('resize', updateHeaderWidth)
@@ -362,6 +370,28 @@ watch(currentPhotoIndex, (newIndex) => {
       :is-visible="!!dateRange && showFloatingActions"
       :is-mobile="isMobile"
     />
+    
+    <!-- Back to Top Button -->
+    <motion.div
+      v-if="showFloatingActions"
+      class="fixed bottom-6 right-6 z-50"
+      :initial="{ opacity: 0, scale: 0.8 }"
+      :animate="{ opacity: 1, scale: 1 }"
+      :exit="{ opacity: 0, scale: 0.8 }"
+      :transition="{ duration: 0.2 }"
+    >
+      <UTooltip :text="$t('ui.action.backtotop.tooltip') || '回到顶部'">
+        <UButton
+          variant="soft"
+          color="neutral"
+          class="cursor-pointer bg-white/80 dark:bg-neutral-900/80 backdrop-blur-sm p-3 rounded-full shadow-lg hover:bg-white dark:hover:bg-neutral-800 transition-all duration-300"
+          icon="tabler:arrow-up"
+          size="sm"
+          @click="scrollToTop"
+          aria-label="回到顶部"
+        />
+      </UTooltip>
+    </motion.div>
 
     <div
       class="lg:px-0 lg:pb-0"

@@ -105,6 +105,9 @@
         "text": {
           "prefix": "來看看這張相片:"
         }
+      },
+      "backToTop": {
+        "tooltip": "回到頂部"
       }
     },
     "stats": {

@@ -105,6 +105,9 @@
         "text": {
           "prefix": "来看看这张照片:"
         }
+      },
+      "backtotop": {
+        "tooltip": "回到顶部"
       }
     },
     "stats": {

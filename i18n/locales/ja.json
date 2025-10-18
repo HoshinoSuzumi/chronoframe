@@ -101,6 +101,9 @@
         "text": {
           "prefix": "この写真をご覧ください:"
         }
+      },
+      "backtotop": {
+        "tooltip": "ページの先頭に戻る"
       }
     },
     "stats": {
