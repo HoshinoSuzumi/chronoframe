@@ -493,7 +493,10 @@
       },
       "table": {
         "columns": {
-          "thumbnail": "Thumbnail",
+          "thumbnail": {
+            "title": "Thumbnail",
+            "action": "Open Photo in New Tab"
+          },
           "id": "Photo ID",
           "title": "Photo Title",
           "tags": "Keywords",

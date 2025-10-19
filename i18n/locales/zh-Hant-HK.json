@@ -436,7 +436,10 @@
       },
       "table": {
         "columns": {
-          "thumbnail": "縮圖",
+          "thumbnail": {
+            "title": "縮圖",
+            "action": "在新視窗開啟相片"
+          },
           "id": "相片 ID",
           "title": "相片標題",
           "tags": "關鍵字",

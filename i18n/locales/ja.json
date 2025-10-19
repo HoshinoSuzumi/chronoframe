@@ -436,7 +436,10 @@
       },
       "table": {
         "columns": {
-          "thumbnail": "サムネイル",
+          "thumbnail": {
+            "title": "サムネイル",
+            "action": "新しいタブで写真を開く"
+          },
           "id": "写真ID",
           "title": "写真のタイトル",
           "tags": "キーワード",

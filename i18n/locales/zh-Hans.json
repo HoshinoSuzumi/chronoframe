@@ -493,7 +493,10 @@
       },
       "table": {
         "columns": {
-          "thumbnail": "缩略图",
+          "thumbnail": {
+            "title": "缩略图",
+            "action": "在新窗口打开照片"
+          },
           "id": "照片ID",
           "title": "照片标题",
           "tags": "关键词",

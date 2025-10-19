@@ -527,7 +527,7 @@ const columns: TableColumn<Photo>[] = [
   },
   {
     accessorKey: 'thumbnailUrl',
-    header: $t('dashboard.photos.table.columns.thumbnail'),
+    header: $t('dashboard.photos.table.columns.thumbnail.title'),
     cell: ({ row }) => {
       const url = row.original.thumbnailUrl
       return h(ThumbImage, {
@@ -536,7 +536,7 @@ const columns: TableColumn<Photo>[] = [
         key: row.original.id,
         thumbhash: row.original.thumbnailHash || '',
         class: 'size-16 min-w-[100px] object-cover rounded-md shadow',
-        onClick: () => openInNewTab(url || row.original.originalUrl || ''),
+        onClick: () => openImagePreview(url || row.original.originalUrl || '', row.original.title || 'Photo Preview'),
         style: { cursor: url ? 'pointer' : 'default' },
       })
     },
@@ -966,6 +966,20 @@ const selectedLivePhoto = ref<{
   originalUrl: string
   videoUrl: string
 } | null>(null)
+
+// 图片预览弹窗
+const isImagePreviewOpen = ref(false)
+const previewImage = ref<{
+  src: string
+  alt: string
+} | null>(null)
+
+const openImagePreview = (src: string, alt: string) => {
+  if (src) {
+    previewImage.value = { src, alt }
+    isImagePreviewOpen.value = true
+  }
+}
 
 const openInNewTab = (url: string) => {
   if (typeof window !== 'undefined') {
@@ -1712,6 +1726,50 @@ onUnmounted(() => {
                 "
               >
                 {{ $t('dashboard.photos.livePhotoModal.buttons.downloadVideo') }}
+              </UButton>
+            </div>
+          </div>
+        </div>
+      </template>
+    </UModal>
+
+    <!-- 图片预览模态框 -->
+    <UModal v-model:open="isImagePreviewOpen">
+      <template #content>
+        <div class="p-4 md:p-6 flex flex-col items-center">
+          <div class="w-full flex justify-end mb-2">
+            <UButton
+              variant="ghost"
+              color="neutral"
+              size="sm"
+              icon="tabler:x"
+              @click="isImagePreviewOpen = false"
+            />
+          </div>
+          
+          <div class="flex-grow flex items-center justify-center">
+            <img
+              v-if="previewImage"
+              :src="previewImage.src"
+              :alt="previewImage.alt"
+              class="max-h-[70vh] max-w-full object-contain rounded-lg"
+            />
+          </div>
+          
+          <div class="mt-4 text-center">
+            <p v-if="previewImage" class="text-sm text-neutral-600 dark:text-neutral-400">
+              {{ previewImage.alt }}
+            </p>
+            <div class="flex justify-center gap-2 mt-4">
+              <UButton
+                variant="soft"
+                color="info"
+                size="sm"
+                icon="tabler:external-link"
+                v-if="previewImage"
+                @click="openInNewTab(previewImage.src)"
+              >
+                {{ $t('dashboard.photos.table.columns.thumbnail.action') }}
               </UButton>
             </div>
           </div>
