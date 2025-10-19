@@ -464,6 +464,152 @@
     }
   },
   "dashboard": {
+    "photos": {
+      "title": "Photo Upload",
+      "subtitle": "Photos will be automatically processed and added to your library. You can organize your photos in the {0} section afterwards.",
+      "supportedFormats": "JPEG / PNG / HEIC / Live Photo / Motion Photo",
+      "maxFileSize": "Max {size}MB",
+      "buttons": {
+        "upload": "Upload Photos",
+        "queue": "Task Queue"
+      },
+      "uploader": {
+        "label": "Drag and drop or click to select photos",
+        "description": "Supports JPEG, PNG, HEIC format photos, and MOV format Live Photo videos. Maximum file size: {maxSize}MB per file"
+      },
+      "toolbar": {
+        "title": "Photo Management",
+        "filter": "Filter",
+        "refresh": "Refresh"
+      },
+      "photoFilter": {
+        "all": "All Photos",
+        "livephoto": "Live Photo",
+        "static": "Static Photos"
+      },
+      "stats": {
+        "photos": "photos",
+        "livePhotos": "Live Photos"
+      },
+      "table": {
+        "columns": {
+          "thumbnail": "Thumbnail",
+          "id": "Photo ID",
+          "title": "Photo Title",
+          "tags": "Keywords",
+          "isLivePhoto": "Live Photo",
+          "location": "Location",
+          "dateTaken": "Date Taken",
+          "lastModified": "Last Modified",
+          "fileSize": "File Size",
+          "colorSpace": "Color Space",
+          "reactions": "Reactions",
+          "actions": "Actions"
+        },
+        "cells": {
+          "noTags": "No tags",
+          "noGps": "No GPS info",
+          "unknown": "Unknown",
+          "staticPhoto": "Static Photo",
+          "noReactions": "No reactions"
+        }
+      },
+      "actions": {
+        "reprocess": "Reprocess",
+        "viewLivePhoto": "Live Photo Preview",
+        "delete": "Delete"
+      },
+      "selection": {
+        "selected": "{count} / {total} rows selected",
+        "batchReprocess": "Reprocess",
+        "batchDelete": "Batch Delete"
+      },
+      "slideover": {
+        "title": "Upload Photos",
+        "description": "Drag and drop or select files. Photos will be automatically processed and added to the library.",
+        "buttons": {
+          "clear": "Clear Selection",
+          "upload": "Upload {count} file(s)"
+        },
+        "footer": {
+          "noSelection": "Please select photos to upload",
+          "prepared": "{count} file(s) · {size}"
+        }
+      },
+      "delete": {
+        "single": {
+          "title": "Delete Photo",
+          "message": "Are you sure you want to delete this photo?"
+        },
+        "batch": {
+          "title": "Batch Delete Photos",
+          "message": "Are you sure you want to delete {count} selected photos?"
+        },
+        "warning": "Deleting the photo will remove the original, thumbnail and live photo video, and cannot be undone.",
+        "buttons": {
+          "cancel": "Cancel",
+          "confirm": "Confirm Delete"
+        }
+      },
+      "livePhotoModal": {
+        "title": "Live Photo: {title}",
+        "staticImage": "Static Image",
+        "livePhotoVideo": "Live Photo Video",
+        "buttons": {
+          "openVideo": "Open Video in New Window",
+          "downloadVideo": "Download Video",
+          "close": "Close"
+        },
+        "notSupported": "Your browser does not support video playback"
+      },
+      "messages": {
+        "uploadSuccess": "Photo uploaded successfully, processing...",
+        "uploadMultipleSuccess": "{count} photos uploaded successfully, processing...",
+        "reprocessSuccess": "Reprocessing task added",
+        "reprocessTaskId": "Task ID: {taskId}",
+        "deleteSuccess": "Photo deleted successfully",
+        "batchDeleteSuccess": "Successfully deleted {count} photos",
+        "batchSelectRequired": "Please select at least one photo for this operation",
+        "noStorageKey": "Unable to process: missing storage information",
+        "batchNoStorageKey": "{count} photos are missing storage information and cannot be processed",
+        "error": "An error occurred",
+        "deleteFailed": "Failed to delete photo",
+        "batchDeleteFailed": "Batch delete failed",
+        "batchReprocessFailed": "Batch reprocess failed",
+        "reprocessFailed": "Failed to reprocess photo",
+        "livePhotoNotFound": "Not a Live Photo",
+        "livePhotoLoadError": "Unable to load Live Photo information"
+      },
+      "errors": {
+        "noSelection": "Please select photos to upload",
+        "fileValidationFailed": "File validation failed",
+        "allFilesValidationFailed": "All files failed validation",
+        "unsupportedFormat": "Unsupported file format: {type}. Please select JPEG, PNG, or HEIC photos, or MOV format Live Photo videos.",
+        "fileTooLarge": "File too large: {size}MB. Maximum supported: {maxSize}MB.",
+        "uploadFailed": "Upload failed",
+        "uploadNetworkError": "Network connection failed or CORS error. Please check network and storage configuration.",
+        "uploadCorsError": "CORS request failed. Please check storage CORS configuration.",
+        "uploadUnauthorized": "Unauthorized. Please log in again.",
+        "taskSubmitFailed": "Failed to submit processing task",
+        "taskStatusCheckFailed": "Failed to check task status. Please refresh the page and try again."
+      },
+      "processing": {
+        "preparing": "Preparing",
+        "uploading": "Uploading",
+        "processing": "Processing",
+        "completed": "Completed",
+        "error": "Error",
+        "skipped": "Skipped",
+        "blocked": "Blocked"
+      },
+      "uploadQueue": {
+        "clearCompleted": "Clear Completed Tasks",
+        "clearAll": "Clear All Tasks",
+        "taskCleared": "Completed tasks cleared",
+        "allTasksCleared": "All upload tasks cleared",
+        "tasksCleared": "{count} task(s) cleared"
+      }
+    },
     "albums": {
       "title": "Album Management",
       "subtitle": "Create and manage your photo albums",

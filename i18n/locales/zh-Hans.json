@@ -464,6 +464,152 @@
     }
   },
   "dashboard": {
+    "photos": {
+      "title": "照片上传",
+      "subtitle": "上传后照片会自动处理并添加到库中。您可以随后在 {0} 中组织您的照片。",
+      "supportedFormats": "JPEG / PNG / HEIC / 实况视频 / Motion Photo",
+      "maxFileSize": "最大 {size}MB",
+      "buttons": {
+        "upload": "上传照片",
+        "queue": "任务队列"
+      },
+      "uploader": {
+        "label": "拖放或点击选择照片",
+        "description": "支持 JPEG、PNG、HEIC 格式照片，以及 MOV 格式 Live Photo 视频，单个文件最大 {maxSize}MB"
+      },
+      "toolbar": {
+        "title": "照片管理",
+        "filter": "筛选",
+        "refresh": "刷新"
+      },
+      "photoFilter": {
+        "all": "全部照片",
+        "livephoto": "Live Photo",
+        "static": "静态照片"
+      },
+      "stats": {
+        "photos": "照片",
+        "livePhotos": "Live Photo"
+      },
+      "table": {
+        "columns": {
+          "thumbnail": "缩略图",
+          "id": "照片ID",
+          "title": "照片标题",
+          "tags": "关键词",
+          "isLivePhoto": "Live Photo",
+          "location": "位置",
+          "dateTaken": "拍摄日期",
+          "lastModified": "最后更新",
+          "fileSize": "文件大小",
+          "colorSpace": "颜色空间",
+          "reactions": "表态",
+          "actions": "操作"
+        },
+        "cells": {
+          "noTags": "无标签",
+          "noGps": "无 GPS 信息",
+          "unknown": "未知",
+          "staticPhoto": "一般照片",
+          "noReactions": "无表态"
+        }
+      },
+      "actions": {
+        "reprocess": "重新处理",
+        "viewLivePhoto": "实况预览",
+        "delete": "删除"
+      },
+      "selection": {
+        "selected": "{count} / {total} 行已选择",
+        "batchReprocess": "重新处理",
+        "batchDelete": "批量删除"
+      },
+      "slideover": {
+        "title": "上传照片",
+        "description": "拖拽或选择文件。上传后照片会自动处理并添加到库中。",
+        "buttons": {
+          "clear": "清空选择",
+          "upload": "上传 {count} 个文件"
+        },
+        "footer": {
+          "noSelection": "请选择要上传的照片",
+          "prepared": "{count} 个文件 · {size}"
+        }
+      },
+      "delete": {
+        "single": {
+          "title": "删除照片",
+          "message": "确定要删除这张照片吗？"
+        },
+        "batch": {
+          "title": "批量删除照片",
+          "message": "确定要删除选中的 {count} 张照片吗？"
+        },
+        "warning": "删除操作会同时移除原图、缩略图和实况视频，且无法恢复。",
+        "buttons": {
+          "cancel": "取消",
+          "confirm": "确认删除"
+        }
+      },
+      "livePhotoModal": {
+        "title": "Live Photo: {title}",
+        "staticImage": "静态图片",
+        "livePhotoVideo": "Live Photo 视频",
+        "buttons": {
+          "openVideo": "在新窗口打开视频",
+          "downloadVideo": "下载视频",
+          "close": "关闭"
+        },
+        "notSupported": "您的浏览器不支持视频播放"
+      },
+      "messages": {
+        "uploadSuccess": "照片已成功上传，正在处理中...",
+        "uploadMultipleSuccess": "已成功上传 {count} 张照片，正在处理中...",
+        "reprocessSuccess": "已添加重新处理任务",
+        "reprocessTaskId": "任务ID: {taskId}",
+        "deleteSuccess": "照片删除成功",
+        "batchDeleteSuccess": "已成功删除 {count} 张照片",
+        "batchSelectRequired": "请至少选择一张照片进行此操作",
+        "noStorageKey": "无法处理：缺少存储信息",
+        "batchNoStorageKey": "{count} 张照片缺少存储信息，无法处理",
+        "error": "发生错误",
+        "deleteFailed": "删除照片失败",
+        "batchDeleteFailed": "批量删除失败",
+        "batchReprocessFailed": "批量重新处理失败",
+        "reprocessFailed": "重新处理失败",
+        "livePhotoNotFound": "不是 Live Photo",
+        "livePhotoLoadError": "无法获取 Live Photo 信息"
+      },
+      "errors": {
+        "noSelection": "请选择要上传的照片",
+        "fileValidationFailed": "文件验证失败",
+        "allFilesValidationFailed": "所有文件验证失败",
+        "unsupportedFormat": "不支持的文件格式: {type}。请选择 JPEG、PNG、HEIC 格式的图片或 MOV 格式的 Live Photo 视频。",
+        "fileTooLarge": "文件太大: {size}MB。最大支持 {maxSize}MB。",
+        "uploadFailed": "上传失败",
+        "uploadNetworkError": "网络连接失败或 CORS 错误。请检查网络连接和存储配置。",
+        "uploadCorsError": "跨域请求失败。请检查存储服务的 CORS 配置。",
+        "uploadUnauthorized": "未授权。请重新登录。",
+        "taskSubmitFailed": "提交处理任务失败",
+        "taskStatusCheckFailed": "状态检查失败，请刷新页面重试"
+      },
+      "processing": {
+        "preparing": "准备中",
+        "uploading": "上传中",
+        "processing": "处理中",
+        "completed": "已完成",
+        "error": "错误",
+        "skipped": "已跳过",
+        "blocked": "已阻止"
+      },
+      "uploadQueue": {
+        "clearCompleted": "清理已完成的任务",
+        "clearAll": "清理全部任务",
+        "taskCleared": "已完成的任务清理完成",
+        "allTasksCleared": "已清除全部上传任务",
+        "tasksCleared": "已清除 {count} 个任务"
+      }
+    },
     "albums": {
       "title": "相簿管理",
       "subtitle": "创建和管理您的照片相簿",

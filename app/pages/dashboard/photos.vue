@@ -195,12 +195,12 @@ const uploadImage = async (file: File, existingFileId?: string) => {
             startTaskStatusCheck(resp.taskId, fileId)
           } else {
             uploadingFile.status = 'error'
-            uploadingFile.error = '提交处理任务失败'
+            uploadingFile.error = $t('dashboard.photos.messages.taskSubmitFailed')
             uploadingFiles.value = new Map(uploadingFiles.value)
           }
         } catch (processError: any) {
           uploadingFile.status = 'error'
-          uploadingFile.error = `提交处理任务失败: ${processError.message}`
+          uploadingFile.error = `${$t('dashboard.photos.messages.taskSubmitFailed')}: ${processError.message}`
           uploadingFile.canAbort = false
           uploadingFiles.value = new Map(uploadingFiles.value)
         }
@@ -219,26 +219,26 @@ const uploadImage = async (file: File, existingFileId?: string) => {
     // 处理重复文件阻止模式的错误
     if (error.statusCode === 409 && error.data?.duplicate) {
       uploadingFile.status = 'blocked'
-      uploadingFile.error = error.data.title || '文件已存在'
+      uploadingFile.error = error.data.title || $t('upload.duplicate.block.title')
     } else {
       // 其他错误
-      uploadingFile.error = error.message || '上传失败'
+      uploadingFile.error = error.message || $t('dashboard.photos.messages.uploadFailed')
     }
 
     uploadingFiles.value = new Map(uploadingFiles.value)
 
     // 提供更详细的错误信息
     if (error.response?.status === 401) {
-      uploadingFile.error = '未授权，请重新登录'
+      uploadingFile.error = $t('dashboard.photos.errors.uploadUnauthorized')
     } else if (error.message?.includes('CORS')) {
-      uploadingFile.error = '跨域请求失败，请检查存储服务的 CORS 配置'
+      uploadingFile.error = $t('dashboard.photos.errors.uploadCorsError')
     } else if (
       error.message?.includes('NetworkError') ||
       error.name === 'TypeError'
     ) {
-      uploadingFile.error = '网络连接失败或 CORS 错误，请检查网络连接和存储配置'
+      uploadingFile.error = $t('dashboard.photos.errors.uploadNetworkError')
     } else if (error.message?.includes('上传到存储失败')) {
-      uploadingFile.error = '文件上传到云存储失败，请重试'
+      uploadingFile.error = $t('dashboard.photos.messages.uploadFailed')
     }
 
     uploadingFiles.value = new Map(uploadingFiles.value)
@@ -247,6 +247,44 @@ const uploadImage = async (file: File, existingFileId?: string) => {
 
 const toast = useToast()
 const selectedFiles = ref<File[]>([])
+const isUploadSlideoverOpen = ref(false)
+
+const hasSelectedFiles = computed(() => selectedFiles.value.length > 0)
+
+const selectedFilesTotalSize = computed(() =>
+  selectedFiles.value.reduce((total, file) => total + (file?.size || 0), 0),
+)
+
+const selectedFilesTotalSizeLabel = computed(() =>
+  selectedFilesTotalSize.value > 0
+    ? formatBytes(selectedFilesTotalSize.value)
+    : '0 B',
+)
+
+const selectedFilesSummary = computed(() => {
+  if (!selectedFiles.value.length) {
+    return $t('dashboard.photos.slideover.footer.noSelection')
+  }
+
+  return $t('dashboard.photos.slideover.footer.prepared', {
+    count: selectedFiles.value.length,
+    size: selectedFilesTotalSizeLabel.value,
+  })
+})
+
+const clearSelectedFiles = () => {
+  selectedFiles.value = []
+}
+
+watch(isUploadSlideoverOpen, (open) => {
+  if (!open) {
+    clearSelectedFiles()
+  }
+})
+
+const openUploadSlideover = () => {
+  isUploadSlideoverOpen.value = true
+}
 
 // 表格多选状态
 const rowSelection = ref({})
@@ -343,7 +381,7 @@ const startTaskStatusCheck = (taskId: number, fileId: string) => {
       } else if (response.status === 'failed') {
         // 任务失败
         uploadingFile.status = 'error'
-        uploadingFile.error = `处理失败: ${response.errorMessage || '未知错误'}`
+        uploadingFile.error = `${$t('dashboard.photos.messages.error')}: ${response.errorMessage || $t('dashboard.photos.table.cells.unknown')}`
         uploadingFile.stage = null
         uploadingFiles.value = new Map(uploadingFiles.value)
 
@@ -364,7 +402,7 @@ const startTaskStatusCheck = (taskId: number, fileId: string) => {
       const uploadingFile = uploadingFiles.value.get(fileId)
       if (uploadingFile) {
         uploadingFile.status = 'error'
-        uploadingFile.error = '状态检查失败，请刷新页面重试'
+        uploadingFile.error = $t('dashboard.photos.messages.taskStatusCheckFailed')
         uploadingFiles.value = new Map(uploadingFiles.value)
       }
     }
@@ -421,8 +459,8 @@ const clearCompletedTasks = () => {
 
   if (toRemove.length > 0) {
     toast.add({
-      title: '任务清理完成',
-      description: `已清除 ${toRemove.length} 个已完成的任务`,
+      title: $t('dashboard.photos.uploadQueue.taskCleared'),
+      description: $t('dashboard.photos.uploadQueue.tasksCleared', { count: toRemove.length }),
       color: 'info',
     })
   }
@@ -460,8 +498,8 @@ const clearAllUploads = () => {
 
   if (toRemove.length > 0) {
     toast.add({
-      title: '已清除全部任务',
-      description: `已清除 ${toRemove.length} 个上传任务`,
+      title: $t('dashboard.photos.uploadQueue.allTasksCleared'),
+      description: $t('dashboard.photos.uploadQueue.tasksCleared', { count: toRemove.length }),
       color: 'info',
     })
   }
@@ -489,7 +527,7 @@ const columns: TableColumn<Photo>[] = [
   },
   {
     accessorKey: 'thumbnailUrl',
-    header: '缩略图',
+    header: $t('dashboard.photos.table.columns.thumbnail'),
     cell: ({ row }) => {
       const url = row.original.thumbnailUrl
       return h(ThumbImage, {
@@ -505,15 +543,15 @@ const columns: TableColumn<Photo>[] = [
   },
   {
     accessorKey: 'id',
-    header: 'Photo ID',
+    header: $t('dashboard.photos.table.columns.id'),
   },
   {
     accessorKey: 'title',
-    header: '照片标题',
+    header: $t('dashboard.photos.table.columns.title'),
   },
   {
     accessorKey: 'tags',
-    header: '关键词',
+    header: $t('dashboard.photos.table.columns.tags'),
     cell: ({ row }) => {
       const tags = row.original.tags
       return h('div', { class: 'flex items-center gap-1' }, [
@@ -529,13 +567,13 @@ const columns: TableColumn<Photo>[] = [
                 () => tag,
               ),
             )
-          : h('span', { class: 'text-neutral-400 text-xs' }, '无标签'),
+          : h('span', { class: 'text-neutral-400 text-xs' }, $t('dashboard.photos.table.cells.noTags')),
       ])
     },
   },
   {
     accessorKey: 'isLivePhoto',
-    header: 'Live Photo',
+    header: $t('dashboard.photos.table.columns.isLivePhoto'),
     cell: ({ row }) => {
       const isLivePhoto = row.original.isLivePhoto
       return h('div', { class: 'flex items-center gap-2' }, [
@@ -551,7 +589,7 @@ const columns: TableColumn<Photo>[] = [
                   class:
                     'text-yellow-600 dark:text-yellow-400 text-xs font-medium',
                 },
-                '实况',
+                $t('ui.livePhoto'),
               ),
             ])
           : h(
@@ -559,7 +597,7 @@ const columns: TableColumn<Photo>[] = [
               {
                 class: 'text-neutral-400 text-xs',
               },
-              '一般照片',
+              $t('dashboard.photos.table.cells.staticPhoto'),
             ),
       ])
     },
@@ -571,12 +609,12 @@ const columns: TableColumn<Photo>[] = [
   },
   {
     accessorKey: 'location',
-    header: '位置',
+    header: $t('dashboard.photos.table.columns.location'),
     cell: ({ row }) => {
       const { exif, city, country } = row.original
 
       if (!exif?.GPSLongitude && !exif?.GPSLatitude) {
-        return h('span', { class: 'text-neutral-400 text-xs' }, '无 GPS 信息')
+        return h('span', { class: 'text-neutral-400 text-xs' }, $t('dashboard.photos.table.cells.noGps'))
       }
 
       const location = [city, country].filter(Boolean).join(', ')
@@ -585,46 +623,46 @@ const columns: TableColumn<Photo>[] = [
         {
           class: location ? 'text-xs' : 'text-neutral-400 text-xs',
         },
-        location || '未知',
+        location || $t('dashboard.photos.table.cells.unknown'),
       )
     },
   },
   {
     accessorKey: 'dateTaken',
-    header: '拍摄日期',
+    header: $t('dashboard.photos.table.columns.dateTaken'),
     cell: (info) => {
       const date = info.getValue() as string
       return h(
         'span',
         { class: 'font-mono text-xs' },
-        date ? dayjs(date).format('YYYY-MM-DD HH:mm:ss') : '未知',
+        date ? dayjs(date).format('YYYY-MM-DD HH:mm:ss') : $t('dashboard.photos.table.cells.unknown'),
       )
     },
   },
   {
     accessorKey: 'lastModified',
-    header: '最后更新',
+    header: $t('dashboard.photos.table.columns.lastModified'),
     cell: (info) => {
       const date = info.getValue() as string
       return h(
         'span',
         { class: 'font-mono text-xs' },
-        date ? dayjs(date).format('YYYY-MM-DD HH:mm:ss') : '未知',
+        date ? dayjs(date).format('YYYY-MM-DD HH:mm:ss') : $t('dashboard.photos.table.cells.unknown'),
       )
     },
   },
   {
     accessorKey: 'fileSize',
-    header: '文件大小',
+    header: $t('dashboard.photos.table.columns.fileSize'),
     cell: (info) => formatBytes(info.getValue() as number),
   },
   {
     accessorFn: (row) => row.exif?.ColorSpace,
-    header: '颜色空间',
+    header: $t('dashboard.photos.table.columns.colorSpace'),
   },
   {
     accessorKey: 'reactions',
-    header: '表态',
+    header: $t('dashboard.photos.table.columns.reactions'),
     cell: ({ row }) => {
       const photoId = row.original.id
       const reactions = reactionsData.value[photoId] || {}
@@ -634,7 +672,7 @@ const columns: TableColumn<Photo>[] = [
       )
 
       if (totalReactions === 0) {
-        return h('span', { class: 'text-neutral-400 text-xs' }, '无表态')
+        return h('span', { class: 'text-neutral-400 text-xs' }, $t('dashboard.photos.table.cells.noReactions'))
       }
 
       const reactionIcons: Record<string, string> = {
@@ -690,7 +728,7 @@ const columns: TableColumn<Photo>[] = [
   },
   {
     accessorKey: 'actions',
-    header: '操作',
+    header: $t('dashboard.photos.table.columns.actions'),
   },
 ]
 
@@ -714,7 +752,7 @@ const validateFile = (file: File): { valid: boolean; error?: string } => {
   if (!isValidImageType && !isValidImageExtension && !isValidVideoExtension) {
     return {
       valid: false,
-      error: `不支持的文件格式: ${file.type}。请选择 JPEG、PNG、HEIC 格式的图片或 MOV 格式的 LivePhoto 视频。`,
+      error: $t('dashboard.photos.errors.unsupportedFormat', { type: file.type }),
     }
   }
 
@@ -722,7 +760,10 @@ const validateFile = (file: File): { valid: boolean; error?: string } => {
   if (file.size > maxSize) {
     return {
       valid: false,
-      error: `文件太大: ${(file.size / 1024 / 1024).toFixed(2)}MB。最大支持 ${MAX_FILE_SIZE}MB。`,
+      error: $t('dashboard.photos.errors.fileTooLarge', {
+        size: (file.size / 1024 / 1024).toFixed(2),
+        maxSize: MAX_FILE_SIZE,
+      }),
     }
   }
 
@@ -756,8 +797,8 @@ const handleUpload = async () => {
 
   if (validFiles.length === 0) {
     toast.add({
-      title: '批量上传失败',
-      description: '所有文件验证失败',
+      title: $t('dashboard.photos.messages.error'),
+      description: $t('dashboard.photos.errors.allFilesValidationFailed'),
       color: 'error',
     })
     selectedFiles.value = []
@@ -830,6 +871,7 @@ const handleUpload = async () => {
 
   // 清空选中的文件
   selectedFiles.value = []
+  isUploadSlideoverOpen.value = false
 }
 
 // LivePhoto 相关操作
@@ -848,16 +890,16 @@ const handleViewLivePhoto = async (photoId: string) => {
       isLivePhotoModalOpen.value = true
     } else {
       toast.add({
-        title: '不是 LivePhoto',
-        description: '该照片不包含 LivePhoto 视频',
+        title: $t('dashboard.photos.messages.livePhotoNotFound'),
+        description: '',
         color: 'warning',
       })
     }
   } catch (error) {
     console.error('获取 LivePhoto 信息失败:', error)
     toast.add({
-      title: '操作失败',
-      description: '无法获取 LivePhoto 信息',
+      title: $t('dashboard.photos.messages.error'),
+      description: $t('dashboard.photos.messages.livePhotoLoadError'),
       color: 'error',
     })
   }
@@ -868,16 +910,16 @@ const handleReprocessSingle = async (photo: Photo) => {
   try {
     if (!photo || !photo.storageKey) {
       toast.add({
-        title: '处理失败',
-        description: '无法找到照片的存储键',
+        title: $t('dashboard.photos.messages.error'),
+        description: $t('dashboard.photos.messages.noStorageKey'),
         color: 'error',
       })
       return
     }
 
     const reprocessToast = toast.add({
-      title: '正在处理照片',
-      description: '正在添加到任务队列...',
+      title: $t('dashboard.photos.messages.reprocessSuccess'),
+      description: '',
       color: 'info',
     })
 
@@ -895,22 +937,22 @@ const handleReprocessSingle = async (photo: Photo) => {
 
     if (result.success) {
       toast.update(reprocessToast.id, {
-        title: '处理任务已添加',
-        description: `已添加到任务队列，任务ID: ${result.taskId}`,
+        title: $t('dashboard.photos.messages.reprocessSuccess'),
+        description: $t('dashboard.photos.messages.reprocessTaskId', { taskId: result.taskId }),
         color: 'success',
       })
     } else {
       toast.update(reprocessToast.id, {
-        title: '添加任务失败',
-        description: '无法添加处理任务',
+        title: $t('dashboard.photos.messages.error'),
+        description: $t('dashboard.photos.messages.taskSubmitFailed'),
         color: 'error',
       })
     }
   } catch (error: any) {
     console.error('处理照片失败:', error)
     toast.add({
-      title: '处理失败',
-      description: error.message || '添加任务时发生错误',
+      title: $t('dashboard.photos.messages.reprocessFailed'),
+      description: error.message || $t('dashboard.photos.messages.error'),
       color: 'error',
     })
   }
@@ -947,22 +989,22 @@ const handleSingleDeleteRequest = (photo: Photo) => {
 }
 
 // 批量删除功能
-const handleBatchDelete = () => {
-  const selectedRowModel = table.value?.tableApi?.getFilteredSelectedRowModel()
-  const selectedPhotos =
-    selectedRowModel?.rows.map((row: any) => row.original) || []
+  const handleBatchDelete = () => {
+    const selectedRowModel = table.value?.tableApi?.getFilteredSelectedRowModel()
+    const selectedPhotos =
+      selectedRowModel?.rows.map((row: any) => row.original) || []
 
-  if (selectedPhotos.length === 0) {
-    toast.add({
-      title: '请选择照片',
-      description: '请至少选择一张照片进行删除',
-      color: 'warning',
-    })
-    return
+    if (selectedPhotos.length === 0) {
+      toast.add({
+        title: $t('dashboard.photos.selection.selected', { count: 0, total: 0 }),
+        description: $t('dashboard.photos.messages.batchSelectRequired'),
+        color: 'warning',
+      })
+      return
+    }
+
+    openDeleteConfirm('batch', selectedPhotos)
   }
-
-  openDeleteConfirm('batch', selectedPhotos)
-}
 
 const confirmDelete = async () => {
   if (deleteTargetPhotos.value.length === 0) {
@@ -980,8 +1022,8 @@ const confirmDelete = async () => {
   try {
     if (mode === 'batch') {
       deleteToast = toast.add({
-        title: '正在删除照片',
-        description: `正在删除 ${targetPhotos.length} 张照片...`,
+        title: $t('dashboard.photos.delete.batch.title'),
+        description: $t('dashboard.photos.messages.deleteSuccess'),
         color: 'info',
       })
       await Promise.all(
@@ -993,8 +1035,8 @@ const confirmDelete = async () => {
       )
 
       toast.update(deleteToast.id, {
-        title: '批量删除成功',
-        description: `已成功删除 ${targetPhotos.length} 张照片`,
+        title: $t('dashboard.photos.messages.batchDeleteSuccess', { count: targetPhotos.length }),
+        description: '',
         color: 'success',
       })
 
@@ -1002,16 +1044,16 @@ const confirmDelete = async () => {
     } else {
       const photo = targetPhotos[0]
       if (!photo) {
-        throw new Error('未找到要删除的照片')
+        throw new Error($t('dashboard.photos.messages.error'))
       }
-      
+
       await $fetch(`/api/photos/${photo.id}`, {
         method: 'DELETE',
       })
 
       toast.add({
-        title: '删除成功',
-        description: '照片及其关联资源已被删除',
+        title: $t('dashboard.photos.messages.deleteSuccess'),
+        description: '',
         color: 'success',
       })
     }
@@ -1021,17 +1063,17 @@ const confirmDelete = async () => {
     deleteTargetPhotos.value = []
   } catch (error: any) {
     console.error('删除照片失败:', error)
-    const message = error?.message || '删除过程中发生错误'
+    const message = error?.message || $t('dashboard.photos.messages.error')
 
     if (mode === 'batch' && deleteToast) {
       toast.update(deleteToast.id, {
-        title: '批量删除失败',
+        title: $t('dashboard.photos.messages.batchDeleteFailed'),
         description: message,
         color: 'error',
       })
     } else {
       toast.add({
-        title: '删除失败',
+        title: $t('dashboard.photos.messages.deleteFailed'),
         description: message,
         color: 'error',
       })
@@ -1049,8 +1091,8 @@ const handleBatchReprocess = async () => {
 
   if (selectedPhotos.length === 0) {
     toast.add({
-      title: '请选择照片',
-      description: '请至少选择一张照片进行处理',
+      title: $t('dashboard.photos.messages.batchSelectRequired'),
+      description: '',
       color: 'warning',
     })
     return
@@ -1062,8 +1104,8 @@ const handleBatchReprocess = async () => {
   )
   if (photosWithStorageKey.length !== selectedPhotos.length) {
     toast.add({
-      title: '处理失败',
-      description: `${selectedPhotos.length - photosWithStorageKey.length} 张照片缺少存储信息，无法处理`,
+      title: $t('dashboard.photos.messages.error'),
+      description: $t('dashboard.photos.messages.batchNoStorageKey', { count: selectedPhotos.length - photosWithStorageKey.length }),
       color: 'error',
     })
     return
@@ -1071,8 +1113,8 @@ const handleBatchReprocess = async () => {
 
   try {
     const reprocessToast = toast.add({
-      title: '正在添加处理任务',
-      description: `正在为所选 ${photosWithStorageKey.length} 张照片添加处理任务...`,
+      title: $t('dashboard.photos.messages.batchSelectRequired'),
+      description: '',
       color: 'info',
     })
 
@@ -1092,14 +1134,14 @@ const handleBatchReprocess = async () => {
 
     if (result.success) {
       toast.update(reprocessToast.id, {
-        title: '任务已添加',
-        description: `已将 ${photosWithStorageKey.length} 张照片添加到处理队列`,
+        title: $t('dashboard.photos.messages.reprocessSuccess'),
+        description: $t('dashboard.queue.title', { count: photosWithStorageKey.length }),
         color: 'success',
       })
     } else {
       toast.update(reprocessToast.id, {
-        title: '添加任务失败',
-        description: '无法添加批量重新处理任务',
+        title: $t('dashboard.photos.messages.error'),
+        description: $t('dashboard.photos.messages.batchReprocessFailed'),
         color: 'error',
       })
     }
@@ -1109,8 +1151,8 @@ const handleBatchReprocess = async () => {
   } catch (error: any) {
     console.error('批量处理失败:', error)
     toast.add({
-      title: '批量处理失败',
-      description: error.message || '添加任务时发生错误',
+      title: $t('dashboard.photos.messages.batchReprocessFailed'),
+      description: error.message || $t('dashboard.photos.messages.error'),
       color: 'error',
     })
   }
@@ -1137,39 +1179,196 @@ onUnmounted(() => {
       @go-to-queue="$router.push('/dashboard/queue')"
     />
 
-    <!-- 文件上传组件 -->
-    <div class="relative">
-      <UFileUpload
-        v-model="selectedFiles"
-        label="选择照片"
-        :description="`支持 JPEG、PNG、HEIC 格式照片，以及 MOV 格式 LivePhoto 视频，最大 ${MAX_FILE_SIZE}MB`"
-        layout="list"
-        size="xl"
-        accept="image/jpeg,image/png,image/heic,image/heif,video/quicktime,.mov"
-        multiple
+    <!-- 文件上传入口 -->
+    <div
+      class="relative overflow-hidden rounded-3xl border border-neutral-200/80 bg-gradient-to-br from-white via-white to-neutral-50 shadow-sm transition dark:border-neutral-800/70 dark:from-neutral-900 dark:via-neutral-900/80 dark:to-neutral-900"
+    >
+      <div
+        class="pointer-events-none absolute -left-32 top-[-6rem] h-[18rem] w-[18rem] rounded-full bg-primary-400/20 blur-3xl dark:bg-primary-500/20"
       />
-      <UButton
-        class="absolute top-3.5 right-3.5 hidden sm:flex"
-        variant="soft"
-        size="lg"
-        icon="tabler:upload"
-        :disabled="selectedFiles.length === 0"
-        @click="handleUpload"
-      >
-        上传照片
-      </UButton>
-      <!-- 移动端上传按钮 -->
-      <UButton
-        v-if="selectedFiles.length > 0"
-        class="mt-3 w-full sm:hidden"
-        variant="soft"
-        size="lg"
-        icon="tabler:upload"
-        @click="handleUpload"
-      >
-        上传 {{ selectedFiles.length }} 张照片
-      </UButton>
+      <div class="relative flex flex-col gap-6 p-5 sm:p-8">
+        <div
+          class="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between"
+        >
+            <div class="space-y-4">
+            <div class="flex items-center gap-3">
+              <span
+                class="flex size-12 items-center justify-center rounded-2xl bg-primary-500/10 text-primary-600 dark:bg-primary-500/15 dark:text-primary-300"
+              >
+                <Icon
+                  name="tabler:cloud-upload"
+                  class="size-6"
+                />
+              </span>
+              <div>
+                <h2
+                  class="text-lg font-semibold text-neutral-800 dark:text-neutral-100"
+                >
+                  {{ $t('dashboard.photos.title') }}
+                </h2>
+                <i18n-t
+                  keypath="dashboard.photos.subtitle"
+                  tag="p"
+                  class="mt-1 text-sm text-neutral-500 dark:text-neutral-400"
+                >
+                  <template #default>
+                    <NuxtLink
+                      to="/dashboard/albums"
+                      class="text-primary font-medium"
+                    >
+                      {{ $t('title.albums') }}
+                    </NuxtLink>
+                  </template>
+                </i18n-t>
+              </div>
+            </div>            <div
+              class="flex flex-wrap items-center gap-1 text-xs font-medium text-neutral-500 dark:text-neutral-400"
+            >
+              <UBadge
+                variant="soft"
+                color="primary"
+                size="sm"
+              >
+                JPEG / PNG
+              </UBadge>
+              <UBadge
+                variant="soft"
+                color="primary"
+                size="sm"
+              >
+                HEIC
+              </UBadge>
+              <UBadge
+                variant="soft"
+                color="primary"
+                size="sm"
+              >
+                {{ $t('ui.livePhoto') }}
+              </UBadge>
+              <UBadge
+                variant="soft"
+                color="primary"
+                size="sm"
+              >
+                Motion Photo
+              </UBadge>
+              <UBadge
+                variant="outline"
+                color="neutral"
+                size="sm"
+              >
+                {{ $t('dashboard.photos.maxFileSize', { size: MAX_FILE_SIZE }) }}
+              </UBadge>
+            </div>
+          </div>
+
+          <div class="flex gap-2 items-center">
+            <UButton
+              variant="soft"
+              size="lg"
+              class="w-full sm:w-auto"
+              icon="tabler:list-check"
+              @click="$router.push('/dashboard/queue')"
+            >
+              {{ $t('dashboard.photos.buttons.queue') }}
+            </UButton>
+            <UButton
+              size="lg"
+              class="w-full sm:w-auto"
+              icon="tabler:cloud-upload"
+              @click="openUploadSlideover"
+            >
+              {{ $t('dashboard.photos.buttons.upload') }}
+            </UButton>
+          </div>
+        </div>
+      </div>
     </div>
+
+    <USlideover
+      v-model:open="isUploadSlideoverOpen"
+      :title="$t('dashboard.photos.slideover.title')"
+      :description="$t('dashboard.photos.slideover.description')"
+      :ui="{
+        content: 'sm:max-w-xl',
+        body: 'p-2',
+        header: 'px-6 py-5 border-b border-neutral-200 dark:border-neutral-800',
+        footer: 'px-6 py-5 border-t border-neutral-200 dark:border-neutral-800',
+      }"
+    >
+      <template #body>
+        <UFileUpload
+          v-model="selectedFiles"
+          :label="$t('dashboard.photos.uploader.label')"
+          :description="$t('dashboard.photos.uploader.description', { maxSize: MAX_FILE_SIZE })"
+          icon="tabler:cloud-upload"
+          layout="list"
+          size="xl"
+          accept="image/jpeg,image/png,image/heic,image/heif,video/quicktime,.mov"
+          multiple
+          highlight
+          dropzone
+          :file-delete="{ variant: 'soft', color: 'neutral' }"
+          :ui="{
+            root: 'w-full',
+            base: 'group relative flex flex-col items-center justify-center gap-3 rounded-3xl border-2 border-dashed border-neutral-200/80 bg-white/90 px-6 py-12 text-center shadow-sm transition-all duration-300 hover:border-primary-400/80 hover:bg-primary-500/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/60 dark:border-neutral-700/70 dark:bg-neutral-900/80',
+            wrapper: 'flex flex-col items-center gap-2',
+            label:
+              'text-base font-semibold text-neutral-800 dark:text-neutral-100',
+            description: 'text-sm text-neutral-500 dark:text-neutral-400',
+            files: 'mt-2 flex w-full flex-col gap-2 overflow-y-auto',
+            file: 'flex items-center justify-between gap-3 rounded-2xl border border-neutral-200/80 bg-white/80 px-4 py-3 text-left shadow-sm shadow-black/5 backdrop-blur-sm dark:border-neutral-800/80 dark:bg-neutral-900/70',
+            fileLeadingAvatar: 'ring-1 ring-white/80 dark:ring-neutral-800',
+            fileWrapper: 'min-w-0 flex-1',
+            fileName:
+              'text-sm font-medium text-neutral-700 dark:text-neutral-100 truncate',
+            fileSize: 'text-xs text-neutral-500 dark:text-neutral-400',
+            fileTrailingButton: 'text-neutral-400 hover:text-error-500',
+          }"
+        />
+      </template>
+
+      <template #footer>
+        <div
+          class="flex w-full flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"
+        >
+          <div
+            class="flex flex-col gap-1 text-sm text-neutral-500 dark:text-neutral-400"
+          >
+            <span>{{
+              hasSelectedFiles
+                ? selectedFilesSummary
+                : $t('dashboard.photos.slideover.footer.noSelection')
+            }}</span>
+          </div>
+          <div class="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
+            <UButton
+              variant="soft"
+              color="neutral"
+              class="w-full sm:w-auto"
+              :disabled="!hasSelectedFiles"
+              @click="clearSelectedFiles"
+            >
+              {{ $t('dashboard.photos.slideover.buttons.clear') }}
+            </UButton>
+            <UButton
+              color="primary"
+              size="lg"
+              class="w-full sm:w-auto"
+              icon="tabler:upload"
+              :disabled="!hasSelectedFiles"
+              @click="handleUpload"
+            >
+              {{
+                hasSelectedFiles
+                  ? $t('dashboard.photos.slideover.buttons.upload', { count: selectedFiles.length })
+                  : $t('dashboard.photos.buttons.upload')
+              }}
+            </UButton>
+          </div>
+        </div>
+      </template>
+    </USlideover>
 
     <!-- 工具栏 -->
     <div
@@ -1183,7 +1382,7 @@ onUnmounted(() => {
         <span
           class="font-medium text-neutral-700 dark:text-neutral-300 hidden sm:inline"
         >
-          照片管理
+          {{ $t('dashboard.photos.toolbar.title') }}
         </span>
         <div class="flex items-center gap-1 sm:gap-2">
           <UBadge
@@ -1193,7 +1392,7 @@ onUnmounted(() => {
             size="sm"
           >
             <span class="hidden sm:inline"
-              >{{ livePhotoStats.staticPhotos }} 照片</span
+              >{{ livePhotoStats.staticPhotos }} {{ $t('dashboard.photos.stats.photos') }}</span
             >
             <span class="sm:hidden">{{ livePhotoStats.staticPhotos }}P</span>
           </UBadge>
@@ -1204,7 +1403,7 @@ onUnmounted(() => {
             size="sm"
           >
             <span class="hidden sm:inline"
-              >{{ livePhotoStats.livePhotos }} Live Photo</span
+              >{{ livePhotoStats.livePhotos }} {{ $t('dashboard.photos.stats.livePhotos') }}</span
             >
             <span class="sm:hidden">{{ livePhotoStats.livePhotos }}LP</span>
           </UBadge>
@@ -1241,13 +1440,13 @@ onUnmounted(() => {
           v-model="photoFilter"
           class="w-full sm:w-48"
           :items="[
-            { label: '全部照片', value: 'all', icon: 'tabler:photo-scan' },
+            { label: $t('dashboard.photos.photoFilter.all'), value: 'all', icon: 'tabler:photo-scan' },
             {
-              label: 'Live Photo',
+              label: $t('dashboard.photos.photoFilter.livephoto'),
               value: 'livephoto',
               icon: 'tabler:live-photo',
             },
-            { label: '静态照片', value: 'static', icon: 'tabler:photo' },
+            { label: $t('dashboard.photos.photoFilter.static'), value: 'static', icon: 'tabler:photo' },
           ]"
           value-key="value"
           label-key="label"
@@ -1271,7 +1470,7 @@ onUnmounted(() => {
             }
           "
         >
-          <span class="hidden sm:inline">刷新</span>
+          <span class="hidden sm:inline">{{ $t('dashboard.photos.toolbar.refresh') }}</span>
         </UButton>
       </div>
     </div>
@@ -1306,14 +1505,14 @@ onUnmounted(() => {
               :items="[
                 [
                   {
-                    label: '重新处理',
+                    label: $t('dashboard.photos.actions.reprocess'),
                     icon: 'tabler:refresh',
                     onSelect() {
                       handleReprocessSingle(row.original)
                     },
                   },
                   {
-                    label: '实况预览',
+                    label: $t('dashboard.photos.actions.viewLivePhoto'),
                     icon: 'tabler:live-photo',
                     disabled: !row.original.isLivePhoto,
                     onSelect() {
@@ -1324,7 +1523,7 @@ onUnmounted(() => {
                 [
                   {
                     color: 'error',
-                    label: '删除',
+                    label: $t('dashboard.photos.actions.delete'),
                     icon: 'tabler:trash',
                     onSelect: () => handleSingleDeleteRequest(row.original),
                   },
@@ -1350,7 +1549,7 @@ onUnmounted(() => {
           class="text-sm text-neutral-600 dark:text-neutral-400 flex items-center gap-2"
         >
           <div class="leading-6">
-            {{ selectedRowsCount }} / {{ totalRowsCount }} 行已选择
+            {{ $t('dashboard.photos.selection.selected', { count: selectedRowsCount, total: totalRowsCount }) }}
           </div>
           <div
             v-if="selectedRowsCount > 0"
@@ -1364,7 +1563,7 @@ onUnmounted(() => {
               class="flex-1 sm:flex-none"
               @click="handleBatchReprocess"
             >
-              <span>重新处理</span>
+              <span>{{ $t('dashboard.photos.selection.batchReprocess') }}</span>
             </UButton>
 
             <UButton
@@ -1375,7 +1574,7 @@ onUnmounted(() => {
               class="flex-1 sm:flex-none"
               @click="handleBatchDelete"
             >
-              <span>批量删除</span>
+              <span>{{ $t('dashboard.photos.selection.batchDelete') }}</span>
             </UButton>
           </div>
         </div>
@@ -1392,17 +1591,17 @@ onUnmounted(() => {
             />
             <div class="space-y-2">
               <h3 class="text-lg font-semibold">
-                {{ deleteMode === 'single' ? '删除照片' : '批量删除照片' }}
+                {{ deleteMode === 'single' ? $t('dashboard.photos.delete.single.title') : $t('dashboard.photos.delete.batch.title') }}
               </h3>
               <p class="text-sm text-neutral-600 dark:text-neutral-400">
                 {{
                   deleteMode === 'single'
-                    ? '确定要删除这张照片吗？'
-                    : `确定要删除选中的 ${deleteTargetPhotos.length} 张照片吗？`
+                    ? $t('dashboard.photos.delete.single.message')
+                    : $t('dashboard.photos.delete.batch.message', { count: deleteTargetPhotos.length })
                 }}
               </p>
               <p class="text-sm text-error-500 dark:text-error-400">
-                删除操作会同时移除原图、缩略图和实况视频，且无法恢复。
+                {{ $t('dashboard.photos.delete.warning') }}
               </p>
             </div>
           </div>
@@ -1413,7 +1612,7 @@ onUnmounted(() => {
               :disabled="isDeleting"
               @click="isDeleteConfirmOpen = false"
             >
-              取消
+              {{ $t('dashboard.photos.delete.buttons.cancel') }}
             </UButton>
             <UButton
               color="error"
@@ -1421,7 +1620,7 @@ onUnmounted(() => {
               :loading="isDeleting"
               @click="confirmDelete"
             >
-              确认删除
+              {{ $t('dashboard.photos.delete.buttons.confirm') }}
             </UButton>
           </div>
         </div>
@@ -1434,7 +1633,7 @@ onUnmounted(() => {
         <div class="p-6">
           <div class="flex items-center justify-between mb-4">
             <h3 class="text-lg font-semibold">
-              Live Photo: {{ selectedLivePhoto?.title || 'Untitled' }}
+              {{ $t('dashboard.photos.livePhotoModal.title', { title: selectedLivePhoto?.title || 'Untitled' }) }}
             </h3>
             <UButton
               variant="ghost"
@@ -1452,7 +1651,7 @@ onUnmounted(() => {
             <!-- 静态图片预览 -->
             <div class="space-y-2">
               <h4 class="font-medium text-sm text-gray-600 dark:text-gray-400">
-                静态图片
+                {{ $t('dashboard.photos.livePhotoModal.staticImage') }}
               </h4>
               <div
                 class="bg-gray-100 dark:bg-gray-800 rounded-lg p-4 flex justify-center"
@@ -1468,7 +1667,7 @@ onUnmounted(() => {
             <!-- 视频预览 -->
             <div class="space-y-2">
               <h4 class="font-medium text-sm text-gray-600 dark:text-gray-400">
-                Live Photo 视频
+                {{ $t('dashboard.photos.livePhotoModal.livePhotoVideo') }}
               </h4>
               <div
                 class="bg-gray-100 dark:bg-gray-800 rounded-lg p-4 flex justify-center"
@@ -1481,7 +1680,7 @@ onUnmounted(() => {
                   muted
                   class="max-h-64 object-contain rounded"
                 >
-                  您的浏览器不支持视频播放
+                  {{ $t('dashboard.photos.livePhotoModal.notSupported') }}
                 </video>
               </div>
             </div>
@@ -1499,7 +1698,7 @@ onUnmounted(() => {
                   }
                 "
               >
-                在新窗口打开视频
+                {{ $t('dashboard.photos.livePhotoModal.buttons.openVideo') }}
               </UButton>
               <UButton
                 variant="soft"
@@ -1512,7 +1711,7 @@ onUnmounted(() => {
                   }
                 "
               >
-                下载视频
+                {{ $t('dashboard.photos.livePhotoModal.buttons.downloadVideo') }}
               </UButton>
             </div>
           </div>

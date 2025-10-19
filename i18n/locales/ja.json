@@ -407,6 +407,152 @@
     }
   },
   "dashboard": {
+    "photos": {
+      "title": "写真をアップロード",
+      "subtitle": "アップロードされた写真は自動的に処理され、ライブラリに追加されます。その後、{0}セクションで写真を整理できます。",
+      "supportedFormats": "JPEG / PNG / HEIC / ライブフォト / モーションフォト",
+      "maxFileSize": "最大 {size}MB",
+      "buttons": {
+        "upload": "写真をアップロード",
+        "queue": "タスクキュー"
+      },
+      "uploader": {
+        "label": "ドラッグアンドドロップするか、クリックして写真を選択します",
+        "description": "JPEG、PNG、HEIC形式の写真、およびMOV形式のライブフォトビデオをサポート。ファイルあたりの最大サイズ：{maxSize}MB"
+      },
+      "toolbar": {
+        "title": "写真管理",
+        "filter": "フィルター",
+        "refresh": "更新"
+      },
+      "photoFilter": {
+        "all": "すべての写真",
+        "livephoto": "ライブフォト",
+        "static": "静止画"
+      },
+      "stats": {
+        "photos": "枚の写真",
+        "livePhotos": "枚のライブフォト"
+      },
+      "table": {
+        "columns": {
+          "thumbnail": "サムネイル",
+          "id": "写真ID",
+          "title": "写真のタイトル",
+          "tags": "キーワード",
+          "isLivePhoto": "ライブフォト",
+          "location": "位置情報",
+          "dateTaken": "撮影日",
+          "lastModified": "最終更新",
+          "fileSize": "ファイルサイズ",
+          "colorSpace": "カラースペース",
+          "reactions": "リアクション",
+          "actions": "操作"
+        },
+        "cells": {
+          "noTags": "タグなし",
+          "noGps": "GPS情報なし",
+          "unknown": "不明",
+          "staticPhoto": "静止画",
+          "noReactions": "リアクションなし"
+        }
+      },
+      "actions": {
+        "reprocess": "再処理",
+        "viewLivePhoto": "ライブフォトプレビュー",
+        "delete": "削除"
+      },
+      "selection": {
+        "selected": "{count} / {total}行選択済み",
+        "batchReprocess": "一括再処理",
+        "batchDelete": "一括削除"
+      },
+      "slideover": {
+        "title": "写真をアップロード",
+        "description": "ドラッグアンドドロップするか、ファイルを選択します。写真は自動的に処理され、ライブラリに追加されます。",
+        "buttons": {
+          "clear": "選択をクリア",
+          "upload": "{count}個のファイルをアップロード"
+        },
+        "footer": {
+          "noSelection": "アップロードする写真を選択してください",
+          "prepared": "{count}個のファイル · {size}"
+        }
+      },
+      "delete": {
+        "single": {
+          "title": "写真を削除",
+          "message": "この写真を削除してもよろしいですか？"
+        },
+        "batch": {
+          "title": "写真を一括削除",
+          "message": "選択された{count}枚の写真を削除してもよろしいですか？"
+        },
+        "warning": "写真を削除すると、元のファイル、サムネイル、およびライブフォトビデオが削除され、元に戻すことはできません。",
+        "buttons": {
+          "cancel": "キャンセル",
+          "confirm": "削除を確認"
+        }
+      },
+      "livePhotoModal": {
+        "title": "ライブフォト：{title}",
+        "staticImage": "静止画",
+        "livePhotoVideo": "ライブフォトビデオ",
+        "buttons": {
+          "openVideo": "新しいウィンドウでビデオを開く",
+          "downloadVideo": "ビデオをダウンロード",
+          "close": "閉じる"
+        },
+        "notSupported": "お使いのブラウザはビデオ再生をサポートしていません"
+      },
+      "messages": {
+        "uploadSuccess": "写真が正常にアップロードされました。処理中です...",
+        "uploadMultipleSuccess": "{count}枚の写真が正常にアップロードされました。処理中です...",
+        "reprocessSuccess": "再処理タスクが追加されました",
+        "reprocessTaskId": "タスク ID：{taskId}",
+        "deleteSuccess": "写真が正常に削除されました",
+        "batchDeleteSuccess": "{count}枚の写真を正常に削除しました",
+        "batchSelectRequired": "この操作を実行するには、少なくとも1枚の写真を選択してください",
+        "noStorageKey": "処理できません：ストレージ情報がありません",
+        "batchNoStorageKey": "{count}枚の写真のストレージ情報がなく、処理できません",
+        "error": "エラーが発生しました",
+        "deleteFailed": "写真の削除に失敗しました",
+        "batchDeleteFailed": "一括削除に失敗しました",
+        "batchReprocessFailed": "一括再処理に失敗しました",
+        "reprocessFailed": "写真の再処理に失敗しました",
+        "livePhotoNotFound": "ライブフォトではありません",
+        "livePhotoLoadError": "ライブフォト情報を読み込めません"
+      },
+      "errors": {
+        "noSelection": "アップロードする写真を選択してください",
+        "fileValidationFailed": "ファイル検証に失敗しました",
+        "allFilesValidationFailed": "すべてのファイルが検証に失敗しました",
+        "unsupportedFormat": "サポートされていないファイル形式：{type}。JPEG、PNG、またはHEIC写真、またはMOV形式のライブフォトビデオを選択してください。",
+        "fileTooLarge": "ファイルが大きすぎます：{size}MB。最大サポート：{maxSize}MB。",
+        "uploadFailed": "アップロードに失敗しました",
+        "uploadNetworkError": "ネットワーク接続に失敗したか、CORSエラーが発生しました。ネットワークとストレージ設定を確認してください。",
+        "uploadCorsError": "CORSリクエストに失敗しました。ストレージCORS設定を確認してください。",
+        "uploadUnauthorized": "未認可です。もう一度ログインしてください。",
+        "taskSubmitFailed": "処理タスクの送信に失敗しました",
+        "taskStatusCheckFailed": "タスク状態の確認に失敗しました。ページを更新して再度お試しください。"
+      },
+      "processing": {
+        "preparing": "準備中",
+        "uploading": "アップロード中",
+        "processing": "処理中",
+        "completed": "完了",
+        "error": "エラー",
+        "skipped": "スキップ",
+        "blocked": "ブロック済み"
+      },
+      "uploadQueue": {
+        "clearCompleted": "完了したタスクをクリア",
+        "clearAll": "すべてのタスクをクリア",
+        "taskCleared": "完了したタスクをクリアしました",
+        "allTasksCleared": "すべてのアップロードタスクをクリアしました",
+        "tasksCleared": "{count}個のタスクをクリアしました"
+      }
+    },
     "albums": {
       "title": "アルバム管理",
       "subtitle": "写真アルバムを作成・管理する",

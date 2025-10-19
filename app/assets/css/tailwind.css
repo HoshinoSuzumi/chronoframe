@@ -2,6 +2,10 @@
 @import '@nuxt/ui';
 
 :root {
+  /* New text-autospace property */
+  /* see docs: https://developer.mozilla.org/en-US/docs/Web/CSS/text-autospace */
+  text-autospace: normal;
+
   --ui-text-dimmed: var(--ui-color-neutral-400);
   --ui-text-muted: var(--ui-color-neutral-500);
   --ui-text-toned: var(--ui-color-neutral-600);
