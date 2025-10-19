@@ -348,6 +348,49 @@ export class WebGLImageViewerEngine {
       gl.deleteTexture(this.texture)
     }
 
+    // 获取最大纹理尺寸并判断是否需要缩放
+    const maxTextureSize = getMaxTextureSize(gl)
+    const srcWidth =
+      (imageSource as HTMLCanvasElement).width ??
+      (imageSource as HTMLImageElement).width ??
+      (imageSource as ImageBitmap).width
+    const srcHeight =
+      (imageSource as HTMLCanvasElement).height ??
+      (imageSource as HTMLImageElement).height ??
+      (imageSource as ImageBitmap).height
+
+    let finalSource: HTMLCanvasElement | HTMLImageElement | ImageBitmap =
+      imageSource
+
+    // 如果超出最大纹理尺寸，使用离屏 canvas 等比缩放
+    if (
+      typeof srcWidth === 'number' &&
+      typeof srcHeight === 'number' &&
+      (srcWidth > maxTextureSize || srcHeight > maxTextureSize)
+    ) {
+      const scale = Math.min(
+        maxTextureSize / srcWidth,
+        maxTextureSize / srcHeight,
+      )
+
+      const targetWidth = Math.max(1, Math.floor(srcWidth * scale))
+      const targetHeight = Math.max(1, Math.floor(srcHeight * scale))
+
+      const offscreen = document.createElement('canvas')
+      offscreen.width = targetWidth
+      offscreen.height = targetHeight
+      const ctx = offscreen.getContext('2d')
+      if (ctx) {
+        ctx.imageSmoothingEnabled = true
+        // @ts-expect-error 部分浏览器支持该属性
+        ctx.imageSmoothingQuality = 'high'
+        ctx.drawImage(imageSource as any, 0, 0, targetWidth, targetHeight)
+        finalSource = offscreen
+      } else {
+        finalSource = imageSource
+      }
+    }
+
     this.texture = gl.createTexture()
     gl.bindTexture(gl.TEXTURE_2D, this.texture)
 
@@ -357,15 +400,19 @@ export class WebGLImageViewerEngine {
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR)
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR)
 
-    // 上传图像数据
+    // 上传图像数据（使用可能缩放后的来源）
     gl.texImage2D(
       gl.TEXTURE_2D,
       0,
       gl.RGBA,
       gl.RGBA,
       gl.UNSIGNED_BYTE,
-      imageSource,
+      finalSource,
     )
+
+    // 更新内部 image 引用为最终用于渲染的尺寸
+    this.image = finalSource as any
+    this.updatePositionBuffer()
 
     return this.texture
   }
