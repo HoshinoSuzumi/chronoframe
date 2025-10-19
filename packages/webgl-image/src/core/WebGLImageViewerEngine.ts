@@ -382,7 +382,7 @@ export class WebGLImageViewerEngine {
       const ctx = offscreen.getContext('2d')
       if (ctx) {
         ctx.imageSmoothingEnabled = true
-        // @ts-expect-error 部分浏览器支持该属性
+        
         ctx.imageSmoothingQuality = 'high'
         ctx.drawImage(imageSource as any, 0, 0, targetWidth, targetHeight)
         finalSource = offscreen
