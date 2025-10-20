@@ -29,6 +29,20 @@ const totalSelectedFilters = computed(() => {
   )
 })
 
+const reverseGeocodeLoading = ref<Record<string, boolean>>({})
+
+const setReverseGeocodeLoading = (photoId: string, loading: boolean) => {
+  if (loading) {
+    reverseGeocodeLoading.value = {
+      ...reverseGeocodeLoading.value,
+      [photoId]: true,
+    }
+  } else {
+    const { [photoId]: _removed, ...rest } = reverseGeocodeLoading.value
+    reverseGeocodeLoading.value = rest
+  }
+}
+
 // 表态数据
 const reactionsData = ref<Record<string, Record<string, number>>>({})
 const reactionsLoading = ref(false)
@@ -1157,6 +1171,68 @@ const handleViewLivePhoto = async (photoId: string) => {
   }
 }
 
+const handleReverseGeocodeRequest = async (photo: Photo) => {
+  if (!photo?.id) {
+    return
+  }
+
+  setReverseGeocodeLoading(photo.id, true)
+
+  try {
+    const result = await $fetch('/api/queue/add-task', {
+      method: 'POST',
+      body: {
+        payload: {
+          type: 'photo-reverse-geocoding',
+          photoId: photo.id,
+          latitude:
+            typeof photo.latitude === 'number' ? photo.latitude : undefined,
+          longitude:
+            typeof photo.longitude === 'number' ? photo.longitude : undefined,
+        },
+        priority: 1,
+        maxAttempts: 3,
+      },
+    })
+
+    if (result.success) {
+      toast.add({
+        title: $t('dashboard.photos.messages.reverseGeocodeQueued'),
+        description:
+          typeof result.taskId === 'number'
+            ? $t('dashboard.photos.messages.reprocessTaskId', {
+                taskId: result.taskId,
+              })
+            : '',
+        color: 'success',
+      })
+    } else {
+      toast.add({
+        title: $t('dashboard.photos.messages.reverseGeocodeFailed'),
+        description:
+          result?.message ||
+          $t('dashboard.photos.messages.reverseGeocodeFailed'),
+        color: 'error',
+      })
+    }
+  } catch (error: any) {
+    console.error('Failed to enqueue reverse geocoding task:', error)
+    const message =
+      error?.data?.statusMessage ||
+      error?.statusMessage ||
+      error?.message ||
+      $t('dashboard.photos.messages.reverseGeocodeFailed')
+
+    toast.add({
+      title: $t('dashboard.photos.messages.reverseGeocodeFailed'),
+      description: message,
+      color: 'error',
+    })
+  } finally {
+    setReverseGeocodeLoading(photo.id, false)
+  }
+}
+
 // 重新处理单张照片
 const handleReprocessSingle = async (photo: Photo) => {
   try {
@@ -1208,6 +1284,53 @@ const handleReprocessSingle = async (photo: Photo) => {
       color: 'error',
     })
   }
+}
+
+const getRowActions = (photo: Photo) => {
+  const isReverseLoading = !!reverseGeocodeLoading.value[photo.id]
+
+  return [
+    [
+      {
+        label: $t('dashboard.photos.actions.editMetadata'),
+        icon: 'tabler:pencil',
+        onSelect() {
+          openMetadataEditor(photo)
+        },
+      },
+      {
+        label: $t('dashboard.photos.actions.reprocess'),
+        icon: 'tabler:refresh',
+        onSelect() {
+          handleReprocessSingle(photo)
+        },
+      },
+      {
+        label: $t('dashboard.photos.actions.refreshLocation'),
+        icon: isReverseLoading ? 'tabler:loader-2' : 'tabler:map-pin',
+        disabled: isReverseLoading,
+        onSelect() {
+          handleReverseGeocodeRequest(photo)
+        },
+      },
+      {
+        label: $t('dashboard.photos.actions.viewLivePhoto'),
+        icon: 'tabler:live-photo',
+        disabled: !photo.isLivePhoto,
+        onSelect() {
+          handleViewLivePhoto(photo.id)
+        },
+      },
+    ],
+    [
+      {
+        color: 'error',
+        label: $t('dashboard.photos.actions.delete'),
+        icon: 'tabler:trash',
+        onSelect: () => handleSingleDeleteRequest(photo),
+      },
+    ],
+  ]
 }
 
 // LivePhoto Modal
@@ -1768,40 +1891,7 @@ onUnmounted(() => {
               :content="{
                 align: 'end',
               }"
-              :items="[
-                [
-                  {
-                    label: $t('dashboard.photos.actions.editMetadata'),
-                    icon: 'tabler:pencil',
-                    onSelect() {
-                      openMetadataEditor(row.original)
-                    },
-                  },
-                  {
-                    label: $t('dashboard.photos.actions.reprocess'),
-                    icon: 'tabler:refresh',
-                    onSelect() {
-                      handleReprocessSingle(row.original)
-                    },
-                  },
-                  {
-                    label: $t('dashboard.photos.actions.viewLivePhoto'),
-                    icon: 'tabler:live-photo',
-                    disabled: !row.original.isLivePhoto,
-                    onSelect() {
-                      handleViewLivePhoto(row.original.id)
-                    },
-                  },
-                ],
-                [
-                  {
-                    color: 'error',
-                    label: $t('dashboard.photos.actions.delete'),
-                    icon: 'tabler:trash',
-                    onSelect: () => handleSingleDeleteRequest(row.original),
-                  },
-                ],
-              ]"
+              :items="getRowActions(row.original)"
             >
               <UButton
                 variant="outline"

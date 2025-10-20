@@ -521,6 +521,7 @@
       "actions": {
         "reprocess": "Reprocess",
         "viewLivePhoto": "Live Photo Preview",
+        "refreshLocation": "Re-fetch City",
         "delete": "Delete",
         "editMetadata": "Edit Metadata"
       },
@@ -588,7 +589,10 @@
         "metadataUpdateFailed": "Failed to update photo metadata",
         "photoNotFound": "Photo not found",
         "photoFileMissing": "Photo file is missing",
-        "noChangesProvided": "No changes to apply"
+        "noChangesProvided": "No changes to apply",
+        "queueUnavailable": "Task queue is not available",
+        "reverseGeocodeQueued": "Reverse geocoding task queued",
+        "reverseGeocodeFailed": "Failed to queue reverse geocoding"
       },
       "errors": {
         "noSelection": "Please select photos to upload",

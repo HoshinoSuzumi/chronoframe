@@ -4,13 +4,27 @@ export default defineEventHandler(async (event) => {
   await requireUserSession(event)
 
   try {
+    const payloadSchema = z.discriminatedUnion('type', [
+      z.object({
+        type: z.literal('photo'),
+        storageKey: z.string().nonempty(),
+      }),
+      z.object({
+        type: z.literal('live-photo-video'),
+        storageKey: z.string().nonempty(),
+      }),
+      z.object({
+        type: z.literal('photo-reverse-geocoding'),
+        photoId: z.string().min(1),
+        latitude: z.number().min(-90).max(90).optional(),
+        longitude: z.number().min(-180).max(180).optional(),
+      }),
+    ])
+
     const { payload, priority, maxAttempts } = await readValidatedBody(
       event,
       z.object({
-        payload: z.object({
-          type: z.enum(['photo', 'live-photo-video']).default('photo'),
-          storageKey: z.string().nonempty(),
-        }),
+        payload: payloadSchema,
         priority: z.number().min(0).max(9).optional().default(0),
         maxAttempts: z.number().min(1).max(5).optional().default(3),
       }).parse,
@@ -34,11 +48,7 @@ export default defineEventHandler(async (event) => {
       success: true,
       taskId,
       message: 'Task added to queue successfully',
-      payload: {
-        storageKey: payload.storageKey,
-        priority,
-        maxAttempts,
-      },
+      payload,
     }
   } catch (error: any) {
     if (error.statusCode) {

@@ -521,6 +521,7 @@
       "actions": {
         "reprocess": "重新处理",
         "viewLivePhoto": "实况预览",
+        "refreshLocation": "重新获取城市",
         "delete": "删除",
         "editMetadata": "编辑信息"
       },
@@ -588,7 +589,10 @@
         "metadataUpdateFailed": "更新照片信息失败",
         "photoNotFound": "找不到照片",
         "photoFileMissing": "照片文件已丢失",
-        "noChangesProvided": "没有可应用的修改"
+        "noChangesProvided": "没有可应用的修改",
+        "queueUnavailable": "任务队列不可用",
+        "reverseGeocodeQueued": "已加入重新获取城市任务",
+        "reverseGeocodeFailed": "重新获取城市任务添加失败"
       },
       "errors": {
         "noSelection": "请选择要上传的照片",

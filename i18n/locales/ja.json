@@ -464,6 +464,7 @@
       "actions": {
         "reprocess": "再処理",
         "viewLivePhoto": "ライブフォトプレビュー",
+        "refreshLocation": "都市情報を再取得",
         "delete": "削除",
         "editMetadata": "メタデータを編集"
       },
@@ -531,7 +532,10 @@
         "metadataUpdateFailed": "写真のメタデータを更新できませんでした",
         "photoNotFound": "写真が見つかりません",
         "photoFileMissing": "写真ファイルが見つかりません",
-        "noChangesProvided": "適用できる変更がありません"
+        "noChangesProvided": "適用できる変更がありません",
+        "queueUnavailable": "タスクキューを利用できません",
+        "reverseGeocodeQueued": "都市情報の再取得タスクをキューに追加しました",
+        "reverseGeocodeFailed": "都市情報の再取得タスクの追加に失敗しました"
       },
       "errors": {
         "noSelection": "アップロードする写真を選択してください",

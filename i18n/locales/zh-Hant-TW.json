@@ -464,6 +464,7 @@
       "actions": {
         "reprocess": "重新處理",
         "viewLivePhoto": "原況照片預覽",
+        "refreshLocation": "重新取得城市",
         "delete": "刪除",
         "editMetadata": "編輯資訊"
       },
@@ -531,7 +532,10 @@
         "metadataUpdateFailed": "更新照片資訊失敗",
         "photoNotFound": "找不到照片",
         "photoFileMissing": "找不到照片檔案",
-        "noChangesProvided": "沒有可套用的變更"
+        "noChangesProvided": "沒有可套用的變更",
+        "queueUnavailable": "任務佇列不可用",
+        "reverseGeocodeQueued": "已新增重新取得城市的任務",
+        "reverseGeocodeFailed": "重新取得城市任務新增失敗"
       },
       "errors": {
         "noSelection": "請選擇照片進行上傳",

@@ -4,6 +4,23 @@ export default defineEventHandler(async (event) => {
   await requireUserSession(event)
 
   try {
+    const payloadSchema = z.discriminatedUnion('type', [
+      z.object({
+        type: z.literal('photo'),
+        storageKey: z.string().nonempty(),
+      }),
+      z.object({
+        type: z.literal('live-photo-video'),
+        storageKey: z.string().nonempty(),
+      }),
+      z.object({
+        type: z.literal('photo-reverse-geocoding'),
+        photoId: z.string().min(1),
+        latitude: z.number().min(-90).max(90).optional(),
+        longitude: z.number().min(-180).max(180).optional(),
+      }),
+    ])
+
     const { tasks, defaultPriority, defaultMaxAttempts } =
       await readValidatedBody(
         event,
@@ -11,10 +28,7 @@ export default defineEventHandler(async (event) => {
           tasks: z
             .array(
               z.object({
-                payload: z.object({
-                  type: z.enum(['photo', 'live-photo-video']).default('photo'),
-                  storageKey: z.string().nonempty(),
-                }),
+                payload: payloadSchema,
                 priority: z.number().min(0).max(9).optional(),
                 maxAttempts: z.number().min(1).max(5).optional(),
               }),
@@ -47,18 +61,13 @@ export default defineEventHandler(async (event) => {
           maxAttempts: task.maxAttempts ?? defaultMaxAttempts,
         })
 
-        results.push({
-          index: i,
-          taskId,
-          storageKey: task.payload.storageKey,
-          success: true,
-        })
+        results.push({ index: i, taskId, payload: task.payload, success: true })
       } catch (error) {
         const errorMessage =
           error instanceof Error ? error.message : `Task ${i}: Unknown error`
         errors.push({
           index: i,
-          storageKey: task.payload?.storageKey || 'unknown',
+          payload: task.payload,
           error: errorMessage,
           success: false,
         })
