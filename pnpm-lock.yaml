@@ -157,8 +157,8 @@ importers:
         specifier: ^1.2.5
         version: 1.2.5
       '@iconify-json/lucide':
-        specifier: ^1.2.68
-        version: 1.2.69
+        specifier: ^1.2.70
+        version: 1.2.70
       '@iconify-json/material-symbols':
         specifier: ^1.2.33
         version: 1.2.42
@@ -1026,8 +1026,8 @@ packages:
   '@iconify-json/fluent-emoji-flat@1.2.5':
     resolution: {integrity: sha512-5ShoOHJ0ezYEIMfp2zvbRiZpL1Af8Prg5v9pElaIQhfqwbyD57pzrp70g/rK2EjigajBq9/cPrJXh224HaP3TQ==}
 
-  '@iconify-json/lucide@1.2.69':
-    resolution: {integrity: sha512-xOhNf74m+C+nSCObfEqYi34dXk1GMfMUcOB+gfqKY/bn0RcsPLinGfgouOvrUFEreDEFbCti7sdheTf5HESLTA==}
+  '@iconify-json/lucide@1.2.70':
+    resolution: {integrity: sha512-56s9NdBKgshywVY1e4gOcxzAbU1J649e/jLHBJU1tyNqRs7mFLVEGwj2mmzHJ5YAZB5Tsngi4f/ocTBPlG06ZA==}
 
   '@iconify-json/material-symbols@1.2.42':
     resolution: {integrity: sha512-FDRfnQqy8iXaq/swVPFWaHftqP9tk3qDCRhC30s3UZL2j4mvGZk5gVECRXCkZv5jnsAiTpZxGQM8HrMiwE7GtA==}
@@ -8637,7 +8637,7 @@ snapshots:
     dependencies:
       '@iconify/types': 2.0.0
 
-  '@iconify-json/lucide@1.2.69':
+  '@iconify-json/lucide@1.2.70':
     dependencies:
       '@iconify/types': 2.0.0
 
