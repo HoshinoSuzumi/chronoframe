@@ -681,7 +681,7 @@ const columns: TableColumn<Photo>[] = [
         key: row.original.id,
         thumbhash: row.original.thumbnailHash || '',
         class: 'size-16 min-w-[100px] object-cover rounded-md shadow',
-        onClick: () => openImagePreview(url || row.original.originalUrl || '', row.original.title || 'Photo Preview'),
+        onClick: () => row.original.isLivePhoto ? handleViewLivePhoto(row.original.id) : openImagePreview(url || row.original.originalUrl || '', row.original.title || 'Photo Preview'),
         style: { cursor: url ? 'pointer' : 'default' },
       })
     },
