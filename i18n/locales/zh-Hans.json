@@ -333,6 +333,7 @@
         "srgb": "sRGB",
         "adobeRgb": "Adobe RGB",
         "wideGamutRgb": "广色域 RGB",
+        "displayP3": "Display P3",
         "iccProfile": "ICC 配置文件",
         "uncalibrated": "未校准",
         "rgb": "RGB"
