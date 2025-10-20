@@ -800,7 +800,8 @@
       },
       "types": {
         "photo": "Photo Processing",
-        "live-photo-video": "LivePhoto Video"
+        "live-photo-video": "LivePhoto Video",
+        "photo-reverse-geocoding": "Photo Reverse Geocoding"
       },
       "stages": {
         "preprocessing": "Preprocessing",

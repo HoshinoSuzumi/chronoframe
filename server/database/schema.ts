@@ -2,6 +2,22 @@ import { sql } from 'drizzle-orm'
 import { sqliteTable, text, integer, real } from 'drizzle-orm/sqlite-core'
 import type { NeededExif } from '~~/shared/types/photo'
 
+type PipelineQueuePayload =
+  | {
+      type: 'photo'
+      storageKey: string
+    }
+  | {
+      type: 'live-photo-video'
+      storageKey: string
+    }
+  | {
+      type: 'photo-reverse-geocoding'
+      photoId: string
+      latitude?: number | null
+      longitude?: number | null
+    }
+
 export const users = sqliteTable('users', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   username: text('name').notNull().unique(),
@@ -44,15 +60,12 @@ export const photos = sqliteTable('photos', {
 export const pipelineQueue = sqliteTable('pipeline_queue', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   payload: text('payload', { mode: 'json' })
-    .$type<{
-      type: 'photo' | 'live-photo-video'
-      storageKey: string
-    }>()
+    .$type<PipelineQueuePayload>()
     .notNull()
     .default({
       type: 'photo',
       storageKey: '',
-    }),
+    } satisfies PipelineQueuePayload),
   priority: integer('priority').default(0).notNull(),
   attempts: integer('attempts').default(0).notNull(),
   maxAttempts: integer('max_attempts').default(3).notNull(),

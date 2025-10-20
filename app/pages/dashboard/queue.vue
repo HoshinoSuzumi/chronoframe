@@ -195,6 +195,10 @@ const typeOptions = [
     label: $t('dashboard.queue.types.live-photo-video'),
     value: 'live-photo-video',
   },
+  {
+    label: $t('dashboard.queue.types.photo-reverse-geocoding'),
+    value: 'photo-reverse-geocoding',
+  },
 ]
 
 // 表格列定义

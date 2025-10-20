@@ -6,7 +6,6 @@ import { exiftool } from 'exiftool-vendored'
 import { eq } from 'drizzle-orm'
 
 import { extractExifData } from '~~/server/services/image/exif'
-import { extractLocationFromGPS } from '~~/server/services/location/geocoding'
 import { tables, useDB } from '~~/server/utils/db'
 import { useStorageProvider } from '~~/server/utils/useStorageProvider'
 
@@ -99,6 +98,12 @@ export default eventHandler(async (event) => {
   const normalizedDescription =
     payload.description !== undefined ? payload.description.trim() : undefined
   const normalizedTags = normalizeTags(payload.tags)
+  let pendingReverseGeocode:
+    | {
+        latitude: number
+        longitude: number
+      }
+    | null = null
 
   const exifUpdates: Record<string, any> = {}
 
@@ -164,14 +169,6 @@ export default eventHandler(async (event) => {
 
     const exifData = await extractExifData(updatedBuffer)
 
-    let locationInfo = null
-    if (payload.location !== undefined && payload.location) {
-      locationInfo = await extractLocationFromGPS(
-        payload.location.latitude,
-        payload.location.longitude,
-      )
-    }
-
     const updateData: Record<string, any> = {
       exif: exifData,
       fileSize: updatedBuffer.length,
@@ -194,9 +191,13 @@ export default eventHandler(async (event) => {
       if (payload.location) {
         updateData.latitude = payload.location.latitude
         updateData.longitude = payload.location.longitude
-        updateData.country = locationInfo?.country ?? null
-        updateData.city = locationInfo?.city ?? null
-        updateData.locationName = locationInfo?.locationName ?? null
+        updateData.country = null
+        updateData.city = null
+        updateData.locationName = null
+        pendingReverseGeocode = {
+          latitude: payload.location.latitude,
+          longitude: payload.location.longitude,
+        }
       } else {
         updateData.latitude = null
         updateData.longitude = null
@@ -216,6 +217,34 @@ export default eventHandler(async (event) => {
       .from(tables.photos)
       .where(eq(tables.photos.id, photoId))
       .get()
+
+    if (pendingReverseGeocode) {
+      const workerPool = globalThis.__workerPool
+      if (workerPool) {
+        try {
+          await workerPool.addTask(
+            {
+              type: 'photo-reverse-geocoding',
+              photoId,
+              latitude: pendingReverseGeocode.latitude,
+              longitude: pendingReverseGeocode.longitude,
+            },
+            {
+              priority: 1,
+            },
+          )
+        } catch (taskError) {
+          logger.location.warn(
+            `Failed to enqueue reverse geocoding for photo ${photoId}:`,
+            taskError,
+          )
+        }
+      } else {
+        logger.location.warn(
+          `Worker pool not initialized, skipping reverse geocoding enqueue for photo ${photoId}`,
+        )
+      }
+    }
 
     return {
       success: true,

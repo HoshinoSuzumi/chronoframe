@@ -9,13 +9,17 @@ export default defineEventHandler(async (event) => {
 
   try {
     const query = getQuery(event)
-    const { 
+    const {
       status,
-      type 
-    } = await z.object({
-      status: z.enum(['pending', 'in-stages', 'completed', 'failed']).optional(),
-      type: z.enum(['photo', 'live-photo-video']).optional()
-    }).parseAsync(query)
+      type,
+    } = await z
+      .object({
+        status: z.enum(['pending', 'in-stages', 'completed', 'failed']).optional(),
+        type: z
+          .enum(['photo', 'live-photo-video', 'photo-reverse-geocoding'])
+          .optional(),
+      })
+      .parseAsync(query)
 
     const db = useDB()
 

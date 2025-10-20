@@ -743,7 +743,8 @@
       },
       "types": {
         "photo": "照片處理",
-        "live-photo-video": "LivePhoto視頻"
+        "live-photo-video": "LivePhoto視頻",
+        "photo-reverse-geocoding": "照片逆地理編碼"
       },
       "stages": {
         "preprocessing": "預處理",

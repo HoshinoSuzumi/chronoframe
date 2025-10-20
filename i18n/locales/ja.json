@@ -743,7 +743,8 @@
       },
       "types": {
         "photo": "写真処理",
-        "live-photo-video": "LivePhoto動画"
+        "live-photo-video": "LivePhoto動画",
+        "photo-reverse-geocoding": "写真の逆ジオコーディング"
       },
       "stages": {
         "preprocessing": "前処理",

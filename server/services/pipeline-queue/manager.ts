@@ -230,6 +230,11 @@ export class QueueManager {
     return {
       photo: async (task: PipelineQueueItem) => {
         const { id: taskId, payload } = task
+        if (payload.type !== 'photo') {
+          throw new Error(
+            `Invalid payload type for photo task: ${payload.type}`,
+          )
+        }
         const { storageKey } = payload
         const storageProvider = getStorageManager().getProvider()
         const photoId = generateSafePhotoId(storageKey)
@@ -427,11 +432,112 @@ export class QueueManager {
           throw error
         }
       },
+      reverseGeocoding: async (task: PipelineQueueItem) => {
+        const db = useDB()
+        const { id: taskId, payload } = task
+
+        if (payload.type !== 'photo-reverse-geocoding') {
+          throw new Error(
+            `Invalid payload type for reverse geocoding task: ${payload.type}`,
+          )
+        }
+
+        const { photoId } = payload
+
+        try {
+          await this.updateTaskStage(taskId, 'reverse-geocoding')
+          this.logger.info(
+            `[${taskId}:in-stage] reverse geocoding for photo ${photoId}`,
+          )
+
+          const photo = await db
+            .select()
+            .from(tables.photos)
+            .where(eq(tables.photos.id, photoId))
+            .get()
+
+          if (!photo) {
+            this.logger.warn(
+              `[${taskId}:reverse-geocoding] photo ${photoId} not found`,
+            )
+            return
+          }
+
+          let latitude = payload.latitude ?? photo.latitude ?? undefined
+          let longitude = payload.longitude ?? photo.longitude ?? undefined
+
+          if (
+            (latitude === undefined || latitude === null) ||
+            (longitude === undefined || longitude === null)
+          ) {
+            if (photo.exif) {
+              const coords = parseGPSCoordinates(photo.exif)
+              if (latitude === undefined || latitude === null) {
+                latitude = coords.latitude
+              }
+              if (longitude === undefined || longitude === null) {
+                longitude = coords.longitude
+              }
+            }
+          }
+
+          const hasLatitude = latitude !== undefined && latitude !== null
+          const hasLongitude = longitude !== undefined && longitude !== null
+
+          if (!hasLatitude || !hasLongitude) {
+            this.logger.warn(
+              `[${taskId}:reverse-geocoding] missing coordinates for photo ${photoId}`,
+            )
+            await db
+              .update(tables.photos)
+              .set({
+                latitude: null,
+                longitude: null,
+                country: null,
+                city: null,
+                locationName: null,
+              })
+              .where(eq(tables.photos.id, photoId))
+            return
+          }
+
+          const locationInfo = await extractLocationFromGPS(
+            latitude!,
+            longitude!,
+          )
+
+          await db
+            .update(tables.photos)
+            .set({
+              latitude: latitude!,
+              longitude: longitude!,
+              country: locationInfo?.country ?? null,
+              city: locationInfo?.city ?? null,
+              locationName: locationInfo?.locationName ?? null,
+            })
+            .where(eq(tables.photos.id, photoId))
+
+          this.logger.success(
+            `[${taskId}:reverse-geocoding] updated location for photo ${photoId}`,
+          )
+        } catch (error) {
+          this.logger.error(
+            `[${taskId}:reverse-geocoding] failed for photo ${photoId}`,
+            error,
+          )
+          throw error
+        }
+      },
       livePhotoDetect: async (task: PipelineQueueItem) => {
         const db = useDB()
         const storageProvider = getStorageManager().getProvider()
 
         const { id: taskId, payload } = task
+        if (payload.type !== 'live-photo-video') {
+          throw new Error(
+            `Invalid payload type for live-photo task: ${payload.type}`,
+          )
+        }
         const { storageKey: videoKey } = payload
 
         try {
@@ -544,6 +650,9 @@ export class QueueManager {
             break
           case 'photo':
             await this.processors.photo(task)
+            break
+          case 'photo-reverse-geocoding':
+            await this.processors.reverseGeocoding(task)
             break
           default:
             throw new Error(`Unknown task type: ${type}`)
