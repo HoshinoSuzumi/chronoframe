@@ -464,7 +464,8 @@
       "actions": {
         "reprocess": "再処理",
         "viewLivePhoto": "ライブフォトプレビュー",
-        "delete": "削除"
+        "delete": "削除",
+        "editMetadata": "メタデータを編集"
       },
       "selection": {
         "selected": "{count} / {total}行選択済み",
@@ -525,7 +526,12 @@
         "batchReprocessFailed": "一括再処理に失敗しました",
         "reprocessFailed": "写真の再処理に失敗しました",
         "livePhotoNotFound": "ライブフォトではありません",
-        "livePhotoLoadError": "ライブフォト情報を読み込めません"
+        "livePhotoLoadError": "ライブフォト情報を読み込めません",
+        "metadataUpdateSuccess": "写真のメタデータを更新しました",
+        "metadataUpdateFailed": "写真のメタデータを更新できませんでした",
+        "photoNotFound": "写真が見つかりません",
+        "photoFileMissing": "写真ファイルが見つかりません",
+        "noChangesProvided": "適用できる変更がありません"
       },
       "errors": {
         "noSelection": "アップロードする写真を選択してください",
@@ -555,6 +561,25 @@
         "taskCleared": "完了したタスクをクリアしました",
         "allTasksCleared": "すべてのアップロードタスクをクリアしました",
         "tasksCleared": "{count}個のタスクをクリアしました"
+      },
+      "editModal": {
+        "title": "写真情報を編集",
+        "description": "タイトル・説明・タグ・撮影場所を更新します。",
+        "fields": {
+          "title": "タイトル",
+          "description": "説明",
+          "tags": "タグ",
+          "tagsHint": "タグを入力し、Enter キーで追加してください。",
+          "location": "撮影場所",
+          "locationHint": "地図をクリックして撮影場所を選択してください。",
+          "clearLocation": "位置情報をクリア",
+          "coordinates": "座標",
+          "noLocation": "位置情報が未設定です"
+        },
+        "actions": {
+          "cancel": "キャンセル",
+          "save": "変更を保存"
+        }
       }
     },
     "albums": {

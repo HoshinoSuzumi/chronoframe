@@ -464,7 +464,8 @@
       "actions": {
         "reprocess": "重新處理",
         "viewLivePhoto": "原況照片預覽",
-        "delete": "刪除"
+        "delete": "刪除",
+        "editMetadata": "編輯資訊"
       },
       "selection": {
         "selected": "已選擇 {count} / {total} 列",
@@ -525,7 +526,12 @@
         "batchReprocessFailed": "批量重新處理失敗",
         "reprocessFailed": "重新處理照片失敗",
         "livePhotoNotFound": "不是原況照片",
-        "livePhotoLoadError": "無法載入原況照片資訊"
+        "livePhotoLoadError": "無法載入原況照片資訊",
+        "metadataUpdateSuccess": "照片資訊已更新",
+        "metadataUpdateFailed": "更新照片資訊失敗",
+        "photoNotFound": "找不到照片",
+        "photoFileMissing": "找不到照片檔案",
+        "noChangesProvided": "沒有可套用的變更"
       },
       "errors": {
         "noSelection": "請選擇照片進行上傳",
@@ -555,6 +561,25 @@
         "taskCleared": "已清除已完成的任務",
         "allTasksCleared": "已清除所有上傳任務",
         "tasksCleared": "已清除 {count} 個任務"
+      },
+      "editModal": {
+        "title": "編輯照片資訊",
+        "description": "更新標題、描述、標籤與拍攝位置。",
+        "fields": {
+          "title": "標題",
+          "description": "描述",
+          "tags": "標籤",
+          "tagsHint": "按 Enter 鍵新增每個標籤。",
+          "location": "拍攝位置",
+          "locationHint": "點擊地圖選擇或更新拍攝位置。",
+          "clearLocation": "清除位置",
+          "coordinates": "座標",
+          "noLocation": "未選擇位置"
+        },
+        "actions": {
+          "cancel": "取消",
+          "save": "儲存變更"
+        }
       }
     },
     "albums": {

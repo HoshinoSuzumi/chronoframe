@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import type { TableColumn } from '@nuxt/ui'
+import type { FormSubmitEvent, TableColumn } from '@nuxt/ui'
 import type { Photo, PipelineQueueItem } from '~~/server/utils/db'
 import { h, resolveComponent } from 'vue'
 import { Icon, UBadge } from '#components'
@@ -82,6 +82,120 @@ interface UploadingFile {
 }
 
 const uploadingFiles = ref<Map<string, UploadingFile>>(new Map())
+
+interface EditFormState {
+  title: string
+  description: string
+  tags: string[]
+}
+
+const editingPhoto = ref<Photo | null>(null)
+const isEditModalOpen = ref(false)
+const isSavingMetadata = ref(false)
+
+const editFormState = reactive<EditFormState>({
+  title: '',
+  description: '',
+  tags: [],
+})
+
+const originalMetadata = ref<{
+  title: string
+  description: string
+  tags: string[]
+  location: { latitude: number; longitude: number } | null
+}>({
+  title: '',
+  description: '',
+  tags: [],
+  location: null,
+})
+
+const locationSelection = ref<{ latitude: number; longitude: number } | null>(null)
+const locationTouched = ref(false)
+
+const normalizeTagList = (tags: string[]): string[] => {
+  const seen = new Set<string>()
+  const normalized: string[] = []
+  for (const tag of tags) {
+    const trimmed = tag.trim()
+    if (!trimmed) continue
+    const key = trimmed.toLowerCase()
+    if (seen.has(key)) continue
+    seen.add(key)
+    normalized.push(trimmed)
+  }
+  return normalized
+}
+
+const areTagListsEqual = (a: string[], b: string[]): boolean => {
+  if (a.length !== b.length) {
+    return false
+  }
+  return a.every((tag, index) => tag === b[index])
+}
+
+const tagsModel = computed<string[]>({
+  get: () => editFormState.tags,
+  set: (value) => {
+    const next = Array.isArray(value) ? normalizeTagList(value) : []
+    if (!areTagListsEqual(editFormState.tags, next)) {
+      editFormState.tags = next
+    }
+  },
+})
+
+const normalizedTitle = computed(() => editFormState.title.trim())
+const normalizedDescription = computed(() => editFormState.description.trim())
+
+const tagsChanged = computed(() => {
+  const current = editFormState.tags
+  const original = originalMetadata.value.tags
+  return !areTagListsEqual(current, original)
+})
+
+const titleChanged = computed(
+  () => normalizedTitle.value !== originalMetadata.value.title,
+)
+const descriptionChanged = computed(
+  () => normalizedDescription.value !== originalMetadata.value.description,
+)
+
+const locationChanged = computed(() => {
+  if (!locationTouched.value) {
+    return false
+  }
+  const current = locationSelection.value
+  const original = originalMetadata.value.location
+  if (!current && !original) {
+    return false
+  }
+  if (!current || !original) {
+    return true
+  }
+  return (
+    Math.abs(current.latitude - original.latitude) > 1e-6 ||
+    Math.abs(current.longitude - original.longitude) > 1e-6
+  )
+})
+
+const isMetadataDirty = computed(
+  () =>
+    titleChanged.value ||
+    descriptionChanged.value ||
+    tagsChanged.value ||
+    locationChanged.value,
+)
+
+const formattedCoordinates = computed(() => {
+  if (!locationSelection.value) {
+    return null
+  }
+  return {
+    latitude: locationSelection.value.latitude.toFixed(6),
+    longitude: locationSelection.value.longitude.toFixed(6),
+  }
+})
 
 const uploadImage = async (file: File, existingFileId?: string) => {
   const fileName = file.name
@@ -285,6 +399,23 @@ watch(isUploadSlideoverOpen, (open) => {
 const openUploadSlideover = () => {
   isUploadSlideoverOpen.value = true
 }
+
+watch(isEditModalOpen, (open) => {
+  if (!open) {
+    editingPhoto.value = null
+    editFormState.title = ''
+    editFormState.description = ''
+    editFormState.tags = []
+    originalMetadata.value = {
+      title: '',
+      description: '',
+      tags: [],
+      location: null,
+    }
+    locationSelection.value = null
+    locationTouched.value = false
+  }
+})
 
 // 表格多选状态
 const rowSelection = ref({})
@@ -872,6 +1003,127 @@ const handleUpload = async () => {
   // 清空选中的文件
   selectedFiles.value = []
   isUploadSlideoverOpen.value = false
+}
+
+const openMetadataEditor = (photo: Photo) => {
+  const initialTitle = photo.title?.trim() ?? ''
+  const initialDescription = photo.description?.trim() ?? ''
+  const initialTags = normalizeTagList(photo.tags ?? [])
+  const hasCoordinates =
+    typeof photo.latitude === 'number' && typeof photo.longitude === 'number'
+
+  editingPhoto.value = photo
+  editFormState.title = initialTitle
+  editFormState.description = initialDescription
+  editFormState.tags = [...initialTags]
+
+  const initialLocation =
+    hasCoordinates
+      ? {
+          latitude: photo.latitude as number,
+          longitude: photo.longitude as number,
+        }
+      : null
+
+  originalMetadata.value = {
+    title: initialTitle,
+    description: initialDescription,
+    tags: [...initialTags],
+    location: initialLocation ? { ...initialLocation } : null,
+  }
+
+  locationSelection.value = initialLocation ? { ...initialLocation } : null
+  locationTouched.value = false
+
+  isEditModalOpen.value = true
+}
+
+const handleLocationPick = () => {
+  locationTouched.value = true
+}
+
+const clearSelectedLocation = () => {
+  locationSelection.value = null
+  locationTouched.value = true
+}
+
+const saveMetadataChanges = async () => {
+  if (!editingPhoto.value || !isMetadataDirty.value) {
+    return
+  }
+
+  isSavingMetadata.value = true
+  try {
+    const payload: {
+      title?: string
+      description?: string
+      tags?: string[]
+      location?: { latitude: number; longitude: number } | null
+    } = {}
+
+    if (titleChanged.value) {
+      payload.title = normalizedTitle.value
+    }
+
+    if (descriptionChanged.value) {
+      payload.description = normalizedDescription.value
+    }
+
+    if (tagsChanged.value) {
+      payload.tags = [...editFormState.tags]
+    }
+
+    if (locationChanged.value) {
+      payload.location = locationSelection.value
+        ? {
+            latitude: locationSelection.value.latitude,
+            longitude: locationSelection.value.longitude,
+          }
+        : null
+    }
+
+    if (Object.keys(payload).length === 0) {
+      isEditModalOpen.value = false
+      return
+    }
+
+    await $fetch(`/api/photos/${editingPhoto.value.id}`, {
+      method: 'PUT',
+      body: payload,
+    })
+
+    toast.add({
+      title: $t('dashboard.photos.messages.metadataUpdateSuccess'),
+      description: '',
+      color: 'success',
+    })
+
+    await refresh()
+    isEditModalOpen.value = false
+  } catch (error: any) {
+    console.error('更新照片信息失败:', error)
+    const message =
+      error?.data?.statusMessage ||
+      error?.statusMessage ||
+      error?.message ||
+      $t('dashboard.photos.messages.metadataUpdateFailed')
+
+    toast.add({
+      title: $t('dashboard.photos.messages.metadataUpdateFailed'),
+      description: message,
+      color: 'error',
+    })
+  } finally {
+    isSavingMetadata.value = false
+  }
+}
+
+const handleEditSubmit = async (event: FormSubmitEvent<EditFormState>) => {
+  event.preventDefault()
+  if (!isMetadataDirty.value) {
+    return
+  }
+  await saveMetadataChanges()
 }
 
 // LivePhoto 相关操作
@@ -1519,6 +1771,13 @@ onUnmounted(() => {
               :items="[
                 [
                   {
+                    label: $t('dashboard.photos.actions.editMetadata'),
+                    icon: 'tabler:pencil',
+                    onSelect() {
+                      openMetadataEditor(row.original)
+                    },
+                  },
+                  {
                     label: $t('dashboard.photos.actions.reprocess'),
                     icon: 'tabler:refresh',
                     onSelect() {
@@ -1594,6 +1853,116 @@ onUnmounted(() => {
         </div>
       </div>
     </div>
+
+    <UModal v-model:open="isEditModalOpen">
+      <template #content>
+        <div class="p-6 space-y-6">
+          <div class="space-y-1">
+            <h2 class="text-lg font-semibold text-neutral-800 dark:text-neutral-100">
+              {{ $t('dashboard.photos.editModal.title') }}
+            </h2>
+            <p class="text-sm text-neutral-500 dark:text-neutral-400">
+              {{ $t('dashboard.photos.editModal.description') }}
+            </p>
+            <p
+              v-if="editingPhoto"
+              class="text-xs text-neutral-500 dark:text-neutral-500"
+            >
+              {{ editingPhoto.title || editingPhoto.id }}
+            </p>
+          </div>
+
+          <UForm :state="editFormState" class="space-y-5" @submit="handleEditSubmit">
+            <UFormField
+              :label="$t('dashboard.photos.editModal.fields.title')"
+              name="title"
+            >
+              <UInput v-model="editFormState.title" class="w-full" />
+            </UFormField>
+
+            <UFormField
+              :label="$t('dashboard.photos.editModal.fields.description')"
+              name="description"
+            >
+              <UTextarea v-model="editFormState.description" :rows="3" class="w-full" />
+            </UFormField>
+
+            <div class="space-y-2">
+              <UFormField
+                :label="$t('dashboard.photos.editModal.fields.tags')"
+                name="tags"
+              >
+                <UInputTags v-model="tagsModel" class="w-full" />
+              </UFormField>
+              <p class="text-xs text-neutral-500 dark:text-neutral-400">
+                {{ $t('dashboard.photos.editModal.fields.tagsHint') }}
+              </p>
+            </div>
+
+            <div class="space-y-3">
+              <div class="flex items-center justify-between">
+                <label class="text-sm font-medium text-neutral-700 dark:text-neutral-200">
+                  {{ $t('dashboard.photos.editModal.fields.location') }}
+                </label>
+                <UButton
+                  v-if="locationSelection"
+                  variant="ghost"
+                  color="neutral"
+                  size="xs"
+                  icon="tabler:map-off"
+                  @click.prevent="clearSelectedLocation"
+                >
+                  {{ $t('dashboard.photos.editModal.fields.clearLocation') }}
+                </UButton>
+              </div>
+
+              <MapLocationPicker
+                v-model="locationSelection"
+                class="border border-neutral-200 dark:border-neutral-800"
+                @pick="handleLocationPick"
+              >
+                <template #empty>
+                  <span
+                    class="px-3 py-2 rounded-full bg-white/80 text-neutral-600 dark:bg-neutral-900/80 dark:text-neutral-200 shadow"
+                  >
+                    {{ $t('dashboard.photos.editModal.fields.locationHint') }}
+                  </span>
+                </template>
+              </MapLocationPicker>
+
+              <div class="text-xs text-neutral-500 dark:text-neutral-400 flex items-center gap-2">
+                <span>{{ $t('dashboard.photos.editModal.fields.coordinates') }}:</span>
+                <span v-if="formattedCoordinates">
+                  {{ formattedCoordinates.latitude }},
+                  {{ formattedCoordinates.longitude }}
+                </span>
+                <span v-else>
+                  {{ $t('dashboard.photos.editModal.fields.noLocation') }}
+                </span>
+              </div>
+            </div>
+
+            <div class="flex items-center justify-end gap-2 pt-4 border-t border-neutral-200 dark:border-neutral-800">
+              <UButton
+                variant="ghost"
+                color="neutral"
+                @click.prevent="isEditModalOpen = false"
+              >
+                {{ $t('dashboard.photos.editModal.actions.cancel') }}
+              </UButton>
+              <UButton
+                type="submit"
+                :loading="isSavingMetadata"
+                :disabled="!isMetadataDirty || isSavingMetadata"
+                icon="tabler:device-floppy"
+              >
+                {{ $t('dashboard.photos.editModal.actions.save') }}
+              </UButton>
+            </div>
+          </UForm>
+        </div>
+      </template>
+    </UModal>
 
     <UModal v-model:open="isDeleteConfirmOpen">
       <template #content>

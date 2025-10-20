@@ -521,7 +521,8 @@
       "actions": {
         "reprocess": "重新处理",
         "viewLivePhoto": "实况预览",
-        "delete": "删除"
+        "delete": "删除",
+        "editMetadata": "编辑信息"
       },
       "selection": {
         "selected": "{count} / {total} 行已选择",
@@ -582,7 +583,12 @@
         "batchReprocessFailed": "批量重新处理失败",
         "reprocessFailed": "重新处理失败",
         "livePhotoNotFound": "不是 Live Photo",
-        "livePhotoLoadError": "无法获取 Live Photo 信息"
+        "livePhotoLoadError": "无法获取 Live Photo 信息",
+        "metadataUpdateSuccess": "照片信息已更新",
+        "metadataUpdateFailed": "更新照片信息失败",
+        "photoNotFound": "找不到照片",
+        "photoFileMissing": "照片文件已丢失",
+        "noChangesProvided": "没有可应用的修改"
       },
       "errors": {
         "noSelection": "请选择要上传的照片",
@@ -612,6 +618,25 @@
         "taskCleared": "已完成的任务清理完成",
         "allTasksCleared": "已清除全部上传任务",
         "tasksCleared": "已清除 {count} 个任务"
+      },
+      "editModal": {
+        "title": "编辑照片信息",
+        "description": "更新标题、描述、标签和拍摄位置。",
+        "fields": {
+          "title": "标题",
+          "description": "描述",
+          "tags": "标签",
+          "tagsHint": "按下 Enter 键添加每个标签。",
+          "location": "拍摄位置",
+          "locationHint": "点击地图选择或更新拍摄位置。",
+          "clearLocation": "清除位置",
+          "coordinates": "坐标",
+          "noLocation": "未选择位置"
+        },
+        "actions": {
+          "cancel": "取消",
+          "save": "保存更改"
+        }
       }
     },
     "albums": {

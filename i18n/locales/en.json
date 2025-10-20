@@ -521,7 +521,8 @@
       "actions": {
         "reprocess": "Reprocess",
         "viewLivePhoto": "Live Photo Preview",
-        "delete": "Delete"
+        "delete": "Delete",
+        "editMetadata": "Edit Metadata"
       },
       "selection": {
         "selected": "{count} / {total} rows selected",
@@ -582,7 +583,12 @@
         "batchReprocessFailed": "Batch reprocess failed",
         "reprocessFailed": "Failed to reprocess photo",
         "livePhotoNotFound": "Not a Live Photo",
-        "livePhotoLoadError": "Unable to load Live Photo information"
+        "livePhotoLoadError": "Unable to load Live Photo information",
+        "metadataUpdateSuccess": "Photo metadata updated",
+        "metadataUpdateFailed": "Failed to update photo metadata",
+        "photoNotFound": "Photo not found",
+        "photoFileMissing": "Photo file is missing",
+        "noChangesProvided": "No changes to apply"
       },
       "errors": {
         "noSelection": "Please select photos to upload",
@@ -612,6 +618,25 @@
         "taskCleared": "Completed tasks cleared",
         "allTasksCleared": "All upload tasks cleared",
         "tasksCleared": "{count} task(s) cleared"
+      },
+      "editModal": {
+        "title": "Edit photo details",
+        "description": "Update the title, description, tags and shooting location.",
+        "fields": {
+          "title": "Title",
+          "description": "Description",
+          "tags": "Tags",
+          "tagsHint": "Press Enter to add each tag.",
+          "location": "Location",
+          "locationHint": "Click on the map to set the shooting location.",
+          "clearLocation": "Clear location",
+          "coordinates": "Coordinates",
+          "noLocation": "No location selected"
+        },
+        "actions": {
+          "cancel": "Cancel",
+          "save": "Save changes"
+        }
       }
     },
     "albums": {
