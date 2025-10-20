@@ -33,12 +33,12 @@ interface Tile {
   texture: WebGLTexture | null
 }
 
-const TILE_DEBUG_BORDER_PX = 2
+const TILE_DEBUG_BORDER_PX = 2.4
 const TILE_DEBUG_BORDER_COLOR: [number, number, number, number] = [
-  0,
-  1,
-  0,
+  0.4,
   0.7,
+  0.9,
+  0.25,
 ]
 
 export class WebGLImageViewerEngine {
@@ -647,7 +647,7 @@ export class WebGLImageViewerEngine {
     })
   }
 
-  private resize(): void {
+  public resize(): void {
     const rect = this.canvas.getBoundingClientRect()
     const dpr = window.devicePixelRatio || 1
 
@@ -660,6 +660,20 @@ export class WebGLImageViewerEngine {
     this.canvas.height = rect.height * dpr
 
     this.gl.viewport(0, 0, this.canvas.width, this.canvas.height)
+
+    if (this.image) {
+      const prevTranslateX = this.transform.translateX
+      const prevTranslateY = this.transform.translateY
+
+      this.constrainToBounds()
+
+      if (
+        prevTranslateX !== this.transform.translateX ||
+        prevTranslateY !== this.transform.translateY
+      ) {
+        this.emitTransformChange()
+      }
+    }
 
     // 只有在图像已加载时才渲染
     if (this.image && (this.texture || this.useTiles)) {
