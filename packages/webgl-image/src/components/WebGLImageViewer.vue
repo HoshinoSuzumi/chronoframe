@@ -39,6 +39,10 @@ const props = withDefaults(defineProps<WebGLImageViewerProps>(), {
     duration: 400,
     easing: (t: number) => 1 - Math.pow(1 - t, 3), // easeOutCubic
   }),
+  tile: () => ({
+    enabled: true,
+    size: DEFAULT_CONFIG.tileSize,
+  }),
 })
 
 const emit = defineEmits<WebGLImageViewerEmits>()
@@ -74,6 +78,8 @@ const config = computed<EngineConfig>(() => ({
   panningDisabled: props.panning?.disabled ?? DEFAULT_CONFIG.panningDisabled,
   velocityDisabled:
     props.panning?.velocityDisabled ?? DEFAULT_CONFIG.velocityDisabled,
+  tileEnabled: props.tile?.enabled ?? DEFAULT_CONFIG.tileEnabled,
+  tileSize: props.tile?.size ?? DEFAULT_CONFIG.tileSize,
   alignmentAnimation: {
     ...DEFAULT_CONFIG.alignmentAnimation,
     ...props.alignmentAnimation,

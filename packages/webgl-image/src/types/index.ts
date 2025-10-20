@@ -54,6 +54,13 @@ export interface WebGLImageViewerProps {
     duration: number
     easing: (t: number) => number
   }
+  /** Tile rendering configuration */
+  tile?: {
+    /** Enable tile rendering */
+    enabled?: boolean
+    /** Tile size in pixels */
+    size?: number
+  }
 }
 
 export interface WebGLImageViewerEmits {
@@ -151,6 +158,8 @@ export interface EngineConfig {
   debug: boolean
   limitToBounds?: boolean
   smooth?: boolean
+  tileEnabled: boolean
+  tileSize: number
   alignmentAnimation?: {
     duration: number
     easing: (t: number) => number

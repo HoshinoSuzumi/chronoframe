@@ -1762,11 +1762,11 @@ onUnmounted(() => {
             </p>
             <div class="flex justify-center gap-2 mt-4">
               <UButton
+                v-if="previewImage"
                 variant="soft"
                 color="info"
                 size="sm"
                 icon="tabler:external-link"
-                v-if="previewImage"
                 @click="openInNewTab(previewImage.src)"
               >
                 {{ $t('dashboard.photos.table.columns.thumbnail.action') }}

@@ -16,6 +16,8 @@ export const DEFAULT_CONFIG = {
   debug: false,
   limitToBounds: true,
   smooth: true,
+  tileEnabled: true,
+  tileSize: 1024,
   alignmentAnimation: {
     duration: 300,
     easing: (t: number) => 1 - Math.pow(1 - t, 4), // easeOutQuart
