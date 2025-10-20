@@ -8,17 +8,21 @@ const props = withDefaults(
     alt: string
     thumbhash?: string | null
     class?: string
+    thumbhashClass?: string
     style?: CSSProperties
     threshold?: number | number[]
     rootMargin?: string
+    imageContain?: boolean
     lazy?: boolean
   }>(),
   {
     thumbhash: null,
     class: '',
+    thumbhashClass: '',
     style: undefined,
     threshold: 0.1,
     rootMargin: '50px',
+    imageContain: false,
     lazy: true,
   },
 )
@@ -74,7 +78,7 @@ const onError = () => {
     <ThumbHash
       v-if="thumbhash"
       :thumbhash="thumbhash"
-      class="absolute inset-0 scale-110 blur-sm"
+      :class="twMerge('absolute inset-0 scale-110 blur-sm', thumbhashClass)"
     />
 
     <img
@@ -84,7 +88,8 @@ const onError = () => {
       :alt="alt"
       :class="
         twMerge(
-          'absolute inset-0 w-full h-full object-cover transition-opacity duration-300',
+          'absolute inset-0 w-full h-full transition-opacity duration-300',
+          imageContain ? 'object-contain' : 'object-cover',
           isLoaded ? 'opacity-100' : 'opacity-0',
         )
       "

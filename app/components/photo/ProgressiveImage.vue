@@ -6,6 +6,7 @@ import type { ImageLoaderManager } from '~/libs/image-loader-manager'
 interface Props {
   src: string
   thumbnailSrc?: string
+  thumbhash?: string | null
   alt?: string
   width?: number
   height?: number
@@ -29,6 +30,7 @@ const props = withDefaults(defineProps<Props>(), {
   enableZoom: true,
   isCurrentImage: true,
   thumbnailSrc: '',
+  thumbhash: null,
   alt: 'Image',
   width: undefined,
   height: undefined,
@@ -45,11 +47,12 @@ const props = withDefaults(defineProps<Props>(), {
 
 const containerRef = ref<HTMLDivElement>()
 
-// state
 const highResLoaded = ref(false)
 const highResRendered = ref(false)
 const hasError = ref(false)
 const currentSrc = ref<string | null>()
+
+const isDev = computed(() => import.meta.env.DEV)
 
 // 使用 WebGLImageViewer 的引用
 const webglViewerRef = ref()
@@ -156,11 +159,21 @@ onUnmounted(() => {
     class="relative w-full h-full flex items-center justify-center"
   >
     <!-- 缩略图 (加载时显示) -->
-    <img
+    <!-- <img
       v-if="showThumbnail"
       :src="thumbnailSrc"
       :alt="alt"
       class="absolute inset-0 w-full h-full object-contain"
+    /> -->
+    <!-- use <ThumbImage /> instead -->
+    <ThumbImage
+      v-if="showThumbnail"
+      :src="thumbnailSrc"
+      :thumbhash="thumbhash"
+      :alt="alt"
+      class="absolute inset-0 w-full h-full object-contain"
+      thumbhash-class="opacity-50"
+      image-contain
     />
 
     <!-- WebGL 图片查看器 -->
@@ -181,6 +194,7 @@ onUnmounted(() => {
       :pinch="{ step: 0.2 }"
       :double-click="{ mode: 'toggle', step: 2.4, animationTime: 400 }"
       :panning="{ velocityDisabled: false }"
+      :debug="isDev"
       @zoom-change="handleZoomChange"
       @loading-state-change="handleWebGLStateChange"
     />

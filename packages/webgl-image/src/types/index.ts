@@ -123,6 +123,11 @@ export interface DebugInfo {
   loadingState: LoadingState
   currentQuality: 'high' | 'medium' | 'low' | 'unknown'
   imageSrc: string
+  tileEnabled: boolean
+  useTiles: boolean
+  totalTiles: number
+  visibleTiles: number
+  tileSize: number
 }
 
 export interface TouchState {

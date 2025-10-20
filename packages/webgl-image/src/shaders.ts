@@ -37,11 +37,25 @@ export const FRAGMENT_SHADER_SOURCE = `
   precision mediump float;
   
   uniform sampler2D u_image;
+  uniform bool u_debugTiles;
+  uniform vec4 u_tileBorderColor;
+  uniform vec2 u_tileBorderWidth;
   
   varying vec2 v_texCoord;
   
   void main() {
-    gl_FragColor = texture2D(u_image, v_texCoord);
+    vec4 color = texture2D(u_image, v_texCoord);
+
+    if (u_debugTiles) {
+      float left = 1.0 - step(u_tileBorderWidth.x, v_texCoord.x);
+      float right = 1.0 - step(u_tileBorderWidth.x, 1.0 - v_texCoord.x);
+      float top = 1.0 - step(u_tileBorderWidth.y, v_texCoord.y);
+      float bottom = 1.0 - step(u_tileBorderWidth.y, 1.0 - v_texCoord.y);
+      float border = clamp(max(max(left, right), max(top, bottom)), 0.0, 1.0);
+      color = mix(color, u_tileBorderColor, border);
+    }
+
+    gl_FragColor = color;
   }
 `
 

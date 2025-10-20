@@ -33,6 +33,14 @@ interface Tile {
   texture: WebGLTexture | null
 }
 
+const TILE_DEBUG_BORDER_PX = 2
+const TILE_DEBUG_BORDER_COLOR: [number, number, number, number] = [
+  0,
+  1,
+  0,
+  0.7,
+]
+
 export class WebGLImageViewerEngine {
   private canvas: HTMLCanvasElement
   private gl: WebGLRenderingContext
@@ -73,6 +81,9 @@ export class WebGLImageViewerEngine {
   private matrixLocation: WebGLUniformLocation | null = null
   private resolutionLocation: WebGLUniformLocation | null = null
   private imageLocation: WebGLUniformLocation | null = null
+  private tileDebugLocation: WebGLUniformLocation | null = null
+  private tileBorderColorLocation: WebGLUniformLocation | null = null
+  private tileBorderWidthLocation: WebGLUniformLocation | null = null
 
   // 事件监听器
   private throttledRender: () => void
@@ -157,6 +168,15 @@ export class WebGLImageViewerEngine {
       'u_resolution',
     )
     this.imageLocation = gl.getUniformLocation(this.program, 'u_image')
+    this.tileDebugLocation = gl.getUniformLocation(this.program, 'u_debugTiles')
+    this.tileBorderColorLocation = gl.getUniformLocation(
+      this.program,
+      'u_tileBorderColor',
+    )
+    this.tileBorderWidthLocation = gl.getUniformLocation(
+      this.program,
+      'u_tileBorderWidth',
+    )
 
     // 创建缓冲区
     this.createBuffers()
@@ -772,6 +792,24 @@ export class WebGLImageViewerEngine {
         return
       }
 
+      const showDebugBorder =
+        !!this.config.debug && (!!this.texture || this.useTiles)
+
+      if (this.tileDebugLocation) {
+        gl.uniform1i(this.tileDebugLocation, showDebugBorder ? 1 : 0)
+      }
+
+      if (this.tileBorderColorLocation) {
+        const [r, g, b, a] = TILE_DEBUG_BORDER_COLOR
+        gl.uniform4f(this.tileBorderColorLocation, r, g, b, a)
+      }
+
+      if (!showDebugBorder && this.tileBorderWidthLocation) {
+        gl.uniform2f(this.tileBorderWidthLocation, 0, 0)
+      }
+
+      const borderWidthLocation = this.tileBorderWidthLocation
+
       // 设置纹理坐标属性（瓦片和整体纹理共用）
       gl.bindBuffer(gl.ARRAY_BUFFER, this.texCoordBuffer)
       gl.enableVertexAttribArray(this.texCoordLocation)
@@ -788,6 +826,16 @@ export class WebGLImageViewerEngine {
         const visibleTiles = this.getVisibleTiles()
         for (const tile of visibleTiles) {
           if (!tile.texture) continue
+
+          if (showDebugBorder && borderWidthLocation) {
+            const tileWidth = Math.max(tile.width, 1)
+            const tileHeight = Math.max(tile.height, 1)
+            gl.uniform2f(
+              borderWidthLocation,
+              TILE_DEBUG_BORDER_PX / tileWidth,
+              TILE_DEBUG_BORDER_PX / tileHeight,
+            )
+          }
 
           const positions = new Float32Array([
             tile.x,
@@ -810,6 +858,16 @@ export class WebGLImageViewerEngine {
           gl.drawArrays(gl.TRIANGLES, 0, 6)
         }
       } else {
+        if (showDebugBorder && borderWidthLocation && this.image) {
+          const imageWidth = Math.max(this.image.width, 1)
+          const imageHeight = Math.max(this.image.height, 1)
+          gl.uniform2f(
+            borderWidthLocation,
+            TILE_DEBUG_BORDER_PX / imageWidth,
+            TILE_DEBUG_BORDER_PX / imageHeight,
+          )
+        }
+
         gl.bindTexture(gl.TEXTURE_2D, this.texture)
         gl.drawArrays(gl.TRIANGLES, 0, 6)
       }
@@ -1341,6 +1399,12 @@ export class WebGLImageViewerEngine {
   public getDebugInfo(): DebugInfo | null {
     if (!this.image) return null
 
+    const visibleTiles = this.useTiles ? this.getVisibleTiles() : []
+    const imageSrc =
+      'src' in this.image && typeof this.image.src === 'string'
+        ? this.image.src
+        : ''
+
     return {
       scale: this.transform.scale,
       relativeScale: this.transform.scale / this.initialScale,
@@ -1355,7 +1419,12 @@ export class WebGLImageViewerEngine {
       isLoading: this.isLoadingTexture,
       loadingState: this.currentLoadingState,
       currentQuality: this.currentQuality,
-      imageSrc: 'src' in this.image ? this.image.src : '',
+      imageSrc,
+      tileEnabled: this.config.tileEnabled,
+      useTiles: this.useTiles,
+      totalTiles: this.tiles.length,
+      visibleTiles: visibleTiles.length,
+      tileSize: this.config.tileSize,
     }
   }
 

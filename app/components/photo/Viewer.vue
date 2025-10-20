@@ -708,6 +708,7 @@ const swiperModules = [Navigation, Keyboard, Virtual]
                       :is-current-image="index === currentIndex"
                       :src="photo.originalUrl!"
                       :thumbnail-src="photo.thumbnailUrl!"
+                      :thumbhash="photo.thumbnailHash"
                       :alt="photo.title || ''"
                       :width="
                         index === currentIndex

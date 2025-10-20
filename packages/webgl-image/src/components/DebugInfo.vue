@@ -66,6 +66,15 @@ const getShortImageSrc = (src: string): string => {
     </div>
 
     <div class="debug-section">
+      <h4>瓦片信息</h4>
+      <div>启用瓦片: {{ debugInfo.tileEnabled ? '是' : '否' }}</div>
+      <div>使用瓦片渲染: {{ debugInfo.useTiles ? '是' : '否' }}</div>
+      <div>总瓦片数: {{ debugInfo.totalTiles }}</div>
+      <div>可见瓦片数: {{ debugInfo.visibleTiles }}</div>
+      <div>配置瓦片尺寸: {{ debugInfo.tileSize }}</div>
+    </div>
+
+    <div class="debug-section">
       <h4>WebGL信息</h4>
       <div>最大纹理尺寸: {{ debugInfo.maxTextureSize }}</div>
     </div>
