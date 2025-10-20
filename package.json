@@ -58,7 +58,7 @@
     "nuxt-gtag": "4.0.0",
     "nuxt-mapbox": "1.6.4",
     "nuxt-maplibre": "^1.1.1",
-    "nuxt-og-image": "5.1.11",
+    "nuxt-og-image": "5.1.12",
     "pinia": "^3.0.3",
     "reka-ui": "^2.5.1",
     "sharp": "^0.34.4",
