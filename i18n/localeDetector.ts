@@ -14,7 +14,7 @@ export default defineI18nLocaleDetector((event, config) => {
       'zh-MO': 'zh-Hant-HK',
     }
 
-    return localeMap[locale] || locale
+    return localeMap[locale] || 'en'
   }
 
   // try to get locale from query
