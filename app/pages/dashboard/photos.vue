@@ -125,7 +125,9 @@ const originalMetadata = ref<{
   location: null,
 })
 
-const locationSelection = ref<{ latitude: number; longitude: number } | null>(null)
+const locationSelection = ref<{ latitude: number; longitude: number } | null>(
+  null,
+)
 const locationTouched = ref(false)
 
 const normalizeTagList = (tags: string[]): string[] => {
@@ -323,7 +325,9 @@ const uploadImage = async (file: File, existingFileId?: string) => {
             startTaskStatusCheck(resp.taskId, fileId)
           } else {
             uploadingFile.status = 'error'
-            uploadingFile.error = $t('dashboard.photos.messages.taskSubmitFailed')
+            uploadingFile.error = $t(
+              'dashboard.photos.messages.taskSubmitFailed',
+            )
             uploadingFiles.value = new Map(uploadingFiles.value)
           }
         } catch (processError: any) {
@@ -347,10 +351,12 @@ const uploadImage = async (file: File, existingFileId?: string) => {
     // 处理重复文件阻止模式的错误
     if (error.statusCode === 409 && error.data?.duplicate) {
       uploadingFile.status = 'blocked'
-      uploadingFile.error = error.data.title || $t('upload.duplicate.block.title')
+      uploadingFile.error =
+        error.data.title || $t('upload.duplicate.block.title')
     } else {
       // 其他错误
-      uploadingFile.error = error.message || $t('dashboard.photos.messages.uploadFailed')
+      uploadingFile.error =
+        error.message || $t('dashboard.photos.messages.uploadFailed')
     }
 
     uploadingFiles.value = new Map(uploadingFiles.value)
@@ -547,7 +553,9 @@ const startTaskStatusCheck = (taskId: number, fileId: string) => {
       const uploadingFile = uploadingFiles.value.get(fileId)
       if (uploadingFile) {
         uploadingFile.status = 'error'
-        uploadingFile.error = $t('dashboard.photos.messages.taskStatusCheckFailed')
+        uploadingFile.error = $t(
+          'dashboard.photos.messages.taskStatusCheckFailed',
+        )
         uploadingFiles.value = new Map(uploadingFiles.value)
       }
     }
@@ -605,7 +613,9 @@ const clearCompletedTasks = () => {
   if (toRemove.length > 0) {
     toast.add({
       title: $t('dashboard.photos.uploadQueue.taskCleared'),
-      description: $t('dashboard.photos.uploadQueue.tasksCleared', { count: toRemove.length }),
+      description: $t('dashboard.photos.uploadQueue.tasksCleared', {
+        count: toRemove.length,
+      }),
       color: 'info',
     })
   }
@@ -644,7 +654,9 @@ const clearAllUploads = () => {
   if (toRemove.length > 0) {
     toast.add({
       title: $t('dashboard.photos.uploadQueue.allTasksCleared'),
-      description: $t('dashboard.photos.uploadQueue.tasksCleared', { count: toRemove.length }),
+      description: $t('dashboard.photos.uploadQueue.tasksCleared', {
+        count: toRemove.length,
+      }),
       color: 'info',
     })
   }
@@ -681,7 +693,7 @@ const columns: TableColumn<Photo>[] = [
         key: row.original.id,
         thumbhash: row.original.thumbnailHash || '',
         class: 'size-16 min-w-[100px] object-cover rounded-md shadow',
-        onClick: () => row.original.isLivePhoto ? handleViewLivePhoto(row.original.id) : openImagePreview(url || row.original.originalUrl || '', row.original.title || 'Photo Preview'),
+        onClick: () => openImagePreview(row.original),
         style: { cursor: url ? 'pointer' : 'default' },
       })
     },
@@ -712,7 +724,11 @@ const columns: TableColumn<Photo>[] = [
                 () => tag,
               ),
             )
-          : h('span', { class: 'text-neutral-400 text-xs' }, $t('dashboard.photos.table.cells.noTags')),
+          : h(
+              'span',
+              { class: 'text-neutral-400 text-xs' },
+              $t('dashboard.photos.table.cells.noTags'),
+            ),
       ])
     },
   },
@@ -759,7 +775,11 @@ const columns: TableColumn<Photo>[] = [
       const { exif, city, country } = row.original
 
       if (!exif?.GPSLongitude && !exif?.GPSLatitude) {
-        return h('span', { class: 'text-neutral-400 text-xs' }, $t('dashboard.photos.table.cells.noGps'))
+        return h(
+          'span',
+          { class: 'text-neutral-400 text-xs' },
+          $t('dashboard.photos.table.cells.noGps'),
+        )
       }
 
       const location = [city, country].filter(Boolean).join(', ')
@@ -780,7 +800,9 @@ const columns: TableColumn<Photo>[] = [
       return h(
         'span',
         { class: 'font-mono text-xs' },
-        date ? dayjs(date).format('YYYY-MM-DD HH:mm:ss') : $t('dashboard.photos.table.cells.unknown'),
+        date
+          ? dayjs(date).format('YYYY-MM-DD HH:mm:ss')
+          : $t('dashboard.photos.table.cells.unknown'),
       )
     },
   },
@@ -792,7 +814,9 @@ const columns: TableColumn<Photo>[] = [
       return h(
         'span',
         { class: 'font-mono text-xs' },
-        date ? dayjs(date).format('YYYY-MM-DD HH:mm:ss') : $t('dashboard.photos.table.cells.unknown'),
+        date
+          ? dayjs(date).format('YYYY-MM-DD HH:mm:ss')
+          : $t('dashboard.photos.table.cells.unknown'),
       )
     },
   },
@@ -817,7 +841,11 @@ const columns: TableColumn<Photo>[] = [
       )
 
       if (totalReactions === 0) {
-        return h('span', { class: 'text-neutral-400 text-xs' }, $t('dashboard.photos.table.cells.noReactions'))
+        return h(
+          'span',
+          { class: 'text-neutral-400 text-xs' },
+          $t('dashboard.photos.table.cells.noReactions'),
+        )
       }
 
       const reactionIcons: Record<string, string> = {
@@ -897,7 +925,9 @@ const validateFile = (file: File): { valid: boolean; error?: string } => {
   if (!isValidImageType && !isValidImageExtension && !isValidVideoExtension) {
     return {
       valid: false,
-      error: $t('dashboard.photos.errors.unsupportedFormat', { type: file.type }),
+      error: $t('dashboard.photos.errors.unsupportedFormat', {
+        type: file.type,
+      }),
     }
   }
 
@@ -1031,13 +1061,12 @@ const openMetadataEditor = (photo: Photo) => {
   editFormState.description = initialDescription
   editFormState.tags = [...initialTags]
 
-  const initialLocation =
-    hasCoordinates
-      ? {
-          latitude: photo.latitude as number,
-          longitude: photo.longitude as number,
-        }
-      : null
+  const initialLocation = hasCoordinates
+    ? {
+        latitude: photo.latitude as number,
+        longitude: photo.longitude as number,
+      }
+    : null
 
   originalMetadata.value = {
     title: initialTitle,
@@ -1266,7 +1295,9 @@ const handleReprocessSingle = async (photo: Photo) => {
     if (result.success) {
       toast.update(reprocessToast.id, {
         title: $t('dashboard.photos.messages.reprocessSuccess'),
-        description: $t('dashboard.photos.messages.reprocessTaskId', { taskId: result.taskId }),
+        description: $t('dashboard.photos.messages.reprocessTaskId', {
+          taskId: result.taskId,
+        }),
         color: 'success',
       })
     } else {
@@ -1344,14 +1375,11 @@ const selectedLivePhoto = ref<{
 
 // 图片预览弹窗
 const isImagePreviewOpen = ref(false)
-const previewImage = ref<{
-  src: string
-  alt: string
-} | null>(null)
+const previewingPhoto = ref<Photo | null>(null)
 
-const openImagePreview = (src: string, alt: string) => {
-  if (src) {
-    previewImage.value = { src, alt }
+const openImagePreview = (photo: Photo) => {
+  if (photo) {
+    previewingPhoto.value = photo
     isImagePreviewOpen.value = true
   }
 }
@@ -1378,22 +1406,22 @@ const handleSingleDeleteRequest = (photo: Photo) => {
 }
 
 // 批量删除功能
-  const handleBatchDelete = () => {
-    const selectedRowModel = table.value?.tableApi?.getFilteredSelectedRowModel()
-    const selectedPhotos =
-      selectedRowModel?.rows.map((row: any) => row.original) || []
+const handleBatchDelete = () => {
+  const selectedRowModel = table.value?.tableApi?.getFilteredSelectedRowModel()
+  const selectedPhotos =
+    selectedRowModel?.rows.map((row: any) => row.original) || []
 
-    if (selectedPhotos.length === 0) {
-      toast.add({
-        title: $t('dashboard.photos.selection.selected', { count: 0, total: 0 }),
-        description: $t('dashboard.photos.messages.batchSelectRequired'),
-        color: 'warning',
-      })
-      return
-    }
-
-    openDeleteConfirm('batch', selectedPhotos)
+  if (selectedPhotos.length === 0) {
+    toast.add({
+      title: $t('dashboard.photos.selection.selected', { count: 0, total: 0 }),
+      description: $t('dashboard.photos.messages.batchSelectRequired'),
+      color: 'warning',
+    })
+    return
   }
+
+  openDeleteConfirm('batch', selectedPhotos)
+}
 
 const confirmDelete = async () => {
   if (deleteTargetPhotos.value.length === 0) {
@@ -1424,7 +1452,9 @@ const confirmDelete = async () => {
       )
 
       toast.update(deleteToast.id, {
-        title: $t('dashboard.photos.messages.batchDeleteSuccess', { count: targetPhotos.length }),
+        title: $t('dashboard.photos.messages.batchDeleteSuccess', {
+          count: targetPhotos.length,
+        }),
         description: '',
         color: 'success',
       })
@@ -1494,7 +1524,9 @@ const handleBatchReprocess = async () => {
   if (photosWithStorageKey.length !== selectedPhotos.length) {
     toast.add({
       title: $t('dashboard.photos.messages.error'),
-      description: $t('dashboard.photos.messages.batchNoStorageKey', { count: selectedPhotos.length - photosWithStorageKey.length }),
+      description: $t('dashboard.photos.messages.batchNoStorageKey', {
+        count: selectedPhotos.length - photosWithStorageKey.length,
+      }),
       color: 'error',
     })
     return
@@ -1524,7 +1556,9 @@ const handleBatchReprocess = async () => {
     if (result.success) {
       toast.update(reprocessToast.id, {
         title: $t('dashboard.photos.messages.reprocessSuccess'),
-        description: $t('dashboard.queue.title', { count: photosWithStorageKey.length }),
+        description: $t('dashboard.queue.title', {
+          count: photosWithStorageKey.length,
+        }),
         color: 'success',
       })
     } else {
@@ -1546,6 +1580,12 @@ const handleBatchReprocess = async () => {
     })
   }
 }
+
+watch(isImagePreviewOpen, (open) => {
+  if (!open) {
+    previewingPhoto.value = null
+  }
+})
 
 // 清理定时器
 onUnmounted(() => {
@@ -1579,7 +1619,7 @@ onUnmounted(() => {
         <div
           class="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between"
         >
-            <div class="space-y-4">
+          <div class="space-y-4">
             <div class="flex items-center gap-3">
               <span
                 class="flex size-12 items-center justify-center rounded-2xl bg-primary-500/10 text-primary-600 dark:bg-primary-500/15 dark:text-primary-300"
@@ -1610,7 +1650,8 @@ onUnmounted(() => {
                   </template>
                 </i18n-t>
               </div>
-            </div>            <div
+            </div>
+            <div
               class="flex flex-wrap items-center gap-1 text-xs font-medium text-neutral-500 dark:text-neutral-400"
             >
               <UBadge
@@ -1646,7 +1687,9 @@ onUnmounted(() => {
                 color="neutral"
                 size="sm"
               >
-                {{ $t('dashboard.photos.maxFileSize', { size: MAX_FILE_SIZE }) }}
+                {{
+                  $t('dashboard.photos.maxFileSize', { size: MAX_FILE_SIZE })
+                }}
               </UBadge>
             </div>
           </div>
@@ -1689,7 +1732,11 @@ onUnmounted(() => {
         <UFileUpload
           v-model="selectedFiles"
           :label="$t('dashboard.photos.uploader.label')"
-          :description="$t('dashboard.photos.uploader.description', { maxSize: MAX_FILE_SIZE })"
+          :description="
+            $t('dashboard.photos.uploader.description', {
+              maxSize: MAX_FILE_SIZE,
+            })
+          "
           icon="tabler:cloud-upload"
           layout="list"
           size="xl"
@@ -1750,7 +1797,9 @@ onUnmounted(() => {
             >
               {{
                 hasSelectedFiles
-                  ? $t('dashboard.photos.slideover.buttons.upload', { count: selectedFiles.length })
+                  ? $t('dashboard.photos.slideover.buttons.upload', {
+                      count: selectedFiles.length,
+                    })
                   : $t('dashboard.photos.buttons.upload')
               }}
             </UButton>
@@ -1781,7 +1830,8 @@ onUnmounted(() => {
             size="sm"
           >
             <span class="hidden sm:inline"
-              >{{ livePhotoStats.staticPhotos }} {{ $t('dashboard.photos.stats.photos') }}</span
+              >{{ livePhotoStats.staticPhotos }}
+              {{ $t('dashboard.photos.stats.photos') }}</span
             >
             <span class="sm:hidden">{{ livePhotoStats.staticPhotos }}P</span>
           </UBadge>
@@ -1792,7 +1842,8 @@ onUnmounted(() => {
             size="sm"
           >
             <span class="hidden sm:inline"
-              >{{ livePhotoStats.livePhotos }} {{ $t('dashboard.photos.stats.livePhotos') }}</span
+              >{{ livePhotoStats.livePhotos }}
+              {{ $t('dashboard.photos.stats.livePhotos') }}</span
             >
             <span class="sm:hidden">{{ livePhotoStats.livePhotos }}LP</span>
           </UBadge>
@@ -1829,13 +1880,21 @@ onUnmounted(() => {
           v-model="photoFilter"
           class="w-full sm:w-48"
           :items="[
-            { label: $t('dashboard.photos.photoFilter.all'), value: 'all', icon: 'tabler:photo-scan' },
+            {
+              label: $t('dashboard.photos.photoFilter.all'),
+              value: 'all',
+              icon: 'tabler:photo-scan',
+            },
             {
               label: $t('dashboard.photos.photoFilter.livephoto'),
               value: 'livephoto',
               icon: 'tabler:live-photo',
             },
-            { label: $t('dashboard.photos.photoFilter.static'), value: 'static', icon: 'tabler:photo' },
+            {
+              label: $t('dashboard.photos.photoFilter.static'),
+              value: 'static',
+              icon: 'tabler:photo',
+            },
           ]"
           value-key="value"
           label-key="label"
@@ -1859,7 +1918,9 @@ onUnmounted(() => {
             }
           "
         >
-          <span class="hidden sm:inline">{{ $t('dashboard.photos.toolbar.refresh') }}</span>
+          <span class="hidden sm:inline">{{
+            $t('dashboard.photos.toolbar.refresh')
+          }}</span>
         </UButton>
       </div>
     </div>
@@ -1912,7 +1973,12 @@ onUnmounted(() => {
           class="text-sm text-neutral-600 dark:text-neutral-400 flex items-center gap-2"
         >
           <div class="leading-6">
-            {{ $t('dashboard.photos.selection.selected', { count: selectedRowsCount, total: totalRowsCount }) }}
+            {{
+              $t('dashboard.photos.selection.selected', {
+                count: selectedRowsCount,
+                total: totalRowsCount,
+              })
+            }}
           </div>
           <div
             v-if="selectedRowsCount > 0"
@@ -1948,7 +2014,9 @@ onUnmounted(() => {
       <template #content>
         <div class="p-6 space-y-6">
           <div class="space-y-1">
-            <h2 class="text-lg font-semibold text-neutral-800 dark:text-neutral-100">
+            <h2
+              class="text-lg font-semibold text-neutral-800 dark:text-neutral-100"
+            >
               {{ $t('dashboard.photos.editModal.title') }}
             </h2>
             <p class="text-sm text-neutral-500 dark:text-neutral-400">
@@ -1962,19 +2030,30 @@ onUnmounted(() => {
             </p>
           </div>
 
-          <UForm :state="editFormState" class="space-y-5" @submit="handleEditSubmit">
+          <UForm
+            :state="editFormState"
+            class="space-y-5"
+            @submit="handleEditSubmit"
+          >
             <UFormField
               :label="$t('dashboard.photos.editModal.fields.title')"
               name="title"
             >
-              <UInput v-model="editFormState.title" class="w-full" />
+              <UInput
+                v-model="editFormState.title"
+                class="w-full"
+              />
             </UFormField>
 
             <UFormField
               :label="$t('dashboard.photos.editModal.fields.description')"
               name="description"
             >
-              <UTextarea v-model="editFormState.description" :rows="3" class="w-full" />
+              <UTextarea
+                v-model="editFormState.description"
+                :rows="3"
+                class="w-full"
+              />
             </UFormField>
 
             <div class="space-y-2">
@@ -1982,7 +2061,10 @@ onUnmounted(() => {
                 :label="$t('dashboard.photos.editModal.fields.tags')"
                 name="tags"
               >
-                <UInputTags v-model="tagsModel" class="w-full" />
+                <UInputTags
+                  v-model="tagsModel"
+                  class="w-full"
+                />
               </UFormField>
               <p class="text-xs text-neutral-500 dark:text-neutral-400">
                 {{ $t('dashboard.photos.editModal.fields.tagsHint') }}
@@ -1991,7 +2073,9 @@ onUnmounted(() => {
 
             <div class="space-y-3">
               <div class="flex items-center justify-between">
-                <label class="text-sm font-medium text-neutral-700 dark:text-neutral-200">
+                <label
+                  class="text-sm font-medium text-neutral-700 dark:text-neutral-200"
+                >
                   {{ $t('dashboard.photos.editModal.fields.location') }}
                 </label>
                 <UButton
@@ -2020,8 +2104,14 @@ onUnmounted(() => {
                 </template>
               </MapLocationPicker>
 
-              <div class="text-xs text-neutral-500 dark:text-neutral-400 flex items-center gap-2">
-                <span>{{ $t('dashboard.photos.editModal.fields.coordinates') }}:</span>
+              <div
+                class="text-xs text-neutral-500 dark:text-neutral-400 flex items-center gap-2"
+              >
+                <span
+                  >{{
+                    $t('dashboard.photos.editModal.fields.coordinates')
+                  }}:</span
+                >
                 <span v-if="formattedCoordinates">
                   {{ formattedCoordinates.latitude }},
                   {{ formattedCoordinates.longitude }}
@@ -2032,7 +2122,9 @@ onUnmounted(() => {
               </div>
             </div>
 
-            <div class="flex items-center justify-end gap-2 pt-4 border-t border-neutral-200 dark:border-neutral-800">
+            <div
+              class="flex items-center justify-end gap-2 pt-4 border-t border-neutral-200 dark:border-neutral-800"
+            >
               <UButton
                 variant="ghost"
                 color="neutral"
@@ -2064,13 +2156,19 @@ onUnmounted(() => {
             />
             <div class="space-y-2">
               <h3 class="text-lg font-semibold">
-                {{ deleteMode === 'single' ? $t('dashboard.photos.delete.single.title') : $t('dashboard.photos.delete.batch.title') }}
+                {{
+                  deleteMode === 'single'
+                    ? $t('dashboard.photos.delete.single.title')
+                    : $t('dashboard.photos.delete.batch.title')
+                }}
               </h3>
               <p class="text-sm text-neutral-600 dark:text-neutral-400">
                 {{
                   deleteMode === 'single'
                     ? $t('dashboard.photos.delete.single.message')
-                    : $t('dashboard.photos.delete.batch.message', { count: deleteTargetPhotos.length })
+                    : $t('dashboard.photos.delete.batch.message', {
+                        count: deleteTargetPhotos.length,
+                      })
                 }}
               </p>
               <p class="text-sm text-error-500 dark:text-error-400">
@@ -2106,7 +2204,11 @@ onUnmounted(() => {
         <div class="p-6">
           <div class="flex items-center justify-between mb-4">
             <h3 class="text-lg font-semibold">
-              {{ $t('dashboard.photos.livePhotoModal.title', { title: selectedLivePhoto?.title || 'Untitled' }) }}
+              {{
+                $t('dashboard.photos.livePhotoModal.title', {
+                  title: selectedLivePhoto?.title || 'Untitled',
+                })
+              }}
             </h3>
             <UButton
               variant="ghost"
@@ -2184,7 +2286,9 @@ onUnmounted(() => {
                   }
                 "
               >
-                {{ $t('dashboard.photos.livePhotoModal.buttons.downloadVideo') }}
+                {{
+                  $t('dashboard.photos.livePhotoModal.buttons.downloadVideo')
+                }}
               </UButton>
             </div>
           </div>
@@ -2193,44 +2297,24 @@ onUnmounted(() => {
     </UModal>
 
     <!-- 图片预览模态框 -->
-    <UModal v-model:open="isImagePreviewOpen">
-      <template #content>
-        <div class="p-4 md:p-6 flex flex-col items-center">
-          <div class="w-full flex justify-end mb-2">
-            <UButton
-              variant="ghost"
-              color="neutral"
-              size="sm"
-              icon="tabler:x"
-              @click="isImagePreviewOpen = false"
+    <UModal
+      v-model:open="isImagePreviewOpen"
+      title="Photo Preview"
+      :description="previewingPhoto?.description || ''"
+    >
+      <template #body>
+        <div
+          class="flex items-center justify-center w-full"
+          style="max-height: calc(100vh - 12rem)"
+        >
+          <div class="w-full max-w-2xl rounded-lg overflow-hidden">
+            <MasonryItemPhoto
+              v-if="previewingPhoto"
+              :photo="previewingPhoto"
+              :index="0"
+              @visibility-change="() => {}"
+              @open-viewer="openInNewTab(`/${previewingPhoto.id}`)"
             />
-          </div>
-          
-          <div class="flex-grow flex items-center justify-center">
-            <img
-              v-if="previewImage"
-              :src="previewImage.src"
-              :alt="previewImage.alt"
-              class="max-h-[70vh] max-w-full object-contain rounded-lg"
-            />
-          </div>
-          
-          <div class="mt-4 text-center">
-            <p v-if="previewImage" class="text-sm text-neutral-600 dark:text-neutral-400">
-              {{ previewImage.alt }}
-            </p>
-            <div class="flex justify-center gap-2 mt-4">
-              <UButton
-                v-if="previewImage"
-                variant="soft"
-                color="info"
-                size="sm"
-                icon="tabler:external-link"
-                @click="openInNewTab(previewImage.src)"
-              >
-                {{ $t('dashboard.photos.table.columns.thumbnail.action') }}
-              </UButton>
-            </div>
           </div>
         </div>
       </template>
