@@ -38,7 +38,7 @@
     "@nuxthub/core": "0.9.0",
     "@nuxtjs/i18n": "10.1.0",
     "@pinia/nuxt": "^0.11.2",
-    "@tailwindcss/vite": "^4.1.12",
+    "@tailwindcss/vite": "^4.1.15",
     "@unhead/vue": "^2.0.5",
     "@vingle/bmp-js": "^0.2.5",
     "@vueuse/nuxt": "13.9.0",
