@@ -72,8 +72,8 @@ importers:
         specifier: ^1.40.0
         version: 1.40.0
       exiftool-vendored:
-        specifier: ^30.3.0
-        version: 30.5.0
+        specifier: ^31.1.0
+        version: 31.1.0
       file-type:
         specifier: ^21.0.0
         version: 21.0.0
@@ -4666,17 +4666,17 @@ packages:
     resolution: {integrity: sha512-jpWzZ1ZhwUmeWRhS7Qv3mhpOhLfwI+uAX4e5fOcXqwMR7EcJ0pj2kV1CVzHVMX/LphnKWD3LObjZCoJ71lKpHw==}
     engines: {node: ^18.19.0 || >=20.5.0}
 
-  exiftool-vendored.exe@13.35.1:
-    resolution: {integrity: sha512-RlgXYbsFYJKw9ICYx31cnpJRr94CEhp6VaJVFHJz4WQaHnJNZ5WvQZ7sZBF8B4P+dx0nQrmCwiAm9GGUQBzluw==}
+  exiftool-vendored.exe@13.38.0:
+    resolution: {integrity: sha512-oZx5enTAvSiIAXL+OEk7nNWrfUhEdKUpaGwDjCmz4VKwOa4HbisqyM808xPGPYj8X7XikcME/fq5hvevPeE3cw==}
     os: [win32]
 
-  exiftool-vendored.pl@13.35.0:
-    resolution: {integrity: sha512-8sooj1fkS2Zvb2uflcp/l21la3xKJbPz7MONlWyjBAp0wZA1xtbz8S9+DLvMNRV5udPi5e6mOrIsi5gRhTN8jQ==}
+  exiftool-vendored.pl@13.38.0:
+    resolution: {integrity: sha512-Q3xl1nnwswrsR5344z4NyqvI74fKwla+VJHY1N+32gcDgt8cs9KBsDUwcNzKHSOSa/MjEfniuCJVrQiqR05iag==}
     os: ['!win32']
     hasBin: true
 
-  exiftool-vendored@30.5.0:
-    resolution: {integrity: sha512-m3fSrpFxmrT1VYl+/4mTyaYrgpe+key1QLmsWezDDkfJI3dF8ZrXn4gUuOctDBNKEKw6x4hGoQpIoWEsO6rxvQ==}
+  exiftool-vendored@31.1.0:
+    resolution: {integrity: sha512-q8StxLawHLDvhqv/uoBYCfVbDskn49Cr5ouNCZhh4lgryGu1aymHwK9AvO6RcW2SbPm5MSnQDJOfGp2MW5Nnrw==}
     engines: {node: '>=20.0.0'}
 
   expand-template@2.0.3:
@@ -12897,13 +12897,13 @@ snapshots:
       strip-final-newline: 4.0.0
       yoctocolors: 2.1.2
 
-  exiftool-vendored.exe@13.35.1:
+  exiftool-vendored.exe@13.38.0:
     optional: true
 
-  exiftool-vendored.pl@13.35.0:
+  exiftool-vendored.pl@13.38.0:
     optional: true
 
-  exiftool-vendored@30.5.0:
+  exiftool-vendored@31.1.0:
     dependencies:
       '@photostructure/tz-lookup': 11.2.1
       '@types/luxon': 3.7.1
@@ -12911,8 +12911,8 @@ snapshots:
       he: 1.2.0
       luxon: 3.7.2
     optionalDependencies:
-      exiftool-vendored.exe: 13.35.1
-      exiftool-vendored.pl: 13.35.0
+      exiftool-vendored.exe: 13.38.0
+      exiftool-vendored.pl: 13.38.0
 
   expand-template@2.0.3: {}
 
