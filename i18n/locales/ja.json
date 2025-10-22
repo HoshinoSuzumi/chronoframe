@@ -444,6 +444,7 @@
           "id": "写真ID",
           "title": "写真のタイトル",
           "tags": "キーワード",
+          "rating": "評価",
           "isLivePhoto": "ライブフォト",
           "location": "位置情報",
           "dateTaken": "撮影日",
@@ -455,10 +456,15 @@
         },
         "cells": {
           "noTags": "タグなし",
+          "noRating": "未評価",
           "noGps": "GPS情報なし",
           "unknown": "不明",
           "staticPhoto": "静止画",
           "noReactions": "リアクションなし"
+        },
+        "columnVisibility": {
+          "button": "列設定",
+          "description": "列の表示/非表示を切り替える"
         }
       },
       "actions": {
@@ -578,7 +584,10 @@
           "locationHint": "地図をクリックして撮影場所を選択してください。",
           "clearLocation": "位置情報をクリア",
           "coordinates": "座標",
-          "noLocation": "位置情報が未設定です"
+          "noLocation": "位置情報が未設定です",
+          "rating": "評価",
+          "ratingHint": "星をクリックして写真の評価を設定します（0～5つ星）。",
+          "noRating": "未評価"
         },
         "actions": {
           "cancel": "キャンセル",
