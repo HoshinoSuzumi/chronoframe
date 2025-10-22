@@ -62,7 +62,7 @@ NUXT_PUBLIC_MAP_MAPLIBRE_TOKEN=
 # 使用 Mapbox 需要 Mapbox 访问令牌
 NUXT_PUBLIC_MAPBOX_ACCESS_TOKEN=
 
-# 存储提供者（local 或 s3）
+# 存储提供者（local 或 s3 或 openlist）
 NUXT_STORAGE_PROVIDER=local
 NUXT_PROVIDER_LOCAL_PATH=/app/data/storage
 
@@ -81,6 +81,15 @@ NUXT_PROVIDER_S3_ACCESS_KEY_ID=
 NUXT_PROVIDER_S3_SECRET_ACCESS_KEY=
 NUXT_PROVIDER_S3_PREFIX=photos/
 NUXT_PROVIDER_S3_CDN_URL=
+```
+
+若选择使用 openlist，请将存储部分替换为：
+
+```bash
+NUXT_STORAGE_PROVIDER=openlist
+NUXT_PROVIDER_OPENLIST_BASE_URL=https://openlist.example.com
+NUXT_PROVIDER_OPENLIST_ROOT_PATH=/115pan/chronoframe
+NUXT_PROVIDER_OPENLIST_TOKEN=your-static-token
 ```
 
 可选 GitHub OAuth 变量：

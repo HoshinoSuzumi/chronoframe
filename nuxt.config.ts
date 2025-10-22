@@ -69,7 +69,7 @@ export default defineNuxtConfig({
     mapbox: {
       accessToken: '',
     },
-    STORAGE_PROVIDER: 's3' satisfies 's3' | 'local',
+    STORAGE_PROVIDER: 's3' satisfies 's3' | 'local' | 'openlist',
     provider: {
       s3: {
         endpoint: '',
@@ -85,6 +85,33 @@ export default defineNuxtConfig({
         localPath: './data/storage',
         baseUrl: '/storage',
         prefix: 'photos/',
+      },
+      openlist: {
+        baseUrl: '',
+        rootPath: '',
+        token: '',
+        endpoints: {
+          upload: '/api/fs/put',
+          download: '',
+          list: '',
+          delete: '/api/fs/remove',
+          meta: '/api/fs/get',
+        },
+        pathField: 'path',
+        cdnUrl: '',
+      } as {
+        baseUrl: string;
+        rootPath: string;
+        token: string;
+        endpoints: {
+          upload: string;
+          download: string;
+          list: string;
+          delete: string;
+          meta: string;
+        };
+        pathField: string;
+        cdnUrl: string;
       },
     },
     upload: {

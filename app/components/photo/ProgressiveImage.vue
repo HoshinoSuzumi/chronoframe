@@ -53,6 +53,7 @@ const hasError = ref(false)
 const currentSrc = ref<string | null>()
 
 const isDev = computed(() => import.meta.env.DEV)
+const showDebugInfo = computed(() => isDev.value && import.meta.env.VITE_SHOW_DEBUG_INFO === 'true')
 
 // 使用 WebGLImageViewer 的引用
 const webglViewerRef = ref()
@@ -194,7 +195,7 @@ onUnmounted(() => {
       :pinch="{ step: 0.2 }"
       :double-click="{ mode: 'toggle', step: 2.4, animationTime: 400 }"
       :panning="{ velocityDisabled: false }"
-      :debug="isDev"
+      :debug="showDebugInfo"
       @zoom-change="handleZoomChange"
       @loading-state-change="handleWebGLStateChange"
     />

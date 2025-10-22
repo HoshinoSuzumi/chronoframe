@@ -6,6 +6,7 @@ ChronoFrame supports multiple storage backends to save your photos and thumbnail
 | ------------------------------------------- | :-----: | --------------------------------------- | ------------------ |
 | [**S3 Compatible**](#s3-compatible-storage) |   ✅    | Production environment, cloud storage   | Varies by provider |
 | [**Local Filesystem**](#local-filesystem)   |   ✅    | Testing environment, offline deployment | Free               |
+| [**OpenList**](#openlist-storage)           |   ✅    | Personal cloud storage, NAS             | Free               |
 
 ## S3 Compatible Storage
 
@@ -121,6 +122,64 @@ NUXT_STORAGE_PROVIDER=local
 # Local storage configuration
 NUXT_PROVIDER_LOCAL_PATH=/app/data/storage
 NUXT_PROVIDER_LOCAL_BASE_URL=/storage
+```
+
+## OpenList Storage
+
+OpenList is a file listing program that supports multiple cloud storage services.
+
+| Environment Variable | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `NUXT_PROVIDER_OPENLIST_BASE_URL` | string | Yes | - | Base URL of the OpenList service |
+| `NUXT_PROVIDER_OPENLIST_ROOT_PATH` | string | Yes | - | Root storage path |
+| `NUXT_PROVIDER_OPENLIST_TOKEN` | string | Required | - | Authentication token (required for authentication) |
+| `NUXT_PROVIDER_OPENLIST_ENDPOINT_UPLOAD` | string | Optional | `/api/fs/put` | Upload endpoint |
+| `NUXT_PROVIDER_OPENLIST_ENDPOINT_DOWNLOAD` | string | Optional | - | Download endpoint |
+| `NUXT_PROVIDER_OPENLIST_ENDPOINT_LIST` | string | Optional | - | List endpoint |
+| `NUXT_PROVIDER_OPENLIST_ENDPOINT_DELETE` | string | Optional | `/api/fs/remove` | Delete endpoint |
+| `NUXT_PROVIDER_OPENLIST_ENDPOINT_META` | string | Optional | `/api/fs/get` | Metadata endpoint |
+| `NUXT_PROVIDER_OPENLIST_PATH_FIELD` | string | Optional | `path` | Path field name |
+| `NUXT_PROVIDER_OPENLIST_CDN_URL` | string | Optional | - | CDN URL |
+
+**Authentication:**
+
+OpenList provider requires token authentication for secure access:
+
+```bash
+NUXT_PROVIDER_OPENLIST_TOKEN=your-static-token
+```
+
+### Basic Configuration
+
+```bash
+# Set storage provider to OpenList
+NUXT_STORAGE_PROVIDER=openlist
+
+# OpenList basic configuration
+NUXT_PROVIDER_OPENLIST_BASE_URL=https://your-openlist-server.com
+NUXT_PROVIDER_OPENLIST_ROOT_PATH=/chronoframe/photos
+# Token is required for authentication
+NUXT_PROVIDER_OPENLIST_TOKEN=your-api-token
+
+# Optional configuration
+NUXT_PROVIDER_OPENLIST_ENDPOINT_UPLOAD=/api/fs/put
+NUXT_PROVIDER_OPENLIST_ENDPOINT_DOWNLOAD=
+NUXT_PROVIDER_OPENLIST_ENDPOINT_LIST=
+NUXT_PROVIDER_OPENLIST_ENDPOINT_DELETE=/api/fs/remove
+NUXT_PROVIDER_OPENLIST_ENDPOINT_META=/api/fs/get
+NUXT_PROVIDER_OPENLIST_PATH_FIELD=path
+NUXT_PROVIDER_OPENLIST_CDN_URL=
+```
+
+### Configuration Examples
+
+#### OpenList
+
+```bash
+NUXT_STORAGE_PROVIDER=openlist
+NUXT_PROVIDER_OPENLIST_BASE_URL=https://your-openlist-server.com
+NUXT_PROVIDER_OPENLIST_ROOT_PATH=/local/chronoframe
+NUXT_PROVIDER_OPENLIST_TOKEN=your-static-token
 ```
 
 ## Common Issues

@@ -17,7 +17,7 @@ Whether using Docker or Docker Compose (.env) deployment, configuration is done 
 | NUXT_PUBLIC_MAP_PROVIDER             | Map provider, options: `mapbox`, `maplibre`                     | `maplibre`              | No                                                   |
 | NUXT_PUBLIC_MAPBOX_ACCESS_TOKEN      | Mapbox access token (URL restricted), for map services          | None                    | Required when `NUXT_PUBLIC_MAP_PROVIDER` is `mapbox` |
 | NUXT_MAPBOX_ACCESS_TOKEN             | Mapbox access token (no URL restriction), for location services | None                    | No                                                   |
-| NUXT_STORAGE_PROVIDER                | Storage provider, supports `local`, `s3`                        | `local`                 | Yes                                                  |
+| NUXT_STORAGE_PROVIDER                | Storage provider, supports `local`, `s3`, `openlist`            | `local`                 | Yes                                                  |
 | NUXT_PROVIDER_LOCAL_PATH             | Local storage path                                              | `/app/data/storage`     | No                                                   |
 | NUXT_PROVIDER_LOCAL_BASE_URL         | Local storage access URL                                        | `/storage`              | No                                                   |
 | NUXT_PROVIDER_S3_ENDPOINT            | S3 compatible storage service endpoint                          | None                    | Required when `NUXT_STORAGE_PROVIDER` is `s3`        |
@@ -27,6 +27,16 @@ Whether using Docker or Docker Compose (.env) deployment, configuration is done 
 | NUXT_PROVIDER_S3_SECRET_ACCESS_KEY   | S3 secret access key                                            | None                    | Required when `NUXT_STORAGE_PROVIDER` is `s3`        |
 | NUXT_PROVIDER_S3_PREFIX              | S3 storage prefix                                               | `photos/`               | No                                                   |
 | NUXT_PROVIDER_S3_CDN_URL             | S3 storage CDN URL                                              | None                    | No                                                   |
+| NUXT_PROVIDER_OPENLIST_BASE_URL       | OpenList server URL                                             | None                    | Required when `NUXT_STORAGE_PROVIDER` is `openlist`  |
+| NUXT_PROVIDER_OPENLIST_ROOT_PATH      | OpenList root path                                              | None                    | Required when `NUXT_STORAGE_PROVIDER` is `openlist`  |
+| NUXT_PROVIDER_OPENLIST_TOKEN          | OpenList API token                                              | None                    | Recommended (for OpenList authentication)           |
+| NUXT_PROVIDER_OPENLIST_ENDPOINT_UPLOAD| OpenList upload endpoint                                        | `/api/fs/put`           | No                                                   |
+| NUXT_PROVIDER_OPENLIST_ENDPOINT_DOWNLOAD| OpenList download endpoint                                      | None                    | No                                                   |
+| NUXT_PROVIDER_OPENLIST_ENDPOINT_LIST  | OpenList list endpoint                                          | None                    | No                                                   |
+| NUXT_PROVIDER_OPENLIST_ENDPOINT_DELETE| OpenList delete endpoint                                        | `/api/fs/remove`        | No                                                   |
+| NUXT_PROVIDER_OPENLIST_ENDPOINT_META  | OpenList metadata endpoint                                      | `/api/fs/get`           | No                                                   |
+| NUXT_PROVIDER_OPENLIST_PATH_FIELD     | OpenList path field name                                        | `path`                  | No                                                   |
+| NUXT_PROVIDER_OPENLIST_CDN_URL        | OpenList CDN URL                                                | None                    | No                                                   |
 | NUXT_PUBLIC_OAUTH_GITHUB_ENABLED     | Enable GitHub OAuth login                                       | `false`                 | No                                                   |
 | NUXT_OAUTH_GITHUB_CLIENT_ID          | GitHub OAuth app Client ID                                      | None                    | No (optional, for GitHub login)                      |
 | NUXT_OAUTH_GITHUB_CLIENT_SECRET      | GitHub OAuth app Client Secret                                  | None                    | No (optional, for GitHub login)                      |

@@ -73,7 +73,7 @@ NUXT_PUBLIC_MAPBOX_ACCESS_TOKEN=
 # Mapbox 无域名限制令牌（反向地理编码，可选）
 NUXT_MAPBOX_ACCESS_TOKEN=
 
-# 存储提供者（local 或 s3）
+# 存储提供者（local、s3 或 openlist）
 NUXT_STORAGE_PROVIDER=local
 NUXT_PROVIDER_LOCAL_PATH=/app/data/storage
 

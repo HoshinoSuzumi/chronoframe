@@ -45,11 +45,28 @@ export type LocalStorageConfig = {
   prefix?: string
 }
 
+export type OpenListStorageConfig = {
+  provider: 'openlist'
+  baseUrl: string
+  rootPath: string
+  token: string
+  endpoints: {
+    upload: string
+    download: string
+    list: string
+    delete: string
+    meta: string
+  }
+  pathField?: string
+  cdnUrl?: string
+}
+
 export type StorageConfig =
   | S3StorageConfig
   | HubR2StorageConfig
   | GitHubStorageConfig
   | LocalStorageConfig
+  | OpenListStorageConfig
 
 export interface UploadOptions {
   contentType?: string

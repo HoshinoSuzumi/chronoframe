@@ -1,4 +1,5 @@
 import { useStorageProvider } from '~~/server/utils/useStorageProvider'
+import { logger } from '~~/server/utils/logger'
 
 export default eventHandler(async (event) => {
   await requireUserSession(event)
@@ -43,6 +44,7 @@ export default eventHandler(async (event) => {
     }
   }
   
+  // 使用流式处理而不是一次性读取整个文件到内存
   const raw = await readRawBody(event, false)
   if (!raw || !(raw instanceof Buffer)) {
     throw createError({
@@ -70,8 +72,19 @@ export default eventHandler(async (event) => {
     })
   }
 
-  const buffer = raw
-  await storageProvider.create(key.replace(/^\/+/, ''), buffer, contentType)
+  try {
+    await storageProvider.create(key.replace(/^\/+/, ''), raw, contentType)
+  } catch (error) {
+    logger.chrono.error('Storage provider create error:', error)
+    throw createError({
+      statusCode: 500,
+      statusMessage: t('upload.error.uploadFailed.title'),
+      data: {
+        title: t('upload.error.uploadFailed.title'),
+        message: t('upload.error.uploadFailed.message'),
+      },
+    })
+  }
 
   return { ok: true, key }
 })

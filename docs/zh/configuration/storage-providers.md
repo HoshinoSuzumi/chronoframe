@@ -6,6 +6,7 @@ ChronoFrame 支持多种存储后端来保存您的照片和缩略图。本文�
 | --------------------------------- | :--: | ------------------ | ------------ |
 | [**S3 兼容存储**](#s3-兼容存储)   |  ✅  | 生产环境，云存储   | 按使用量计费 |
 | [**本地文件系统**](#本地文件系统) |  ✅  | 测试环境，离线部署 | 免费         |
+| [**OpenList**](#openlist-存储)    |  ✅  | 个人云存储，NAS    | 免费         |
 
 ## S3 兼容存储
 
@@ -121,6 +122,79 @@ NUXT_STORAGE_PROVIDER=local
 # 本地存储配置
 NUXT_PROVIDER_LOCAL_PATH=/app/data/storage
 NUXT_PROVIDER_LOCAL_BASE_URL=/storage
+```
+
+## OpenList 存储
+
+OpenList 是一个开源的文件管理系统，提供对各种云存储服务的 API 访问。此提供程序允许您使用与 OpenList 兼容的服务作为照片存储后端。
+
+| 环境变量 | 类型 | 必需 | 默认值 | 描述 |
+|---|---|---|---|---|
+| `NUXT_PROVIDER_OPENLIST_BASE_URL` | string | 是 | - | OpenList 服务的基础 URL |
+| `NUXT_PROVIDER_OPENLIST_ROOT_PATH` | string | 是 | - | 根存储路径 |
+| `NUXT_PROVIDER_OPENLIST_TOKEN` | string | 必需 | - | 认证令牌（认证时必需） |
+| `NUXT_PROVIDER_OPENLIST_ENDPOINT_UPLOAD` | string | 可选 | `/api/fs/put` | 上传端点 |
+| `NUXT_PROVIDER_OPENLIST_ENDPOINT_DOWNLOAD` | string | 可选 | - | 下载端点 |
+| `NUXT_PROVIDER_OPENLIST_ENDPOINT_LIST` | string | 可选 | - | 列表端点 |
+| `NUXT_PROVIDER_OPENLIST_ENDPOINT_DELETE` | string | 可选 | `/api/fs/remove` | 删除端点 |
+| `NUXT_PROVIDER_OPENLIST_ENDPOINT_META` | string | 可选 | `/api/fs/get` | 元数据端点 |
+| `NUXT_PROVIDER_OPENLIST_PATH_FIELD` | string | 可选 | `path` | 路径字段名 |
+| `NUXT_PROVIDER_OPENLIST_CDN_URL` | string | 可选 | - | CDN URL |
+
+**认证：**
+
+OpenList 提供程序需要令牌认证以确保安全访问：
+
+```bash
+NUXT_PROVIDER_OPENLIST_TOKEN=your-static-token
+```
+
+### 基础配置
+
+```bash
+# 设置存储提供器为 OpenList
+NUXT_STORAGE_PROVIDER=openlist
+
+# OpenList 基础配置
+NUXT_PROVIDER_OPENLIST_BASE_URL=https://your-openlist-server.com
+NUXT_PROVIDER_OPENLIST_ROOT_PATH=/chronoframe/photos
+
+# 认证配置 - Token 认证
+NUXT_PROVIDER_OPENLIST_TOKEN=your-api-token
+
+# 可选配置
+NUXT_PROVIDER_OPENLIST_ENDPOINT_UPLOAD=/api/fs/put
+NUXT_PROVIDER_OPENLIST_ENDPOINT_DOWNLOAD=
+NUXT_PROVIDER_OPENLIST_ENDPOINT_LIST=
+NUXT_PROVIDER_OPENLIST_ENDPOINT_DELETE=/api/fs/remove
+NUXT_PROVIDER_OPENLIST_ENDPOINT_META=/api/fs/get
+NUXT_PROVIDER_OPENLIST_PATH_FIELD=path
+NUXT_PROVIDER_OPENLIST_CDN_URL=
+```
+
+### 认证方式
+
+OpenList 提供令牌认证进行安全访问：
+
+#### 令牌认证
+
+```bash
+NUXT_PROVIDER_OPENLIST_TOKEN=your-static-token
+```
+
+**优势：**
+- 更稳定可靠
+- 无需频繁重新认证
+- 推荐在生产环境中使用
+
+### 配置示例
+#### OpenList（理论上Alist也可行）
+
+```bash
+NUXT_STORAGE_PROVIDER=openlist
+NUXT_PROVIDER_OPENLIST_BASE_URL=https://openlist.example.com
+NUXT_PROVIDER_OPENLIST_ROOT_PATH=/115pan/chronoframe
+NUXT_PROVIDER_OPENLIST_TOKEN=your-static-token
 ```
 
 ## 常见问题

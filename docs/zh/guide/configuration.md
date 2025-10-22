@@ -17,7 +17,7 @@
 | NUXT_PUBLIC_MAP_PROVIDER             | 地图提供者，可选 `mapbox`、`maplibre`                | `maplibre`              | 否                                               |
 | NUXT_PUBLIC_MAPBOX_ACCESS_TOKEN      | Mapbox 访问令牌(可限制 URL)，用于地图服务            | 无                      | 当 `NUXT_PUBLIC_MAP_PROVIDER` 为 `mapbox` 时必需 |
 | NUXT_MAPBOX_ACCESS_TOKEN             | Mapbox 访问令牌(无 URL 限制)，用于位置信息服务       | 无                      | 否                                               |
-| NUXT_STORAGE_PROVIDER                | 存储提供者，支持 `local`、`s3`                       | `local`                 | 是                                               |
+| NUXT_STORAGE_PROVIDER                | 存储提供者，支持 `local`、`s3`、`openlist`                | `local`                 | 是                                               |
 | NUXT_PROVIDER_LOCAL_PATH             | 本地存储路径                                         | `/app/data/storage`     | 否                                               |
 | NUXT_PROVIDER_LOCAL_BASE_URL         | 本地存储的访问 URL                                   | `/storage`              | 否                                               |
 | NUXT_PROVIDER_S3_ENDPOINT            | S3 兼容存储服务的 Endpoint                           | 无                      | 当 `NUXT_STORAGE_PROVIDER` 为 `s3` 时必需        |
@@ -27,6 +27,16 @@
 | NUXT_PROVIDER_S3_SECRET_ACCESS_KEY   | S3 访问密钥                                          | 无                      | 当 `NUXT_STORAGE_PROVIDER` 为 `s3` 时必需        |
 | NUXT_PROVIDER_S3_PREFIX              | S3 存储前缀                                          | `photos/`               | 否                                               |
 | NUXT_PROVIDER_S3_CDN_URL             | S3 存储的 CDN 地址                                   | 无                      | 否                                               |
+| NUXT_PROVIDER_OPENLIST_BASE_URL       | OpenList 服务器 URL                                  | 无                      | 当 `NUXT_STORAGE_PROVIDER` 为 `openlist` 时必需  |
+| NUXT_PROVIDER_OPENLIST_ROOT_PATH      | OpenList 根路径                                      | 无                      | 当 `NUXT_STORAGE_PROVIDER` 为 `openlist` 时必需  |
+| NUXT_PROVIDER_OPENLIST_TOKEN          | OpenList API 令牌                                               | 无                      | 当 `NUXT_STORAGE_PROVIDER` 为 `openlist` 时必需（用于 OpenList 认证）           |
+| NUXT_PROVIDER_OPENLIST_ENDPOINT_UPLOAD| OpenList 上传端点                                               | `/api/fs/put`           | 否                                                   |
+| NUXT_PROVIDER_OPENLIST_ENDPOINT_DOWNLOAD| OpenList 下载端点                                  | 无                      | 否                                               |
+| NUXT_PROVIDER_OPENLIST_ENDPOINT_LIST  | OpenList 列表端点                                    | 无                      | 否                                               |
+| NUXT_PROVIDER_OPENLIST_ENDPOINT_DELETE| OpenList 删除端点                                    | `/api/fs/remove`        | 否                                               |
+| NUXT_PROVIDER_OPENLIST_ENDPOINT_META  | OpenList 元数据端点                                  | `/api/fs/get`           | 否                                               |
+| NUXT_PROVIDER_OPENLIST_PATH_FIELD     | OpenList 路径字段名                                  | `path`                  | 否                                               |
+| NUXT_PROVIDER_OPENLIST_CDN_URL        | OpenList CDN 地址                                    | 无                      | 否                                               |
 | NUXT_PUBLIC_OAUTH_GITHUB_ENABLED     | 是否启用 GitHub OAuth 登录                           | `false`                 | 否                                               |
 | NUXT_OAUTH_GITHUB_CLIENT_ID          | GitHub OAuth 应用的 Client ID                        | 无                      | 否(可选,用于 GitHub 登录)                        |
 | NUXT_OAUTH_GITHUB_CLIENT_SECRET      | GitHub OAuth 应用的 Client Secret                    | 无                      | 否(可选,用于 GitHub 登录)                        |
@@ -116,3 +126,44 @@ NUXT_UPLOAD_DUPLICATE_CHECK_ENABLED=false
 - 相同文件名会生成相同的 photoId
 - 即使禁用检测，上传同名文件仍会覆盖现有数据（数据库使用 `onConflictDoUpdate`）
 - 建议使用唯一的文件名（如添加时间戳）来避免冲突
+
+## 配置示例
+
+### 本地存储
+
+```bash
+NUXT_STORAGE_PROVIDER=local
+NUXT_PROVIDER_LOCAL_PATH=/app/data/storage
+NUXT_PROVIDER_LOCAL_BASE_URL=/storage
+```
+
+### S3 存储
+
+```bash
+NUXT_STORAGE_PROVIDER=s3
+NUXT_PROVIDER_S3_ENDPOINT=https://s3.amazonaws.com
+NUXT_PROVIDER_S3_BUCKET=chronoframe
+NUXT_PROVIDER_S3_REGION=us-east-1
+NUXT_PROVIDER_S3_ACCESS_KEY_ID=your-access-key
+NUXT_PROVIDER_S3_SECRET_ACCESS_KEY=your-secret-key
+NUXT_PROVIDER_S3_PREFIX=photos/
+```
+
+#### OpenList
+
+```bash
+# 基本配置
+NUXT_STORAGE_PROVIDER=openlist
+NUXT_PROVIDER_OPENLIST_BASE_URL=https://your-openlist-server.com
+NUXT_PROVIDER_OPENLIST_ROOT_PATH=/chronoframe/photos
+
+# 认证配置 - Token 认证（推荐）
+NUXT_PROVIDER_OPENLIST_TOKEN=your-api-token
+
+# 可选配置
+NUXT_PROVIDER_OPENLIST_ENDPOINT_UPLOAD=/api/fs/put
+NUXT_PROVIDER_OPENLIST_ENDPOINT_DOWNLOAD=
+NUXT_PROVIDER_OPENLIST_ENDPOINT_LIST=
+NUXT_PROVIDER_OPENLIST_ENDPOINT_DELETE=/api/fs/remove
+NUXT_PROVIDER_OPENLIST_ENDPOINT_META=/api/fs/get
+```
