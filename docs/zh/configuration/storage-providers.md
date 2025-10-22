@@ -172,21 +172,6 @@ NUXT_PROVIDER_OPENLIST_PATH_FIELD=path
 NUXT_PROVIDER_OPENLIST_CDN_URL=
 ```
 
-### 认证方式
-
-OpenList 提供令牌认证进行安全访问：
-
-#### 令牌认证
-
-```bash
-NUXT_PROVIDER_OPENLIST_TOKEN=your-static-token
-```
-
-**优势：**
-- 更稳定可靠
-- 无需频繁重新认证
-- 推荐在生产环境中使用
-
 ### 配置示例
 #### OpenList（理论上Alist也可行）
 
