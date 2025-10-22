@@ -444,6 +444,7 @@
           "id": "照片 ID",
           "title": "照片標題",
           "tags": "關鍵字",
+          "rating": "評分",
           "isLivePhoto": "原況照片",
           "location": "位置",
           "dateTaken": "拍攝日期",
@@ -455,10 +456,15 @@
         },
         "cells": {
           "noTags": "無標籤",
+          "noRating": "未評分",
           "noGps": "沒有 GPS 資訊",
           "unknown": "未知",
           "staticPhoto": "靜態照片",
           "noReactions": "無反應"
+        },
+        "columnVisibility": {
+          "button": "列設定",
+          "description": "切換列的顯示/隱藏"
         }
       },
       "actions": {
@@ -578,7 +584,10 @@
           "locationHint": "點擊地圖選擇或更新拍攝位置。",
           "clearLocation": "清除位置",
           "coordinates": "座標",
-          "noLocation": "未選擇位置"
+          "noLocation": "未選擇位置",
+          "rating": "評分",
+          "ratingHint": "點擊星星為照片設定評分（0-5 星）。",
+          "noRating": "未評分"
         },
         "actions": {
           "cancel": "取消",

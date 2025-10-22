@@ -26,6 +26,7 @@ const bodySchema = z.object({
       z.null(),
     ])
     .optional(),
+  rating: z.union([z.number().int().min(0).max(5), z.null()]).optional(),
 })
 
 const normalizeTags = (tags: string[] | undefined) => {
@@ -54,7 +55,8 @@ export default eventHandler(async (event) => {
     payload.title === undefined &&
     payload.description === undefined &&
     payload.tags === undefined &&
-    payload.location === undefined
+    payload.location === undefined &&
+    payload.rating === undefined
   ) {
     throw createError({
       statusCode: 400,
@@ -148,6 +150,10 @@ export default eventHandler(async (event) => {
       exifUpdates.GPSLongitudeRef = null
       exifUpdates.GPSPosition = null
     }
+  }
+
+  if (payload.rating !== undefined) {
+    exifUpdates.Rating = payload.rating !== null ? payload.rating : null
   }
 
   const tempDir = await mkdtemp(path.join(tmpdir(), 'cframe-edit-'))

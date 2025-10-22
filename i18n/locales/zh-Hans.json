@@ -501,6 +501,7 @@
           "id": "照片ID",
           "title": "照片标题",
           "tags": "关键词",
+          "rating": "评分",
           "isLivePhoto": "Live Photo",
           "location": "位置",
           "dateTaken": "拍摄日期",
@@ -512,10 +513,15 @@
         },
         "cells": {
           "noTags": "无标签",
+          "noRating": "未评分",
           "noGps": "无 GPS 信息",
           "unknown": "未知",
           "staticPhoto": "一般照片",
           "noReactions": "无表态"
+        },
+        "columnVisibility": {
+          "button": "列设置",
+          "description": "切换列的显示/隐藏"
         }
       },
       "actions": {
@@ -635,7 +641,10 @@
           "locationHint": "点击地图选择或更新拍摄位置。",
           "clearLocation": "清除位置",
           "coordinates": "坐标",
-          "noLocation": "未选择位置"
+          "noLocation": "未选择位置",
+          "rating": "评分",
+          "ratingHint": "点击星星为照片设置评分（0-5 星）。",
+          "noRating": "未评分"
         },
         "actions": {
           "cancel": "取消",
