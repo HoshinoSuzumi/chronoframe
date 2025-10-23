@@ -71,7 +71,7 @@
     "unstorage": "^1.15.0",
     "vue": "^3.5.18",
     "vue-router": "^4.5.1",
-    "wait-on": "^8.0.4",
+    "wait-on": "^9.0.1",
     "zod": "^4.1.12"
   },
   "packageManager": "pnpm@10.18.3",
