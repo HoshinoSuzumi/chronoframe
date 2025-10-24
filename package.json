@@ -52,7 +52,7 @@
     "heic-convert": "^2.1.0",
     "heic-to": "^1.2.2",
     "maplibre-gl": "^5.9.0",
-    "motion-v": "^1.7.0",
+    "motion-v": "^1.7.4",
     "nuxt": "^4.1.2",
     "nuxt-auth-utils": "0.5.23",
     "nuxt-gtag": "4.0.0",
