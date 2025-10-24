@@ -199,8 +199,7 @@ export class NominatimGeocodingProvider implements GeocodingProvider {
  * @description 优先使用 Mapbox，如果没有配置则回退到 Nominatim
  */
 function createGeocodingProvider(): GeocodingProvider {
-  const mapboxToken =
-    useRuntimeConfig().MAPBOX_ACCESS_TOKEN || process.env.MAPBOX_ACCESS_TOKEN
+  const mapboxToken = useRuntimeConfig().mapbox?.accessToken
 
   if (mapboxToken) {
     return new MapboxGeocodingProvider(mapboxToken)
