@@ -69,6 +69,9 @@ export default defineNuxtConfig({
     mapbox: {
       accessToken: '',
     },
+    nominatim: {
+      baseUrl: 'https://nominatim.openstreetmap.org',
+    },
     STORAGE_PROVIDER: 's3' satisfies 's3' | 'local' | 'openlist',
     provider: {
       s3: {

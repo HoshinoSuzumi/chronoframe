@@ -110,10 +110,14 @@ export class MapboxGeocodingProvider implements GeocodingProvider {
  * 免费的地理编码服务，适合开发和小规模使用
  */
 export class NominatimGeocodingProvider implements GeocodingProvider {
-  private readonly baseUrl = 'https://nominatim.openstreetmap.org'
+  private readonly baseUrl: string
   private readonly userAgent = 'chronoframe/1.0'
   private lastRequestTime = 0
   private readonly rateLimitMs = 1000 // Nominatim 要求至少1秒间隔
+
+  constructor(baseUrl?: string) {
+    this.baseUrl = baseUrl || useRuntimeConfig().nominatim?.baseUrl || 'https://nominatim.openstreetmap.org'
+  }
 
   async reverseGeocode(lat: number, lon: number): Promise<LocationInfo | null> {
     try {
