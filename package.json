@@ -47,7 +47,7 @@
     "dayjs-nuxt": "2.1.11",
     "drizzle-orm": "^0.44.4",
     "es-toolkit": "^1.40.0",
-    "exiftool-vendored": "^30.3.0",
+    "exiftool-vendored": "^31.1.0",
     "file-type": "^21.0.0",
     "heic-convert": "^2.1.0",
     "heic-to": "^1.2.2",
