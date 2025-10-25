@@ -34,7 +34,7 @@
     "@nuxt/fonts": "0.11.4",
     "@nuxt/icon": "2.0.0",
     "@nuxt/image": "1.11.0",
-    "@nuxt/ui": "^3.3.4",
+    "@nuxt/ui": "^4.1.0",
     "@nuxthub/core": "0.9.0",
     "@nuxtjs/i18n": "10.1.0",
     "@pinia/nuxt": "^0.11.2",
