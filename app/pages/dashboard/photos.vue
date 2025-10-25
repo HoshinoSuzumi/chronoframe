@@ -276,6 +276,7 @@ const uploadImage = async (file: File, existingFileId?: string) => {
       body: {
         fileName: file.name,
         contentType: file.type,
+        provider: storageProvider.value,
       },
     })
 
@@ -408,7 +409,113 @@ const uploadImage = async (file: File, existingFileId?: string) => {
 
 const toast = useToast()
 const selectedFiles = ref<File[]>([])
+const config = useRuntimeConfig()
+const storageProvider = ref<'s3' | 'local' | 'openlist'>('s3')
 const isUploadSlideoverOpen = ref(false)
+
+// 存储提供器健康状态
+const storageHealth = ref<Record<string, any>>({
+  s3: { healthy: false },
+  local: { healthy: false },
+  openlist: { healthy: false }
+})
+const isCheckingStorage = ref(false)
+
+// 检查存储提供器健康状态
+const checkStorageHealth = async () => {
+  isCheckingStorage.value = true
+  try {
+    const response = await $fetch('/api/system/storage-health')
+    storageHealth.value = response.healthChecks.reduce((acc: Record<string, any>, check) => {
+      acc[check.provider] = check
+      return acc
+    }, {})
+  } catch (error) {
+    console.error('Failed to check storage health:', error)
+    // 如果健康检查失败，设置默认健康状态（显示所有存储但标记为不健康）
+    storageHealth.value = {
+      s3: { healthy: false },
+      local: { healthy: false },
+      openlist: { healthy: false }
+    }
+  } finally {
+    isCheckingStorage.value = false
+  }
+}
+
+// 检查可用的存储提供器
+const availableStorageProviders = computed(() => {
+  const providers = []
+  
+  // 根据健康检查结果动态显示存储选项
+  const s3Health = storageHealth.value.s3
+  const localHealth = storageHealth.value.local
+  const openlistHealth = storageHealth.value.openlist
+  
+  // 显示所有存储提供器，但不健康的会被禁用
+  if (s3Health) {
+    providers.push({
+      label: 'S3 云存储',
+      value: 's3',
+      icon: 'tabler:cloud',
+      description: s3Health.healthy 
+        ? '推荐用于生产环境，支持 CDN 加速'
+        : 'S3 配置不完整，请检查环境变量',
+      disabled: !s3Health.healthy,
+      status: s3Health.healthy ? 'healthy' : 'error'
+    })
+  }
+  
+  if (localHealth) {
+    providers.push({
+      label: '本地存储',
+      value: 'local',
+      icon: 'tabler:device-sd-card',
+      description: localHealth.healthy 
+        ? '适合测试环境，数据存储在本地'
+        : '本地存储配置不完整，请检查环境变量',
+      disabled: !localHealth.healthy,
+      status: localHealth.healthy ? 'healthy' : 'error'
+    })
+  }
+  
+  if (openlistHealth) {
+    providers.push({
+      label: 'OpenList',
+      value: 'openlist',
+      icon: 'tabler:server-2',
+      description: openlistHealth.healthy 
+        ? '自托管存储，适合个人云存储'
+        : 'OpenList 配置不完整，请检查环境变量',
+      disabled: !openlistHealth.healthy,
+      status: openlistHealth.healthy ? 'healthy' : 'error'
+    })
+  }
+  
+  return providers
+})
+
+// 组件挂载时检查存储健康状态
+onMounted(async () => {
+  await checkStorageHealth()
+  
+  // 如果当前选择的存储不可用，选择第一个可用的存储
+  const availableProviders = availableStorageProviders.value
+  if (availableProviders.length > 0) {
+    const currentProvider = availableProviders.find(p => p.value === storageProvider.value)
+    if (!currentProvider || currentProvider.disabled) {
+      // 选择第一个健康的存储提供器
+      const healthyProvider = availableProviders.find(p => !p.disabled)
+      if (healthyProvider) {
+        storageProvider.value = healthyProvider.value as 's3' | 'local' | 'openlist'
+      }
+    }
+  }
+  
+  // 调试信息
+  console.log('Storage provider:', storageProvider.value)
+  console.log('Available providers:', availableStorageProviders.value)
+})
 
 const hasSelectedFiles = computed(() => selectedFiles.value.length > 0)
 
@@ -1960,6 +2067,61 @@ onUnmounted(() => {
             fileTrailingButton: 'text-neutral-400 hover:text-error-500',
           }"
         />
+        <div class="mt-4 p-4 bg-neutral-50 dark:bg-neutral-800/50 rounded-xl border border-neutral-200 dark:border-neutral-700">
+          <div class="flex items-center justify-between mb-3">
+            <UFormField 
+              :label="$t('dashboard.photos.uploader.provider')"
+              :description="$t('dashboard.photos.uploader.providerDescription')"
+              class="flex-1"
+            >
+              <USelectMenu
+                v-model="storageProvider"
+                :items="availableStorageProviders"
+                value-key="value"
+                label-key="label"
+                class="w-full"
+              />
+            </UFormField>
+            
+            <!-- 刷新存储状态按钮 -->
+            <UButton
+              variant="ghost"
+              size="sm"
+              icon="tabler:refresh"
+              :loading="isCheckingStorage"
+              @click="checkStorageHealth"
+              class="ml-2"
+            />
+          </div>
+          
+          <!-- 存储状态指示器 -->
+          <div class="mt-3 flex items-center justify-between">
+            <div class="flex items-center gap-2 text-sm">
+              <Icon 
+                :name="availableStorageProviders.find(p => p.value === storageProvider)?.icon || 'tabler:cloud'"
+                class="size-4"
+              />
+              <span class="text-neutral-600 dark:text-neutral-400">
+                当前选择: {{ availableStorageProviders.find(p => p.value === storageProvider)?.label || 'S3 云存储' }}
+              </span>
+            </div>
+            
+            <!-- 健康状态指示器 -->
+            <div class="flex items-center gap-1">
+              <Icon 
+                :name="storageHealth[storageProvider]?.healthy ? 'tabler:check-circle' : 'tabler:alert-circle'"
+                :class="storageHealth[storageProvider]?.healthy ? 'text-green-500' : 'text-red-500'"
+                class="size-4"
+              />
+              <span 
+                :class="storageHealth[storageProvider]?.healthy ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'"
+                class="text-xs"
+              >
+                {{ storageHealth[storageProvider]?.healthy ? '已配置' : '未配置' }}
+              </span>
+            </div>
+          </div>
+        </div>
       </template>
 
       <template #footer>

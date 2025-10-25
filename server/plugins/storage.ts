@@ -38,21 +38,21 @@ export default nitroPlugin(async (nitroApp) => {
     },
     openlist: {
       provider: 'openlist',
-      baseUrl: config.provider.openlist?.baseUrl || '',
-      rootPath: config.provider.openlist?.rootPath || '',
-      token: config.provider.openlist?.token || '',
+      baseUrl: (config as any).provider.openlist?.baseUrl || '',
+      rootPath: (config as any).provider.openlist?.rootPath || '',
+      token: (config as any).provider.openlist?.token || '',
       endpoints: {
-        upload: config.provider.openlist?.endpoints?.upload ?? '/api/fs/put',
-        download: config.provider.openlist?.endpoints?.download ?? '',
-        list: config.provider.openlist?.endpoints?.list ?? '',
-        delete: config.provider.openlist?.endpoints?.delete ?? '/api/fs/remove',
-        meta: config.provider.openlist?.endpoints?.meta ?? '/api/fs/get',
+        upload: (config as any).provider.openlist?.endpoints?.upload ?? '/api/fs/put',
+        download: (config as any).provider.openlist?.endpoints?.download ?? '',
+        list: (config as any).provider.openlist?.endpoints?.list ?? '',
+        delete: (config as any).provider.openlist?.endpoints?.delete ?? '/api/fs/remove',
+        meta: (config as any).provider.openlist?.endpoints?.meta ?? '/api/fs/get',
       },
-      pathField: config.provider.openlist?.pathField || 'path',
+      pathField: (config as any).provider.openlist?.pathField || 'path',
       cdnUrl:
-        config.provider.openlist?.cdnUrl ||
-        (config.provider.openlist?.baseUrl
-          ? `${config.provider.openlist.baseUrl.replace(/\/$/, '')}/d`
+        (config as any).provider.openlist?.cdnUrl ||
+        ((config as any).provider.openlist?.baseUrl
+          ? `${(config as any).provider.openlist.baseUrl.replace(/\/$/, '')}/d`
           : undefined),
     },
   }
@@ -63,6 +63,14 @@ export default nitroPlugin(async (nitroApp) => {
     storageConfiguration[selectedProvider],
     logger.storage,
   )
+
+  // 额外注册其余已配置的 provider，以便请求时可动态选择
+  ;(['s3', 'local', 'openlist'] as const).forEach((key) => {
+    if (key !== selectedProvider) {
+      storageManager.registerProvider(key, storageConfiguration[key], logger.storage)
+    }
+  })
+  storageManager.setDefault(selectedProvider)
 
   if (selectedProvider === 'openlist') {
     const openlistConfig = storageConfiguration.openlist as any

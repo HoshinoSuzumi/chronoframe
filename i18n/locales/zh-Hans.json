@@ -481,7 +481,9 @@
       },
       "uploader": {
         "label": "拖放或点击选择照片",
-        "description": "支持 JPEG、PNG、HEIC 格式照片，以及 MOV 格式 Live Photo 视频，单个文件最大 {maxSize}MB"
+        "description": "支持 JPEG、PNG、HEIC 格式照片，以及 MOV 格式 Live Photo 视频，单个文件最大 {maxSize}MB",
+        "provider": "存储位置",
+        "providerDescription": "选择照片存储的目标位置"
       },
       "toolbar": {
         "title": "照片管理",

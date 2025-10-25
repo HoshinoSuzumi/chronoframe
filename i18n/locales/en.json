@@ -481,7 +481,9 @@
       },
       "uploader": {
         "label": "Drag and drop or click to select photos",
-        "description": "Supports JPEG, PNG, HEIC format photos, and MOV format Live Photo videos. Maximum file size: {maxSize}MB per file"
+        "description": "Supports JPEG, PNG, HEIC format photos, and MOV format Live Photo videos. Maximum file size: {maxSize}MB per file",
+        "provider": "Storage Location",
+        "providerDescription": "Choose the target storage location for photos"
       },
       "toolbar": {
         "title": "Photo Management",
