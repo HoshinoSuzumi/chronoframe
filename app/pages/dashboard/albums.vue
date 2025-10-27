@@ -320,7 +320,17 @@ const columns: any[] = [
 <template>
   <UDashboardPanel>
     <template #header>
-      <UDashboardNavbar :title="$t('title.albums')" />
+      <UDashboardNavbar :title="$t('title.albums')">
+        <template #right>
+          <UButton
+            icon="tabler:plus"
+            variant="soft"
+            @click="openCreateSlideover"
+          >
+            {{ $t('dashboard.albums.createButton') }}
+          </UButton>
+        </template>
+      </UDashboardNavbar>
     </template>
 
     <template #body>
@@ -335,7 +345,7 @@ const columns: any[] = [
           >
             <template #coverPhoto-cell="{ row }">
               <div
-                class="w-16 h-12 rounded-lg overflow-hidden bg-gray-100 dark:bg-neutral-800 flex-shrink-0"
+                class="w-16 h-12 rounded-lg overflow-hidden bg-gray-100 dark:bg-neutral-800 shrink-0"
               >
                 <img
                   v-if="(row.original as unknown as AlbumItem).coverPhoto"
@@ -368,7 +378,7 @@ const columns: any[] = [
                 <Icon
                   name="tabler:external-link"
                   size="16"
-                  class="flex-shrink-0 opacity-60 hover:opacity-100 transition-opacity"
+                  class="shrink-0 opacity-60 hover:opacity-100 transition-opacity"
                 />
               </NuxtLink>
             </template>
@@ -649,7 +659,7 @@ const columns: any[] = [
           <template #content>
             <div class="flex flex-col h-[85vh] max-h-[85vh]">
               <div
-                class="flex-shrink-0 border-b border-gray-200 dark:border-neutral-700 p-3 sm:p-4 md:p-6"
+                class="shrink-0 border-b border-gray-200 dark:border-neutral-700 p-3 sm:p-4 md:p-6"
               >
                 <div class="flex items-center justify-between mb-3 sm:mb-4">
                   <div>
@@ -805,7 +815,7 @@ const columns: any[] = [
 
                       <button
                         v-if="coverPhotoId !== photo.id"
-                        class="sm:hidden absolute bottom-0 right-0 left-0 bg-gradient-to-t from-black/80 to-transparent p-1 text-white flex items-center justify-center text-xs gap-1 rounded-b-lg"
+                        class="sm:hidden absolute bottom-0 right-0 left-0 bg-linear-to-t from-black/80 to-transparent p-1 text-white flex items-center justify-center text-xs gap-1 rounded-b-lg"
                         @click.stop="setCoverPhoto(photo.id)"
                       >
                         <Icon
@@ -844,7 +854,7 @@ const columns: any[] = [
               </div>
 
               <div
-                class="flex-shrink-0 border-t border-gray-200 dark:border-neutral-700 bg-gray-50 dark:bg-neutral-900/50 p-3 sm:p-4 md:p-6"
+                class="shrink-0 border-t border-gray-200 dark:border-neutral-700 bg-gray-50 dark:bg-neutral-900/50 p-3 sm:p-4 md:p-6"
               >
                 <div
                   class="flex flex-col sm:flex-row gap-3 sm:gap-4 items-center justify-between"
@@ -913,7 +923,7 @@ const columns: any[] = [
             <div class="p-6 space-y-4">
               <div class="flex items-center gap-3">
                 <div
-                  class="flex-shrink-0 w-10 h-10 bg-error-100 dark:bg-error-900/30 rounded-full flex items-center justify-center"
+                  class="shrink-0 w-10 h-10 bg-error-100 dark:bg-error-900/30 rounded-full flex items-center justify-center"
                 >
                   <Icon
                     name="tabler:alert-circle"
