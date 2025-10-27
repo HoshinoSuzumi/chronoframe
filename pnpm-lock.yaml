@@ -5729,12 +5729,6 @@ packages:
       '@vueuse/core': '>=10.0.0'
       vue: '>=3.0.0'
 
-  motion-v@1.7.4:
-    resolution: {integrity: sha512-YNDUAsany04wfI7YtHxQK3kxzNvh+OdFUk9GpA3+hMt7j6P+5WrVAAgr8kmPPoVza9EsJiAVhqoN3YYFN0Twrw==}
-    peerDependencies:
-      '@vueuse/core': '>=10.0.0'
-      vue: '>=3.0.0'
-
   mrmime@2.0.1:
     resolution: {integrity: sha512-Y3wQdFg2Va6etvQ5I82yUhGdsKrcYox6p7FfL1LbK2J4V01F9TGlepTIhnK24t7koZibmg82KGglhA1XK5IsLQ==}
     engines: {node: '>=10'}
@@ -13940,18 +13934,6 @@ snapshots:
       motion-utils: 12.23.6
 
   motion-utils@12.23.6: {}
-
-  motion-v@1.7.4(@vueuse/core@13.9.0(vue@3.5.22(typescript@5.9.3)))(vue@3.5.22(typescript@5.9.3)):
-    dependencies:
-      '@vueuse/core': 13.9.0(vue@3.5.22(typescript@5.9.3))
-      framer-motion: 12.23.12
-      hey-listen: 1.0.8
-      motion-dom: 12.23.12
-      vue: 3.5.22(typescript@5.9.3)
-    transitivePeerDependencies:
-      - '@emotion/is-prop-valid'
-      - react
-      - react-dom
 
   motion-v@1.7.4(@vueuse/core@13.9.0(vue@3.5.22(typescript@5.9.3)))(vue@3.5.22(typescript@5.9.3)):
     dependencies:

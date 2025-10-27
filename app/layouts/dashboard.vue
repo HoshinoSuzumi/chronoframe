@@ -132,7 +132,7 @@ const closeMobileMenu = () => {
               ease: 'easeOut',
               height: { duration: 0.2 },
             }"
-            class="border-t border-default bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 overflow-hidden"
+            class="border-t border-default bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/60 overflow-hidden"
           >
             <nav class="py-2">
               <motion.div
@@ -157,7 +157,7 @@ const closeMobileMenu = () => {
                   @click="closeMobileMenu"
                 >
                   <Icon
-                    :name="item.icon!"
+                    :name="item.icon! as string"
                     :class="[
                       'size-5',
                       isRouteActive(item.to as string)
