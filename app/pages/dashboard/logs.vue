@@ -57,37 +57,37 @@ const addLogEntry = (logEntry: LogEntry) => {
 // 处理批队列
 const processBatch = async () => {
   if (isBatchProcessing.value || batchQueue.value.length === 0) return
-  
+
   isBatchProcessing.value = true
-  
+
   while (batchQueue.value.length > 0) {
     const batch = batchQueue.value.splice(0, BATCH_SIZE)
     logs.value.push(...batch)
-    
+
     // 限制日志条数，避免内存泄漏
     if (logs.value.length > 10000) {
       logs.value = logs.value.slice(-5000)
     }
-    
+
     // 更新加载进度（只在初始加载时显示）
     if (isInitialLoading.value) {
       const totalProcessed = logs.value.length
       loadingProgress.value = Math.min(100, (totalProcessed / 512) * 100)
     }
-    
+
     // 自动滚动到底部
     if (autoScroll.value) {
       await scrollToBottom()
     }
-    
+
     // 如果还有更多批次，延迟处理以避免阻塞UI
     if (batchQueue.value.length > 0) {
-      await new Promise(resolve => setTimeout(resolve, BATCH_DELAY))
+      await new Promise((resolve) => setTimeout(resolve, BATCH_DELAY))
     }
   }
-  
+
   isBatchProcessing.value = false
-  
+
   // 注意：初始加载完成现在由消息超时检测控制，不在这里处理
 }
 
@@ -241,7 +241,7 @@ const handleScroll = () => {
   const { scrollTop, scrollHeight, clientHeight } = logContainer.value
   const isNearBottom = scrollTop + clientHeight >= scrollHeight - 50 // 距离底部50px以内
   const isAtTop = scrollTop + clientHeight < scrollHeight - 200 // 距离底部200px以上
-  
+
   // 如果滚动到接近底部，自动开启自动滚动
   if (isNearBottom && !autoScroll.value) {
     autoScroll.value = true
@@ -263,10 +263,10 @@ const connectLogStream = () => {
   batchQueue.value = []
   isInitialLoading.value = true
   loadingProgress.value = 0
-  
+
   connectionStatus.value = '正在连接...'
   eventSource = new EventSource('/api/system/logs')
-  
+
   let initialLoadCompleteTimer: NodeJS.Timeout | null = null
   const MESSAGE_TIMEOUT = 2000 // 消息间隔超时时间（毫秒）
 
@@ -280,16 +280,15 @@ const connectLogStream = () => {
     if (logLine && logLine.trim()) {
       const logEntry = parseLogLine(logLine)
       if (logEntry) {
-        
         // 清除之前的定时器
         if (initialLoadCompleteTimer) {
           clearTimeout(initialLoadCompleteTimer)
           initialLoadCompleteTimer = null
         }
-        
+
         if (isInitialLoading.value) {
           addLogEntry(logEntry)
-          
+
           // 设置新的定时器，如果在指定时间内没有新消息，认为初始加载完成
           initialLoadCompleteTimer = setTimeout(() => {
             if (isInitialLoading.value) {
@@ -302,7 +301,6 @@ const connectLogStream = () => {
               }, 500)
             }
           }, MESSAGE_TIMEOUT)
-          
         } else {
           // 实时日志直接添加
           addLogEntry(logEntry)
@@ -340,75 +338,79 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="h-full flex flex-col pt-4">
-    <!-- 日志内容区域 -->
-    <div
-      class="flex-1 overflow-hidden bg-neutral-100 dark:bg-neutral-950 rounded-md relative"
-    >
+  <UDashboardPanel>
+    <template #header>
+      <UDashboardNavbar :title="$t('title.logs')" />
+    </template>
+
+    <template #body>
       <div
-        class="px-4 py-2 border-b border-neutral-300 dark:border-neutral-900 flex items-center justify-between"
+        class="flex-1 overflow-hidden bg-neutral-100 dark:bg-neutral-950 rounded-md relative"
       >
-        <div>
-          <h2 class="text-lg font-medium text-blue-600">app.log</h2>
-          <p class="text-xs text-gray-500 dark:text-gray-400">
-            <span
-              v-if="connectionStatus"
-              :class="getConnectionStatusClass()"
+        <div
+          class="px-4 py-2 border-b border-neutral-300 dark:border-neutral-900 flex items-center justify-between"
+        >
+          <div>
+            <h2 class="text-lg font-medium text-blue-600">app.log</h2>
+            <p class="text-xs text-gray-500 dark:text-gray-400">
+              <span
+                v-if="connectionStatus"
+                :class="getConnectionStatusClass()"
+              >
+                {{ connectionStatus }}
+              </span>
+            </p>
+          </div>
+          <div class="flex items-center gap-2">
+            <!-- Search -->
+            <UInput
+              v-model="searchQuery"
+              placeholder="搜索日志内容..."
+              size="sm"
+              class="w-48"
+              icon="tabler:search"
+              :ui="{ trailing: 'pe-1' }"
             >
-              {{ connectionStatus }}
-            </span>
-          </p>
-        </div>
-        <div class="flex items-center gap-2">
-          <!-- Search -->
-          <UInput
-            v-model="searchQuery"
-            placeholder="搜索日志内容..."
-            size="sm"
-            class="w-48"
-            icon="tabler:search"
-            :ui="{ trailing: 'pe-1' }"
-          >
-            <template
-              v-if="searchQuery?.length"
-              #trailing
-            >
-              <UButton
-                color="neutral"
-                variant="link"
-                size="sm"
-                icon="tabler:x"
-                aria-label="Clear search input"
-                @click="searchQuery = ''"
-              />
-            </template>
-          </UInput>
-          <!-- Log level -->
-          <USelect
-            v-model="selectedLevels"
-            :items="
-              logLevels.map((level) => ({
-                label: level.toUpperCase(),
-                value: level,
-              }))
-            "
-            multiple
-            size="sm"
-            placeholder="过滤级别"
-            class="w-24"
-            :clearable="false"
-          />
-          <!-- Auto scroll -->
-          <UButton
-            icon="tabler:arrow-bar-to-down"
-            color="neutral"
-            size="sm"
-            :variant="autoScroll ? 'outline' : 'soft'"
-            @click="toggleAutoScroll"
-          />
-          <!-- Download raw log -->
-           <!-- TODO: Download raw log file -->
-          <!-- <UButton 
+              <template
+                v-if="searchQuery?.length"
+                #trailing
+              >
+                <UButton
+                  color="neutral"
+                  variant="link"
+                  size="sm"
+                  icon="tabler:x"
+                  aria-label="Clear search input"
+                  @click="searchQuery = ''"
+                />
+              </template>
+            </UInput>
+            <!-- Log level -->
+            <USelect
+              v-model="selectedLevels"
+              :items="
+                logLevels.map((level) => ({
+                  label: level.toUpperCase(),
+                  value: level,
+                }))
+              "
+              multiple
+              size="sm"
+              placeholder="过滤级别"
+              class="w-24"
+              :clearable="false"
+            />
+            <!-- Auto scroll -->
+            <UButton
+              icon="tabler:arrow-bar-to-down"
+              color="neutral"
+              size="sm"
+              :variant="autoScroll ? 'outline' : 'soft'"
+              @click="toggleAutoScroll"
+            />
+            <!-- Download raw log -->
+            <!-- TODO: Download raw log file -->
+            <!-- <UButton 
             as="a"
             target="_blank"
             rel="noopener"
@@ -417,94 +419,98 @@ onUnmounted(() => {
             size="sm"
             variant="soft"
           /> -->
-        </div>
-      </div>
-      <!-- 加载进度指示器 -->
-      <div
-        v-if="isInitialLoading"
-        class="absolute inset-0 bg-white/80 dark:bg-black/80 backdrop-blur-sm flex items-center justify-center z-10"
-      >
-        <div class="text-center">
-          <div class="mb-4">
-            <UIcon name="tabler:loader-2" class="animate-spin w-8 h-8 text-blue-500" />
-          </div>
-          <div class="text-sm text-gray-600 dark:text-gray-400 mb-2">
-            正在加载历史日志...
-          </div>
-          <div class="w-64 bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-            <div 
-              class="bg-blue-500 h-2 rounded-full transition-all duration-300 ease-out"
-              :style="{ width: `${loadingProgress}%` }"
-            ></div>
-          </div>
-          <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">
-            {{ Math.round(loadingProgress) }}%
           </div>
         </div>
-      </div>
-
-      <div
-        ref="logContainer"
-        class="h-[calc(100vh-10rem)] overflow-y-auto overflow-x-auto scroll-smooth font-mono text-sm relative"
-        @scroll="handleScroll"
-      >
-        <div class="p-2 space-y-1">
-          <div
-            v-for="(log, index) in filteredLogs"
-            :key="index"
-            :class="['px-2 py-0.5 rounded border-l-4', getLogLineStyle(log)]"
-          >
-            <div class="flex items-start space-x-3 text-sm">
-              <!-- 时间戳 -->
-              <span
-                class="text-neutral-400 dark:text-neutral-500 text-xs whitespace-nowrap min-w-0 flex-shrink-0 mt-0.5"
-              >
-                {{ $dayjs(log.date).format('HH:mm:ss.SSS') }}
-              </span>
-
-              <!-- 日志级别 -->
-              <UBadge
-                size="sm"
-                :variant="log.level <= 1 ? 'solid' : 'soft'"
-                :color="getBadgeColor(log.type || getLevelType(log.level))"
-              >
-                {{
-                  (log.type || getLevelType(log.level))
-                    .toUpperCase()
-                    .slice(0, 4)
-                }}
-              </UBadge>
-
-              <!-- 日志内容 -->
-              <div class="flex-1 min-w-0">
-                <span
-                  class="whitespace-pre-wrap break-words"
-                  v-html="highlightSearch(formatLogArgs(log.args))"
-                ></span>
-              </div>
-
-              <!-- 标签 -->
-              <span
-                v-if="log.tag"
-                class="text-xs whitespace-nowrap flex-shrink-0 truncate text-neutral-400/80"
-              >
-                {{ log.tag }}
-              </span>
+        <!-- 加载进度指示器 -->
+        <div
+          v-if="isInitialLoading"
+          class="absolute inset-0 bg-white/80 dark:bg-black/80 backdrop-blur-sm flex items-center justify-center z-10"
+        >
+          <div class="text-center">
+            <div class="mb-4">
+              <UIcon
+                name="tabler:loader-2"
+                class="animate-spin w-8 h-8 text-blue-500"
+              />
+            </div>
+            <div class="text-sm text-gray-600 dark:text-gray-400 mb-2">
+              正在加载历史日志...
+            </div>
+            <div class="w-64 bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+              <div
+                class="bg-blue-500 h-2 rounded-full transition-all duration-300 ease-out"
+                :style="{ width: `${loadingProgress}%` }"
+              ></div>
+            </div>
+            <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              {{ Math.round(loadingProgress) }}%
             </div>
           </div>
+        </div>
 
-          <!-- 空状态 -->
-          <div
-            v-if="filteredLogs.length === 0"
-            class="text-center py-8 text-gray-500 dark:text-gray-400"
-          >
-            <div v-if="logs.length === 0">等待日志数据...</div>
-            <div v-else>没有匹配的日志条目</div>
+        <div
+          ref="logContainer"
+          class="h-[calc(100vh-10rem)] overflow-y-auto overflow-x-auto scroll-smooth font-mono text-sm relative"
+          @scroll="handleScroll"
+        >
+          <div class="p-2 space-y-1">
+            <div
+              v-for="(log, index) in filteredLogs"
+              :key="index"
+              :class="['px-2 py-0.5 rounded border-l-4', getLogLineStyle(log)]"
+            >
+              <div class="flex items-start space-x-3 text-sm">
+                <!-- 时间戳 -->
+                <span
+                  class="text-neutral-400 dark:text-neutral-500 text-xs whitespace-nowrap min-w-0 flex-shrink-0 mt-0.5"
+                >
+                  {{ $dayjs(log.date).format('HH:mm:ss.SSS') }}
+                </span>
+
+                <!-- 日志级别 -->
+                <UBadge
+                  size="sm"
+                  :variant="log.level <= 1 ? 'solid' : 'soft'"
+                  :color="getBadgeColor(log.type || getLevelType(log.level))"
+                >
+                  {{
+                    (log.type || getLevelType(log.level))
+                      .toUpperCase()
+                      .slice(0, 4)
+                  }}
+                </UBadge>
+
+                <!-- 日志内容 -->
+                <div class="flex-1 min-w-0">
+                  <span
+                    class="whitespace-pre-wrap break-words"
+                    v-html="highlightSearch(formatLogArgs(log.args))"
+                  ></span>
+                </div>
+
+                <!-- 标签 -->
+                <span
+                  v-if="log.tag"
+                  class="text-xs whitespace-nowrap flex-shrink-0 truncate text-neutral-400/80"
+                >
+                  {{ log.tag }}
+                </span>
+              </div>
+            </div>
+
+            <!-- 空状态 -->
+            <div
+              v-if="filteredLogs.length === 0"
+              class="text-center py-8 text-gray-500 dark:text-gray-400"
+            >
+              <div v-if="logs.length === 0">等待日志数据...</div>
+              <div v-else>没有匹配的日志条目</div>
+            </div>
           </div>
         </div>
       </div>
-    </div>
-  </div>
+    </template>
+  </UDashboardPanel>
 </template>
 
 <style scoped>

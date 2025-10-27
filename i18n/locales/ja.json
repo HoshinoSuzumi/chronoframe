@@ -358,7 +358,8 @@
     "globe": "写真グローブ",
     "queue": "キュー管理",
     "logs": "システムログ",
-    "albums": "アルバム"
+    "albums": "アルバム",
+    "siteAdministration": "サイト設定"
   },
   "auth": {
     "form": {

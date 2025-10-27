@@ -358,7 +358,8 @@
     "globe": "照片地球儀",
     "queue": "佇列管理",
     "logs": "系統日誌",
-    "albums": "相簿"
+    "albums": "相簿",
+    "siteAdministration": "站點設置"
   },
   "auth": {
     "form": {

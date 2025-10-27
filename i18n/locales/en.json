@@ -359,7 +359,8 @@
     "globe": "Photo Globe",
     "queue": "Queue Management",
     "logs": "System Logs",
-    "albums": "Albums"
+    "albums": "Albums",
+    "siteAdministration": "Site settings"
   },
   "auth": {
     "form": {

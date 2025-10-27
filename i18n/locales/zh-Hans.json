@@ -359,7 +359,8 @@
     "globe": "照片地球仪",
     "queue": "队列管理",
     "logs": "系统日志",
-    "albums": "相簿"
+    "albums": "相簿",
+    "siteAdministration": "站点设置"
   },
   "auth": {
     "form": {

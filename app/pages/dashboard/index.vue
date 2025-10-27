@@ -139,96 +139,102 @@ const onShareSite = () => {
 </script>
 
 <template>
-  <div class="flex flex-col gap-6 h-full p-4">
-    <div class="flex items-center justify-between">
-      <h1 class="text-2xl font-bold">
-        {{ $t('dashboard.overview.title') }}
-      </h1>
-    </div>
+  <UDashboardPanel>
+    <template #header>
+      <UDashboardNavbar :title="$t('dashboard.overview.title')" />
+    </template>
 
-    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
-      <DashboardIndicator
-        :title="$t('dashboard.overview.indicator.totalPhotos')"
-        icon="tabler:photo"
-        color="blue"
-        :value="dashboardStats?.photos?.total || 0"
-      />
-      <DashboardIndicator
-        :title="$t('dashboard.overview.indicator.thisMonth')"
-        icon="tabler:photo-plus"
-        color="green"
-        :value="dashboardStats?.photos?.thisMonth || 0"
-      />
-      <DashboardIndicator
-        :title="$t('dashboard.overview.indicator.queueStatus.title')"
-        icon="tabler:loader"
-        color="purple"
-        :value="
-          (dashboardStats?.workerPool?.activeWorkers || 0) > 0
-            ? $t('dashboard.overview.indicator.queueStatus.processing')
-            : $t('dashboard.overview.indicator.queueStatus.pending')
-        "
-        clickable
-        @click="$router.push('/dashboard/queue')"
-      />
-      <DashboardIndicator
-        :title="$t('dashboard.overview.indicator.storageUsage')"
-        icon="tabler:database"
-        color="blue"
-        :value="formatBytes(dashboardStats?.storage?.totalSize || 0)"
-      />
-    </div>
+    <template #body>
+      <div class="flex flex-col gap-6">
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <DashboardIndicator
+            :title="$t('dashboard.overview.indicator.totalPhotos')"
+            icon="tabler:photo"
+            color="blue"
+            :value="dashboardStats?.photos?.total || 0"
+            clickable
+            @click="$router.push('/dashboard/photos')"
+          />
+          <DashboardIndicator
+            :title="$t('dashboard.overview.indicator.thisMonth')"
+            icon="tabler:photo-plus"
+            color="green"
+            :value="dashboardStats?.photos?.thisMonth || 0"
+          />
+          <DashboardIndicator
+            :title="$t('dashboard.overview.indicator.queueStatus.title')"
+            icon="tabler:loader"
+            color="purple"
+            :value="
+              (dashboardStats?.workerPool?.activeWorkers || 0) > 0
+                ? $t('dashboard.overview.indicator.queueStatus.processing')
+                : $t('dashboard.overview.indicator.queueStatus.pending')
+            "
+            clickable
+            @click="$router.push('/dashboard/queue')"
+          />
+          <DashboardIndicator
+            :title="$t('dashboard.overview.indicator.storageUsage')"
+            icon="tabler:database"
+            color="blue"
+            :value="formatBytes(dashboardStats?.storage?.totalSize || 0)"
+          />
+        </div>
 
-    <!-- 运行信息 -->
-    <UCard>
-      <template #header>
-        <h2 class="text-lg font-semibold pb-1.5">
-          {{ $t('dashboard.overview.section.runtimeInfo.title') }}
-        </h2>
-      </template>
+        <!-- 运行信息 -->
+        <UCard>
+          <template #header>
+            <h2 class="text-lg font-semibold pb-1.5">
+              {{ $t('dashboard.overview.section.runtimeInfo.title') }}
+            </h2>
+          </template>
 
-      <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div>
-          <p class="text-sm text-neutral-500 dark:text-neutral-400">
-            {{ $t('dashboard.overview.section.runtimeInfo.version') }}
-          </p>
-          <NuxtLink
-            class="text-lg font-bold hover:text-primary"
-            target="_blank"
-            external
-            :to="`https://github.com/HoshinoSuzumi/chronoframe/releases/tag/v${$config.public.VERSION}`"
-          >
-            v{{ $config.public.VERSION }}
-          </NuxtLink>
-        </div>
-        <div>
-          <p class="text-sm text-neutral-500 dark:text-neutral-400">
-            {{ $t('dashboard.overview.section.runtimeInfo.uptime') }}
-          </p>
-          <p class="text-lg font-bold">
-            {{
-              dashboardStats?.uptime
-                ? $dayjs.duration(dashboardStats.uptime, 'seconds').humanize()
-                : '-'
-            }}
-          </p>
-        </div>
-        <div>
-          <p class="text-sm text-neutral-500 dark:text-neutral-400">
-            {{ $t('dashboard.overview.section.runtimeInfo.environment') }}
-          </p>
-          <UBadge
-            :color="dashboardStats?.runningOn === 'docker' ? 'info' : 'success'"
-            variant="soft"
-          >
-            {{
-              $t(
-                `dashboard.overview.section.runtimeInfo.systems.${dashboardStats?.runningOn || 'unknown'}`,
-              )
-            }}
-          </UBadge>
-        </div>
-        <!-- <div>
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div>
+              <p class="text-sm text-neutral-500 dark:text-neutral-400">
+                {{ $t('dashboard.overview.section.runtimeInfo.version') }}
+              </p>
+              <NuxtLink
+                class="text-lg font-bold hover:text-primary"
+                target="_blank"
+                external
+                :to="`https://github.com/HoshinoSuzumi/chronoframe/releases/tag/v${$config.public.VERSION}`"
+              >
+                v{{ $config.public.VERSION }}
+              </NuxtLink>
+            </div>
+            <div>
+              <p class="text-sm text-neutral-500 dark:text-neutral-400">
+                {{ $t('dashboard.overview.section.runtimeInfo.uptime') }}
+              </p>
+              <p class="text-lg font-bold">
+                {{
+                  dashboardStats?.uptime
+                    ? $dayjs
+                        .duration(dashboardStats.uptime, 'seconds')
+                        .humanize()
+                    : '-'
+                }}
+              </p>
+            </div>
+            <div>
+              <p class="text-sm text-neutral-500 dark:text-neutral-400">
+                {{ $t('dashboard.overview.section.runtimeInfo.environment') }}
+              </p>
+              <UBadge
+                :color="
+                  dashboardStats?.runningOn === 'docker' ? 'info' : 'success'
+                "
+                variant="soft"
+              >
+                {{
+                  $t(
+                    `dashboard.overview.section.runtimeInfo.systems.${dashboardStats?.runningOn || 'unknown'}`,
+                  )
+                }}
+              </UBadge>
+            </div>
+            <!-- <div>
           <p class="text-sm text-neutral-500 dark:text-neutral-400">
             {{ $t('dashboard.overview.section.runtimeInfo.lastUpdate') }}
           </p>
@@ -239,231 +245,234 @@ const onShareSite = () => {
             </ClientOnly>
           </p>
         </div> -->
-        <div>
-          <p class="text-sm text-neutral-500 dark:text-neutral-400">
-            Share Your Site
-          </p>
-          <p class="text-lg font-bold">
-            <UButton
-              external
-              variant="subtle"
-              size="xs"
-              color="info"
-              trailing-icon="tabler:external-link"
-              @click="onShareSite"
-            >
-              分享你的站点
-            </UButton>
-          </p>
+            <div>
+              <p class="text-sm text-neutral-500 dark:text-neutral-400">
+                Share Your Site
+              </p>
+              <p class="text-lg font-bold">
+                <UButton
+                  external
+                  variant="subtle"
+                  size="xs"
+                  color="info"
+                  trailing-icon="tabler:external-link"
+                  @click="onShareSite"
+                >
+                  分享你的站点
+                </UButton>
+              </p>
+            </div>
+          </div>
+        </UCard>
+
+        <!-- 详细统计区域 -->
+        <div class="grid grid-cols-1 lg:grid-cols-5 gap-4">
+          <!-- 左侧 -->
+          <div class="lg:col-span-3">
+            <UCard>
+              <div class="heatmap-container">
+                <ClientOnly>
+                  <CalendarHeatmap
+                    theme="blue"
+                    :values="heatmapData"
+                    :start-date="heatmapStartDate"
+                    :end-date="heatmapEndDate"
+                    :round="3"
+                    :tooltip-formatter="
+                      (item: CalendarItem) => {
+                        return $t('common.heatmap.tooltip.data', [
+                          $dayjs(item.date).format('LL'),
+                          item.count || 0,
+                        ])
+                      }
+                    "
+                    :tooltip-no-data-formatter="
+                      (date: Date) =>
+                        $t('common.heatmap.tooltip.noData', [
+                          $dayjs(date).format('LL'),
+                        ])
+                    "
+                    :locale="{
+                      months: [
+                        $t('common.months.jan'),
+                        $t('common.months.feb'),
+                        $t('common.months.mar'),
+                        $t('common.months.apr'),
+                        $t('common.months.may'),
+                        $t('common.months.jun'),
+                        $t('common.months.jul'),
+                        $t('common.months.aug'),
+                        $t('common.months.sep'),
+                        $t('common.months.oct'),
+                        $t('common.months.nov'),
+                        $t('common.months.dec'),
+                      ],
+                      days: [
+                        $t('common.days.sun'),
+                        $t('common.days.mon'),
+                        $t('common.days.tue'),
+                        $t('common.days.wed'),
+                        $t('common.days.thu'),
+                        $t('common.days.fri'),
+                        $t('common.days.sat'),
+                      ],
+                      less: $t('common.heatmap.legend.less'),
+                      more: $t('common.heatmap.legend.more'),
+                    }"
+                    :dark-mode="$colorMode.value === 'dark'"
+                  >
+                    <template #vch__legend-left>
+                      <USelectMenu
+                        v-model="selectedYear"
+                        :items="yearOptions"
+                        :disabled="yearOptions.length <= 1"
+                        :search-input="false"
+                        value-key="value"
+                        size="xs"
+                        variant="soft"
+                        class="w-24"
+                      />
+                    </template>
+                  </CalendarHeatmap>
+                  <template #placeholder>
+                    <div class="flex items-center justify-center h-[164.5px]">
+                      <Icon
+                        name="svg-spinners:180-ring-with-bg"
+                        class="size-8 opacity-50"
+                        mode="svg"
+                      />
+                    </div>
+                  </template>
+                </ClientOnly>
+              </div>
+            </UCard>
+          </div>
+
+          <!-- 右侧：系统资源监控 -->
+          <div class="lg:col-span-2 w-full space-y-4">
+            <!-- 内存使用 -->
+            <UCard>
+              <template #header>
+                <h3 class="font-semibold pb-1.5">
+                  {{ $t('dashboard.overview.section.memory.title') }}
+                </h3>
+              </template>
+
+              <div class="space-y-2">
+                <UProgress
+                  :model-value="
+                    dashboardStats?.memory
+                      ? Math.round(
+                          (dashboardStats.memory.used /
+                            dashboardStats.memory.total) *
+                            100,
+                        )
+                      : 0
+                  "
+                  :color="
+                    systemStatus === 'healthy'
+                      ? 'success'
+                      : systemStatus === 'warning'
+                        ? 'warning'
+                        : systemStatus === 'critical'
+                          ? 'error'
+                          : 'neutral'
+                  "
+                  class="w-full"
+                />
+                <div class="flex justify-between text-sm">
+                  <div class="text-xs text-neutral-500 dark:text-neutral-400">
+                    {{
+                      dashboardStats?.memory
+                        ? `${Math.round((dashboardStats.memory.used / 1024 / 1024 / 1024) * 100) / 100}GB / ${Math.round((dashboardStats.memory.total / 1024 / 1024 / 1024) * 100) / 100}GB`
+                        : 'memory info not available'
+                    }}
+                  </div>
+                  <span>
+                    {{
+                      dashboardStats?.memory
+                        ? Math.round(
+                            (dashboardStats.memory.used /
+                              dashboardStats.memory.total) *
+                              100,
+                          )
+                        : 0
+                    }}%
+                  </span>
+                </div>
+              </div>
+            </UCard>
+
+            <!-- 队列详情 -->
+            <UCard>
+              <template #header>
+                <h3 class="font-semibold pb-1.5">
+                  {{ $t('dashboard.overview.section.queue.title') }}
+                </h3>
+              </template>
+
+              <div class="space-y-1">
+                <div class="flex justify-between items-center text-sm">
+                  <span>
+                    {{ $t('dashboard.overview.section.queue.activeWorkers') }}
+                  </span>
+                  <UBadge variant="soft">
+                    {{ dashboardStats?.workerPool?.activeWorkers || 0 }}
+                  </UBadge>
+                </div>
+                <div class="flex justify-between items-center text-sm">
+                  <span>
+                    {{ $t('dashboard.overview.section.queue.totalWorkers') }}
+                  </span>
+                  <UBadge variant="soft">
+                    {{ dashboardStats?.workerPool?.totalWorkers || 0 }}
+                  </UBadge>
+                </div>
+                <div class="flex justify-between items-center text-sm">
+                  <span>
+                    {{ $t('dashboard.overview.section.queue.totalProcessed') }}
+                  </span>
+                  <UBadge variant="soft">
+                    {{ dashboardStats?.workerPool?.totalProcessed || 0 }}
+                  </UBadge>
+                </div>
+                <div class="flex justify-between items-center text-sm">
+                  <span>
+                    {{ $t('dashboard.overview.section.queue.totalFailed') }}
+                  </span>
+                  <UBadge variant="soft">
+                    {{ dashboardStats?.workerPool?.totalErrors || 0 }}
+                  </UBadge>
+                </div>
+                <div class="flex justify-between items-center text-sm">
+                  <span>
+                    {{ $t('dashboard.overview.section.queue.avgSuccessRate') }}
+                  </span>
+                  <UBadge
+                    :color="
+                      (dashboardStats?.workerPool?.averageSuccessRate || 0) > 90
+                        ? 'success'
+                        : (dashboardStats?.workerPool?.averageSuccessRate ||
+                              0) > 70
+                          ? 'warning'
+                          : 'error'
+                    "
+                    variant="soft"
+                  >
+                    {{
+                      Math.round(
+                        dashboardStats?.workerPool?.averageSuccessRate || 0,
+                      )
+                    }}%
+                  </UBadge>
+                </div>
+              </div>
+            </UCard>
+          </div>
         </div>
       </div>
-    </UCard>
-
-    <!-- 详细统计区域 -->
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
-      <!-- 左侧 -->
-      <div class="lg:col-span-2">
-        <UCard>
-          <div class="heatmap-container">
-            <ClientOnly>
-              <CalendarHeatmap
-                theme="blue"
-                :values="heatmapData"
-                :start-date="heatmapStartDate"
-                :end-date="heatmapEndDate"
-                :round="3"
-                :tooltip-formatter="
-                  (item: CalendarItem) => {
-                    return $t('common.heatmap.tooltip.data', [
-                      $dayjs(item.date).format('LL'),
-                      item.count || 0,
-                    ])
-                  }
-                "
-                :tooltip-no-data-formatter="
-                  (date: Date) =>
-                    $t('common.heatmap.tooltip.noData', [
-                      $dayjs(date).format('LL'),
-                    ])
-                "
-                :locale="{
-                  months: [
-                    $t('common.months.jan'),
-                    $t('common.months.feb'),
-                    $t('common.months.mar'),
-                    $t('common.months.apr'),
-                    $t('common.months.may'),
-                    $t('common.months.jun'),
-                    $t('common.months.jul'),
-                    $t('common.months.aug'),
-                    $t('common.months.sep'),
-                    $t('common.months.oct'),
-                    $t('common.months.nov'),
-                    $t('common.months.dec'),
-                  ],
-                  days: [
-                    $t('common.days.sun'),
-                    $t('common.days.mon'),
-                    $t('common.days.tue'),
-                    $t('common.days.wed'),
-                    $t('common.days.thu'),
-                    $t('common.days.fri'),
-                    $t('common.days.sat'),
-                  ],
-                  less: $t('common.heatmap.legend.less'),
-                  more: $t('common.heatmap.legend.more'),
-                }"
-                :dark-mode="$colorMode.value === 'dark'"
-              >
-                <template #vch__legend-left>
-                  <USelectMenu
-                    v-model="selectedYear"
-                    :items="yearOptions"
-                    :disabled="yearOptions.length <= 1"
-                    :search-input="false"
-                    value-key="value"
-                    size="xs"
-                    variant="soft"
-                    class="w-24"
-                  />
-                </template>
-              </CalendarHeatmap>
-              <template #placeholder>
-                <div class="flex items-center justify-center h-[164.5px]">
-                  <Icon
-                    name="svg-spinners:180-ring-with-bg"
-                    class="size-8 opacity-50"
-                    mode="svg"
-                  />
-                </div>
-              </template>
-            </ClientOnly>
-          </div>
-        </UCard>
-      </div>
-
-      <!-- 右侧：系统资源监控 -->
-      <div class="w-full space-y-4">
-        <!-- 内存使用 -->
-        <UCard>
-          <template #header>
-            <h3 class="font-semibold pb-1.5">
-              {{ $t('dashboard.overview.section.memory.title') }}
-            </h3>
-          </template>
-
-          <div class="space-y-2">
-            <UProgress
-              :model-value="
-                dashboardStats?.memory
-                  ? Math.round(
-                      (dashboardStats.memory.used /
-                        dashboardStats.memory.total) *
-                        100,
-                    )
-                  : 0
-              "
-              :color="
-                systemStatus === 'healthy'
-                  ? 'success'
-                  : systemStatus === 'warning'
-                    ? 'warning'
-                    : systemStatus === 'critical'
-                      ? 'error'
-                      : 'neutral'
-              "
-              class="w-full"
-            />
-            <div class="flex justify-between text-sm">
-              <div class="text-xs text-neutral-500 dark:text-neutral-400">
-                {{
-                  dashboardStats?.memory
-                    ? `${Math.round((dashboardStats.memory.used / 1024 / 1024 / 1024) * 100) / 100}GB / ${Math.round((dashboardStats.memory.total / 1024 / 1024 / 1024) * 100) / 100}GB`
-                    : 'memory info not available'
-                }}
-              </div>
-              <span>
-                {{
-                  dashboardStats?.memory
-                    ? Math.round(
-                        (dashboardStats.memory.used /
-                          dashboardStats.memory.total) *
-                          100,
-                      )
-                    : 0
-                }}%
-              </span>
-            </div>
-          </div>
-        </UCard>
-
-        <!-- 队列详情 -->
-        <UCard>
-          <template #header>
-            <h3 class="font-semibold pb-1.5">
-              {{ $t('dashboard.overview.section.queue.title') }}
-            </h3>
-          </template>
-
-          <div class="space-y-1">
-            <div class="flex justify-between items-center text-sm">
-              <span>
-                {{ $t('dashboard.overview.section.queue.activeWorkers') }}
-              </span>
-              <UBadge variant="soft">
-                {{ dashboardStats?.workerPool?.activeWorkers || 0 }}
-              </UBadge>
-            </div>
-            <div class="flex justify-between items-center text-sm">
-              <span>
-                {{ $t('dashboard.overview.section.queue.totalWorkers') }}
-              </span>
-              <UBadge variant="soft">
-                {{ dashboardStats?.workerPool?.totalWorkers || 0 }}
-              </UBadge>
-            </div>
-            <div class="flex justify-between items-center text-sm">
-              <span>
-                {{ $t('dashboard.overview.section.queue.totalProcessed') }}
-              </span>
-              <UBadge variant="soft">
-                {{ dashboardStats?.workerPool?.totalProcessed || 0 }}
-              </UBadge>
-            </div>
-            <div class="flex justify-between items-center text-sm">
-              <span>
-                {{ $t('dashboard.overview.section.queue.totalFailed') }}
-              </span>
-              <UBadge variant="soft">
-                {{ dashboardStats?.workerPool?.totalErrors || 0 }}
-              </UBadge>
-            </div>
-            <div class="flex justify-between items-center text-sm">
-              <span>
-                {{ $t('dashboard.overview.section.queue.avgSuccessRate') }}
-              </span>
-              <UBadge
-                :color="
-                  (dashboardStats?.workerPool?.averageSuccessRate || 0) > 90
-                    ? 'success'
-                    : (dashboardStats?.workerPool?.averageSuccessRate || 0) > 70
-                      ? 'warning'
-                      : 'error'
-                "
-                variant="soft"
-              >
-                {{
-                  Math.round(
-                    dashboardStats?.workerPool?.averageSuccessRate || 0,
-                  )
-                }}%
-              </UBadge>
-            </div>
-          </div>
-        </UCard>
-      </div>
-    </div>
-  </div>
+    </template>
+  </UDashboardPanel>
 </template>
 
 <style>

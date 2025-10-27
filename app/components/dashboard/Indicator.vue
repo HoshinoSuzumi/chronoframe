@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { isNil } from 'es-toolkit';
+import { isNil } from 'es-toolkit'
 
 const props = withDefaults(
   defineProps<{
@@ -83,7 +83,9 @@ const currentScheme = computed(() => colorSchemes[props.color])
       currentScheme.background,
       currentScheme.border,
       currentScheme.text,
-      clickable ? 'cursor-pointer hover:scale-105 transition-transform' : '',
+      clickable
+        ? 'cursor-pointer hover:scale-[1.01] transition-transform duration-200'
+        : '',
     ]"
     @click="clickable ? emit('click') : undefined"
   >
@@ -91,13 +93,13 @@ const currentScheme = computed(() => colorSchemes[props.color])
       <div class="flex-1 overflow-hidden">
         <p
           v-if="title"
-          class="text-sm opacity-90 font-medium max-w-48 truncate"
+          class="text-lg opacity-90 font-medium max-w-48 truncate"
         >
           {{ title }}
         </p>
         <p
           v-if="!isNil(value)"
-          class="text-lg font-bold max-w-full sm:max-w-1/2 truncate"
+          class="text-2xl font-bold max-w-full sm:max-w-1/2 truncate"
         >
           {{ value }}
         </p>
