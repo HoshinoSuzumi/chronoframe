@@ -28,7 +28,7 @@
     "docs:preview": "vitepress preview docs"
   },
   "dependencies": {
-    "@aws-sdk/client-s3": "^3.908.0",
+    "@aws-sdk/client-s3": "^3.918.0",
     "@aws-sdk/s3-request-presigner": "^3.908.0",
     "@chronoframe/webgl-image": "workspace:*",
     "@indoorequal/vue-maplibre-gl": "^8.4.2",
