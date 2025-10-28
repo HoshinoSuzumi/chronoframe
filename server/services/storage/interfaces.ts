@@ -25,16 +25,6 @@ export type HubR2StorageConfig = {
   cdnUrl?: string
 }
 
-export type GitHubStorageConfig = {
-  provider: 'github'
-  owner?: string
-  repository?: string
-  branch?: string
-  path?: string
-  prefix?: string
-  token?: string
-}
-
 export type LocalStorageConfig = {
   provider: 'local'
   /** Absolute directory where files are stored */
@@ -64,7 +54,6 @@ export type OpenListStorageConfig = {
 export type StorageConfig =
   | S3StorageConfig
   | HubR2StorageConfig
-  | GitHubStorageConfig
   | LocalStorageConfig
   | OpenListStorageConfig
 

@@ -20,9 +20,6 @@ export class StorageProviderFactory {
         return new LocalStorageProvider(config, logger)
       case 'openlist':
         return new OpenListStorageProvider(config as any, logger)
-      case 'github':
-        // TODO: Implement GitHub storage provider
-        throw new Error('GitHub storage provider not implemented yet')
       default:
         throw new Error(`Unknown storage provider`)
     }
