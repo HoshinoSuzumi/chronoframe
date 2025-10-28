@@ -1,6 +1,6 @@
 {
   "name": "chronoframe",
-  "version": "0.14.0",
+  "version": "0.14.1",
   "author": {
     "name": "Timothy Yin",
     "email": "master@uniiem.com"
@@ -10,9 +10,10 @@
   "private": true,
   "scripts": {
     "db": "drizzle-kit",
-    "db:migrate": "node scripts/migrate.mjs",
-    "db:migrate-drizzle": "drizzle-kit migrate",
+    "db:push": "drizzle-kit push",
+    "db:drop": "drizzle-kit drop",
     "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
     "build": "nuxt build",
     "build:deps": "pnpm --filter @chronoframe/webgl-image build",
     "dev": "pnpm dev:deps",
