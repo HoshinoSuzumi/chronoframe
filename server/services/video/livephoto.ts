@@ -1,6 +1,6 @@
 import path from 'path'
 import { eq } from 'drizzle-orm'
-import { getStorageManager } from '~~/server/plugins/storage'
+import { getStorageManager } from '~~/server/plugins/2_storage'
 
 /**
  * 处理 LivePhoto MOV 文件，匹配相同文件名的照片并更新 LivePhoto 信息

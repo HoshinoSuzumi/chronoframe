@@ -1,7 +1,7 @@
 import path from 'path'
 import bmp from '@vingle/bmp-js'
 import heicConvert from 'heic-convert'
-import { getStorageManager } from '~~/server/plugins/storage'
+import { getStorageManager } from '~~/server/plugins/2_storage'
 import sharp from 'sharp'
 import { withRetry, RetryPresets, RetryConditions } from '../../utils/retry'
 

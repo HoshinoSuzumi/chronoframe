@@ -1,6 +1,6 @@
 import path from 'node:path'
 import { createReadStream, promises as fs } from 'node:fs'
-import { getStorageManager } from '../../plugins/storage'
+import { getStorageManager } from '../../plugins/2_storage'
 // lightweight: avoid TS type dep; fallback when not resolvable
 const guessContentType = (filePath: string): string => {
   const ext = (filePath.split('.').pop() || '').toLowerCase()

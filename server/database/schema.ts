@@ -148,3 +148,25 @@ export const albumPhotos = sqliteTable('album_photos', {
     .notNull()
     .default(sql`(unixepoch())`),
 })
+
+export const settings = sqliteTable('settings', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  namespace: text('namespace').notNull().default('cframe'),
+  key: text('key').notNull().unique(),
+  type: text('type', {
+    enum: ['string', 'number', 'boolean', 'json'],
+  }).notNull(),
+  value: text('value').notNull(),
+  defaultValue: text('default_value'),
+  label: text('label'),
+  description: text('description'),
+  isInternal: integer('is_internal').default(0).notNull(),
+  isReadonly: integer('is_readonly').default(0).notNull(),
+  isSecret: integer('is_secret').default(0).notNull(),
+  updatedAt: integer('updated_at', { mode: 'timestamp' })
+    .notNull()
+    .default(sql`(unixepoch())`),
+  updatedBy: integer('updated_by').references(() => users.id, {
+    onDelete: 'set null',
+  }),
+})
