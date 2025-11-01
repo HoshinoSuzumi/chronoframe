@@ -32,27 +32,33 @@ const emit = defineEmits<{
   zoom: []
 }>()
 
-const mapConfig = useRuntimeConfig().public.map
 const colorMode = useColorMode()
 
-const provider = computed(() => mapConfig.provider)
+const mapConfig = computed(() => {
+  const config = getSetting('map')
+  return typeof config === 'object' && config ? config : {}
+})
+
+const provider = computed(() => mapConfig.value.provider || 'maplibre')
 const mapStyle = computed(() => {
   if (provider.value === 'mapbox') {
-    return mapConfig.mapbox.style || `mapbox://styles/mapbox/standard`
+    return (
+      mapConfig.value['mapbox.style'] || `mapbox://styles/mapbox/standard`
+    )
   } else {
     const styleConfig =
       colorMode.value === 'dark' ? ChronoFrameDarkStyle : ChronoFrameLightStyle
     return (
-      mapConfig.maplibre.style ||
+      mapConfig.value['maplibre.style'] ||
       ({
         ...styleConfig,
         sources: {
           openmaptiles: {
             ...styleConfig.sources?.openmaptiles,
-            url: `https://api.maptiler.com/tiles/v3-openmaptiles/tiles.json?key=${mapConfig.maplibre.token}`,
+            url: `https://api.maptiler.com/tiles/v3-openmaptiles/tiles.json?key=${mapConfig.value['maplibre.token']}`,
           },
         },
-        glyphs: `https://api.maptiler.com/fonts/{fontstack}/{range}.pbf?key=${mapConfig.maplibre.token}`,
+        glyphs: `https://api.maptiler.com/fonts/{fontstack}/{range}.pbf?key=${mapConfig.value['maplibre.token']}`,
       } as StyleSpecification)
     )
   }
@@ -66,7 +72,7 @@ const mapStyle = computed(() => {
         v-if="provider === 'maplibre'"
         class="w-full h-full"
         :map-key="mapId"
-        :map-style
+        :map-style="mapStyle as StyleSpecification"
         :center
         :zoom
         :interactive
@@ -81,6 +87,7 @@ const mapStyle = computed(() => {
         class="w-full h-full"
         :map-id="mapId || 'cframe-mapbox-map'"
         :options="{
+          accessToken: mapConfig['mapbox.token'],
           style: mapStyle,
           center: center,
           zoom: zoom,

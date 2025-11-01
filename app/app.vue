@@ -4,13 +4,18 @@ import dayjsLocale_zhTW from 'dayjs/locale/zh-tw'
 import dayjsLocale_zhHK from 'dayjs/locale/zh-hk'
 
 const router = useRouter()
-const config = useRuntimeConfig()
 const dayjs = useDayjs()
 const { locale } = useI18n()
 
+// 初始化设置系统 - 一次性加载所有设置
+const settingsStore = useSettingsStore()
+await settingsStore.initSettings()
+
+const appTitle = useSettingRef('app:title')
+
 useHead({
   titleTemplate: (title) =>
-    `${title ? title + ' | ' : ''}${config.public.app.title}`,
+    `${title ? title + ' | ' : ''}${appTitle.value || 'ChronoFrame'}`,
 })
 
 const { data, refresh, status } = useFetch('/api/photos')

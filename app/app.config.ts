@@ -11,8 +11,8 @@ export default defineAppConfig({
     },
     button: {
       slots: {
-        base: 'cursor-pointer'
-      }
+        base: 'cursor-pointer',
+      },
     },
     popover: {
       slots: {
@@ -22,16 +22,24 @@ export default defineAppConfig({
     },
     card: {
       slots: {
-        header: 'p-2 sm:p-2 pb-0!',
-        body: 'p-2 sm:p-2',
-        footer: 'p-2 sm:p-2',
+        header: 'font-semibold',
       },
       variants: {
         variant: {
           glassmorphism: {
             root: 'shadow-lg divide-y-0 divide-neutral-300/50 dark:divide-neutral-500/50',
+            header: 'p-2 sm:p-2 pb-0!',
+            body: 'p-2 sm:p-2',
+            footer: 'p-2 sm:p-2',
           },
         },
+      },
+    },
+    formField: {
+      slots: {
+        label: 'mb-1',
+        container: 'w-full sm:max-w-xs *:w-full',
+        help: 'mt-0.5',
       },
     },
   },

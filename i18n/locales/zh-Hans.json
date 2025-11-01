@@ -360,7 +360,11 @@
     "queue": "队列管理",
     "logs": "系统日志",
     "albums": "相簿",
-    "siteAdministration": "站点设置"
+    "siteAdministration": "站点设置",
+    "generalSettings": "基本设置",
+    "storageSettings": "存储设置",
+    "mapSettings": "地图设置",
+    "systemSettings": "系统设置"
   },
   "auth": {
     "form": {
@@ -859,6 +863,150 @@
         "all": "全部",
         "status": "按状态筛选",
         "type": "按类型筛选"
+      }
+    }
+  },
+  "settings": {
+    "app": {
+      "title": {
+        "label": "实例名称",
+        "description": "实例的标题"
+      },
+      "slogan": {
+        "label": "标语",
+        "description": "实例的标语"
+      },
+      "author": {
+        "label": "所有者",
+        "description": "实例的所有者名称"
+      },
+      "avatarUrl": {
+        "label": "头像 URL",
+        "description": "所有者头像的图片链接"
+      }
+    },
+    "map": {
+      "provider": {
+        "label": "地图服务商",
+        "description": "选择地图服务商提供者"
+      },
+      "mapbox": {
+        "token": {
+          "label": "Mapbox Token",
+          "description": "Mapbox API 访问令牌"
+        },
+        "style": {
+          "label": "Mapbox 样式",
+          "description": "Mapbox 地图样式 URL"
+        }
+      },
+      "maplibre": {
+        "token": {
+          "label": "MapLibre Token",
+          "description": "MapLibre API 访问令牌"
+        },
+        "style": {
+          "label": "MapLibre 样式",
+          "description": "MapLibre 地图样式 URL"
+        }
+      }
+    },
+    "storage": {
+      "s3": {
+        "bucket": {
+          "label": "存储桶名称",
+          "description": "AWS S3 存储桶的名称"
+        },
+        "region": {
+          "label": "地域",
+          "description": "S3 存储桶所在的 AWS 地域"
+        },
+        "endpoint": {
+          "label": "端点",
+          "description": "S3 服务的端点 URL"
+        },
+        "prefix": {
+          "label": "前缀",
+          "description": "存储在桶中的文件前缀路径"
+        },
+        "cdnUrl": {
+          "label": "CDN 地址",
+          "description": "用于访问文件的 CDN 地址"
+        },
+        "accessKeyId": {
+          "label": "Access Key ID",
+          "description": "AWS IAM 访问密钥 ID"
+        },
+        "secretAccessKey": {
+          "label": "Secret Access Key",
+          "description": "AWS IAM 秘密访问密钥"
+        },
+        "forcePathStyle": {
+          "label": "强制路径风格",
+          "description": "使用路径风格 URL 而不是虚拟主机风格"
+        },
+        "maxKeys": {
+          "label": "最大密钥数",
+          "description": "列举对象时返回的最大数量"
+        }
+      },
+      "local": {
+        "basePath": {
+          "label": "基础路径",
+          "description": "本地文件系统中存储文件的基础路径"
+        },
+        "baseUrl": {
+          "label": "基础 URL",
+          "description": "访问本地存储文件的基础 URL"
+        },
+        "prefix": {
+          "label": "前缀",
+          "description": "存储文件的前缀路径"
+        }
+      },
+      "openlist": {
+        "baseUrl": {
+          "label": "基础 URL",
+          "description": "OpenList API 的基础 URL"
+        },
+        "rootPath": {
+          "label": "根路径",
+          "description": "OpenList 中的根目录路径"
+        },
+        "token": {
+          "label": "认证令牌",
+          "description": "OpenList API 的认证令牌"
+        },
+        "endpoints": {
+          "upload": {
+            "label": "上传端点",
+            "description": "用于上传文件的 API 端点"
+          },
+          "download": {
+            "label": "下载端点",
+            "description": "用于下载文件的 API 端点"
+          },
+          "list": {
+            "label": "列表端点",
+            "description": "用于列举文件的 API 端点"
+          },
+          "delete": {
+            "label": "删除端点",
+            "description": "用于删除文件的 API 端点"
+          },
+          "meta": {
+            "label": "元数据端点",
+            "description": "用于获取文件元数据的 API 端点"
+          }
+        },
+        "pathField": {
+          "label": "路径字段",
+          "description": "API 响应中表示文件路径的字段名"
+        },
+        "cdnUrl": {
+          "label": "CDN 地址",
+          "description": "用于访问文件的 CDN 地址"
+        }
       }
     }
   }

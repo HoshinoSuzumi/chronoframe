@@ -1,5 +1,9 @@
 import type { SettingConfig } from '~~/shared/types/settings'
 
+// 存储提供商的枚举值
+export const STORAGE_PROVIDERS = ['local', 's3', 'openlist'] as const
+export type StorageProvider = (typeof STORAGE_PROVIDERS)[number]
+
 export const DEFAULT_SETTINGS = [
   // NAMESPACE: system
   {
@@ -10,33 +14,100 @@ export const DEFAULT_SETTINGS = [
     defaultValue: true,
     label: 'settings.system.firstLaunch.label',
     description: 'settings.system.firstLaunch.description',
-    isInternal: 1,
-    isReadonly: 1,
+    isReadonly: true,
+  },
+  // NAMESPACE: app
+  {
+    namespace: 'app',
+    key: 'title',
+    type: 'string',
+    defaultValue: 'ChronoFrame',
+    label: 'settings.app.title.label',
+    description: 'settings.app.title.description',
+    isPublic: true,
+  },
+  {
+    namespace: 'app',
+    key: 'slogan',
+    type: 'string',
+    defaultValue: '',
+    label: 'settings.app.slogan.label',
+    description: 'settings.app.slogan.description',
+    isPublic: true,
+  },
+  {
+    namespace: 'app',
+    key: 'author',
+    type: 'string',
+    defaultValue: '',
+    label: 'settings.app.author.label',
+    description: 'settings.app.author.description',
+    isPublic: true,
+  },
+  {
+    namespace: 'app',
+    key: 'avatarUrl',
+    type: 'string',
+    defaultValue: '',
+    label: 'settings.app.avatarUrl.label',
+    description: 'settings.app.avatarUrl.description',
+    isPublic: true,
+  },
+  // NAMESPACE: map
+  {
+    namespace: 'map',
+    key: 'provider',
+    type: 'string',
+    defaultValue: 'maplibre',
+    enum: ['mapbox', 'maplibre'],
+    label: 'settings.map.provider.label',
+    description: 'settings.map.provider.description',
+    isPublic: true,
+  },
+  {
+    namespace: 'map',
+    key: 'mapbox.token',
+    type: 'string',
+    defaultValue: '',
+    label: 'settings.map.mapbox.token.label',
+    description: 'settings.map.mapbox.token.description',
+    isPublic: true,
+  },
+  {
+    namespace: 'map',
+    key: 'mapbox.style',
+    type: 'string',
+    defaultValue: '',
+    label: 'settings.map.mapbox.style.label',
+    description: 'settings.map.mapbox.style.description',
+    isPublic: true,
+  },
+  {
+    namespace: 'map',
+    key: 'maplibre.token',
+    type: 'string',
+    defaultValue: '',
+    label: 'settings.map.maplibre.token.label',
+    description: 'settings.map.maplibre.token.description',
+    isPublic: true,
+  },
+  {
+    namespace: 'map',
+    key: 'maplibre.style',
+    type: 'string',
+    defaultValue: '',
+    label: 'settings.map.maplibre.style.label',
+    description: 'settings.map.maplibre.style.description',
+    isPublic: true,
   },
   // NAMESPACE: storage
   {
     namespace: 'storage',
     key: 'provider',
-    type: 'string',
-    defaultValue: 'local',
-    label: 'settings.storage_provider.firstLaunch.label',
-    description: 'settings.storage_provider.firstLaunch.description',
-  },
-  {
-    namespace: 'storage',
-    key: 'provider.local.path',
-    type: 'string',
-    defaultValue: './data/storage',
-    label: 'settings.storage.provider.local.path.label',
-    description: 'settings.storage.provider.local.path.description',
-  },
-  {
-    namespace: 'storage',
-    key: 'provider.local.baseUrl',
-    type: 'string',
-    defaultValue: '/storage',
-    label: 'settings.storage.provider.local.baseUrl.label',
-    description: 'settings.storage.provider.local.baseUrl.description',
+    type: 'number',
+    defaultValue: null,
+    label: 'settings.storage_provider.provider.label',
+    description: 'settings.storage_provider.provider.description',
   },
 ] as const satisfies SettingConfig[]
 

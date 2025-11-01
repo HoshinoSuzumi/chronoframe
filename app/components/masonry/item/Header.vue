@@ -13,7 +13,7 @@ defineProps<{
 }>()
 
 const router = useRouter()
-const config = useRuntimeConfig()
+// const config = useRuntimeConfig()
 const colorMode = useColorMode()
 
 const isDark = computed({
@@ -54,7 +54,7 @@ const isRepoLinkHovering = ref(false)
     <div
       class="absolute inset-0 -z-10 blur-3xl scale-110 bg-cover bg-center opacity-35"
       :style="{
-        backgroundImage: `url(${config.public.app.avatarUrl || '/web-app-manifest-192x192.png'})`,
+        backgroundImage: `url(${getSetting('app:avatarUrl') || '/web-app-manifest-192x192.png'})`,
       }"
     ></div>
     <div
@@ -72,7 +72,7 @@ const isRepoLinkHovering = ref(false)
                 <Icon name="tabler:star-filled" />
               </div>
               <img
-                :src="config.public.app.avatarUrl || '/web-app-manifest-192x192.png'"
+                :src="getSetting('app:avatarUrl') as string || '/web-app-manifest-192x192.png'"
                 class="size-16 rounded-full object-cover"
                 :class="!loggedIn && 'cursor-pointer'"
                 alt="Author's avatar"
@@ -82,7 +82,7 @@ const isRepoLinkHovering = ref(false)
             <h1
               class="text-2xl font-bold text-neutral-900 dark:text-white/90 mb-2"
             >
-              {{ config.public.app.title }}
+              {{ getSetting('app:title') }}
             </h1>
           </div>
           <div
@@ -106,10 +106,10 @@ const isRepoLinkHovering = ref(false)
               {{ $t('ui.stats.noPhotosTip') }}
             </p>
             <p
-              v-if="config.public.app.slogan"
+              v-if="getSetting('app:slogan')"
               class="font-[Pacifico]"
             >
-              {{ config.public.app.slogan }}
+              {{ getSetting('app:slogan') }}
             </p>
           </div>
           <div
@@ -249,11 +249,11 @@ const isRepoLinkHovering = ref(false)
         class="w-full px-2 pb-1 pt-1.5 bg-neutral-200/50 dark:bg-neutral-900/50 flex justify-between items-center gap-2"
       >
         <div
-          v-if="$config.public.app.author || $config.public.app.title"
+          v-if="getSetting('app:author') || getSetting('app:title')"
           class="text-xs text-neutral-500/80 dark:text-neutral-500 font-medium truncate"
         >
           © {{ $dayjs().format('YYYY') }}
-          {{ $config.public.app.author || $config.public.app.title }}
+          {{ getSetting('app:author') || getSetting('app:title') }}
         </div>
         <div
           class="text-xs text-neutral-500/60 dark:text-neutral-500/80 font-medium inline-flex justify-center items-center gap-0.5"
@@ -269,7 +269,7 @@ const isRepoLinkHovering = ref(false)
           >
             <Icon
               name="mdi:github"
-              class="inline-block text-sm -mt-[1px]"
+              class="inline-block text-sm -mt-px"
               mode="svg"
             />
             ChronoFrame

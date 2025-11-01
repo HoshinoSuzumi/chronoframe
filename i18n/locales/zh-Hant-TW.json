@@ -804,5 +804,147 @@
         "type": "按類型篩選"
       }
     }
+  },
+  "settings": {
+    "app": {
+      "title": {
+        "label": "實例名稱",
+        "description": "實例的標題"
+      },
+      "slogan": {
+        "label": "標語",
+        "description": "實例的標語"
+      },
+      "author": {
+        "label": "所有者",
+        "description": "實例的所有者名稱"
+      },
+      "avatarUrl": {
+        "label": "頭像 URL",
+        "description": "所有者頭像的圖片連結"
+      }
+    },
+    "map": {
+      "provider": {
+        "label": "地圖服務商",
+        "description": "選擇地圖服務商提供者"
+      },
+      "mapbox": {
+        "token": {
+          "label": "Mapbox Token",
+          "description": "Mapbox API 訪問令牌"
+        },
+        "style": {
+          "label": "Mapbox 樣式",
+          "description": "Mapbox 地圖樣式 URL"
+        }
+      },
+      "maplibre": {
+        "token": {
+          "label": "MapLibre Token",
+          "description": "MapLibre API 訪問令牌"
+        },
+        "style": {
+          "label": "MapLibre 樣式",
+          "description": "MapLibre 地圖樣式 URL"
+        }
+      }
+    },
+    "storage": {
+      "s3": {
+        "bucket": {
+          "label": "儲存桶名稱",
+          "description": "S3 儲存桶的名稱"
+        },
+        "region": {
+          "label": "區域",
+          "description": "S3 儲存桶所在的 AWS 區域"
+        },
+        "endpoint": {
+          "label": "端點",
+          "description": "S3 服務的端點 URL"
+        },
+        "prefix": {
+          "label": "前綴",
+          "description": "儲存在桶中的檔案前綴路徑"
+        },
+        "cdnUrl": {
+          "label": "CDN URL",
+          "description": "用於訪問檔案的 CDN 地址"
+        },
+        "accessKeyId": {
+          "label": "存取金鑰 ID",
+          "description": "AWS IAM 存取金鑰 ID"
+        },
+        "secretAccessKey": {
+          "label": "祕密存取金鑰",
+          "description": "AWS IAM 祕密存取金鑰"
+        },
+        "forcePathStyle": {
+          "label": "強制路徑方式",
+          "description": "使用路徑方式 URL 而不是虛擬主機方式"
+        },
+        "maxKeys": {
+          "label": "最大金鑰數",
+          "description": "列舉物件時返回的最大數量"
+        }
+      },
+      "local": {
+        "basePath": {
+          "label": "基本路徑",
+          "description": "本地儲存的基本目錄路徑"
+        },
+        "baseUrl": {
+          "label": "基本 URL",
+          "description": "用於訪問本地檔案的基本 URL"
+        },
+        "prefix": {
+          "label": "前綴",
+          "description": "本地儲存中所有檔案的路徑前綴"
+        }
+      },
+      "openlist": {
+        "baseUrl": {
+          "label": "基本 URL",
+          "description": "OpenList API 的基本 URL"
+        },
+        "rootPath": {
+          "label": "根路徑",
+          "description": "OpenList 中的根目錄路徑"
+        },
+        "token": {
+          "label": "認證令牌",
+          "description": "OpenList API 的認證令牌"
+        },
+        "endpointsUpload": {
+          "label": "上傳端點",
+          "description": "用於上傳檔案的 API 端點"
+        },
+        "endpointsDownload": {
+          "label": "下載端點",
+          "description": "用於下載檔案的 API 端點"
+        },
+        "endpointsList": {
+          "label": "列表端點",
+          "description": "用於列出檔案的 API 端點"
+        },
+        "endpointsDelete": {
+          "label": "刪除端點",
+          "description": "用於刪除檔案的 API 端點"
+        },
+        "endpointsMeta": {
+          "label": "中繼資料端點",
+          "description": "用於獲取檔案中繼資料的 API 端點"
+        },
+        "pathField": {
+          "label": "路徑欄位",
+          "description": "API 回應中表示檔案路徑的欄位名稱"
+        },
+        "cdnUrl": {
+          "label": "CDN URL",
+          "description": "用於訪問檔案的 CDN 地址"
+        }
+      }
+    }
   }
 }

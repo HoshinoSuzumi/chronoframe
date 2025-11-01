@@ -7,7 +7,6 @@ definePageMeta({
 
 const route = useRoute()
 const router = useRouter()
-const config = useRuntimeConfig()
 
 const { switchToIndex, closeViewer, openViewer } = useViewerState()
 const { isViewerOpen } = storeToRefs(useViewerState())
@@ -22,10 +21,10 @@ const currentPhoto = computed(() =>
 
 defineOgImageComponent('Photo', {
   headline: currentPhoto.value ? 'PHOTO' : 'ChronoFrame',
-  title: currentPhoto.value?.title || config.public.app.title,
+  title: currentPhoto.value?.title || getSetting('app:title'),
   description: currentPhoto.value
     ? currentPhoto.value.description
-    : config.public.app.slogan,
+    : getSetting('app:title'),
   thumbnailJpegUrl:
     currentPhoto.value && currentPhoto.value.thumbnailKey
       ? `/thumb/${encodeURIComponent(currentPhoto.value.thumbnailUrl || '')}`

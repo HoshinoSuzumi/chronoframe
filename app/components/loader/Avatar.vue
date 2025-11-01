@@ -1,6 +1,4 @@
-<script lang="ts" setup>
-const config = useRuntimeConfig()
-</script>
+<script lang="ts" setup></script>
 
 <template>
   <div class="relative size-24">
@@ -12,9 +10,9 @@ const config = useRuntimeConfig()
       class="absolute inset-1 rounded-full overflow-hidden drop-shadow-xl drop-shadow-primary/10 bg-neutral-100 dark:bg-neutral-800"
     >
       <img
-        v-if="config.public.app.avatarUrl"
+        v-if="getSetting('app:avatarUrl')"
         class="w-full h-full object-cover"
-        :src="config.public.app.avatarUrl"
+        :src="getSetting('app:avatarUrl')?.toString()"
         alt="Loading..."
       />
       <img

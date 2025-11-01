@@ -861,5 +861,51 @@
         "type": "Filter by Type"
       }
     }
+  },
+  "settings": {
+    "app": {
+      "title": {
+        "label": "Instance Name",
+        "description": "The title of the instance"
+      },
+      "slogan": {
+        "label": "Slogan",
+        "description": "The slogan of the instance"
+      },
+      "author": {
+        "label": "Owner",
+        "description": "The owner name of the instance"
+      },
+      "avatarUrl": {
+        "label": "Avatar URL",
+        "description": "Link to the owner's avatar image"
+      }
+    },
+    "map": {
+      "provider": {
+        "label": "Map Provider",
+        "description": "Select the map service provider"
+      },
+      "mapbox": {
+        "token": {
+          "label": "Mapbox Token",
+          "description": "Mapbox API access token"
+        },
+        "style": {
+          "label": "Mapbox Style",
+          "description": "Mapbox map style URL"
+        }
+      },
+      "maplibre": {
+        "token": {
+          "label": "MapLibre Token",
+          "description": "MapLibre API access token"
+        },
+        "style": {
+          "label": "MapLibre Style",
+          "description": "MapLibre map style URL"
+        }
+      }
+    }
   }
 }

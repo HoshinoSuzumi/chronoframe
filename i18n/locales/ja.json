@@ -804,5 +804,147 @@
         "type": "タイプでフィルター"
       }
     }
+  },
+  "settings": {
+    "app": {
+      "title": {
+        "label": "インスタンス名",
+        "description": "インスタンスのタイトル"
+      },
+      "slogan": {
+        "label": "スローガン",
+        "description": "インスタンスのスローガン"
+      },
+      "author": {
+        "label": "オーナー",
+        "description": "インスタンスのオーナー名"
+      },
+      "avatarUrl": {
+        "label": "アバター URL",
+        "description": "オーナーのアバター画像へのリンク"
+      }
+    },
+    "map": {
+      "provider": {
+        "label": "地図プロバイダー",
+        "description": "地図サービスプロバイダーを選択"
+      },
+      "mapbox": {
+        "token": {
+          "label": "Mapbox トークン",
+          "description": "Mapbox API アクセストークン"
+        },
+        "style": {
+          "label": "Mapbox スタイル",
+          "description": "Mapbox 地図スタイル URL"
+        }
+      },
+      "maplibre": {
+        "token": {
+          "label": "MapLibre トークン",
+          "description": "MapLibre API アクセストークン"
+        },
+        "style": {
+          "label": "MapLibre スタイル",
+          "description": "MapLibre 地図スタイル URL"
+        }
+      }
+    },
+    "storage": {
+      "s3": {
+        "bucket": {
+          "label": "バケット名",
+          "description": "S3 バケットの名前"
+        },
+        "region": {
+          "label": "リージョン",
+          "description": "S3 バケットが配置されている AWS リージョン"
+        },
+        "endpoint": {
+          "label": "エンドポイント",
+          "description": "S3 サービスのエンドポイント URL"
+        },
+        "prefix": {
+          "label": "プレフィックス",
+          "description": "S3 内の全ファイルのパスプレフィックス"
+        },
+        "cdnUrl": {
+          "label": "CDN URL",
+          "description": "ファイルにアクセスするための CDN アドレス"
+        },
+        "accessKeyId": {
+          "label": "アクセスキー ID",
+          "description": "AWS IAM アクセスキー ID"
+        },
+        "secretAccessKey": {
+          "label": "シークレットアクセスキー",
+          "description": "AWS IAM シークレットアクセスキー"
+        },
+        "forcePathStyle": {
+          "label": "パススタイルを強制",
+          "description": "仮想ホストスタイルではなく、パススタイル URL を使用"
+        },
+        "maxKeys": {
+          "label": "最大キー数",
+          "description": "S3 リスト操作ごとに返される最大オブジェクト数"
+        }
+      },
+      "local": {
+        "basePath": {
+          "label": "基本パス",
+          "description": "ローカルファイルシステムでファイルを保存するベースディレクトリパス"
+        },
+        "baseUrl": {
+          "label": "ベース URL",
+          "description": "ローカルストレージファイルにアクセスするためのベース URL"
+        },
+        "prefix": {
+          "label": "プレフィックス",
+          "description": "ローカルストレージ内の全ファイルのパスプレフィックス"
+        }
+      },
+      "openlist": {
+        "baseUrl": {
+          "label": "ベース URL",
+          "description": "OpenList API のベース URL"
+        },
+        "rootPath": {
+          "label": "ルートパス",
+          "description": "OpenList 内のルートディレクトリパス"
+        },
+        "token": {
+          "label": "認証トークン",
+          "description": "OpenList API の認証トークン"
+        },
+        "endpointsUpload": {
+          "label": "アップロードエンドポイント",
+          "description": "ファイルをアップロードするための API エンドポイント"
+        },
+        "endpointsDownload": {
+          "label": "ダウンロードエンドポイント",
+          "description": "ファイルをダウンロードするための API エンドポイント"
+        },
+        "endpointsList": {
+          "label": "リストエンドポイント",
+          "description": "ファイルをリストアップするための API エンドポイント"
+        },
+        "endpointsDelete": {
+          "label": "削除エンドポイント",
+          "description": "ファイルを削除するための API エンドポイント"
+        },
+        "endpointsMeta": {
+          "label": "メタデータエンドポイント",
+          "description": "ファイルメタデータを取得するための API エンドポイント"
+        },
+        "pathField": {
+          "label": "パスフィールド",
+          "description": "ファイルパスを表す API レスポンスのフィールド名"
+        },
+        "cdnUrl": {
+          "label": "CDN URL",
+          "description": "ファイルにアクセスするための CDN アドレス"
+        }
+      }
+    }
   }
 }

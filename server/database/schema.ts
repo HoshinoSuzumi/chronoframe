@@ -1,6 +1,13 @@
 import { sql } from 'drizzle-orm'
-import { sqliteTable, text, integer, real } from 'drizzle-orm/sqlite-core'
+import {
+  sqliteTable,
+  text,
+  integer,
+  real,
+  uniqueIndex,
+} from 'drizzle-orm/sqlite-core'
 import type { NeededExif } from '~~/shared/types/photo'
+import type { StorageConfig } from '../services/storage'
 
 type PipelineQueuePayload =
   | {
@@ -149,24 +156,53 @@ export const albumPhotos = sqliteTable('album_photos', {
     .default(sql`(unixepoch())`),
 })
 
-export const settings = sqliteTable('settings', {
-  id: integer('id').primaryKey({ autoIncrement: true }),
-  namespace: text('namespace').notNull().default('cframe'),
-  key: text('key').notNull().unique(),
-  type: text('type', {
-    enum: ['string', 'number', 'boolean', 'json'],
-  }).notNull(),
-  value: text('value').notNull(),
-  defaultValue: text('default_value'),
-  label: text('label'),
-  description: text('description'),
-  isInternal: integer('is_internal').default(0).notNull(),
-  isReadonly: integer('is_readonly').default(0).notNull(),
-  isSecret: integer('is_secret').default(0).notNull(),
-  updatedAt: integer('updated_at', { mode: 'timestamp' })
-    .notNull()
-    .default(sql`(unixepoch())`),
-  updatedBy: integer('updated_by').references(() => users.id, {
-    onDelete: 'set null',
-  }),
-})
+export const settings = sqliteTable(
+  'settings',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    namespace: text('namespace').notNull().default('common'),
+    key: text('key').notNull(),
+    type: text('type', {
+      enum: ['string', 'number', 'boolean', 'json'],
+    }).notNull(),
+    value: text('value'),
+    defaultValue: text('default_value'),
+    label: text('label'),
+    description: text('description'),
+    isPublic: integer('is_public', { mode: 'boolean' })
+      .default(false)
+      .notNull(),
+    isReadonly: integer('is_readonly', { mode: 'boolean' })
+      .default(false)
+      .notNull(),
+    isSecret: integer('is_secret', { mode: 'boolean' })
+      .default(false)
+      .notNull(),
+    enum: text('enum', { mode: 'json' }).$type<string[] | null>(),
+    updatedAt: integer('updated_at', { mode: 'timestamp' })
+      .notNull()
+      .default(sql`(unixepoch())`),
+    updatedBy: integer('updated_by').references(() => users.id, {
+      onDelete: 'set null',
+    }),
+  },
+  (t) => [uniqueIndex('idx_namespace_key').on(t.namespace, t.key)],
+)
+
+export const settings_storage_providers = sqliteTable(
+  'settings_storage_providers',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    name: text('name').notNull(),
+    provider: text('provider', {
+      enum: ['s3', 'local', 'openlist'],
+    }).notNull(),
+    config: text('config', { mode: 'json' }).$type<StorageConfig>().notNull(),
+    createdAt: integer('created_at', { mode: 'timestamp' })
+      .notNull()
+      .default(sql`(unixepoch())`),
+    updatedAt: integer('updated_at', { mode: 'timestamp' })
+      .notNull()
+      .default(sql`(unixepoch())`),
+  },
+)

@@ -68,6 +68,10 @@ Photos are processed via `execPhotoPipelineAsync()` in `server/services/photo/pi
 
 ## Component Patterns
 
+### Vue Components
+
+- All components are auto imported via Nuxt (eg. `/app/components/photo/PhotoItem.client.vue` can be used directly as `<PhotoPhotoItem />`)
+
 ### Vue Composables
 - `usePhotos()`: Central photo data management with injection/provide pattern
 - `usePhotoFilters()`: Client-side filtering with reactive state

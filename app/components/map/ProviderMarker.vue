@@ -10,9 +10,12 @@ withDefaults(
   },
 )
 
-const mapConfig = useRuntimeConfig().public.map
+const mapConfig = computed(() => {
+  const config = getSetting('map')
+  return typeof config === 'object' && config ? config : {}
+})
 
-const provider = computed(() => mapConfig.provider)
+const provider = computed(() => mapConfig.value.provider || 'maplibre')
 </script>
 
 <template>
