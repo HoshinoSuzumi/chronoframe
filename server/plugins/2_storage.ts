@@ -20,7 +20,22 @@ export function getStorageManager() {
 export default nitroPlugin(async (nitroApp) => {
   // const config = useRuntimeConfig()
 
-  const activeProvider = await settingsManager.storage.getActiveProvider()
+  // Wait for settings migration to complete if still initializing
+  // This ensures we get the active provider after config migration
+  let activeProvider = await settingsManager.storage.getActiveProvider()
+  
+  if (!activeProvider) {
+    // Retry while settings manager is still initializing
+    let attempts = 0
+    const maxAttempts = 100 // 5 seconds max with 50ms intervals
+    
+    while (!activeProvider && attempts < maxAttempts && settingsManager.isInitializing_()) {
+      await new Promise(resolve => setTimeout(resolve, 50))
+      activeProvider = await settingsManager.storage.getActiveProvider()
+      attempts++
+    }
+  }
+  
   if (!activeProvider) {
     logger.storage.error('No active storage provider configured.')
     return

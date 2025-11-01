@@ -9,8 +9,9 @@ import type { SettingKey, SettingNamespace } from './contants'
 
 export class SettingsManager {
   private static instance: SettingsManager
-  private settingsCache: Map<string, SettingValue> = new Map()
-  private _logger = logger.dynamic('settings-mgr')
+  protected settingsCache: Map<string, SettingValue> = new Map()
+  protected _logger = logger.dynamic('settings-mgr')
+  protected isInitializing = false
 
   private constructor() {}
 
@@ -19,6 +20,23 @@ export class SettingsManager {
       SettingsManager.instance = new SettingsManager()
     }
     return SettingsManager.instance
+  }
+
+  /**
+   * Set the initializing flag externally
+   * Used during plugin initialization to prevent storage provider switch triggers
+   * @param flag Boolean flag to set
+   */
+  setInitializingFlag(flag: boolean): void {
+    this.isInitializing = flag
+  }
+
+  /**
+   * Check if currently initializing
+   * @returns true if initializing, false otherwise
+   */
+  isInitializing_(): boolean {
+    return this.isInitializing
   }
 
   /**
@@ -253,7 +271,8 @@ export class SettingsManager {
     this.settingsCache.set(cacheKey, value)
 
     // Trigger storage provider switch if storage:provider is being changed
-    if (namespace === 'storage' && key === 'provider') {
+    // Skip during initialization as storage manager is not yet initialized
+    if (namespace === 'storage' && key === 'provider' && !this.isInitializing) {
       // Use setImmediate to avoid blocking and handle async operation
       setImmediate(() => {
         this.triggerStorageProviderSwitch(value as number).catch((error) => {
