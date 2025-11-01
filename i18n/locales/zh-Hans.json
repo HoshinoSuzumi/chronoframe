@@ -363,8 +363,9 @@
     "siteAdministration": "站点设置",
     "generalSettings": "基本设置",
     "storageSettings": "存储设置",
-    "mapSettings": "地图设置",
-    "systemSettings": "系统设置"
+    "systemSettings": "系统设置",
+    "mapAndLocation": "地图和位置",
+    "location": "位置服务"
   },
   "auth": {
     "form": {
@@ -908,6 +909,20 @@
         "style": {
           "label": "MapLibre 样式",
           "description": "MapLibre 地图样式 URL"
+        }
+      }
+    },
+    "location": {
+      "mapbox": {
+        "token": {
+          "label": "Mapbox Token",
+          "description": "Mapbox API 访问令牌，设置后取代 Nominatim"
+        }
+      },
+      "nominatim": {
+        "baseUrl": {
+          "label": "Nominatim 基础 URL",
+          "description": "Nominatim 反向地理编码 API 的基础 URL"
         }
       }
     },

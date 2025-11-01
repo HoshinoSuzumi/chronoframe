@@ -359,7 +359,9 @@
     "queue": "佇列管理",
     "logs": "系統日誌",
     "albums": "相簿",
-    "siteAdministration": "站點設置"
+    "siteAdministration": "站點設置",
+    "mapAndLocation": "地圖和位置",
+    "location": "位置服務"
   },
   "auth": {
     "form": {
@@ -847,6 +849,20 @@
         "style": {
           "label": "MapLibre 樣式",
           "description": "MapLibre 地圖樣式 URL"
+        }
+      }
+    },
+    "location": {
+      "mapbox": {
+        "token": {
+          "label": "Mapbox Token",
+          "description": "Mapbox API 訪問令牌，設置後取代 Nominatim"
+        }
+      },
+      "nominatim": {
+        "baseUrl": {
+          "label": "Nominatim 基礎 URL",
+          "description": "Nominatim 反向地理編碼 API 嘅基礎 URL"
         }
       }
     },

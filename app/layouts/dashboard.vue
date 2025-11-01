@@ -43,7 +43,7 @@ const navItems = ref<NavigationMenuItem[][]>([
           to: '/dashboard/settings/storage',
         },
         {
-          label: $t('title.mapSettings'),
+          label: $t('title.mapAndLocation'),
           icon: 'tabler:map-pin',
           to: '/dashboard/settings/map',
         },

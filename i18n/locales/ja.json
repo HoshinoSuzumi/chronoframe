@@ -359,7 +359,9 @@
     "queue": "キュー管理",
     "logs": "システムログ",
     "albums": "アルバム",
-    "siteAdministration": "サイト設定"
+    "siteAdministration": "サイト設定",
+    "mapAndLocation": "地図と場所",
+    "location": "位置情報サービス"
   },
   "auth": {
     "form": {
@@ -847,6 +849,20 @@
         "style": {
           "label": "MapLibre スタイル",
           "description": "MapLibre 地図スタイル URL"
+        }
+      }
+    },
+    "location": {
+      "mapbox": {
+        "token": {
+          "label": "Mapbox トークン",
+          "description": "Mapbox API アクセストークン、設定時は Nominatim を置き換える"
+        }
+      },
+      "nominatim": {
+        "baseUrl": {
+          "label": "Nominatim ベース URL",
+          "description": "Nominatim リバースジオコーディング API のベース URL"
         }
       }
     },

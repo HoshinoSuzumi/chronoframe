@@ -100,6 +100,25 @@ export const DEFAULT_SETTINGS = [
     description: 'settings.map.maplibre.style.description',
     isPublic: true,
   },
+  // NAMESPACE: location
+  {
+    namespace: 'location',
+    key: 'mapbox.token',
+    type: 'string',
+    defaultValue: '',
+    label: 'settings.location.mapbox.token.label',
+    description: 'settings.location.mapbox.token.description',
+    isPublic: true,
+  },
+  {
+    namespace: 'location',
+    key: 'nominatim.baseUrl',
+    type: 'string',
+    defaultValue: '',
+    label: 'settings.location.nominatim.baseUrl.label',
+    description: 'settings.location.nominatim.baseUrl.description',
+    isPublic: true,
+  },
   // NAMESPACE: storage
   {
     namespace: 'storage',

@@ -360,7 +360,8 @@
     "queue": "Queue Management",
     "logs": "System Logs",
     "albums": "Albums",
-    "siteAdministration": "Site settings"
+    "siteAdministration": "Site settings",
+    "location": "Location services"
   },
   "auth": {
     "form": {
@@ -904,6 +905,20 @@
         "style": {
           "label": "MapLibre Style",
           "description": "MapLibre map style URL"
+        }
+      }
+    },
+    "location": {
+      "mapbox": {
+        "token": {
+          "label": "Mapbox Token",
+          "description": "Mapbox API access token, replaces Nominatim when set"
+        }
+      },
+      "nominatim": {
+        "baseUrl": {
+          "label": "Nominatim Base URL",
+          "description": "Base URL for Nominatim reverse geocoding API"
         }
       }
     }
