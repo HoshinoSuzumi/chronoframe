@@ -251,6 +251,53 @@ export class SettingsManager {
 
     this._logger.info(`Setting ${namespace}:${key} updated`)
     this.settingsCache.set(cacheKey, value)
+
+    // Trigger storage provider switch if storage:provider is being changed
+    if (namespace === 'storage' && key === 'provider') {
+      // Use setImmediate to avoid blocking and handle async operation
+      setImmediate(() => {
+        this.triggerStorageProviderSwitch(value as number).catch((error) => {
+          this._logger.error('Failed to trigger storage provider switch:', error)
+        })
+      })
+    }
+  }
+
+  /**
+   * Trigger storage provider switch
+   * @param providerId Provider ID to switch to
+   */
+  private async triggerStorageProviderSwitch(providerId: number): Promise<void> {
+    try {
+      // Dynamically import to avoid circular dependency issues
+      const { getGlobalStorageManager } = await import('~~/server/services/storage/events')
+      const loggerModule = await import('~~/server/utils/logger')
+      
+      const storageManager = getGlobalStorageManager()
+      if (!storageManager) {
+        this._logger.warn(
+          'Storage manager not initialized, cannot switch provider',
+        )
+        return
+      }
+
+      const newProvider = await this.storage.getProviderById(providerId)
+      if (!newProvider) {
+        this._logger.error(`Provider with ID ${providerId} not found`)
+        return
+      }
+
+      this._logger.info(
+        `Triggering storage provider switch to: ${newProvider.name} (ID: ${providerId})`,
+      )
+      
+      await storageManager.registerProvider(
+        newProvider.config,
+        loggerModule.logger.dynamic('storage'),
+      )
+    } catch (error) {
+      this._logger.error('Failed to switch storage provider:', error)
+    }
   }
 
   async getNamespace(

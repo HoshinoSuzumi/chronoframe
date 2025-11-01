@@ -16,6 +16,15 @@ export {
 
 export { StorageProviderFactory, StorageManager } from './manager'
 
+export type { StorageManagerEventType, StorageManagerEventListener, StorageManagerEvent } from './manager'
+
 export { S3StorageProvider } from './providers/s3'
 export { LocalStorageProvider } from './providers/local'
 export { OpenListStorageProvider } from './providers/openlist'
+
+export {
+  setGlobalStorageManager,
+  getGlobalStorageManager,
+  isStorageManagerInitialized,
+} from './events'
+

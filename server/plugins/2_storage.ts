@@ -1,92 +1,55 @@
 import path from 'node:path'
-import type { StorageConfig } from '../services/storage'
-import { StorageManager } from '../services/storage'
+import type { LocalStorageConfig, StorageConfig } from '../services/storage'
+import { StorageManager, getGlobalStorageManager } from '../services/storage'
+import { setGlobalStorageManager } from '../services/storage/events'
 import { logger } from '../utils/logger'
+import { settingsManager } from '../services/settings/settingsManager'
 
-// 全局 storageManager 实例，可以在非请求上下文中使用
-let globalStorageManager: StorageManager
-
-export function getStorageManager(): StorageManager {
-  if (!globalStorageManager) {
+/**
+ * Get the global storage manager instance
+ * Used in non-request context (e.g., background tasks, event handlers)
+ */
+export function getStorageManager() {
+  const storageManager = getGlobalStorageManager()
+  if (!storageManager) {
     throw new Error('Storage manager not initialized')
   }
-  return globalStorageManager
+  return storageManager
 }
 
 export default nitroPlugin(async (nitroApp) => {
-  const config = useRuntimeConfig()
+  // const config = useRuntimeConfig()
 
-  const storageConfiguration: Record<'s3' | 'local' | 'openlist', StorageConfig> = {
-    s3: {
-      provider: 's3',
-      bucket: config.provider.s3.bucket,
-      region: config.provider.s3.region,
-      endpoint: config.provider.s3.endpoint,
-      prefix: config.provider.s3.prefix,
-      cdnUrl: config.provider.s3.cdnUrl,
-      accessKeyId: config.provider.s3.accessKeyId,
-      secretAccessKey: config.provider.s3.secretAccessKey,
-      forcePathStyle: config.provider.s3.forcePathStyle,
-    },
-    local: {
-      provider: 'local',
-      basePath:
-        config.provider.local.localPath ||
-        path.resolve(process.cwd(), 'data', 'storage'),
-      baseUrl: config.provider.local.baseUrl || '/storage',
-      prefix: config.provider.local.prefix || 'photos/',
-    },
-    openlist: {
-      provider: 'openlist',
-      baseUrl: config.provider.openlist?.baseUrl || '',
-      rootPath: config.provider.openlist?.rootPath || '',
-      token: config.provider.openlist?.token || '',
-      endpoints: {
-        upload: config.provider.openlist?.endpoints?.upload ?? '/api/fs/put',
-        download: config.provider.openlist?.endpoints?.download ?? '',
-        list: config.provider.openlist?.endpoints?.list ?? '',
-        delete: config.provider.openlist?.endpoints?.delete ?? '/api/fs/remove',
-        meta: config.provider.openlist?.endpoints?.meta ?? '/api/fs/get',
-      },
-      pathField: config.provider.openlist?.pathField || 'path',
-      cdnUrl:
-        config.provider.openlist?.cdnUrl ||
-        (config.provider.openlist?.baseUrl
-          ? `${config.provider.openlist.baseUrl.replace(/\/$/, '')}/d`
-          : undefined),
-    },
+  const activeProvider = await settingsManager.storage.getActiveProvider()
+  if (!activeProvider) {
+    logger.storage.error('No active storage provider configured.')
+    return
   }
 
-  const selectedProvider =
-    (config.STORAGE_PROVIDER as 's3' | 'local' | 'openlist') || 'local'
+  const storageConfiguration = activeProvider.config
+
   const storageManager = new StorageManager(
-    storageConfiguration[selectedProvider],
+    storageConfiguration,
     logger.storage,
   )
 
-  if (selectedProvider === 'openlist') {
-    const openlistConfig = storageConfiguration.openlist as any
-    if (!openlistConfig.baseUrl) {
-      logger.storage.error('OpenList baseUrl is not configured. Please set provider.openlist.baseUrl in runtimeConfig or corresponding .env variables.')
-    }
-    if (!openlistConfig.rootPath) {
-      logger.storage.error('OpenList rootPath is not configured. Please set provider.openlist.rootPath in runtimeConfig or corresponding .env variables.')
-    }
-    if (!openlistConfig.token) {
-      logger.storage.error('OpenList token is not configured. Please set provider.openlist.token in runtimeConfig or NUXT_PROVIDER_OPENLIST_TOKEN in .env file.')
-    }
-  }
-
   // 设置全局实例
-  globalStorageManager = storageManager
+  setGlobalStorageManager(storageManager)
 
+  // Set storage manager in context for each request
   nitroApp.hooks.hook('request', (event) => {
     event.context.storage = storageManager
   })
 
-  // 本地存储路径校验与创建
-  if (selectedProvider === 'local') {
-    const localBase = (storageConfiguration.local as any).basePath as string
+  // Initialize local storage directory if needed
+  const isLocalStorageProvider = (
+    provider: StorageConfig,
+  ): provider is LocalStorageConfig => {
+    return provider?.provider === 'local'
+  }
+
+  if (isLocalStorageProvider(storageConfiguration)) {
+    const localBase = storageConfiguration.basePath
     try {
       if (!path.isAbsolute(localBase)) {
         logger.storage.warn(`LOCAL basePath is not absolute: ${localBase}`)
@@ -100,4 +63,39 @@ export default nitroPlugin(async (nitroApp) => {
       logger.storage.error('Failed to prepare local storage directory', err)
     }
   }
+
+  // Setup event listeners for storage manager
+  storageManager.on('provider-changed', async (event) => {
+    logger.storage.info(
+      `Storage provider changed from ${event.oldProvider} to ${event.provider}`,
+    )
+
+    // Re-initialize local storage if switching to local provider
+    if (event.provider === 'local') {
+      try {
+        const newProvider = await settingsManager.storage.getActiveProvider()
+        if (
+          newProvider &&
+          isLocalStorageProvider(newProvider.config)
+        ) {
+          const localBase = newProvider.config.basePath
+          await import('node:fs').then(async (m) => {
+            const fs = m.promises as typeof import('node:fs').promises
+            await fs.mkdir(localBase, { recursive: true })
+          })
+          logger.storage.success(`Local storage ready at: ${localBase}`)
+        }
+      } catch (error) {
+        logger.storage.error('Failed to initialize local storage:', error)
+      }
+    }
+  })
+
+  storageManager.on('provider-error', (event) => {
+    logger.storage.error(
+      `Storage provider error for ${event.provider}: ${event.error?.message}`,
+    )
+  })
+
+  logger.storage.success('Storage plugin initialized successfully')
 })
