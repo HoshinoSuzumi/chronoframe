@@ -3,7 +3,6 @@ import { logger } from '~~/server/utils/logger'
 
 export default eventHandler(async (event) => {
   await requireUserSession(event)
-
   const { storageProvider } = useStorageProvider(event)
   const key = getQuery(event).key as string | undefined
   const t = await useTranslation(event)

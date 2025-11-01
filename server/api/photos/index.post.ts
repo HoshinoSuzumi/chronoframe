@@ -42,12 +42,12 @@ const isLikelyImageKey = (storageKey?: string | null): boolean => {
 
 export default eventHandler(async (event) => {
   await requireUserSession(event)
-  const { storageProvider } = useStorageProvider(event)
   const config = useRuntimeConfig(event)
   const t = await useTranslation(event)
 
   const body = await readBody(event)
   const { fileName, contentType, skipDuplicateCheck } = body
+  const { storageProvider } = useStorageProvider(event)
   const isVideoUpload = fileName ? isVideoFile(fileName, contentType) : false
 
   if (!fileName) {
