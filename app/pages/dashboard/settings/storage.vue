@@ -138,6 +138,8 @@ const storageConfigState = reactive<{
   provider: 's3',
   config: {
     provider: 's3',
+    region: 'auto',
+    prefix: '/photos',
   } as any,
 })
 
@@ -154,6 +156,33 @@ const currentStorageSchema = computed(() => {
       return s3StorageConfigSchema
   }
 })
+
+// 获取存储配置的默认值
+const getStorageConfigDefaults = (provider: string): Partial<StorageConfig> => {
+  switch (provider) {
+    case 'local':
+      return {
+        provider: 'local',
+        basePath: '/data/storage',
+        baseUrl: '/storage',
+      } as any
+    case 'openlist':
+      return {
+        provider: 'openlist',
+        uploadEndpoint: '/api/fs/put',
+        deleteEndpoint: '/api/fs/remove',
+        metaEndpoint: '/api/fs/get',
+        pathField: 'path',
+      } as any
+    case 's3':
+    default:
+      return {
+        provider: 's3',
+        region: 'auto',
+        prefix: '/photos',
+      } as any
+  }
+}
 
 // 动态生成 fields-config，包含翻译键
 const storageFieldsConfig = computed<Record<string, any>>(() => {
@@ -192,25 +221,25 @@ const storageFieldsConfig = computed<Record<string, any>>(() => {
           label: $t(`${baseKey}.token.label`),
           description: $t(`${baseKey}.token.description`),
         },
-        'endpoints.upload': {
-          label: $t(`${baseKey}.endpoints.upload.label`),
-          description: $t(`${baseKey}.endpoints.upload.description`),
+        uploadEndpoint: {
+          label: $t(`${baseKey}.uploadEndpoint.label`),
+          description: $t(`${baseKey}.uploadEndpoint.description`),
         },
-        'endpoints.download': {
-          label: $t(`${baseKey}.endpoints.download.label`),
-          description: $t(`${baseKey}.endpoints.download.description`),
+        downloadEndpoint: {
+          label: $t(`${baseKey}.downloadEndpoint.label`),
+          description: $t(`${baseKey}.downloadEndpoint.description`),
         },
-        'endpoints.list': {
-          label: $t(`${baseKey}.endpoints.list.label`),
-          description: $t(`${baseKey}.endpoints.list.description`),
+        listEndpoint: {
+          label: $t(`${baseKey}.listEndpoint.label`),
+          description: $t(`${baseKey}.listEndpoint.description`),
         },
-        'endpoints.delete': {
-          label: $t(`${baseKey}.endpoints.delete.label`),
-          description: $t(`${baseKey}.endpoints.delete.description`),
+        deleteEndpoint: {
+          label: $t(`${baseKey}.deleteEndpoint.label`),
+          description: $t(`${baseKey}.deleteEndpoint.description`),
         },
-        'endpoints.meta': {
-          label: $t(`${baseKey}.endpoints.meta.label`),
-          description: $t(`${baseKey}.endpoints.meta.description`),
+        metaEndpoint: {
+          label: $t(`${baseKey}.metaEndpoint.label`),
+          description: $t(`${baseKey}.metaEndpoint.description`),
         },
         pathField: {
           label: $t(`${baseKey}.pathField.label`),
@@ -267,6 +296,7 @@ const storageFieldsConfig = computed<Record<string, any>>(() => {
 
 const onStorageConfigSubmit = async (
   event: FormSubmitEvent<Partial<StorageConfig>>,
+  close?: () => void,
 ) => {
   try {
     // 构建完整的请求体
@@ -286,11 +316,10 @@ const onStorageConfigSubmit = async (
       color: 'success',
     })
     // 重置表单
-    Object.assign(storageConfigState, {
-      name: '',
-      provider: 's3',
-      config: { provider: 's3' },
-    })
+    storageConfigState.name = ''
+    storageConfigState.provider = 's3'
+    storageConfigState.config = getStorageConfigDefaults('s3')
+    close?.()
   } catch (error) {
     toast.add({
       title: '创建存储方案时出错',
@@ -431,7 +460,7 @@ const onStorageDelete = async (storageId: number) => {
                     添加存储
                   </UButton>
 
-                  <template #body>
+                  <template #body="{ close }">
                     <div class="space-y-4">
                       <!-- Provider 选择 -->
                       <UFormField
@@ -456,7 +485,8 @@ const onStorageDelete = async (storageId: number) => {
                           @update:model-value="
                             (val: string) => {
                               storageConfigState.provider = val
-                              ;(storageConfigState.config as any).provider = val
+                              storageConfigState.config =
+                                getStorageConfigDefaults(val)
                             }
                           "
                         />
@@ -479,7 +509,7 @@ const onStorageDelete = async (storageId: number) => {
                         :schema="currentStorageSchema"
                         :state="storageConfigState.config"
                         :fields-config="storageFieldsConfig"
-                        @submit="onStorageConfigSubmit"
+                        @submit="onStorageConfigSubmit($event, close)"
                       />
                     </div>
                   </template>
@@ -497,7 +527,6 @@ const onStorageDelete = async (storageId: number) => {
                       icon="i-heroicons-check"
                       type="submit"
                       form="createStorageForm"
-                      @click="close"
                     />
                   </template>
                 </USlideover>

@@ -63,17 +63,25 @@ type AppearanceSettingsSchema = {
   'appearance.theme': string
 }
 
+// 获取 schema 中的默认值
+const getSchemaDefaultValue = (namespace: string, key: string) => {
+  const schema = settingsSchema.value?.find(
+    (s) => s.namespace === namespace && s.key === key,
+  )
+  return schema?.defaultValue ?? ''
+}
+
 // 初始化表单状态
 const appSettingsState = reactive<Partial<AppSettingsSchema>>({
-  title: 'ChronoFrame',
-  slogan: '',
-  author: '',
-  avatarUrl: '',
+  title: getSchemaDefaultValue('app', 'title') || 'ChronoFrame',
+  slogan: getSchemaDefaultValue('app', 'slogan') || '',
+  author: getSchemaDefaultValue('app', 'author') || '',
+  avatarUrl: getSchemaDefaultValue('app', 'avatarUrl') || '',
 })
 
 // 初始化外观设置表单状态
 const appearanceSettingsState = reactive<Partial<AppearanceSettingsSchema>>({
-  'appearance.theme': 'system',
+  'appearance.theme': getSchemaDefaultValue('app', 'appearance.theme') || 'system',
 })
 
 // 计算主题选项

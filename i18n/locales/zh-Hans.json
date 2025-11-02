@@ -940,31 +940,31 @@
       "s3": {
         "bucket": {
           "label": "存储桶名称",
-          "description": "AWS S3 存储桶的名称"
+          "description": "用于存储照片的 S3 存储桶名称"
         },
         "region": {
-          "label": "地域",
-          "description": "S3 存储桶所在的 AWS 地域"
+          "label": "区域",
+          "description": "S3 存储桶所在的 AWS 区域"
         },
         "endpoint": {
-          "label": "端点",
-          "description": "S3 服务的端点 URL"
+          "label": "S3 端点",
+          "description": "自定义 S3 兼容端点 URL（例如 MinIO）"
         },
         "prefix": {
-          "label": "前缀",
-          "description": "存储在桶中的文件前缀路径"
+          "label": "存储前缀",
+          "description": "存储桶中对象的前缀路径"
         },
         "cdnUrl": {
-          "label": "CDN 地址",
-          "description": "用于访问文件的 CDN 地址"
+          "label": "CDN URL",
+          "description": "用于访问图像的自定义 CDN URL"
         },
         "accessKeyId": {
-          "label": "Access Key ID",
-          "description": "AWS IAM 访问密钥 ID"
+          "label": "访问密钥 ID",
+          "description": "AWS 访问密钥 ID 或等效项"
         },
         "secretAccessKey": {
-          "label": "Secret Access Key",
-          "description": "AWS IAM 秘密访问密钥"
+          "label": "秘密访问密钥",
+          "description": "AWS 秘密访问密钥或等效项"
         },
         "forcePathStyle": {
           "label": "强制路径风格",
@@ -972,65 +972,63 @@
         },
         "maxKeys": {
           "label": "最大密钥数",
-          "description": "列举对象时返回的最大数量"
+          "description": "每个请求检索的最大密钥数"
         }
       },
       "local": {
         "basePath": {
-          "label": "基础路径",
-          "description": "本地文件系统中存储文件的基础路径"
+          "label": "存储基础路径",
+          "description": "用于存储照片的本地文件系统路径"
         },
         "baseUrl": {
           "label": "基础 URL",
-          "description": "访问本地存储文件的基础 URL"
+          "description": "用于访问存储照片的公开 URL 基础"
         },
         "prefix": {
-          "label": "前缀",
-          "description": "存储文件的前缀路径"
+          "label": "存储前缀",
+          "description": "用于在存储中组织照片的前缀路径"
         }
       },
       "openlist": {
         "baseUrl": {
-          "label": "基础 URL",
-          "description": "OpenList API 的基础 URL"
+          "label": "OpenList 基础 URL",
+          "description": "OpenList 服务器的基础 URL"
         },
         "rootPath": {
           "label": "根路径",
-          "description": "OpenList 中的根目录路径"
+          "description": "在 OpenList 中存储照片的根路径"
         },
         "token": {
-          "label": "认证令牌",
-          "description": "OpenList API 的认证令牌"
+          "label": "身份验证令牌",
+          "description": "OpenList API 身份验证令牌"
         },
-        "endpoints": {
-          "upload": {
-            "label": "上传端点",
-            "description": "用于上传文件的 API 端点"
-          },
-          "download": {
-            "label": "下载端点",
-            "description": "用于下载文件的 API 端点"
-          },
-          "list": {
-            "label": "列表端点",
-            "description": "用于列举文件的 API 端点"
-          },
-          "delete": {
-            "label": "删除端点",
-            "description": "用于删除文件的 API 端点"
-          },
-          "meta": {
-            "label": "元数据端点",
-            "description": "用于获取文件元数据的 API 端点"
-          }
+        "uploadEndpoint": {
+          "label": "上传端点",
+          "description": "用于上传文件的 API 端点（默认：/api/fs/put）"
+        },
+        "downloadEndpoint": {
+          "label": "下载端点",
+          "description": "用于下载文件的 API 端点（可选）"
+        },
+        "listEndpoint": {
+          "label": "列表端点",
+          "description": "用于列出文件的 API 端点（可选）"
+        },
+        "deleteEndpoint": {
+          "label": "删除端点",
+          "description": "用于删除文件的 API 端点（默认：/api/fs/remove）"
+        },
+        "metaEndpoint": {
+          "label": "元数据端点",
+          "description": "用于检索文件元数据的 API 端点（默认：/api/fs/get）"
         },
         "pathField": {
-          "label": "路径字段",
-          "description": "API 响应中表示文件路径的字段名"
+          "label": "路径字段名称",
+          "description": "API 请求中文件路径的参数名称（默认：path）"
         },
         "cdnUrl": {
-          "label": "CDN 地址",
-          "description": "用于访问文件的 CDN 地址"
+          "label": "CDN URL",
+          "description": "用于访问图像的自定义 CDN URL"
         }
       }
     }

@@ -60,19 +60,27 @@ const _locationSettingsSchema = z.object({
 
 type LocationSettingsSchema = z.output<typeof _locationSettingsSchema>
 
+// 获取 schema 中的默认值
+const getSchemaDefaultValue = (namespace: string, key: string) => {
+  const schema = settingsSchema.value?.find(
+    (s) => s.namespace === namespace && s.key === key,
+  )
+  return schema?.defaultValue ?? ''
+}
+
 // 初始化表单状态
 const mapSettingsState = reactive<Partial<MapSettingsSchema>>({
-  provider: 'maplibre',
-  'mapbox.token': '',
-  'mapbox.style': '',
-  'maplibre.token': '',
-  'maplibre.style': '',
+  provider: (getSchemaDefaultValue('map', 'provider') as 'mapbox' | 'maplibre') || 'maplibre',
+  'mapbox.token': getSchemaDefaultValue('map', 'mapbox.token') || '',
+  'mapbox.style': getSchemaDefaultValue('map', 'mapbox.style') || '',
+  'maplibre.token': getSchemaDefaultValue('map', 'maplibre.token') || '',
+  'maplibre.style': getSchemaDefaultValue('map', 'maplibre.style') || '',
 })
 
 // Location 表单状态
 const locationSettingsState = reactive<Partial<LocationSettingsSchema>>({
-  'mapbox.token': '',
-  'nominatim.baseUrl': '',
+  'mapbox.token': getSchemaDefaultValue('location', 'mapbox.token') || '',
+  'nominatim.baseUrl': getSchemaDefaultValue('location', 'nominatim.baseUrl') || '',
 })
 
 // 监听 mapSettings 数据加载，初始化表单

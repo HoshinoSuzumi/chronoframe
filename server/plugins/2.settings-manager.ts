@@ -149,22 +149,23 @@ function normalizeProviderConfig(
         prefix: config.prefix || 'photos/',
       }
     
-    case 'openlist':
+    case 'openlist': {
+      // Support both old nested and new flat endpoint formats
+      const oldEndpoints = config.endpoints || {}
       return {
         provider: 'openlist',
         baseUrl: config.baseUrl || '',
         rootPath: config.rootPath || '',
         token: config.token || '',
-        endpoints: config.endpoints || {
-          upload: '/api/fs/put',
-          download: '',
-          list: '',
-          delete: '/api/fs/remove',
-          meta: '/api/fs/get',
-        },
-        pathField: config.pathField || 'path',
+        uploadEndpoint: config.uploadEndpoint ?? oldEndpoints.upload ?? '/api/fs/put',
+        downloadEndpoint: config.downloadEndpoint ?? oldEndpoints.download,
+        listEndpoint: config.listEndpoint ?? oldEndpoints.list,
+        deleteEndpoint: config.deleteEndpoint ?? oldEndpoints.delete ?? '/api/fs/remove',
+        metaEndpoint: config.metaEndpoint ?? oldEndpoints.meta ?? '/api/fs/get',
+        pathField: config.pathField ?? 'path',
         cdnUrl: config.cdnUrl || '',
       }
+    }
     
     default:
       return config

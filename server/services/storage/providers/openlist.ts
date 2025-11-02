@@ -1,5 +1,5 @@
 import type { Logger } from '../../../utils/logger'
-import type { StorageProvider, StorageObject, OpenListStorageConfig } from '../interfaces'
+import type { StorageProvider, StorageObject } from '../interfaces'
 
 /**
  * OpenListStorageProvider implements StorageProvider for OpenList API.
@@ -69,7 +69,7 @@ export class OpenListStorageProvider implements StorageProvider {
   async create(key: string, fileBuffer: Buffer, contentType?: string): Promise<StorageObject> {
     const rootedKey = this.withRoot(key)
     const absoluteKey = this.toAbsolutePath(rootedKey)
-    const uploadPath = this.config.endpoints.upload
+    const uploadPath = this.config.uploadEndpoint || '/api/fs/put'
 
     const resp = await this.request(uploadPath, {
       method: 'PUT',
@@ -106,7 +106,7 @@ export class OpenListStorageProvider implements StorageProvider {
   }
 
   async delete(key: string): Promise<void> {
-    const deletePath = this.config.endpoints.delete
+    const deletePath = this.config.deleteEndpoint || '/api/fs/remove'
     const urlPath = `${deletePath}`
     const rootedKey = this.withRoot(key)
     const normalized = rootedKey.replace(/^\/+/, '')
@@ -129,8 +129,9 @@ export class OpenListStorageProvider implements StorageProvider {
   }
 
   async get(key: string): Promise<Buffer | null> {
-    // If download endpoint is empty string, try to resolve raw_url via meta and fetch it
-    if (!this.config.endpoints.download || this.config.endpoints.download === '') {
+    // If download endpoint is not provided, try to resolve raw_url via meta and fetch it
+    const downloadPath = this.config.downloadEndpoint
+    if (!downloadPath) {
       const info = await this.getFileMeta(this.withRoot(key))
       const rawUrl = (info as any)?.raw_url || undefined
       if (!rawUrl) return null
@@ -141,7 +142,6 @@ export class OpenListStorageProvider implements StorageProvider {
       return Buffer.from(arrayBuffer)
     }
 
-    const downloadPath = this.config.endpoints.download
     const rootedKey = this.withRoot(key)
     const urlPath = `${downloadPath}?${encodeURIComponent(this.pathField)}=${encodeURIComponent(rootedKey)}`
     const resp = await this.request(urlPath, { method: 'GET' })
@@ -162,7 +162,7 @@ export class OpenListStorageProvider implements StorageProvider {
   }
 
   async getFileMeta(key: string): Promise<StorageObject | null> {
-    const metaPath = this.config.endpoints.meta || this.config.endpoints.download
+    const metaPath = this.config.metaEndpoint || this.config.downloadEndpoint || '/api/fs/get'
     const rootedKey = this.withRoot(key)
     const urlPath = metaPath
     const payload: Record<string, any> = {
@@ -200,8 +200,9 @@ export class OpenListStorageProvider implements StorageProvider {
   async listAll(): Promise<StorageObject[]> {
     // Listing API not provided explicitly; return empty array by default.
     // You can configure custom list endpoint and parsing later.
-    if (!this.config.endpoints.list || this.config.endpoints.list === '') return []
-    const listPath = this.config.endpoints.list
+    const listPath = this.config.listEndpoint
+    if (!listPath) return []
+    
     const payload: Record<string, any> = {
       [this.pathField]: this.toAbsolutePath(this.normalizedRoot()),
       password: '',

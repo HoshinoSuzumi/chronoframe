@@ -25,14 +25,12 @@ export const openListStorageConfigSchema = z.object({
   baseUrl: z.string().min(1),
   rootPath: z.string().min(1),
   token: z.string().min(1),
-  endpoints: z.object({
-    upload: z.string(),
-    download: z.string(),
-    list: z.string(),
-    delete: z.string(),
-    meta: z.string(),
-  }),
-  pathField: z.string().optional(),
+  uploadEndpoint: z.string().default('/api/fs/put').optional(),
+  downloadEndpoint: z.string().optional(),
+  listEndpoint: z.string().optional(),
+  deleteEndpoint: z.string().default('/api/fs/remove').optional(),
+  metaEndpoint: z.string().default('/api/fs/get').optional(),
+  pathField: z.string().default('path').optional(),
   cdnUrl: z.string().optional(),
 })
 

@@ -933,6 +933,102 @@
           "description": "Base URL for Nominatim reverse geocoding API"
         }
       }
+    },
+    "storage": {
+      "s3": {
+        "bucket": {
+          "label": "Bucket Name",
+          "description": "S3 bucket name for storing photos"
+        },
+        "region": {
+          "label": "Region",
+          "description": "AWS region for the S3 bucket"
+        },
+        "endpoint": {
+          "label": "S3 Endpoint",
+          "description": "Custom S3-compatible endpoint URL (e.g., for MinIO)"
+        },
+        "prefix": {
+          "label": "Storage Prefix",
+          "description": "Prefix path for objects in the bucket"
+        },
+        "cdnUrl": {
+          "label": "CDN URL",
+          "description": "Custom CDN URL for accessing images"
+        },
+        "accessKeyId": {
+          "label": "Access Key ID",
+          "description": "AWS Access Key ID or equivalent"
+        },
+        "secretAccessKey": {
+          "label": "Secret Access Key",
+          "description": "AWS Secret Access Key or equivalent"
+        },
+        "forcePathStyle": {
+          "label": "Force Path Style",
+          "description": "Use path-style URLs instead of virtual-hosted-style"
+        },
+        "maxKeys": {
+          "label": "Max Keys",
+          "description": "Maximum number of keys to retrieve per request"
+        }
+      },
+      "local": {
+        "basePath": {
+          "label": "Storage Base Path",
+          "description": "Local filesystem path for storing photos"
+        },
+        "baseUrl": {
+          "label": "Base URL",
+          "description": "Public URL base for accessing stored photos"
+        },
+        "prefix": {
+          "label": "Storage Prefix",
+          "description": "Prefix path for organizing photos in storage"
+        }
+      },
+      "openlist": {
+        "baseUrl": {
+          "label": "OpenList Base URL",
+          "description": "Base URL of the OpenList server"
+        },
+        "rootPath": {
+          "label": "Root Path",
+          "description": "Root path for storing photos in OpenList"
+        },
+        "token": {
+          "label": "Authentication Token",
+          "description": "OpenList API authentication token"
+        },
+        "uploadEndpoint": {
+          "label": "Upload Endpoint",
+          "description": "API endpoint for uploading files (default: /api/fs/put)"
+        },
+        "downloadEndpoint": {
+          "label": "Download Endpoint",
+          "description": "API endpoint for downloading files (optional)"
+        },
+        "listEndpoint": {
+          "label": "List Endpoint",
+          "description": "API endpoint for listing files (optional)"
+        },
+        "deleteEndpoint": {
+          "label": "Delete Endpoint",
+          "description": "API endpoint for deleting files (default: /api/fs/remove)"
+        },
+        "metaEndpoint": {
+          "label": "Meta Endpoint",
+          "description": "API endpoint for retrieving file metadata (default: /api/fs/get)"
+        },
+        "pathField": {
+          "label": "Path Field Name",
+          "description": "Parameter name for file path in API requests (default: path)"
+        },
+        "cdnUrl": {
+          "label": "CDN URL",
+          "description": "Custom CDN URL for accessing images"
+        }
+      }
     }
   }
 }

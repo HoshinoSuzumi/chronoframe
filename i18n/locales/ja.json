@@ -932,44 +932,44 @@
       },
       "openlist": {
         "baseUrl": {
-          "label": "ベース URL",
-          "description": "OpenList API のベース URL"
+          "label": "OpenList ベース URL",
+          "description": "OpenList サーバーのベース URL"
         },
         "rootPath": {
           "label": "ルートパス",
-          "description": "OpenList 内のルートディレクトリパス"
+          "description": "OpenList で写真を保存するルートパス"
         },
         "token": {
           "label": "認証トークン",
           "description": "OpenList API の認証トークン"
         },
-        "endpointsUpload": {
+        "uploadEndpoint": {
           "label": "アップロードエンドポイント",
-          "description": "ファイルをアップロードするための API エンドポイント"
+          "description": "ファイルをアップロードするための API エンドポイント（デフォルト：/api/fs/put）"
         },
-        "endpointsDownload": {
+        "downloadEndpoint": {
           "label": "ダウンロードエンドポイント",
-          "description": "ファイルをダウンロードするための API エンドポイント"
+          "description": "ファイルをダウンロードするための API エンドポイント（オプション）"
         },
-        "endpointsList": {
+        "listEndpoint": {
           "label": "リストエンドポイント",
-          "description": "ファイルをリストアップするための API エンドポイント"
+          "description": "ファイルをリストアップするための API エンドポイント（オプション）"
         },
-        "endpointsDelete": {
+        "deleteEndpoint": {
           "label": "削除エンドポイント",
-          "description": "ファイルを削除するための API エンドポイント"
+          "description": "ファイルを削除するための API エンドポイント（デフォルト：/api/fs/remove）"
         },
-        "endpointsMeta": {
+        "metaEndpoint": {
           "label": "メタデータエンドポイント",
-          "description": "ファイルメタデータを取得するための API エンドポイント"
+          "description": "ファイルメタデータを取得するための API エンドポイント（デフォルト：/api/fs/get）"
         },
         "pathField": {
-          "label": "パスフィールド",
-          "description": "ファイルパスを表す API レスポンスのフィールド名"
+          "label": "パスフィールド名",
+          "description": "API リクエストのファイルパスパラメータ名（デフォルト：path）"
         },
         "cdnUrl": {
           "label": "CDN URL",
-          "description": "ファイルにアクセスするための CDN アドレス"
+          "description": "画像にアクセスするためのカスタム CDN URL"
         }
       }
     }

@@ -932,44 +932,44 @@
       },
       "openlist": {
         "baseUrl": {
-          "label": "基本 URL",
-          "description": "OpenList API 的基本 URL"
+          "label": "OpenList 基本 URL",
+          "description": "OpenList 伺服器的基本 URL"
         },
         "rootPath": {
           "label": "根路徑",
-          "description": "OpenList 中的根目錄路徑"
+          "description": "在 OpenList 中儲存相片的根路徑"
         },
         "token": {
-          "label": "認證令牌",
-          "description": "OpenList API 的認證令牌"
+          "label": "身份驗證令牌",
+          "description": "OpenList API 身份驗證令牌"
         },
-        "endpointsUpload": {
+        "uploadEndpoint": {
           "label": "上傳端點",
-          "description": "用於上傳檔案的 API 端點"
+          "description": "用於上傳檔案的 API 端點（預設：/api/fs/put）"
         },
-        "endpointsDownload": {
+        "downloadEndpoint": {
           "label": "下載端點",
-          "description": "用於下載檔案的 API 端點"
+          "description": "用於下載檔案的 API 端點（選擇性）"
         },
-        "endpointsList": {
+        "listEndpoint": {
           "label": "列表端點",
-          "description": "用於列出檔案的 API 端點"
+          "description": "用於列出檔案的 API 端點（選擇性）"
         },
-        "endpointsDelete": {
+        "deleteEndpoint": {
           "label": "刪除端點",
-          "description": "用於刪除檔案的 API 端點"
+          "description": "用於刪除檔案的 API 端點（預設：/api/fs/remove）"
         },
-        "endpointsMeta": {
+        "metaEndpoint": {
           "label": "中繼資料端點",
-          "description": "用於獲取檔案中繼資料的 API 端點"
+          "description": "用於取得檔案中繼資料的 API 端點（預設：/api/fs/get）"
         },
         "pathField": {
-          "label": "路徑欄位",
-          "description": "API 回應中表示檔案路徑的欄位名稱"
+          "label": "路徑欄位名稱",
+          "description": "API 請求中檔案路徑的參數名稱（預設：path）"
         },
         "cdnUrl": {
           "label": "CDN URL",
-          "description": "用於訪問檔案的 CDN 地址"
+          "description": "用於訪問圖像的自訂 CDN URL"
         }
       }
     }
