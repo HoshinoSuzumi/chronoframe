@@ -1,7 +1,6 @@
 <script lang="ts" setup>
 import { UButton, UChip } from '#components'
-import type { FormSubmitEvent, TableColumn } from '@nuxt/ui'
-import z from 'zod'
+import type { TableColumn } from '@nuxt/ui'
 import {
   s3StorageConfigSchema,
   localStorageConfigSchema,
@@ -85,29 +84,24 @@ const availableStorageColumns: TableColumn<SettingStorageProvider>[] = [
   },
 ]
 
-const storageSettingsSchema = z.object({
-  storageConfigId: z.number({ error: '请选择存储方案' }),
-})
-
-type StorageSettingsSchema = z.output<typeof storageSettingsSchema>
-
-const storageSettingsState = reactive<Partial<StorageSettingsSchema>>({
+const storageSettingsState = reactive<{
+  storageConfigId?: number
+}>({
   storageConfigId: currentStorageProvider.value
     ? (currentStorageProvider.value.value as number)
     : undefined,
 })
 
-const onStorageSettingsSubmit = async (
-  event: FormSubmitEvent<StorageSettingsSchema>,
-) => {
+const handleStorageSettingsSubmit = async (close?: () => void) => {
   try {
     await $fetch('/api/system/settings/storage/provider', {
       method: 'PUT',
       body: {
-        value: event.data.storageConfigId,
+        value: storageSettingsState.storageConfigId,
       },
     })
     refreshCurrentStorageProvider()
+    close?.()
     toast.add({
       title: '设置已保存',
       color: 'success',
@@ -295,7 +289,7 @@ const storageFieldsConfig = computed<Record<string, any>>(() => {
 })
 
 const onStorageConfigSubmit = async (
-  event: FormSubmitEvent<Partial<StorageConfig>>,
+  event: { data: Partial<StorageConfig> },
   close?: () => void,
 ) => {
   try {
@@ -358,13 +352,7 @@ const onStorageDelete = async (storageId: number) => {
     <template #body>
       <div class="space-y-6 max-w-6xl">
         <UCard variant="outline">
-          <UForm
-            id="storageSettingsForm"
-            :schema="storageSettingsSchema"
-            :state="storageSettingsState"
-            class="space-y-4"
-            @submit="onStorageSettingsSubmit"
-          >
+          <div class="space-y-4">
             <UFormField
               name="storageConfigId"
               label="存储方案"
@@ -392,7 +380,7 @@ const onStorageDelete = async (storageId: number) => {
                 placeholder="选择存储方案"
               />
             </UFormField>
-          </UForm>
+          </div>
 
           <template #footer>
             <div class="flex items-center gap-3">
@@ -430,7 +418,7 @@ const onStorageDelete = async (storageId: number) => {
                     icon="tabler:arrows-exchange"
                     type="submit"
                     form="storageSettingsForm"
-                    @click="close"
+                    @click="handleStorageSettingsSubmit(close)"
                   />
                 </template>
               </UModal>

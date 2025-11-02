@@ -1,7 +1,4 @@
 <script lang="ts" setup>
-import type { FormSubmitEvent } from '@nuxt/ui'
-import z from 'zod'
-
 definePageMeta({
   layout: 'dashboard',
 })
@@ -10,159 +7,59 @@ useHead({
   title: $t('title.generalSettings'),
 })
 
-const toast = useToast()
 const colorMode = useColorMode()
+const toast = useToast()
 
-// 获取 schema 信息，用于获取枚举值和翻译键
-const { data: settingsSchema } = await useFetch<
-  Array<{
-    namespace: string
-    key: string
-    type: string
-    value: any
-    defaultValue: any
-    label: string
-    description: string
-    enum?: string[]
-    isReadonly?: boolean
-    isSecret?: boolean
-  }>
->('/api/system/settings/schema')
+// 使用新的 Settings Form Composable
+const { fields, state, submit, loading, error } = useSettingsForm('app')
 
-// 获取当前 app namespace 的所有设置
-const { data: appSettings, refresh: refreshAppSettings } = await useFetch<{
-  namespace: string
-  settings: Record<string, any>
-}>('/api/system/settings/app')
-
-// 表单 schema
-const appSettingsSchema = z.object({
-  title: z.string().min(1, '应用名称不能为空'),
-  slogan: z.string().optional(),
-  author: z.string().optional(),
-  avatarUrl: z.string().url('请输入有效的 URL').optional().or(z.literal('')),
-})
-
-type AppSettingsSchema = z.output<typeof appSettingsSchema>
-
-// 外观设置 schema - 动态生成，基于 API 返回的枚举值
-const appearanceSettingsSchema = computed(() => {
-  const themeOption = settingsSchema.value?.find(
-    (s) => s.namespace === 'app' && s.key === 'appearance.theme',
-  )
-  const themeEnum = (themeOption?.enum || ['light', 'dark', 'system']) as [
-    string,
-    ...string[],
-  ]
-  return z.object({
-    'appearance.theme': z.enum(themeEnum),
-  })
-})
-
-type AppearanceSettingsSchema = {
-  'appearance.theme': string
-}
-
-// 获取 schema 中的默认值
-const getSchemaDefaultValue = (namespace: string, key: string) => {
-  const schema = settingsSchema.value?.find(
-    (s) => s.namespace === namespace && s.key === key,
-  )
-  return schema?.defaultValue ?? ''
-}
-
-// 初始化表单状态
-const appSettingsState = reactive<Partial<AppSettingsSchema>>({
-  title: getSchemaDefaultValue('app', 'title') || 'ChronoFrame',
-  slogan: getSchemaDefaultValue('app', 'slogan') || '',
-  author: getSchemaDefaultValue('app', 'author') || '',
-  avatarUrl: getSchemaDefaultValue('app', 'avatarUrl') || '',
-})
-
-// 初始化外观设置表单状态
-const appearanceSettingsState = reactive<Partial<AppearanceSettingsSchema>>({
-  'appearance.theme': getSchemaDefaultValue('app', 'appearance.theme') || 'system',
-})
-
-// 计算主题选项
-const themeOptions = computed(() => {
-  const themeOption = settingsSchema.value?.find(
-    (s) => s.namespace === 'app' && s.key === 'appearance.theme',
-  )
-  const themeEnums = themeOption?.enum || ['light', 'dark', 'system']
-  return themeEnums.map((value) => ({
-    label: $t(`settings.app.appearance.theme.${value}`),
-    value,
-  }))
-})
-
-// 监听 appSettings 数据加载，初始化表单
-watch(
-  () => appSettings.value,
-  (settings) => {
-    if (settings?.settings && typeof settings.settings === 'object') {
-      // settings 是一个对象，直接从中提取值
-      appSettingsState.title = settings.settings.title || 'ChronoFrame'
-      appSettingsState.slogan = settings.settings.slogan || ''
-      appSettingsState.author = settings.settings.author || ''
-      appSettingsState.avatarUrl = settings.settings.avatarUrl || ''
-      appearanceSettingsState['appearance.theme'] =
-        settings.settings['appearance.theme'] || 'system'
-    }
-  },
-  { immediate: true },
+// 分离通用和外观设置
+const appFields = computed(() =>
+  fields.value.filter(f => !f.key.startsWith('appearance.')),
 )
 
-const onAppSettingsSubmit = async (
-  event: FormSubmitEvent<AppSettingsSchema>,
-) => {
-  try {
-    // 并行更新所有设置
-    const updatePromises = Object.entries(event.data).map(([key, value]) =>
-      $fetch(`/api/system/settings/app/${key}`, {
-        method: 'PUT',
-        body: { value: value || null },
-      }),
-    )
+const appearanceFields = computed(() =>
+  fields.value.filter(f => f.key.startsWith('appearance.')),
+)
 
-    await Promise.all(updatePromises)
-    refreshAppSettings()
+// 处理通用设置提交
+const handleAppSettingsSubmit = async () => {
+  const appData = Object.fromEntries(
+    appFields.value.map(f => [f.key, state[f.key]]),
+  )
+  try {
+    await submit(appData)
     toast.add({
-      title: '设置已保存',
+      title: '通用设置已保存',
       color: 'success',
     })
-  } catch (error) {
+  } catch {
     toast.add({
-      title: '保存设置时出错',
-      description: (error as Error).message,
+      title: '保存通用设置失败',
+      description: error.value || '未知错误',
       color: 'error',
     })
   }
 }
 
-const onAppearanceSettingsSubmit = async (
-  event: FormSubmitEvent<AppearanceSettingsSchema>,
-) => {
+// 处理外观设置提交
+const handleAppearanceSettingsSubmit = async () => {
+  const appearanceData = Object.fromEntries(
+    appearanceFields.value.map(f => [f.key, state[f.key]]),
+  )
   try {
-    // 并行更新所有设置
-    const updatePromises = Object.entries(event.data).map(([key, value]) =>
-      $fetch(`/api/system/settings/app/${key}`, {
-        method: 'PUT',
-        body: { value: value || null },
-      }),
-    )
-
-    await Promise.all(updatePromises)
-    colorMode.preference = event.data['appearance.theme']
-    refreshAppSettings()
+    await submit(appearanceData)
+    if (state['appearance.theme']) {
+      colorMode.preference = state['appearance.theme']
+    }
     toast.add({
-      title: '设置已保存',
+      title: '外观设置已保存',
       color: 'success',
     })
-  } catch (error) {
+  } catch {
     toast.add({
-      title: '保存设置时出错',
-      description: (error as Error).message,
+      title: '保存外观设置失败',
+      description: error.value || '未知错误',
       color: 'error',
     })
   }
@@ -177,6 +74,7 @@ const onAppearanceSettingsSubmit = async (
 
     <template #body>
       <div class="space-y-6 max-w-6xl">
+        <!-- 通用设置 -->
         <UCard variant="outline">
           <template #header>
             <span>{{ $t('title.generalSettings') }}</span>
@@ -184,51 +82,21 @@ const onAppearanceSettingsSubmit = async (
 
           <UForm
             id="appSettingsForm"
-            :schema="appSettingsSchema"
-            :state="appSettingsState"
             class="space-y-4"
-            @submit="onAppSettingsSubmit"
+            @submit="handleAppSettingsSubmit"
           >
-            <UFormField
-              name="title"
-              :label="$t('settings.app.title.label')"
-              :description="$t('settings.app.title.description')"
-              required
-            >
-              <UInput v-model="appSettingsState.title" />
-            </UFormField>
-
-            <UFormField
-              name="slogan"
-              :label="$t('settings.app.slogan.label')"
-              :description="$t('settings.app.slogan.description')"
-            >
-              <UInput v-model="appSettingsState.slogan" />
-            </UFormField>
-
-            <UFormField
-              name="author"
-              :label="$t('settings.app.author.label')"
-              :description="$t('settings.app.author.description')"
-            >
-              <UInput v-model="appSettingsState.author" />
-            </UFormField>
-
-            <UFormField
-              name="avatarUrl"
-              :label="$t('settings.app.avatarUrl.label')"
-              :description="$t('settings.app.avatarUrl.description')"
-              help="请输入一个有效的图片 URL"
-            >
-              <UInput
-                v-model="appSettingsState.avatarUrl"
-                type="url"
-              />
-            </UFormField>
+            <SettingField
+              v-for="field in appFields"
+              :key="field.key"
+              :field="field"
+              :model-value="state[field.key]"
+              @update:model-value="(val) => (state[field.key] = val)"
+            />
           </UForm>
 
           <template #footer>
             <UButton
+              :loading="loading"
               type="submit"
               form="appSettingsForm"
               variant="soft"
@@ -239,6 +107,7 @@ const onAppearanceSettingsSubmit = async (
           </template>
         </UCard>
 
+        <!-- 外观设置 -->
         <UCard variant="outline">
           <template #header>
             <span>{{ $t('title.appearanceSettings') }}</span>
@@ -246,29 +115,21 @@ const onAppearanceSettingsSubmit = async (
 
           <UForm
             id="appearanceSettingsForm"
-            :schema="appearanceSettingsSchema"
-            :state="appearanceSettingsState"
             class="space-y-4"
-            @submit="onAppearanceSettingsSubmit"
+            @submit="handleAppearanceSettingsSubmit"
           >
-            <UFormField
-              name="appearance.theme"
-              :label="$t('settings.app.appearance.theme.label')"
-              :description="$t('settings.app.appearance.theme.description')"
-              required
-            >
-              <USelectMenu
-                v-model="appearanceSettingsState['appearance.theme']"
-                :items="themeOptions"
-                label-key="label"
-                value-key="value"
-                placeholder="选择主题"
-              />
-            </UFormField>
+            <SettingField
+              v-for="field in appearanceFields"
+              :key="field.key"
+              :field="field"
+              :model-value="state[field.key]"
+              @update:model-value="(val) => (state[field.key] = val)"
+            />
           </UForm>
 
           <template #footer>
             <UButton
+              :loading="loading"
               type="submit"
               form="appearanceSettingsForm"
               variant="soft"

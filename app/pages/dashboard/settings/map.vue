@@ -1,7 +1,4 @@
 <script lang="ts" setup>
-import type { FormSubmitEvent } from '@nuxt/ui'
-import z from 'zod'
-
 definePageMeta({
   layout: 'dashboard',
 })
@@ -12,188 +9,58 @@ useHead({
 
 const toast = useToast()
 
-// 获取 schema 信息，用于获取翻译键
-const { data: settingsSchema } = await useFetch<
-  Array<{
-    namespace: string
-    key: string
-    type: string
-    value: any
-    defaultValue: any
-    label: string
-    description: string
-    enum?: string[]
-    isReadonly?: boolean
-    isSecret?: boolean
-  }>
->('/api/system/settings/schema')
+// 使用新的 Settings Form Composable
+const { fields: mapFields, state: mapState, submit: submitMap, loading: mapLoading, error: mapError } = useSettingsForm('map')
+const { fields: locationFields, state: locationState, submit: submitLocation, loading: locationLoading, error: locationError } = useSettingsForm('location')
 
-// 获取当前 map namespace 的所有设置
-const { data: mapSettings, refresh: refreshMapSettings } = await useFetch<{
-  namespace: string
-  settings: Record<string, any>
-}>('/api/system/settings/map')
-
-// 获取当前 location namespace 的所有设置
-const { data: _locationSettings, refresh: refreshLocationSettings } =
-  await useFetch<{
-    namespace: string
-    settings: Record<string, any>
-  }>('/api/system/settings/location')
-
-// 表单 schema
-const mapSettingsSchema = z.object({
-  provider: z.enum(['mapbox', 'maplibre']),
-  'mapbox.token': z.string().optional(),
-  'mapbox.style': z.string().optional(),
-  'maplibre.token': z.string().optional(),
-  'maplibre.style': z.string().optional(),
-})
-
-type MapSettingsSchema = z.output<typeof mapSettingsSchema>
-
-// Location 表单 schema
-const _locationSettingsSchema = z.object({
-  'mapbox.token': z.string().optional(),
-  'nominatim.baseUrl': z.string().optional(),
-})
-
-type LocationSettingsSchema = z.output<typeof _locationSettingsSchema>
-
-// 获取 schema 中的默认值
-const getSchemaDefaultValue = (namespace: string, key: string) => {
-  const schema = settingsSchema.value?.find(
-    (s) => s.namespace === namespace && s.key === key,
-  )
-  return schema?.defaultValue ?? ''
-}
-
-// 初始化表单状态
-const mapSettingsState = reactive<Partial<MapSettingsSchema>>({
-  provider: (getSchemaDefaultValue('map', 'provider') as 'mapbox' | 'maplibre') || 'maplibre',
-  'mapbox.token': getSchemaDefaultValue('map', 'mapbox.token') || '',
-  'mapbox.style': getSchemaDefaultValue('map', 'mapbox.style') || '',
-  'maplibre.token': getSchemaDefaultValue('map', 'maplibre.token') || '',
-  'maplibre.style': getSchemaDefaultValue('map', 'maplibre.style') || '',
-})
-
-// Location 表单状态
-const locationSettingsState = reactive<Partial<LocationSettingsSchema>>({
-  'mapbox.token': getSchemaDefaultValue('location', 'mapbox.token') || '',
-  'nominatim.baseUrl': getSchemaDefaultValue('location', 'nominatim.baseUrl') || '',
-})
-
-// 监听 mapSettings 数据加载，初始化表单
-watch(
-  () => mapSettings.value,
-  (settings) => {
-    if (settings?.settings && typeof settings.settings === 'object') {
-      mapSettingsState.provider =
-        (settings.settings.provider as 'mapbox' | 'maplibre') || 'maplibre'
-      mapSettingsState['mapbox.token'] = settings.settings['mapbox.token'] || ''
-      mapSettingsState['mapbox.style'] = settings.settings['mapbox.style'] || ''
-      mapSettingsState['maplibre.token'] =
-        settings.settings['maplibre.token'] || ''
-      mapSettingsState['maplibre.style'] =
-        settings.settings['maplibre.style'] || ''
+// 过滤可见的地图字段（基于 provider）
+const visibleMapFields = computed(() => {
+  const provider = mapState.provider
+  return mapFields.value.filter((field) => {
+    if (!field.ui.visibleIf) return true
+    // 检查条件字段是否应该显示
+    if (field.ui.visibleIf.fieldKey === 'provider') {
+      return field.ui.visibleIf.value === provider
     }
-  },
-  { immediate: true },
-)
+    return true
+  })
+})
 
-// 监听 locationSettings 数据加载，初始化表单
-watch(
-  () => _locationSettings.value,
-  (settings) => {
-    if (settings?.settings && typeof settings.settings === 'object') {
-      locationSettingsState['mapbox.token'] =
-        settings.settings['mapbox.token'] || ''
-      locationSettingsState['nominatim.baseUrl'] =
-        settings.settings['nominatim.baseUrl'] || ''
-    }
-  },
-  { immediate: true },
-)
-
-// 从 schema 中提取地图相关的翻译信息
-const getMapSettingLabel = (key: string): string => {
-  const schema = settingsSchema.value?.find(
-    (s) => s.namespace === 'map' && s.key === key,
+// 处理地图设置提交
+const handleMapSettingsSubmit = async () => {
+  const mapData = Object.fromEntries(
+    visibleMapFields.value.map(f => [f.key, mapState[f.key]]),
   )
-  return schema?.label || `settings.map.${key}.label`
-}
-
-const getMapSettingDescription = (key: string): string => {
-  const schema = settingsSchema.value?.find(
-    (s) => s.namespace === 'map' && s.key === key,
-  )
-  return schema?.description || `settings.map.${key}.description`
-}
-
-// 从 schema 中提取位置相关的翻译信息
-const getLocationSettingLabel = (key: string): string => {
-  const schema = settingsSchema.value?.find(
-    (s) => s.namespace === 'location' && s.key === key,
-  )
-  return schema?.label || `settings.location.${key}.label`
-}
-
-const getLocationSettingDescription = (key: string): string => {
-  const schema = settingsSchema.value?.find(
-    (s) => s.namespace === 'location' && s.key === key,
-  )
-  return schema?.description || `settings.location.${key}.description`
-}
-
-const onMapSettingsSubmit = async (
-  event: FormSubmitEvent<MapSettingsSchema>,
-) => {
   try {
-    // 并行更新所有设置
-    const updatePromises = Object.entries(event.data).map(([key, value]) =>
-      $fetch(`/api/system/settings/map/${key}`, {
-        method: 'PUT',
-        body: { value: value || null },
-      }),
-    )
-
-    await Promise.all(updatePromises)
-    refreshMapSettings()
+    await submitMap(mapData)
     toast.add({
-      title: '设置已保存',
+      title: '地图设置已保存',
       color: 'success',
     })
-  } catch (error) {
+  } catch {
     toast.add({
-      title: '保存设置时出错',
-      description: (error as Error).message,
+      title: '保存地图设置失败',
+      description: mapError.value || '未知错误',
       color: 'error',
     })
   }
 }
 
-const onLocationSettingsSubmit = async (
-  event: FormSubmitEvent<LocationSettingsSchema>,
-) => {
+// 处理位置设置提交
+const handleLocationSettingsSubmit = async () => {
+  const locationData = Object.fromEntries(
+    locationFields.value.map(f => [f.key, locationState[f.key]]),
+  )
   try {
-    // 并行更新所有设置
-    const updatePromises = Object.entries(event.data).map(([key, value]) =>
-      $fetch(`/api/system/settings/location/${key}`, {
-        method: 'PUT',
-        body: { value: value || null },
-      }),
-    )
-
-    await Promise.all(updatePromises)
-    refreshLocationSettings()
+    await submitLocation(locationData)
     toast.add({
-      title: '设置已保存',
+      title: '位置设置已保存',
       color: 'success',
     })
-  } catch (error) {
+  } catch {
     toast.add({
-      title: '保存设置时出错',
-      description: (error as Error).message,
+      title: '保存位置设置失败',
+      description: locationError.value || '未知错误',
       color: 'error',
     })
   }
@@ -208,6 +75,7 @@ const onLocationSettingsSubmit = async (
 
     <template #body>
       <div class="space-y-6 max-w-6xl">
+        <!-- 地图设置 -->
         <UCard variant="outline">
           <template #header>
             <span>{{ $t('title.mapAndLocation') }}</span>
@@ -215,88 +83,21 @@ const onLocationSettingsSubmit = async (
 
           <UForm
             id="mapSettingsForm"
-            :schema="mapSettingsSchema"
-            :state="mapSettingsState"
             class="space-y-4"
-            @submit="onMapSettingsSubmit"
+            @submit="handleMapSettingsSubmit"
           >
-            <!-- 地图 Provider 选择 -->
-            <UFormField
-              :label="$t(getMapSettingLabel('provider'))"
-              :description="$t(getMapSettingDescription('provider'))"
-            >
-              <UTabs
-                v-model="mapSettingsState.provider"
-                class="w-fit"
-                size="sm"
-                :items="[
-                  { label: 'MapBox', value: 'mapbox' },
-                  { label: 'MapLibre', value: 'maplibre' },
-                ]"
-              />
-            </UFormField>
-
-            <!-- Mapbox 配置 -->
-            <template v-if="mapSettingsState.provider === 'mapbox'">
-              <USeparator />
-
-              <UFormField
-                name="mapbox.token"
-                :label="$t(getMapSettingLabel('mapbox.token'))"
-                :description="$t(getMapSettingDescription('mapbox.token'))"
-                required
-              >
-                <UInput
-                  v-model="mapSettingsState['mapbox.token']"
-                  type="password"
-                  placeholder="pk.xxxxxx"
-                />
-              </UFormField>
-
-              <UFormField
-                name="mapbox.style"
-                :label="$t(getMapSettingLabel('mapbox.style'))"
-                :description="$t(getMapSettingDescription('mapbox.style'))"
-              >
-                <UInput
-                  v-model="mapSettingsState['mapbox.style']"
-                  placeholder="mapbox://styles/mapbox/light-v11"
-                />
-              </UFormField>
-            </template>
-
-            <!-- MapLibre 配置 -->
-            <template v-if="mapSettingsState.provider === 'maplibre'">
-              <USeparator />
-
-              <UFormField
-                name="maplibre.token"
-                :label="$t(getMapSettingLabel('maplibre.token'))"
-                :description="$t(getMapSettingDescription('maplibre.token'))"
-                required
-              >
-                <UInput
-                  v-model="mapSettingsState['maplibre.token']"
-                  type="password"
-                  placeholder="pk.xxxxxx"
-                />
-              </UFormField>
-
-              <UFormField
-                name="maplibre.style"
-                :label="$t(getMapSettingLabel('maplibre.style'))"
-                :description="$t(getMapSettingDescription('maplibre.style'))"
-              >
-                <UInput
-                  v-model="mapSettingsState['maplibre.style']"
-                  placeholder="https://example.com/style.json"
-                />
-              </UFormField>
-            </template>
+            <SettingField
+              v-for="field in visibleMapFields"
+              :key="field.key"
+              :field="field"
+              :model-value="mapState[field.key]"
+              @update:model-value="(val) => (mapState[field.key] = val)"
+            />
           </UForm>
 
           <template #footer>
             <UButton
+              :loading="mapLoading"
               type="submit"
               form="mapSettingsForm"
               variant="soft"
@@ -307,6 +108,7 @@ const onLocationSettingsSubmit = async (
           </template>
         </UCard>
 
+        <!-- 位置设置 -->
         <UCard variant="outline">
           <template #header>
             <span>{{ $t('title.location') }}</span>
@@ -314,41 +116,21 @@ const onLocationSettingsSubmit = async (
 
           <UForm
             id="locationSettingsForm"
-            :schema="_locationSettingsSchema"
-            :state="locationSettingsState"
             class="space-y-4"
-            @submit="onLocationSettingsSubmit"
+            @submit="handleLocationSettingsSubmit"
           >
-            <!-- Mapbox Token -->
-            <UFormField
-              name="mapbox.token"
-              :label="$t(getLocationSettingLabel('mapbox.token'))"
-              :description="$t(getLocationSettingDescription('mapbox.token'))"
-            >
-              <UInput
-                v-model="locationSettingsState['mapbox.token']"
-                type="password"
-                placeholder="pk.xxxxxx"
-              />
-            </UFormField>
-
-            <!-- Nominatim baseUrl -->
-            <UFormField
-              name="nominatim.baseUrl"
-              :label="$t(getLocationSettingLabel('nominatim.baseUrl'))"
-              :description="
-                $t(getLocationSettingDescription('nominatim.baseUrl'))
-              "
-            >
-              <UInput
-                v-model="locationSettingsState['nominatim.baseUrl']"
-                placeholder="optional"
-              />
-            </UFormField>
+            <SettingField
+              v-for="field in locationFields"
+              :key="field.key"
+              :field="field"
+              :model-value="locationState[field.key]"
+              @update:model-value="(val) => (locationState[field.key] = val)"
+            />
           </UForm>
 
           <template #footer>
             <UButton
+              :loading="locationLoading"
               type="submit"
               form="locationSettingsForm"
               variant="soft"
