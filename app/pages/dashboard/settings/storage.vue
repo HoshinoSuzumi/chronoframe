@@ -115,14 +115,12 @@ const handleStorageSettingsSubmit = async (close?: () => void) => {
   }
 }
 
-// 存储方案类型选项
 const providerOptions = [
   { label: 'AWS S3 兼容存储', value: 's3', icon: PROVIDER_ICON.s3 },
   { label: '本地存储', value: 'local', icon: PROVIDER_ICON.local },
   { label: 'OpenList', value: 'openlist', icon: PROVIDER_ICON.openlist },
 ]
 
-// 存储配置表单状态
 const storageConfigState = reactive<{
   name: string
   provider: string
@@ -293,7 +291,6 @@ const onStorageConfigSubmit = async (
   close?: () => void,
 ) => {
   try {
-    // 构建完整的请求体
     const payload = {
       name: storageConfigState.name,
       provider: storageConfigState.provider,

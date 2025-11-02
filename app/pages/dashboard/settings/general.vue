@@ -8,60 +8,39 @@ useHead({
 })
 
 const colorMode = useColorMode()
-const toast = useToast()
 
-// 使用新的 Settings Form Composable
-const { fields, state, submit, loading, error } = useSettingsForm('app')
+const { fields, state, submit, loading } = useSettingsForm('app')
 
-// 分离通用和外观设置
 const appFields = computed(() =>
-  fields.value.filter(f => !f.key.startsWith('appearance.')),
+  fields.value.filter((f) => !f.key.startsWith('appearance.')),
 )
 
 const appearanceFields = computed(() =>
-  fields.value.filter(f => f.key.startsWith('appearance.')),
+  fields.value.filter((f) => f.key.startsWith('appearance.')),
 )
 
-// 处理通用设置提交
 const handleAppSettingsSubmit = async () => {
   const appData = Object.fromEntries(
-    appFields.value.map(f => [f.key, state[f.key]]),
+    appFields.value.map((f) => [f.key, state[f.key]]),
   )
   try {
     await submit(appData)
-    toast.add({
-      title: '通用设置已保存',
-      color: 'success',
-    })
   } catch {
-    toast.add({
-      title: '保存通用设置失败',
-      description: error.value || '未知错误',
-      color: 'error',
-    })
+    /* empty */
   }
 }
 
-// 处理外观设置提交
 const handleAppearanceSettingsSubmit = async () => {
   const appearanceData = Object.fromEntries(
-    appearanceFields.value.map(f => [f.key, state[f.key]]),
+    appearanceFields.value.map((f) => [f.key, state[f.key]]),
   )
   try {
     await submit(appearanceData)
     if (state['appearance.theme']) {
       colorMode.preference = state['appearance.theme']
     }
-    toast.add({
-      title: '外观设置已保存',
-      color: 'success',
-    })
   } catch {
-    toast.add({
-      title: '保存外观设置失败',
-      description: error.value || '未知错误',
-      color: 'error',
-    })
+    /* empty */
   }
 }
 </script>

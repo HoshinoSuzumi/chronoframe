@@ -13,10 +13,6 @@ const emit = defineEmits<{
   'update:modelValue': [value: any]
 }>()
 
-/**
- * 根据 UI 类型决定使用哪个组件
- * 需要与 Nuxt UI 的组件名称一致
- */
 const getComponentName = (uiType: FieldUIType): string => {
   const componentMap: Record<FieldUIType, string> = {
     'input': 'UInput',
@@ -63,13 +59,12 @@ const componentName = computed(() => {
 })
 
 /**
- * 获取组件的额外 props
+ * Get extra props for the component
  */
 const getComponentProps = (): Record<string, any> => {
   const type = props.field.ui.type
   const propsMap: Record<string, any> = {}
 
-  // 基础属性
   if (props.field.ui.placeholder) {
     propsMap.placeholder = props.field.ui.placeholder
   }
@@ -90,8 +85,9 @@ const getComponentProps = (): Record<string, any> => {
       break
     case 'tabs':
       propsMap.items = props.field.ui.options ? Array.from(props.field.ui.options).map((opt: any) => ({
-        label: opt.label,
+        label: $t(opt.label) || opt.label,
         value: opt.value,
+        icon: opt.icon,
       })) : []
       break
     case 'textarea':
@@ -104,16 +100,10 @@ const getComponentProps = (): Record<string, any> => {
 
 const componentProps = computed(() => getComponentProps())
 
-/**
- * 处理值的变化
- */
 const handleChange = (value: any) => {
   emit('update:modelValue', value)
 }
 
-/**
- * 获取 label 翻译
- */
 const labelKey = computed(() => {
   // 尝试从 label 字段获取翻译键
   if (props.field.label) {
@@ -123,9 +113,6 @@ const labelKey = computed(() => {
   return `settings.${props.field.namespace}.${props.field.key}.label`
 })
 
-/**
- * 获取 description 翻译
- */
 const descriptionKey = computed(() => {
   if (props.field.description) {
     return props.field.description

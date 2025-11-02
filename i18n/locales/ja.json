@@ -817,7 +817,8 @@
       },
       "slogan": {
         "label": "スローガン",
-        "description": "インスタンスのスローガン"
+        "description": "インスタンスのスローガン",
+        "help": "スローガンはホームページのタイトルの下に表示されます"
       },
       "author": {
         "label": "オーナー",
@@ -825,12 +826,14 @@
       },
       "avatarUrl": {
         "label": "アバター URL",
-        "description": "オーナーのアバター画像へのリンク"
+        "description": "オーナーのアバター画像へのリンク",
+        "help": "アバターはローディングページとホームページに表示されます"
       },
       "appearance": {
         "theme": {
           "label": "テーマ",
           "description": "アプリケーションテーマを選択",
+          "help": "ユーザーは自分のブラウザでこれをオーバーライドできます",
           "light": "ライト",
           "dark": "ダーク",
           "system": "システム"
@@ -845,7 +848,8 @@
       "mapbox": {
         "token": {
           "label": "Mapbox トークン",
-          "description": "Mapbox API アクセストークン"
+          "description": "Mapbox API アクセストークン",
+          "help": "ドメイン制限のないトークンを使用すべきです"
         },
         "style": {
           "label": "Mapbox スタイル",
@@ -854,8 +858,9 @@
       },
       "maplibre": {
         "token": {
-          "label": "MapLibre トークン",
-          "description": "MapLibre API アクセストークン"
+          "label": "MapTiler トークン",
+          "description": "MapTiler API アクセストークン",
+          "help": "MapLibre はデフォルトで無料の地図サービスプロバイダー MapTiler を使用します"
         },
         "style": {
           "label": "MapLibre スタイル",
@@ -867,13 +872,15 @@
       "mapbox": {
         "token": {
           "label": "Mapbox トークン",
-          "description": "Mapbox API アクセストークン、設定時は Nominatim を置き換える"
+          "description": "Mapbox API アクセストークン",
+          "help": "設定すると、位置情報サービスとして Nominatim に代わります"
         }
       },
       "nominatim": {
         "baseUrl": {
           "label": "Nominatim ベース URL",
-          "description": "Nominatim リバースジオコーディング API のベース URL"
+          "description": "Nominatim リバースジオコーディング API のベース URL",
+          "help": "空のままにすると、デフォルトで公開 Nominatim サービスを使用します"
         }
       }
     },

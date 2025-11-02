@@ -817,7 +817,8 @@
       },
       "slogan": {
         "label": "標語",
-        "description": "實例的標語"
+        "description": "實例的標語",
+        "help": "標語顯示喺首頁的標題下方"
       },
       "author": {
         "label": "所有者",
@@ -825,12 +826,14 @@
       },
       "avatarUrl": {
         "label": "頭像 URL",
-        "description": "所有者頭像的圖片連結"
+        "description": "所有者頭像的圖片連結",
+        "help": "頭像顯示加載頁面同首頁頭像中"
       },
       "appearance": {
         "theme": {
           "label": "主題",
           "description": "選擇應用主題",
+          "help": "使用者可以喺自己的瀏覽器中覆蓋此項",
           "light": "淺色",
           "dark": "深色",
           "system": "系統"
@@ -845,7 +848,8 @@
       "mapbox": {
         "token": {
           "label": "Mapbox Token",
-          "description": "Mapbox API 訪問令牌"
+          "description": "Mapbox API 訪問令牌",
+          "help": "應當使用冇域名限制嘅令牌"
         },
         "style": {
           "label": "Mapbox 樣式",
@@ -854,8 +858,9 @@
       },
       "maplibre": {
         "token": {
-          "label": "MapLibre Token",
-          "description": "MapLibre API 訪問令牌"
+          "label": "MapTiler Token",
+          "description": "MapTiler API 訪問令牌",
+          "help": "MapLibre 預設使用免費地圖服務商 MapTiler"
         },
         "style": {
           "label": "MapLibre 樣式",
@@ -867,13 +872,15 @@
       "mapbox": {
         "token": {
           "label": "Mapbox Token",
-          "description": "Mapbox API 訪問令牌，設置後取代 Nominatim"
+          "description": "Mapbox API 訪問令牌",
+          "help": "配置後將取代 Nominatim 作為位置信息服務"
         }
       },
       "nominatim": {
         "baseUrl": {
           "label": "Nominatim 基礎 URL",
-          "description": "Nominatim 反向地理編碼 API 嘅基礎 URL"
+          "description": "Nominatim 反向地理編碼 API 嘅基礎 URL",
+          "help": "留空則預設使用公開 Nominatim 服務"
         }
       }
     },

@@ -53,6 +53,7 @@ export interface FieldUIConfig {
   options?: ReadonlyArray<{
     label: string
     value: SettingValue
+    icon?: string
   }>
 
   // 验证规则（前端 UX 提示）

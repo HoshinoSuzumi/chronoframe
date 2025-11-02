@@ -1,22 +1,19 @@
 import type { FieldUIConfig } from '~~/shared/types/settings'
 
 /**
- * 扩展的设置配置，包含 UI 描述
- * 这定义了前端如何显示和交互每个设置字段
+ * Extended settings configuration with UI descriptions
+ * This defines how the frontend displays and interacts with each settings field
  *
- * 注意：
- * - 这只在 Server 端使用
- * - UI 配置信息通过 API 返回给前端
- * - 避免在前端重复定义这些配置
+ * Note:
+ * - This is only used on the Server side
+ * - UI configuration information is returned to the frontend via API
+ * - Avoid duplicating these configurations on the frontend
  */
-
-// App 设置的 UI 配置
 export const APP_SETTINGS_UI: Record<string, FieldUIConfig> = {
   title: {
     type: 'input',
     placeholder: 'ChronoFrame',
     required: true,
-    help: 'settings.app.title.help',
   },
   slogan: {
     type: 'input',
@@ -26,7 +23,6 @@ export const APP_SETTINGS_UI: Record<string, FieldUIConfig> = {
   author: {
     type: 'input',
     placeholder: 'Your name',
-    help: 'settings.app.author.help',
   },
   avatarUrl: {
     type: 'url',
@@ -36,15 +32,26 @@ export const APP_SETTINGS_UI: Record<string, FieldUIConfig> = {
   'appearance.theme': {
     type: 'tabs',
     options: [
-      { label: 'Light', value: 'light' },
-      { label: 'Dark', value: 'dark' },
-      { label: 'System', value: 'system' },
+      {
+        label: 'settings.app.appearance.theme.light',
+        value: 'light',
+        icon: 'tabler:sun',
+      },
+      {
+        label: 'settings.app.appearance.theme.dark',
+        value: 'dark',
+        icon: 'tabler:moon',
+      },
+      {
+        label: 'settings.app.appearance.theme.system',
+        value: 'system',
+        icon: 'tabler:device-desktop',
+      },
     ],
     help: 'settings.app.appearance.theme.help',
   },
 }
 
-// Map 设置的 UI 配置
 export const MAP_SETTINGS_UI: Record<string, FieldUIConfig> = {
   provider: {
     type: 'tabs',
@@ -52,7 +59,6 @@ export const MAP_SETTINGS_UI: Record<string, FieldUIConfig> = {
       { label: 'MapBox', value: 'mapbox' },
       { label: 'MapLibre', value: 'maplibre' },
     ],
-    help: 'settings.map.provider.help',
   },
   'mapbox.token': {
     type: 'password',
@@ -65,7 +71,6 @@ export const MAP_SETTINGS_UI: Record<string, FieldUIConfig> = {
     type: 'input',
     placeholder: 'mapbox://styles/mapbox/light-v11',
     visibleIf: { fieldKey: 'provider', value: 'mapbox' },
-    help: 'settings.map.mapbox.style.help',
   },
   'maplibre.token': {
     type: 'password',
@@ -78,11 +83,9 @@ export const MAP_SETTINGS_UI: Record<string, FieldUIConfig> = {
     type: 'input',
     placeholder: 'https://example.com/style.json',
     visibleIf: { fieldKey: 'provider', value: 'maplibre' },
-    help: 'settings.map.maplibre.style.help',
   },
 }
 
-// Location 设置的 UI 配置
 export const LOCATION_SETTINGS_UI: Record<string, FieldUIConfig> = {
   'mapbox.token': {
     type: 'password',
@@ -96,7 +99,6 @@ export const LOCATION_SETTINGS_UI: Record<string, FieldUIConfig> = {
   },
 }
 
-// Storage 设置的 UI 配置
 export const STORAGE_SETTINGS_UI: Record<string, FieldUIConfig> = {
   provider: {
     type: 'select',
@@ -105,8 +107,8 @@ export const STORAGE_SETTINGS_UI: Record<string, FieldUIConfig> = {
 }
 
 /**
- * 获取特定设置的 UI 配置
- * 用于在 fields.get.ts API 中返回完整的字段描述
+ * Get UI configuration for a specific setting
+ * Used to return complete field descriptions in the fields.get.ts API
  */
 export function getSettingUIConfig(
   namespace: string,

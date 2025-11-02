@@ -1,7 +1,11 @@
 <script lang="ts" setup>
 import type { NavigationMenuItem } from '@nuxt/ui'
 
-const navItems = ref<NavigationMenuItem[][]>([
+const route = useRoute()
+const router = useRouter()
+const { loggedIn, user } = useUserSession()
+
+const navItems = computed<NavigationMenuItem[][]>(() => [
   [
     {
       label: $t('title.dashboard'),
@@ -31,6 +35,7 @@ const navItems = ref<NavigationMenuItem[][]>([
     {
       label: $t('title.siteAdministration'),
       icon: 'tabler:settings',
+      defaultOpen: route.path.startsWith('/dashboard/settings'),
       children: [
         {
           label: $t('title.generalSettings'),
@@ -77,11 +82,6 @@ const navItems = ref<NavigationMenuItem[][]>([
     },
   ],
 ])
-
-const route = useRoute()
-const router = useRouter()
-// const config = useRuntimeConfig()
-const { loggedIn, user } = useUserSession()
 
 useHead({
   title: $t('title.dashboard'),
