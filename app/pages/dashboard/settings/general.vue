@@ -11,6 +11,23 @@ useHead({
 })
 
 const toast = useToast()
+const colorMode = useColorMode()
+
+// 获取 schema 信息，用于获取枚举值和翻译键
+const { data: settingsSchema } = await useFetch<
+  Array<{
+    namespace: string
+    key: string
+    type: string
+    value: any
+    defaultValue: any
+    label: string
+    description: string
+    enum?: string[]
+    isReadonly?: boolean
+    isSecret?: boolean
+  }>
+>('/api/system/settings/schema')
 
 // 获取当前 app namespace 的所有设置
 const { data: appSettings, refresh: refreshAppSettings } = await useFetch<{
@@ -28,12 +45,47 @@ const appSettingsSchema = z.object({
 
 type AppSettingsSchema = z.output<typeof appSettingsSchema>
 
+// 外观设置 schema - 动态生成，基于 API 返回的枚举值
+const appearanceSettingsSchema = computed(() => {
+  const themeOption = settingsSchema.value?.find(
+    (s) => s.namespace === 'app' && s.key === 'appearance.theme',
+  )
+  const themeEnum = (themeOption?.enum || ['light', 'dark', 'system']) as [
+    string,
+    ...string[],
+  ]
+  return z.object({
+    'appearance.theme': z.enum(themeEnum),
+  })
+})
+
+type AppearanceSettingsSchema = {
+  'appearance.theme': string
+}
+
 // 初始化表单状态
 const appSettingsState = reactive<Partial<AppSettingsSchema>>({
   title: 'ChronoFrame',
   slogan: '',
   author: '',
   avatarUrl: '',
+})
+
+// 初始化外观设置表单状态
+const appearanceSettingsState = reactive<Partial<AppearanceSettingsSchema>>({
+  'appearance.theme': 'system',
+})
+
+// 计算主题选项
+const themeOptions = computed(() => {
+  const themeOption = settingsSchema.value?.find(
+    (s) => s.namespace === 'app' && s.key === 'appearance.theme',
+  )
+  const themeEnums = themeOption?.enum || ['light', 'dark', 'system']
+  return themeEnums.map((value) => ({
+    label: $t(`settings.app.appearance.theme.${value}`),
+    value,
+  }))
 })
 
 // 监听 appSettings 数据加载，初始化表单
@@ -46,6 +98,8 @@ watch(
       appSettingsState.slogan = settings.settings.slogan || ''
       appSettingsState.author = settings.settings.author || ''
       appSettingsState.avatarUrl = settings.settings.avatarUrl || ''
+      appearanceSettingsState['appearance.theme'] =
+        settings.settings['appearance.theme'] || 'system'
     }
   },
   { immediate: true },
@@ -64,6 +118,34 @@ const onAppSettingsSubmit = async (
     )
 
     await Promise.all(updatePromises)
+    refreshAppSettings()
+    toast.add({
+      title: '设置已保存',
+      color: 'success',
+    })
+  } catch (error) {
+    toast.add({
+      title: '保存设置时出错',
+      description: (error as Error).message,
+      color: 'error',
+    })
+  }
+}
+
+const onAppearanceSettingsSubmit = async (
+  event: FormSubmitEvent<AppearanceSettingsSchema>,
+) => {
+  try {
+    // 并行更新所有设置
+    const updatePromises = Object.entries(event.data).map(([key, value]) =>
+      $fetch(`/api/system/settings/app/${key}`, {
+        method: 'PUT',
+        body: { value: value || null },
+      }),
+    )
+
+    await Promise.all(updatePromises)
+    colorMode.preference = event.data['appearance.theme']
     refreshAppSettings()
     toast.add({
       title: '设置已保存',
@@ -141,6 +223,46 @@ const onAppSettingsSubmit = async (
             <UButton
               type="submit"
               form="appSettingsForm"
+              variant="soft"
+              icon="tabler:device-floppy"
+            >
+              保存设置
+            </UButton>
+          </template>
+        </UCard>
+
+        <UCard variant="outline">
+          <template #header>
+            <span>{{ $t('title.appearanceSettings') }}</span>
+          </template>
+
+          <UForm
+            id="appearanceSettingsForm"
+            :schema="appearanceSettingsSchema"
+            :state="appearanceSettingsState"
+            class="space-y-4"
+            @submit="onAppearanceSettingsSubmit"
+          >
+            <UFormField
+              name="appearance.theme"
+              :label="$t('settings.app.appearance.theme.label')"
+              :description="$t('settings.app.appearance.theme.description')"
+              required
+            >
+              <USelectMenu
+                v-model="appearanceSettingsState['appearance.theme']"
+                :items="themeOptions"
+                label-key="label"
+                value-key="value"
+                placeholder="选择主题"
+              />
+            </UFormField>
+          </UForm>
+
+          <template #footer>
+            <UButton
+              type="submit"
+              form="appearanceSettingsForm"
               variant="soft"
               icon="tabler:device-floppy"
             >

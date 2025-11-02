@@ -360,6 +360,8 @@
     "logs": "システムログ",
     "albums": "アルバム",
     "siteAdministration": "サイト設定",
+    "generalSettings": "一般設定",
+    "appearanceSettings": "外観設定",
     "mapAndLocation": "地図と場所",
     "location": "位置情報サービス"
   },
@@ -824,6 +826,15 @@
       "avatarUrl": {
         "label": "アバター URL",
         "description": "オーナーのアバター画像へのリンク"
+      },
+      "appearance": {
+        "theme": {
+          "label": "テーマ",
+          "description": "アプリケーションテーマを選択",
+          "light": "ライト",
+          "dark": "ダーク",
+          "system": "システム"
+        }
       }
     },
     "map": {

@@ -361,7 +361,10 @@
     "logs": "System Logs",
     "albums": "Albums",
     "siteAdministration": "Site settings",
-    "location": "Location services"
+    "location": "Location services",
+    "generalSettings": "General Settings",
+    "appearanceSettings": "Appearance Settings",
+    "mapAndLocation": "Map & Location"
   },
   "auth": {
     "form": {
@@ -880,6 +883,15 @@
       "avatarUrl": {
         "label": "Avatar URL",
         "description": "Link to the owner's avatar image"
+      },
+      "appearance": {
+        "theme": {
+          "label": "Theme",
+          "description": "Choose the application theme",
+          "light": "Light",
+          "dark": "Dark",
+          "system": "System"
+        }
       }
     },
     "map": {

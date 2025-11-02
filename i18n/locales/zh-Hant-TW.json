@@ -360,6 +360,8 @@
     "logs": "系統日誌",
     "albums": "相簿",
     "siteAdministration": "站點設置",
+    "generalSettings": "基本設置",
+    "appearanceSettings": "外觀設置",
     "mapAndLocation": "地圖和位置",
     "location": "位置服務"
   },
@@ -824,6 +826,15 @@
       "avatarUrl": {
         "label": "頭像 URL",
         "description": "所有者頭像的圖片連結"
+      },
+      "appearance": {
+        "theme": {
+          "label": "主題",
+          "description": "選擇應用主題",
+          "light": "淺色",
+          "dark": "深色",
+          "system": "系統"
+        }
       }
     },
     "map": {

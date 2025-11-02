@@ -362,6 +362,7 @@
     "albums": "相簿",
     "siteAdministration": "站点设置",
     "generalSettings": "基本设置",
+    "appearanceSettings": "外观设置",
     "storageSettings": "存储设置",
     "systemSettings": "系统设置",
     "mapAndLocation": "地图和位置",
@@ -884,6 +885,15 @@
       "avatarUrl": {
         "label": "头像 URL",
         "description": "所有者头像的图片链接"
+      },
+      "appearance": {
+        "theme": {
+          "label": "主题",
+          "description": "选择应用主题",
+          "light": "浅色",
+          "dark": "深色",
+          "system": "系统"
+        }
       }
     },
     "map": {

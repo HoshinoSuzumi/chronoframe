@@ -19,7 +19,7 @@ import {
 } from '../location/geocoding'
 import { findLivePhotoVideoForImage } from '../video/livephoto'
 import { processMotionPhotoFromXmp } from '../video/motion-photo'
-import { getStorageManager } from '~~/server/plugins/2_storage'
+import { getStorageManager } from '~~/server/plugins/3.storage'
 
 export class QueueManager {
   private static instances: Map<string, QueueManager> = new Map()

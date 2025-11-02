@@ -53,6 +53,16 @@ export const DEFAULT_SETTINGS = [
     description: 'settings.app.avatarUrl.description',
     isPublic: true,
   },
+  {
+    namespace: 'app',
+    key: 'appearance.theme',
+    type: 'string',
+    defaultValue: 'system',
+    enum: ['light', 'dark', 'system'],
+    label: 'settings.app.avatarUrl.label',
+    description: 'settings.app.avatarUrl.description',
+    isPublic: true,
+  },
   // NAMESPACE: map
   {
     namespace: 'map',

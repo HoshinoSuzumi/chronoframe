@@ -5,6 +5,7 @@ import dayjsLocale_zhHK from 'dayjs/locale/zh-hk'
 
 const router = useRouter()
 const dayjs = useDayjs()
+const colorMode = useColorMode()
 const { locale } = useI18n()
 
 // 初始化设置系统 - 一次性加载所有设置
@@ -12,6 +13,8 @@ const settingsStore = useSettingsStore()
 await settingsStore.initSettings()
 
 const appTitle = useSettingRef('app:title')
+
+colorMode.preference = useSettingRef('app:appearance.theme').value as string
 
 useHead({
   titleTemplate: (title) =>

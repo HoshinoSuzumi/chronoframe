@@ -4,7 +4,7 @@ import {
 } from '~~/server/services/video/scanner'
 import { eq } from 'drizzle-orm'
 import { findLivePhotoVideoForImage } from '~~/server/services/video/livephoto'
-import { getStorageManager } from '~~/server/plugins/2_storage'
+import { getStorageManager } from '~~/server/plugins/3.storage'
 import { batchTestLivePhotoDetection } from '~~/server/services/video/test-utils'
 
 export default eventHandler(async (event) => {
