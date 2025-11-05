@@ -19,6 +19,7 @@ interface AlbumItem extends Album {
 interface AlbumFormState {
   title: string
   description: string
+  isHidden: boolean
 }
 
 const albums = ref<AlbumItem[]>([])
@@ -35,6 +36,7 @@ const currentAlbum = ref<AlbumItem | null>(null)
 const formData = reactive<AlbumFormState>({
   title: '',
   description: '',
+  isHidden: false,
 })
 
 const formRef = ref()
@@ -101,6 +103,7 @@ const openCreateSlideover = () => {
   currentAlbum.value = null
   formData.title = ''
   formData.description = ''
+  formData.isHidden = false
   selectedPhotoIds.value = []
   coverPhotoId.value = ''
   formRef.value?.clear()
@@ -113,6 +116,7 @@ const openEditSlideover = async (album: AlbumItem) => {
     const albumDetail = (await $fetch(`/api/albums/${album.id}`)) as any
     formData.title = album.title
     formData.description = album.description || ''
+    formData.isHidden = album.isHidden || false
     selectedPhotoIds.value = (albumDetail.photos || []).map((p: Photo) => p.id)
     coverPhotoId.value = album.coverPhotoId || ''
     formRef.value?.clear()
@@ -142,6 +146,7 @@ const onFormSubmit = async (event: FormSubmitEvent<AlbumFormState>) => {
           description: event.data.description || undefined,
           coverPhotoId: coverPhotoId.value || undefined,
           photoIds: selectedPhotoIds.value,
+          isHidden: event.data.isHidden,
         },
       })
 
@@ -159,6 +164,7 @@ const onFormSubmit = async (event: FormSubmitEvent<AlbumFormState>) => {
           description: event.data.description || undefined,
           coverPhotoId: coverPhotoId.value || undefined,
           photoIds: selectedPhotoIds.value,
+          isHidden: event.data.isHidden,
         },
       })
 
@@ -549,6 +555,17 @@ const columns: any[] = [
                       $t('dashboard.albums.form.descriptionPlaceholder')
                     "
                     :rows="3"
+                  />
+                </UFormField>
+
+                <UFormField
+                  :label="$t('dashboard.albums.form.isHidden')"
+                  name="isHidden"
+                  :hint="$t('dashboard.albums.form.isHiddenHint')"
+                >
+                  <UCheckbox
+                    v-model="formData.isHidden"
+                    :label="$t('dashboard.albums.form.isHidden')"
                   />
                 </UFormField>
               </UForm>
