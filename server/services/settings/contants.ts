@@ -59,8 +59,8 @@ export const DEFAULT_SETTINGS = [
     type: 'string',
     defaultValue: 'system',
     enum: ['light', 'dark', 'system'],
-    label: 'settings.app.avatarUrl.label',
-    description: 'settings.app.avatarUrl.description',
+    label: 'settings.app.appearance.theme.label',
+    description: 'settings.app.appearance.theme.description',
     isPublic: true,
   },
   // NAMESPACE: map
