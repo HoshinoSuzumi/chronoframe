@@ -20,6 +20,7 @@ export default eventHandler(async (event) => {
       description: z.string().max(1000).optional(),
       coverPhotoId: z.string().optional(),
       photoIds: z.array(z.string()).optional(),
+      isHidden: z.boolean().optional(),
     }).parse,
   )
 
@@ -56,6 +57,10 @@ export default eventHandler(async (event) => {
 
     if (body.coverPhotoId !== undefined) {
       updateData.coverPhotoId = body.coverPhotoId || null
+    }
+
+    if (body.isHidden !== undefined) {
+      updateData.isHidden = body.isHidden
     }
 
     tx.update(tables.albums)

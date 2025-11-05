@@ -27,6 +27,17 @@ export default eventHandler(async (event) => {
     })
   }
 
+  // 检查相册是否隐藏，如果隐藏则需要用户登录才能访问
+  if (album.isHidden) {
+    const session = await getUserSession(event)
+    if (!session.user) {
+      throw createError({
+        statusCode: 404,
+        statusMessage: 'Album not found',
+      })
+    }
+  }
+
   // 获取相册中的照片
   const photos = await db
     // all fields from tables.photos
