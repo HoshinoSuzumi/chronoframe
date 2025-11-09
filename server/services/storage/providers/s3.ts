@@ -55,7 +55,10 @@ const createClient = (config: S3StorageConfig): S3Client => {
   }
 
   // Detect Aliyun OSS and apply specific configuration
-  const isAliyunOSS = endpoint?.includes('aliyuncs.com') || false
+  // Ensure aliyuncs.com is part of the hostname, not just anywhere in the URL
+  const isAliyunOSS = endpoint
+    ? /^https?:\/\/[^/]*\.aliyuncs\.com(\/|$)/i.test(endpoint)
+    : false
 
   const clientConfig: S3ClientConfig = {
     endpoint,
@@ -198,7 +201,8 @@ export class S3StorageProvider implements StorageProvider {
     }
 
     // Alibaba Cloud OSS
-    if (endpoint.includes('aliyuncs.com')) {
+    // Ensure aliyuncs.com is part of the hostname for security
+    if (/^https?:\/\/[^/]*\.aliyuncs\.com(\/|$)/i.test(endpoint)) {
       const baseUrl = endpoint.replace(/\/$/, '')
       if (baseUrl.indexOf('//') === -1) {
         throw new Error('Invalid endpoint URL')
