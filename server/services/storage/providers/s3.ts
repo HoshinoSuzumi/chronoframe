@@ -13,6 +13,37 @@ import type {
   UploadOptions,
 } from '../interfaces'
 
+/**
+ * Safely extract error information from AWS SDK errors
+ * AWS SDK errors contain circular references that cause JSON serialization to fail
+ */
+const extractSafeError = (error: unknown): Error => {
+  if (error instanceof Error) {
+    // Create a new error with safe properties
+    const safeError = new Error(error.message)
+    safeError.name = error.name
+    safeError.stack = error.stack
+
+    // Safely copy AWS SDK specific properties without circular references
+    if ('$metadata' in error) {
+      const metadata = (error as any).$metadata
+      Object.assign(safeError, {
+        statusCode: metadata?.httpStatusCode,
+        requestId: metadata?.requestId,
+      })
+    }
+
+    // Copy other safe properties
+    if ('Code' in error) {
+      Object.assign(safeError, { code: (error as any).Code })
+    }
+
+    return safeError
+  }
+
+  return new Error(String(error))
+}
+
 const createClient = (config: S3StorageConfig): S3Client => {
   if (config.provider !== 's3') {
     throw new Error('Invalid provider for S3 client creation')
@@ -23,12 +54,18 @@ const createClient = (config: S3StorageConfig): S3Client => {
     throw new Error('Missing required accessKeyId or secretAccessKey')
   }
 
+  // Detect Aliyun OSS and apply specific configuration
+  const isAliyunOSS = endpoint?.includes('aliyuncs.com') || false
+
   const clientConfig: S3ClientConfig = {
     endpoint,
     region,
-    forcePathStyle: config.forcePathStyle,
-    responseChecksumValidation: 'WHEN_REQUIRED',
-    requestChecksumCalculation: 'WHEN_REQUIRED',
+    // Aliyun OSS should use virtual-hosted-style (forcePathStyle: false)
+    // unless explicitly set otherwise
+    forcePathStyle: config.forcePathStyle ?? (isAliyunOSS ? false : undefined),
+    // Disable checksum validation for Aliyun OSS to avoid signature issues
+    responseChecksumValidation: isAliyunOSS ? 'WHEN_SUPPORTED' : 'WHEN_REQUIRED',
+    requestChecksumCalculation: isAliyunOSS ? 'WHEN_SUPPORTED' : 'WHEN_REQUIRED',
     credentials: {
       accessKeyId,
       secretAccessKey,
@@ -88,7 +125,7 @@ export class S3StorageProvider implements StorageProvider {
       }
     } catch (error) {
       this.logger?.error(`Failed to create object with key: ${key}`, error)
-      throw error
+      throw extractSafeError(error)
     }
   }
 
@@ -103,7 +140,7 @@ export class S3StorageProvider implements StorageProvider {
       this.logger?.success(`Deleted object with key: ${key}`)
     } catch (error) {
       this.logger?.error(`Failed to delete object with key: ${key}`, error)
-      throw error
+      throw extractSafeError(error)
     }
   }
 
@@ -180,18 +217,23 @@ export class S3StorageProvider implements StorageProvider {
     expiresIn: number = 3600,
     options?: UploadOptions,
   ): Promise<string> {
-    const cmd = new PutObjectCommand({
-      Bucket: this.config.bucket,
-      Key: key,
-      ContentType: options?.contentType || 'application/octet-stream',
-    })
+    try {
+      const cmd = new PutObjectCommand({
+        Bucket: this.config.bucket,
+        Key: key,
+        ContentType: options?.contentType || 'application/octet-stream',
+      })
 
-    const url = await getSignedUrl(this.client, cmd, {
-      expiresIn,
-      // 为了更好的 CORS 支持，添加一些额外参数
-      unhoistableHeaders: new Set(['Content-Type']),
-    })
-    return url
+      const url = await getSignedUrl(this.client, cmd, {
+        expiresIn,
+        // 为了更好的 CORS 支持，添加一些额外参数
+        unhoistableHeaders: new Set(['Content-Type']),
+      })
+      return url
+    } catch (error) {
+      this.logger?.error(`Failed to generate signed URL for key: ${key}`, error)
+      throw extractSafeError(error)
+    }
   }
 
   async getFileMeta(key: string): Promise<StorageObject | null> {
@@ -218,7 +260,7 @@ export class S3StorageProvider implements StorageProvider {
         return null
       }
       this.logger?.error(`Failed to get metadata for key: ${key}`, error)
-      throw error
+      throw extractSafeError(error)
     }
   }
 
