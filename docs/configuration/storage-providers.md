@@ -67,7 +67,15 @@ NUXT_PROVIDER_S3_REGION=oss-cn-hangzhou
 NUXT_PROVIDER_S3_ACCESS_KEY_ID=LTAI...
 NUXT_PROVIDER_S3_SECRET_ACCESS_KEY=...
 NUXT_PROVIDER_S3_CDN_URL=https://cdn.example.com
+# Alibaba Cloud OSS automatically uses virtual-hosted style (no need to set FORCE_PATH_STYLE)
 ```
+
+:::tip Alibaba Cloud OSS Configuration Tips
+1. **Bucket Permissions**: Ensure the bucket has public read access enabled, or configure proper CORS rules
+2. **Region Settings**: The region in `REGION` and `ENDPOINT` must match (e.g., `oss-cn-hangzhou`)
+3. **Access Keys**: Create AccessKey from Alibaba Cloud Console → Access Control → User Management
+4. **Auto-optimization**: The system automatically detects Alibaba Cloud OSS and applies optimal configuration (virtual-hosted style, checksum support)
+:::
 
 #### Tencent Cloud COS
 
