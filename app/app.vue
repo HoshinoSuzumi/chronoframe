@@ -30,7 +30,7 @@ const apiEndpoint = computed(() => {
   if (route.path.startsWith('/dashboard')) {
     return '/api/photos'
   }
-  // 前端页面：登录用户显示所有照片，未登录用户只显示可见照片
+  // 前端页面：登录用户显示所有照片，未登录用户只显示可见照片 
   return loggedIn.value ? '/api/photos' : '/api/photos/visible'
 })
 const { data, refresh, status } = await useFetch(() => apiEndpoint.value, {
