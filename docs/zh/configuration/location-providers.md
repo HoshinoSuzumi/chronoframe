@@ -18,7 +18,7 @@ Nominatim 是 OpenStreetMap 提供的免费逆向地理编码服务。默认情�
 如果您的服务器无法连接到 Nominatim 官方的服务，您可以自行搭建反向代理，然后通过下面的配置使用自己的地址：
 
 ```bash
-NUXT_NOMINATIM_BASEURL=http://your-nominatim-proxy-url/
+NUXT_NOMINATIM_BASE_URL=http://your-nominatim-proxy-url/
 ```
 
 ## Mapbox Search API

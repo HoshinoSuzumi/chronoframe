@@ -18,7 +18,7 @@ Nominatim is a free reverse geocoding service provided by OpenStreetMap. By defa
 If your server cannot connect to the official Nominatim service, you can set up your own reverse proxy and use it through the following configuration:
 
 ```bash
-NUXT_NOMINATIM_BASEURL=http://your-nominatim-proxy-url/
+NUXT_NOMINATIM_BASE_URL=http://your-nominatim-proxy-url/
 ```
 
 ## Mapbox Search API

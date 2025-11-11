@@ -16,7 +16,7 @@ Whether using Docker or Docker Compose (.env) deployment, configuration is done 
 | NUXT_PUBLIC_COLOR_MODE_PREFERENCE        | Color mode preference, options: `light`, `dark`, `system`       | `system`                              | No                                                   |
 | NUXT_PUBLIC_MAP_PROVIDER                 | Map provider, options: `mapbox`, `maplibre`                     | `maplibre`                            | No                                                   |
 | NUXT_PUBLIC_MAPBOX_ACCESS_TOKEN          | Mapbox access token (URL restricted), for map services          | None                                  | Required when `NUXT_PUBLIC_MAP_PROVIDER` is `mapbox` |
-| NUXT_NOMINATIM_BASEURL                   | Nominatim base URL for reverse geocoding service                | `https://nominatim.openstreetmap.org` | No                                                   |
+| NUXT_NOMINATIM_BASE_URL                  | Nominatim base URL for reverse geocoding service                | `https://nominatim.openstreetmap.org` | No                                                   |
 | NUXT_MAPBOX_ACCESS_TOKEN                 | Mapbox access token (no URL restriction), for location services | None                                  | No                                                   |
 | NUXT_STORAGE_PROVIDER                    | Storage provider, supports `local`, `s3`, `openlist`            | `local`                               | Yes                                                  |
 | NUXT_PROVIDER_LOCAL_PATH                 | Local storage path                                              | `/app/data/storage`                   | No                                                   |
