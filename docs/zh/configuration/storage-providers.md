@@ -67,7 +67,15 @@ NUXT_PROVIDER_S3_REGION=oss-cn-hangzhou
 NUXT_PROVIDER_S3_ACCESS_KEY_ID=LTAI...
 NUXT_PROVIDER_S3_SECRET_ACCESS_KEY=...
 NUXT_PROVIDER_S3_CDN_URL=https://cdn.example.com
+# 阿里云 OSS 自动使用虚拟托管样式（不需要显式设置 FORCE_PATH_STYLE）
 ```
+
+:::tip 阿里云 OSS 配置提示
+1. **存储桶权限**：确保存储桶已开启公共读权限，或配置正确的 CORS 规则
+2. **区域设置**：`REGION` 和 `ENDPOINT` 中的区域必须一致（如 `oss-cn-hangzhou`）
+3. **访问密钥**：从阿里云控制台 → 访问控制 → 用户管理中创建 AccessKey
+4. **自动优化**：系统会自动检测阿里云 OSS 并应用最佳配置（虚拟托管样式、校验和支持）
+:::
 
 #### 腾讯云 COS
 
