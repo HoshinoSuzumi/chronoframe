@@ -693,7 +693,9 @@
         "selectPhotos": "选择照片",
         "editPhotos": "修改照片选择",
         "selectedCount": "已选择 {count} 张照片",
-        "clearAll": "全部清除"
+        "clearAll": "全部清除",
+        "isHidden": "隐藏相簿",
+        "isHiddenHint": "隐藏的相簿中的照片不会在首页展示"
       },
       "table": {
         "columns": {

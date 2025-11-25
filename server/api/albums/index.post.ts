@@ -10,6 +10,7 @@ export default eventHandler(async (event) => {
       description: z.string().max(1000).optional(),
       coverPhotoId: z.string().optional(),
       photoIds: z.array(z.string()).optional(),
+      isHidden: z.boolean().optional(),
     }).parse,
   )
 
@@ -22,6 +23,7 @@ export default eventHandler(async (event) => {
         title: body.title,
         description: body.description || null,
         coverPhotoId: body.coverPhotoId || null,
+        isHidden: body.isHidden || false,
       })
       .returning()
       .get()

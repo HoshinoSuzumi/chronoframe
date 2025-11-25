@@ -1,16 +1,29 @@
 <script lang="ts" setup>
 import { motion } from 'motion-v'
-
+import type { Album } from '~~/server/utils/db'
+interface AlbumWithPhotos extends Album {
+  photoIds?: string[]
+}
 const config = useRuntimeConfig()
 const { photos } = usePhotos()
-const { data: albums } = useAsyncData(
+const { loggedIn } = useUserSession()
+const { data: albums } = useAsyncData<AlbumWithPhotos[]>(
   'albums',
-  // @ts-nocheck
   () => $fetch('/api/albums'),
   {
     watch: [],
   },
 )
+
+// 根据登录状态决定是否过滤隐藏的相册
+// 登录用户可以看到所有相册，未登录用户只能看到非隐藏相册
+const visibleAlbums = computed(() => {
+  if (loggedIn.value) {
+    return albums.value || []
+  }
+  return (albums.value || []).filter((album) => !album.isHidden)
+})
+
 
 // randomly pick 30 photos for waterfall
 const waterfallPhotos = computed(() =>
@@ -57,10 +70,10 @@ const getPhotoById = (photoId: string) => {
   return photos.value.find((p) => p.id === photoId) || null
 }
 
-const getAlbumDisplayPhotos = (album: any) => {
+const getAlbumDisplayPhotos = (album: AlbumWithPhotos) => {
   if (!album.photoIds || album.photoIds.length === 0) return []
 
-  const displayPhotos = []
+   const displayPhotos: Photo[] = []
 
   // 第一张：优先使用封面照片
   if (album.coverPhotoId) {
@@ -200,7 +213,7 @@ const hoveredAlbum = ref<number | null>(null)
         class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-16"
       >
         <NuxtLink
-          v-for="album in albums"
+           v-for="album in visibleAlbums"
           :key="album.id"
           :to="`/albums/${album.id}`"
           class="block"
