@@ -26,6 +26,16 @@ const schema = computed(() => {
 
     if (field.type === 'boolean' || field.ui.type === 'toggle') {
       validator = z.boolean()
+    } else if (field.type === 'number') {
+      validator = z.number()
+      if (field.ui.required) {
+        validator = (validator as z.ZodString).min(
+          1,
+          `${field.label} is required`,
+        )
+      } else {
+        validator = (validator as z.ZodString).optional()
+      }
     } else {
       validator = z.string()
       if (field.ui.required) {
