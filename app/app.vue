@@ -21,7 +21,22 @@ useHead({
     `${title ? title + ' | ' : ''}${appTitle.value || 'ChronoFrame'}`,
 })
 
-const { data, refresh, status } = useFetch('/api/photos')
+// 根据用户登录状态和当前路由决定使用哪个 API
+// 登录用户或后台管理页面显示所有照片，未登录用户在前端页面只显示可见照片
+const route = useRoute()
+const { loggedIn } = useUserSession()
+const apiEndpoint = computed(() => {
+  // 后台管理页面始终显示所有照片
+  if (route.path.startsWith('/dashboard')) {
+    return '/api/photos'
+  }
+  // 前端页面：登录用户显示所有照片，未登录用户只显示可见照片 
+  return loggedIn.value ? '/api/photos' : '/api/photos/visible'
+})
+const { data, refresh, status } = await useFetch(() => apiEndpoint.value, {
+  watch: [apiEndpoint],
+})
+
 const photos = computed(() => (data.value as Photo[]) || [])
 
 const { switchToIndex, closeViewer, clearReturnRoute } = useViewerState()
