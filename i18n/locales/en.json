@@ -113,7 +113,7 @@
     },
     "stats": {
       "totalPhotosWithRange": "{range}, @:plural.photo total",
-      "noPhotosTip": "Nno photos yet, upload some now!"
+      "noPhotosTip": "No photos yet, upload some now!"
     },
     "livePhoto": "Live Photo",
     "indexPanelCountCity": "and more other cities",
