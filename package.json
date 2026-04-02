@@ -66,7 +66,7 @@
     "nuxt-og-image": "5.1.12",
     "pinia": "^3.0.3",
     "reka-ui": "^2.5.1",
-    "sharp": "^0.34.4",
+    "sharp": "^0.34.5",
     "swiper": "^12.0.3",
     "systeminformation": "^5.27.11",
     "tailwind-merge": "^3.3.1",
@@ -112,7 +112,7 @@
       ]
     },
     "overrides": {
-      "sharp": "0.34.4"
+      "sharp": "0.34.5"
     },
     "ignoredBuiltDependencies": [
       "@parcel/watcher",
