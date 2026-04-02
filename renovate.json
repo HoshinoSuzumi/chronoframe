@@ -1,0 +1,34 @@
+{
+  "extends": [
+    "config:recommended"
+  ],
+  "schedule": [
+    "before 5am on monday"
+  ],
+  "prConcurrentLimit": 3,
+  "rangeStrategy": "bump",
+  "labels": [
+    "dependencies"
+  ],
+  "dependencyDashboard": true,
+  "rebaseWhen": "conflicted",
+  "ignoreDeps": [],
+  "vulnerabilityAlerts": {
+    "enabled": false
+  },
+  "packageRules": [
+    {
+      "matchUpdateTypes": [
+        "minor",
+        "patch"
+      ],
+      "groupName": "non-major deps"
+    },
+    {
+      "matchUpdateTypes": [
+        "patch"
+      ],
+      "automerge": true
+    }
+  ]
+}

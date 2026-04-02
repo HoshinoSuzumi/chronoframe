@@ -175,7 +175,7 @@ export default defineNuxtConfig({
       noExternal: ['@indoorequal/vue-maplibre-gl'],
     },
     css: {
-      devSourcemap: true,
+      devSourcemap: false,
     },
     build: {
       sourcemap: false,

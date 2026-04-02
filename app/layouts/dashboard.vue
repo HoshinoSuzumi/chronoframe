@@ -4,6 +4,12 @@ import type { NavigationMenuItem } from '@nuxt/ui'
 const route = useRoute()
 const router = useRouter()
 const { loggedIn, user } = useUserSession()
+const settingsStore = useSettingsStore()
+
+const appTitle = computed(() => {
+  const value = settingsStore.getSetting('app:title')
+  return value ? String(value) : $t('title.dashboard')
+})
 
 const navItems = computed<NavigationMenuItem[][]>(() => [
   [
@@ -85,8 +91,7 @@ const navItems = computed<NavigationMenuItem[][]>(() => [
 
 useHead({
   title: $t('title.dashboard'),
-  titleTemplate: (title) =>
-    `${title ? title + ' | ' : ''}${getSetting('app:title')}`,
+  titleTemplate: (title) => `${title ? `${title} | ` : ''}${appTitle.value}`,
 })
 
 const handleLogin = () => {
@@ -149,7 +154,7 @@ const handleLogin = () => {
               to="/"
               class="text-lg font-medium line-clamp-1"
             >
-              {{ getSetting('app:title') || $t('title.dashboard') }}
+              {{ appTitle }}
             </NuxtLink>
           </div>
         </div>
