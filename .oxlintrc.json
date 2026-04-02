@@ -1,0 +1,12 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": ["oxc", "typescript", "unicorn", "vue"],
+  "env": {
+    "browser": true,
+    "node": true
+  },
+  "rules": {
+    "no-empty-object-type": "off",
+    "no-explicit-any": "off"
+  }
+}

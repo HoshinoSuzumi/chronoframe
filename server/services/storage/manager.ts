@@ -18,7 +18,6 @@ export interface StorageManagerEvent {
   timestamp: number
 }
 
-// eslint-disable-next-line @typescript-eslint/no-extraneous-class
 export class StorageProviderFactory {
   static createProvider(
     config: StorageConfig,

@@ -10,7 +10,6 @@ export default defineNuxtConfig({
   modules: [
     'reka-ui/nuxt',
     '@nuxt/ui',
-    '@nuxt/eslint',
     '@nuxt/fonts',
     '@nuxt/icon',
     '@nuxt/image',
