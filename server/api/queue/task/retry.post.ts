@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import { eq } from 'drizzle-orm'
+import { getOne } from '~~/server/utils/db-query'
 
 /**
  * 重试指定的失败任务
@@ -18,11 +19,12 @@ export default defineEventHandler(async (event) => {
     const db = useDB()
 
     // 检查任务是否存在且状态为失败
-    const task = await db
-      .select()
-      .from(tables.pipelineQueue)
-      .where(eq(tables.pipelineQueue.id, taskId))
-      .get()
+    const task = await getOne(
+      db
+        .select()
+        .from(tables.pipelineQueue)
+        .where(eq(tables.pipelineQueue.id, taskId)),
+    )
 
     if (!task) {
       throw createError({

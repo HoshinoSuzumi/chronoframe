@@ -15,11 +15,9 @@ export default eventHandler(async (event) => {
     }).parse,
   )
 
-  const user = db
-    .select()
-    .from(tables.users)
-    .where(eq(tables.users.email, email))
-    .get()
+  const user = await getOne(
+    db.select().from(tables.users).where(eq(tables.users.email, email)),
+  )
 
   if (!user) {
     throw _invalidCredentialsError

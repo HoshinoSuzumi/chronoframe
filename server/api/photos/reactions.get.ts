@@ -1,4 +1,5 @@
 import { sql, inArray } from 'drizzle-orm'
+import { getAll } from '~~/server/utils/db-query'
 
 export default defineEventHandler(async (event) => {
   const query = getQuery(event)
@@ -21,16 +22,17 @@ export default defineEventHandler(async (event) => {
   const db = useDB()
 
   // 获取所有照片的表态统计
-  const reactions = db
-    .select({
-      photoId: tables.photoReactions.photoId,
-      reactionType: tables.photoReactions.reactionType,
-      count: sql<number>`count(*)`,
-    })
-    .from(tables.photoReactions)
-    .where(inArray(tables.photoReactions.photoId, ids as string[]))
-    .groupBy(tables.photoReactions.photoId, tables.photoReactions.reactionType)
-    .all()
+  const reactions = await getAll(
+    db
+      .select({
+        photoId: tables.photoReactions.photoId,
+        reactionType: tables.photoReactions.reactionType,
+        count: sql<number>`count(*)`,
+      })
+      .from(tables.photoReactions)
+      .where(inArray(tables.photoReactions.photoId, ids as string[]))
+      .groupBy(tables.photoReactions.photoId, tables.photoReactions.reactionType),
+  )
 
   const result: Record<string, Record<string, number>> = {}
 

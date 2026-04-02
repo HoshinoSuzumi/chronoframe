@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import { eq } from 'drizzle-orm'
 import { generateSafePhotoId } from '~~/server/utils/file-utils'
+import { getOne } from '~~/server/utils/db-query'
 
 /**
  * 检查照片是否已存在
@@ -45,21 +46,22 @@ export default defineEventHandler(async (event) => {
         const photoId = generateSafePhotoId(storageKey)
 
         // 查询数据库
-        const existingPhoto = await db
-          .select({
-            id: tables.photos.id,
-            title: tables.photos.title,
-            storageKey: tables.photos.storageKey,
-            originalUrl: tables.photos.originalUrl,
-            thumbnailUrl: tables.photos.thumbnailUrl,
-            dateTaken: tables.photos.dateTaken,
-            fileSize: tables.photos.fileSize,
-            width: tables.photos.width,
-            height: tables.photos.height,
-          })
-          .from(tables.photos)
-          .where(eq(tables.photos.id, photoId))
-          .get()
+        const existingPhoto = await getOne(
+          db
+            .select({
+              id: tables.photos.id,
+              title: tables.photos.title,
+              storageKey: tables.photos.storageKey,
+              originalUrl: tables.photos.originalUrl,
+              thumbnailUrl: tables.photos.thumbnailUrl,
+              dateTaken: tables.photos.dateTaken,
+              fileSize: tables.photos.fileSize,
+              width: tables.photos.width,
+              height: tables.photos.height,
+            })
+            .from(tables.photos)
+            .where(eq(tables.photos.id, photoId)),
+        )
 
         results.push({
           fileName,
@@ -76,21 +78,22 @@ export default defineEventHandler(async (event) => {
       for (const storageKey of storageKeys) {
         const photoId = generateSafePhotoId(storageKey)
 
-        const existingPhoto = await db
-          .select({
-            id: tables.photos.id,
-            title: tables.photos.title,
-            storageKey: tables.photos.storageKey,
-            originalUrl: tables.photos.originalUrl,
-            thumbnailUrl: tables.photos.thumbnailUrl,
-            dateTaken: tables.photos.dateTaken,
-            fileSize: tables.photos.fileSize,
-            width: tables.photos.width,
-            height: tables.photos.height,
-          })
-          .from(tables.photos)
-          .where(eq(tables.photos.id, photoId))
-          .get()
+        const existingPhoto = await getOne(
+          db
+            .select({
+              id: tables.photos.id,
+              title: tables.photos.title,
+              storageKey: tables.photos.storageKey,
+              originalUrl: tables.photos.originalUrl,
+              thumbnailUrl: tables.photos.thumbnailUrl,
+              dateTaken: tables.photos.dateTaken,
+              fileSize: tables.photos.fileSize,
+              width: tables.photos.width,
+              height: tables.photos.height,
+            })
+            .from(tables.photos)
+            .where(eq(tables.photos.id, photoId)),
+        )
 
         results.push({
           storageKey,

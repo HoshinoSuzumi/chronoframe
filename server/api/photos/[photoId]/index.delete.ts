@@ -1,4 +1,5 @@
 const HEIC_EXTENSIONS = ['.heic', '.heif', '.hif']
+import { execMutation, getOne } from '~~/server/utils/db-query'
 
 export default eventHandler(async (event) => {
   await requireUserSession(event)
@@ -12,11 +13,9 @@ export default eventHandler(async (event) => {
     })
   }
 
-  const photo = await useDB()
-    .select()
-    .from(tables.photos)
-    .where(eq(tables.photos.id, photoId))
-    .get()
+  const photo = await getOne(
+    useDB().select().from(tables.photos).where(eq(tables.photos.id, photoId)),
+  )
 
   if (!photo) {
     return createError({
@@ -64,7 +63,9 @@ export default eventHandler(async (event) => {
     }
   }
 
-  useDB().delete(tables.photos).where(eq(tables.photos.id, photoId)).run()
+  await execMutation(
+    useDB().delete(tables.photos).where(eq(tables.photos.id, photoId)),
+  )
 
   logger.image.success(`Photo ${photoId} deleted`)
 

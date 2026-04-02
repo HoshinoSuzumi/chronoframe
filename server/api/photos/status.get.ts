@@ -1,4 +1,5 @@
 import { photos } from '~~/server/database/schema'
+import { getAll } from '~~/server/utils/db-query'
 
 export default eventHandler(async (event) => {
   await requireUserSession(event)
@@ -7,12 +8,9 @@ export default eventHandler(async (event) => {
 
   if (method === 'GET') {
     // 获取最新处理完成的照片
-    const recentPhotos = await useDB()
-      .select()
-      .from(photos)
-      .orderBy(photos.lastModified)
-      .limit(10)
-      .all()
+    const recentPhotos = await getAll(
+      useDB().select().from(photos).orderBy(photos.lastModified).limit(10),
+    )
 
     return {
       recentPhotos,

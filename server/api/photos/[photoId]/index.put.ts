@@ -8,6 +8,7 @@ import { eq } from 'drizzle-orm'
 import { extractExifData } from '~~/server/services/image/exif'
 import { tables, useDB } from '~~/server/utils/db'
 import { useStorageProvider } from '~~/server/utils/useStorageProvider'
+import { getOne } from '~~/server/utils/db-query'
 
 const paramsSchema = z.object({
   photoId: z.string().min(1),
@@ -65,11 +66,9 @@ export default eventHandler(async (event) => {
   }
 
   const db = useDB()
-  const photo = await db
-    .select()
-    .from(tables.photos)
-    .where(eq(tables.photos.id, photoId))
-    .get()
+  const photo = await getOne(
+    db.select().from(tables.photos).where(eq(tables.photos.id, photoId)),
+  )
 
   if (!photo) {
     throw createError({
@@ -220,11 +219,9 @@ export default eventHandler(async (event) => {
       .set(updateData)
       .where(eq(tables.photos.id, photoId))
 
-    const updatedPhoto = await db
-      .select()
-      .from(tables.photos)
-      .where(eq(tables.photos.id, photoId))
-      .get()
+    const updatedPhoto = await getOne(
+      db.select().from(tables.photos).where(eq(tables.photos.id, photoId)),
+    )
 
     if (pendingReverseGeocode) {
       const workerPool = globalThis.__workerPool

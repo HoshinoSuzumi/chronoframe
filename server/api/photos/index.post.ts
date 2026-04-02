@@ -2,6 +2,7 @@ import path from 'path'
 import { useStorageProvider } from '~~/server/utils/useStorageProvider'
 import { eq } from 'drizzle-orm'
 import { generateSafePhotoId } from '~~/server/utils/file-utils'
+import { getOne } from '~~/server/utils/db-query'
 
 const VIDEO_EXTENSIONS = new Set(['.mov', '.mp4'])
 
@@ -69,18 +70,19 @@ export default eventHandler(async (event) => {
       const photoId = generateSafePhotoId(objectKey)
       const db = useDB()
 
-      existingPhoto = await db
-        .select({
-          id: tables.photos.id,
-          title: tables.photos.title,
-          storageKey: tables.photos.storageKey,
-          originalUrl: tables.photos.originalUrl,
-          thumbnailUrl: tables.photos.thumbnailUrl,
-          dateTaken: tables.photos.dateTaken,
-        })
-        .from(tables.photos)
-        .where(eq(tables.photos.id, photoId))
-        .get()
+      existingPhoto = await getOne(
+        db
+          .select({
+            id: tables.photos.id,
+            title: tables.photos.title,
+            storageKey: tables.photos.storageKey,
+            originalUrl: tables.photos.originalUrl,
+            thumbnailUrl: tables.photos.thumbnailUrl,
+            dateTaken: tables.photos.dateTaken,
+          })
+          .from(tables.photos)
+          .where(eq(tables.photos.id, photoId)),
+      )
 
       if (
         existingPhoto &&

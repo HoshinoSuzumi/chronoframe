@@ -1,4 +1,5 @@
 import { useDB, tables, eq, or, and } from '~~/server/utils/db'
+import { getAll } from '~~/server/utils/db-query'
 
 /**
  * 获取所有公开设置
@@ -9,19 +10,20 @@ export default eventHandler(async () => {
   const db = useDB()
 
   // 查询所有公开设置
-  const allSettings = db
-    .select()
-    .from(tables.settings)
-    .where(
-      or(
-        eq(tables.settings.isPublic, true),
-        and(
-          eq(tables.settings.namespace, 'system'),
-          eq(tables.settings.key, 'firstLaunch'),
+  const allSettings = await getAll(
+    db
+      .select()
+      .from(tables.settings)
+      .where(
+        or(
+          eq(tables.settings.isPublic, true),
+          and(
+            eq(tables.settings.namespace, 'system'),
+            eq(tables.settings.key, 'firstLaunch'),
+          ),
         ),
       ),
-    )
-    .all()
+  )
 
   // 按命名空间分组
   const grouped: Record<string, Record<string, any>> = {}

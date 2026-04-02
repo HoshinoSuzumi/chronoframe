@@ -7,11 +7,12 @@ const _accessDeniedError = createError({
 export default defineOAuthGitHubEventHandler({
   async onSuccess(event, { user }) {
     const db = useDB()
-    const userFromEmail = db
-      .select()
-      .from(tables.users)
-      .where(eq(tables.users.email, user.email || ''))
-      .get()
+    const userFromEmail = await getOne(
+      db
+        .select()
+        .from(tables.users)
+        .where(eq(tables.users.email, user.email || '')),
+    )
 
     logger.chrono.info(
       'GitHub OAuth login:',
@@ -21,15 +22,17 @@ export default defineOAuthGitHubEventHandler({
 
     if (!userFromEmail) {
       // create a new user without admin permission
-      db.insert(tables.users)
-        .values({
-          username: user.name || '',
-          email: user.email || '',
-          avatar: user.avatar_url || null,
-          createdAt: new Date(),
-        })
-        .returning()
-        .get()
+      await getOne(
+        db
+          .insert(tables.users)
+          .values({
+            username: user.name || '',
+            email: user.email || '',
+            avatar: user.avatar_url || null,
+            createdAt: new Date(),
+          })
+          .returning(),
+      )
       // then reject login
       throw _accessDeniedError
     } else if (userFromEmail.isAdmin === 0) {
