@@ -12,6 +12,66 @@ export default eventHandler(async (event) => {
   )
 
   // 1. Admin Account Schema
+  if (query.namespace === 'database') {
+    const fields: FieldDescriptor[] = [
+      {
+        namespace: 'database',
+        key: 'adapter',
+        type: 'string',
+        defaultValue: 'sqlite',
+        value: 'sqlite',
+        label: 'wizard.database.adapter.label',
+        ui: {
+          type: 'custom',
+          required: true,
+          options: [
+            {
+              label: 'wizard.database.adapter.sqlite.label',
+              value: 'sqlite',
+              icon: 'tabler:database',
+              description: 'wizard.database.adapter.sqlite.description',
+            },
+            {
+              label: 'wizard.database.adapter.postgres.label',
+              value: 'postgres',
+              icon: 'tabler:brand-postgresql',
+              description: 'wizard.database.adapter.postgres.description',
+            },
+          ],
+        },
+      },
+      {
+        namespace: 'database',
+        key: 'sqlite.path',
+        type: 'string',
+        defaultValue: 'data/app.sqlite3',
+        value: 'data/app.sqlite3',
+        label: 'wizard.database.sqlite.path.label',
+        ui: {
+          type: 'input',
+          required: false,
+          visibleIf: { fieldKey: 'adapter', value: 'sqlite' },
+        },
+      },
+      {
+        namespace: 'database',
+        key: 'postgres.url',
+        type: 'string',
+        defaultValue: '',
+        value: '',
+        label: 'wizard.database.postgres.url.label',
+        ui: {
+          type: 'password',
+          required: true,
+          visibleIf: { fieldKey: 'adapter', value: 'postgres' },
+        },
+      },
+    ]
+
+    return { namespace: 'database', fields }
+  }
+
+  // 1. Admin Account Schema
   if (query.namespace === 'admin') {
     const fields: FieldDescriptor[] = [
       {

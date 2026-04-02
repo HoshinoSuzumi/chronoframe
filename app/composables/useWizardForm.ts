@@ -21,6 +21,8 @@ export function useWizardForm(namespace: string) {
   const state = computed({
     get: () => {
       switch (namespace) {
+        case 'database':
+          return store.database
         case 'admin':
           return store.admin
         case 'app':
@@ -35,6 +37,9 @@ export function useWizardForm(namespace: string) {
     },
     set: (val) => {
       switch (namespace) {
+        case 'database':
+          store.updateDatabase(val)
+          break
         case 'admin':
           store.updateAdmin(val)
           break

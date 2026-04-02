@@ -98,7 +98,7 @@ definePageMeta({
           ChronoFrame 不会收集您的任何数据。
         </p>
         <WizardButton
-          to="/onboarding/admin"
+          to="/onboarding/database"
           color="primary"
           size="lg"
           trailing-icon="tabler:arrow-right"

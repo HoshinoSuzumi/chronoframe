@@ -5,6 +5,8 @@ import type {
   SettingType,
   SettingValue,
 } from '~~/shared/types/settings'
+import { getDatabaseAdapter } from '~~/server/utils/db'
+import { mutableAfterSetup } from './contants'
 import type { SettingKey, SettingNamespace } from './contants'
 import { execMutation, getAll, getOne } from '~~/server/utils/db-query'
 
@@ -13,6 +15,7 @@ export class SettingsManager {
   protected settingsCache: Map<string, SettingValue> = new Map()
   protected _logger = logger.dynamic('settings-mgr')
   protected isInitializing = false
+  private firstLaunchCache: boolean | null = null
 
   private constructor() {}
 
@@ -74,6 +77,16 @@ export class SettingsManager {
     key: SettingKey<typeof namespace>,
   ): string {
     return `${namespace}:${key}`
+  }
+
+  private async getFirstLaunchState(): Promise<boolean> {
+    if (this.firstLaunchCache !== null) {
+      return this.firstLaunchCache
+    }
+
+    const firstLaunch = await this.get<boolean>('system', 'firstLaunch', true)
+    this.firstLaunchCache = firstLaunch !== false
+    return this.firstLaunchCache
   }
 
   /**
@@ -234,6 +247,15 @@ export class SettingsManager {
         ),
     )
 
+    const firstLaunch = await this.getFirstLaunchState()
+    if (firstLaunch === false) {
+      const settingPath = `${namespace}:${key}`
+      const isAllowed = mutableAfterSetup.has(settingPath)
+      if (!isAllowed && !sudo) {
+        throw new Error(`Setting ${settingPath} cannot be modified after setup`)
+      }
+    }
+
     if (!existing) {
       this._logger.warn(`Setting ${namespace}:${key} does not exist`)
       throw new Error(`Setting ${namespace}:${key} does not exist`)
@@ -275,6 +297,9 @@ export class SettingsManager {
 
     this._logger.info(`Setting ${namespace}:${key} updated`)
     this.settingsCache.set(cacheKey, value)
+    if (namespace === 'system' && key === 'firstLaunch') {
+      this.firstLaunchCache = value !== false
+    }
 
     // Trigger storage provider switch if storage:provider is being changed
     // Skip during initialization as storage manager is not yet initialized
@@ -404,21 +429,33 @@ export class SettingsManager {
       providerConfig: NewSettingStorageProvider,
     ): Promise<number> {
       const db = useDB()
-      const insertedRows = await db
-        .insert(tables.settings_storage_providers)
-        .values({
-          name: providerConfig.name,
-          provider: providerConfig.provider,
-          config: providerConfig.config,
-        })
-        .returning({ id: tables.settings_storage_providers.id })
+      let insertedId: number | undefined
+      if (getDatabaseAdapter() === 'postgres') {
+        const insertedRows = await db
+          .insert(tables.settings_storage_providers)
+          .values({
+            name: providerConfig.name,
+            provider: providerConfig.provider,
+            config: providerConfig.config,
+          })
+          .returning({ id: tables.settings_storage_providers.id })
+        insertedId = insertedRows[0]?.id
+      } else {
+        const runResult = await execMutation(
+          db.insert(tables.settings_storage_providers).values({
+            name: providerConfig.name,
+            provider: providerConfig.provider,
+            config: providerConfig.config,
+          }),
+        )
+        insertedId = Number((runResult as { lastInsertRowid?: unknown }).lastInsertRowid)
+      }
 
       // If no active provider and this is the only provider, set this as active
       const currentActiveProvider = await settingsManager.get<number>(
         'storage',
         'provider',
       )
-      const insertedId = insertedRows[0]?.id
       if (!insertedId) {
         throw new Error('Failed to create storage provider')
       }

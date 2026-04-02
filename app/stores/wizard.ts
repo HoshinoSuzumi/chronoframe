@@ -2,12 +2,19 @@ import { defineStore } from 'pinia'
 import { useLocalStorage } from '@vueuse/core'
 
 export const useWizardStore = defineStore('wizard', () => {
+  const database = ref(
+    useLocalStorage<Record<string, any>>('wizard-database', {}),
+  )
   const admin = ref(useLocalStorage<Record<string, any>>('wizard-admin', {}))
   const site = ref(useLocalStorage<Record<string, any>>('wizard-site', {}))
   const storage = ref(
     useLocalStorage<Record<string, any>>('wizard-storage', {}),
   )
   const map = ref(useLocalStorage<Record<string, any>>('wizard-map', {}))
+
+  const updateDatabase = (data: Record<string, any>) => {
+    database.value = { ...database.value, ...data }
+  }
 
   const updateAdmin = (data: Record<string, any>) => {
     admin.value = { ...admin.value, ...data }
@@ -26,6 +33,7 @@ export const useWizardStore = defineStore('wizard', () => {
   }
 
   const clear = () => {
+    database.value = {}
     admin.value = {}
     site.value = {}
     storage.value = {}
@@ -33,10 +41,12 @@ export const useWizardStore = defineStore('wizard', () => {
   }
 
   return {
+    database,
     admin,
     site,
     storage,
     map,
+    updateDatabase,
     updateAdmin,
     updateSite,
     updateStorage,

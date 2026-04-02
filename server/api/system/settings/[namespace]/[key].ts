@@ -35,6 +35,20 @@ export default eventHandler(async (event) => {
       })
     }
 
+    if (namespace === 'system' && key === 'firstLaunch') {
+      throw createError({
+        statusCode: 403,
+        statusMessage: 'firstLaunch can only be changed by onboarding flow',
+      })
+    }
+
+    if (namespace === 'system' && key.startsWith('bootstrap.database.')) {
+      throw createError({
+        statusCode: 403,
+        statusMessage: 'Database bootstrap settings are immutable',
+      })
+    }
+
     const { value } = await readValidatedBody(
       event,
       z.object({

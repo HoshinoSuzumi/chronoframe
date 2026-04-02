@@ -148,6 +148,21 @@ export const settingKeys = [
 ] as const
 
 export type SettingNamespace = (typeof settingNamespaces)[number]
+export const mutableAfterSetup = new Set<string>([
+  'app:title',
+  'app:slogan',
+  'app:author',
+  'app:avatarUrl',
+  'app:appearance.theme',
+  'map:provider',
+  'map:mapbox.token',
+  'map:mapbox.style',
+  'map:maplibre.token',
+  'map:maplibre.style',
+  'location:mapbox.token',
+  'location:nominatim.baseUrl',
+  'storage:provider',
+])
 export type SettingKey<N extends SettingNamespace> = Extract<
   (typeof DEFAULT_SETTINGS)[number],
   { namespace: N }

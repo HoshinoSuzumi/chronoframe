@@ -1,10 +1,11 @@
 import { drizzle } from 'drizzle-orm/better-sqlite3'
 import { drizzle as drizzlePg } from 'drizzle-orm/node-postgres'
 import Database from 'better-sqlite3'
+import { existsSync } from 'node:fs'
 import { Pool } from 'pg'
 
 import * as schema from '../database/schema'
-import { ensureBootstrapDbConfigSync } from './db-bootstrap'
+import { readBootstrapDbConfigSync } from './db-bootstrap'
 
 export const tables = schema
 export { eq, and, or, inArray } from 'drizzle-orm'
@@ -21,7 +22,20 @@ function initializeDBIfNeeded() {
     return dbInstance
   }
 
-  const config = ensureBootstrapDbConfigSync()
+  const config =
+    readBootstrapDbConfigSync() ||
+    (existsSync('data/app.sqlite3')
+      ? {
+          adapter: 'sqlite' as const,
+          sqlite: { path: 'data/app.sqlite3' },
+        }
+      : null)
+
+  if (!config) {
+    throw new Error(
+      'Database bootstrap configuration is missing. Complete onboarding database step first.',
+    )
+  }
 
   if (config.adapter === 'postgres') {
     pgPool = new Pool({
