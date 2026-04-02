@@ -1,7 +1,18 @@
 import { WorkerPool } from '../services/pipeline-queue'
+import { readBootstrapDbConfigSync } from '~~/server/utils/db-bootstrap'
+import { existsSync } from 'node:fs'
 
 export default defineNitroPlugin(async (_nitroApp) => {
   const _logger = logger.dynamic('queue')
+
+  const hasDbBootstrapConfig = !!readBootstrapDbConfigSync()
+  const hasLegacySqliteFile = existsSync('data/app.sqlite3')
+  if (!hasDbBootstrapConfig && !hasLegacySqliteFile) {
+    _logger.info(
+      'Database bootstrap config is not ready, skipping queue worker startup.',
+    )
+    return
+  }
 
   const workerPool = new WorkerPool(
     {
