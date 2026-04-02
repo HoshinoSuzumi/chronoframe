@@ -1004,6 +1004,36 @@
     }
   },
   "wizard": {
+    "next": "次へ",
+    "previous": "戻る",
+    "database": {
+      "adapter": {
+        "label": "データベースアダプター",
+        "sqlite": {
+          "label": "SQLite",
+          "description": "ローカルファイル型データベース。個人の使用に適しています。"
+        },
+        "postgres": {
+          "label": "PostgreSQL",
+          "description": "強力なサーバーベースのデータベース。本番環境に適しています。"
+        }
+      },
+      "sqlite": {
+        "path": {
+          "label": "データベースパス"
+        }
+      },
+      "postgres": {
+        "url": {
+          "label": "接続 URL"
+        }
+      },
+      "testConnection": "接続をテスト",
+      "testing": "テスト中...",
+      "migrating": "移行中...",
+      "connectionSuccess": "接続成功",
+      "connectionFailed": "接続失敗"
+    },
     "admin": {
       "username": { "label": "ユーザー名" },
       "email": { "label": "メールアドレス" },

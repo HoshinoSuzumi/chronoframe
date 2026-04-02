@@ -12,36 +12,6 @@ const toast = useToast()
 async function onComplete() {
   loading.value = true
   try {
-    const databaseState = store.database
-    const adapter = databaseState.adapter
-    if (!adapter) {
-      throw createError({
-        statusCode: 400,
-        statusMessage: 'Database adapter is required',
-      })
-    }
-    if (adapter === 'postgres') {
-      await $fetch('/api/wizard/bootstrap-db', {
-        method: 'POST',
-        body: {
-          adapter: 'postgres',
-          postgres: {
-            url: databaseState['postgres.url'],
-          },
-        },
-      })
-    } else {
-      await $fetch('/api/wizard/bootstrap-db', {
-        method: 'POST',
-        body: {
-          adapter: 'sqlite',
-          sqlite: {
-            path: databaseState['sqlite.path'] || 'data/app.sqlite3',
-          },
-        },
-      })
-    }
-
     // 1. Prepare Admin Data
     const adminData = store.admin
 

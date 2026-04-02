@@ -1063,6 +1063,36 @@
     }
   },
   "wizard": {
+    "next": "下一步",
+    "previous": "上一步",
+    "database": {
+      "adapter": {
+        "label": "数据库适配器",
+        "sqlite": {
+          "label": "SQLite",
+          "description": "本地文件型数据库。适合个人使用。"
+        },
+        "postgres": {
+          "label": "PostgreSQL",
+          "description": "功能强大的服务器数据库。适合生产环境。"
+        }
+      },
+      "sqlite": {
+        "path": {
+          "label": "数据库路径"
+        }
+      },
+      "postgres": {
+        "url": {
+          "label": "连接 URL"
+        }
+      },
+      "testConnection": "测试连接",
+      "testing": "测试中...",
+      "migrating": "迁移中...",
+      "connectionSuccess": "连接成功",
+      "connectionFailed": "连接失败"
+    },
     "admin": {
       "username": { "label": "用户名" },
       "email": { "label": "电子邮箱" },

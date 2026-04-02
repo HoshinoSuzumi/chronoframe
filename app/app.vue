@@ -21,7 +21,19 @@ useHead({
     `${title ? title + ' | ' : ''}${appTitle.value || 'ChronoFrame'}`,
 })
 
-const { data, refresh, status } = useFetch('/api/photos')
+// Only fetch photos when not in onboarding process
+const isOnboarding = computed(() => router.currentRoute.value.path.startsWith('/onboarding'))
+const { data, refresh, status } = useFetch('/api/photos', {
+  immediate: false,
+})
+
+// Auto-refresh photos when leaving onboarding
+watch(isOnboarding, (onboarding) => {
+  if (!onboarding && !data.value) {
+    refresh()
+  }
+})
+
 const photos = computed(() => (data.value as Photo[]) || [])
 
 const { switchToIndex, closeViewer, clearReturnRoute } = useViewerState()

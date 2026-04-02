@@ -94,6 +94,7 @@
     "@nuxt/test-utils": "3.23.0",
     "@types/better-sqlite3": "^7.6.13",
     "@types/heic-convert": "^2.1.0",
+    "@types/pg": "^8.20.0",
     "baseline-browser-mapping": "^2.10.13",
     "consola": "^3.4.2",
     "dayjs": "^1.11.20",

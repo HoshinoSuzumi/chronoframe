@@ -1061,6 +1061,36 @@
     }
   },
   "wizard": {
+    "next": "Next",
+    "previous": "Previous",
+    "database": {
+      "adapter": {
+        "label": "Database Adapter",
+        "sqlite": {
+          "label": "SQLite",
+          "description": "Local file-based database. Suitable for personal use."
+        },
+        "postgres": {
+          "label": "PostgreSQL",
+          "description": "Powerful server-based database. Suitable for production."
+        }
+      },
+      "sqlite": {
+        "path": {
+          "label": "Database Path"
+        }
+      },
+      "postgres": {
+        "url": {
+          "label": "Connection URL"
+        }
+      },
+      "testConnection": "Test Connection",
+      "testing": "Testing...",
+      "migrating": "Migrating...",
+      "connectionSuccess": "Connection successful",
+      "connectionFailed": "Connection failed"
+    },
     "admin": {
       "username": { "label": "Username" },
       "email": { "label": "Email" },

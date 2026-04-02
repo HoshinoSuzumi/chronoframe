@@ -1004,6 +1004,36 @@
     }
   },
   "wizard": {
+    "next": "下一步",
+    "previous": "上一步",
+    "database": {
+      "adapter": {
+        "label": "資料庫適配器",
+        "sqlite": {
+          "label": "SQLite",
+          "description": "本地檔案型資料庫。適合個人使用。"
+        },
+        "postgres": {
+          "label": "PostgreSQL",
+          "description": "功能強大的伺服器資料庫。適合生產環境。"
+        }
+      },
+      "sqlite": {
+        "path": {
+          "label": "資料庫路徑"
+        }
+      },
+      "postgres": {
+        "url": {
+          "label": "連接 URL"
+        }
+      },
+      "testConnection": "測試連接",
+      "testing": "測試中...",
+      "migrating": "遷移中...",
+      "connectionSuccess": "連接成功",
+      "connectionFailed": "連接失敗"
+    },
     "admin": {
       "username": { "label": "使用者名稱" },
       "email": { "label": "電子郵件" },

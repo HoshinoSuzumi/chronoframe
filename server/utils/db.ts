@@ -1,7 +1,6 @@
 import { drizzle } from 'drizzle-orm/better-sqlite3'
 import { drizzle as drizzlePg } from 'drizzle-orm/node-postgres'
 import Database from 'better-sqlite3'
-import { existsSync } from 'node:fs'
 import { Pool } from 'pg'
 
 import * as schema from '../database/schema'
@@ -24,12 +23,7 @@ function initializeDBIfNeeded() {
 
   const config =
     readBootstrapDbConfigSync() ||
-    (existsSync('data/app.sqlite3')
-      ? {
-          adapter: 'sqlite' as const,
-          sqlite: { path: 'data/app.sqlite3' },
-        }
-      : null)
+     null
 
   if (!config) {
     throw new Error(
