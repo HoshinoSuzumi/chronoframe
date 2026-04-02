@@ -1,5 +1,7 @@
 import { useDB, tables, eq, or, and } from '~~/server/utils/db'
 import { getAll } from '~~/server/utils/db-query'
+import { readBootstrapDbConfigSync } from '~~/server/utils/db-bootstrap'
+import { existsSync } from 'node:fs'
 
 /**
  * 获取所有公开设置
@@ -7,6 +9,19 @@ import { getAll } from '~~/server/utils/db-query'
  * 特例：始终返回 system:firstLaunch 以便前端判断是否需要初始化
  */
 export default eventHandler(async () => {
+  const hasDbBootstrapConfig = !!readBootstrapDbConfigSync()
+  const hasLegacySqliteFile = existsSync('data/app.sqlite3')
+  if (!hasDbBootstrapConfig && !hasLegacySqliteFile) {
+    return {
+      timestamp: Date.now(),
+      data: {
+        system: {
+          firstLaunch: true,
+        },
+      },
+    }
+  }
+
   const db = useDB()
 
   // 查询所有公开设置

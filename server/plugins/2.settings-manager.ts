@@ -1,7 +1,18 @@
 import { DEFAULT_SETTINGS } from '../services/settings/contants'
 import { settingsManager } from '../services/settings/settingsManager'
+import { readBootstrapDbConfigSync } from '~~/server/utils/db-bootstrap'
+import { existsSync } from 'node:fs'
 
 export default defineNitroPlugin(async (_nitroApp) => {
+  const hasDbBootstrapConfig = !!readBootstrapDbConfigSync()
+  const hasLegacySqliteFile = existsSync('data/app.sqlite3')
+  if (!hasDbBootstrapConfig && !hasLegacySqliteFile) {
+    logger
+      .dynamic('settings-mgr')
+      .info('Database bootstrap config is not ready, skipping settings initialization.')
+    return
+  }
+
   const _settingsManager = settingsManager
 
   // Mark initialization phase to prevent storage provider switch triggers

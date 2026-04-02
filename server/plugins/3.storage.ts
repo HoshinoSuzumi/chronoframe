@@ -4,6 +4,8 @@ import { StorageManager, getGlobalStorageManager } from '../services/storage'
 import { setGlobalStorageManager } from '../services/storage/events'
 import { logger } from '../utils/logger'
 import { settingsManager } from '../services/settings/settingsManager'
+import { readBootstrapDbConfigSync } from '~~/server/utils/db-bootstrap'
+import { existsSync } from 'node:fs'
 
 /**
  * Get the global storage manager instance
@@ -18,6 +20,15 @@ export function getStorageManager() {
 }
 
 export default nitroPlugin(async (nitroApp) => {
+  const hasDbBootstrapConfig = !!readBootstrapDbConfigSync()
+  const hasLegacySqliteFile = existsSync('data/app.sqlite3')
+  if (!hasDbBootstrapConfig && !hasLegacySqliteFile) {
+    logger.storage.info(
+      'Database bootstrap config is not ready, skipping storage initialization.',
+    )
+    return
+  }
+
   // const config = useRuntimeConfig()
 
   // Wait for settings migration to complete if still initializing
