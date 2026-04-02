@@ -1,5 +1,6 @@
 import { asc, getTableColumns } from 'drizzle-orm'
 import z from 'zod'
+import { getAll, getOne } from '~~/server/utils/db-query'
 
 export default eventHandler(async (event) => {
   const { albumId } = await getValidatedRouterParams(
@@ -14,11 +15,9 @@ export default eventHandler(async (event) => {
 
   const db = useDB()
 
-  const album = db
-    .select()
-    .from(tables.albums)
-    .where(eq(tables.albums.id, albumId))
-    .get()
+  const album = await getOne(
+    db.select().from(tables.albums).where(eq(tables.albums.id, albumId)),
+  )
 
   if (!album) {
     throw createError({
@@ -28,19 +27,20 @@ export default eventHandler(async (event) => {
   }
 
   // 获取相册中的照片
-  const photos = await db
-    // all fields from tables.photos
-    .select({
-      ...getTableColumns(tables.photos),
-    })
-    .from(tables.photos)
-    .innerJoin(
-      tables.albumPhotos,
-      eq(tables.photos.id, tables.albumPhotos.photoId),
-    )
-    .where(eq(tables.albumPhotos.albumId, albumId))
-    .orderBy(asc(tables.albumPhotos.position))
-    .all()
+  const photos = await getAll(
+    db
+      // all fields from tables.photos
+      .select({
+        ...getTableColumns(tables.photos),
+      })
+      .from(tables.photos)
+      .innerJoin(
+        tables.albumPhotos,
+        eq(tables.photos.id, tables.albumPhotos.photoId),
+      )
+      .where(eq(tables.albumPhotos.albumId, albumId))
+      .orderBy(asc(tables.albumPhotos.position)),
+  )
 
   // 验证相册数据完整性
   if (!photos || !Array.isArray(photos)) {

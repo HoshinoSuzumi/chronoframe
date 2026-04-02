@@ -1,4 +1,6 @@
 import z from 'zod'
+import { execMutation, getOne } from '~~/server/utils/db-query'
+import { withDBTransaction } from '~~/server/utils/db'
 
 export default eventHandler(async (event) => {
   await requireUserSession(event)
@@ -13,18 +15,20 @@ export default eventHandler(async (event) => {
     }).parse,
   )
 
-  const db = useDB()
-
-  const album = db.transaction((tx) => {
-    const newAlbum = tx
-      .insert(tables.albums)
-      .values({
-        title: body.title,
-        description: body.description || null,
-        coverPhotoId: body.coverPhotoId || null,
-      })
-      .returning()
-      .get()
+  const album = await withDBTransaction(async (tx) => {
+    const newAlbum = await getOne(
+      tx
+        .insert(tables.albums)
+        .values({
+          title: body.title,
+          description: body.description || null,
+          coverPhotoId: body.coverPhotoId || null,
+        })
+        .returning(),
+    )
+    if (!newAlbum) {
+      throw new Error('Failed to create album')
+    }
 
     const albumId = newAlbum.id
     const photoIds = new Set(body.photoIds || [])
@@ -36,14 +40,16 @@ export default eventHandler(async (event) => {
     if (photoIds.size > 0) {
       let pos = 1000000
       for (const photoId of photoIds) {
-        tx.insert(tables.albumPhotos)
-          .values({
-            albumId,
-            photoId,
-            position: (pos += 10),
-          })
-          .onConflictDoNothing()
-          .run()
+        await execMutation(
+          tx
+            .insert(tables.albumPhotos)
+            .values({
+              albumId,
+              photoId,
+              position: (pos += 10),
+            })
+            .onConflictDoNothing(),
+        )
       }
     }
 

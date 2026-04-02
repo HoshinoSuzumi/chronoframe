@@ -1,3 +1,5 @@
+import { getOne } from '~~/server/utils/db-query'
+
 const _accessDeniedError = createError({
   statusCode: 403,
   statusMessage:

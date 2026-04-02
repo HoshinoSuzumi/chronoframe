@@ -6,6 +6,7 @@ import type {
   SettingValue,
 } from '~~/shared/types/settings'
 import type { SettingKey, SettingNamespace } from './contants'
+import { execMutation, getAll, getOne } from '~~/server/utils/db-query'
 
 export class SettingsManager {
   private static instance: SettingsManager
@@ -136,21 +137,22 @@ export class SettingsManager {
       }
 
       // Check if setting exists
-      const existing = db
-        .select()
-        .from(tables.settings)
-        .where(
-          and(
-            eq(tables.settings.namespace, config.namespace),
-            eq(tables.settings.key, config.key),
+      const existing = await getOne(
+        db
+          .select()
+          .from(tables.settings)
+          .where(
+            and(
+              eq(tables.settings.namespace, config.namespace),
+              eq(tables.settings.key, config.key),
+            ),
           ),
-        )
-        .get()
+      )
 
       // If not exists and has default value, insert it
       if (!existing) {
-        db.insert(tables.settings)
-          .values({
+        await execMutation(
+          db.insert(tables.settings).values({
             namespace: config.namespace,
             key: config.key,
             type: config.type,
@@ -162,8 +164,8 @@ export class SettingsManager {
             isReadonly: config.isReadonly,
             isSecret: config.isSecret,
             enum: config.enum ? config.enum : null,
-          })
-          .run()
+          }),
+        )
       }
     }
   }
@@ -183,16 +185,17 @@ export class SettingsManager {
 
     // If not in cache, fetch from database
     const db = useDB()
-    const setting = db
-      .select()
-      .from(tables.settings)
-      .where(
-        and(
-          eq(tables.settings.namespace, namespace),
-          eq(tables.settings.key, key),
+    const setting = await getOne(
+      db
+        .select()
+        .from(tables.settings)
+        .where(
+          and(
+            eq(tables.settings.namespace, namespace),
+            eq(tables.settings.key, key),
+          ),
         ),
-      )
-      .get()
+    )
 
     // If not found, return default value
     if (!setting) {
@@ -219,16 +222,17 @@ export class SettingsManager {
     const db = useDB()
     const cacheKey = this.getCacheKey(namespace, key)
 
-    const existing = db
-      .select()
-      .from(tables.settings)
-      .where(
-        and(
-          eq(tables.settings.namespace, namespace),
-          eq(tables.settings.key, key),
+    const existing = await getOne(
+      db
+        .select()
+        .from(tables.settings)
+        .where(
+          and(
+            eq(tables.settings.namespace, namespace),
+            eq(tables.settings.key, key),
+          ),
         ),
-      )
-      .get()
+    )
 
     if (!existing) {
       this._logger.warn(`Setting ${namespace}:${key} does not exist`)
@@ -253,19 +257,21 @@ export class SettingsManager {
 
     const serializedValue = this.serialize(value)
 
-    db.update(tables.settings)
-      .set({
-        value: serializedValue,
-        updatedAt: new Date(),
-        updatedBy: updatedBy ?? null,
-      })
-      .where(
-        and(
-          eq(tables.settings.namespace, namespace),
-          eq(tables.settings.key, key),
+    await execMutation(
+      db
+        .update(tables.settings)
+        .set({
+          value: serializedValue,
+          updatedAt: new Date(),
+          updatedBy: updatedBy ?? null,
+        })
+        .where(
+          and(
+            eq(tables.settings.namespace, namespace),
+            eq(tables.settings.key, key),
+          ),
         ),
-      )
-      .run()
+    )
 
     this._logger.info(`Setting ${namespace}:${key} updated`)
     this.settingsCache.set(cacheKey, value)
@@ -329,11 +335,9 @@ export class SettingsManager {
     namespace: SettingNamespace,
   ): Promise<Record<string, SettingValue>> {
     const db = useDB()
-    const settings = db
-      .select()
-      .from(tables.settings)
-      .where(eq(tables.settings.namespace, namespace))
-      .all()
+    const settings = await getAll(
+      db.select().from(tables.settings).where(eq(tables.settings.namespace, namespace)),
+    )
 
     const result: Record<string, SettingValue> = {}
 
@@ -345,7 +349,7 @@ export class SettingsManager {
 
   async getSchema(): Promise<SettingConfig[]> {
     const db = useDB()
-    const settings = db.select().from(tables.settings).all()
+    const settings = await getAll(db.select().from(tables.settings))
 
     return settings.map((setting) => ({
       namespace: setting.namespace,
@@ -368,20 +372,20 @@ export class SettingsManager {
   public storage = {
     async getProviders(): Promise<SettingStorageProvider[]> {
       const db = useDB()
-      const providers = db
-        .select()
-        .from(tables.settings_storage_providers)
-        .all()
+      const providers = await getAll(
+        db.select().from(tables.settings_storage_providers),
+      )
       return providers
     },
 
     async getProviderById(id: number): Promise<SettingStorageProvider | null> {
       const db = useDB()
-      const provider = db
-        .select()
-        .from(tables.settings_storage_providers)
-        .where(eq(tables.settings_storage_providers.id, id))
-        .get()
+      const provider = await getOne(
+        db
+          .select()
+          .from(tables.settings_storage_providers)
+          .where(eq(tables.settings_storage_providers.id, id)),
+      )
       return provider || null
     },
 
@@ -400,28 +404,32 @@ export class SettingsManager {
       providerConfig: NewSettingStorageProvider,
     ): Promise<number> {
       const db = useDB()
-      const result = db
+      const insertedRows = await db
         .insert(tables.settings_storage_providers)
         .values({
           name: providerConfig.name,
           provider: providerConfig.provider,
           config: providerConfig.config,
         })
-        .run()
+        .returning({ id: tables.settings_storage_providers.id })
 
       // If no active provider and this is the only provider, set this as active
       const currentActiveProvider = await settingsManager.get<number>(
         'storage',
         'provider',
       )
+      const insertedId = insertedRows[0]?.id
+      if (!insertedId) {
+        throw new Error('Failed to create storage provider')
+      }
       if (!currentActiveProvider && (await this.getProviders()).length === 1) {
         await settingsManager.set(
           'storage',
           'provider',
-          result.lastInsertRowid as number,
+          insertedId,
         )
       }
-      return result.lastInsertRowid as number
+      return insertedId
     },
 
     async updateProvider(
@@ -429,19 +437,23 @@ export class SettingsManager {
       providerConfig: Partial<NewSettingStorageProvider['config']>,
     ): Promise<void> {
       const db = useDB()
-      db.update(tables.settings_storage_providers)
-        .set({
-          ...providerConfig,
-        })
-        .where(eq(tables.settings_storage_providers.id, id))
-        .run()
+      await execMutation(
+        db
+          .update(tables.settings_storage_providers)
+          .set({
+            ...providerConfig,
+          })
+          .where(eq(tables.settings_storage_providers.id, id)),
+      )
     },
 
     async deleteProvider(id: number): Promise<void> {
       const db = useDB()
-      db.delete(tables.settings_storage_providers)
-        .where(eq(tables.settings_storage_providers.id, id))
-        .run()
+      await execMutation(
+        db
+          .delete(tables.settings_storage_providers)
+          .where(eq(tables.settings_storage_providers.id, id)),
+      )
     },
   }
 }

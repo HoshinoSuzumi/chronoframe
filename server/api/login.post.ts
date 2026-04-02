@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { getOne } from '~~/server/utils/db-query'
 
 const _invalidCredentialsError = createError({
   statusCode: 401,

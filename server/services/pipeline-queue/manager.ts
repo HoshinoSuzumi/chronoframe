@@ -20,6 +20,8 @@ import {
 import { findLivePhotoVideoForImage } from '../video/livephoto'
 import { processMotionPhotoFromXmp } from '../video/motion-photo'
 import { getStorageManager } from '~~/server/plugins/3.storage'
+import { execMutation, getOne } from '~~/server/utils/db-query'
+import { withDBTransaction } from '~~/server/utils/db'
 
 export class QueueManager {
   private static instances: Map<string, QueueManager> = new Map()
@@ -84,14 +86,18 @@ export class QueueManager {
     options?: Partial<NewPipelineQueueItem>,
   ): Promise<number> {
     const db = useDB()
-    const result = db
-      .insert(tables.pipelineQueue)
-      .values({
-        payload,
-        ...options,
-      })
-      .returning({ id: tables.pipelineQueue.id })
-      .get()
+    const result = await getOne(
+      db
+        .insert(tables.pipelineQueue)
+        .values({
+          payload,
+          ...options,
+        })
+        .returning({ id: tables.pipelineQueue.id }),
+    )
+    if (!result) {
+      throw new Error('Failed to add queue task')
+    }
     return result.id
   }
 
@@ -102,11 +108,9 @@ export class QueueManager {
    */
   async getTaskStatus(taskId: number) {
     const db = useDB()
-    const task = await db
-      .select()
-      .from(tables.pipelineQueue)
-      .where(eq(tables.pipelineQueue.id, taskId))
-      .get()
+    const task = await getOne(
+      db.select().from(tables.pipelineQueue).where(eq(tables.pipelineQueue.id, taskId)),
+    )
     return task
   }
 
@@ -115,29 +119,30 @@ export class QueueManager {
    * @returns 下一个待处理任务
    */
   async getNextTask(): Promise<PipelineQueueItem | null> {
-    const db = useDB()
-
     // 使用同步事务防止竞态条件
-    const task = db.transaction((tx) => {
-      const highestPriorityPendingTask = tx
-        .select()
-        .from(tables.pipelineQueue)
-        .where(eq(tables.pipelineQueue.status, 'pending'))
-        // 优先处理高优先级和较早创建的任务
-        .orderBy(
-          desc(tables.pipelineQueue.priority),
-          asc(tables.pipelineQueue.createdAt),
-        )
-        .limit(1)
-        .get()
+    const task = await withDBTransaction(async (tx) => {
+      const highestPriorityPendingTask = await getOne(
+        tx
+          .select()
+          .from(tables.pipelineQueue)
+          .where(eq(tables.pipelineQueue.status, 'pending'))
+          // 优先处理高优先级和较早创建的任务
+          .orderBy(
+            desc(tables.pipelineQueue.priority),
+            asc(tables.pipelineQueue.createdAt),
+          )
+          .limit(1),
+      )
 
       if (!highestPriorityPendingTask) return null
 
       const task = highestPriorityPendingTask
-      tx.update(tables.pipelineQueue)
-        .set({ status: 'in-stages' })
-        .where(eq(tables.pipelineQueue.id, task.id))
-        .run()
+      await execMutation(
+        tx
+          .update(tables.pipelineQueue)
+          .set({ status: 'in-stages' })
+          .where(eq(tables.pipelineQueue.id, task.id)),
+      )
 
       return { ...task, status: 'in-stages' as const }
     })
@@ -183,11 +188,9 @@ export class QueueManager {
    */
   async markTaskFailed(taskId: number, errorMessage?: string): Promise<void> {
     const db = useDB()
-    const task = await db
-      .select()
-      .from(tables.pipelineQueue)
-      .where(eq(tables.pipelineQueue.id, taskId))
-      .get()
+    const task = await getOne(
+      db.select().from(tables.pipelineQueue).where(eq(tables.pipelineQueue.id, taskId)),
+    )
 
     if (!task) return
 
@@ -450,11 +453,9 @@ export class QueueManager {
             `[${taskId}:in-stage] reverse geocoding for photo ${photoId}`,
           )
 
-          const photo = await db
-            .select()
-            .from(tables.photos)
-            .where(eq(tables.photos.id, photoId))
-            .get()
+          const photo = await getOne(
+            db.select().from(tables.photos).where(eq(tables.photos.id, photoId)),
+          )
 
           if (!photo) {
             this.logger.warn(

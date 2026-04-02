@@ -1,5 +1,6 @@
-const HEIC_EXTENSIONS = ['.heic', '.heif', '.hif']
 import { execMutation, getOne } from '~~/server/utils/db-query'
+
+const HEIC_EXTENSIONS = ['.heic', '.heif', '.hif']
 
 export default eventHandler(async (event) => {
   await requireUserSession(event)

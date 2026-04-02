@@ -1,4 +1,6 @@
 import { z } from 'zod'
+import { execMutation, getOne } from '~~/server/utils/db-query'
+import { withDBTransaction } from '~~/server/utils/db'
 
 export default eventHandler(async (event) => {
   await requireUserSession(event)
@@ -26,11 +28,9 @@ export default eventHandler(async (event) => {
   const db = useDB()
 
   // 检查相簿是否存在
-  const album = await db
-    .select()
-    .from(tables.albums)
-    .where(eq(tables.albums.id, albumId))
-    .get()
+  const album = await getOne(
+    db.select().from(tables.albums).where(eq(tables.albums.id, albumId)),
+  )
 
   if (!album) {
     throw createError({
@@ -40,7 +40,7 @@ export default eventHandler(async (event) => {
   }
 
   // 使用事务更新相簿
-  const updatedAlbum = db.transaction((tx) => {
+  const updatedAlbum = await withDBTransaction(async (tx) => {
     // 更新基本信息
     const updateData: Record<string, any> = {
       updatedAt: new Date(),
@@ -58,17 +58,16 @@ export default eventHandler(async (event) => {
       updateData.coverPhotoId = body.coverPhotoId || null
     }
 
-    tx.update(tables.albums)
-      .set(updateData)
-      .where(eq(tables.albums.id, albumId))
-      .run()
+    await execMutation(
+      tx.update(tables.albums).set(updateData).where(eq(tables.albums.id, albumId)),
+    )
 
     // 如果提供了新的照片列表，替换现有照片
     if (body.photoIds !== undefined) {
       // 删除现有的相簌-照片关系
-      tx.delete(tables.albumPhotos)
-        .where(eq(tables.albumPhotos.albumId, albumId))
-        .run()
+      await execMutation(
+        tx.delete(tables.albumPhotos).where(eq(tables.albumPhotos.albumId, albumId)),
+      )
 
       // 添加新的相簌-照片关系
       const photoIds = new Set(body.photoIds)
@@ -81,23 +80,23 @@ export default eventHandler(async (event) => {
       if (photoIds.size > 0) {
         let pos = 1000000
         for (const photoId of photoIds) {
-          tx.insert(tables.albumPhotos)
-            .values({
-              albumId,
-              photoId,
-              position: (pos += 10),
-            })
-            .onConflictDoNothing()
-            .run()
+          await execMutation(
+            tx
+              .insert(tables.albumPhotos)
+              .values({
+                albumId,
+                photoId,
+                position: (pos += 10),
+              })
+              .onConflictDoNothing(),
+          )
         }
       }
     }
 
-    return tx
-      .select()
-      .from(tables.albums)
-      .where(eq(tables.albums.id, albumId))
-      .get()
+    return getOne(
+      tx.select().from(tables.albums).where(eq(tables.albums.id, albumId)),
+    )
   })
 
   return updatedAlbum

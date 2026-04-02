@@ -2,6 +2,7 @@ import { z } from 'zod'
 import { settingsManager } from '~~/server/services/settings/settingsManager'
 import { storageConfigSchema } from '~~/shared/types/storage'
 import { useDB, tables, eq } from '~~/server/utils/db'
+import { execMutation, getOne } from '~~/server/utils/db-query'
 
 export default eventHandler(async (event) => {
   const body = await readValidatedBody(
@@ -33,18 +34,19 @@ export default eventHandler(async (event) => {
   const db = useDB()
 
   // 1. Handle Admin User
-  const existingUser = db.select().from(tables.users).limit(1).get()
+  const existingUser = await getOne(db.select().from(tables.users).limit(1))
   if (existingUser) {
     if (existingUser.email === body.admin.email) {
-      await db
-        .update(tables.users)
-        .set({
-          password: await hashPassword(body.admin.password),
-          username: body.admin.username,
-          isAdmin: 1,
-        })
-        .where(eq(tables.users.id, existingUser.id))
-        .run()
+      await execMutation(
+        db
+          .update(tables.users)
+          .set({
+            password: await hashPassword(body.admin.password),
+            username: body.admin.username,
+            isAdmin: 1,
+          })
+          .where(eq(tables.users.id, existingUser.id)),
+      )
     } else {
       throw createError({
         statusCode: 400,
@@ -52,16 +54,15 @@ export default eventHandler(async (event) => {
       })
     }
   } else {
-    await db
-      .insert(tables.users)
-      .values({
+    await execMutation(
+      db.insert(tables.users).values({
         email: body.admin.email,
         username: body.admin.username,
         password: await hashPassword(body.admin.password),
         isAdmin: 1,
         createdAt: new Date(),
-      })
-      .run()
+      }),
+    )
   }
 
   // 2. Handle Site Settings

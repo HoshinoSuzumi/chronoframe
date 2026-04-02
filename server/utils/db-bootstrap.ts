@@ -75,12 +75,12 @@ export async function ensureBootstrapDbConfig(): Promise<BootstrapDbConfig> {
     return existing
   }
 
-  return writeBootstrapDbConfig({
+  return {
     adapter: 'sqlite',
     sqlite: {
       path: DEFAULT_SQLITE_PATH,
     },
-  })
+  }
 }
 
 export function readBootstrapDbConfigSync(): BootstrapDbConfig | null {
@@ -113,10 +113,10 @@ export function ensureBootstrapDbConfigSync(): BootstrapDbConfig {
     return existing
   }
 
-  return writeBootstrapDbConfigSync({
+  return {
     adapter: 'sqlite',
     sqlite: {
       path: DEFAULT_SQLITE_PATH,
     },
-  })
+  }
 }
