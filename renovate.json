@@ -1,6 +1,6 @@
 {
   "extends": [
-    "config:base"
+"config:recommended"
   ],
   "schedule": [
     "before 5am on monday"
@@ -13,7 +13,9 @@
   "dependencyDashboard": true,
   "rebaseWhen": "conflicted",
   "ignoreDeps": [],
-  "vulnerabilityAlerts": false,
+  "vulnerabilityAlerts": {
+    "enabled": false
+  },
   "packageRules": [
     {
       "matchUpdateTypes": [
