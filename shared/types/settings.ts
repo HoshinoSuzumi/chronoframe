@@ -68,6 +68,8 @@ export interface FieldUIConfig {
   required?: boolean
   minLength?: number
   maxLength?: number
+  min?: number // 最小值（用于 number 类型）
+  max?: number // 最大值（用于 number 类型）
   pattern?: string // 正则表达式
 
   // 样式和尺寸

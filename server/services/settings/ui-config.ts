@@ -32,6 +32,8 @@ export const APP_SETTINGS_UI: Record<string, FieldUIConfig> = {
   'upload.maxFileSize': {
     type: 'number',
     help: 'settings.app.upload.maxFileSize.help',
+    min: 1,
+    max: 10240,
   },
   'appearance.theme': {
     type: 'tabs',
