@@ -63,6 +63,15 @@ export const DEFAULT_SETTINGS = [
     description: 'settings.app.appearance.theme.description',
     isPublic: true,
   },
+  {
+    namespace: 'app',
+    key: 'upload.maxFileSize',
+    type: 'number',
+    defaultValue: 256,
+    label: 'settings.app.upload.maxFileSize.label',
+    description: 'settings.app.upload.maxFileSize.description',
+    isPublic: true,
+  },
   // NAMESPACE: map
   {
     namespace: 'map',

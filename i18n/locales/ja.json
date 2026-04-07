@@ -838,6 +838,13 @@
           "dark": "ダーク",
           "system": "システム"
         }
+      },
+      "upload": {
+        "maxFileSize": {
+          "label": "アップロードファイルの最大サイズ",
+          "description": "アップロード可能な単一ファイルの最大サイズ（MB）",
+          "help": "設定後すぐに反映され、全ユーザーのファイルアップロードに適用されます"
+        }
       }
     },
     "map": {
@@ -1005,10 +1012,18 @@
   },
   "wizard": {
     "admin": {
-      "username": { "label": "ユーザー名" },
-      "email": { "label": "メールアドレス" },
-      "password": { "label": "パスワード" },
-      "confirmPassword": { "label": "パスワード（確認）" }
+      "username": {
+        "label": "ユーザー名"
+      },
+      "email": {
+        "label": "メールアドレス"
+      },
+      "password": {
+        "label": "パスワード"
+      },
+      "confirmPassword": {
+        "label": "パスワード（確認）"
+      }
     },
     "map": {
       "provider": {

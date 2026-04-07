@@ -33,7 +33,10 @@ useHead({
   title: $t('title.photos'),
 })
 
-const MAX_FILE_SIZE = 256 // in MB
+const MAX_FILE_SIZE = computed(() => {
+  const val = getSetting('app:upload.maxFileSize')
+  return typeof val === 'number' ? val : 256
+})
 
 const dayjs = useDayjs()
 
@@ -1005,13 +1008,13 @@ const validateFile = (file: File): { valid: boolean; error?: string } => {
     }
   }
 
-  const maxSize = MAX_FILE_SIZE * 1024 * 1024
+  const maxSize = MAX_FILE_SIZE.value * 1024 * 1024
   if (file.size > maxSize) {
     return {
       valid: false,
       error: $t('dashboard.photos.errors.fileTooLarge', {
         size: (file.size / 1024 / 1024).toFixed(2),
-        maxSize: MAX_FILE_SIZE,
+        maxSize: MAX_FILE_SIZE.value,
       }),
     }
   }

@@ -895,6 +895,13 @@
           "dark": "Dark",
           "system": "System"
         }
+      },
+      "upload": {
+        "maxFileSize": {
+          "label": "Max Upload File Size",
+          "description": "Maximum size of a single uploaded file (MB)",
+          "help": "Takes effect immediately and applies to all users"
+        }
       }
     },
     "map": {
@@ -1062,10 +1069,18 @@
   },
   "wizard": {
     "admin": {
-      "username": { "label": "Username" },
-      "email": { "label": "Email" },
-      "password": { "label": "Password" },
-      "confirmPassword": { "label": "Confirm Password" }
+      "username": {
+        "label": "Username"
+      },
+      "email": {
+        "label": "Email"
+      },
+      "password": {
+        "label": "Password"
+      },
+      "confirmPassword": {
+        "label": "Confirm Password"
+      }
     },
     "map": {
       "provider": {

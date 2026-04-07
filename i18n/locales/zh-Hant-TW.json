@@ -838,6 +838,13 @@
           "dark": "深色",
           "system": "系統"
         }
+      },
+      "upload": {
+        "maxFileSize": {
+          "label": "最大上傳檔案大小",
+          "description": "允許上傳的單一檔案最大大小（MB）",
+          "help": "設定後立即生效，影響所有使用者的檔案上傳操作"
+        }
       }
     },
     "map": {
@@ -1005,10 +1012,18 @@
   },
   "wizard": {
     "admin": {
-      "username": { "label": "使用者名稱" },
-      "email": { "label": "電子郵件" },
-      "password": { "label": "密碼" },
-      "confirmPassword": { "label": "確認密碼" }
+      "username": {
+        "label": "使用者名稱"
+      },
+      "email": {
+        "label": "電子郵件"
+      },
+      "password": {
+        "label": "密碼"
+      },
+      "confirmPassword": {
+        "label": "確認密碼"
+      }
     },
     "map": {
       "provider": {

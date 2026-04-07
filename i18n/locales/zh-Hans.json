@@ -897,6 +897,13 @@
           "dark": "深色",
           "system": "系统"
         }
+      },
+      "upload": {
+        "maxFileSize": {
+          "label": "最大上传文件大小",
+          "description": "允许上传的单个文件最大大小（MB）",
+          "help": "设置后将立即生效，影响所有用户的文件上传操作"
+        }
       }
     },
     "map": {
@@ -1064,10 +1071,18 @@
   },
   "wizard": {
     "admin": {
-      "username": { "label": "用户名" },
-      "email": { "label": "电子邮箱" },
-      "password": { "label": "密码" },
-      "confirmPassword": { "label": "确认密码" }
+      "username": {
+        "label": "用户名"
+      },
+      "email": {
+        "label": "电子邮箱"
+      },
+      "password": {
+        "label": "密码"
+      },
+      "confirmPassword": {
+        "label": "确认密码"
+      }
     },
     "map": {
       "provider": {
