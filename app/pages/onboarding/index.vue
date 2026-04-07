@@ -9,8 +9,8 @@ definePageMeta({
     title="欢迎使用 ChronoFrame"
     description="跟随向导，在几分钟内设置好您的画廊。"
   >
-    <div class="space-y-8">
-      <div class="text-neutral-300 space-y-4 text-lg leading-relaxed">
+    <div class="space-y-6">
+      <div class="text-neutral-300 text-base leading-relaxed">
         <p>
           ChronoFrame
           是一款多功能个人画廊应用程序。在您开始上传照片之前，我们需要先配置一些内容：

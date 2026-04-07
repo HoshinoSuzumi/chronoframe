@@ -13,13 +13,18 @@ export default eventHandler(async (event) => {
 
   // 1. Admin Account Schema
   if (query.namespace === 'admin') {
+    // Use env variables for default values if configured
+    const defaultUsername = process.env.CFRAME_ADMIN_NAME || 'admin'
+    const defaultEmail = process.env.CFRAME_ADMIN_EMAIL || ''
+    const defaultPassword = process.env.CFRAME_ADMIN_PASSWORD || ''
+
     const fields: FieldDescriptor[] = [
       {
         namespace: 'admin',
         key: 'username',
         type: 'string',
-        defaultValue: 'admin',
-        value: 'admin',
+        defaultValue: defaultUsername,
+        value: defaultUsername,
         label: 'wizard.admin.username.label',
         ui: { type: 'input', required: true, placeholder: 'admin' },
       },
@@ -27,8 +32,8 @@ export default eventHandler(async (event) => {
         namespace: 'admin',
         key: 'email',
         type: 'string',
-        defaultValue: '',
-        value: '',
+        defaultValue: defaultEmail,
+        value: defaultEmail,
         label: 'wizard.admin.email.label',
         ui: { type: 'input', required: true, placeholder: 'admin@example.com' },
       },
@@ -36,8 +41,8 @@ export default eventHandler(async (event) => {
         namespace: 'admin',
         key: 'password',
         type: 'string',
-        defaultValue: '',
-        value: '',
+        defaultValue: defaultPassword,
+        value: defaultPassword,
         label: 'wizard.admin.password.label',
         ui: { type: 'password', required: true },
       },
@@ -45,8 +50,8 @@ export default eventHandler(async (event) => {
         namespace: 'admin',
         key: 'confirmPassword',
         type: 'string',
-        defaultValue: '',
-        value: '',
+        defaultValue: defaultPassword,
+        value: defaultPassword,
         label: 'wizard.admin.confirmPassword.label',
         ui: { type: 'password', required: true },
       },
