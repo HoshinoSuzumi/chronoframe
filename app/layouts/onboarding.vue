@@ -76,7 +76,7 @@ const currentStepIndex = computed(() => {
 
     <!-- Main Container -->
     <motion.div
-      class="relative z-10 w-full max-w-6xl h-[80vh] max-h-[900px] mx-4 lg:mx-8 flex rounded-3xl overflow-hidden border border-white/10 bg-neutral-900/40 backdrop-blur-2xl shadow-2xl shadow-black/50"
+      class="relative z-10 w-full max-w-6xl h-[80vh] max-h-225 mx-4 lg:mx-8 flex rounded-3xl overflow-hidden border border-white/10 bg-neutral-900/40 backdrop-blur-2xl shadow-2xl shadow-black/50"
       :initial="{ opacity: 0, scale: 0.95, y: 20 }"
       :animate="{ opacity: 1, scale: 1, y: 0 }"
       :transition="{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }"
@@ -104,7 +104,7 @@ const currentStepIndex = computed(() => {
           <div class="space-y-1 relative">
             <!-- Connecting Line -->
             <div
-              class="absolute left-[27px] top-4 bottom-4 w-0.5 bg-white/5 rounded-full"
+              class="absolute left-6.75 top-4 bottom-4 w-0.5 bg-white/5 rounded-full"
             >
               <!-- Active Line Wrapper -->
               <div
