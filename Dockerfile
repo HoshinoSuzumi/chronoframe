@@ -41,5 +41,6 @@ ENV NITRO_PORT=3000
 ENV NITRO_HOST=0.0.0.0
 ENV DATABASE_URL=./data/app.sqlite3
 ENV SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt
+ENV NODE_EXTRA_CA_CERTS=/etc/ssl/certs/ca-certificates.crt
 
 CMD ["/usr/bin/node", ".output/server/index.mjs"]
