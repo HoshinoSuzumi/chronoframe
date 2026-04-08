@@ -37,12 +37,8 @@ const ogImageError = ref(false)
 const loadingTimer = ref<NodeJS.Timeout | null>(null)
 
 const ogImageUrl = computed(() => {
-  if (typeof window !== 'undefined') {
-    // Add timestamp to prevent caching issues
-    const timestamp = Date.now()
-    return `${window.location.origin}/__og-image__/image/${props.photo.id}/og.png?t=${timestamp}`
-  }
-  return ''
+  const ogImageMeta = document.querySelector('meta[property="og:image"]')
+  return ogImageMeta?.getAttribute('content') || ''
 })
 
 // Reset loading state when photo changes or modal opens

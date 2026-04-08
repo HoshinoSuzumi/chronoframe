@@ -1,33 +1,30 @@
 <script lang="ts" setup>
 import { formatCameraInfo } from '~/utils/camera'
 
-const props = withDefaults(
-  defineProps<{
-    photo?: Photo
-    title?: string
-    description?: string
-    headline?: string
-    thumbnailJpegUrl?: string
-  }>(),
-  {
-    photo: undefined,
-    title: 'title',
-    description: '',
-    headline: 'headline',
-    class: '',
-    thumbnailJpegUrl: undefined,
-  },
-)
+const {
+  photo,
+  title = '',
+  description = '',
+  headline = 'headline',
+  thumbnailJpegUrl,
+} = defineProps<{
+  photo?: Photo
+  title?: string
+  description?: string
+  headline?: string
+  thumbnailJpegUrl?: string
+}>()
 
 const config = useRuntimeConfig()
 
-const title = computed(() => (props.title || '').slice(0, 60))
-const description = computed(() => (props.description || '').slice(0, 200))
+// const description = computed(() => (props.description || '').slice(0, 200))
 </script>
 
+<!-- TODO: fix CJK font weight -->
 <template>
   <div
     :class="'w-full h-full flex flex-col justify-center bg-neutral-950 relative'"
+    style="font-family: 'Rubik', 'Noto Sans SC', sans-serif; font-weight: 700"
   >
     <img
       v-if="thumbnailJpegUrl"
@@ -81,9 +78,7 @@ const description = computed(() => (props.description || '').slice(0, 200))
               class="size-10"
               mode="svg"
             />
-            <span class="truncate">
-              {{ photo.city }}
-            </span>
+            <span class="truncate"> {{ photo.city }} </span>
           </div>
           <div
             v-if="photo.exif?.Model"

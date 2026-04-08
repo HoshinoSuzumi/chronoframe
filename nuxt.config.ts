@@ -5,7 +5,7 @@ import type { AnalyticsConfig } from './shared/types/config'
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
   compatibilityDate: '2025-07-15',
-  devtools: { enabled: false },
+  devtools: { enabled: true },
 
   modules: [
     'reka-ui/nuxt',
@@ -201,8 +201,26 @@ export default defineNuxtConfig({
     },
   },
 
+  fonts: {
+    families: [
+      {
+        name: 'Rubik',
+        weights: [400, 500, 600, 700],
+        global: true,
+      },
+      {
+        name: 'Noto Sans SC',
+        weights: [400, 500, 600, 700],
+        global: true,
+      },
+    ],
+  },
+
   ogImage: {
-    fonts: ['Rubik:400', 'Rubik:700', 'Noto+Sans+SC:400', 'Noto+Sans+SC:700'],
+    security: {
+      secret:
+        '3ea339510a64f2bcb5823d960b89f6a5fa04186ff005acdf479c381fcb0de352',
+    },
   },
 
   dayjs: {

@@ -19,12 +19,15 @@ const currentPhoto = computed(() =>
   photos.value.find((photo) => photo.id === photoId.value),
 )
 
-defineOgImageComponent('Photo', {
+const appTitle = computed(() => {
+  const value = getSetting('app:title')
+  return typeof value === 'string' ? value : undefined
+})
+
+defineOgImage('Photo.takumi', {
   headline: currentPhoto.value ? 'PHOTO' : 'ChronoFrame',
-  title: currentPhoto.value?.title || getSetting('app:title'),
-  description: currentPhoto.value
-    ? currentPhoto.value.description
-    : getSetting('app:title'),
+  title: currentPhoto.value?.title || appTitle.value,
+  description: currentPhoto.value?.description || appTitle.value,
   thumbnailJpegUrl:
     currentPhoto.value && currentPhoto.value.thumbnailKey
       ? `/thumb/${encodeURIComponent(currentPhoto.value.thumbnailUrl || '')}`
