@@ -22,7 +22,8 @@ export default eventHandler(async (event) => {
 
   try {
     switch (action) {
-      case 'scan': { // 扫描现有文件
+      case 'scan': {
+        // 扫描现有文件
         const scanResults = await scanAndProcessExistingLivePhotos()
         return {
           message: 'Scan completed',
@@ -30,7 +31,8 @@ export default eventHandler(async (event) => {
         }
       }
 
-      case 'detect': { // 批量检测现有照片的 LivePhoto 视频
+      case 'detect': {
+        // 批量检测现有照片的 LivePhoto 视频
         const results = await batchTestLivePhotoDetection(photoIds)
         return {
           message: 'Batch LivePhoto detection completed',
@@ -38,7 +40,8 @@ export default eventHandler(async (event) => {
         }
       }
 
-      case 'process': { // 处理特定文件
+      case 'process': {
+        // 处理特定文件
         if (!videoKey) {
           throw createError({
             statusCode: 400,
@@ -56,8 +59,7 @@ export default eventHandler(async (event) => {
         }
       }
 
-      case 'update-photo': // 为特定照片检查和更新 LivePhoto 状态
-      {
+      case 'update-photo': { // 为特定照片检查和更新 LivePhoto 状态
         if (!photoId) {
           throw createError({
             statusCode: 400,

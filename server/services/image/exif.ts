@@ -293,65 +293,74 @@ export const extractExifData = async (
   logger?: Logger[keyof Logger],
 ): Promise<NeededExif | null> => {
   try {
-    return await withRetry(async () => {
-      let tempImagePath: string | null = null
-      
-      try {
-        // 提取基础元数据
-        let metadata = await sharp(imageBuffer).metadata()
+    return await withRetry(
+      async () => {
+        let tempImagePath: string | null = null
 
-        // 如果主buffer没有EXIF，尝试原始buffer
-        if (!metadata.exif && rawImageBuffer) {
-          try {
-            metadata = await sharp(rawImageBuffer).metadata()
-          } catch (err) {
-            logger?.warn('Error extracting EXIF data from raw image buffer:', err)
+        try {
+          // 提取基础元数据
+          let metadata = await sharp(imageBuffer).metadata()
+
+          // 如果主buffer没有EXIF，尝试原始buffer
+          if (!metadata.exif && rawImageBuffer) {
+            try {
+              metadata = await sharp(rawImageBuffer).metadata()
+            } catch (err) {
+              logger?.warn(
+                'Error extracting EXIF data from raw image buffer:',
+                err,
+              )
+            }
+          }
+
+          if (!metadata.exif) {
+            logger?.warn('No EXIF data found in image metadata')
+            return null
+          }
+
+          logger?.info('Extracting EXIF data using exiftool...')
+
+          // 创建临时工作目录
+          const tempDir = path.resolve(process.cwd(), 'data/.exif_workdir')
+          await mkdir(tempDir, { recursive: true })
+          tempImagePath = path.resolve(tempDir, `${crypto.randomUUID()}.jpg`)
+
+          // 写入临时文件
+          await writeFile(tempImagePath, rawImageBuffer || imageBuffer)
+
+          // 使用 exiftool 读取详细 EXIF 数据
+          const exifData = await exiftool.read(tempImagePath)
+          const result = processExifData(exifData, metadata)
+
+          // 记录颜色空间信息
+          if (result.ColorSpace) {
+            logger?.success(`Inferred ColorSpace: ${result.ColorSpace}`)
+          } else {
+            logger?.info('ColorSpace could not be determined')
+          }
+
+          return result
+        } finally {
+          // 确保清理临时文件
+          if (tempImagePath) {
+            await unlink(tempImagePath).catch(noop)
           }
         }
-
-        if (!metadata.exif) {
-          logger?.warn('No EXIF data found in image metadata')
-          return null
-        }
-
-        logger?.info('Extracting EXIF data using exiftool...')
-
-        // 创建临时工作目录
-        const tempDir = path.resolve(process.cwd(), 'data/.exif_workdir')
-        await mkdir(tempDir, { recursive: true })
-        tempImagePath = path.resolve(tempDir, `${crypto.randomUUID()}.jpg`)
-
-        // 写入临时文件
-        await writeFile(tempImagePath, rawImageBuffer || imageBuffer)
-        
-        // 使用 exiftool 读取详细 EXIF 数据
-        const exifData = await exiftool.read(tempImagePath)
-        const result = processExifData(exifData, metadata)
-
-        // 记录颜色空间信息
-        if (result.ColorSpace) {
-          logger?.success(`Inferred ColorSpace: ${result.ColorSpace}`)
-        } else {
-          logger?.info('ColorSpace could not be determined')
-        }
-
-        return result
-      } finally {
-        // 确保清理临时文件
-        if (tempImagePath) {
-          await unlink(tempImagePath).catch(noop)
-        }
-      }
-    }, {
-      ...RetryPresets.standard,
-      timeout: 15000, // EXIF 处理可能需要更长时间
-      retryCondition: (error) => {
-        // 组合多种重试条件
-        return RetryConditions.fileSystemErrors(error) || 
-               RetryConditions.resourceErrors(error) ||
-               error.message.includes('timeout')
-      }
-    }, logger)
+      },
+      {
+        ...RetryPresets.standard,
+        timeout: 15000, // EXIF 处理可能需要更长时间
+        retryCondition: (error) => {
+          // 组合多种重试条件
+          return (
+            RetryConditions.fileSystemErrors(error) ||
+            RetryConditions.resourceErrors(error) ||
+            error.message.includes('timeout')
+          )
+        },
+      },
+      logger,
+    )
   } catch (error) {
     logger?.error('EXIF extraction failed after all retries:', error)
     return null
@@ -377,7 +386,10 @@ const normalizeText = (value: unknown): string | undefined => {
   return text.length > 0 ? text : undefined
 }
 
-const collectTextValues = (value: unknown, options?: { splitDelimited?: boolean }): string[] => {
+const collectTextValues = (
+  value: unknown,
+  options?: { splitDelimited?: boolean },
+): string[] => {
   const splitDelimited = options?.splitDelimited ?? false
   const results: string[] = []
 
@@ -444,7 +456,9 @@ export const extractPhotoInfo = (
     tagsSet.add(tag)
   }
 
-  for (const tag of collectTextValues(exifData?.XPKeywords, { splitDelimited: true })) {
+  for (const tag of collectTextValues(exifData?.XPKeywords, {
+    splitDelimited: true,
+  })) {
     tagsSet.add(tag)
   }
 

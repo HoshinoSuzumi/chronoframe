@@ -155,12 +155,12 @@ export function usePhotoSort() {
   const shufflePhotos = () => {
     // 创建一个特殊的排序方式用于打乱
     globalSortState.value.currentSort = 'shuffle'
-    
+
     // 更新可用排序中的 shuffle 选项
     const shuffleIndex = globalSortState.value.availableSorts.findIndex(
       (sort) => sort.key === 'shuffle',
     )
-    
+
     if (shuffleIndex === -1) {
       // 如果没有 shuffle 排序选项，则添加它
       globalSortState.value.availableSorts.push({

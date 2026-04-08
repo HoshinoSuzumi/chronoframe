@@ -55,7 +55,9 @@ const iconSizeClasses = {
     <Icon
       v-if="icon"
       :name="icon"
-      :class="twMerge('inline-block shrink-0 -mt-0.5', iconSizeClasses[$props.size!])"
+      :class="
+        twMerge('inline-block shrink-0 -mt-0.5', iconSizeClasses[$props.size!])
+      "
     />
     <slot />
   </motion.button>

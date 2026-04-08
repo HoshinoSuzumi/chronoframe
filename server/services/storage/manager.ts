@@ -1,4 +1,4 @@
-import type { StorageConfig, StorageProvider } from '.';
+import type { StorageConfig, StorageProvider } from '.'
 import { S3StorageProvider } from '.'
 import type { Logger } from '../../utils/logger'
 import { LocalStorageProvider } from './providers/local'
@@ -18,7 +18,6 @@ export interface StorageManagerEvent {
   timestamp: number
 }
 
-// eslint-disable-next-line @typescript-eslint/no-extraneous-class
 export class StorageProviderFactory {
   static createProvider(
     config: StorageConfig,
@@ -40,7 +39,10 @@ export class StorageProviderFactory {
 export class StorageManager {
   private provider: StorageProvider
   private logger?: Logger['storage']
-  private eventListeners: Map<StorageManagerEventType, StorageManagerEventListener[]> = new Map()
+  private eventListeners: Map<
+    StorageManagerEventType,
+    StorageManagerEventListener[]
+  > = new Map()
   private currentProviderName?: string
 
   constructor(config: StorageConfig, logger?: Logger['storage']) {
@@ -105,19 +107,27 @@ export class StorageManager {
    * @param config New storage configuration
    * @param logger Optional logger instance
    */
-  async registerProvider(config: StorageConfig, logger?: Logger['storage']): Promise<void> {
+  async registerProvider(
+    config: StorageConfig,
+    logger?: Logger['storage'],
+  ): Promise<void> {
     try {
       const oldProviderName = this.currentProviderName
       this.logger = logger || this.logger
-      
-      this.logger?.info(`Switching storage provider from ${oldProviderName} to ${config.provider}`)
-      
-      const newProvider = StorageProviderFactory.createProvider(config, this.logger)
+
+      this.logger?.info(
+        `Switching storage provider from ${oldProviderName} to ${config.provider}`,
+      )
+
+      const newProvider = StorageProviderFactory.createProvider(
+        config,
+        this.logger,
+      )
       this.provider = newProvider
       this.currentProviderName = config.provider
-      
+
       this.logger?.success(`Storage provider switched to: ${config.provider}`)
-      
+
       // Emit provider-changed event
       await this.emitEvent({
         type: 'provider-changed',
@@ -126,8 +136,11 @@ export class StorageManager {
         timestamp: Date.now(),
       })
     } catch (error) {
-      this.logger?.error(`Failed to register storage provider: ${config.provider}`, error)
-      
+      this.logger?.error(
+        `Failed to register storage provider: ${config.provider}`,
+        error,
+      )
+
       // Emit provider-error event
       await this.emitEvent({
         type: 'provider-error',
@@ -135,7 +148,7 @@ export class StorageManager {
         error: error as Error,
         timestamp: Date.now(),
       })
-      
+
       throw error
     }
   }

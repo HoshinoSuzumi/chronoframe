@@ -29,11 +29,16 @@ export class OpenListStorageProvider implements StorageProvider {
       this.token = this.config.token
       return this.token
     }
-    
-    throw new Error('OpenList auth requires a token. Please configure NUXT_PROVIDER_OPENLIST_TOKEN.')
+
+    throw new Error(
+      'OpenList auth requires a token. Please configure NUXT_PROVIDER_OPENLIST_TOKEN.',
+    )
   }
 
-  private async request(path: string, init: RequestInit = {}): Promise<Response> {
+  private async request(
+    path: string,
+    init: RequestInit = {},
+  ): Promise<Response> {
     const token = await this.ensureAuthToken()
     const url = `${this.baseUrl}${path}`
     const headers: Record<string, string> = {
@@ -66,7 +71,11 @@ export class OpenListStorageProvider implements StorageProvider {
     return key.startsWith('/') ? key : `/${key}`
   }
 
-  async create(key: string, fileBuffer: Buffer, contentType?: string): Promise<StorageObject> {
+  async create(
+    key: string,
+    fileBuffer: Buffer,
+    contentType?: string,
+  ): Promise<StorageObject> {
     const rootedKey = this.withRoot(key)
     const absoluteKey = this.toAbsolutePath(rootedKey)
     const uploadPath = this.config.uploadEndpoint || '/api/fs/put'
@@ -83,7 +92,10 @@ export class OpenListStorageProvider implements StorageProvider {
 
     if (!resp.ok) {
       const text = await resp.text().catch(() => '')
-      this.logger?.error('OpenList upload failed', { status: resp.status, body: text })
+      this.logger?.error('OpenList upload failed', {
+        status: resp.status,
+        body: text,
+      })
       throw new Error(`OpenList upload failed: ${resp.status}`)
     }
 
@@ -111,7 +123,9 @@ export class OpenListStorageProvider implements StorageProvider {
     const rootedKey = this.withRoot(key)
     const normalized = rootedKey.replace(/^\/+/, '')
     const slashIdx = normalized.lastIndexOf('/')
-    const dir = this.toAbsolutePath(slashIdx >= 0 ? normalized.slice(0, slashIdx) : this.normalizedRoot())
+    const dir = this.toAbsolutePath(
+      slashIdx >= 0 ? normalized.slice(0, slashIdx) : this.normalizedRoot(),
+    )
     const name = slashIdx >= 0 ? normalized.slice(slashIdx + 1) : normalized
     const body = { dir, names: [name] }
 
@@ -122,7 +136,10 @@ export class OpenListStorageProvider implements StorageProvider {
     })
     if (!resp.ok) {
       const text = await resp.text().catch(() => '')
-      this.logger?.error('OpenList delete failed', { status: resp.status, body: text })
+      this.logger?.error('OpenList delete failed', {
+        status: resp.status,
+        body: text,
+      })
       throw new Error(`OpenList delete failed: ${resp.status}`)
     }
     this.logger?.success(`Deleted object: ${key}`)
@@ -162,7 +179,8 @@ export class OpenListStorageProvider implements StorageProvider {
   }
 
   async getFileMeta(key: string): Promise<StorageObject | null> {
-    const metaPath = this.config.metaEndpoint || this.config.downloadEndpoint || '/api/fs/get'
+    const metaPath =
+      this.config.metaEndpoint || this.config.downloadEndpoint || '/api/fs/get'
     const rootedKey = this.withRoot(key)
     const urlPath = metaPath
     const payload: Record<string, any> = {
@@ -172,10 +190,17 @@ export class OpenListStorageProvider implements StorageProvider {
       per_page: 0,
       refresh: false,
     }
-    const resp = await this.request(urlPath, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
+    const resp = await this.request(urlPath, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    })
     if (!resp.ok) {
       const text = await resp.text().catch(() => '')
-      this.logger?.error('OpenList get file meta failed', { status: resp.status, body: text })
+      this.logger?.error('OpenList get file meta failed', {
+        status: resp.status,
+        body: text,
+      })
       return null
     }
 
@@ -202,7 +227,7 @@ export class OpenListStorageProvider implements StorageProvider {
     // You can configure custom list endpoint and parsing later.
     const listPath = this.config.listEndpoint
     if (!listPath) return []
-    
+
     const payload: Record<string, any> = {
       [this.pathField]: this.toAbsolutePath(this.normalizedRoot()),
       password: '',
@@ -238,6 +263,8 @@ export class OpenListStorageProvider implements StorageProvider {
 
   async listImages(): Promise<StorageObject[]> {
     const all = await this.listAll()
-    return all.filter((obj) => /\.(jpe?g|png|webp|gif|bmp|tiff?|heic|heif)$/i.test(obj.key))
+    return all.filter((obj) =>
+      /\.(jpe?g|png|webp|gif|bmp|tiff?|heic|heif)$/i.test(obj.key),
+    )
   }
 }

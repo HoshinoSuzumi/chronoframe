@@ -12,14 +12,14 @@ export default defineEventHandler(async (event) => {
       event,
       z.object({
         taskIds: z.array(z.number().int().positive()).optional(),
-        retryAll: z.boolean().optional().default(false)
-      }).parse
+        retryAll: z.boolean().optional().default(false),
+      }).parse,
     )
 
     if (!retryAll && (!taskIds || taskIds.length === 0)) {
       throw createError({
         statusCode: 400,
-        statusMessage: 'Either taskIds array or retryAll flag must be provided'
+        statusMessage: 'Either taskIds array or retryAll flag must be provided',
       })
     }
 
@@ -38,22 +38,24 @@ export default defineEventHandler(async (event) => {
       .from(tables.pipelineQueue)
       .where(whereCondition)
 
-    const failedTasks = tasksToRetry.filter(task => task.status === 'failed')
-    
+    const failedTasks = tasksToRetry.filter((task) => task.status === 'failed')
+
     if (failedTasks.length === 0) {
       return {
         success: true,
         message: 'No failed tasks found to retry',
         retriedCount: 0,
-        skippedCount: retryAll ? 0 : (taskIds?.length || 0)
+        skippedCount: retryAll ? 0 : taskIds?.length || 0,
       }
     }
 
-    const nonFailedTasks = tasksToRetry.filter(task => task.status !== 'failed')
+    const nonFailedTasks = tasksToRetry.filter(
+      (task) => task.status !== 'failed',
+    )
 
     // 批量重置失败任务的状态
-    const failedTaskIds = failedTasks.map(task => task.id)
-    
+    const failedTaskIds = failedTasks.map((task) => task.id)
+
     await db
       .update(tables.pipelineQueue)
       .set({
@@ -61,7 +63,7 @@ export default defineEventHandler(async (event) => {
         statusStage: null,
         errorMessage: null,
         attempts: 0, // 重置尝试次数
-        createdAt: new Date() // 更新创建时间以便重新调度
+        createdAt: new Date(), // 更新创建时间以便重新调度
       })
       .where(inArray(tables.pipelineQueue.id, failedTaskIds))
 
@@ -70,26 +72,26 @@ export default defineEventHandler(async (event) => {
       message: `Successfully reset ${failedTasks.length} failed tasks for retry`,
       retriedCount: failedTasks.length,
       skippedCount: nonFailedTasks.length,
-      retriedTasks: failedTasks.map(task => ({
+      retriedTasks: failedTasks.map((task) => ({
         id: task.id,
         type: task.payload.type,
-        storageKey: task.payload.storageKey
+        storageKey: task.payload.storageKey,
       })),
-      skippedTasks: nonFailedTasks.map(task => ({
+      skippedTasks: nonFailedTasks.map((task) => ({
         id: task.id,
         status: task.status,
-        reason: `Task is not in failed status (current: ${task.status})`
-      }))
+        reason: `Task is not in failed status (current: ${task.status})`,
+      })),
     }
   } catch (error) {
     if (error && typeof error === 'object' && 'statusCode' in error) {
       throw error
     }
-    
+
     console.error('Failed to batch retry tasks:', error)
     throw createError({
       statusCode: 500,
-      statusMessage: 'Failed to batch retry tasks'
+      statusMessage: 'Failed to batch retry tasks',
     })
   }
 })

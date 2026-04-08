@@ -1,25 +1,21 @@
 {
-  "eslint.useFlatConfig": true,
+  "editor.codeActionsOnSave": {
+    "source.fixAll.oxc": "always"
+  },
+  "oxc.fmt.configPath": ".oxfmtrc.json",
+  "editor.defaultFormatter": "oxc.oxc-vscode",
+  "editor.formatOnSave": true,
   "files.associations": {
     "*.css": "tailwindcss"
   },
   "editor.quickSuggestions": {
     "strings": "on"
   },
-  "tailwindCSS.classAttributes": [
-    "class",
-    "ui"
-  ],
+  "tailwindCSS.classAttributes": ["class", "ui"],
   "tailwindCSS.experimental.classRegex": [
-    [
-      "ui:\\s*{([^)]*)\\s*}",
-      "(?:'|\"|`)([^']*)(?:'|\"|`)"
-    ]
+    ["ui:\\s*{([^)]*)\\s*}", "(?:'|\"|`)([^']*)(?:'|\"|`)"]
   ],
-  "i18n-ally.localesPaths": [
-    "i18n",
-    "i18n/locales"
-  ],
+  "i18n-ally.localesPaths": ["i18n", "i18n/locales"],
   "i18n-ally.sourceLanguage": "zh-Hans",
   "i18n-ally.keystyle": "nested",
   "i18n-ally.extract.autoDetect": true,
@@ -30,9 +26,7 @@
     "app/components/map/ClusterPin.vue": [
       "\n                  representativePhoto.title || `聚类 ${representativePhoto.id}`\n                "
     ],
-    "nuxt.config.ts": [
-      "简体中文"
-    ],
+    "nuxt.config.ts": ["简体中文"],
     "app/components/map/SinglePhotoPin.vue": [
       "marker.title || `照片 ${marker.id}`"
     ]

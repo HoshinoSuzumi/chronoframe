@@ -36,9 +36,7 @@ const currentGapSize = computed(() =>
 )
 
 const currentPaddingSize = computed(() =>
-  isMobile.value
-    ? THUMBNAIL_CONFIG.padding.sm
-    : THUMBNAIL_CONFIG.padding.lg,
+  isMobile.value ? THUMBNAIL_CONFIG.padding.sm : THUMBNAIL_CONFIG.padding.lg,
 )
 
 // 处理缩略图列表

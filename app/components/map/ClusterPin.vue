@@ -84,7 +84,7 @@ const sizeDelta = computed(() => {
                 class="h-full w-full object-cover opacity-50"
               />
               <div
-                class="absolute inset-0 bg-gradient-to-br from-blue/40 to-purple/60 dark:from-blue/60 dark:to-purple/80"
+                class="absolute inset-0 bg-linear-to-br from-blue/40 to-purple/60 dark:from-blue/60 dark:to-purple/80"
               />
             </div>
 
@@ -102,7 +102,7 @@ const sizeDelta = computed(() => {
               }"
             >
               <div
-                class="absolute inset-0 rounded-full bg-gradient-to-br from-white/10 to-white/5"
+                class="absolute inset-0 rounded-full bg-linear-to-br from-white/10 to-white/5"
               />
 
               <!-- Cluster count -->
@@ -136,7 +136,9 @@ const sizeDelta = computed(() => {
                 <!-- Cluster preview -->
                 <div class="relative overflow-hidden p-3 space-y-3">
                   <div class="flex items-center justify-between">
-                    <h3 class="text-sm font-semibold text-neutral-900 dark:text-white">
+                    <h3
+                      class="text-sm font-semibold text-neutral-900 dark:text-white"
+                    >
                       {{
                         $t('map.cluster.nearbyPhotos', [clusteredPhotos.length])
                       }}
@@ -185,7 +187,10 @@ const sizeDelta = computed(() => {
                         <div
                           class="rounded-full bg-white/80 dark:bg-black/50 p-2 backdrop-blur-sm flex justify-center items-center"
                         >
-                          <Icon name="tabler:external-link" class="text-neutral-700 dark:text-white" />
+                          <Icon
+                            name="tabler:external-link"
+                            class="text-neutral-700 dark:text-white"
+                          />
                         </div>
                       </div>
                       <!-- Show +N overlay for the last image if there are more -->
@@ -196,7 +201,9 @@ const sizeDelta = computed(() => {
                         "
                         class="absolute inset-0 bg-white/80 dark:bg-black/60 flex items-center justify-center cursor-pointer pointer-events-none"
                       >
-                        <span class="text-neutral-800 dark:text-white text-lg font-bold">
+                        <span
+                          class="text-neutral-800 dark:text-white text-lg font-bold"
+                        >
                           +{{ clusteredPhotos.length - clusterCount }}
                         </span>
                       </div>

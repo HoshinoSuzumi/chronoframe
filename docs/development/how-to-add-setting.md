@@ -18,12 +18,14 @@
 ```
 
 字段说明（必需）：
+
 - `namespace`: 设置所属的命名空间 (app, map, location, storage, system 等)
 - `key`: 字段的唯一键
 - `type`: 类型 (string, number, boolean 等)
 - `defaultValue`: 默认值
 
 字段说明（可选）：
+
 - `isPublic`: 是否公开
 - `isReadonly`: 是否只读
 - `isSecret`: 是否为机密字段（如密码）
@@ -39,10 +41,10 @@
 export const APP_SETTINGS_UI: Record<string, FieldUIConfig> = {
   // ... 其他配置
   foo: {
-    type: 'input',  // 字段类型：input, password, url, textarea, select, radio, tabs, toggle, number
+    type: 'input', // 字段类型：input, password, url, textarea, select, radio, tabs, toggle, number
     placeholder: 'Enter foo value',
-    help: 'settings.app.foo.help',  // 翻译键，可选
-    required: true,  // 是否必需，可选
+    help: 'settings.app.foo.help', // 翻译键，可选
+    required: true, // 是否必需，可选
   },
 }
 ```

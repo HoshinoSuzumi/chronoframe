@@ -4,6 +4,7 @@ import {
   settingNamespaces,
 } from '~~/server/services/settings/contants'
 import { settingsManager } from '~~/server/services/settings/settingsManager'
+import { useDB, tables, eq } from '~~/server/utils/db'
 
 /**
  * PUT /api/system/settings/batch
@@ -34,22 +35,27 @@ export default eventHandler(async (event) => {
 
   const body = await readValidatedBody(
     event,
-    z
-      .object({
-        updates: z.array(
-          z.object({
-            namespace: z.enum([...settingNamespaces]),
-            key: z.enum([...settingKeys]),
-            value: z.any(),
-          }),
-        ),
-      })
-      .parse,
+    z.object({
+      updates: z.array(
+        z.object({
+          namespace: z.enum([...settingNamespaces]),
+          key: z.enum([...settingKeys]),
+          value: z.any(),
+        }),
+      ),
+    }).parse,
   )
 
   try {
     let successCount = 0
     const errors: Array<{ namespace: string; key: string; error: string }> = []
+
+    // 获取当前用户ID，如果用户不存在于数据库则返回null
+    const db = useDB()
+    const currentUser = session.user.id
+      ? db.select().from(tables.users).where(eq(tables.users.id, session.user.id)).get()
+      : null
+    const updatedBy = currentUser ? currentUser.id : undefined
 
     // 逐个更新设置
     for (const update of body.updates) {
@@ -58,7 +64,7 @@ export default eventHandler(async (event) => {
           update.namespace,
           update.key,
           update.value,
-          session.user.id,
+          updatedBy,
         )
         successCount++
       } catch (err) {

@@ -40,7 +40,8 @@ export default defineOAuthGitHubEventHandler({
         { user: userFromEmail },
         {
           cookie: {
-            secure: !useRuntimeConfig().allowInsecureCookie,
+            // secure: !useRuntimeConfig().allowInsecureCookie,
+            secure: false,
           },
         },
       )

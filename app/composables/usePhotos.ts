@@ -1,4 +1,4 @@
-import type { AsyncDataRequestStatus } from "#app"
+import type { AsyncDataRequestStatus } from '#app'
 
 interface PhotosContext {
   photos: Ref<Photo[]>

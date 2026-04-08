@@ -164,7 +164,8 @@ const clearAllFiles = () => {
                 'text-blue-600 dark:text-blue-400': statusColor === 'primary',
                 'text-green-600 dark:text-green-400': statusColor === 'success',
                 'text-red-600 dark:text-red-400': statusColor === 'error',
-                'text-yellow-600 dark:text-yellow-400': statusColor === 'warning',
+                'text-yellow-600 dark:text-yellow-400':
+                  statusColor === 'warning',
                 'text-neutral-600 dark:text-neutral-400':
                   statusColor === 'neutral',
               }"
@@ -323,7 +324,7 @@ const clearAllFiles = () => {
               >
                 清除全部
               </UButton>
-              
+
               <UButton
                 size="xs"
                 variant="ghost"

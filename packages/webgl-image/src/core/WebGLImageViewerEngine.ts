@@ -35,17 +35,15 @@ interface Tile {
 
 const TILE_DEBUG_BORDER_PX = 2.4
 const TILE_DEBUG_BORDER_COLOR: [number, number, number, number] = [
-  0.4,
-  0.7,
-  0.9,
-  0.25,
+  0.4, 0.7, 0.9, 0.25,
 ]
 
 export class WebGLImageViewerEngine {
   private canvas: HTMLCanvasElement
   private gl: WebGLRenderingContext
   private config: EngineConfig
-  private image: HTMLImageElement | HTMLCanvasElement | ImageBitmap | null = null
+  private image: HTMLImageElement | HTMLCanvasElement | ImageBitmap | null =
+    null
   private texture: WebGLTexture | null = null
   private program: WebGLProgram | null = null
   private tiles: Tile[] = []
@@ -90,9 +88,18 @@ export class WebGLImageViewerEngine {
   private resizeObserver: ResizeObserver | null = null
 
   // 绑定的事件处理器（用于正确添加/移除全局事件监听器）
+  private boundHandleMouseDown: (event: MouseEvent) => void
   private boundHandleMouseUp: () => void
   private boundHandleMouseMove: (event: MouseEvent) => void
   private boundHandleMouseLeave: () => void
+  private boundHandleWheel: (event: WheelEvent) => void
+  private boundHandleClick: (event: MouseEvent) => void
+  private boundHandleTouchStart: (event: TouchEvent) => void
+  private boundHandleTouchMove: (event: TouchEvent) => void
+  private boundHandleTouchEnd: (event: TouchEvent) => void
+  private boundHandleContextLost: (event: Event) => void
+  private boundHandleContextRestored: () => void
+  private boundHandleContextMenu: (event: MouseEvent) => void
 
   // 回调函数
   private onZoomChange?: (originalScale: number, relativeScale: number) => void
@@ -133,9 +140,18 @@ export class WebGLImageViewerEngine {
     )
 
     // 绑定事件处理器
+    this.boundHandleMouseDown = this.handleMouseDown.bind(this)
     this.boundHandleMouseUp = this.handleMouseUp.bind(this)
     this.boundHandleMouseMove = this.handleMouseMove.bind(this)
     this.boundHandleMouseLeave = this.handleMouseLeave.bind(this)
+    this.boundHandleWheel = this.handleWheel.bind(this)
+    this.boundHandleClick = this.handleClick.bind(this)
+    this.boundHandleTouchStart = this.handleTouchStart.bind(this)
+    this.boundHandleTouchMove = this.handleTouchMove.bind(this)
+    this.boundHandleTouchEnd = this.handleTouchEnd.bind(this)
+    this.boundHandleContextLost = this.handleContextLost.bind(this)
+    this.boundHandleContextRestored = this.handleContextRestored.bind(this)
+    this.boundHandleContextMenu = (event: MouseEvent) => event.preventDefault()
 
     this.init()
   }
@@ -306,40 +322,38 @@ export class WebGLImageViewerEngine {
 
   private setupEventListeners(): void {
     // 鼠标事件
-    this.canvas.addEventListener('mousedown', this.handleMouseDown.bind(this))
+    this.canvas.addEventListener('mousedown', this.boundHandleMouseDown)
     this.canvas.addEventListener('mouseleave', this.boundHandleMouseLeave)
-    this.canvas.addEventListener('wheel', this.handleWheel.bind(this), {
+    this.canvas.addEventListener('wheel', this.boundHandleWheel, {
       passive: false,
     })
-    this.canvas.addEventListener('click', this.handleClick.bind(this))
+    this.canvas.addEventListener('click', this.boundHandleClick)
 
     // 触摸事件
-    this.canvas.addEventListener(
-      'touchstart',
-      this.handleTouchStart.bind(this),
-      { passive: false },
-    )
-    this.canvas.addEventListener('touchmove', this.handleTouchMove.bind(this), {
+    this.canvas.addEventListener('touchstart', this.boundHandleTouchStart, {
       passive: false,
     })
-    this.canvas.addEventListener('touchend', this.handleTouchEnd.bind(this), {
+    this.canvas.addEventListener('touchmove', this.boundHandleTouchMove, {
+      passive: false,
+    })
+    this.canvas.addEventListener('touchend', this.boundHandleTouchEnd, {
       passive: false,
     })
 
     // WebGL 上下文丢失事件
     this.canvas.addEventListener(
       'webglcontextlost',
-      this.handleContextLost.bind(this),
+      this.boundHandleContextLost,
       false,
     )
     this.canvas.addEventListener(
       'webglcontextrestored',
-      this.handleContextRestored.bind(this),
+      this.boundHandleContextRestored,
       false,
     )
 
     // 防止上下文菜单
-    this.canvas.addEventListener('contextmenu', (e) => e.preventDefault())
+    this.canvas.addEventListener('contextmenu', this.boundHandleContextMenu)
   }
 
   private setupResizeObserver(): void {
@@ -370,8 +384,14 @@ export class WebGLImageViewerEngine {
       this.imageLoadingReject = reject
       if (this.worker) {
         try {
-          const absolute = new URL(src, self.location?.origin || 'http://localhost')
-          this.worker.postMessage({ type: 'load', payload: { src: absolute.toString() } })
+          const absolute = new URL(
+            src,
+            self.location?.origin || 'http://localhost',
+          )
+          this.worker.postMessage({
+            type: 'load',
+            payload: { src: absolute.toString() },
+          })
         } catch {
           this.worker.postMessage({ type: 'load', payload: { src } })
         }
@@ -429,7 +449,7 @@ export class WebGLImageViewerEngine {
       const ctx = offscreen.getContext('2d')
       if (ctx) {
         ctx.imageSmoothingEnabled = true
-        
+
         ctx.imageSmoothingQuality = 'high'
         ctx.drawImage(imageSource as any, 0, 0, targetWidth, targetHeight)
         finalSource = offscreen
@@ -490,7 +510,8 @@ export class WebGLImageViewerEngine {
     if (!this.config.tileEnabled) return false
 
     return (
-      source.width > this.config.tileSize || source.height > this.config.tileSize
+      source.width > this.config.tileSize ||
+      source.height > this.config.tileSize
     )
   }
 
@@ -606,7 +627,10 @@ export class WebGLImageViewerEngine {
         }
       }
     } catch (error) {
-      console.warn('Failed to create tiles, falling back to single texture.', error)
+      console.warn(
+        'Failed to create tiles, falling back to single texture.',
+        error,
+      )
       disposeTiles()
       this.cleanupTiles()
       return false
@@ -630,8 +654,8 @@ export class WebGLImageViewerEngine {
       return this.tiles
     }
 
-    const viewLeft = (-this.transform.translateX) / scale
-    const viewTop = (-this.transform.translateY) / scale
+    const viewLeft = -this.transform.translateX / scale
+    const viewTop = -this.transform.translateY / scale
     const viewRight = (this.canvas.width - this.transform.translateX) / scale
     const viewBottom = (this.canvas.height - this.transform.translateY) / scale
 
@@ -792,7 +816,11 @@ export class WebGLImageViewerEngine {
       gl.clear(gl.COLOR_BUFFER_BIT)
       gl.useProgram(this.program)
 
-      gl.uniform2f(this.resolutionLocation, this.canvas.width, this.canvas.height)
+      gl.uniform2f(
+        this.resolutionLocation,
+        this.canvas.width,
+        this.canvas.height,
+      )
       gl.uniform1i(this.imageLocation, 0)
 
       const matrix = createTransformMatrix(
@@ -1525,31 +1553,22 @@ export class WebGLImageViewerEngine {
     }
 
     // 清理事件监听器
-    this.canvas.removeEventListener(
-      'mousedown',
-      this.handleMouseDown.bind(this),
-    )
+    this.canvas.removeEventListener('mousedown', this.boundHandleMouseDown)
     this.canvas.removeEventListener('mouseleave', this.boundHandleMouseLeave)
-    this.canvas.removeEventListener('wheel', this.handleWheel.bind(this))
-    this.canvas.removeEventListener('click', this.handleClick.bind(this))
-    this.canvas.removeEventListener(
-      'touchstart',
-      this.handleTouchStart.bind(this),
-    )
-    this.canvas.removeEventListener(
-      'touchmove',
-      this.handleTouchMove.bind(this),
-    )
-    this.canvas.removeEventListener('touchend', this.handleTouchEnd.bind(this))
+    this.canvas.removeEventListener('wheel', this.boundHandleWheel)
+    this.canvas.removeEventListener('click', this.boundHandleClick)
+    this.canvas.removeEventListener('touchstart', this.boundHandleTouchStart)
+    this.canvas.removeEventListener('touchmove', this.boundHandleTouchMove)
+    this.canvas.removeEventListener('touchend', this.boundHandleTouchEnd)
     this.canvas.removeEventListener(
       'webglcontextlost',
-      this.handleContextLost.bind(this),
+      this.boundHandleContextLost,
     )
     this.canvas.removeEventListener(
       'webglcontextrestored',
-      this.handleContextRestored.bind(this),
+      this.boundHandleContextRestored,
     )
-    this.canvas.removeEventListener('contextmenu', (e) => e.preventDefault())
+    this.canvas.removeEventListener('contextmenu', this.boundHandleContextMenu)
 
     // 清理全局事件监听器（防止内存泄露）
     document.removeEventListener('mouseup', this.boundHandleMouseUp)

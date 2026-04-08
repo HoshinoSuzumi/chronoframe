@@ -2,11 +2,7 @@
   "compilerOptions": {
     "target": "ES2020",
     "module": "ESNext",
-    "lib": [
-      "ES2020",
-      "DOM",
-      "DOM.Iterable"
-    ],
+    "lib": ["ES2020", "DOM", "DOM.Iterable"],
     "moduleResolution": "bundler",
     "resolveJsonModule": true,
     "allowImportingTsExtensions": true,
@@ -24,21 +20,10 @@
     "ignoreDeprecations": "6.0",
     "baseUrl": ".",
     "paths": {
-      "@/*": [
-        "src/*"
-      ]
+      "@/*": ["src/*"]
     },
-    "types": [
-      "vite/client"
-    ]
+    "types": ["vite/client"]
   },
-  "include": [
-    "src/**/*",
-    "vite.config.ts"
-  ],
-  "exclude": [
-    "node_modules",
-    "dist",
-    "tests"
-  ]
+  "include": ["src/**/*", "vite.config.ts"],
+  "exclude": ["node_modules", "dist", "tests"]
 }

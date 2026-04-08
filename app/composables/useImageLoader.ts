@@ -1,5 +1,5 @@
-import type { LoadingIndicatorRef } from "~/components/photo/LoadingIndicator.vue";
-import { ImageLoaderManager } from "~/libs/image-loader-manager";
+import type { LoadingIndicatorRef } from '~/components/photo/LoadingIndicator.vue'
+import { ImageLoaderManager } from '~/libs/image-loader-manager'
 
 export const useImageLoader = (
   src: string,
@@ -13,7 +13,7 @@ export const useImageLoader = (
   updateHighResLoaded?: (highResLoaded: boolean) => void,
   updateError?: (error: boolean) => void,
   updateHighResImageRendered?: (isRendered: boolean) => void,
-  onImageLoaded?: () => void
+  onImageLoaded?: () => void,
 ) => {
   if (highResLoaded || !isCurrentImage || error) return null
 
@@ -45,7 +45,7 @@ export const useImageLoader = (
       loadingIndicatorRef?.updateLoadingState({
         isVisible: true,
         isError: true,
-        message: "载入图片失败"
+        message: '载入图片失败',
       })
     }
   }

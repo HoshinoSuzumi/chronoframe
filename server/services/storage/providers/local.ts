@@ -10,7 +10,8 @@ const ensureDir = async (dirPath: string) => {
   await fs.mkdir(dirPath, { recursive: true })
 }
 
-const sanitizeKey = (key: string) => key.replace(/\\/g, '/').replace(/\/+/g, '/').replace(/^\/+/, '')
+const sanitizeKey = (key: string) =>
+  key.replace(/\\/g, '/').replace(/\/+/g, '/').replace(/^\/+/, '')
 
 const combinePrefixAndKey = (prefix: string | undefined, key: string) => {
   const cleanPrefix = (prefix || '').replace(/\/+$/, '')
@@ -133,5 +134,3 @@ export class LocalStorageProvider implements StorageProvider {
     }
   }
 }
-
-

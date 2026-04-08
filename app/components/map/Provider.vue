@@ -42,9 +42,7 @@ const mapConfig = computed(() => {
 const provider = computed(() => mapConfig.value.provider || 'maplibre')
 const mapStyle = computed(() => {
   if (provider.value === 'mapbox') {
-    return (
-      mapConfig.value['mapbox.style'] || `mapbox://styles/mapbox/standard`
-    )
+    return mapConfig.value['mapbox.style'] || `mapbox://styles/mapbox/standard`
   } else {
     const styleConfig =
       colorMode.value === 'dark' ? ChronoFrameDarkStyle : ChronoFrameLightStyle

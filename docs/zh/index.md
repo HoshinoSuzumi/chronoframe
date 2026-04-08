@@ -3,13 +3,13 @@
 layout: home
 
 hero:
-  name: "ChronoFrame"
-  text: "自部署个人画廊"
-  tagline: "在线管理照片，多存储后端、LivePhoto、地球仪视图"
+  name: 'ChronoFrame'
+  text: '自部署个人画廊'
+  tagline: '在线管理照片，多存储后端、LivePhoto、地球仪视图'
   image:
     src: /logo.png
     alt: ChronoFrame
-    style: "filter: drop-shadow(0 0 30px rgba(168, 85, 247, 0.7)) drop-shadow(0 0 60px rgba(59, 130, 246, 0.5)) drop-shadow(0 0 100px rgba(168, 85, 247, 0.3)); width: 300px; height: 300px;"
+    style: 'filter: drop-shadow(0 0 30px rgba(168, 85, 247, 0.7)) drop-shadow(0 0 60px rgba(59, 130, 246, 0.5)) drop-shadow(0 0 100px rgba(168, 85, 247, 0.3)); width: 300px; height: 300px;'
   actions:
     - theme: brand
       text: 快速开始
@@ -40,7 +40,6 @@ features:
   - title: Live/Motion Photo 支持
     icon: 🎬
     details: 完整支持 Apple LivePhoto 格式和 Google 标准的 Motion Photo，自动检测和处理 MOV 视频文件，保留动态照片效果。
-
 ---
 
 ## 🌍 演示站点

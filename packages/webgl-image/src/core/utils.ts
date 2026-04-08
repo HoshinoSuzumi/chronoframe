@@ -83,10 +83,7 @@ export function debounce<T extends (...args: any[]) => any>(
   let timeoutId: number
   return (...args: Parameters<T>) => {
     clearTimeout(timeoutId)
-    timeoutId = setTimeout(
-      () => func(...args),
-      delay,
-    ) as unknown as number
+    timeoutId = setTimeout(() => func(...args), delay) as unknown as number
   }
 }
 

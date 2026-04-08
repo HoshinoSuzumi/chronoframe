@@ -45,7 +45,9 @@ defineProps<{
             class="flex-1 min-w-0 flex gap-6 items-start justify-between font-medium"
           >
             <div class="text-white/80 text-nowrap">{{ item!.label }}</div>
-            <div class="text-white text-wrap tracking-tight wrap-anywhere text-end whitespace-pre-line">
+            <div
+              class="text-white text-wrap tracking-tight wrap-anywhere text-end whitespace-pre-line"
+            >
               {{ item!.value }}
             </div>
           </div>

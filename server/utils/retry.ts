@@ -18,12 +18,12 @@ export interface RetryOptions {
 
 /**
  * 通用重试工具函数
- * 
+ *
  * @param operation 要执行的异步操作
  * @param options 重试配置选项
  * @param logger 可选的日志记录器
  * @returns 操作结果
- * 
+ *
  * @example
  * ```typescript
  * const result = await withRetry(
@@ -40,7 +40,7 @@ export interface RetryOptions {
 export async function withRetry<T>(
   operation: () => Promise<T>,
   options: RetryOptions = {},
-  logger?: Logger[keyof Logger]
+  logger?: Logger[keyof Logger],
 ): Promise<T> {
   const {
     maxAttempts = 3,
@@ -48,7 +48,7 @@ export async function withRetry<T>(
     maxDelay = 30000,
     timeout = 30000,
     retryCondition = () => true,
-    delayStrategy = 'exponential'
+    delayStrategy = 'exponential',
   } = options
 
   let lastError: Error
@@ -56,15 +56,18 @@ export async function withRetry<T>(
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     try {
       logger?.info(`Operation attempt ${attempt}/${maxAttempts}`)
-      
+
       // 应用超时机制
       const result = await Promise.race([
         operation(),
-        new Promise<never>((_, reject) => 
-          setTimeout(() => reject(new Error(`Operation timeout after ${timeout}ms`)), timeout)
-        )
+        new Promise<never>((_, reject) =>
+          setTimeout(
+            () => reject(new Error(`Operation timeout after ${timeout}ms`)),
+            timeout,
+          ),
+        ),
       ])
-      
+
       if (attempt > 1) {
         logger?.success(`Operation succeeded on attempt ${attempt}`)
       }
@@ -72,12 +75,17 @@ export async function withRetry<T>(
     } catch (error) {
       lastError = error as Error
       logger?.warn(`Attempt ${attempt} failed:`, error)
-      
+
       const shouldRetry = attempt < maxAttempts && retryCondition(lastError)
       if (shouldRetry) {
-        const delay = calculateDelay(attempt, baseDelay, maxDelay, delayStrategy)
+        const delay = calculateDelay(
+          attempt,
+          baseDelay,
+          maxDelay,
+          delayStrategy,
+        )
         logger?.info(`Retrying in ${delay}ms...`)
-        await new Promise(resolve => setTimeout(resolve, delay))
+        await new Promise((resolve) => setTimeout(resolve, delay))
       }
     }
   }
@@ -93,7 +101,7 @@ function calculateDelay(
   attempt: number,
   baseDelay: number,
   maxDelay: number,
-  strategy: 'exponential' | 'linear' | 'fixed'
+  strategy: 'exponential' | 'linear' | 'fixed',
 ): number {
   let delay: number
 
@@ -125,51 +133,64 @@ export const RetryConditions = {
   networkErrors: (error: Error) => {
     const message = error.message.toLowerCase()
     // 不重试客户端错误 (4xx)
-    if (message.includes('400') || message.includes('401') || 
-        message.includes('403') || message.includes('404')) {
+    if (
+      message.includes('400') ||
+      message.includes('401') ||
+      message.includes('403') ||
+      message.includes('404')
+    ) {
       return false
     }
     // 重试网络相关错误
-    return message.includes('timeout') || 
-           message.includes('network') || 
-           message.includes('fetch') ||
-           message.includes('econnreset') ||
-           message.includes('enotfound') ||
-           message.includes('502') ||
-           message.includes('503') ||
-           message.includes('504')
+    return (
+      message.includes('timeout') ||
+      message.includes('network') ||
+      message.includes('fetch') ||
+      message.includes('econnreset') ||
+      message.includes('enotfound') ||
+      message.includes('502') ||
+      message.includes('503') ||
+      message.includes('504')
+    )
   },
 
   /** 文件系统错误重试（排除权限和不存在错误） */
   fileSystemErrors: (error: Error) => {
     const message = error.message.toLowerCase()
     // 不重试权限和文件不存在错误
-    if (message.includes('eacces') || message.includes('enoent') || 
-        message.includes('permission denied')) {
+    if (
+      message.includes('eacces') ||
+      message.includes('enoent') ||
+      message.includes('permission denied')
+    ) {
       return false
     }
     // 重试临时性文件系统错误
-    return message.includes('ebusy') || 
-           message.includes('emfile') || 
-           message.includes('enfile') ||
-           message.includes('eagain')
+    return (
+      message.includes('ebusy') ||
+      message.includes('emfile') ||
+      message.includes('enfile') ||
+      message.includes('eagain')
+    )
   },
 
   /** 资源竞争错误重试 */
   resourceErrors: (error: Error) => {
     const message = error.message.toLowerCase()
-    return message.includes('busy') || 
-           message.includes('locked') || 
-           message.includes('resource') ||
-           message.includes('memory') ||
-           message.includes('cpu')
+    return (
+      message.includes('busy') ||
+      message.includes('locked') ||
+      message.includes('resource') ||
+      message.includes('memory') ||
+      message.includes('cpu')
+    )
   },
 
   /** 始终重试 */
   always: () => true,
 
   /** 从不重试 */
-  never: () => false
+  never: () => false,
 }
 
 /**
@@ -181,7 +202,7 @@ export const RetryPresets = {
     maxAttempts: 3,
     baseDelay: 500,
     timeout: 5000,
-    delayStrategy: 'exponential' as const
+    delayStrategy: 'exponential' as const,
   },
 
   /** 标准重试：适用于一般操作 */
@@ -189,7 +210,7 @@ export const RetryPresets = {
     maxAttempts: 3,
     baseDelay: 1000,
     timeout: 10000,
-    delayStrategy: 'exponential' as const
+    delayStrategy: 'exponential' as const,
   },
 
   /** 网络重试：适用于网络请求 */
@@ -198,7 +219,7 @@ export const RetryPresets = {
     baseDelay: 1000,
     timeout: 30000,
     delayStrategy: 'exponential' as const,
-    retryCondition: RetryConditions.networkErrors
+    retryCondition: RetryConditions.networkErrors,
   },
 
   /** 文件操作重试：适用于文件系统操作 */
@@ -207,7 +228,7 @@ export const RetryPresets = {
     baseDelay: 500,
     timeout: 15000,
     delayStrategy: 'linear' as const,
-    retryCondition: RetryConditions.fileSystemErrors
+    retryCondition: RetryConditions.fileSystemErrors,
   },
 
   /** 慢速重试：适用于重量级操作 */
@@ -215,6 +236,6 @@ export const RetryPresets = {
     maxAttempts: 3,
     baseDelay: 2000,
     timeout: 60000,
-    delayStrategy: 'exponential' as const
-  }
+    delayStrategy: 'exponential' as const,
+  },
 }

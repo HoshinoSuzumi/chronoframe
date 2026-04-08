@@ -4,6 +4,7 @@ import {
   settingNamespaces,
 } from '~~/server/services/settings/contants'
 import { settingsManager } from '~~/server/services/settings/settingsManager'
+import { useDB, tables, eq } from '~~/server/utils/db'
 
 export default eventHandler(async (event) => {
   const { namespace, key } = await getValidatedRouterParams(
@@ -42,8 +43,15 @@ export default eventHandler(async (event) => {
       }).parse,
     )
 
+    // 获取当前用户ID，如果用户不存在于数据库则返回null
+    const db = useDB()
+    const currentUser = session.user.id
+      ? db.select().from(tables.users).where(eq(tables.users.id, session.user.id)).get()
+      : null
+    const updatedBy = currentUser ? currentUser.id : undefined
+
     try {
-      await settingsManager.set(namespace, key, value, session.user.id)
+      await settingsManager.set(namespace, key, value, updatedBy)
       return { namespace, key, value }
     } catch (err) {
       throw createError({

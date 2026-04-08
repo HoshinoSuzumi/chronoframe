@@ -72,7 +72,10 @@ const isRepoLinkHovering = ref(false)
                 <Icon name="tabler:star-filled" />
               </div>
               <img
-                :src="getSetting('app:avatarUrl') as string || '/web-app-manifest-192x192.png'"
+                :src="
+                  (getSetting('app:avatarUrl') as string) ||
+                  '/web-app-manifest-192x192.png'
+                "
                 class="size-16 rounded-full object-cover"
                 :class="!loggedIn && 'cursor-pointer'"
                 alt="Author's avatar"

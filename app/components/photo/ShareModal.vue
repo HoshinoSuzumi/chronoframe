@@ -370,7 +370,7 @@ defineShortcuts({
         :animate="{ opacity: 1 }"
         :exit="{ opacity: 0 }"
         :transition="{ duration: 0.2 }"
-        class="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm"
+        class="fixed inset-0 z-60 flex items-center justify-center bg-black/50 backdrop-blur-sm"
         @click="handleBackdropClick"
       >
         <motion.div
@@ -493,7 +493,7 @@ defineShortcuts({
                   <!-- Loading indicator -->
                   <div
                     v-if="ogImageLoading"
-                    class="flex items-center justify-center bg-neutral-100/50 dark:bg-neutral-700/50 aspect-[2/1]"
+                    class="flex items-center justify-center bg-neutral-100/50 dark:bg-neutral-700/50 aspect-2/1"
                   >
                     <div class="flex flex-col items-center gap-2">
                       <Icon
@@ -511,7 +511,7 @@ defineShortcuts({
                   <!-- Error state -->
                   <div
                     v-else-if="ogImageError"
-                    class="flex items-center justify-center bg-neutral-100/50 dark:bg-neutral-700/50 aspect-[2/1]"
+                    class="flex items-center justify-center bg-neutral-100/50 dark:bg-neutral-700/50 aspect-2/1"
                   >
                     <div class="flex flex-col items-center gap-2">
                       <Icon
@@ -532,7 +532,7 @@ defineShortcuts({
                     :key="`og-image-${props.photo.id}-${Date.now()}`"
                     :src="ogImageUrl"
                     :alt="$t('ui.action.share.ogImage.alt')"
-                    class="w-full h-auto aspect-[2/1] object-cover rounded"
+                    class="w-full h-auto aspect-2/1 object-cover rounded"
                     loading="eager"
                     @load="handleOgImageLoad"
                     @error="handleOgImageError"

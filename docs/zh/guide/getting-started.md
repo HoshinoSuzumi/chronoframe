@@ -28,11 +28,13 @@
 我们推荐使用预构建的 Docker 镜像进行部署，镜像托管在 GHCR 和 Docker Hub，您可以根据网络情况选择合适的源。
 
 #### [GitHub Container Registry (GHCR)](https://github.com/HoshinoSuzumi/chronoframe/pkgs/container/chronoframe)
+
 ```bash
 docker pull ghcr.io/hoshinosuzumi/chronoframe:latest
 ```
 
 #### [Docker Hub](https://hub.docker.com/r/hoshinosuzumi/chronoframe)
+
 ```bash
 docker pull hoshinosuzumi/chronoframe:latest
 ```
@@ -154,7 +156,7 @@ docker compose up -d
 server {
     listen 80;
     server_name your-domain.com;
-    
+
     # HTTPS 重定向
     return 301 https://$server_name$request_uri;
 }
@@ -162,19 +164,19 @@ server {
 server {
     listen 443 ssl http2;
     server_name your-domain.com;
-    
+
     # SSL 证书配置
     ssl_certificate /path/to/your/certificate.crt;
     ssl_certificate_key /path/to/your/private.key;
-    
+
     # SSL 安全配置
     ssl_protocols TLSv1.2 TLSv1.3;
     ssl_ciphers ECDHE-RSA-AES128-GCM-SHA256:ECDHE-RSA-AES256-GCM-SHA384;
     ssl_prefer_server_ciphers off;
-    
+
     # 上传大小限制
     client_max_body_size 100M;
-    
+
     location / {
         proxy_pass http://localhost:3000;
         proxy_http_version 1.1;
@@ -185,17 +187,17 @@ server {
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
         proxy_cache_bypass $http_upgrade;
-        
+
         # WebSocket 支持
         proxy_set_header Connection "upgrade";
         proxy_set_header Upgrade $http_upgrade;
-        
+
         # 超时设置
         proxy_connect_timeout 60s;
         proxy_send_timeout 60s;
         proxy_read_timeout 60s;
     }
-    
+
     # 静态资源缓存
     location ~* \.(jpg|jpeg|png|gif|webp|svg|css|js|ico|woff|woff2|ttf|eot)$ {
         proxy_pass http://localhost:3000;
@@ -221,11 +223,11 @@ services:
     env_file:
       - .env
     labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.chronoframe.rule=Host(`your-domain.com`)"
-      - "traefik.http.routers.chronoframe.entrypoints=websecure"
-      - "traefik.http.routers.chronoframe.tls.certresolver=letsencrypt"
-      - "traefik.http.services.chronoframe.loadbalancer.server.port=3000"
+      - 'traefik.enable=true'
+      - 'traefik.http.routers.chronoframe.rule=Host(`your-domain.com`)'
+      - 'traefik.http.routers.chronoframe.entrypoints=websecure'
+      - 'traefik.http.routers.chronoframe.tls.certresolver=letsencrypt'
+      - 'traefik.http.services.chronoframe.loadbalancer.server.port=3000'
     networks:
       - traefik
 
@@ -237,6 +239,7 @@ networks:
 ## 常见问题
 
 :::details 如何生成随机的 `NUXT_SESSION_PASSWORD`？
+
 ```bash
 # Linux / macOS
 openssl rand -base64 32
@@ -244,13 +247,5 @@ openssl rand -base64 32
 # Windows (pwsh)
 [Convert]::ToBase64String((1..32|%{[byte](Get-Random -Max 256)}))
 ```
-:::
 
-:::details 登录后台认证成功后，跳转到首页且仍为未登录状态？
-首先请确保不是直接通过 IP 地址和端口号访问。出于安全考虑，请通过配置的域名访问。
-
-如果出于某些原因，您执意要通过 IP 端口访问，请在配置项中添加：
-```bash
-NUXT_ALLOW_INSECURE_COOKIE=true
-```
 :::

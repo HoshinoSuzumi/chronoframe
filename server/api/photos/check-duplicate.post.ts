@@ -26,7 +26,9 @@ export default defineEventHandler(async (event) => {
         statusMessage: t('upload.error.required.title'),
         data: {
           title: t('upload.error.required.title'),
-          message: t('upload.error.required.message', { field: 'fileNames or storageKeys' }),
+          message: t('upload.error.required.message', {
+            field: 'fileNames or storageKeys',
+          }),
         },
       })
     }
@@ -99,7 +101,7 @@ export default defineEventHandler(async (event) => {
       }
     }
 
-    const duplicatesFound = results.filter(r => r.exists).length
+    const duplicatesFound = results.filter((r) => r.exists).length
 
     return {
       success: true,
@@ -107,9 +109,9 @@ export default defineEventHandler(async (event) => {
       duplicatesFound,
       summary: {
         title: t('upload.success.check.title'),
-        message: t('upload.success.check.message', { 
-          total: results.length, 
-          duplicates: duplicatesFound 
+        message: t('upload.success.check.message', {
+          total: results.length,
+          duplicates: duplicatesFound,
         }),
       },
     }

@@ -6,7 +6,19 @@ import dayjsLocale_zhHK from 'dayjs/locale/zh-hk'
 const router = useRouter()
 const dayjs = useDayjs()
 const colorMode = useColorMode()
-const { locale } = useI18n()
+const localeRef = ref('en')
+try {
+  const { locale } = useI18n()
+  watch(
+    locale,
+    (value) => {
+      localeRef.value = value
+    },
+    { immediate: true },
+  )
+} catch {
+  // i18n context may be unavailable during early server-side error rendering
+}
 
 // 初始化设置系统 - 一次性加载所有设置
 const settingsStore = useSettingsStore()
@@ -74,7 +86,7 @@ watchEffect(() => {
   dayjs.locale('zh-Hans', dayjsLocale_zhCN)
   dayjs.locale('zh-Hant-TW', dayjsLocale_zhTW)
   dayjs.locale('zh-Hant-HK', dayjsLocale_zhHK)
-  dayjs.locale(locale.value)
+  dayjs.locale(localeRef.value)
 })
 
 // 在全局级别提供筛选功能的状态管理

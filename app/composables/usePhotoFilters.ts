@@ -22,13 +22,13 @@ const globalFilters = ref<FilterOptions>({
   lenses: [],
   cities: [],
   ratings: 0,
-  search: ''
+  search: '',
 })
 
 export function usePhotoFilters() {
   const { photos } = usePhotos()
   const { sortedPhotos } = usePhotoSort()
-  
+
   // 使用全局筛选状态
   const activeFilters = globalFilters
 
@@ -39,13 +39,13 @@ export function usePhotoFilters() {
       cameras: new Map(),
       lenses: new Map(),
       cities: new Map(),
-      ratings: new Map()
+      ratings: new Map(),
     }
 
-    photos.value.forEach(photo => {
+    photos.value.forEach((photo) => {
       // 标签统计
       if (photo.tags && Array.isArray(photo.tags)) {
-        photo.tags.forEach(tag => {
+        photo.tags.forEach((tag) => {
           stats.tags.set(tag, (stats.tags.get(tag) || 0) + 1)
         })
       }
@@ -113,14 +113,14 @@ export function usePhotoFilters() {
       lenses: activeFilters.value.lenses.length,
       cities: activeFilters.value.cities.length,
       ratings: activeFilters.value.ratings > 0 ? 1 : 0,
-      search: activeFilters.value.search.length > 0 ? 1 : 0
+      search: activeFilters.value.search.length > 0 ? 1 : 0,
     }
   })
 
   // 筛选后的照片（应用排序）
   const filteredPhotos = computed(() => {
     // 先获取排序后的照片，再应用筛选
-    return sortedPhotos.value.filter(photo => {
+    return sortedPhotos.value.filter((photo) => {
       // 搜索筛选
       if (activeFilters.value.search) {
         const searchTerm = activeFilters.value.search.toLowerCase()
@@ -136,7 +136,9 @@ export function usePhotoFilters() {
           photo.description || '',
           photo.storageKey || '',
           photo.locationName || '',
-        ].join(' ').toLowerCase()
+        ]
+          .join(' ')
+          .toLowerCase()
 
         if (!searchableFields.includes(searchTerm)) {
           return false
@@ -146,27 +148,32 @@ export function usePhotoFilters() {
       // 标签筛选
       if (activeFilters.value.tags.length > 0) {
         const photoTags = photo.tags || []
-        const hasMatchingTag = activeFilters.value.tags.some(tag => 
-          photoTags.includes(tag)
+        const hasMatchingTag = activeFilters.value.tags.some((tag) =>
+          photoTags.includes(tag),
         )
         if (!hasMatchingTag) return false
       }
 
       // 相机筛选
       if (activeFilters.value.cameras.length > 0) {
-        const photoCamera = photo.exif?.Make && photo.exif?.Model 
-          ? `${photo.exif.Make} ${photo.exif.Model}`
-          : null
-        if (!photoCamera || !activeFilters.value.cameras.includes(photoCamera)) {
+        const photoCamera =
+          photo.exif?.Make && photo.exif?.Model
+            ? `${photo.exif.Make} ${photo.exif.Model}`
+            : null
+        if (
+          !photoCamera ||
+          !activeFilters.value.cameras.includes(photoCamera)
+        ) {
           return false
         }
       }
 
       // 镜头筛选
       if (activeFilters.value.lenses.length > 0) {
-        const photoLens = photo.exif?.LensMake && photo.exif?.LensModel
-          ? `${photo.exif.LensMake} ${photo.exif.LensModel}`
-          : photo.exif?.LensModel || null
+        const photoLens =
+          photo.exif?.LensMake && photo.exif?.LensModel
+            ? `${photo.exif.LensMake} ${photo.exif.LensModel}`
+            : photo.exif?.LensModel || null
         if (!photoLens || !activeFilters.value.lenses.includes(photoLens)) {
           return false
         }
@@ -195,7 +202,7 @@ export function usePhotoFilters() {
   const toggleFilter = (type: keyof FilterOptions, value: string | number) => {
     const filters = activeFilters.value[type] as any[]
     const index = filters.indexOf(value)
-    
+
     if (index === -1) {
       filters.push(value)
     } else {
@@ -211,32 +218,37 @@ export function usePhotoFilters() {
       lenses: [],
       cities: [],
       ratings: 0,
-      search: ''
+      search: '',
     }
   }
 
   // 清除指定类型的筛选
   const clearFilterType = (type: keyof FilterOptions) => {
     if (type === 'ratings' || type === 'search') {
-      (activeFilters.value as any)[type] = type === 'ratings' ? 0 : ''
+      ;(activeFilters.value as any)[type] = type === 'ratings' ? 0 : ''
     } else {
-      (activeFilters.value as any)[type] = []
+      ;(activeFilters.value as any)[type] = []
     }
   }
 
   // 检查筛选项是否被选中
-  const isFilterSelected = (type: keyof FilterOptions, value: string | number) => {
+  const isFilterSelected = (
+    type: keyof FilterOptions,
+    value: string | number,
+  ) => {
     return (activeFilters.value[type] as any[]).includes(value)
   }
 
   // 检查是否有任何筛选项被激活
   const hasActiveFilters = computed(() => {
-    return activeFilters.value.tags.length > 0 ||
-           activeFilters.value.cameras.length > 0 ||
-           activeFilters.value.lenses.length > 0 ||
-           activeFilters.value.cities.length > 0 ||
-           activeFilters.value.ratings > 0 ||
-           activeFilters.value.search.length > 0
+    return (
+      activeFilters.value.tags.length > 0 ||
+      activeFilters.value.cameras.length > 0 ||
+      activeFilters.value.lenses.length > 0 ||
+      activeFilters.value.cities.length > 0 ||
+      activeFilters.value.ratings > 0 ||
+      activeFilters.value.search.length > 0
+    )
   })
 
   return {
@@ -248,6 +260,6 @@ export function usePhotoFilters() {
     toggleFilter,
     clearAllFilters,
     clearFilterType,
-    isFilterSelected
+    isFilterSelected,
   }
 }

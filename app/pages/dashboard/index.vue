@@ -25,7 +25,7 @@ const selectedYear = ref<number | 'recent'>('recent')
 const refreshData = async () => {
   isLoading.value = true
   try {
-    await Promise.all([refreshStats()])
+    await refreshStats()
   } finally {
     isLoading.value = false
   }

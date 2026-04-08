@@ -42,7 +42,10 @@ export default defineEventHandler(async (event) => {
   const relPathRaw = Array.isArray(p) ? p.join('/') : p
   // handle CJK characters in URL
   const decodedPath = decodeURIComponent(relPathRaw)
-  const relPath = decodedPath.replace(/\\/g, '/').replace(/\/+/g, '/').replace(/^\/+/, '')
+  const relPath = decodedPath
+    .replace(/\\/g, '/')
+    .replace(/\/+/g, '/')
+    .replace(/^\/+/, '')
 
   // 阻止路径穿越
   if (relPath.includes('..')) {
@@ -76,7 +79,10 @@ export default defineEventHandler(async (event) => {
     // 条件请求
     const inm = getHeader(event, 'if-none-match')
     const ims = getHeader(event, 'if-modified-since')
-    if (inm === etag || (ims && new Date(ims).getTime() >= stat.mtime.getTime())) {
+    if (
+      inm === etag ||
+      (ims && new Date(ims).getTime() >= stat.mtime.getTime())
+    ) {
       event.node.res.statusCode = 304
       return null
     }
@@ -90,7 +96,11 @@ export default defineEventHandler(async (event) => {
         const end = matches[2] ? parseInt(matches[2], 10) : stat.size - 1
         if (start <= end && end < stat.size) {
           event.node.res.statusCode = 206
-          setHeader(event, 'Content-Range', `bytes ${start}-${end}/${stat.size}`)
+          setHeader(
+            event,
+            'Content-Range',
+            `bytes ${start}-${end}/${stat.size}`,
+          )
           setHeader(event, 'Accept-Ranges', 'bytes')
           event.node.res.setHeader('Content-Length', String(end - start + 1))
           const stream = createReadStream(absolute, { start, end })

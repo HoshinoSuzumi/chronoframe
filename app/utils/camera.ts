@@ -8,28 +8,28 @@ export function formatCameraInfo(make?: string, model?: string): string {
 
   // 常见品牌名称映射（包括各种可能的变体）
   const brandMap: Record<string, string[]> = {
-    'Canon': ['canon', 'eos'],
-    'Nikon': ['nikon'],
-    'Sony': ['sony', 'ilce', 'dsc'],
-    'Fujifilm': ['fujifilm', 'fuji', 'x-'],
-    'Olympus': ['olympus', 'om-', 'e-'],
-    'Panasonic': ['panasonic', 'lumix', 'dc-', 'dmc-'],
-    'Leica': ['leica'],
-    'Pentax': ['pentax', 'k-'],
-    'Ricoh': ['ricoh', 'gr'],
-    'Hasselblad': ['hasselblad'],
+    Canon: ['canon', 'eos'],
+    Nikon: ['nikon'],
+    Sony: ['sony', 'ilce', 'dsc'],
+    Fujifilm: ['fujifilm', 'fuji', 'x-'],
+    Olympus: ['olympus', 'om-', 'e-'],
+    Panasonic: ['panasonic', 'lumix', 'dc-', 'dmc-'],
+    Leica: ['leica'],
+    Pentax: ['pentax', 'k-'],
+    Ricoh: ['ricoh', 'gr'],
+    Hasselblad: ['hasselblad'],
     'Phase One': ['phase one'],
-    'Mamiya': ['mamiya'],
-    'Apple': ['apple'],
-    'Samsung': ['samsung', 'galaxy', 'sm-'],
-    'Google': ['pixel'],
-    'Xiaomi': ['xiaomi', 'mi ', 'redmi'],
-    'Huawei': ['huawei', 'p30', 'p40', 'p50', 'mate'],
-    'OnePlus': ['oneplus'],
-    'OPPO': ['oppo'],
-    'Vivo': ['vivo'],
-    'Realme': ['realme'],
-    'Honor': ['honor'],
+    Mamiya: ['mamiya'],
+    Apple: ['apple'],
+    Samsung: ['samsung', 'galaxy', 'sm-'],
+    Google: ['pixel'],
+    Xiaomi: ['xiaomi', 'mi ', 'redmi'],
+    Huawei: ['huawei', 'p30', 'p40', 'p50', 'mate'],
+    OnePlus: ['oneplus'],
+    OPPO: ['oppo'],
+    Vivo: ['vivo'],
+    Realme: ['realme'],
+    Honor: ['honor'],
   }
 
   const makeNormalized = make.toLowerCase().trim()
@@ -37,8 +37,8 @@ export function formatCameraInfo(make?: string, model?: string): string {
 
   // 检查型号中是否已经包含品牌信息
   const brandKeywords = brandMap[make] || [makeNormalized]
-  const modelContainsBrand = brandKeywords.some(keyword => 
-    modelNormalized.includes(keyword.toLowerCase())
+  const modelContainsBrand = brandKeywords.some((keyword) =>
+    modelNormalized.includes(keyword.toLowerCase()),
   )
 
   if (modelContainsBrand) {
@@ -60,19 +60,19 @@ export function formatLensInfo(lensMake?: string, lensModel?: string): string {
 
   // 镜头品牌映射
   const lensBrandMap: Record<string, string[]> = {
-    'Canon': ['canon', 'ef', 'rf'],
-    'Nikon': ['nikon', 'nikkor'],
-    'Sony': ['sony', 'fe', 'e '],
-    'Sigma': ['sigma'],
-    'Tamron': ['tamron'],
-    'Tokina': ['tokina'],
-    'Samyang': ['samyang'],
-    'Zeiss': ['zeiss'],
-    'Voigtländer': ['voigtlander', 'voigtländer'],
-    'Leica': ['leica'],
-    'Panasonic': ['panasonic', 'lumix'],
-    'Olympus': ['olympus', 'zuiko'],
-    'Fujifilm': ['fujifilm', 'fujinon', 'xf', 'xc'],
+    Canon: ['canon', 'ef', 'rf'],
+    Nikon: ['nikon', 'nikkor'],
+    Sony: ['sony', 'fe', 'e '],
+    Sigma: ['sigma'],
+    Tamron: ['tamron'],
+    Tokina: ['tokina'],
+    Samyang: ['samyang'],
+    Zeiss: ['zeiss'],
+    Voigtländer: ['voigtlander', 'voigtländer'],
+    Leica: ['leica'],
+    Panasonic: ['panasonic', 'lumix'],
+    Olympus: ['olympus', 'zuiko'],
+    Fujifilm: ['fujifilm', 'fujinon', 'xf', 'xc'],
   }
 
   const lensMakeNormalized = lensMake.toLowerCase().trim()
@@ -80,8 +80,8 @@ export function formatLensInfo(lensMake?: string, lensModel?: string): string {
 
   // 检查镜头型号中是否已经包含品牌信息
   const brandKeywords = lensBrandMap[lensMake] || [lensMakeNormalized]
-  const modelContainsBrand = brandKeywords.some(keyword => 
-    lensModelNormalized.includes(keyword.toLowerCase())
+  const modelContainsBrand = brandKeywords.some((keyword) =>
+    lensModelNormalized.includes(keyword.toLowerCase()),
   )
 
   if (modelContainsBrand) {

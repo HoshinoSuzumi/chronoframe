@@ -19,7 +19,7 @@ export default defineConfig({
       copyDtsFiles: true,
     }),
   ],
-  
+
   build: {
     lib: {
       entry: {
@@ -34,13 +34,9 @@ export default defineConfig({
         return `${entryName}.${ext}`
       },
     },
-    
+
     rollupOptions: {
-      external: [
-        'vue',
-        '@vue/runtime-core',
-        '@vue/shared',
-      ],
+      external: ['vue', '@vue/runtime-core', '@vue/shared'],
       output: {
         globals: {
           vue: 'Vue',
@@ -50,24 +46,24 @@ export default defineConfig({
         manualChunks: undefined,
       },
     },
-    
+
     target: 'esnext',
     minify: true,
     emptyOutDir: true,
-    
+
     cssCodeSplit: false,
   },
-  
+
   resolve: {
     alias: {
       '@': resolve(__dirname, 'src'),
     },
   },
-  
+
   optimizeDeps: {
     include: ['vue'],
   },
-  
+
   define: {
     'process.env.NODE_ENV': '"production"',
   },

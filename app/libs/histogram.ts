@@ -12,7 +12,6 @@ export interface HistogramDataCompressed {
   gray: number[]
 }
 
-const zeroArray = (length: number): number[] => new Array(length).fill(0)
 const compressHistogramBin = (data: number[]): number[] => {
   const compressed: number[] = zeroArray(128)
   for (let i = 0; i < data.length; i++) {

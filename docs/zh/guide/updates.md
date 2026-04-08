@@ -7,6 +7,7 @@
 ### 查看当前版本
 
 #### 通过 Web 界面
+
 1. 登录 ChronoFrame 管理后台
 2. 进入「仪表板」页面
 3. 查看「运行信息」面板中的版本号
@@ -16,6 +17,7 @@
 ### 准备工作
 
 #### 1. 数据备份
+
 ```bash
 # 停止服务
 docker-compose down
@@ -25,7 +27,9 @@ ts=$(date +%Y%m%d-%H%M%S) && mkdir -p backups/$ts && cp -r data/ .env docker-com
 ```
 
 #### 2. 检查兼容性
+
 查看 [发布说明](https://github.com/HoshinoSuzumi/chronoframe/releases) 了解：
+
 - 破坏性变更
 - 新增环境变量
 - 功能弃用通知
@@ -62,7 +66,7 @@ docker-compose logs -f chronoframe
 # docker-compose.yml
 services:
   chronoframe:
-    image: ghcr.io/hoshinosuzumi/chronoframe:v1.2.3  # 指定版本
+    image: ghcr.io/hoshinosuzumi/chronoframe:v1.2.3 # 指定版本
     # ... 其他配置
 ```
 

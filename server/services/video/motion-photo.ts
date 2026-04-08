@@ -183,14 +183,8 @@ export const processMotionPhotoFromXmp = async ({
 
       if (presentationTimestampUs === null) {
         presentationTimestampUs =
-          extractXmpNumber(
-            xmpSegment,
-            'MotionPhotoPresentationTimestampUs',
-          ) ??
-          extractXmpNumber(
-            xmpSegment,
-            'MicroVideoPresentationTimestampUs',
-          ) ??
+          extractXmpNumber(xmpSegment, 'MotionPhotoPresentationTimestampUs') ??
+          extractXmpNumber(xmpSegment, 'MicroVideoPresentationTimestampUs') ??
           extractXmpAttributeNumber(
             xmpSegment,
             'MotionPhotoPresentationTimestampUs',
@@ -198,7 +192,8 @@ export const processMotionPhotoFromXmp = async ({
           extractXmpAttributeNumber(
             xmpSegment,
             'MicroVideoPresentationTimestampUs',
-          ) ?? null
+          ) ??
+          null
       }
     }
 

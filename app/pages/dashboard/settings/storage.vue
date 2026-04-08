@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { UButton, UChip } from '#components'
+import { UChip, UButton } from '#components'
 import type { TableColumn } from '@nuxt/ui'
 import {
   s3StorageConfigSchema,
@@ -512,7 +512,7 @@ const onStorageDelete = async (storageId: number) => {
                     <UButton
                       label="创建存储"
                       variant="soft"
-                      icon="i-heroicons-check"
+                      icon="tabler:check"
                       type="submit"
                       form="createStorageForm"
                     />

@@ -10,10 +10,7 @@ export class LRUCache<K, V> {
   private readonly storage = new Map<K, V>()
   private readonly onEvict?: CleanupHandler<K, V>
 
-  constructor(
-    maxSize = 10,
-    cleanupFn?: CleanupHandler<K, V>,
-  ) {
+  constructor(maxSize = 10, cleanupFn?: CleanupHandler<K, V>) {
     this.capacity = Math.max(1, maxSize)
     this.onEvict = cleanupFn
   }
@@ -61,11 +58,11 @@ export class LRUCache<K, V> {
 
   clear(): void {
     const itemCount = this.storage.size
-    
+
     for (const [key, item] of this.storage.entries()) {
       this.executeCleanup(item, key, `清空缓存: ${String(key)}`)
     }
-    
+
     this.storage.clear()
     console.info(`缓存已清空，共释放 ${itemCount} 个项目`)
   }
@@ -98,7 +95,11 @@ export class LRUCache<K, V> {
       const oldestKey = this.storage.keys().next().value
       if (oldestKey !== undefined) {
         const oldestValue = this.storage.get(oldestKey)!
-        this.executeCleanup(oldestValue, oldestKey, `容量限制淘汰: ${String(oldestKey)}`)
+        this.executeCleanup(
+          oldestValue,
+          oldestKey,
+          `容量限制淘汰: ${String(oldestKey)}`,
+        )
         this.storage.delete(oldestKey)
       }
     }

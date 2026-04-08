@@ -276,7 +276,10 @@ export class SettingsManager {
       // Use setImmediate to avoid blocking and handle async operation
       setImmediate(() => {
         this.triggerStorageProviderSwitch(value as number).catch((error) => {
-          this._logger.error('Failed to trigger storage provider switch:', error)
+          this._logger.error(
+            'Failed to trigger storage provider switch:',
+            error,
+          )
         })
       })
     }
@@ -286,12 +289,15 @@ export class SettingsManager {
    * Trigger storage provider switch
    * @param providerId Provider ID to switch to
    */
-  private async triggerStorageProviderSwitch(providerId: number): Promise<void> {
+  private async triggerStorageProviderSwitch(
+    providerId: number,
+  ): Promise<void> {
     try {
       // Dynamically import to avoid circular dependency issues
-      const { getGlobalStorageManager } = await import('~~/server/services/storage/events')
+      const { getGlobalStorageManager } =
+        await import('~~/server/services/storage/events')
       const loggerModule = await import('~~/server/utils/logger')
-      
+
       const storageManager = getGlobalStorageManager()
       if (!storageManager) {
         this._logger.warn(
@@ -309,7 +315,7 @@ export class SettingsManager {
       this._logger.info(
         `Triggering storage provider switch to: ${newProvider.name} (ID: ${providerId})`,
       )
-      
+
       await storageManager.registerProvider(
         newProvider.config,
         loggerModule.logger.dynamic('storage'),

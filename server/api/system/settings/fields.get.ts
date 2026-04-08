@@ -16,11 +16,9 @@ import type { SettingsFieldsResponse } from '~~/shared/types/settings'
 export default eventHandler(async (event) => {
   const query = await getValidatedQuery(
     event,
-    z
-      .object({
-        namespace: z.string().min(1),
-      })
-      .parse,
+    z.object({
+      namespace: z.string().min(1),
+    }).parse,
   )
 
   const session = await requireUserSession(event)
@@ -69,7 +67,8 @@ export default eventHandler(async (event) => {
     }
     throw createError({
       statusCode: 500,
-      statusMessage: (error as Error).message || 'Failed to fetch settings fields',
+      statusMessage:
+        (error as Error).message || 'Failed to fetch settings fields',
     })
   }
 })

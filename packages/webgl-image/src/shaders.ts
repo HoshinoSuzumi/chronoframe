@@ -65,23 +65,26 @@ export const FRAGMENT_SHADER_SOURCE = `
 export function createShader(
   gl: WebGLRenderingContext,
   type: number,
-  source: string
+  source: string,
 ): WebGLShader | null {
   const shader = gl.createShader(type)
   if (!shader) {
     console.error('Unable to create shader')
     return null
   }
-  
+
   gl.shaderSource(shader, source)
   gl.compileShader(shader)
-  
+
   if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
-    console.error('An error occurred compiling the shaders:', gl.getShaderInfoLog(shader))
+    console.error(
+      'An error occurred compiling the shaders:',
+      gl.getShaderInfoLog(shader),
+    )
     gl.deleteShader(shader)
     return null
   }
-  
+
   return shader
 }
 
@@ -91,23 +94,26 @@ export function createShader(
 export function createShaderProgram(
   gl: WebGLRenderingContext,
   vertexShader: WebGLShader,
-  fragmentShader: WebGLShader
+  fragmentShader: WebGLShader,
 ): WebGLProgram | null {
   const shaderProgram = gl.createProgram()
   if (!shaderProgram) {
     console.error('Unable to create shader program')
     return null
   }
-  
+
   gl.attachShader(shaderProgram, vertexShader)
   gl.attachShader(shaderProgram, fragmentShader)
   gl.linkProgram(shaderProgram)
-  
+
   if (!gl.getProgramParameter(shaderProgram, gl.LINK_STATUS)) {
-    console.error('Unable to initialize the shader program:', gl.getProgramInfoLog(shaderProgram))
+    console.error(
+      'Unable to initialize the shader program:',
+      gl.getProgramInfoLog(shaderProgram),
+    )
     return null
   }
-  
+
   return shaderProgram
 }
 
@@ -116,17 +122,21 @@ export function createShaderProgram(
  */
 export function createProgram(gl: WebGLRenderingContext): WebGLProgram | null {
   const vertexShader = createShader(gl, gl.VERTEX_SHADER, VERTEX_SHADER_SOURCE)
-  const fragmentShader = createShader(gl, gl.FRAGMENT_SHADER, FRAGMENT_SHADER_SOURCE)
-  
+  const fragmentShader = createShader(
+    gl,
+    gl.FRAGMENT_SHADER,
+    FRAGMENT_SHADER_SOURCE,
+  )
+
   if (!vertexShader || !fragmentShader) {
     return null
   }
-  
+
   const program = createShaderProgram(gl, vertexShader, fragmentShader)
-  
+
   // 清理着色器对象
   gl.deleteShader(vertexShader)
   gl.deleteShader(fragmentShader)
-  
+
   return program
 }

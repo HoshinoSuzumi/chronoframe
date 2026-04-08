@@ -12,12 +12,14 @@ export default defineEventHandler(async (event) => {
     const {
       includeCompleted = 'true',
       includeFailed = 'true',
-      olderThanDays
-    } = await z.object({
-      includeCompleted: z.string().optional().default('true'),
-      includeFailed: z.string().optional().default('true'),
-      olderThanDays: z.string().optional()
-    }).parseAsync(query)
+      olderThanDays,
+    } = await z
+      .object({
+        includeCompleted: z.string().optional().default('true'),
+        includeFailed: z.string().optional().default('true'),
+        olderThanDays: z.string().optional(),
+      })
+      .parseAsync(query)
 
     const shouldIncludeCompleted = includeCompleted === 'true'
     const shouldIncludeFailed = includeFailed === 'true'
@@ -25,7 +27,8 @@ export default defineEventHandler(async (event) => {
     if (!shouldIncludeCompleted && !shouldIncludeFailed) {
       throw createError({
         statusCode: 400,
-        statusMessage: 'At least one of includeCompleted or includeFailed must be true'
+        statusMessage:
+          'At least one of includeCompleted or includeFailed must be true',
       })
     }
 
@@ -48,13 +51,15 @@ export default defineEventHandler(async (event) => {
       if (isNaN(daysThreshold) || daysThreshold < 0) {
         throw createError({
           statusCode: 400,
-          statusMessage: 'olderThanDays must be a non-negative integer'
+          statusMessage: 'olderThanDays must be a non-negative integer',
         })
       }
 
-      const thresholdTimestamp = Math.floor((Date.now() - daysThreshold * 24 * 60 * 60 * 1000) / 1000)
+      const thresholdTimestamp = Math.floor(
+        (Date.now() - daysThreshold * 24 * 60 * 60 * 1000) / 1000,
+      )
       const timeCondition = sql`${tables.pipelineQueue.createdAt} < ${thresholdTimestamp}`
-      
+
       whereCondition = sql`(${whereCondition}) AND ${timeCondition}`
     }
 
@@ -64,7 +69,7 @@ export default defineEventHandler(async (event) => {
         id: tables.pipelineQueue.id,
         status: tables.pipelineQueue.status,
         payload: tables.pipelineQueue.payload,
-        createdAt: tables.pipelineQueue.createdAt
+        createdAt: tables.pipelineQueue.createdAt,
       })
       .from(tables.pipelineQueue)
       .where(whereCondition)
@@ -76,21 +81,22 @@ export default defineEventHandler(async (event) => {
         deletedCount: 0,
         breakdown: {
           completed: 0,
-          failed: 0
-        }
+          failed: 0,
+        },
       }
     }
 
     // 执行删除操作
-    await db
-      .delete(tables.pipelineQueue)
-      .where(whereCondition)
+    await db.delete(tables.pipelineQueue).where(whereCondition)
 
     // 统计删除的任务
-    const breakdown = tasksToDelete.reduce((acc, task) => {
-      acc[task.status] = (acc[task.status] || 0) + 1
-      return acc
-    }, {} as Record<string, number>)
+    const breakdown = tasksToDelete.reduce(
+      (acc, task) => {
+        acc[task.status] = (acc[task.status] || 0) + 1
+        return acc
+      },
+      {} as Record<string, number>,
+    )
 
     return {
       success: true,
@@ -98,24 +104,26 @@ export default defineEventHandler(async (event) => {
       deletedCount: tasksToDelete.length,
       breakdown: {
         completed: breakdown.completed || 0,
-        failed: breakdown.failed || 0
+        failed: breakdown.failed || 0,
       },
       ...(olderThanDays && {
         filter: {
           olderThanDays: parseInt(olderThanDays),
-          thresholdDate: new Date(Date.now() - parseInt(olderThanDays) * 24 * 60 * 60 * 1000).toISOString()
-        }
-      })
+          thresholdDate: new Date(
+            Date.now() - parseInt(olderThanDays) * 24 * 60 * 60 * 1000,
+          ).toISOString(),
+        },
+      }),
     }
   } catch (error) {
     if (error && typeof error === 'object' && 'statusCode' in error) {
       throw error
     }
-    
+
     console.error('Failed to clear tasks:', error)
     throw createError({
       statusCode: 500,
-      statusMessage: 'Failed to clear tasks'
+      statusMessage: 'Failed to clear tasks',
     })
   }
 })

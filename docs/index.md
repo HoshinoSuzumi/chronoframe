@@ -3,13 +3,13 @@
 layout: home
 
 hero:
-  name: "ChronoFrame"
-  text: "Self-hosted Personal Gallery"
-  tagline: "Manage photos online with multi-storage backends, LivePhoto, and globe view"
+  name: 'ChronoFrame'
+  text: 'Self-hosted Personal Gallery'
+  tagline: 'Manage photos online with multi-storage backends, LivePhoto, and globe view'
   image:
     src: /logo.png
     alt: ChronoFrame
-    style: "filter: drop-shadow(0 0 30px rgba(168, 85, 247, 0.7)) drop-shadow(0 0 60px rgba(59, 130, 246, 0.5)) drop-shadow(0 0 100px rgba(168, 85, 247, 0.3)); width: 300px; height: 300px;"
+    style: 'filter: drop-shadow(0 0 30px rgba(168, 85, 247, 0.7)) drop-shadow(0 0 60px rgba(59, 130, 246, 0.5)) drop-shadow(0 0 100px rgba(168, 85, 247, 0.3)); width: 300px; height: 300px;'
   actions:
     - theme: brand
       text: Getting Started
@@ -40,7 +40,6 @@ features:
   - title: Live/Motion Photo Support
     icon: 🎬
     details: Full support for Apple LivePhoto format and Google-standard Motion Photo, automatically detect and process MOV video files, preserve dynamic photo effects.
-
 ---
 
 ## 🌍 Demo Sites

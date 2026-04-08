@@ -53,7 +53,9 @@ const hasError = ref(false)
 const currentSrc = ref<string | null>()
 
 const isDev = computed(() => import.meta.env.DEV)
-const showDebugInfo = computed(() => isDev.value && import.meta.env.VITE_SHOW_DEBUG_INFO === 'true')
+const showDebugInfo = computed(
+  () => isDev.value && import.meta.env.VITE_SHOW_DEBUG_INFO === 'true',
+)
 
 // 使用 WebGLImageViewer 的引用
 const webglViewerRef = ref()

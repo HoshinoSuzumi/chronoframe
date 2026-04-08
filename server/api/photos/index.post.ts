@@ -3,10 +3,7 @@ import { useStorageProvider } from '~~/server/utils/useStorageProvider'
 import { eq } from 'drizzle-orm'
 import { generateSafePhotoId } from '~~/server/utils/file-utils'
 
-const VIDEO_EXTENSIONS = new Set([
-  '.mov',
-  '.mp4',
-])
+const VIDEO_EXTENSIONS = new Set(['.mov', '.mp4'])
 
 const IMAGE_EXTENSIONS = new Set([
   '.avif',
@@ -22,7 +19,10 @@ const IMAGE_EXTENSIONS = new Set([
   '.webp',
 ])
 
-const isVideoFile = (fileName: string, contentType?: string | null): boolean => {
+const isVideoFile = (
+  fileName: string,
+  contentType?: string | null,
+): boolean => {
   if (contentType?.toLowerCase().startsWith('video/')) {
     return true
   }
@@ -82,7 +82,11 @@ export default eventHandler(async (event) => {
         .where(eq(tables.photos.id, photoId))
         .get()
 
-      if (existingPhoto && isVideoUpload && isLikelyImageKey(existingPhoto.storageKey)) {
+      if (
+        existingPhoto &&
+        isVideoUpload &&
+        isLikelyImageKey(existingPhoto.storageKey)
+      ) {
         existingPhoto = null
       }
 

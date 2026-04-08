@@ -128,18 +128,18 @@ NUXT_PROVIDER_LOCAL_BASE_URL=/storage
 
 OpenList is a file listing program that supports multiple cloud storage services.
 
-| Environment Variable | Type | Required | Default | Description |
-|---|---|---|---|---|
-| `NUXT_PROVIDER_OPENLIST_BASE_URL` | string | Yes | - | Base URL of the OpenList service |
-| `NUXT_PROVIDER_OPENLIST_ROOT_PATH` | string | Yes | - | Root storage path |
-| `NUXT_PROVIDER_OPENLIST_TOKEN` | string | Required | - | Authentication token (required for authentication) |
-| `NUXT_PROVIDER_OPENLIST_ENDPOINT_UPLOAD` | string | Optional | `/api/fs/put` | Upload endpoint |
-| `NUXT_PROVIDER_OPENLIST_ENDPOINT_DOWNLOAD` | string | Optional | - | Download endpoint |
-| `NUXT_PROVIDER_OPENLIST_ENDPOINT_LIST` | string | Optional | - | List endpoint |
-| `NUXT_PROVIDER_OPENLIST_ENDPOINT_DELETE` | string | Optional | `/api/fs/remove` | Delete endpoint |
-| `NUXT_PROVIDER_OPENLIST_ENDPOINT_META` | string | Optional | `/api/fs/get` | Metadata endpoint |
-| `NUXT_PROVIDER_OPENLIST_PATH_FIELD` | string | Optional | `path` | Path field name |
-| `NUXT_PROVIDER_OPENLIST_CDN_URL` | string | Optional | - | CDN URL |
+| Environment Variable                       | Type   | Required | Default          | Description                                        |
+| ------------------------------------------ | ------ | -------- | ---------------- | -------------------------------------------------- |
+| `NUXT_PROVIDER_OPENLIST_BASE_URL`          | string | Yes      | -                | Base URL of the OpenList service                   |
+| `NUXT_PROVIDER_OPENLIST_ROOT_PATH`         | string | Yes      | -                | Root storage path                                  |
+| `NUXT_PROVIDER_OPENLIST_TOKEN`             | string | Required | -                | Authentication token (required for authentication) |
+| `NUXT_PROVIDER_OPENLIST_ENDPOINT_UPLOAD`   | string | Optional | `/api/fs/put`    | Upload endpoint                                    |
+| `NUXT_PROVIDER_OPENLIST_ENDPOINT_DOWNLOAD` | string | Optional | -                | Download endpoint                                  |
+| `NUXT_PROVIDER_OPENLIST_ENDPOINT_LIST`     | string | Optional | -                | List endpoint                                      |
+| `NUXT_PROVIDER_OPENLIST_ENDPOINT_DELETE`   | string | Optional | `/api/fs/remove` | Delete endpoint                                    |
+| `NUXT_PROVIDER_OPENLIST_ENDPOINT_META`     | string | Optional | `/api/fs/get`    | Metadata endpoint                                  |
+| `NUXT_PROVIDER_OPENLIST_PATH_FIELD`        | string | Optional | `path`           | Path field name                                    |
+| `NUXT_PROVIDER_OPENLIST_CDN_URL`           | string | Optional | -                | CDN URL                                            |
 
 **Authentication:**
 

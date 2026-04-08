@@ -5,9 +5,13 @@
 </p>
 
 <p align="center">
+  <a href="https://github.com/HoshinoSuzumi/chronoframe/releases/latest">
+    <img src="https://badgen.net/github/release/HoshinoSuzumi/chronoframe/stable?icon=docker&label=stable" alt="Latest Release">
+  </a>
+  <a href="https://github.com/HoshinoSuzumi/chronoframe/releases?q=beta&expanded=false">
+    <img src="https://badgen.net/github/release/HoshinoSuzumi/chronoframe?icon=docker&label=nightly" alt="Latest Nightly Release">
+  </a>
   <img src="https://img.shields.io/badge/License-MIT-green.svg" alt="License">
-  <img src="https://img.shields.io/badge/Nuxt-4.0+-00DC82.svg" alt="Nuxt">
-  <img src="https://img.shields.io/badge/TypeScript-5.0+-3178C6.svg" alt="TypeScript">
 </p>
 
 <p align="center">
@@ -135,7 +139,7 @@ services:
 Start:
 
 ```bash
-docker-compose up -d
+docker compose up -d
 ```
 
 ## 📖 User Guide

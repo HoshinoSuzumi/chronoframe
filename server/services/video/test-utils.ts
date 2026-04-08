@@ -6,32 +6,35 @@ import { findLivePhotoVideoForImage } from '../video/livephoto'
  */
 export const testLivePhotoDetection = async (imageKey: string) => {
   logger.chrono.info(`Testing LivePhoto detection for: ${imageKey}`)
-  
+
   try {
     const result = await findLivePhotoVideoForImage(imageKey)
-    
+
     if (result) {
       logger.chrono.success(`LivePhoto video found:`, {
         imageKey,
         videoKey: result.videoKey,
-        videoSize: result.videoSize
+        videoSize: result.videoSize,
       })
       return {
         found: true,
         videoKey: result.videoKey,
-        videoSize: result.videoSize
+        videoSize: result.videoSize,
       }
     } else {
       logger.chrono.info(`No LivePhoto video found for: ${imageKey}`)
       return {
-        found: false
+        found: false,
       }
     }
   } catch (error) {
-    logger.chrono.error(`LivePhoto detection test failed for ${imageKey}:`, error)
+    logger.chrono.error(
+      `LivePhoto detection test failed for ${imageKey}:`,
+      error,
+    )
     return {
       found: false,
-      error: error instanceof Error ? error.message : String(error)
+      error: error instanceof Error ? error.message : String(error),
     }
   }
 }
@@ -41,10 +44,10 @@ export const testLivePhotoDetection = async (imageKey: string) => {
  */
 export const batchTestLivePhotoDetection = async (photoIds?: string[]) => {
   const db = useDB()
-  
+
   try {
     let photos
-    
+
     if (photoIds && Array.isArray(photoIds) && photoIds.length > 0) {
       // 只处理指定的照片
       photos = await db
@@ -53,8 +56,8 @@ export const batchTestLivePhotoDetection = async (photoIds?: string[]) => {
         .where(
           and(
             eq(tables.photos.isLivePhoto, 0),
-            inArray(tables.photos.id, photoIds)
-          )
+            inArray(tables.photos.id, photoIds),
+          ),
         )
     } else {
       // 获取所有还不是 LivePhoto 的照片
@@ -63,31 +66,35 @@ export const batchTestLivePhotoDetection = async (photoIds?: string[]) => {
         .from(tables.photos)
         .where(eq(tables.photos.isLivePhoto, 0))
     }
-    
-    logger.chrono.info(`Testing ${photos.length} photos for LivePhoto detection`)
-    
+
+    logger.chrono.info(
+      `Testing ${photos.length} photos for LivePhoto detection`,
+    )
+
     const results = []
-    
+
     for (const photo of photos) {
       const result = await testLivePhotoDetection(photo.storageKey!)
       results.push({
         photoId: photo.id,
         storageKey: photo.storageKey,
-        ...result
+        ...result,
       })
-      
+
       // 避免过快请求存储
-      await new Promise(resolve => setTimeout(resolve, 100))
+      await new Promise((resolve) => setTimeout(resolve, 100))
     }
-    
-    const foundCount = results.filter(r => r.found).length
-    logger.chrono.success(`LivePhoto detection test completed. Found ${foundCount} potential LivePhotos out of ${photos.length} photos`)
-    
+
+    const foundCount = results.filter((r) => r.found).length
+    logger.chrono.success(
+      `LivePhoto detection test completed. Found ${foundCount} potential LivePhotos out of ${photos.length} photos`,
+    )
+
     return {
       total: photos.length,
       processed: photos.length,
       found: foundCount,
-      results: results.filter(r => r.found) // 只返回找到的
+      results: results.filter((r) => r.found), // 只返回找到的
     }
   } catch (error) {
     logger.chrono.error('Batch LivePhoto detection test failed:', error)

@@ -34,7 +34,8 @@ export default eventHandler(async (event) => {
     { user },
     {
       cookie: {
-        secure: !useRuntimeConfig().allowInsecureCookie,
+        // secure: !useRuntimeConfig().allowInsecureCookie,
+        secure: false,
       },
     },
   )

@@ -210,11 +210,11 @@ services:
     env_file:
       - .env
     labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.chronoframe.rule=Host(`your-domain.com`)"
-      - "traefik.http.routers.chronoframe.entrypoints=websecure"
-      - "traefik.http.routers.chronoframe.tls.certresolver=letsencrypt"
-      - "traefik.http.services.chronoframe.loadbalancer.server.port=3000"
+      - 'traefik.enable=true'
+      - 'traefik.http.routers.chronoframe.rule=Host(`your-domain.com`)'
+      - 'traefik.http.routers.chronoframe.entrypoints=websecure'
+      - 'traefik.http.routers.chronoframe.tls.certresolver=letsencrypt'
+      - 'traefik.http.services.chronoframe.loadbalancer.server.port=3000'
     networks:
       - traefik
 
@@ -226,6 +226,7 @@ networks:
 ## Common Issues
 
 :::details How do I generate a random `NUXT_SESSION_PASSWORD`?
+
 ```bash
 # Linux / macOS
 openssl rand -base64 32
@@ -233,13 +234,5 @@ openssl rand -base64 32
 # Windows (PowerShell)
 [Convert]::ToBase64String((1..32|%{[byte](Get-Random -Max 256)}))
 ```
-:::
 
-:::details Logged in successfully but redirected home still unauthenticated?
-Make sure you are not accessing the site via raw IP:port. For security, cookies are set for the domain.
-
-If you must use IP + port (not recommended), add:
-```bash
-NUXT_ALLOW_INSECURE_COOKIE=true
-```
 :::

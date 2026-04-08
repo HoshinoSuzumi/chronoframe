@@ -462,7 +462,7 @@ onUnmounted(() => {
               <div class="flex items-start space-x-3 text-sm">
                 <!-- 时间戳 -->
                 <span
-                  class="text-neutral-400 dark:text-neutral-500 text-xs whitespace-nowrap min-w-0 flex-shrink-0 mt-0.5"
+                  class="text-neutral-400 dark:text-neutral-500 text-xs whitespace-nowrap min-w-0 shrink-0 mt-0.5"
                 >
                   {{ $dayjs(log.date).format('HH:mm:ss.SSS') }}
                 </span>
@@ -483,7 +483,7 @@ onUnmounted(() => {
                 <!-- 日志内容 -->
                 <div class="flex-1 min-w-0">
                   <span
-                    class="whitespace-pre-wrap break-words"
+                    class="whitespace-pre-wrap wrap-break-word"
                     v-html="highlightSearch(formatLogArgs(log.args))"
                   ></span>
                 </div>
@@ -491,7 +491,7 @@ onUnmounted(() => {
                 <!-- 标签 -->
                 <span
                   v-if="log.tag"
-                  class="text-xs whitespace-nowrap flex-shrink-0 truncate text-neutral-400/80"
+                  class="text-xs whitespace-nowrap shrink-0 truncate text-neutral-400/80"
                 >
                   {{ log.tag }}
                 </span>

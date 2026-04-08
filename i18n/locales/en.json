@@ -113,7 +113,7 @@
     },
     "stats": {
       "totalPhotosWithRange": "{range}, @:plural.photo total",
-      "noPhotosTip": "Nno photos yet, upload some now!"
+      "noPhotosTip": "No photos yet, upload some now!"
     },
     "livePhoto": "Live Photo",
     "indexPanelCountCity": "and more other cities",
@@ -895,6 +895,13 @@
           "dark": "Dark",
           "system": "System"
         }
+      },
+      "upload": {
+        "maxFileSize": {
+          "label": "Max Upload File Size",
+          "description": "Maximum size of a single uploaded file (MB)",
+          "help": "Takes effect immediately and applies to all users"
+        }
       }
     },
     "map": {
@@ -942,6 +949,28 @@
       }
     },
     "storage": {
+      "name": {
+        "label": "Provider Name",
+        "description": "Name of the storage provider configuration"
+      },
+      "provider": {
+        "label": "Storage Provider",
+        "description": "Select the storage service provider",
+        "options": {
+          "local": {
+            "label": "Local Storage",
+            "description": "Store photos directly on the server's filesystem."
+          },
+          "s3": {
+            "label": "S3 Compatible",
+            "description": "Use AWS S3, Cloudflare R2, or other S3-compatible services."
+          },
+          "openlist": {
+            "label": "OpenList",
+            "description": "Connect to an Alist or OpenList instance for storage."
+          }
+        }
+      },
       "s3": {
         "bucket": {
           "label": "Bucket Name",
@@ -1034,6 +1063,34 @@
         "cdnUrl": {
           "label": "CDN URL",
           "description": "Custom CDN URL for accessing images"
+        }
+      }
+    }
+  },
+  "wizard": {
+    "admin": {
+      "username": {
+        "label": "Username"
+      },
+      "email": {
+        "label": "Email"
+      },
+      "password": {
+        "label": "Password"
+      },
+      "confirmPassword": {
+        "label": "Confirm Password"
+      }
+    },
+    "map": {
+      "provider": {
+        "mapbox": {
+          "label": "Mapbox",
+          "description": "High-performance maps with rich styling options."
+        },
+        "maplibre": {
+          "label": "MapLibre",
+          "description": "Open-source fork of Mapbox GL JS."
         }
       }
     }

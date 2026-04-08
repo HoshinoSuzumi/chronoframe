@@ -29,6 +29,12 @@ export const APP_SETTINGS_UI: Record<string, FieldUIConfig> = {
     placeholder: 'https://example.com/avatar.jpg',
     help: 'settings.app.avatarUrl.help',
   },
+  'upload.maxFileSize': {
+    type: 'number',
+    help: 'settings.app.upload.maxFileSize.help',
+    min: 1,
+    max: 10240,
+  },
   'appearance.theme': {
     type: 'tabs',
     options: [
@@ -101,8 +107,162 @@ export const LOCATION_SETTINGS_UI: Record<string, FieldUIConfig> = {
 
 export const STORAGE_SETTINGS_UI: Record<string, FieldUIConfig> = {
   provider: {
-    type: 'select',
-    help: 'settings.storage.provider.help',
+    type: 'custom',
+    options: [
+      {
+        label: 'settings.storage.provider.options.local.label',
+        value: 'local',
+        icon: 'tabler:server',
+        description: 'settings.storage.provider.options.local.description',
+      },
+      {
+        label: 'settings.storage.provider.options.s3.label',
+        value: 's3',
+        icon: 'tabler:brand-aws',
+        description: 'settings.storage.provider.options.s3.description',
+      },
+      {
+        label: 'settings.storage.provider.options.openlist.label',
+        value: 'openlist',
+        icon: 'tabler:stack',
+        description: 'settings.storage.provider.options.openlist.description',
+      },
+    ],
+  },
+  name: {
+    type: 'input',
+    required: true,
+  },
+  // Local
+  'local.basePath': {
+    type: 'input',
+    required: true,
+    help: 'settings.storage.local.basePath.description',
+    visibleIf: { fieldKey: 'provider', value: 'local' },
+  },
+  'local.baseUrl': {
+    type: 'input',
+    help: 'settings.storage.local.baseUrl.description',
+    visibleIf: { fieldKey: 'provider', value: 'local' },
+  },
+  'local.prefix': {
+    type: 'input',
+    placeholder: 'photos/',
+    help: 'settings.storage.local.prefix.description',
+    visibleIf: { fieldKey: 'provider', value: 'local' },
+  },
+  // S3
+  's3.endpoint': {
+    type: 'input',
+    required: true,
+    placeholder: 'https://s3.amazonaws.com',
+    help: 'settings.storage.s3.endpoint.description',
+    visibleIf: { fieldKey: 'provider', value: 's3' },
+  },
+  's3.bucket': {
+    type: 'input',
+    required: true,
+    help: 'settings.storage.s3.bucket.description',
+    visibleIf: { fieldKey: 'provider', value: 's3' },
+  },
+  's3.region': {
+    type: 'input',
+    required: true,
+    help: 'settings.storage.s3.region.description',
+    visibleIf: { fieldKey: 'provider', value: 's3' },
+  },
+  's3.accessKeyId': {
+    type: 'input',
+    required: true,
+    help: 'settings.storage.s3.accessKeyId.description',
+    visibleIf: { fieldKey: 'provider', value: 's3' },
+  },
+  's3.secretAccessKey': {
+    type: 'password',
+    required: true,
+    help: 'settings.storage.s3.secretAccessKey.description',
+    visibleIf: { fieldKey: 'provider', value: 's3' },
+  },
+  's3.prefix': {
+    type: 'input',
+    placeholder: '/photos',
+    help: 'settings.storage.s3.prefix.description',
+    visibleIf: { fieldKey: 'provider', value: 's3' },
+  },
+  's3.cdnUrl': {
+    type: 'input',
+    help: 'settings.storage.s3.cdnUrl.description',
+    visibleIf: { fieldKey: 'provider', value: 's3' },
+  },
+  's3.forcePathStyle': {
+    type: 'toggle',
+    help: 'settings.storage.s3.forcePathStyle.description',
+    visibleIf: { fieldKey: 'provider', value: 's3' },
+  },
+  's3.maxKeys': {
+    type: 'number',
+    help: 'settings.storage.s3.maxKeys.description',
+    visibleIf: { fieldKey: 'provider', value: 's3' },
+  },
+  // OpenList
+  'openlist.baseUrl': {
+    type: 'input',
+    required: true,
+    placeholder: 'https://alist.example.com',
+    help: 'settings.storage.openlist.baseUrl.description',
+    visibleIf: { fieldKey: 'provider', value: 'openlist' },
+  },
+  'openlist.rootPath': {
+    type: 'input',
+    required: true,
+    placeholder: '/photos',
+    help: 'settings.storage.openlist.rootPath.description',
+    visibleIf: { fieldKey: 'provider', value: 'openlist' },
+  },
+  'openlist.token': {
+    type: 'password',
+    required: true,
+    help: 'settings.storage.openlist.token.description',
+    visibleIf: { fieldKey: 'provider', value: 'openlist' },
+  },
+  'openlist.cdnUrl': {
+    type: 'input',
+    help: 'settings.storage.openlist.cdnUrl.description',
+    visibleIf: { fieldKey: 'provider', value: 'openlist' },
+  },
+  'openlist.uploadEndpoint': {
+    type: 'input',
+    placeholder: '/api/fs/put',
+    help: 'settings.storage.openlist.uploadEndpoint.description',
+    visibleIf: { fieldKey: 'provider', value: 'openlist' },
+  },
+  'openlist.downloadEndpoint': {
+    type: 'input',
+    help: 'settings.storage.openlist.downloadEndpoint.description',
+    visibleIf: { fieldKey: 'provider', value: 'openlist' },
+  },
+  'openlist.listEndpoint': {
+    type: 'input',
+    help: 'settings.storage.openlist.listEndpoint.description',
+    visibleIf: { fieldKey: 'provider', value: 'openlist' },
+  },
+  'openlist.deleteEndpoint': {
+    type: 'input',
+    placeholder: '/api/fs/remove',
+    help: 'settings.storage.openlist.deleteEndpoint.description',
+    visibleIf: { fieldKey: 'provider', value: 'openlist' },
+  },
+  'openlist.metaEndpoint': {
+    type: 'input',
+    placeholder: '/api/fs/get',
+    help: 'settings.storage.openlist.metaEndpoint.description',
+    visibleIf: { fieldKey: 'provider', value: 'openlist' },
+  },
+  'openlist.pathField': {
+    type: 'input',
+    placeholder: 'path',
+    help: 'settings.storage.openlist.pathField.description',
+    visibleIf: { fieldKey: 'provider', value: 'openlist' },
   },
 }
 

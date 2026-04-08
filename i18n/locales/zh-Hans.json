@@ -899,6 +899,13 @@
           "dark": "深色",
           "system": "系统"
         }
+      },
+      "upload": {
+        "maxFileSize": {
+          "label": "最大上传文件大小",
+          "description": "允许上传的单个文件最大大小（MB）",
+          "help": "设置后将立即生效，影响所有用户的文件上传操作"
+        }
       }
     },
     "map": {
@@ -946,6 +953,28 @@
       }
     },
     "storage": {
+      "name": {
+        "label": "配置名称",
+        "description": "存储提供者配置的名称"
+      },
+      "provider": {
+        "label": "存储提供者",
+        "description": "选择存储服务提供者",
+        "options": {
+          "local": {
+            "label": "本地存储",
+            "description": "直接将照片存储在服务器的文件系统中。"
+          },
+          "s3": {
+            "label": "S3 兼容存储",
+            "description": "使用 AWS S3、Cloudflare R2 或其他 S3 兼容服务。"
+          },
+          "openlist": {
+            "label": "OpenList",
+            "description": "连接到 Alist 或 OpenList 实例进行存储。"
+          }
+        }
+      },
       "s3": {
         "bucket": {
           "label": "存储桶名称",
@@ -1038,6 +1067,34 @@
         "cdnUrl": {
           "label": "CDN URL",
           "description": "用于访问图像的自定义 CDN URL"
+        }
+      }
+    }
+  },
+  "wizard": {
+    "admin": {
+      "username": {
+        "label": "用户名"
+      },
+      "email": {
+        "label": "电子邮箱"
+      },
+      "password": {
+        "label": "密码"
+      },
+      "confirmPassword": {
+        "label": "确认密码"
+      }
+    },
+    "map": {
+      "provider": {
+        "mapbox": {
+          "label": "Mapbox",
+          "description": "具有丰富样式选项的高性能地图。"
+        },
+        "maplibre": {
+          "label": "MapLibre",
+          "description": "Mapbox GL JS 的开源分支。"
         }
       }
     }

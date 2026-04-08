@@ -25,12 +25,11 @@ export const calculateHistogram = async (
 
     const { width, height, channels } = info
     const totalPixels = width * height
-
     // 初始化直方图数组（256个bin，对应0-255的像素值）
-    const histogramR = new Array(256).fill(0)
-    const histogramG = new Array(256).fill(0)
-    const histogramB = new Array(256).fill(0)
-    const histogramGray = new Array(256).fill(0)
+    const histogramR = zeroArray(256)
+    const histogramG = zeroArray(256)
+    const histogramB = zeroArray(256)
+    const histogramGray = zeroArray(256)
 
     // 遍历像素数据计算直方图
     for (let i = 0; i < data.length; i += channels) {

@@ -7,6 +7,7 @@ This document will guide you through safely updating and upgrading ChronoFrame t
 ### View Current Version
 
 #### Through Web Interface
+
 1. Login to ChronoFrame admin dashboard
 2. Go to "Dashboard" page
 3. Check version number in "Runtime Information" panel
@@ -16,6 +17,7 @@ This document will guide you through safely updating and upgrading ChronoFrame t
 ### Preparation
 
 #### 1. Data Backup
+
 ```bash
 # Stop service
 docker-compose down
@@ -25,7 +27,9 @@ ts=$(date +%Y%m%d-%H%M%S) && mkdir -p backups/$ts && cp -r data/ .env docker-com
 ```
 
 #### 2. Check Compatibility
+
 Review [Release Notes](https://github.com/HoshinoSuzumi/chronoframe/releases) to understand:
+
 - Breaking changes
 - New environment variables
 - Feature deprecation notices
@@ -62,7 +66,7 @@ If you need to update to a specific version:
 # docker-compose.yml
 services:
   chronoframe:
-    image: ghcr.io/hoshinosuzumi/chronoframe:v1.2.3  # Specify version
+    image: ghcr.io/hoshinosuzumi/chronoframe:v1.2.3 # Specify version
     # ... other configurations
 ```
 

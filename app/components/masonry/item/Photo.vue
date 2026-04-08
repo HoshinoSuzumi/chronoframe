@@ -563,7 +563,7 @@ onUnmounted(() => {
       <!-- Photo info overlay (bottom) -->
       <motion.div
         v-show="shouldShowInfoOverlay"
-        class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-3"
+        class="absolute bottom-0 left-0 right-0 bg-linear-to-t from-black/60 to-transparent p-3"
         :initial="{ y: '100%', opacity: 0 }"
         :animate="{
           y: shouldShowInfoOverlay && isHovering && !isMobile ? 0 : '100%',

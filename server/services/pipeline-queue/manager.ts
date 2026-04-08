@@ -467,8 +467,10 @@ export class QueueManager {
           let longitude = payload.longitude ?? photo.longitude ?? undefined
 
           if (
-            (latitude === undefined || latitude === null) ||
-            (longitude === undefined || longitude === null)
+            latitude === undefined ||
+            latitude === null ||
+            longitude === undefined ||
+            longitude === null
           ) {
             if (photo.exif) {
               const coords = parseGPSCoordinates(photo.exif)
@@ -507,7 +509,9 @@ export class QueueManager {
           )
 
           if (!locationInfo) {
-            throw new Error(`Failed to extract location from GPS coordinates (${latitude}, ${longitude}), maybe network issue?`)
+            throw new Error(
+              `Failed to extract location from GPS coordinates (${latitude}, ${longitude}), maybe network issue?`,
+            )
           }
 
           await db

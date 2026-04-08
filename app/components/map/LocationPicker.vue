@@ -26,7 +26,9 @@ const { locale } = useI18n()
 
 let clickHandler: ((event: any) => void) | null = null
 
-const syncFromProps = (value: { latitude: number; longitude: number } | null) => {
+const syncFromProps = (
+  value: { latitude: number; longitude: number } | null,
+) => {
   if (value) {
     markerCoordinates.value = [value.longitude, value.latitude]
     if (mapInstance.value) {
@@ -71,9 +73,9 @@ const handleMapClick = (event: any) => {
     return
   }
   const latitude =
-    typeof point.lat === 'number' ? point.lat : point.latitude ?? point[1]
+    typeof point.lat === 'number' ? point.lat : (point.latitude ?? point[1])
   const longitude =
-    typeof point.lng === 'number' ? point.lng : point.longitude ?? point[0]
+    typeof point.lng === 'number' ? point.lng : (point.longitude ?? point[0])
   if (typeof latitude !== 'number' || typeof longitude !== 'number') {
     return
   }
@@ -107,12 +109,16 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div :class="['relative w-full h-64 rounded-xl overflow-hidden', $props.class]">
+  <div
+    :class="['relative w-full h-64 rounded-xl overflow-hidden', $props.class]"
+  >
     <MapProvider
       class="w-full h-full"
       :map-id="'photo-location-picker'"
       :center="markerCoordinates ?? undefined"
-      :zoom="markerCoordinates ? Math.max($props.zoom ?? 4, 4) : $props.zoom ?? 2"
+      :zoom="
+        markerCoordinates ? Math.max($props.zoom ?? 4, 4) : ($props.zoom ?? 2)
+      "
       :interactive="true"
       :language="locale"
       @load="onMapLoad"
@@ -123,8 +129,12 @@ onBeforeUnmount(() => {
       >
         <template #marker>
           <div class="relative">
-            <div class="absolute inset-0 animate-ping rounded-full bg-primary/40" />
-            <div class="relative size-4 rounded-full bg-primary border-2 border-white shadow" />
+            <div
+              class="absolute inset-0 animate-ping rounded-full bg-primary/40"
+            />
+            <div
+              class="relative size-4 rounded-full bg-primary border-2 border-white shadow"
+            />
           </div>
         </template>
       </MapProviderMarker>

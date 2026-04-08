@@ -180,9 +180,7 @@
       "indexes": {
         "photos_id_unique": {
           "name": "photos_id_unique",
-          "columns": [
-            "id"
-          ],
+          "columns": ["id"],
           "isUnique": true
         }
       },
@@ -248,16 +246,12 @@
       "indexes": {
         "users_name_unique": {
           "name": "users_name_unique",
-          "columns": [
-            "name"
-          ],
+          "columns": ["name"],
           "isUnique": true
         },
         "users_email_unique": {
           "name": "users_email_unique",
-          "columns": [
-            "email"
-          ],
+          "columns": ["email"],
           "isUnique": true
         }
       },

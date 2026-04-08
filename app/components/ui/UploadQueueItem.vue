@@ -204,7 +204,7 @@ const generateParticleStyle = (index: number) => {
       <div class="flex items-center gap-3 flex-1 min-w-0">
         <!-- 文件图标 -->
         <motion.div
-          class="relative flex-shrink-0"
+          class="relative shrink-0"
           :transition="{
             duration: uploadingFile.status === 'processing' ? 2 : 0.3,
             repeat: uploadingFile.status === 'processing' ? Infinity : 0,

@@ -14,9 +14,14 @@ self.onmessage = async (event) => {
     try {
       let src = payload.src
       try {
-        const absolute = new URL(src, self.location?.origin || 'http://localhost')
+        const absolute = new URL(
+          src,
+          self.location?.origin || 'http://localhost',
+        )
         src = absolute.toString()
-      } catch { /* empty */ }
+      } catch {
+        /* empty */
+      }
       const response = await fetch(src, { mode: 'cors' })
       if (!response.ok) {
         throw new Error(`Failed to fetch image: ${response.status}`)

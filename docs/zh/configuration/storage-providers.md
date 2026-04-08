@@ -128,18 +128,18 @@ NUXT_PROVIDER_LOCAL_BASE_URL=/storage
 
 OpenList 是一个开源的文件管理系统，提供对各种云存储服务的 API 访问。此提供程序允许您使用与 OpenList 兼容的服务作为照片存储后端。
 
-| 环境变量 | 类型 | 必需 | 默认值 | 描述 |
-|---|---|---|---|---|
-| `NUXT_PROVIDER_OPENLIST_BASE_URL` | string | 是 | - | OpenList 服务的基础 URL |
-| `NUXT_PROVIDER_OPENLIST_ROOT_PATH` | string | 是 | - | 根存储路径 |
-| `NUXT_PROVIDER_OPENLIST_TOKEN` | string | 必需 | - | 认证令牌（认证时必需） |
-| `NUXT_PROVIDER_OPENLIST_ENDPOINT_UPLOAD` | string | 可选 | `/api/fs/put` | 上传端点 |
-| `NUXT_PROVIDER_OPENLIST_ENDPOINT_DOWNLOAD` | string | 可选 | - | 下载端点 |
-| `NUXT_PROVIDER_OPENLIST_ENDPOINT_LIST` | string | 可选 | - | 列表端点 |
-| `NUXT_PROVIDER_OPENLIST_ENDPOINT_DELETE` | string | 可选 | `/api/fs/remove` | 删除端点 |
-| `NUXT_PROVIDER_OPENLIST_ENDPOINT_META` | string | 可选 | `/api/fs/get` | 元数据端点 |
-| `NUXT_PROVIDER_OPENLIST_PATH_FIELD` | string | 可选 | `path` | 路径字段名 |
-| `NUXT_PROVIDER_OPENLIST_CDN_URL` | string | 可选 | - | CDN URL |
+| 环境变量                                   | 类型   | 必需 | 默认值           | 描述                    |
+| ------------------------------------------ | ------ | ---- | ---------------- | ----------------------- |
+| `NUXT_PROVIDER_OPENLIST_BASE_URL`          | string | 是   | -                | OpenList 服务的基础 URL |
+| `NUXT_PROVIDER_OPENLIST_ROOT_PATH`         | string | 是   | -                | 根存储路径              |
+| `NUXT_PROVIDER_OPENLIST_TOKEN`             | string | 必需 | -                | 认证令牌（认证时必需）  |
+| `NUXT_PROVIDER_OPENLIST_ENDPOINT_UPLOAD`   | string | 可选 | `/api/fs/put`    | 上传端点                |
+| `NUXT_PROVIDER_OPENLIST_ENDPOINT_DOWNLOAD` | string | 可选 | -                | 下载端点                |
+| `NUXT_PROVIDER_OPENLIST_ENDPOINT_LIST`     | string | 可选 | -                | 列表端点                |
+| `NUXT_PROVIDER_OPENLIST_ENDPOINT_DELETE`   | string | 可选 | `/api/fs/remove` | 删除端点                |
+| `NUXT_PROVIDER_OPENLIST_ENDPOINT_META`     | string | 可选 | `/api/fs/get`    | 元数据端点              |
+| `NUXT_PROVIDER_OPENLIST_PATH_FIELD`        | string | 可选 | `path`           | 路径字段名              |
+| `NUXT_PROVIDER_OPENLIST_CDN_URL`           | string | 可选 | -                | CDN URL                 |
 
 **认证：**
 
@@ -173,6 +173,7 @@ NUXT_PROVIDER_OPENLIST_CDN_URL=
 ```
 
 ### 配置示例
+
 #### OpenList（理论上Alist也可行）
 
 ```bash

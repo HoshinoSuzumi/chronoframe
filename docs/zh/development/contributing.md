@@ -253,7 +253,7 @@ interface Emits {
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  loading: false
+  loading: false,
 })
 
 const emit = defineEmits<Emits>()

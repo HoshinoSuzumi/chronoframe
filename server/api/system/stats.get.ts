@@ -89,17 +89,17 @@ async function getMemoryStats() {
 // 系统信息映射函数
 function mapSystemInfo(distribution: string): string {
   if (!distribution) return 'unknown'
-  
+
   // 转换为小写以便匹配
   const distro = distribution.toLowerCase()
-  
+
   // Windows 系统映射
   if (distro.includes('windows') || distro.includes('microsoft')) {
     if (distro.includes('11')) return 'windows11'
     if (distro.includes('10')) return 'windows10'
     return 'windows'
   }
-  
+
   // Linux 发行版映射
   if (distro.includes('ubuntu')) return 'ubuntu'
   if (distro.includes('debian')) return 'debian'
@@ -109,10 +109,10 @@ function mapSystemInfo(distribution: string): string {
   if (distro.includes('arch')) return 'arch'
   if (distro.includes('alpine')) return 'alpine'
   if (distro.includes('suse') || distro.includes('opensuse')) return 'opensuse'
-  
+
   // macOS 系统映射
   if (distro.includes('macos') || distro.includes('darwin')) return 'macos'
-  
+
   // 其他情况返回原始值（处理未知系统）
   return 'unknown'
 }

@@ -615,7 +615,7 @@ const swiperModules = [Navigation, Keyboard, Virtual]
                       :name="
                         isLivePhotoMuted ? 'tabler:volume-off' : 'tabler:volume'
                       "
-                      class="size-[17px]"
+                      class="size-4.25"
                     />
                   </div>
                 </div>

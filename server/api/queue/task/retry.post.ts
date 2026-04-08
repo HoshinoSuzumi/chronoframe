@@ -11,8 +11,8 @@ export default defineEventHandler(async (event) => {
     const { taskId } = await readValidatedBody(
       event,
       z.object({
-        taskId: z.number().int().positive()
-      }).parse
+        taskId: z.number().int().positive(),
+      }).parse,
     )
 
     const db = useDB()
@@ -27,14 +27,14 @@ export default defineEventHandler(async (event) => {
     if (!task) {
       throw createError({
         statusCode: 404,
-        statusMessage: 'Task not found'
+        statusMessage: 'Task not found',
       })
     }
 
     if (task.status !== 'failed') {
       throw createError({
         statusCode: 400,
-        statusMessage: `Task is not in failed status, current status: ${task.status}`
+        statusMessage: `Task is not in failed status, current status: ${task.status}`,
       })
     }
 
@@ -46,7 +46,7 @@ export default defineEventHandler(async (event) => {
         statusStage: null,
         errorMessage: null,
         attempts: 0, // 重置尝试次数
-        createdAt: new Date() // 更新创建时间以便重新调度
+        createdAt: new Date(), // 更新创建时间以便重新调度
       })
       .where(eq(tables.pipelineQueue.id, taskId))
 
@@ -56,18 +56,18 @@ export default defineEventHandler(async (event) => {
       taskId,
       payload: {
         type: task.payload.type,
-        storageKey: task.payload.storageKey
-      }
+        storageKey: task.payload.storageKey,
+      },
     }
   } catch (error) {
     if (error && typeof error === 'object' && 'statusCode' in error) {
       throw error
     }
-    
+
     console.error('Failed to retry task:', error)
     throw createError({
       statusCode: 500,
-      statusMessage: 'Failed to retry task'
+      statusMessage: 'Failed to retry task',
     })
   }
 })

@@ -22,9 +22,13 @@ const formRef = ref()
 const formState = ref<Record<string, any>>({})
 
 // 监听 props.state 的变化
-watch(() => props.state, (newState) => {
-  formState.value = { ...newState }
-}, { immediate: true })
+watch(
+  () => props.state,
+  (newState) => {
+    formState.value = { ...newState }
+  },
+  { immediate: true },
+)
 
 /**
  * 处理表单提交
@@ -38,10 +42,17 @@ const handleSubmit = async (event: any) => {
   <UCard variant="outline">
     <template #header>
       <div class="flex items-center gap-2">
-        <UIcon v-if="icon" :name="icon" size="lg" />
+        <UIcon
+          v-if="icon"
+          :name="icon"
+          size="lg"
+        />
         <div>
           <p class="font-semibold">{{ title }}</p>
-          <p v-if="description" class="text-xs text-gray-500">
+          <p
+            v-if="description"
+            class="text-xs text-gray-500"
+          >
             {{ description }}
           </p>
         </div>

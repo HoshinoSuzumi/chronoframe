@@ -72,12 +72,8 @@
           "name": "photo_reactions_photo_id_photos_id_fk",
           "tableFrom": "photo_reactions",
           "tableTo": "photos",
-          "columnsFrom": [
-            "photo_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["photo_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -262,9 +258,7 @@
       "indexes": {
         "photos_id_unique": {
           "name": "photos_id_unique",
-          "columns": [
-            "id"
-          ],
+          "columns": ["id"],
           "isUnique": true
         }
       },
@@ -416,16 +410,12 @@
       "indexes": {
         "users_name_unique": {
           "name": "users_name_unique",
-          "columns": [
-            "name"
-          ],
+          "columns": ["name"],
           "isUnique": true
         },
         "users_email_unique": {
           "name": "users_email_unique",
-          "columns": [
-            "email"
-          ],
+          "columns": ["email"],
           "isUnique": true
         }
       },

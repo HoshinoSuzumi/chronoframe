@@ -6,12 +6,18 @@ export default eventHandler(async (event) => {
   let url = getRouterParam(event, 'thumbnailUrl')
 
   if (!url) {
-    throw createError({ statusCode: 400, statusMessage: 'Invalid thumbnailUrl' })
+    throw createError({
+      statusCode: 400,
+      statusMessage: 'Invalid thumbnailUrl',
+    })
   }
 
   url = decodeURIComponent(url)
 
-  if (storageProvider.config?.provider === 'local' && url.startsWith('/storage/')) {
+  if (
+    storageProvider.config?.provider === 'local' &&
+    url.startsWith('/storage/')
+  ) {
     const scheme = event.node.req.headers['x-forwarded-proto'] || 'http'
     url = `${scheme}://${event.node.req.headers.host}${url}`
   }
