@@ -28,7 +28,7 @@ COPY --from=runtime_deps /usr/bin/node /usr/bin/node
 COPY --from=runtime_deps /usr/lib /usr/lib
 COPY --from=runtime_deps /usr/share /usr/share
 COPY --from=runtime_deps /lib /lib
-COPY --from=runtime_deps /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
+COPY --from=runtime_deps /etc/ssl /etc/ssl
 
 COPY --from=build /usr/src/app/.output ./.output
 COPY --from=build /usr/src/app/server/database/migrations ./server/database/migrations
@@ -40,5 +40,6 @@ ENV NODE_ENV=production
 ENV NITRO_PORT=3000
 ENV NITRO_HOST=0.0.0.0
 ENV DATABASE_URL=./data/app.sqlite3
+ENV SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt
 
 CMD ["/usr/bin/node", ".output/server/index.mjs"]
