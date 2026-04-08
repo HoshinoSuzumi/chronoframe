@@ -16,7 +16,9 @@ try {
     },
     { immediate: true },
   )
-} catch {}
+} catch {
+  // i18n context may be unavailable during early server-side error rendering
+}
 
 // 初始化设置系统 - 一次性加载所有设置
 const settingsStore = useSettingsStore()
