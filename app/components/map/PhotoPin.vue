@@ -9,10 +9,12 @@ const props = withDefaults(
     clusterPoint: ClusterPoint
     isSelected?: boolean
     markerId?: string
+    analysisMode?: 'none' | 'focalLength' | 'shutterSpeed' | 'altitude'
   }>(),
   {
     isSelected: false,
     markerId: undefined,
+    analysisMode: 'none',
   },
 )
 
@@ -24,6 +26,209 @@ const emit = defineEmits<{
 const dayjs = useDayjs()
 const marker = computed(() => props.clusterPoint.properties.marker!)
 const hoverOpen = ref(false)
+
+const parseExifNumber = (value: unknown): number | null => {
+  if (typeof value === 'number') {
+    return Number.isFinite(value) ? value : null
+  }
+
+  if (typeof value !== 'string') {
+    return null
+  }
+
+  const trimmed = value.trim()
+  if (!trimmed) {
+    return null
+  }
+
+  const fractionMatch = trimmed.match(/^(-?\d+(?:\.\d+)?)\s*\/\s*(-?\d+(?:\.\d+)?)$/)
+  if (fractionMatch) {
+    const numerator = Number(fractionMatch[1])
+    const denominator = Number(fractionMatch[2])
+    if (!Number.isFinite(numerator) || !Number.isFinite(denominator) || denominator === 0) {
+      return null
+    }
+    return numerator / denominator
+  }
+
+  const numericMatch = trimmed.match(/-?\d+(?:\.\d+)?/)
+  if (!numericMatch) {
+    return null
+  }
+
+  const parsed = Number(numericMatch[0])
+  return Number.isFinite(parsed) ? parsed : null
+}
+
+const focalLengthValue = computed(() => {
+  return parseExifNumber(
+    marker.value.exif?.FocalLengthIn35mmFormat ?? marker.value.exif?.FocalLength,
+  )
+})
+
+const shutterSecondsValue = computed(() => {
+  return parseExifNumber(marker.value.exif?.ExposureTime)
+})
+
+const altitudeValue = computed(() => {
+  const altitude = parseExifNumber(marker.value.exif?.GPSAltitude)
+  if (altitude === null) {
+    return null
+  }
+
+  const isBelowSeaLevel = marker.value.exif?.GPSAltitudeRef === 'Below Sea Level'
+  return isBelowSeaLevel ? -Math.abs(altitude) : altitude
+})
+
+type AnalysisBucket = 'low' | 'mid' | 'high' | null
+
+const analysisBucket = computed<AnalysisBucket>(() => {
+  if (props.analysisMode === 'none') {
+    return null
+  }
+
+  if (props.analysisMode === 'focalLength') {
+    const value = focalLengthValue.value
+    if (value === null) {
+      return null
+    }
+    if (value < 35) return 'low'
+    if (value <= 85) return 'mid'
+    return 'high'
+  }
+
+  if (props.analysisMode === 'shutterSpeed') {
+    const value = shutterSecondsValue.value
+    if (value === null) {
+      return null
+    }
+    if (value <= 1 / 250) return 'low'
+    if (value <= 1 / 30) return 'mid'
+    return 'high'
+  }
+
+  const value = altitudeValue.value
+  if (value === null) {
+    return null
+  }
+  if (value < 200) return 'low'
+  if (value <= 1500) return 'mid'
+  return 'high'
+})
+
+const analysisVisual = computed(() => {
+  if (props.analysisMode === 'none' || !analysisBucket.value) {
+    return {
+      overlayClass:
+        'bg-linear-to-br from-green/40 to-emerald/60 dark:from-green/60 dark:to-emerald/80',
+      pinClass:
+        'border-white/50 bg-white/80 hover:bg-white/90 dark:border-white/30 dark:bg-black/80 dark:hover:bg-black/90',
+      ringClass: '',
+      badgeClass: '',
+      badgeLabel: '',
+    }
+  }
+
+  if (props.analysisMode === 'focalLength') {
+    if (analysisBucket.value === 'low') {
+      return {
+        overlayClass:
+          'bg-linear-to-br from-cyan-300/45 to-sky-500/60 dark:from-cyan-300/55 dark:to-sky-500/75',
+        pinClass:
+          'border-cyan-300/70 bg-cyan-50/85 hover:bg-cyan-100/85 dark:border-cyan-300/45 dark:bg-cyan-900/45 dark:hover:bg-cyan-900/60',
+        ringClass: 'ring-cyan-400/45 dark:ring-cyan-300/45',
+        badgeClass: 'bg-cyan-500/90 text-white',
+        badgeLabel: 'W',
+      }
+    }
+    if (analysisBucket.value === 'mid') {
+      return {
+        overlayClass:
+          'bg-linear-to-br from-amber-300/45 to-orange-500/60 dark:from-amber-300/55 dark:to-orange-500/75',
+        pinClass:
+          'border-amber-300/70 bg-amber-50/85 hover:bg-amber-100/85 dark:border-amber-300/45 dark:bg-amber-900/45 dark:hover:bg-amber-900/60',
+        ringClass: 'ring-amber-400/45 dark:ring-amber-300/45',
+        badgeClass: 'bg-amber-500/90 text-white',
+        badgeLabel: 'N',
+      }
+    }
+    return {
+      overlayClass:
+        'bg-linear-to-br from-rose-300/45 to-pink-500/60 dark:from-rose-300/55 dark:to-pink-500/75',
+      pinClass:
+        'border-rose-300/70 bg-rose-50/85 hover:bg-rose-100/85 dark:border-rose-300/45 dark:bg-rose-900/45 dark:hover:bg-rose-900/60',
+      ringClass: 'ring-rose-400/45 dark:ring-rose-300/45',
+      badgeClass: 'bg-rose-500/90 text-white',
+      badgeLabel: 'T',
+    }
+  }
+
+  if (props.analysisMode === 'shutterSpeed') {
+    if (analysisBucket.value === 'low') {
+      return {
+        overlayClass:
+          'bg-linear-to-br from-emerald-300/45 to-green-500/60 dark:from-emerald-300/55 dark:to-green-500/75',
+        pinClass:
+          'border-emerald-300/70 bg-emerald-50/85 hover:bg-emerald-100/85 dark:border-emerald-300/45 dark:bg-emerald-900/45 dark:hover:bg-emerald-900/60',
+        ringClass: 'ring-emerald-400/45 dark:ring-emerald-300/45',
+        badgeClass: 'bg-emerald-500/90 text-white',
+        badgeLabel: 'F',
+      }
+    }
+    if (analysisBucket.value === 'mid') {
+      return {
+        overlayClass:
+          'bg-linear-to-br from-amber-300/45 to-yellow-500/60 dark:from-amber-300/55 dark:to-yellow-500/75',
+        pinClass:
+          'border-amber-300/70 bg-amber-50/85 hover:bg-amber-100/85 dark:border-amber-300/45 dark:bg-amber-900/45 dark:hover:bg-amber-900/60',
+        ringClass: 'ring-amber-400/45 dark:ring-amber-300/45',
+        badgeClass: 'bg-amber-500/90 text-white',
+        badgeLabel: 'M',
+      }
+    }
+    return {
+      overlayClass:
+        'bg-linear-to-br from-indigo-300/45 to-violet-500/60 dark:from-indigo-300/55 dark:to-violet-500/75',
+      pinClass:
+        'border-indigo-300/70 bg-indigo-50/85 hover:bg-indigo-100/85 dark:border-indigo-300/45 dark:bg-indigo-900/45 dark:hover:bg-indigo-900/60',
+      ringClass: 'ring-indigo-400/45 dark:ring-indigo-300/45',
+      badgeClass: 'bg-indigo-500/90 text-white',
+      badgeLabel: 'S',
+    }
+  }
+
+  if (analysisBucket.value === 'low') {
+    return {
+      overlayClass:
+        'bg-linear-to-br from-lime-300/45 to-green-500/60 dark:from-lime-300/55 dark:to-green-500/75',
+      pinClass:
+        'border-lime-300/70 bg-lime-50/85 hover:bg-lime-100/85 dark:border-lime-300/45 dark:bg-lime-900/45 dark:hover:bg-lime-900/60',
+      ringClass: 'ring-lime-400/45 dark:ring-lime-300/45',
+      badgeClass: 'bg-lime-500/90 text-white',
+      badgeLabel: 'L',
+    }
+  }
+  if (analysisBucket.value === 'mid') {
+    return {
+      overlayClass:
+        'bg-linear-to-br from-orange-300/45 to-amber-500/60 dark:from-orange-300/55 dark:to-amber-500/75',
+      pinClass:
+        'border-orange-300/70 bg-orange-50/85 hover:bg-orange-100/85 dark:border-orange-300/45 dark:bg-orange-900/45 dark:hover:bg-orange-900/60',
+      ringClass: 'ring-orange-400/45 dark:ring-orange-300/45',
+      badgeClass: 'bg-orange-500/90 text-white',
+      badgeLabel: 'M',
+    }
+  }
+  return {
+    overlayClass:
+      'bg-linear-to-br from-fuchsia-300/45 to-pink-500/60 dark:from-fuchsia-300/55 dark:to-pink-500/75',
+    pinClass:
+      'border-fuchsia-300/70 bg-fuchsia-50/85 hover:bg-fuchsia-100/85 dark:border-fuchsia-300/45 dark:bg-fuchsia-900/45 dark:hover:bg-fuchsia-900/60',
+    ringClass: 'ring-fuchsia-400/45 dark:ring-fuchsia-300/45',
+    badgeClass: 'bg-fuchsia-500/90 text-white',
+    badgeLabel: 'H',
+  }
+})
 
 const hoverCardOpen = computed({
   get: () => (props.isSelected ? true : hoverOpen.value),
@@ -94,7 +299,6 @@ const onClick = () => {
               v-if="isSelected"
               class="absolute -inset-2 rounded-full border border-primary/40 dark:border-primary/50 animate-ping"
             />
-
             <div class="absolute inset-0 overflow-hidden rounded-full">
               <ThumbImage
                 :src="marker.thumbnailUrl!"
@@ -105,7 +309,7 @@ const onClick = () => {
                 class="h-full w-full object-cover opacity-50"
               />
               <div
-                class="absolute inset-0 bg-linear-to-br from-green/40 to-emerald/60 dark:from-green/60 dark:to-emerald/80"
+                :class="twMerge('absolute inset-0', analysisVisual.overlayClass)"
               />
             </div>
 
@@ -116,7 +320,7 @@ const onClick = () => {
                   'relative size-10 flex justify-center items-center rounded-full border shadow-lg hover:shadow-xl',
                   isSelected
                     ? 'border-primary/60 bg-primary/80 shadow-primary/30 dark:border-primary/40 dark:bg-primary/90 dark:shadow-primary/50'
-                    : 'border-white/50 bg-white/80 hover:bg-white/90 dark:border-white/30 dark:bg-black/80 dark:hover:bg-black/90',
+                    : analysisVisual.pinClass,
                 )
               "
             >
@@ -127,6 +331,17 @@ const onClick = () => {
                 name="tabler:photo"
                 class="size-5 text-neutral-700 dark:text-white drop-shadow"
               />
+              <span
+                v-if="props.analysisMode !== 'none' && analysisBucket"
+                :class="
+                  twMerge(
+                    'absolute -top-1 -right-1 size-4 rounded-full text-[9px] font-bold leading-none inline-flex items-center justify-center border border-white/70 dark:border-white/20 shadow-sm',
+                    analysisVisual.badgeClass,
+                  )
+                "
+              >
+                {{ analysisVisual.badgeLabel }}
+              </span>
               <div
                 class="absolute inset-0 rounded-full shadow-inner shadow-black/5"
               />
