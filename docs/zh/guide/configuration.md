@@ -48,8 +48,6 @@
 | NUXT_PUBLIC_ANALYTICS_MATOMO_SITE_ID     | Matomo 站点 ID                                       | 无                                    | 否(启用 Matomo 时必需)                                                |
 | NUXT_UPLOAD_MIME_WHITELIST_ENABLED       | 是否启用上传文件 MIME 类型白名单验证                 | `true`                                | 否                                                                    |
 | NUXT_UPLOAD_MIME_WHITELIST               | 上传文件允许的 MIME 类型列表（逗号分隔）             | 见下方说明                            | 否                                                                    |
-| NUXT_UPLOAD_DUPLICATE_CHECK_ENABLED      | 是否启用重复文件检测                                 | `true`                                | 否                                                                    |
-| NUXT_UPLOAD_DUPLICATE_CHECK_MODE         | 重复文件处理模式，可选 `warn`、`block`、`skip`       | `skip`                                | 否                                                                    |
 | ALLOW_INSECURE_COOKIE                    | 是否允许非安全 Cookie（仅在开发环境使用）            | `false`                               | 否                                                                    |
 
 ## 上传文件类型白名单
@@ -81,9 +79,14 @@ NUXT_UPLOAD_MIME_WHITELIST_ENABLED=false
 
 ## 重复文件检测
 
-`NUXT_UPLOAD_DUPLICATE_CHECK_ENABLED` 控制是否在上传时检测重复文件。
+重复文件检测与处理模式已迁移为系统设置项，请在后台设置页面配置：
 
-`NUXT_UPLOAD_DUPLICATE_CHECK_MODE` 有三种模式：
+- 路径：`仪表盘 -> 设置 -> 系统设置`
+- 设置项：
+	- `上传时检测重复文件`（开关）
+	- `重复文件处理模式`（`skip` / `warn` / `block`）
+
+处理模式说明如下：
 
 ### skip（跳过模式）- 默认
 
@@ -91,9 +94,6 @@ NUXT_UPLOAD_MIME_WHITELIST_ENABLED=false
 - 返回现有照片信息，不进行任何操作
 - 适合批量上传时自动去重
 
-```
-NUXT_UPLOAD_DUPLICATE_CHECK_MODE=skip
-```
 
 ### warn（警告模式）
 
@@ -101,9 +101,6 @@ NUXT_UPLOAD_DUPLICATE_CHECK_MODE=skip
 - 继续上传，会覆盖现有照片数据
 - 适合需要更新照片的场景
 
-```
-NUXT_UPLOAD_DUPLICATE_CHECK_MODE=warn
-```
 
 ### block（阻止模式）
 
@@ -111,15 +108,6 @@ NUXT_UPLOAD_DUPLICATE_CHECK_MODE=warn
 - 返回 409 错误，不允许覆盖
 - 适合严格防止重复的场景
 
-```
-NUXT_UPLOAD_DUPLICATE_CHECK_MODE=block
-```
-
-### 完全禁用检测
-
-```
-NUXT_UPLOAD_DUPLICATE_CHECK_ENABLED=false
-```
 
 **注意事项**：
 

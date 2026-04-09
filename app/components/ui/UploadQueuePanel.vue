@@ -272,7 +272,7 @@ const clearAllFiles = () => {
           :animate="{ height: 'auto', opacity: 1 }"
           :exit="{ height: 0, opacity: 0 }"
           :transition="{ duration: 0.3, ease: 'easeInOut' }"
-          class="max-h-[calc(100vh-25.3rem)] sm:max-h-[600px] overflow-hidden overflow-y-auto filelist-container"
+          class="max-h-[calc(100vh-25.3rem)] sm:max-h-150 overflow-hidden overflow-y-auto filelist-container"
         >
           <div class="p-2 space-y-2">
             <AnimatePresence mode="popLayout">
@@ -291,7 +291,15 @@ const clearAllFiles = () => {
       <!-- 底部操作栏 -->
       <AnimatePresence>
         <motion.div
-          v-if="!isCollapsed && (stats.completed > 0 || stats.error > 0)"
+          v-if="
+            !isCollapsed &&
+              (
+                stats.completed > 0 ||
+                stats.error > 0 ||
+                stats.skipped > 0 ||
+                stats.blocked > 0
+              )
+          "
           :initial="{ opacity: 0, scaleY: 0 }"
           :animate="{ opacity: 1, scaleY: 1 }"
           :exit="{ opacity: 0, scaleY: 0 }"
@@ -301,7 +309,9 @@ const clearAllFiles = () => {
         >
           <div class="flex items-center justify-between gap-2">
             <div class="text-xs text-neutral-500 dark:text-neutral-400">
-              {{ stats.completed }} 完成, {{ stats.error }} 失败
+              {{ stats.completed }} 完成, {{ stats.error }} 失败, {{
+                stats.skipped
+              }} 跳过, {{ stats.blocked }} 阻止
             </div>
 
             <div class="flex items-center gap-0.5">

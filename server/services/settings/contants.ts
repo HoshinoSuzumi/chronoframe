@@ -72,6 +72,25 @@ export const DEFAULT_SETTINGS = [
     description: 'settings.app.upload.maxFileSize.description',
     isPublic: true,
   },
+  {
+    namespace: 'system',
+    key: 'upload.duplicateCheck.enabled',
+    type: 'boolean',
+    defaultValue: true,
+    label: 'settings.system.upload.duplicateCheck.enabled.label',
+    description: 'settings.system.upload.duplicateCheck.enabled.description',
+    isPublic: true,
+  },
+  {
+    namespace: 'system',
+    key: 'upload.duplicateCheck.mode',
+    type: 'string',
+    defaultValue: 'skip',
+    enum: ['warn', 'block', 'skip'],
+    label: 'settings.system.upload.duplicateCheck.mode.label',
+    description: 'settings.system.upload.duplicateCheck.mode.description',
+    isPublic: true,
+  },
   // NAMESPACE: privacy
   {
     namespace: 'privacy',

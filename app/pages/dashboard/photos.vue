@@ -119,6 +119,7 @@ interface UploadingFile {
   stage?: PipelineQueueItem['statusStage'] | null
   progress?: number
   error?: string
+  warning?: string
   taskId?: number
   signedUrlResponse?: { signedUrl: string; fileKey: string; expiresIn: number }
   uploadProgress?: {
@@ -289,6 +290,7 @@ const uploadImage = async (
     // 更新现有条目的状态和回调
     uploadingFile.status = 'preparing'
     uploadingFile.canAbort = false
+    uploadingFile.warning = undefined
     uploadingFile.abortUpload = () => uploadManager.abortUpload()
     uploadingFiles.value = new Map(uploadingFiles.value)
   }
@@ -311,8 +313,30 @@ const uploadImage = async (
       uploadingFile.status = 'skipped'
       uploadingFile.progress = 100
       uploadingFile.canAbort = false
+      uploadingFile.error =
+        signedUrlResponse.message ||
+        $t('upload.duplicate.skip.message', { fileName })
+
+      toast.add({
+        title: signedUrlResponse.title || $t('upload.duplicate.skip.title'),
+        description:
+          signedUrlResponse.message ||
+          $t('upload.duplicate.skip.message', { fileName }),
+        color: 'warning',
+      })
+
       uploadingFiles.value = new Map(uploadingFiles.value)
       return
+    }
+
+    if (signedUrlResponse.warningInfo) {
+      uploadingFile.error =
+        undefined
+      uploadingFile.warning =
+        signedUrlResponse.warningInfo.warning ||
+        signedUrlResponse.warningInfo.message
+
+      uploadingFiles.value = new Map(uploadingFiles.value)
     }
 
     uploadingFile.status = 'uploading'
@@ -397,8 +421,18 @@ const uploadImage = async (
         }
       },
       onError: (error: string) => {
-        uploadingFile.status = 'error'
-        uploadingFile.error = error
+        const isConflict = /\b409\b|Conflict/i.test(error)
+
+        if (isConflict) {
+          uploadingFile.status = 'blocked'
+          uploadingFile.error = $t('upload.duplicate.block.message', {
+            fileName,
+          })
+        } else {
+          uploadingFile.status = 'error'
+          uploadingFile.error = error
+        }
+
         uploadingFile.canAbort = false
         uploadingFiles.value = new Map(uploadingFiles.value)
       },
@@ -408,10 +442,25 @@ const uploadImage = async (
     uploadingFile.canAbort = false
 
     // 处理重复文件阻止模式的错误
-    if (error.statusCode === 409 && error.data?.duplicate) {
+    const isDuplicateConflict =
+      (error.statusCode === 409 ||
+        error.status === 409 ||
+        error.response?.status === 409) &&
+      (error.data?.duplicate || /Conflict|409/i.test(error.message || ''))
+
+    if (isDuplicateConflict) {
       uploadingFile.status = 'blocked'
       uploadingFile.error =
-        error.data.title || $t('upload.duplicate.block.title')
+        error.data.message ||
+        $t('upload.duplicate.block.message', { fileName })
+
+      toast.add({
+        title: error.data?.title || $t('upload.duplicate.block.title'),
+        description:
+          error.data?.message ||
+          $t('upload.duplicate.block.message', { fileName }),
+        color: 'error',
+      })
     } else {
       // 其他错误
       uploadingFile.error =
@@ -2212,6 +2261,7 @@ onUnmounted(() => {
                   <USwitch v-model="uploadEraseLocationEnabled" />
                 </div>
               </UCard>
+
             </div>
           </template>
 

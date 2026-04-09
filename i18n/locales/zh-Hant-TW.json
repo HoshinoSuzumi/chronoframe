@@ -866,6 +866,27 @@
         }
       }
     },
+    "system": {
+      "upload": {
+        "duplicateCheck": {
+          "enabled": {
+            "label": "上傳時偵測重複檔案",
+            "description": "依檔名偵測重複照片並套用對應策略",
+            "help": "關閉後將略過重複預檢，同名檔案會直接進入上傳流程"
+          },
+          "mode": {
+            "label": "重複檔案處理模式",
+            "description": "偵測到重複檔案時的處理方式",
+            "help": "僅在啟用重複檔案偵測時生效",
+            "options": {
+              "skip": "跳過",
+              "warn": "警告並覆蓋",
+              "block": "阻止上傳"
+            }
+          }
+        }
+      }
+    },
     "map": {
       "provider": {
         "label": "地圖服務商",

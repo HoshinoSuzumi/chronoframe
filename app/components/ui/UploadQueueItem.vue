@@ -18,6 +18,7 @@ interface UploadFile {
   stage?: string | null
   progress?: number
   error?: string
+  warning?: string
   taskId?: number
   uploadProgress?: {
     loaded: number
@@ -363,7 +364,9 @@ const generateParticleStyle = (index: number) => {
         <motion.div
           v-if="
             uploadingFile.status === 'completed' ||
-            uploadingFile.status === 'error'
+            uploadingFile.status === 'error' ||
+            uploadingFile.status === 'skipped' ||
+            uploadingFile.status === 'blocked'
           "
           :initial="{ opacity: 0, scale: 0.8 }"
           :animate="{ opacity: 1, scale: 1 }"
@@ -473,6 +476,58 @@ const generateParticleStyle = (index: number) => {
           color="error"
           variant="soft"
           icon="tabler:alert-circle"
+          :ui="{
+            root: 'px-2.5 py-2',
+          }"
+        />
+      </motion.div>
+    </AnimatePresence>
+
+    <!-- 跳过/阻止提示 -->
+    <AnimatePresence>
+      <motion.div
+        v-if="
+          (uploadingFile.status === 'skipped' ||
+            uploadingFile.status === 'blocked') &&
+            uploadingFile.error
+        "
+        :initial="{ opacity: 0, height: 0, y: -10 }"
+        :animate="{ opacity: 1, height: 'auto', y: 0 }"
+        :exit="{ opacity: 0, height: 0, y: -10 }"
+        :transition="{ duration: 0.3 }"
+        class="mt-3"
+      >
+        <UAlert
+          :description="uploadingFile.error"
+          :color="uploadingFile.status === 'blocked' ? 'error' : 'warning'"
+          variant="soft"
+          :icon="
+            uploadingFile.status === 'blocked'
+              ? 'tabler:ban'
+              : 'tabler:player-track-next'
+          "
+          :ui="{
+            root: 'px-2.5 py-2',
+          }"
+        />
+      </motion.div>
+    </AnimatePresence>
+
+    <!-- 警告信息（如重复文件警告并覆盖） -->
+    <AnimatePresence>
+      <motion.div
+        v-if="uploadingFile.warning"
+        :initial="{ opacity: 0, height: 0, y: -10 }"
+        :animate="{ opacity: 1, height: 'auto', y: 0 }"
+        :exit="{ opacity: 0, height: 0, y: -10 }"
+        :transition="{ duration: 0.3 }"
+        class="mt-3"
+      >
+        <UAlert
+          :description="uploadingFile.warning"
+          color="warning"
+          variant="soft"
+          icon="tabler:alert-triangle"
           :ui="{
             root: 'px-2.5 py-2',
           }"

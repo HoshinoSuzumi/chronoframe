@@ -113,6 +113,31 @@ export const SYSTEM_SETTINGS_UI: Record<string, FieldUIConfig> = {
     min: 1,
     max: 10240,
   },
+  'upload.duplicateCheck.enabled': {
+    type: 'toggle',
+    help: 'settings.system.upload.duplicateCheck.enabled.help',
+  },
+  'upload.duplicateCheck.mode': {
+    type: 'tabs',
+    options: [
+      {
+        label: 'settings.system.upload.duplicateCheck.mode.options.skip',
+        value: 'skip',
+        icon: 'tabler:player-track-next',
+      },
+      {
+        label: 'settings.system.upload.duplicateCheck.mode.options.warn',
+        value: 'warn',
+        icon: 'tabler:alert-triangle',
+      },
+      {
+        label: 'settings.system.upload.duplicateCheck.mode.options.block',
+        value: 'block',
+        icon: 'tabler:ban',
+      },
+    ],
+    help: 'settings.system.upload.duplicateCheck.mode.help',
+  },
 }
 
 export const STORAGE_SETTINGS_UI: Record<string, FieldUIConfig> = {

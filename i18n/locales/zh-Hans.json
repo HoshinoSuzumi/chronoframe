@@ -443,7 +443,7 @@
       "warn": {
         "title": "检测到重复文件",
         "message": "照片 \"{fileName}\" 已存在，继续上传将会覆盖现有照片",
-        "warning": "覆盖后，原有照片的所有信息（EXIF、标签、表态等）将被替换",
+        "warning": "覆盖已存在的照片文件",
         "info": "现有照片：{title}，拍摄于 {dateTaken}"
       }
     },
@@ -560,6 +560,14 @@
           "eraseLocation": {
             "label": "上传时抹除位置信息",
             "description": "本次上传将覆盖系统默认值，可随时开启或关闭。"
+          },
+          "duplicateCheck": {
+            "label": "重复文件处理策略",
+            "descriptionEnabled": "当前已启用重复检测，上传时会按所选模式处理同名文件。",
+            "descriptionDisabled": "当前已关闭重复检测，同名文件将直接进入上传流程。",
+            "enabled": "检测已开启",
+            "disabled": "检测已关闭",
+            "currentMode": "当前模式：{mode}"
           }
         },
         "buttons": {
@@ -924,6 +932,27 @@
           "label": "最大上传文件大小",
           "description": "允许上传的单个文件最大大小（MB）",
           "help": "设置后将立即生效，影响所有用户的文件上传操作"
+        }
+      }
+    },
+    "system": {
+      "upload": {
+        "duplicateCheck": {
+          "enabled": {
+            "label": "上传时检测重复文件",
+            "description": "根据文件名检测重复照片并执行对应处理策略",
+            "help": "关闭后将不进行重复预检查，同名文件会直接进入上传流程"
+          },
+          "mode": {
+            "label": "重复文件处理模式",
+            "description": "检测到重复文件时的处理方式",
+            "help": "仅在开启重复文件检测时生效",
+            "options": {
+              "skip": "跳过",
+              "warn": "警告并覆盖",
+              "block": "阻止上传"
+            }
+          }
         }
       }
     },

@@ -441,7 +441,7 @@
       "warn": {
         "title": "Duplicate File Detected",
         "message": "Photo \"{fileName}\" already exists. Continuing will overwrite the existing photo",
-        "warning": "After overwriting, all information of the original photo (EXIF, tags, reactions, etc.) will be replaced",
+        "warning": "Overwrite the existing photo file",
         "info": "Existing photo: {title}, taken on {dateTaken}"
       }
     },
@@ -558,6 +558,14 @@
           "eraseLocation": {
             "label": "Erase location info on upload",
             "description": "This upload can override the system default and be toggled on or off anytime."
+          },
+          "duplicateCheck": {
+            "label": "Duplicate file strategy",
+            "descriptionEnabled": "Duplicate detection is enabled and same-name files will follow the selected handling mode.",
+            "descriptionDisabled": "Duplicate detection is disabled and same-name files will continue directly through upload.",
+            "enabled": "Detection enabled",
+            "disabled": "Detection disabled",
+            "currentMode": "Current mode: {mode}"
           }
         },
         "buttons": {
@@ -920,6 +928,27 @@
           "label": "Max Upload File Size",
           "description": "Maximum size of a single uploaded file (MB)",
           "help": "Takes effect immediately and applies to all users"
+        }
+      }
+    },
+    "system": {
+      "upload": {
+        "duplicateCheck": {
+          "enabled": {
+            "label": "Detect duplicate files on upload",
+            "description": "Detect duplicate photos by filename and apply the selected strategy",
+            "help": "When disabled, duplicate pre-check is skipped and files with the same name continue through upload"
+          },
+          "mode": {
+            "label": "Duplicate file handling mode",
+            "description": "How to handle files detected as duplicates",
+            "help": "Only effective when duplicate detection is enabled",
+            "options": {
+              "skip": "Skip",
+              "warn": "Warn and overwrite",
+              "block": "Block upload"
+            }
+          }
         }
       }
     },
