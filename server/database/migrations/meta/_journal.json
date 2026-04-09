@@ -71,6 +71,13 @@
       "when": 1762089381492,
       "tag": "0009_careful_ultragirl",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "6",
+      "when": 1775699286491,
+      "tag": "0010_bent_retro_girl",
+      "breakpoints": true
     }
   ]
 }

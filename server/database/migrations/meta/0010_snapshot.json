@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "a42054d5-1744-4504-a234-d1ae0d0d63d2",
+  "id": "473f7c35-64dc-4089-b157-de72749f215b",
   "prevId": "7cab846e-ae9d-4fd2-a764-11c2ee301b47",
   "tables": {
     "album_photos": {
