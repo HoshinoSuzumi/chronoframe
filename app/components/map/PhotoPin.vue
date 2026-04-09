@@ -90,6 +90,10 @@ const onClick = () => {
               v-if="isSelected"
               class="bg-primary/20 dark:bg-primary/30 absolute -inset-1 animate-pulse rounded-full"
             />
+            <div
+              v-if="isSelected"
+              class="absolute -inset-2 rounded-full border border-primary/40 dark:border-primary/50 animate-ping"
+            />
 
             <div class="absolute inset-0 overflow-hidden rounded-full">
               <ThumbImage
