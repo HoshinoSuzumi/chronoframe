@@ -885,6 +885,11 @@
             }
           }
         }
+      },
+      "webglImageViewerDebug": {
+        "label": "WebGL Image Viewer デバッグモード",
+        "description": "WebGL 画像ビューアのデバッグ情報を本番環境でも表示するかを制御します",
+        "help": "有効にすると、ログイン中のユーザーは環境を問わず WebGL デバッグパネルを表示できます。無効時は開発環境のみ表示されます"
       }
     },
     "map": {

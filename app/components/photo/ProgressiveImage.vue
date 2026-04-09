@@ -52,10 +52,16 @@ const highResRendered = ref(false)
 const hasError = ref(false)
 const currentSrc = ref<string | null>()
 
+const { loggedIn } = useUserSession()
+const webglImageViewerDebug = useSettingRef('system:webglImageViewerDebug')
 const isDev = computed(() => import.meta.env.DEV)
-const showDebugInfo = computed(
-  () => isDev.value && import.meta.env.VITE_SHOW_DEBUG_INFO === 'true',
-)
+const showDebugInfo = computed(() => {
+  if (webglImageViewerDebug.value === true) {
+    return !!loggedIn.value
+  }
+
+  return isDev.value && import.meta.env.VITE_SHOW_DEBUG_INFO === 'true'
+})
 
 // 使用 WebGLImageViewer 的引用
 const webglViewerRef = ref()

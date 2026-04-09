@@ -138,6 +138,10 @@ export const SYSTEM_SETTINGS_UI: Record<string, FieldUIConfig> = {
     ],
     help: 'settings.system.upload.duplicateCheck.mode.help',
   },
+  webglImageViewerDebug: {
+    type: 'toggle',
+    help: 'settings.system.webglImageViewerDebug.help',
+  },
 }
 
 export const STORAGE_SETTINGS_UI: Record<string, FieldUIConfig> = {

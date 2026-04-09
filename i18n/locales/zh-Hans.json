@@ -954,6 +954,11 @@
             }
           }
         }
+      },
+      "webglImageViewerDebug": {
+        "label": "WebGL Image Viewer 调试模式",
+        "description": "控制 WebGL 图片查看器是否在生产环境也显示调试信息",
+        "help": "开启后，登录用户在任意环境都可看到 WebGL 调试面板；关闭后仅开发环境生效"
       }
     },
     "map": {

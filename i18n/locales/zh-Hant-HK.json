@@ -885,6 +885,11 @@
             }
           }
         }
+      },
+      "webglImageViewerDebug": {
+        "label": "WebGL Image Viewer 偵錯模式",
+        "description": "控制 WebGL 圖片檢視器是否喺生產環境都顯示偵錯資訊",
+        "help": "啟用後，已登入用戶喺任何環境都可以睇到 WebGL 偵錯面板；關閉後只會喺開發環境生效"
       }
     },
     "map": {

@@ -91,6 +91,15 @@ export const DEFAULT_SETTINGS = [
     description: 'settings.system.upload.duplicateCheck.mode.description',
     isPublic: true,
   },
+  {
+    namespace: 'system',
+    key: 'webglImageViewerDebug',
+    type: 'boolean',
+    defaultValue: false,
+    label: 'settings.system.webglImageViewerDebug.label',
+    description: 'settings.system.webglImageViewerDebug.description',
+    isPublic: true,
+  },
   // NAMESPACE: privacy
   {
     namespace: 'privacy',

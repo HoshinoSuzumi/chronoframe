@@ -950,6 +950,11 @@
             }
           }
         }
+      },
+      "webglImageViewerDebug": {
+        "label": "WebGL Image Viewer debug mode",
+        "description": "Control whether the WebGL image viewer shows debug info in production",
+        "help": "When enabled, logged-in users can view the WebGL debug panel in any environment; when disabled, debug info is shown only in development"
       }
     },
     "map": {
