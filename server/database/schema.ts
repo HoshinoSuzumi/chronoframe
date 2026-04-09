@@ -13,6 +13,7 @@ type PipelineQueuePayload =
   | {
       type: 'photo'
       storageKey: string
+      eraseLocation?: boolean
     }
   | {
       type: 'live-photo-video'
@@ -23,6 +24,10 @@ type PipelineQueuePayload =
       photoId: string
       latitude?: number | null
       longitude?: number | null
+    }
+  | {
+      type: 'photo-erase-location'
+      photoId: string
     }
 
 export const users = sqliteTable('users', {
@@ -95,6 +100,7 @@ export const pipelineQueue = sqliteTable('pipeline_queue', {
       'motion-photo',
       'reverse-geocoding',
       'live-photo',
+      'location-erase',
     ],
   }),
   errorMessage: text('error_message'),
@@ -133,9 +139,7 @@ export const albums = sqliteTable('albums', {
   coverPhotoId: text('cover_photo_id').references(() => photos.id, {
     onDelete: 'set null',
   }),
-  isHidden: integer('is_hidden', { mode: 'boolean' })
-    .default(false)
-    .notNull(),
+  isHidden: integer('is_hidden', { mode: 'boolean' }).default(false).notNull(),
   createdAt: integer('created_at', { mode: 'timestamp' })
     .notNull()
     .default(sql`(unixepoch())`),

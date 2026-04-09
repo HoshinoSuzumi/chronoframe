@@ -364,6 +364,7 @@
     "location": "Location services",
     "generalSettings": "General Settings",
     "appearanceSettings": "Appearance Settings",
+    "privacySettings": "Privacy Settings",
     "mapAndLocation": "Map & Location"
   },
   "auth": {
@@ -537,6 +538,7 @@
       "actions": {
         "reprocess": "Reprocess",
         "refreshLocation": "Re-fetch City",
+        "eraseLocationInfo": "Erase location info",
         "delete": "Delete",
         "editMetadata": "Edit Metadata",
         "previewPhoto": "Photo Preview"
@@ -544,12 +546,19 @@
       "selection": {
         "selected": "{count} / {total} rows selected",
         "batchReprocess": "Reprocess",
+        "batchEraseLocation": "Erase location info",
         "batchDownload": "Download",
         "batchDelete": "Batch Delete"
       },
       "slideover": {
         "title": "Upload Photos",
         "description": "Drag and drop or select files. Photos will be automatically processed and added to the library.",
+        "options": {
+          "eraseLocation": {
+            "label": "Erase location info on upload",
+            "description": "This upload can override the system default and be toggled on or off anytime."
+          }
+        },
         "buttons": {
           "clear": "Clear Selection",
           "upload": "Upload {count} file(s)"
@@ -620,7 +629,11 @@
         "noChangesProvided": "No changes to apply",
         "queueUnavailable": "Task queue is not available",
         "reverseGeocodeQueued": "Reverse geocoding task queued",
-        "reverseGeocodeFailed": "Failed to queue reverse geocoding"
+        "reverseGeocodeFailed": "Failed to queue reverse geocoding",
+        "eraseLocationQueued": "Erase location info task queued",
+        "eraseLocationFailed": "Failed to queue erase location info task",
+        "batchEraseLocationQueued": "Queued {count} erase-location task(s)",
+        "batchEraseLocationFailed": "Failed to queue batch erase-location tasks"
       },
       "errors": {
         "noSelection": "Please select photos to upload",
@@ -661,7 +674,7 @@
           "tagsHint": "Press Enter to add each tag.",
           "location": "Location",
           "locationHint": "Click on the map to set the shooting location.",
-          "clearLocation": "Clear location",
+          "clearLocation": "Erase location info",
           "coordinates": "Coordinates",
           "noLocation": "No location selected",
           "rating": "Rating",
@@ -837,7 +850,8 @@
       "types": {
         "photo": "Photo Processing",
         "live-photo-video": "LivePhoto Video",
-        "photo-reverse-geocoding": "Photo Reverse Geocoding"
+        "photo-reverse-geocoding": "Photo Reverse Geocoding",
+        "photo-erase-location": "Photo Location Erasure"
       },
       "stages": {
         "preprocessing": "Preprocessing",
@@ -845,7 +859,8 @@
         "thumbnail": "Thumbnail",
         "exif": "EXIF Processing",
         "reverse-geocoding": "Geocoding",
-        "live-photo": "LivePhoto Processing"
+        "live-photo": "LivePhoto Processing",
+        "location-erase": "Location Erasure"
       },
       "buttons": {
         "retry": "Retry",
@@ -945,6 +960,15 @@
           "label": "Nominatim Base URL",
           "description": "Base URL for Nominatim reverse geocoding API",
           "help": "Leave empty to use the public Nominatim service by default"
+        }
+      }
+    },
+    "privacy": {
+      "upload": {
+        "autoEraseLocation": {
+          "label": "Automatically erase location info on upload",
+          "description": "Automatically remove EXIF GPS metadata and clear geolocation fields while processing uploaded photos",
+          "help": "When enabled, location erasure will run asynchronously in the processing queue"
         }
       }
     },

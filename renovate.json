@@ -1,15 +1,9 @@
 {
-  "extends": [
-    "config:recommended"
-  ],
-  "schedule": [
-    "before 5am on monday"
-  ],
+  "extends": ["config:recommended"],
+  "schedule": ["before 5am on monday"],
   "prConcurrentLimit": 3,
   "rangeStrategy": "bump",
-  "labels": [
-    "dependencies"
-  ],
+  "labels": ["dependencies"],
   "dependencyDashboard": false,
   "rebaseWhen": "conflicted",
   "ignoreDeps": [],
@@ -18,16 +12,11 @@
   },
   "packageRules": [
     {
-      "matchUpdateTypes": [
-        "minor",
-        "patch"
-      ],
+      "matchUpdateTypes": ["minor", "patch"],
       "groupName": "non-major deps"
     },
     {
-      "matchUpdateTypes": [
-        "patch"
-      ],
+      "matchUpdateTypes": ["patch"],
       "automerge": true
     }
   ]

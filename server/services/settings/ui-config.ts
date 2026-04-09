@@ -105,6 +105,13 @@ export const LOCATION_SETTINGS_UI: Record<string, FieldUIConfig> = {
   },
 }
 
+export const PRIVACY_SETTINGS_UI: Record<string, FieldUIConfig> = {
+  'upload.autoEraseLocation': {
+    type: 'toggle',
+    help: 'settings.privacy.upload.autoEraseLocation.help',
+  },
+}
+
 export const STORAGE_SETTINGS_UI: Record<string, FieldUIConfig> = {
   provider: {
     type: 'custom',
@@ -276,6 +283,7 @@ export function getSettingUIConfig(
 ): FieldUIConfig | undefined {
   const uiConfigMap: Record<string, Record<string, FieldUIConfig>> = {
     app: APP_SETTINGS_UI,
+    privacy: PRIVACY_SETTINGS_UI,
     map: MAP_SETTINGS_UI,
     location: LOCATION_SETTINGS_UI,
     storage: STORAGE_SETTINGS_UI,

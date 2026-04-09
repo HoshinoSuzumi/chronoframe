@@ -72,6 +72,16 @@ export const DEFAULT_SETTINGS = [
     description: 'settings.app.upload.maxFileSize.description',
     isPublic: true,
   },
+  // NAMESPACE: privacy
+  {
+    namespace: 'privacy',
+    key: 'upload.autoEraseLocation',
+    type: 'boolean',
+    defaultValue: false,
+    label: 'settings.privacy.upload.autoEraseLocation.label',
+    description: 'settings.privacy.upload.autoEraseLocation.description',
+    isPublic: true,
+  },
   // NAMESPACE: map
   {
     namespace: 'map',

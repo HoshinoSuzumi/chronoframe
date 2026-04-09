@@ -22,7 +22,7 @@ const getComponentName = (uiType: FieldUIType): string => {
     select: 'USelectMenu',
     radio: 'URadioGroup',
     tabs: 'UTabs',
-    toggle: 'UToggle',
+    toggle: 'USwitch',
     number: 'UInput',
     custom: 'UInput', // 默认降级到 input
   }
@@ -35,7 +35,7 @@ const UTextarea = resolveComponent('UTextarea')
 const USelectMenu = resolveComponent('USelectMenu')
 const URadioGroup = resolveComponent('URadioGroup')
 const UTabs = resolveComponent('UTabs')
-const UToggle = resolveComponent('UToggle')
+const USwitch = resolveComponent('USwitch')
 const UFormField = resolveComponent('UFormField')
 
 const componentName = computed(() => {
@@ -51,8 +51,8 @@ const componentName = computed(() => {
       return URadioGroup
     case 'UTabs':
       return UTabs
-    case 'UToggle':
-      return UToggle
+    case 'USwitch':
+      return USwitch
     default:
       return UInput
   }

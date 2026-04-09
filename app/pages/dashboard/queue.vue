@@ -202,6 +202,10 @@ const typeOptions = [
     label: $t('dashboard.queue.types.photo-reverse-geocoding'),
     value: 'photo-reverse-geocoding',
   },
+  {
+    label: $t('dashboard.queue.types.photo-erase-location'),
+    value: 'photo-erase-location',
+  },
 ]
 
 // 展开行状态

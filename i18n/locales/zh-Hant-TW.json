@@ -362,6 +362,7 @@
     "siteAdministration": "站點設置",
     "generalSettings": "基本設置",
     "appearanceSettings": "外觀設置",
+    "privacySettings": "隱私設置",
     "mapAndLocation": "地圖和位置",
     "location": "位置服務"
   },
@@ -480,6 +481,7 @@
       "actions": {
         "reprocess": "重新處理",
         "refreshLocation": "重新取得城市",
+        "eraseLocationInfo": "抹除位置資訊",
         "delete": "刪除",
         "editMetadata": "編輯資訊",
         "previewPhoto": "照片預覽"
@@ -487,12 +489,19 @@
       "selection": {
         "selected": "已選擇 {count} / {total} 列",
         "batchReprocess": "批量重新處理",
+        "batchEraseLocation": "抹除位置資訊",
         "batchDownload": "批量下載",
         "batchDelete": "批量刪除"
       },
       "slideover": {
         "title": "上傳照片",
         "description": "拖曳或選擇檔案。照片會自動處理並新增到圖庫。",
+        "options": {
+          "eraseLocation": {
+            "label": "上傳時抹除位置資訊",
+            "description": "本次上傳可覆蓋系統預設值，您可隨時切換開啟或關閉。"
+          }
+        },
         "buttons": {
           "clear": "清除選擇",
           "upload": "上傳 {count} 個檔案"
@@ -563,7 +572,11 @@
         "noChangesProvided": "沒有可套用的變更",
         "queueUnavailable": "任務佇列不可用",
         "reverseGeocodeQueued": "已新增重新取得城市的任務",
-        "reverseGeocodeFailed": "重新取得城市任務新增失敗"
+        "reverseGeocodeFailed": "重新取得城市任務新增失敗",
+        "eraseLocationQueued": "已新增抹除位置資訊任務",
+        "eraseLocationFailed": "抹除位置資訊任務新增失敗",
+        "batchEraseLocationQueued": "已新增 {count} 條抹除位置資訊任務",
+        "batchEraseLocationFailed": "批量抹除位置資訊任務新增失敗"
       },
       "errors": {
         "noSelection": "請選擇照片進行上傳",
@@ -604,7 +617,7 @@
           "tagsHint": "按 Enter 鍵新增每個標籤。",
           "location": "拍攝位置",
           "locationHint": "點擊地圖選擇或更新拍攝位置。",
-          "clearLocation": "清除位置",
+          "clearLocation": "抹除位置資訊",
           "coordinates": "座標",
           "noLocation": "未選擇位置",
           "rating": "評分",
@@ -780,7 +793,8 @@
       "types": {
         "photo": "照片處理",
         "live-photo-video": "LivePhoto影片",
-        "photo-reverse-geocoding": "照片逆地理編碼"
+        "photo-reverse-geocoding": "照片逆地理編碼",
+        "photo-erase-location": "照片位置資訊抹除"
       },
       "stages": {
         "preprocessing": "預處理",
@@ -788,7 +802,8 @@
         "thumbnail": "縮圖",
         "exif": "EXIF處理",
         "reverse-geocoding": "地理解析",
-        "live-photo": "LivePhoto處理"
+        "live-photo": "LivePhoto處理",
+        "location-erase": "位置資訊抹除"
       },
       "buttons": {
         "retry": "重試",
@@ -888,6 +903,15 @@
           "label": "Nominatim 基礎 URL",
           "description": "Nominatim 反向地理編碼 API 的基礎 URL",
           "help": "留空則預設使用公開 Nominatim 服務"
+        }
+      }
+    },
+    "privacy": {
+      "upload": {
+        "autoEraseLocation": {
+          "label": "上傳時自動抹除位置資訊",
+          "description": "在上傳與處理照片時自動抹除 EXIF GPS 資訊並清空地理位置欄位",
+          "help": "啟用後會將抹除位置資訊操作放入佇列非同步執行"
         }
       }
     },

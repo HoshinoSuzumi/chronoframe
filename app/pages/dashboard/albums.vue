@@ -146,7 +146,7 @@ const onFormSubmit = async (event: FormSubmitEvent<AlbumFormState>) => {
           description: event.data.description || undefined,
           coverPhotoId: coverPhotoId.value || undefined,
           photoIds: selectedPhotoIds.value,
-           isHidden: event.data.isHidden,
+          isHidden: event.data.isHidden,
         },
       })
 
@@ -164,7 +164,7 @@ const onFormSubmit = async (event: FormSubmitEvent<AlbumFormState>) => {
           description: event.data.description || undefined,
           coverPhotoId: coverPhotoId.value || undefined,
           photoIds: selectedPhotoIds.value,
-           isHidden: event.data.isHidden,
+          isHidden: event.data.isHidden,
         },
       })
 
@@ -557,7 +557,7 @@ const columns: any[] = [
                     :rows="3"
                   />
                 </UFormField>
-                
+
                 <UFormField
                   :label="$t('dashboard.albums.form.isHidden')"
                   name="isHidden"

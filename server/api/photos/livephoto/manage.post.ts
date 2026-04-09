@@ -59,7 +59,8 @@ export default eventHandler(async (event) => {
         }
       }
 
-      case 'update-photo': { // 为特定照片检查和更新 LivePhoto 状态
+      case 'update-photo': {
+        // 为特定照片检查和更新 LivePhoto 状态
         if (!photoId) {
           throw createError({
             statusCode: 400,

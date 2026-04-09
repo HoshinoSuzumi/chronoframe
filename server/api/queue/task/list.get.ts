@@ -15,7 +15,12 @@ export default defineEventHandler(async (event) => {
           .enum(['pending', 'in-stages', 'completed', 'failed'])
           .optional(),
         type: z
-          .enum(['photo', 'live-photo-video', 'photo-reverse-geocoding'])
+          .enum([
+            'photo',
+            'live-photo-video',
+            'photo-reverse-geocoding',
+            'photo-erase-location',
+          ])
           .optional(),
       })
       .parseAsync(query)

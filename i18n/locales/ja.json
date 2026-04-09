@@ -362,6 +362,7 @@
     "siteAdministration": "サイト設定",
     "generalSettings": "一般設定",
     "appearanceSettings": "外観設定",
+    "privacySettings": "プライバシー設定",
     "mapAndLocation": "地図と場所",
     "location": "位置情報サービス"
   },
@@ -480,6 +481,7 @@
       "actions": {
         "reprocess": "再処理",
         "refreshLocation": "都市情報を再取得",
+        "eraseLocationInfo": "位置情報を抹消",
         "delete": "削除",
         "editMetadata": "メタデータを編集",
         "previewPhoto": "プレビュー写真"
@@ -487,12 +489,19 @@
       "selection": {
         "selected": "{count} / {total}行選択済み",
         "batchReprocess": "一括再処理",
+        "batchEraseLocation": "位置情報を抹消",
         "batchDownload": "一括ダウンロード",
         "batchDelete": "一括削除"
       },
       "slideover": {
         "title": "写真をアップロード",
         "description": "ドラッグアンドドロップするか、ファイルを選択します。写真は自動的に処理され、ライブラリに追加されます。",
+        "options": {
+          "eraseLocation": {
+            "label": "アップロード時に位置情報を抹消",
+            "description": "このアップロードではシステム既定値を上書きでき、いつでもオン/オフを切り替えできます。"
+          }
+        },
         "buttons": {
           "clear": "選択をクリア",
           "upload": "{count}個のファイルをアップロード"
@@ -563,7 +572,11 @@
         "noChangesProvided": "適用できる変更がありません",
         "queueUnavailable": "タスクキューを利用できません",
         "reverseGeocodeQueued": "都市情報の再取得タスクをキューに追加しました",
-        "reverseGeocodeFailed": "都市情報の再取得タスクの追加に失敗しました"
+        "reverseGeocodeFailed": "都市情報の再取得タスクの追加に失敗しました",
+        "eraseLocationQueued": "位置情報の抹消タスクをキューに追加しました",
+        "eraseLocationFailed": "位置情報の抹消タスクの追加に失敗しました",
+        "batchEraseLocationQueued": "{count} 件の位置情報抹消タスクをキューに追加しました",
+        "batchEraseLocationFailed": "位置情報抹消タスクの一括追加に失敗しました"
       },
       "errors": {
         "noSelection": "アップロードする写真を選択してください",
@@ -604,7 +617,7 @@
           "tagsHint": "タグを入力し、Enter キーで追加してください。",
           "location": "撮影場所",
           "locationHint": "地図をクリックして撮影場所を選択してください。",
-          "clearLocation": "位置情報をクリア",
+          "clearLocation": "位置情報を抹消",
           "coordinates": "座標",
           "noLocation": "位置情報が未設定です",
           "rating": "評価",
@@ -780,7 +793,8 @@
       "types": {
         "photo": "写真処理",
         "live-photo-video": "LivePhoto動画",
-        "photo-reverse-geocoding": "写真の逆ジオコーディング"
+        "photo-reverse-geocoding": "写真の逆ジオコーディング",
+        "photo-erase-location": "写真位置情報の抹消"
       },
       "stages": {
         "preprocessing": "前処理",
@@ -788,7 +802,8 @@
         "thumbnail": "サムネイル",
         "exif": "EXIF処理",
         "reverse-geocoding": "地理解析",
-        "live-photo": "LivePhoto処理"
+        "live-photo": "LivePhoto処理",
+        "location-erase": "位置情報の抹消"
       },
       "buttons": {
         "retry": "再試行",
@@ -888,6 +903,15 @@
           "label": "Nominatim ベース URL",
           "description": "Nominatim リバースジオコーディング API のベース URL",
           "help": "空のままにすると、デフォルトで公開 Nominatim サービスを使用します"
+        }
+      }
+    },
+    "privacy": {
+      "upload": {
+        "autoEraseLocation": {
+          "label": "アップロード時に位置情報を自動で抹消",
+          "description": "アップロード処理中に EXIF の GPS 情報と地理位置フィールドを自動的に削除します",
+          "help": "有効化すると、位置情報抹消はキューで非同期に実行されます"
         }
       }
     },

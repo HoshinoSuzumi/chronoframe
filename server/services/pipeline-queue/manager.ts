@@ -1,6 +1,9 @@
 import type { ConsolaInstance } from 'consola'
+import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
 import path from 'path'
 import { asc, desc, eq, sql } from 'drizzle-orm'
+import { exiftool } from 'exiftool-vendored'
 import type {
   NewPipelineQueueItem,
   PipelineQueueItem,
@@ -17,9 +20,43 @@ import {
   extractLocationFromGPS,
   parseGPSCoordinates,
 } from '../location/geocoding'
+import { settingsManager } from '../settings/settingsManager'
 import { findLivePhotoVideoForImage } from '../video/livephoto'
 import { processMotionPhotoFromXmp } from '../video/motion-photo'
 import { getStorageManager } from '~~/server/plugins/3.storage'
+
+const EXIF_LOCATION_KEYS = [
+  'GPSAltitude',
+  'GPSAltitudeRef',
+  'GPSLatitude',
+  'GPSLatitudeRef',
+  'GPSLongitude',
+  'GPSLongitudeRef',
+  'GPSPosition',
+  'GPSDateStamp',
+  'GPSTimeStamp',
+  'GPSImgDirection',
+  'GPSImgDirectionRef',
+  'GPSDestBearing',
+  'GPSDestBearingRef',
+] as const
+
+const stripLocationFromExif = <
+  T extends Record<string, any> | null | undefined,
+>(
+  exif: T,
+): T => {
+  if (!exif || typeof exif !== 'object') {
+    return exif
+  }
+
+  const cloned = { ...exif }
+  for (const key of EXIF_LOCATION_KEYS) {
+    delete cloned[key]
+  }
+
+  return cloned as T
+}
 
 export class QueueManager {
   private static instances: Map<string, QueueManager> = new Map()
@@ -309,9 +346,21 @@ export class QueueManager {
             imageBuffers.raw,
             this.logger,
           )
+          const systemAutoEraseLocationOnUpload =
+            (await settingsManager.get<boolean>(
+              'privacy',
+              'upload.autoEraseLocation',
+            )) ?? false
+          const shouldAutoEraseLocationOnUpload =
+            typeof payload.eraseLocation === 'boolean'
+              ? payload.eraseLocation
+              : systemAutoEraseLocationOnUpload
+          const normalizedExifData = shouldAutoEraseLocationOnUpload
+            ? stripLocationFromExif(exifData)
+            : exifData
 
           // 提取照片基本信息
-          const photoInfo = extractPhotoInfo(storageKey, exifData)
+          const photoInfo = extractPhotoInfo(storageKey, normalizedExifData)
 
           // STEP 5: 地理位置反向解析
           // 这里逆编码失败不报错，宽容处理
@@ -320,8 +369,9 @@ export class QueueManager {
 
           let coordinates = null
           let locationInfo = null
-          if (exifData) {
-            const { latitude, longitude } = parseGPSCoordinates(exifData)
+          if (!shouldAutoEraseLocationOnUpload && normalizedExifData) {
+            const { latitude, longitude } =
+              parseGPSCoordinates(normalizedExifData)
             coordinates = { latitude, longitude }
             if (latitude && longitude) {
               locationInfo = await extractLocationFromGPS(latitude, longitude)
@@ -336,7 +386,7 @@ export class QueueManager {
                 photoId,
                 storageKey,
                 rawImageBuffer: imageBuffers.raw,
-                exifData,
+                exifData: normalizedExifData,
                 storageProvider,
                 logger: this.logger,
               })
@@ -397,7 +447,7 @@ export class QueueManager {
             thumbnailHash: thumbnailHash
               ? compressUint8Array(thumbnailHash)
               : null,
-            exif: exifData,
+            exif: normalizedExifData,
             // 地理位置信息
             latitude: coordinates?.latitude || null,
             longitude: coordinates?.longitude || null,
@@ -424,6 +474,26 @@ export class QueueManager {
             target: tables.photos.id,
             set: result,
           })
+
+          if (shouldAutoEraseLocationOnUpload) {
+            try {
+              await this.addTask(
+                {
+                  type: 'photo-erase-location',
+                  photoId,
+                },
+                {
+                  priority: 2,
+                  maxAttempts: 3,
+                },
+              )
+            } catch (enqueueError) {
+              this.logger.warn(
+                `[${taskId}:location-erase] failed to enqueue location erase task for ${photoId}`,
+                enqueueError,
+              )
+            }
+          }
 
           this.logger.success(`Task ${taskId} processed successfully`)
           return result
@@ -536,6 +606,97 @@ export class QueueManager {
           throw error
         }
       },
+      eraseLocation: async (task: PipelineQueueItem) => {
+        const db = useDB()
+        const storageProvider = getStorageManager().getProvider()
+        const { id: taskId, payload } = task
+
+        if (payload.type !== 'photo-erase-location') {
+          throw new Error(
+            `Invalid payload type for erase location task: ${payload.type}`,
+          )
+        }
+
+        await this.updateTaskStage(taskId, 'location-erase')
+        this.logger.info(
+          `[${taskId}:in-stage] erase location info for photo ${payload.photoId}`,
+        )
+
+        const photo = await db
+          .select()
+          .from(tables.photos)
+          .where(eq(tables.photos.id, payload.photoId))
+          .get()
+
+        if (!photo) {
+          throw new Error(`Photo ${payload.photoId} not found`)
+        }
+
+        if (!photo.storageKey) {
+          throw new Error(`Photo ${payload.photoId} has no storage key`)
+        }
+
+        const originalBuffer = await storageProvider.get(photo.storageKey)
+        if (!originalBuffer) {
+          throw new Error(`Photo file ${photo.storageKey} not found in storage`)
+        }
+
+        const tempDir = await mkdtemp(path.join(tmpdir(), 'cframe-location-'))
+        const ext = path.extname(photo.storageKey) || '.jpg'
+        const tempFile = path.join(tempDir, `erase-location${ext}`)
+
+        try {
+          await writeFile(tempFile, originalBuffer)
+
+          const exifLocationNullMap = EXIF_LOCATION_KEYS.reduce(
+            (acc, key) => {
+              acc[key] = null
+              return acc
+            },
+            {} as Record<string, null>,
+          )
+
+          await exiftool.write(tempFile, exifLocationNullMap, [
+            '-overwrite_original',
+          ])
+
+          const updatedBuffer = await readFile(tempFile)
+
+          const prefix =
+            storageProvider.config && 'prefix' in storageProvider.config
+              ? storageProvider.config.prefix
+              : ''
+
+          await storageProvider.create(
+            photo.storageKey.replace(prefix || '', ''),
+            updatedBuffer,
+          )
+
+          const exifData = stripLocationFromExif(
+            await extractExifData(updatedBuffer),
+          )
+
+          await db
+            .update(tables.photos)
+            .set({
+              exif: exifData,
+              fileSize: updatedBuffer.length,
+              lastModified: new Date().toISOString(),
+              latitude: null,
+              longitude: null,
+              country: null,
+              city: null,
+              locationName: null,
+            })
+            .where(eq(tables.photos.id, payload.photoId))
+
+          this.logger.success(
+            `[${taskId}:location-erase] erased location info for photo ${payload.photoId}`,
+          )
+        } finally {
+          await rm(tempDir, { recursive: true, force: true })
+        }
+      },
       livePhotoDetect: async (task: PipelineQueueItem) => {
         const db = useDB()
         const storageProvider = getStorageManager().getProvider()
@@ -589,8 +750,9 @@ export class QueueManager {
               .where(eq(tables.photos.storageKey, photoKey))
               .limit(1)
 
-            if (photos.length > 0) {
-              matchedPhoto = photos[0]
+            const matched = photos[0]
+            if (matched) {
+              matchedPhoto = matched
               this.logger.info(
                 `Found matching photo for LivePhoto video: ${photoKey}`,
               )
@@ -661,6 +823,9 @@ export class QueueManager {
             break
           case 'photo-reverse-geocoding':
             await this.processors.reverseGeocoding(task)
+            break
+          case 'photo-erase-location':
+            await this.processors.eraseLocation(task)
             break
           default:
             throw new Error(`Unknown task type: ${type}`)

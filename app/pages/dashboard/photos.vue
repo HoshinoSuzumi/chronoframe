@@ -38,6 +38,11 @@ const maxFileSizeMB = computed(() => {
   return typeof val === 'number' ? val : 256
 })
 
+const systemUploadEraseLocationDefault = computed(() => {
+  const val = getSetting('privacy:upload.autoEraseLocation')
+  return typeof val === 'boolean' ? val : false
+})
+
 const dayjs = useDayjs()
 
 const { status, refresh } = usePhotos()
@@ -51,6 +56,7 @@ const totalSelectedFilters = computed(() => {
 })
 
 const reverseGeocodeLoading = ref<Record<string, boolean>>({})
+const eraseLocationLoading = ref<Record<string, boolean>>({})
 
 const setReverseGeocodeLoading = (photoId: string, loading: boolean) => {
   if (loading) {
@@ -61,6 +67,18 @@ const setReverseGeocodeLoading = (photoId: string, loading: boolean) => {
   } else {
     const { [photoId]: _removed, ...rest } = reverseGeocodeLoading.value
     reverseGeocodeLoading.value = rest
+  }
+}
+
+const setEraseLocationLoading = (photoId: string, loading: boolean) => {
+  if (loading) {
+    eraseLocationLoading.value = {
+      ...eraseLocationLoading.value,
+      [photoId]: true,
+    }
+  } else {
+    const { [photoId]: _removed, ...rest } = eraseLocationLoading.value
+    eraseLocationLoading.value = rest
   }
 }
 
@@ -243,7 +261,11 @@ const formattedCoordinates = computed(() => {
   }
 })
 
-const uploadImage = async (file: File, existingFileId?: string) => {
+const uploadImage = async (
+  file: File,
+  existingFileId?: string,
+  eraseLocationOnUpload?: boolean,
+) => {
   const fileName = file.name
   const fileId = existingFileId || `${Date.now()}-${fileName}`
 
@@ -340,6 +362,13 @@ const uploadImage = async (file: File, existingFileId?: string) => {
               payload: {
                 type: isMovFile ? 'live-photo-video' : 'photo',
                 storageKey: signedUrlResponse.fileKey,
+                ...(isMovFile
+                  ? {}
+                  : {
+                      eraseLocation:
+                        eraseLocationOnUpload ??
+                        systemUploadEraseLocationDefault.value,
+                    }),
               },
               priority: isMovFile ? 0 : 1, // Live Photo 视频优先级更低，确保图片优先处理
               maxAttempts: 3,
@@ -412,6 +441,7 @@ const uploadImage = async (file: File, existingFileId?: string) => {
 const toast = useToast()
 const selectedFiles = ref<File[]>([])
 const isUploadSlideoverOpen = ref(false)
+const uploadEraseLocationEnabled = ref(systemUploadEraseLocationDefault.value)
 
 const hasSelectedFiles = computed(() => selectedFiles.value.length > 0)
 
@@ -443,10 +473,12 @@ const clearSelectedFiles = () => {
 watch(isUploadSlideoverOpen, (open) => {
   if (!open) {
     clearSelectedFiles()
+    uploadEraseLocationEnabled.value = systemUploadEraseLocationDefault.value
   }
 })
 
 const openUploadSlideover = () => {
+  uploadEraseLocationEnabled.value = systemUploadEraseLocationDefault.value
   isUploadSlideoverOpen.value = true
 }
 
@@ -1084,7 +1116,7 @@ const handleUpload = async () => {
   const startUpload = async (file: File): Promise<void> => {
     const fileId = fileIdMapping.get(file)!
     try {
-      uploadImage(file, fileId)
+      await uploadImage(file, fileId, uploadEraseLocationEnabled.value)
     } catch (error: any) {
       errors.push(`${file.name}: ${error.message || '上传失败'}`)
       console.error('上传错误:', error)
@@ -1170,6 +1202,32 @@ const clearSelectedLocation = () => {
   locationTouched.value = true
 }
 
+const enqueueEraseLocationTask = async (photo: Photo) => {
+  if (!photo?.id) {
+    throw new Error($t('dashboard.photos.messages.photoNotFound'))
+  }
+
+  const result = await $fetch('/api/queue/add-task', {
+    method: 'POST',
+    body: {
+      payload: {
+        type: 'photo-erase-location',
+        photoId: photo.id,
+      },
+      priority: 2,
+      maxAttempts: 3,
+    },
+  })
+
+  if (!result.success) {
+    throw new Error(
+      result?.message || $t('dashboard.photos.messages.eraseLocationFailed'),
+    )
+  }
+
+  return result.taskId
+}
+
 const saveMetadataChanges = async () => {
   if (!editingPhoto.value || !isMetadataDirty.value) {
     return
@@ -1197,34 +1255,53 @@ const saveMetadataChanges = async () => {
       payload.tags = [...editFormState.tags]
     }
 
-    if (locationChanged.value) {
-      payload.location = locationSelection.value
-        ? {
-            latitude: locationSelection.value.latitude,
-            longitude: locationSelection.value.longitude,
-          }
-        : null
+    const shouldQueueLocationErase =
+      locationChanged.value && locationSelection.value === null
+
+    if (locationChanged.value && locationSelection.value) {
+      payload.location = {
+        latitude: locationSelection.value.latitude,
+        longitude: locationSelection.value.longitude,
+      }
     }
 
     if (ratingChanged.value) {
       payload.rating = editFormState.rating
     }
 
-    if (Object.keys(payload).length === 0) {
+    let hasAnySuccessfulAction = false
+
+    if (Object.keys(payload).length > 0) {
+      await $fetch(`/api/photos/${editingPhoto.value.id}`, {
+        method: 'PUT',
+        body: payload,
+      })
+
+      toast.add({
+        title: $t('dashboard.photos.messages.metadataUpdateSuccess'),
+        description: '',
+        color: 'success',
+      })
+      hasAnySuccessfulAction = true
+    }
+
+    if (shouldQueueLocationErase) {
+      const taskId = await enqueueEraseLocationTask(editingPhoto.value)
+      toast.add({
+        title: $t('dashboard.photos.messages.eraseLocationQueued'),
+        description:
+          typeof taskId === 'number'
+            ? $t('dashboard.photos.messages.reprocessTaskId', { taskId })
+            : '',
+        color: 'success',
+      })
+      hasAnySuccessfulAction = true
+    }
+
+    if (!hasAnySuccessfulAction) {
       isEditModalOpen.value = false
       return
     }
-
-    await $fetch(`/api/photos/${editingPhoto.value.id}`, {
-      method: 'PUT',
-      body: payload,
-    })
-
-    toast.add({
-      title: $t('dashboard.photos.messages.metadataUpdateSuccess'),
-      description: '',
-      color: 'success',
-    })
 
     await refresh()
     isEditModalOpen.value = false
@@ -1316,6 +1393,41 @@ const handleReverseGeocodeRequest = async (photo: Photo) => {
   }
 }
 
+const handleEraseLocationRequest = async (photo: Photo) => {
+  if (!photo?.id) {
+    return
+  }
+
+  setEraseLocationLoading(photo.id, true)
+
+  try {
+    const taskId = await enqueueEraseLocationTask(photo)
+    toast.add({
+      title: $t('dashboard.photos.messages.eraseLocationQueued'),
+      description:
+        typeof taskId === 'number'
+          ? $t('dashboard.photos.messages.reprocessTaskId', { taskId })
+          : '',
+      color: 'success',
+    })
+  } catch (error: any) {
+    console.error('Failed to enqueue erase location task:', error)
+    const message =
+      error?.data?.statusMessage ||
+      error?.statusMessage ||
+      error?.message ||
+      $t('dashboard.photos.messages.eraseLocationFailed')
+
+    toast.add({
+      title: $t('dashboard.photos.messages.eraseLocationFailed'),
+      description: message,
+      color: 'error',
+    })
+  } finally {
+    setEraseLocationLoading(photo.id, false)
+  }
+}
+
 // 重新处理单张照片
 const handleReprocessSingle = async (photo: Photo) => {
   try {
@@ -1373,6 +1485,7 @@ const handleReprocessSingle = async (photo: Photo) => {
 
 const getRowActions = (photo: Photo) => {
   const isReverseLoading = !!reverseGeocodeLoading.value[photo.id]
+  const isEraseLocationLoading = !!eraseLocationLoading.value[photo.id]
 
   return [
     [
@@ -1396,6 +1509,14 @@ const getRowActions = (photo: Photo) => {
         disabled: isReverseLoading,
         onSelect() {
           handleReverseGeocodeRequest(photo)
+        },
+      },
+      {
+        label: $t('dashboard.photos.actions.eraseLocationInfo'),
+        icon: isEraseLocationLoading ? 'tabler:loader-2' : 'tabler:map-off',
+        disabled: isEraseLocationLoading,
+        onSelect() {
+          handleEraseLocationRequest(photo)
         },
       },
       {
@@ -1622,6 +1743,91 @@ const handleBatchReprocess = async () => {
       description: error.message || $t('dashboard.photos.messages.error'),
       color: 'error',
     })
+  }
+}
+
+// 批量抹除位置信息
+const handleBatchEraseLocation = async () => {
+  const selectedRowModel = table.value?.tableApi?.getFilteredSelectedRowModel()
+  const selectedPhotos =
+    selectedRowModel?.rows.map((row: any) => row.original) || []
+
+  if (selectedPhotos.length === 0) {
+    toast.add({
+      title: $t('dashboard.photos.messages.batchSelectRequired'),
+      description: '',
+      color: 'warning',
+    })
+    return
+  }
+
+  const targetPhotoIds = selectedPhotos
+    .map((photo: Photo) => photo.id)
+    .filter((id): id is string => !!id)
+
+  if (targetPhotoIds.length === 0) {
+    toast.add({
+      title: $t('dashboard.photos.messages.photoNotFound'),
+      description: '',
+      color: 'error',
+    })
+    return
+  }
+
+  for (const photoId of targetPhotoIds) {
+    setEraseLocationLoading(photoId, true)
+  }
+
+  try {
+    const result = await $fetch('/api/queue/add-tasks', {
+      method: 'POST',
+      body: {
+        tasks: targetPhotoIds.map((photoId) => ({
+          payload: {
+            type: 'photo-erase-location',
+            photoId,
+          },
+          priority: 2,
+          maxAttempts: 3,
+        })),
+      },
+    })
+
+    if (result.success) {
+      toast.add({
+        title: $t('dashboard.photos.messages.batchEraseLocationQueued', {
+          count: targetPhotoIds.length,
+        }),
+        description: '',
+        color: 'success',
+      })
+      rowSelection.value = {}
+    } else {
+      toast.add({
+        title: $t('dashboard.photos.messages.batchEraseLocationFailed'),
+        description:
+          result?.message ||
+          $t('dashboard.photos.messages.batchEraseLocationFailed'),
+        color: 'error',
+      })
+    }
+  } catch (error: any) {
+    console.error('批量抹除位置信息入队失败:', error)
+    const message =
+      error?.data?.statusMessage ||
+      error?.statusMessage ||
+      error?.message ||
+      $t('dashboard.photos.messages.batchEraseLocationFailed')
+
+    toast.add({
+      title: $t('dashboard.photos.messages.batchEraseLocationFailed'),
+      description: message,
+      color: 'error',
+    })
+  } finally {
+    for (const photoId of targetPhotoIds) {
+      setEraseLocationLoading(photoId, false)
+    }
   }
 }
 
@@ -1899,39 +2105,69 @@ onUnmounted(() => {
           }"
         >
           <template #body>
-            <UFileUpload
-              v-model="selectedFiles"
-              :label="$t('dashboard.photos.uploader.label')"
-              :description="
-                $t('dashboard.photos.uploader.description', {
-                  maxSize: maxFileSizeMB,
-                })
-              "
-              icon="tabler:cloud-upload"
-              layout="list"
-              size="xl"
-              accept="image/jpeg,image/png,image/heic,image/heif,video/quicktime,.mov"
-              multiple
-              highlight
-              dropzone
-              :file-delete="{ variant: 'soft', color: 'neutral' }"
-              :ui="{
-                root: 'w-full',
-                base: 'group relative flex flex-col items-center justify-center gap-3 rounded-3xl border-2 border-dashed border-neutral-200/80 bg-white/90 px-6 py-12 text-center shadow-sm transition-all duration-300 hover:border-primary-400/80 hover:bg-primary-500/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/60 dark:border-neutral-700/70 dark:bg-neutral-900/80',
-                wrapper: 'flex flex-col items-center gap-2',
-                label:
-                  'text-base font-semibold text-neutral-800 dark:text-neutral-100',
-                description: 'text-sm text-neutral-500 dark:text-neutral-400',
-                files: 'mt-2 flex w-full flex-col gap-2 overflow-y-auto',
-                file: 'flex items-center justify-between gap-3 rounded-2xl border border-neutral-200/80 bg-white/80 px-4 py-3 text-left shadow-sm shadow-black/5 backdrop-blur-sm dark:border-neutral-800/80 dark:bg-neutral-900/70',
-                fileLeadingAvatar: 'ring-1 ring-white/80 dark:ring-neutral-800',
-                fileWrapper: 'min-w-0 flex-1',
-                fileName:
-                  'text-sm font-medium text-neutral-700 dark:text-neutral-100 truncate',
-                fileSize: 'text-xs text-neutral-500 dark:text-neutral-400',
-                fileTrailingButton: 'text-neutral-400 hover:text-error-500',
-              }"
-            />
+            <div class="space-y-4">
+              <UFileUpload
+                v-model="selectedFiles"
+                :label="$t('dashboard.photos.uploader.label')"
+                :description="
+                  $t('dashboard.photos.uploader.description', {
+                    maxSize: maxFileSizeMB,
+                  })
+                "
+                icon="tabler:cloud-upload"
+                layout="list"
+                size="xl"
+                accept="image/jpeg,image/png,image/heic,image/heif,video/quicktime,.mov"
+                multiple
+                highlight
+                dropzone
+                :file-delete="{ variant: 'soft', color: 'neutral' }"
+                :ui="{
+                  root: 'w-full',
+                  base: 'group relative flex flex-col items-center justify-center gap-3 rounded-3xl border-2 border-dashed border-neutral-200/80 bg-white/90 px-6 py-12 text-center shadow-sm transition-all duration-300 hover:border-primary-400/80 hover:bg-primary-500/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/60 dark:border-neutral-700/70 dark:bg-neutral-900/80',
+                  wrapper: 'flex flex-col items-center gap-2',
+                  label:
+                    'text-base font-semibold text-neutral-800 dark:text-neutral-100',
+                  description: 'text-sm text-neutral-500 dark:text-neutral-400',
+                  files: 'mt-2 flex w-full flex-col gap-2 overflow-y-auto',
+                  file: 'flex items-center justify-between gap-3 rounded-2xl border border-neutral-200/80 bg-white/80 px-4 py-3 text-left shadow-sm shadow-black/5 backdrop-blur-sm dark:border-neutral-800/80 dark:bg-neutral-900/70',
+                  fileLeadingAvatar:
+                    'ring-1 ring-white/80 dark:ring-neutral-800',
+                  fileWrapper: 'min-w-0 flex-1',
+                  fileName:
+                    'text-sm font-medium text-neutral-700 dark:text-neutral-100 truncate',
+                  fileSize: 'text-xs text-neutral-500 dark:text-neutral-400',
+                  fileTrailingButton: 'text-neutral-400 hover:text-error-500',
+                }"
+              />
+
+              <UCard
+                variant="soft"
+                class="border border-neutral-200/80 dark:border-neutral-800/80"
+              >
+                <div class="flex items-start justify-between gap-4">
+                  <div class="space-y-1">
+                    <p
+                      class="text-sm font-medium text-neutral-800 dark:text-neutral-100"
+                    >
+                      {{
+                        $t(
+                          'dashboard.photos.slideover.options.eraseLocation.label',
+                        )
+                      }}
+                    </p>
+                    <p class="text-xs text-neutral-500 dark:text-neutral-400">
+                      {{
+                        $t(
+                          'dashboard.photos.slideover.options.eraseLocation.description',
+                        )
+                      }}
+                    </p>
+                  </div>
+                  <USwitch v-model="uploadEraseLocationEnabled" />
+                </div>
+              </UCard>
+            </div>
           </template>
 
           <template #footer>
@@ -2209,6 +2445,19 @@ onUnmounted(() => {
                 >
                   <span>{{
                     $t('dashboard.photos.selection.batchReprocess')
+                  }}</span>
+                </UButton>
+
+                <UButton
+                  variant="soft"
+                  color="primary"
+                  size="xs"
+                  icon="tabler:map-off"
+                  class="flex-1 sm:flex-none"
+                  @click="handleBatchEraseLocation"
+                >
+                  <span>{{
+                    $t('dashboard.photos.selection.batchEraseLocation')
                   }}</span>
                 </UButton>
 

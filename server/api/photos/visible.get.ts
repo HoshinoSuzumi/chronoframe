@@ -9,10 +9,7 @@ export default eventHandler(async (_event) => {
       photoId: tables.albumPhotos.photoId,
     })
     .from(tables.albumPhotos)
-    .innerJoin(
-      tables.albums,
-      eq(tables.albumPhotos.albumId, tables.albums.id),
-    )
+    .innerJoin(tables.albums, eq(tables.albumPhotos.albumId, tables.albums.id))
     .where(eq(tables.albums.isHidden, true))
     .all()
 

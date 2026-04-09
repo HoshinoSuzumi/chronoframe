@@ -8,6 +8,7 @@ export default defineEventHandler(async (event) => {
       z.object({
         type: z.literal('photo'),
         storageKey: z.string().nonempty(),
+        eraseLocation: z.boolean().optional(),
       }),
       z.object({
         type: z.literal('live-photo-video'),
@@ -18,6 +19,10 @@ export default defineEventHandler(async (event) => {
         photoId: z.string().min(1),
         latitude: z.number().min(-90).max(90).optional(),
         longitude: z.number().min(-180).max(180).optional(),
+      }),
+      z.object({
+        type: z.literal('photo-erase-location'),
+        photoId: z.string().min(1),
       }),
     ])
 
