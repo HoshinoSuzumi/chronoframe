@@ -61,16 +61,26 @@ const handleLocationSettingsSubmit = async () => {
     </template>
 
     <template #body>
-      <div class="space-y-6 max-w-6xl">
-        <!-- 地图设置 -->
-        <UCard variant="outline">
-          <template #header>
-            <span>{{ $t('title.mapAndLocation') }}</span>
-          </template>
+      <div class="mx-auto w-full max-w-5xl space-y-6">
+        <section class="space-y-2 border-b border-neutral-200 pb-4 dark:border-neutral-800">
+          <h2 class="text-xl font-semibold text-neutral-900 dark:text-neutral-100">
+            {{ $t('title.mapAndLocation') }}
+          </h2>
+          <p class="text-sm text-neutral-600 dark:text-neutral-400">
+            配置地图展示与地理编码服务。地图服务商会影响地图样式与访问凭证。
+          </p>
+        </section>
+
+        <section class="rounded-md border border-neutral-200 bg-white dark:border-neutral-800 dark:bg-neutral-950">
+          <header class="border-b border-neutral-200 px-5 py-4 dark:border-neutral-800">
+            <h3 class="text-base font-semibold text-neutral-900 dark:text-neutral-100">
+              {{ $t('title.mapAndLocation') }}
+            </h3>
+          </header>
 
           <UForm
             id="mapSettingsForm"
-            class="space-y-4"
+            class="space-y-5 px-5 py-5"
             @submit="handleMapSettingsSubmit"
           >
             <SettingField
@@ -82,7 +92,7 @@ const handleLocationSettingsSubmit = async () => {
             />
           </UForm>
 
-          <template #footer>
+          <footer class="flex justify-end border-t border-neutral-200 px-5 py-4 dark:border-neutral-800">
             <UButton
               :loading="mapLoading"
               type="submit"
@@ -92,18 +102,19 @@ const handleLocationSettingsSubmit = async () => {
             >
               保存设置
             </UButton>
-          </template>
-        </UCard>
+          </footer>
+        </section>
 
-        <!-- 位置设置 -->
-        <UCard variant="outline">
-          <template #header>
-            <span>{{ $t('title.location') }}</span>
-          </template>
+        <section class="rounded-md border border-neutral-200 bg-white dark:border-neutral-800 dark:bg-neutral-950">
+          <header class="border-b border-neutral-200 px-5 py-4 dark:border-neutral-800">
+            <h3 class="text-base font-semibold text-neutral-900 dark:text-neutral-100">
+              {{ $t('title.location') }}
+            </h3>
+          </header>
 
           <UForm
             id="locationSettingsForm"
-            class="space-y-4"
+            class="space-y-5 px-5 py-5"
             @submit="handleLocationSettingsSubmit"
           >
             <SettingField
@@ -115,7 +126,7 @@ const handleLocationSettingsSubmit = async () => {
             />
           </UForm>
 
-          <template #footer>
+          <footer class="flex justify-end border-t border-neutral-200 px-5 py-4 dark:border-neutral-800">
             <UButton
               :loading="locationLoading"
               type="submit"
@@ -125,8 +136,8 @@ const handleLocationSettingsSubmit = async () => {
             >
               保存设置
             </UButton>
-          </template>
-        </UCard>
+          </footer>
+        </section>
       </div>
     </template>
   </UDashboardPanel>

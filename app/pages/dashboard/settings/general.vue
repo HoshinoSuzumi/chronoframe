@@ -52,16 +52,26 @@ const handleAppearanceSettingsSubmit = async () => {
     </template>
 
     <template #body>
-      <div class="space-y-6 max-w-6xl">
-        <!-- 通用设置 -->
-        <UCard variant="outline">
-          <template #header>
-            <span>{{ $t('title.generalSettings') }}</span>
-          </template>
+      <div class="mx-auto w-full max-w-5xl space-y-6">
+        <section class="space-y-2 border-b border-neutral-200 pb-4 dark:border-neutral-800">
+          <h2 class="text-xl font-semibold text-neutral-900 dark:text-neutral-100">
+            {{ $t('title.generalSettings') }}
+          </h2>
+          <p class="text-sm text-neutral-600 dark:text-neutral-400">
+            管理站点基础信息与展示外观。更改会立即影响控制台和前台展示。
+          </p>
+        </section>
+
+        <section class="rounded-md border border-neutral-200 bg-white dark:border-neutral-800 dark:bg-neutral-950">
+          <header class="border-b border-neutral-200 px-5 py-4 dark:border-neutral-800">
+            <h3 class="text-base font-semibold text-neutral-900 dark:text-neutral-100">
+              {{ $t('title.generalSettings') }}
+            </h3>
+          </header>
 
           <UForm
             id="appSettingsForm"
-            class="space-y-4"
+            class="space-y-5 px-5 py-5"
             @submit="handleAppSettingsSubmit"
           >
             <SettingField
@@ -73,7 +83,7 @@ const handleAppearanceSettingsSubmit = async () => {
             />
           </UForm>
 
-          <template #footer>
+          <footer class="flex justify-end border-t border-neutral-200 px-5 py-4 dark:border-neutral-800">
             <UButton
               :loading="loading"
               type="submit"
@@ -83,18 +93,19 @@ const handleAppearanceSettingsSubmit = async () => {
             >
               保存设置
             </UButton>
-          </template>
-        </UCard>
+          </footer>
+        </section>
 
-        <!-- 外观设置 -->
-        <UCard variant="outline">
-          <template #header>
-            <span>{{ $t('title.appearanceSettings') }}</span>
-          </template>
+        <section class="rounded-md border border-neutral-200 bg-white dark:border-neutral-800 dark:bg-neutral-950">
+          <header class="border-b border-neutral-200 px-5 py-4 dark:border-neutral-800">
+            <h3 class="text-base font-semibold text-neutral-900 dark:text-neutral-100">
+              {{ $t('title.appearanceSettings') }}
+            </h3>
+          </header>
 
           <UForm
             id="appearanceSettingsForm"
-            class="space-y-4"
+            class="space-y-5 px-5 py-5"
             @submit="handleAppearanceSettingsSubmit"
           >
             <SettingField
@@ -106,7 +117,7 @@ const handleAppearanceSettingsSubmit = async () => {
             />
           </UForm>
 
-          <template #footer>
+          <footer class="flex justify-end border-t border-neutral-200 px-5 py-4 dark:border-neutral-800">
             <UButton
               :loading="loading"
               type="submit"
@@ -116,8 +127,8 @@ const handleAppearanceSettingsSubmit = async () => {
             >
               保存设置
             </UButton>
-          </template>
-        </UCard>
+          </footer>
+        </section>
       </div>
     </template>
   </UDashboardPanel>

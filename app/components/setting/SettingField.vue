@@ -125,21 +125,54 @@ const descriptionKey = computed(() => {
   }
   return `settings.${props.field.namespace}.${props.field.key}.description`
 })
+
+const isToggleField = computed(() => props.field.ui.type === 'toggle')
 </script>
 
 <template>
+  <div
+    v-if="isToggleField"
+    class="rounded-md border border-neutral-200 bg-neutral-50/50 px-4 py-3 dark:border-neutral-800 dark:bg-neutral-900/40"
+  >
+    <div class="flex items-start justify-between gap-6">
+      <div class="space-y-1">
+        <p class="text-sm font-medium text-neutral-900 dark:text-neutral-100">
+          {{ $t(labelKey) }}
+        </p>
+        <p class="text-sm text-neutral-600 dark:text-neutral-400">
+          {{ $t(descriptionKey) }}
+        </p>
+        <p
+          v-if="field.ui.help"
+          class="text-xs text-neutral-500 dark:text-neutral-500"
+        >
+          {{ $t(field.ui.help) }}
+        </p>
+      </div>
+
+      <component
+        :is="componentName"
+        :model-value="modelValue"
+        v-bind="componentProps"
+        @update:model-value="handleChange"
+      />
+    </div>
+  </div>
+
   <component
     :is="UFormField"
+    v-else
     :name="field.key"
     :label="$t(labelKey)"
     :description="$t(descriptionKey)"
     :help="field.ui.help ? $t(field.ui.help) : undefined"
     :required="field.ui.required"
     :ui="{
-      container: 'w-full sm:max-w-sm *:w-full',
+      container: 'w-full *:w-full',
+      label: 'text-sm font-medium',
+      description: 'text-sm text-neutral-600 dark:text-neutral-400',
     }"
   >
-    <!-- 动态渲染不同的组件 -->
     <component
       :is="componentName"
       :model-value="modelValue"

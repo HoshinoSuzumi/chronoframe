@@ -34,15 +34,26 @@ const handlePrivacySettingsSubmit = async () => {
     </template>
 
     <template #body>
-      <div class="space-y-6 max-w-6xl">
-        <UCard variant="outline">
-          <template #header>
-            <span>{{ $t('title.privacySettings') }}</span>
-          </template>
+      <div class="mx-auto w-full max-w-5xl space-y-6">
+        <section class="space-y-2 border-b border-neutral-200 pb-4 dark:border-neutral-800">
+          <h2 class="text-xl font-semibold text-neutral-900 dark:text-neutral-100">
+            {{ $t('title.privacySettings') }}
+          </h2>
+          <p class="text-sm text-neutral-600 dark:text-neutral-400">
+            管理照片上传时的数据隐私策略。建议在公开站点启用位置信息抹除。
+          </p>
+        </section>
+
+        <section class="rounded-md border border-neutral-200 bg-white dark:border-neutral-800 dark:bg-neutral-950">
+          <header class="border-b border-neutral-200 px-5 py-4 dark:border-neutral-800">
+            <h3 class="text-base font-semibold text-neutral-900 dark:text-neutral-100">
+              {{ $t('title.privacySettings') }}
+            </h3>
+          </header>
 
           <UForm
             id="privacySettingsForm"
-            class="space-y-4"
+            class="space-y-5 px-5 py-5"
             @submit="handlePrivacySettingsSubmit"
           >
             <SettingField
@@ -54,7 +65,7 @@ const handlePrivacySettingsSubmit = async () => {
             />
           </UForm>
 
-          <template #footer>
+          <footer class="flex justify-end border-t border-neutral-200 px-5 py-4 dark:border-neutral-800">
             <UButton
               :loading="privacyLoading"
               type="submit"
@@ -64,8 +75,8 @@ const handlePrivacySettingsSubmit = async () => {
             >
               保存设置
             </UButton>
-          </template>
-        </UCard>
+          </footer>
+        </section>
       </div>
     </template>
   </UDashboardPanel>

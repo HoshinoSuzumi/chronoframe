@@ -347,9 +347,24 @@ const onStorageDelete = async (storageId: number) => {
     </template>
 
     <template #body>
-      <div class="space-y-6 max-w-6xl">
-        <UCard variant="outline">
-          <div class="space-y-4">
+      <div class="mx-auto w-full max-w-5xl space-y-6">
+        <section class="space-y-2 border-b border-neutral-200 pb-4 dark:border-neutral-800">
+          <h2 class="text-xl font-semibold text-neutral-900 dark:text-neutral-100">
+            {{ $t('title.storageSettings') }}
+          </h2>
+          <p class="text-sm text-neutral-600 dark:text-neutral-400">
+            管理默认存储方案与可用存储提供者。此页面的设置仅影响后续上传文件。
+          </p>
+        </section>
+
+        <section class="rounded-md border border-neutral-200 bg-white dark:border-neutral-800 dark:bg-neutral-950">
+          <header class="border-b border-neutral-200 px-5 py-4 dark:border-neutral-800">
+            <h3 class="text-base font-semibold text-neutral-900 dark:text-neutral-100">
+              当前默认存储
+            </h3>
+          </header>
+
+          <div class="space-y-4 px-5 py-5">
             <UFormField
               name="storageConfigId"
               label="存储方案"
@@ -382,8 +397,8 @@ const onStorageDelete = async (storageId: number) => {
             </UFormField>
           </div>
 
-          <template #footer>
-            <div class="flex items-center gap-3">
+          <footer class="border-t border-neutral-200 px-5 py-4 dark:border-neutral-800">
+            <div class="flex items-center justify-end gap-3">
               <UModal
                 title="变更存储方案"
                 :ui="{ footer: 'justify-end' }"
@@ -423,112 +438,107 @@ const onStorageDelete = async (storageId: number) => {
                 </template>
               </UModal>
             </div>
-          </template>
-        </UCard>
+          </footer>
+        </section>
 
-        <UCard
-          variant="outline"
-          :ui="{
-            body: 'p-0 sm:p-0',
-          }"
-        >
-          <template #header>
-            <div class="w-full flex items-center justify-between">
-              <span>存储方案管理</span>
-              <div>
-                <USlideover
-                  title="创建存储方案"
-                  :ui="{ footer: 'justify-end' }"
+        <section class="rounded-md border border-neutral-200 bg-white dark:border-neutral-800 dark:bg-neutral-950">
+          <header class="flex w-full items-center justify-between border-b border-neutral-200 px-5 py-4 dark:border-neutral-800">
+            <h3 class="text-base font-semibold text-neutral-900 dark:text-neutral-100">
+              存储方案管理
+            </h3>
+            <div>
+              <USlideover
+                title="创建存储方案"
+                :ui="{ footer: 'justify-end' }"
+              >
+                <UButton
+                  size="sm"
+                  variant="soft"
+                  icon="tabler:plus"
                 >
-                  <UButton
-                    size="sm"
-                    variant="soft"
-                    icon="tabler:plus"
-                  >
-                    添加存储
-                  </UButton>
+                  添加存储
+                </UButton>
 
-                  <template #body="{ close }">
-                    <div class="space-y-4">
-                      <!-- Provider 选择 -->
-                      <UFormField
-                        label="存储类型"
-                        class="w-full"
-                        required
-                        :ui="{
-                          container: 'sm:max-w-full',
-                        }"
-                      >
-                        <USelectMenu
-                          v-model="storageConfigState.provider"
-                          :icon="
-                            PROVIDER_ICON[
-                              storageConfigState.provider as keyof typeof PROVIDER_ICON
-                            ] || 'tabler:database'
-                          "
-                          :items="providerOptions"
-                          label-key="label"
-                          value-key="value"
-                          placeholder="选择存储类型"
-                          @update:model-value="
-                            (val: string) => {
-                              storageConfigState.provider = val
-                              storageConfigState.config =
-                                getStorageConfigDefaults(val)
-                            }
-                          "
-                        />
-                      </UFormField>
-
-                      <UFormField
-                        label="存储名称"
-                        required
-                        :ui="{
-                          container: 'sm:max-w-full',
-                        }"
-                      >
-                        <UInput v-model="storageConfigState.name" />
-                      </UFormField>
-
-                      <USeparator />
-
-                      <AutoForm
-                        id="createStorageForm"
-                        :schema="currentStorageSchema"
-                        :state="storageConfigState.config"
-                        :fields-config="storageFieldsConfig"
-                        @submit="onStorageConfigSubmit($event, close)"
+                <template #body="{ close }">
+                  <div class="space-y-4">
+                    <!-- Provider 选择 -->
+                    <UFormField
+                      label="存储类型"
+                      class="w-full"
+                      required
+                      :ui="{
+                        container: 'sm:max-w-full',
+                      }"
+                    >
+                      <USelectMenu
+                        v-model="storageConfigState.provider"
+                        :icon="
+                          PROVIDER_ICON[
+                            storageConfigState.provider as keyof typeof PROVIDER_ICON
+                          ] || 'tabler:database'
+                        "
+                        :items="providerOptions"
+                        label-key="label"
+                        value-key="value"
+                        placeholder="选择存储类型"
+                        @update:model-value="
+                          (val: string) => {
+                            storageConfigState.provider = val
+                            storageConfigState.config =
+                              getStorageConfigDefaults(val)
+                          }
+                        "
                       />
-                    </div>
-                  </template>
+                    </UFormField>
 
-                  <template #footer="{ close }">
-                    <UButton
-                      label="取消"
-                      color="neutral"
-                      variant="outline"
-                      @click="close"
+                    <UFormField
+                      label="存储名称"
+                      required
+                      :ui="{
+                        container: 'sm:max-w-full',
+                      }"
+                    >
+                      <UInput v-model="storageConfigState.name" />
+                    </UFormField>
+
+                    <USeparator />
+
+                    <AutoForm
+                      id="createStorageForm"
+                      :schema="currentStorageSchema"
+                      :state="storageConfigState.config"
+                      :fields-config="storageFieldsConfig"
+                      @submit="onStorageConfigSubmit($event, close)"
                     />
-                    <UButton
-                      label="创建存储"
-                      variant="soft"
-                      icon="tabler:check"
-                      type="submit"
-                      form="createStorageForm"
-                    />
-                  </template>
-                </USlideover>
-              </div>
+                  </div>
+                </template>
+
+                <template #footer="{ close }">
+                  <UButton
+                    label="取消"
+                    color="neutral"
+                    variant="outline"
+                    @click="close"
+                  />
+                  <UButton
+                    label="创建存储"
+                    variant="soft"
+                    icon="tabler:check"
+                    type="submit"
+                    form="createStorageForm"
+                  />
+                </template>
+              </USlideover>
             </div>
-          </template>
+          </header>
 
-          <div>
+          <div class="px-0 py-0">
             <UTable
               :columns="availableStorageColumns"
               :data="availableStorage"
             />
           </div>
-        </UCard>
+        </section>
       </div>
     </template>
   </UDashboardPanel>
