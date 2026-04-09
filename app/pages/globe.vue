@@ -8,6 +8,7 @@ useHead({
 
 const route = useRoute()
 const router = useRouter()
+const dayjs = useDayjs()
 
 const { photos } = usePhotos()
 
@@ -20,6 +21,213 @@ const photosWithLocation = computed(() => {
       photo.longitude !== undefined,
   )
 })
+
+const timelineProgress = ref(100)
+const isTimelineEnabled = ref(false)
+const isTimelinePlaying = ref(false)
+const isTimelineDragging = ref(false)
+const timelineTrackRef = ref<HTMLElement | null>(null)
+const timelinePlayDurationMs = 12000
+let timelineAnimationFrame: number | null = null
+let timelineLastTick = 0
+
+const datedPhotosWithLocation = computed(() => {
+  return photosWithLocation.value
+    .map((photo) => {
+      const timestamp = photo.dateTaken
+        ? new Date(photo.dateTaken).getTime()
+        : Number.NaN
+      return {
+        photo,
+        timestamp,
+      }
+    })
+    .filter((entry) => Number.isFinite(entry.timestamp))
+    .sort((a, b) => a.timestamp - b.timestamp)
+})
+
+const hasTimelineData = computed(() => datedPhotosWithLocation.value.length > 1)
+
+const timelineRange = computed(() => {
+  if (!hasTimelineData.value) {
+    return null
+  }
+
+  const first = datedPhotosWithLocation.value[0]!
+  const last = datedPhotosWithLocation.value[datedPhotosWithLocation.value.length - 1]!
+  return {
+    min: first.timestamp,
+    max: last.timestamp,
+  }
+})
+
+const timelineCutoffTimestamp = computed(() => {
+  if (!timelineRange.value) {
+    return null
+  }
+
+  const ratio = timelineProgress.value / 100
+  return Math.round(
+    timelineRange.value.min +
+      (timelineRange.value.max - timelineRange.value.min) * ratio,
+  )
+})
+
+const filteredPhotosWithLocation = computed(() => {
+  if (!isTimelineEnabled.value) {
+    return photosWithLocation.value
+  }
+
+  if (!timelineCutoffTimestamp.value) {
+    return photosWithLocation.value
+  }
+
+  return photosWithLocation.value.filter((photo) => {
+    if (!photo.dateTaken) {
+      return true
+    }
+    const timestamp = new Date(photo.dateTaken).getTime()
+    if (!Number.isFinite(timestamp)) {
+      return true
+    }
+    return timestamp <= timelineCutoffTimestamp.value!
+  })
+})
+
+const timelineStartLabel = computed(() => {
+  if (!timelineRange.value) {
+    return '--'
+  }
+  return dayjs(timelineRange.value.min).format('YYYY-MM-DD')
+})
+
+const timelineEndLabel = computed(() => {
+  if (!timelineRange.value) {
+    return '--'
+  }
+  return dayjs(timelineRange.value.max).format('YYYY-MM-DD')
+})
+
+const timelineCurrentLabel = computed(() => {
+  if (!timelineCutoffTimestamp.value) {
+    return '--'
+  }
+  return dayjs(timelineCutoffTimestamp.value).format('YYYY-MM-DD')
+})
+
+const timelineProgressStyle = computed(() => `${timelineProgress.value}%`)
+
+const clampProgress = (value: number) => {
+  return Math.min(100, Math.max(0, value))
+}
+
+const updateTimelineProgressByClientX = (clientX: number) => {
+  if (!timelineTrackRef.value) {
+    return
+  }
+
+  const rect = timelineTrackRef.value.getBoundingClientRect()
+  if (rect.width <= 0) {
+    return
+  }
+
+  const ratio = (clientX - rect.left) / rect.width
+  timelineProgress.value = clampProgress(ratio * 100)
+}
+
+const stopTimelineDragging = () => {
+  isTimelineDragging.value = false
+  window.removeEventListener('pointermove', onTimelinePointerMove)
+  window.removeEventListener('pointerup', onTimelinePointerUp)
+}
+
+const onTimelinePointerMove = (event: PointerEvent) => {
+  if (!isTimelineDragging.value) {
+    return
+  }
+  updateTimelineProgressByClientX(event.clientX)
+}
+
+const onTimelinePointerUp = () => {
+  stopTimelineDragging()
+}
+
+const onTimelinePointerDown = (event: PointerEvent) => {
+  if (!isTimelineEnabled.value || !hasTimelineData.value) {
+    return
+  }
+
+  stopTimelinePlayback()
+  isTimelineDragging.value = true
+  updateTimelineProgressByClientX(event.clientX)
+  window.addEventListener('pointermove', onTimelinePointerMove)
+  window.addEventListener('pointerup', onTimelinePointerUp)
+}
+
+const stopTimelinePlayback = () => {
+  isTimelinePlaying.value = false
+  if (timelineAnimationFrame !== null) {
+    cancelAnimationFrame(timelineAnimationFrame)
+    timelineAnimationFrame = null
+  }
+}
+
+const tickTimelinePlayback = (now: number) => {
+  if (!isTimelinePlaying.value) {
+    return
+  }
+
+  const delta = now - timelineLastTick
+  timelineLastTick = now
+
+  const progressDelta = (delta / timelinePlayDurationMs) * 100
+  const nextProgress = clampProgress(timelineProgress.value + progressDelta)
+  timelineProgress.value = nextProgress
+
+  if (nextProgress >= 100) {
+    stopTimelinePlayback()
+    return
+  }
+
+  timelineAnimationFrame = requestAnimationFrame(tickTimelinePlayback)
+}
+
+const startTimelinePlayback = () => {
+  if (!hasTimelineData.value) {
+    return
+  }
+
+  if (timelineProgress.value >= 100) {
+    timelineProgress.value = 0
+  }
+
+  isTimelinePlaying.value = true
+  timelineLastTick = performance.now()
+  timelineAnimationFrame = requestAnimationFrame(tickTimelinePlayback)
+}
+
+const toggleTimelinePlayback = () => {
+  if (!isTimelineEnabled.value) {
+    return
+  }
+
+  if (isTimelinePlaying.value) {
+    stopTimelinePlayback()
+    return
+  }
+  startTimelinePlayback()
+}
+
+const toggleTimelineEnabled = () => {
+  if (isTimelineEnabled.value) {
+    stopTimelineDragging()
+    stopTimelinePlayback()
+    isTimelineEnabled.value = false
+    return
+  }
+
+  isTimelineEnabled.value = true
+}
 
 const currentClusterPointId = ref<string | null>(null)
 const mapInstance = ref<any>(null)
@@ -131,7 +339,7 @@ const analysisLegend = computed(() => {
 
 // Convert photos to markers and apply clustering
 const clusteredMarkers = computed(() => {
-  const markers = photosToMarkers(photosWithLocation.value)
+  const markers = photosToMarkers(filteredPhotosWithLocation.value)
   return clusterMarkers(markers, currentZoom.value)
 })
 
@@ -154,6 +362,17 @@ watch(currentClusterPointId, (newId) => {
   } else {
     const { photoId, ...rest } = route.query
     router.replace({ query: { ...rest } })
+  }
+})
+
+watch(filteredPhotosWithLocation, (currentPhotos) => {
+  if (!currentClusterPointId.value) {
+    return
+  }
+
+  const exists = currentPhotos.some((photo) => photo.id === currentClusterPointId.value)
+  if (!exists) {
+    currentClusterPointId.value = null
   }
 })
 
@@ -303,10 +522,17 @@ const generateRandomKey = () => {
 }
 
 onBeforeRouteLeave(() => {
+  stopTimelineDragging()
+  stopTimelinePlayback()
   if (mapInstance.value) {
     mapInstance.value.remove()
     mapInstance.value = null
   }
+})
+
+onBeforeUnmount(() => {
+  stopTimelineDragging()
+  stopTimelinePlayback()
 })
 </script>
 
@@ -326,108 +552,118 @@ onBeforeRouteLeave(() => {
         >
           <GlassButton
             icon="tabler:adjustments"
+            :active="analysisMode !== 'none'"
             @click="parameterAnnotationOpen = !parameterAnnotationOpen"
           />
         </UTooltip>
-        <span
-          v-if="analysisMode !== 'none'"
-          class="absolute -top-1 -right-1 size-2 rounded-full bg-primary"
-        />
-      </div>
 
-      <AnimatePresence>
-        <motion.div
-          v-if="parameterAnnotationOpen"
-          :initial="{ opacity: 0, y: -8, scale: 0.96 }"
-          :animate="{ opacity: 1, y: 0, scale: 1 }"
-          :exit="{ opacity: 0, y: -8, scale: 0.96 }"
-          :transition="{ duration: 0.2, ease: 'easeOut' }"
-          class="mt-2 w-64 origin-top-right overflow-hidden rounded-xl border border-neutral-100 bg-white/30 text-neutral-700 shadow-md shadow-neutral-300/20 backdrop-blur-md dark:border-white/10 dark:bg-neutral-700/30 dark:text-white/80 dark:shadow-black/20"
-        >
-          <div
-            class="px-3 py-2 border-b border-neutral-100/80 dark:border-white/10"
+        <AnimatePresence>
+          <motion.div
+            v-if="parameterAnnotationOpen"
+            :initial="{ opacity: 0, y: -8, scale: 0.96 }"
+            :animate="{ opacity: 1, y: 0, scale: 1 }"
+            :exit="{ opacity: 0, y: -8, scale: 0.96 }"
+            :transition="{ duration: 0.2, ease: 'easeOut' }"
+            class="absolute right-0 top-full mt-2 z-40 w-64 origin-top-right overflow-hidden rounded-xl border border-neutral-100 bg-white/30 text-neutral-700 shadow-md shadow-neutral-300/20 backdrop-blur-md dark:border-white/10 dark:bg-neutral-700/30 dark:text-white/80 dark:shadow-black/20"
           >
-            <div class="flex items-center gap-2 text-sm font-semibold">
-              <Icon
-                name="tabler:adjustments-horizontal"
-                class="size-4 text-primary"
-              />
-              <span>拍摄参数标注</span>
-            </div>
-            <p class="mt-1 text-[11px] text-neutral-600 dark:text-white/60">
-              按拍摄参数查看地理分布
-            </p>
-          </div>
-
-          <div class="p-2.5 space-y-2">
-            <button
-              v-for="mode in analysisModeOptions"
-              :key="mode.value"
-              type="button"
-              :class="[
-                'w-full px-2.5 py-2 rounded-lg text-left transition-colors border flex items-center gap-2.5',
-                analysisMode === mode.value
-                  ? 'bg-primary/90 text-white border-primary/70 shadow-sm'
-                  : 'bg-white/15 text-neutral-700 dark:text-white/80 border-neutral-200/70 dark:border-white/10 hover:bg-white/30 dark:hover:bg-black/20',
-              ]"
-              @click="analysisMode = mode.value"
+            <div
+              class="px-3 py-2 border-b border-neutral-100/80 dark:border-white/10"
             >
-              <span
-                :class="[
-                  'size-7 rounded-md flex items-center justify-center shrink-0 border',
-                  analysisMode === mode.value
-                    ? 'bg-white/20 border-white/30'
-                    : 'bg-white/30 dark:bg-black/20 border-neutral-200/60 dark:border-white/10',
-                ]"
-              >
+              <div class="flex items-center gap-2 text-sm font-semibold">
                 <Icon
-                  :name="mode.icon"
-                  class="size-4"
+                  name="tabler:adjustments-horizontal"
+                  class="size-4 text-primary"
                 />
-              </span>
-              <span class="min-w-0">
-                <span class="block text-xs font-semibold leading-none">{{
-                  mode.label
-                }}</span>
-                <span
-                  class="block text-[10px] mt-1 text-neutral-500 dark:text-white/55"
-                >
-                  {{ mode.description }}
-                </span>
-              </span>
-            </button>
-          </div>
-
-          <div
-            v-if="analysisLegend"
-            class="mx-2.5 mb-2.5 rounded-lg border border-neutral-200/70 dark:border-white/10 bg-white/25 dark:bg-black/20 p-2"
-          >
-            <div
-              class="text-[10px] font-semibold text-neutral-600 dark:text-white/70 px-1 mb-1"
-            >
-              {{ analysisLegend.title }}
+                <span>拍摄参数标注</span>
+              </div>
+              <p class="mt-1 text-[11px] text-neutral-600 dark:text-white/60">
+                按拍摄参数查看地理分布
+              </p>
             </div>
-            <div
-              v-for="item in analysisLegend.items"
-              :key="item.label"
-              class="flex items-center justify-between gap-2 text-[10px] text-neutral-700 dark:text-white/80 px-1 py-1 rounded-md hover:bg-white/40 dark:hover:bg-black/20"
-            >
-              <span class="inline-flex items-center gap-1.5 min-w-0">
+
+            <div class="p-2.5 space-y-2">
+              <button
+                v-for="mode in analysisModeOptions"
+                :key="mode.value"
+                type="button"
+                :class="[
+                  'w-full px-2.5 py-2 rounded-lg text-left transition-colors border flex items-center gap-2.5',
+                  analysisMode === mode.value
+                    ? 'bg-primary/90 text-white border-primary/70 shadow-sm'
+                    : 'bg-white/15 text-neutral-700 dark:text-white/80 border-neutral-200/70 dark:border-white/10 hover:bg-white/30 dark:hover:bg-black/20',
+                ]"
+                @click="analysisMode = mode.value"
+              >
                 <span
                   :class="[
-                    'size-2.5 rounded-full shrink-0 ring-1 ring-black/10 dark:ring-white/20',
-                    item.color,
+                    'size-7 rounded-md flex items-center justify-center shrink-0 border',
+                    analysisMode === mode.value
+                      ? 'bg-white/20 border-white/30'
+                      : 'bg-white/30 dark:bg-black/20 border-neutral-200/60 dark:border-white/10',
                   ]"
-                />
-                <span class="truncate">{{ item.label }}</span>
-              </span>
-              <span class="font-mono text-neutral-500 dark:text-white/55">{{
-                item.range
-              }}</span>
+                >
+                  <Icon
+                    :name="mode.icon"
+                    class="size-4"
+                  />
+                </span>
+                <span class="min-w-0">
+                  <span class="block text-xs font-semibold leading-none">{{
+                    mode.label
+                  }}</span>
+                  <span
+                    class="block text-[10px] mt-1 text-neutral-500 dark:text-white/55"
+                  >
+                    {{ mode.description }}
+                  </span>
+                </span>
+              </button>
             </div>
-          </div>
-        </motion.div>
-      </AnimatePresence>
+
+            <div
+              v-if="analysisLegend"
+              class="mx-2.5 mb-2.5 rounded-lg border border-neutral-200/70 dark:border-white/10 bg-white/25 dark:bg-black/20 p-2"
+            >
+              <div
+                class="text-[10px] font-semibold text-neutral-600 dark:text-white/70 px-1 mb-1"
+              >
+                {{ analysisLegend.title }}
+              </div>
+              <div
+                v-for="item in analysisLegend.items"
+                :key="item.label"
+                class="flex items-center justify-between gap-2 text-[10px] text-neutral-700 dark:text-white/80 px-1 py-1 rounded-md hover:bg-white/40 dark:hover:bg-black/20"
+              >
+                <span class="inline-flex items-center gap-1.5 min-w-0">
+                  <span
+                    :class="[
+                      'size-2.5 rounded-full shrink-0 ring-1 ring-black/10 dark:ring-white/20',
+                      item.color,
+                    ]"
+                  />
+                  <span class="truncate">{{ item.label }}</span>
+                </span>
+                <span class="font-mono text-neutral-500 dark:text-white/55">{{
+                  item.range
+                }}</span>
+              </div>
+            </div>
+          </motion.div>
+        </AnimatePresence>
+      </div>
+
+      <div class="mt-2 relative">
+        <UTooltip
+          text="启用/关闭时间回溯"
+          :delay-duration="0"
+        >
+          <GlassButton
+            icon="tabler:timeline-event"
+            :active="isTimelineEnabled"
+            @click="toggleTimelineEnabled"
+          />
+        </UTooltip>
+      </div>
     </div>
 
     <div class="absolute bottom-4 left-4 z-10 flex flex-col">
@@ -449,6 +685,72 @@ onBeforeRouteLeave(() => {
         icon="tabler:scan-position"
         @click="resetMap"
       />
+    </div>
+
+    <div
+      v-if="isTimelineEnabled"
+      class="absolute bottom-4 left-1/2 -translate-x-1/2 z-10 w-[min(92vw,54rem)] max-sm:left-3 max-sm:right-3 max-sm:translate-x-0 max-sm:w-auto max-sm:pl-16"
+    >
+      <div
+        class="rounded-xl border border-neutral-100 bg-white/30 text-neutral-700 shadow-md shadow-neutral-300/20 backdrop-blur-md dark:border-white/10 dark:bg-neutral-700/30 dark:text-white/80 dark:shadow-black/20 px-3 py-2"
+      >
+        <div class="flex items-center gap-2">
+          <UTooltip
+            text="播放/暂停时间回溯"
+            :delay-duration="0"
+          >
+            <GlassButton
+              size="sm"
+              :icon="isTimelinePlaying ? 'tabler:player-pause' : 'tabler:player-play'"
+              :class="
+                !hasTimelineData || !isTimelineEnabled
+                  ? 'opacity-40 pointer-events-none'
+                  : ''
+              "
+              @click="toggleTimelinePlayback"
+            />
+          </UTooltip>
+          <div class="min-w-0 flex-1">
+            <div class="flex items-center justify-between gap-2 text-[11px]">
+              <span class="font-medium">时间回溯</span>
+              <span class="text-neutral-600 dark:text-white/60">
+                {{ filteredPhotosWithLocation.length }}/{{ photosWithLocation.length }}
+              </span>
+            </div>
+            <div
+              ref="timelineTrackRef"
+              :class="[
+                'mt-2 relative h-5 select-none touch-none',
+                hasTimelineData
+                  ? 'cursor-pointer'
+                  : 'cursor-not-allowed opacity-60',
+              ]"
+              @pointerdown="onTimelinePointerDown"
+            >
+              <div
+                class="absolute left-0 right-0 top-1/2 -translate-y-1/2 h-1 rounded-full bg-neutral-200/80 dark:bg-white/15"
+              />
+              <div
+                class="absolute left-0 top-1/2 -translate-y-1/2 h-1 rounded-full bg-linear-to-r from-neutral-200/85 via-white/95 to-neutral-200/85 dark:from-white/35 dark:via-white/90 dark:to-white/35 shadow-[0_0_10px_rgba(255,255,255,0.35)]"
+                :style="{ width: timelineProgressStyle }"
+              />
+              <div
+                class="absolute top-1/2 -translate-y-1/2 h-3 w-1.5 rounded-sm border border-white/90 bg-white shadow-[0_0_0_1px_rgba(255,255,255,0.45),0_0_10px_rgba(255,255,255,0.55)] dark:border-white/70 dark:bg-white/95 dark:shadow-[0_0_0_1px_rgba(255,255,255,0.2),0_0_8px_rgba(255,255,255,0.45)]"
+                :style="{ left: `calc(${timelineProgressStyle} - 0.1875rem)` }"
+              />
+            </div>
+            <div
+              class="mt-1 flex items-center justify-between gap-2 text-[10px] text-neutral-500 dark:text-white/55 font-mono"
+            >
+              <span>{{ timelineStartLabel }}</span>
+              <span class="text-neutral-700 dark:text-white/80">{{
+                timelineCurrentLabel
+              }}</span>
+              <span>{{ timelineEndLabel }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
 
     <motion.div
