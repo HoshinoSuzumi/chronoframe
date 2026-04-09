@@ -31,6 +31,40 @@ const visibleMapFields = computed(() => {
   })
 })
 
+const sameValue = (left: any, right: any) =>
+  JSON.stringify(left ?? null) === JSON.stringify(right ?? null)
+
+const getDefaultFieldValue = (field: (typeof mapFields.value)[number]) =>
+  field.value ?? field.defaultValue ?? null
+
+const isMapDirty = computed(() =>
+  visibleMapFields.value.some(
+    (field) => !sameValue(mapState[field.key], getDefaultFieldValue(field)),
+  ),
+)
+
+const isLocationDirty = computed(() =>
+  locationFields.value.some(
+    (field) =>
+      !sameValue(
+        locationState[field.key],
+        field.value ?? field.defaultValue ?? null,
+      ),
+  ),
+)
+
+const resetMapSettings = () => {
+  visibleMapFields.value.forEach((field) => {
+    mapState[field.key] = getDefaultFieldValue(field)
+  })
+}
+
+const resetLocationSettings = () => {
+  locationFields.value.forEach((field) => {
+    locationState[field.key] = field.value ?? field.defaultValue ?? null
+  })
+}
+
 const handleMapSettingsSubmit = async () => {
   const mapData = Object.fromEntries(
     visibleMapFields.value.map((f) => [f.key, mapState[f.key]]),
@@ -78,7 +112,18 @@ const handleLocationSettingsSubmit = async () => {
             </h3>
           </header>
 
+          <div
+            v-if="mapLoading && visibleMapFields.length === 0"
+            class="space-y-4 px-5 py-5"
+          >
+            <USkeleton class="h-4 w-32" />
+            <USkeleton class="h-10 w-full" />
+            <USkeleton class="h-4 w-44" />
+            <USkeleton class="h-10 w-full" />
+          </div>
+
           <UForm
+            v-else
             id="mapSettingsForm"
             class="space-y-5 px-5 py-5"
             @submit="handleMapSettingsSubmit"
@@ -92,16 +137,33 @@ const handleLocationSettingsSubmit = async () => {
             />
           </UForm>
 
-          <footer class="flex justify-end border-t border-neutral-200 px-5 py-4 dark:border-neutral-800">
+          <footer class="border-t border-neutral-200 px-5 py-4 dark:border-neutral-800">
+            <div
+              v-if="isMapDirty"
+              class="mb-3 rounded-md border border-warning-200 bg-warning-50 px-3 py-2 text-sm text-warning-800 dark:border-warning-900/60 dark:bg-warning-950/30 dark:text-warning-200"
+            >
+              {{ $t('common.unsavedChanges') }}
+            </div>
+
+            <div class="flex items-center justify-end gap-2">
+              <UButton
+                color="neutral"
+                variant="outline"
+                :disabled="!isMapDirty"
+                @click="resetMapSettings"
+              >
+                重置
+              </UButton>
             <UButton
               :loading="mapLoading"
               type="submit"
               form="mapSettingsForm"
-              variant="soft"
+              :disabled="!isMapDirty"
               icon="tabler:device-floppy"
             >
               保存设置
             </UButton>
+            </div>
           </footer>
         </section>
 
@@ -112,7 +174,18 @@ const handleLocationSettingsSubmit = async () => {
             </h3>
           </header>
 
+          <div
+            v-if="locationLoading && locationFields.length === 0"
+            class="space-y-4 px-5 py-5"
+          >
+            <USkeleton class="h-4 w-36" />
+            <USkeleton class="h-10 w-full" />
+            <USkeleton class="h-4 w-40" />
+            <USkeleton class="h-10 w-full" />
+          </div>
+
           <UForm
+            v-else
             id="locationSettingsForm"
             class="space-y-5 px-5 py-5"
             @submit="handleLocationSettingsSubmit"
@@ -126,16 +199,33 @@ const handleLocationSettingsSubmit = async () => {
             />
           </UForm>
 
-          <footer class="flex justify-end border-t border-neutral-200 px-5 py-4 dark:border-neutral-800">
+          <footer class="border-t border-neutral-200 px-5 py-4 dark:border-neutral-800">
+            <div
+              v-if="isLocationDirty"
+              class="mb-3 rounded-md border border-warning-200 bg-warning-50 px-3 py-2 text-sm text-warning-800 dark:border-warning-900/60 dark:bg-warning-950/30 dark:text-warning-200"
+            >
+              {{ $t('common.unsavedChanges') }}
+            </div>
+
+            <div class="flex items-center justify-end gap-2">
+              <UButton
+                color="neutral"
+                variant="outline"
+                :disabled="!isLocationDirty"
+                @click="resetLocationSettings"
+              >
+                重置
+              </UButton>
             <UButton
               :loading="locationLoading"
               type="submit"
               form="locationSettingsForm"
-              variant="soft"
+              :disabled="!isLocationDirty"
               icon="tabler:device-floppy"
             >
               保存设置
             </UButton>
+            </div>
           </footer>
         </section>
       </div>

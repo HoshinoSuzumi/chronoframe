@@ -19,7 +19,8 @@ export function useSettingsForm(namespace: string) {
 
   const fields = ref<FieldDescriptor[]>([])
   const state = reactive<Record<string, any>>({})
-  const loading = ref(false)
+  // Start in loading state to avoid first-paint empty container before skeleton.
+  const loading = ref(true)
   const error = ref<string | null>(null)
 
   /**

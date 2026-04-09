@@ -392,6 +392,7 @@
   },
   "common": {
     "unknown": "未知",
+    "unsavedChanges": "存在未保存的更改。",
     "months": {
       "jan": "一月",
       "feb": "二月",

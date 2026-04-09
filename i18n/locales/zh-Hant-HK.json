@@ -383,6 +383,7 @@
     }
   },
   "common": {
+    "unsavedChanges": "目前有尚未儲存的變更。",
     "months": {
       "jan": "一月",
       "feb": "二月",

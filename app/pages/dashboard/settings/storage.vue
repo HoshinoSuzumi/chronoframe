@@ -25,7 +25,11 @@ const { data: currentStorageProvider, refresh: refreshCurrentStorageProvider } =
     value: SettingValue
   }>('/api/system/settings/storage/provider')
 
-const { data: availableStorage, refresh: refreshAvailableStorage } =
+const {
+  data: availableStorage,
+  refresh: refreshAvailableStorage,
+  status: availableStorageStatus,
+} =
   await useFetch<SettingStorageProvider[]>(
     '/api/system/settings/storage-config',
   )
@@ -91,6 +95,16 @@ const storageSettingsState = reactive<{
     ? (currentStorageProvider.value.value as number)
     : undefined,
 })
+
+const isStorageDefaultDirty = computed(() => {
+  return storageSettingsState.storageConfigId !== currentStorageProvider.value?.value
+})
+
+const resetStorageDefault = () => {
+  storageSettingsState.storageConfigId = currentStorageProvider.value
+    ? (currentStorageProvider.value.value as number)
+    : undefined
+}
 
 const handleStorageSettingsSubmit = async (close?: () => void) => {
   try {
@@ -364,7 +378,18 @@ const onStorageDelete = async (storageId: number) => {
             </h3>
           </header>
 
-          <div class="space-y-4 px-5 py-5">
+          <div
+            v-if="availableStorageStatus !== 'success' && !availableStorage"
+            class="space-y-4 px-5 py-5"
+          >
+            <USkeleton class="h-4 w-32" />
+            <USkeleton class="h-10 w-72" />
+          </div>
+
+          <div
+            v-else
+            class="space-y-4 px-5 py-5"
+          >
             <UFormField
               name="storageConfigId"
               label="存储方案"
@@ -398,13 +423,28 @@ const onStorageDelete = async (storageId: number) => {
           </div>
 
           <footer class="border-t border-neutral-200 px-5 py-4 dark:border-neutral-800">
-            <div class="flex items-center justify-end gap-3">
+            <div
+              v-if="isStorageDefaultDirty"
+              class="mb-3 rounded-md border border-warning-200 bg-warning-50 px-3 py-2 text-sm text-warning-800 dark:border-warning-900/60 dark:bg-warning-950/30 dark:text-warning-200"
+            >
+              {{ $t('common.unsavedChanges') }}
+            </div>
+
+            <div class="flex items-center justify-end gap-2">
+              <UButton
+                color="neutral"
+                variant="outline"
+                :disabled="!isStorageDefaultDirty"
+                @click="resetStorageDefault"
+              >
+                重置
+              </UButton>
               <UModal
                 title="变更存储方案"
                 :ui="{ footer: 'justify-end' }"
               >
                 <UButton
-                  variant="soft"
+                  :disabled="!isStorageDefaultDirty"
                   icon="tabler:device-floppy"
                 >
                   保存设置
@@ -532,7 +572,19 @@ const onStorageDelete = async (storageId: number) => {
             </div>
           </header>
 
-          <div class="px-0 py-0">
+          <div
+            v-if="availableStorageStatus !== 'success' && !availableStorage"
+            class="space-y-3 px-5 py-5"
+          >
+            <USkeleton class="h-10 w-full" />
+            <USkeleton class="h-10 w-full" />
+            <USkeleton class="h-10 w-full" />
+          </div>
+
+          <div
+            v-else
+            class="px-0 py-0"
+          >
             <UTable
               :columns="availableStorageColumns"
               :data="availableStorage"

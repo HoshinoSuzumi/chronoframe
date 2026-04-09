@@ -390,6 +390,7 @@
   },
   "common": {
     "unknown": "unknown",
+    "unsavedChanges": "There are unsaved changes.",
     "months": {
       "jan": "Jan",
       "feb": "Feb",

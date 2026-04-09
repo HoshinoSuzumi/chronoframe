@@ -383,6 +383,7 @@
     }
   },
   "common": {
+    "unsavedChanges": "未保存の変更があります。",
     "months": {
       "jan": "1月",
       "feb": "2月",

@@ -19,6 +19,36 @@ const appearanceFields = computed(() =>
   fields.value.filter((f) => f.key.startsWith('appearance.')),
 )
 
+const sameValue = (left: any, right: any) =>
+  JSON.stringify(left ?? null) === JSON.stringify(right ?? null)
+
+const getDefaultFieldValue = (field: (typeof fields.value)[number]) =>
+  field.value ?? field.defaultValue ?? null
+
+const isAppDirty = computed(() =>
+  appFields.value.some((field) =>
+    !sameValue(state[field.key], getDefaultFieldValue(field)),
+  ),
+)
+
+const isAppearanceDirty = computed(() =>
+  appearanceFields.value.some((field) =>
+    !sameValue(state[field.key], getDefaultFieldValue(field)),
+  ),
+)
+
+const resetAppSettings = () => {
+  appFields.value.forEach((field) => {
+    state[field.key] = getDefaultFieldValue(field)
+  })
+}
+
+const resetAppearanceSettings = () => {
+  appearanceFields.value.forEach((field) => {
+    state[field.key] = getDefaultFieldValue(field)
+  })
+}
+
 const handleAppSettingsSubmit = async () => {
   const appData = Object.fromEntries(
     appFields.value.map((f) => [f.key, state[f.key]]),
@@ -69,7 +99,20 @@ const handleAppearanceSettingsSubmit = async () => {
             </h3>
           </header>
 
+          <div
+            v-if="loading && appFields.length === 0"
+            class="space-y-4 px-5 py-5"
+          >
+            <USkeleton class="h-4 w-32" />
+            <USkeleton class="h-10 w-full" />
+            <USkeleton class="h-4 w-44" />
+            <USkeleton class="h-10 w-full" />
+            <USkeleton class="h-4 w-36" />
+            <USkeleton class="h-10 w-full" />
+          </div>
+
           <UForm
+            v-else
             id="appSettingsForm"
             class="space-y-5 px-5 py-5"
             @submit="handleAppSettingsSubmit"
@@ -83,16 +126,33 @@ const handleAppearanceSettingsSubmit = async () => {
             />
           </UForm>
 
-          <footer class="flex justify-end border-t border-neutral-200 px-5 py-4 dark:border-neutral-800">
+          <footer class="border-t border-neutral-200 px-5 py-4 dark:border-neutral-800">
+            <div
+              v-if="isAppDirty"
+              class="mb-3 rounded-md border border-warning-200 bg-warning-50 px-3 py-2 text-sm text-warning-800 dark:border-warning-900/60 dark:bg-warning-950/30 dark:text-warning-200"
+            >
+              {{ $t('common.unsavedChanges') }}
+            </div>
+
+            <div class="flex items-center justify-end gap-2">
+              <UButton
+                color="neutral"
+                variant="outline"
+                :disabled="!isAppDirty"
+                @click="resetAppSettings"
+              >
+                重置
+              </UButton>
             <UButton
               :loading="loading"
               type="submit"
               form="appSettingsForm"
-              variant="soft"
+              :disabled="!isAppDirty"
               icon="tabler:device-floppy"
             >
               保存设置
             </UButton>
+            </div>
           </footer>
         </section>
 
@@ -103,7 +163,16 @@ const handleAppearanceSettingsSubmit = async () => {
             </h3>
           </header>
 
+          <div
+            v-if="loading && appearanceFields.length === 0"
+            class="space-y-4 px-5 py-5"
+          >
+            <USkeleton class="h-4 w-40" />
+            <USkeleton class="h-10 w-full" />
+          </div>
+
           <UForm
+            v-else
             id="appearanceSettingsForm"
             class="space-y-5 px-5 py-5"
             @submit="handleAppearanceSettingsSubmit"
@@ -117,16 +186,33 @@ const handleAppearanceSettingsSubmit = async () => {
             />
           </UForm>
 
-          <footer class="flex justify-end border-t border-neutral-200 px-5 py-4 dark:border-neutral-800">
+          <footer class="border-t border-neutral-200 px-5 py-4 dark:border-neutral-800">
+            <div
+              v-if="isAppearanceDirty"
+              class="mb-3 rounded-md border border-warning-200 bg-warning-50 px-3 py-2 text-sm text-warning-800 dark:border-warning-900/60 dark:bg-warning-950/30 dark:text-warning-200"
+            >
+              {{ $t('common.unsavedChanges') }}
+            </div>
+
+            <div class="flex items-center justify-end gap-2">
+              <UButton
+                color="neutral"
+                variant="outline"
+                :disabled="!isAppearanceDirty"
+                @click="resetAppearanceSettings"
+              >
+                重置
+              </UButton>
             <UButton
               :loading="loading"
               type="submit"
               form="appearanceSettingsForm"
-              variant="soft"
+              :disabled="!isAppearanceDirty"
               icon="tabler:device-floppy"
             >
               保存设置
             </UButton>
+            </div>
           </footer>
         </section>
       </div>
