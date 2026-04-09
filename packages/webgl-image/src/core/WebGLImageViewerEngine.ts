@@ -115,6 +115,7 @@ export class WebGLImageViewerEngine {
   private currentQuality: 'high' | 'medium' | 'low' | 'unknown' = 'unknown'
   private isLoadingTexture = false
   private currentLoadingState: LoadingState = LoadingState.IDLE
+  private lastRequestedSrc: string | null = null
 
   constructor(canvas: HTMLCanvasElement, config: Partial<EngineConfig> = {}) {
     this.canvas = canvas
@@ -220,69 +221,155 @@ export class WebGLImageViewerEngine {
       const { type, payload } = event.data
       switch (type) {
         case 'loaded':
-          this.handleWorkerImageLoaded(payload)
+          void this.handleWorkerImageLoaded(payload)
           break
         case 'load-error':
-          this.handleWorkerImageLoadError(payload)
+          void this.handleWorkerImageLoadError(payload)
           break
       }
     }
 
     this.worker.onerror = (error) => {
       console.error('Worker error:', error)
+      void this.handleWorkerImageLoadError(error)
     }
   }
 
-  private handleWorkerImageLoaded(payload: any) {
+  private async handleWorkerImageLoaded(payload: any) {
     const { imageBitmap } = payload
 
     try {
-      this.image = imageBitmap
-
-      const shouldUseTiles = this.shouldUseTiles(imageBitmap)
-      let usingTiles = false
-
-      if (shouldUseTiles) {
-        this.emitLoadingStateChange(true, LoadingState.TILE_LOADING)
-        usingTiles = this.createTiles(imageBitmap)
+      const rendered = this.applyDecodedImage(imageBitmap)
+      if (!rendered) {
+        await this.renderWithMainThreadFallback(
+          new Error('Failed to render worker ImageBitmap'),
+        )
       }
 
-      if (!usingTiles) {
-        this.emitLoadingStateChange(true, LoadingState.TEXTURE_LOADING)
-        const texture = this.createTexture(imageBitmap)
-        if (!texture) {
-          throw new Error('Failed to create texture for image')
-        }
-      } else {
-        this.updatePositionBuffer()
-      }
-
-      this.useTiles = usingTiles
-
-      if (this.config.centerOnInit) {
-        this.centerImage()
-      }
-
-      this.currentQuality = 'high'
-
-      this.emitLoadingStateChange(
-        false,
-        LoadingState.COMPLETE,
-        this.currentQuality,
-      )
-      this.render()
-      if (this.imageLoadingResolve) this.imageLoadingResolve()
+      this.resolvePendingImageLoad()
     } catch (err) {
-      console.error('Failed to create texture from ImageBitmap:', err)
-      this.emitLoadingStateChange(false, LoadingState.ERROR)
-      if (this.imageLoadingReject) this.imageLoadingReject(err as Error)
+      console.error('Failed to render worker image:', err)
+      this.rejectPendingImageLoad(err)
     }
   }
 
-  private handleWorkerImageLoadError(error: any) {
+  private async handleWorkerImageLoadError(error: any) {
     console.error('Image load error from worker:', error)
+
+    try {
+      await this.renderWithMainThreadFallback(error)
+      this.resolvePendingImageLoad()
+    } catch (fallbackError) {
+      this.rejectPendingImageLoad(fallbackError)
+    }
+  }
+
+  private applyDecodedImage(
+    imageSource: HTMLCanvasElement | HTMLImageElement | ImageBitmap,
+  ): boolean {
+    const originalDimensions = this.getSourceDimensions(imageSource)
+    if (!originalDimensions) {
+      return false
+    }
+
+    this.image = imageSource
+
+    const shouldUseTiles = this.shouldUseTiles(imageSource)
+    let usingTiles = false
+
+    if (shouldUseTiles) {
+      this.emitLoadingStateChange(true, LoadingState.TILE_LOADING)
+      usingTiles = this.createTiles(imageSource)
+    }
+
+    if (!usingTiles) {
+      this.emitLoadingStateChange(true, LoadingState.TEXTURE_LOADING)
+      const texture = this.createTexture(imageSource)
+      if (!texture) {
+        return false
+      }
+    } else {
+      this.updatePositionBuffer()
+    }
+
+    this.useTiles = usingTiles
+
+    if (this.config.centerOnInit) {
+      this.centerImage()
+    }
+
+    const finalWidth = this.image?.width ?? originalDimensions.width
+    const finalHeight = this.image?.height ?? originalDimensions.height
+    const widthRatio = finalWidth / originalDimensions.width
+    const heightRatio = finalHeight / originalDimensions.height
+    const minRatio = Math.min(widthRatio, heightRatio)
+
+    if (minRatio < 0.6) {
+      this.currentQuality = 'low'
+    } else if (minRatio < 0.9) {
+      this.currentQuality = 'medium'
+    } else {
+      this.currentQuality = 'high'
+    }
+
+    this.emitLoadingStateChange(false, LoadingState.COMPLETE, this.currentQuality)
+    this.render()
+
+    return true
+  }
+
+  private async decodeImageOnMainThread(src: string): Promise<HTMLImageElement> {
+    return await new Promise((resolve, reject) => {
+      const image = new Image()
+      image.crossOrigin = 'anonymous'
+      image.decoding = 'async'
+      image.onload = () => resolve(image)
+      image.onerror = () => {
+        reject(new Error('Failed to decode image on main thread'))
+      }
+      image.src = src
+    })
+  }
+
+  private async renderWithMainThreadFallback(reason: unknown): Promise<void> {
+    const src = this.lastRequestedSrc
+    if (!src) {
+      if (reason instanceof Error) {
+        throw reason
+      }
+      throw new Error('No image source available for fallback decode')
+    }
+
+    console.warn('Falling back to main-thread decode/render.', reason)
+    this.emitLoadingStateChange(true, LoadingState.IMAGE_LOADING)
+
+    const image = await this.decodeImageOnMainThread(src)
+    const rendered = this.applyDecodedImage(image)
+
+    if (!rendered) {
+      throw new Error('Main-thread decode succeeded but rendering still failed')
+    }
+  }
+
+  private resolvePendingImageLoad(): void {
+    const resolve = this.imageLoadingResolve
+    this.imageLoadingResolve = null
+    this.imageLoadingReject = null
+    resolve?.()
+  }
+
+  private rejectPendingImageLoad(error: unknown): void {
+    const reject = this.imageLoadingReject
+    this.imageLoadingResolve = null
+    this.imageLoadingReject = null
+
+    const normalizedError =
+      error instanceof Error
+        ? error
+        : new Error(typeof error === 'string' ? error : 'Unknown image load error')
+
     this.emitLoadingStateChange(false, LoadingState.ERROR)
-    if (this.imageLoadingReject) this.imageLoadingReject(error as Error)
+    reject?.(normalizedError)
   }
 
   private createBuffers(): void {
@@ -380,6 +467,7 @@ export class WebGLImageViewerEngine {
 
   public async loadImage(src: string): Promise<void> {
     console.log('Post load image:', src)
+    this.lastRequestedSrc = src
     this.emitLoadingStateChange(true, LoadingState.IMAGE_LOADING)
 
     return new Promise((resolve, reject) => {
@@ -395,11 +483,16 @@ export class WebGLImageViewerEngine {
             type: 'load',
             payload: { src: absolute.toString() },
           })
-        } catch {
-          this.worker.postMessage({ type: 'load', payload: { src } })
+        } catch (error) {
+          console.warn('Worker postMessage failed, using main-thread fallback.', error)
+          void this.renderWithMainThreadFallback(error)
+            .then(() => this.resolvePendingImageLoad())
+            .catch((fallbackError) => this.rejectPendingImageLoad(fallbackError))
         }
       } else {
-        reject(new Error('No worker available'))
+        void this.renderWithMainThreadFallback(new Error('No worker available'))
+          .then(() => this.resolvePendingImageLoad())
+          .catch((error) => this.rejectPendingImageLoad(error))
       }
     })
   }
