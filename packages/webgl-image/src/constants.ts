@@ -35,6 +35,14 @@ export const RENDER_CONFIG = {
   ANIMATION_THRESHOLD: 0.001,
   /** 最大纹理尺寸回退值 */
   MAX_TEXTURE_SIZE_FALLBACK: 4096,
+  /** 单张纹理上传的像素预算（约 64MB RGBA） */
+  MAX_TEXTURE_UPLOAD_PIXELS: 4096 * 4096,
+  /** 启用瓦片渲染时允许的总像素预算（约 128MB RGBA） */
+  MAX_TILE_TOTAL_PIXELS: 4096 * 4096 * 2,
+  /** 纹理上传失败时最大重试次数 */
+  TEXTURE_RETRY_LIMIT: 3,
+  /** 纹理上传失败时缩放重试系数 */
+  TEXTURE_RETRY_SCALE_FACTOR: 0.75,
 }
 
 export const EASING = {
