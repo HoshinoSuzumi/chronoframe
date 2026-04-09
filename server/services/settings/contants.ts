@@ -64,7 +64,7 @@ export const DEFAULT_SETTINGS = [
     isPublic: true,
   },
   {
-    namespace: 'app',
+    namespace: 'system',
     key: 'upload.maxFileSize',
     type: 'number',
     defaultValue: 256,

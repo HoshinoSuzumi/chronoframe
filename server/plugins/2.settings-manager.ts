@@ -1,5 +1,6 @@
 import { DEFAULT_SETTINGS } from '../services/settings/contants'
 import { settingsManager } from '../services/settings/settingsManager'
+import { and, eq, tables, useDB } from '../utils/db'
 
 export default defineNitroPlugin(async (_nitroApp) => {
   const _settingsManager = settingsManager
@@ -11,6 +12,9 @@ export default defineNitroPlugin(async (_nitroApp) => {
   try {
     // Initialize default settings first
     await _settingsManager.init(DEFAULT_SETTINGS)
+
+    // Clean up deprecated settings keys from pre-release iterations.
+    await removeDeprecatedSettings()
 
     // Migrate existing configurations from runtimeConfig
     // Note: Storage manager will be initialized in the next plugin (2_storage.ts)
@@ -125,6 +129,19 @@ async function migrateRuntimeConfigToSettings() {
   } catch (error) {
     _logger.error('Failed to migrate configurations:', error)
   }
+}
+
+async function removeDeprecatedSettings() {
+  const db = useDB()
+
+  db.delete(tables.settings)
+    .where(
+      and(
+        eq(tables.settings.namespace, 'app'),
+        eq(tables.settings.key, 'upload.maxFileSize'),
+      ),
+    )
+    .run()
 }
 
 /**

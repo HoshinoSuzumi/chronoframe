@@ -34,7 +34,7 @@ useHead({
 })
 
 const maxFileSizeMB = computed(() => {
-  const val = getSetting('app:upload.maxFileSize')
+  const val = getSetting('system:upload.maxFileSize')
   return typeof val === 'number' ? val : 256
 })
 
@@ -1015,7 +1015,13 @@ const columns: TableColumn<Photo>[] = [
 ]
 
 // 文件验证函数
-const validateFile = (file: File): { valid: boolean; error?: string } => {
+const validateFile = (
+  file: File,
+): {
+  valid: boolean
+  error?: string
+  reason?: 'unsupported-format' | 'file-too-large'
+} => {
   // 检查文件类型
   const allowedTypes = [
     'image/jpeg',
@@ -1034,6 +1040,7 @@ const validateFile = (file: File): { valid: boolean; error?: string } => {
   if (!isValidImageType && !isValidImageExtension && !isValidVideoExtension) {
     return {
       valid: false,
+      reason: 'unsupported-format',
       error: $t('dashboard.photos.errors.unsupportedFormat', {
         type: file.type,
       }),
@@ -1044,6 +1051,7 @@ const validateFile = (file: File): { valid: boolean; error?: string } => {
   if (file.size > maxSize) {
     return {
       valid: false,
+      reason: 'file-too-large',
       error: $t('dashboard.photos.errors.fileTooLarge', {
         size: (file.size / 1024 / 1024).toFixed(2),
         maxSize: maxFileSizeMB.value,
@@ -1062,6 +1070,8 @@ const handleUpload = async () => {
   }
 
   const errors: string[] = []
+  let tooLargeCount = 0
+  let unsupportedCount = 0
 
   // 先验证所有文件
   const validFiles: File[] = []
@@ -1071,6 +1081,11 @@ const handleUpload = async () => {
     const validation = validateFile(file)
     if (!validation.valid) {
       errors.push(`${file.name}: ${validation.error}`)
+      if (validation.reason === 'file-too-large') {
+        tooLargeCount += 1
+      } else if (validation.reason === 'unsupported-format') {
+        unsupportedCount += 1
+      }
     } else {
       validFiles.push(file)
       // 为每个有效文件生成唯一ID
@@ -1080,13 +1095,43 @@ const handleUpload = async () => {
   }
 
   if (validFiles.length === 0) {
-    toast.add({
-      title: $t('dashboard.photos.messages.error'),
-      description: $t('dashboard.photos.errors.allFilesValidationFailed'),
-      color: 'error',
-    })
-    selectedFiles.value = []
+    if (tooLargeCount > 0 && unsupportedCount === 0) {
+      toast.add({
+        title: $t('upload.error.tooLarge.title'),
+        description: $t('dashboard.photos.errors.allFilesTooLarge', {
+          count: tooLargeCount,
+          maxSize: maxFileSizeMB.value,
+        }),
+        color: 'error',
+      })
+    } else {
+      toast.add({
+        title: $t('dashboard.photos.messages.error'),
+        description: $t('dashboard.photos.errors.allFilesValidationFailed'),
+        color: 'error',
+      })
+    }
+
     return
+  }
+
+  if (tooLargeCount > 0) {
+    toast.add({
+      title: $t('upload.error.tooLarge.title'),
+      description: $t('dashboard.photos.errors.filesTooLargeSkipped', {
+        count: tooLargeCount,
+        maxSize: maxFileSizeMB.value,
+      }),
+      color: 'warning',
+    })
+  } else if (unsupportedCount > 0) {
+    toast.add({
+      title: $t('dashboard.photos.errors.fileValidationFailed'),
+      description: $t('dashboard.photos.errors.filesUnsupportedSkipped', {
+        count: unsupportedCount,
+      }),
+      color: 'warning',
+    })
   }
 
   // 立即为所有有效文件创建队列条目，状态为 waiting

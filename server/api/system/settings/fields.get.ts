@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import { settingsManager } from '~~/server/services/settings/settingsManager'
+import { DEFAULT_SETTINGS } from '~~/server/services/settings/contants'
 import { getSettingUIConfig } from '~~/server/services/settings/ui-config'
 import type { SettingsFieldsResponse } from '~~/shared/types/settings'
 
@@ -32,8 +33,13 @@ export default eventHandler(async (event) => {
   try {
     // 获取该命名空间的所有设置
     const schema = await settingsManager.getSchema()
+    const allowedKeys = new Set(
+      DEFAULT_SETTINGS
+        .filter((s) => s.namespace === query.namespace)
+        .map((s) => s.key),
+    )
     const namespaceSettings = schema.filter(
-      (s) => s.namespace === query.namespace,
+      (s) => s.namespace === query.namespace && allowedKeys.has(s.key),
     )
 
     if (namespaceSettings.length === 0) {

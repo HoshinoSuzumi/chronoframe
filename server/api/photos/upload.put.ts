@@ -66,7 +66,7 @@ export default eventHandler(async (event) => {
 
   // 简单大小限制（从设置中读取，默认 256MB）
   const maxFileSizeMB =
-    (await settingsManager.get<number>('app', 'upload.maxFileSize')) ?? 256
+    (await settingsManager.get<number>('system', 'upload.maxFileSize')) ?? 256
   const maxBytes = maxFileSizeMB * 1024 * 1024
   if (raw.byteLength > maxBytes) {
     const sizeInMB = (raw.byteLength / 1024 / 1024).toFixed(2)

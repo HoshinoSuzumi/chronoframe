@@ -29,12 +29,6 @@ export const APP_SETTINGS_UI: Record<string, FieldUIConfig> = {
     placeholder: 'https://example.com/avatar.jpg',
     help: 'settings.app.avatarUrl.help',
   },
-  'upload.maxFileSize': {
-    type: 'number',
-    help: 'settings.app.upload.maxFileSize.help',
-    min: 1,
-    max: 10240,
-  },
   'appearance.theme': {
     type: 'tabs',
     options: [
@@ -109,6 +103,15 @@ export const PRIVACY_SETTINGS_UI: Record<string, FieldUIConfig> = {
   'upload.autoEraseLocation': {
     type: 'toggle',
     help: 'settings.privacy.upload.autoEraseLocation.help',
+  },
+}
+
+export const SYSTEM_SETTINGS_UI: Record<string, FieldUIConfig> = {
+  'upload.maxFileSize': {
+    type: 'number',
+    help: 'settings.app.upload.maxFileSize.help',
+    min: 1,
+    max: 10240,
   },
 }
 
@@ -283,6 +286,7 @@ export function getSettingUIConfig(
 ): FieldUIConfig | undefined {
   const uiConfigMap: Record<string, Record<string, FieldUIConfig>> = {
     app: APP_SETTINGS_UI,
+    system: SYSTEM_SETTINGS_UI,
     privacy: PRIVACY_SETTINGS_UI,
     map: MAP_SETTINGS_UI,
     location: LOCATION_SETTINGS_UI,
