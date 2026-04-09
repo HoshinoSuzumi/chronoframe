@@ -48,8 +48,6 @@ Whether using Docker or Docker Compose (.env) deployment, configuration is done 
 | NUXT_PUBLIC_ANALYTICS_MATOMO_SITE_ID     | Matomo site ID                                                  | None                                  | No (required when Matomo is enabled)                 |
 | NUXT_UPLOAD_MIME_WHITELIST_ENABLED       | Enable MIME type whitelist validation for uploads               | `true`                                | No                                                   |
 | NUXT_UPLOAD_MIME_WHITELIST               | Allowed MIME types for uploads (comma-separated)                | See below                             | No                                                   |
-| NUXT_UPLOAD_DUPLICATE_CHECK_ENABLED      | Enable duplicate file detection during upload                   | `true`                                | No                                                   |
-| NUXT_UPLOAD_DUPLICATE_CHECK_MODE         | Duplicate handling mode, options: `warn`, `block`, `skip`       | `skip`                                | No                                                   |
 | ALLOW_INSECURE_COOKIE                    | Allow insecure cookies (only for development environment)       | `false`                               | No                                                   |
 
 ## Upload File Type Whitelist
@@ -78,52 +76,3 @@ To disable whitelist validation (allow any file type), set:
 ```
 NUXT_UPLOAD_MIME_WHITELIST_ENABLED=false
 ```
-
-## Duplicate File Detection
-
-`NUXT_UPLOAD_DUPLICATE_CHECK_ENABLED` controls whether to detect duplicate files during upload.
-
-`NUXT_UPLOAD_DUPLICATE_CHECK_MODE` has three modes:
-
-### skip (Skip Mode) - Default
-
-- Skips upload when duplicate file is detected
-- Returns existing photo info without any operations
-- Suitable for automatic deduplication during batch uploads
-
-```
-NUXT_UPLOAD_DUPLICATE_CHECK_MODE=skip
-```
-
-### warn (Warning Mode)
-
-- Shows warning when duplicate file is detected
-- Continues upload, will overwrite existing photo data
-- Suitable for scenarios where photo updates are needed
-
-```
-NUXT_UPLOAD_DUPLICATE_CHECK_MODE=warn
-```
-
-### block (Block Mode)
-
-- Rejects upload if duplicate file is detected
-- Returns 409 error, doesn't allow overwriting
-- Suitable for scenarios requiring strict duplicate prevention
-
-```
-NUXT_UPLOAD_DUPLICATE_CHECK_MODE=block
-```
-
-### Completely Disable Detection
-
-```
-NUXT_UPLOAD_DUPLICATE_CHECK_ENABLED=false
-```
-
-**Notes**:
-
-- Duplicate detection is based on filename, not file content
-- Same filename generates same photoId
-- Even with detection disabled, uploading same filename will still overwrite existing data (database uses `onConflictDoUpdate`)
-- Recommend using unique filenames (e.g., adding timestamps) to avoid conflicts
