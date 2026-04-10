@@ -44,7 +44,24 @@ const isSubmittingForm = ref(false)
 
 const selectedPhotoIds = ref<string[]>([])
 const coverPhotoId = ref('')
-const photoSelectorSearchQuery = ref('')
+
+const draftSelectedPhotoIds = ref<string[]>([])
+const draftCoverPhotoId = ref('')
+const {
+  filteredPhotos: unifiedFilteredPhotos,
+  selectedCounts,
+  hasActiveFilters,
+  clearAllFilters,
+} = usePhotoFilters()
+
+const isSelectorFilterOpen = ref(false)
+
+const totalSelectedFilters = computed(() => {
+  return Object.values(selectedCounts.value).reduce(
+    (total, count) => total + count,
+    0,
+  )
+})
 
 const validateForm = (state: any): FormError[] => {
   const errors: FormError[] = []
@@ -226,43 +243,114 @@ const togglePhotoSelection = (photoId: string) => {
   }
 }
 
-const setCoverPhoto = (photoId: string) => {
-  if (!selectedPhotoIds.value.includes(photoId)) {
-    selectedPhotoIds.value.push(photoId)
-  }
-  coverPhotoId.value = photoId
+const openPhotoSelector = () => {
+  draftSelectedPhotoIds.value = [...selectedPhotoIds.value]
+  draftCoverPhotoId.value =
+    coverPhotoId.value && selectedPhotoIds.value.includes(coverPhotoId.value)
+      ? coverPhotoId.value
+      : ''
+  isSelectorFilterOpen.value = false
+  isPhotoSelectorOpen.value = true
 }
 
-const areAllPhotosSelected = computed(() => {
+const closePhotoSelector = () => {
+  isSelectorFilterOpen.value = false
+  isPhotoSelectorOpen.value = false
+}
+
+const confirmPhotoSelection = () => {
+  selectedPhotoIds.value = [...draftSelectedPhotoIds.value]
+  coverPhotoId.value = draftSelectedPhotoIds.value.includes(
+    draftCoverPhotoId.value,
+  )
+    ? draftCoverPhotoId.value
+    : ''
+  isPhotoSelectorOpen.value = false
+}
+
+const toggleDraftPhotoSelection = (photoId: string) => {
+  const index = draftSelectedPhotoIds.value.indexOf(photoId)
+  if (index > -1) {
+    draftSelectedPhotoIds.value.splice(index, 1)
+    if (draftCoverPhotoId.value === photoId) {
+      draftCoverPhotoId.value = ''
+    }
+    return
+  }
+
+  draftSelectedPhotoIds.value.push(photoId)
+}
+
+const setDraftCoverPhoto = (photoId: string) => {
+  if (!draftSelectedPhotoIds.value.includes(photoId)) {
+    draftSelectedPhotoIds.value.push(photoId)
+  }
+  draftCoverPhotoId.value = photoId
+}
+
+const getDraftPhotoOrder = (photoId: string) => {
+  const index = draftSelectedPhotoIds.value.indexOf(photoId)
+  return index >= 0 ? index + 1 : null
+}
+
+const areAllFilteredPhotosSelected = computed(() => {
   return (
-    allPhotos.value.length > 0 &&
-    selectedPhotoIds.value.length === allPhotos.value.length
+    selectorFilteredPhotos.value.length > 0 &&
+    selectorFilteredPhotos.value.every((photo) =>
+      draftSelectedPhotoIds.value.includes(photo.id),
+    )
   )
 })
 
-const areSomePhotosSelected = computed(() => {
+const areSomeFilteredPhotosSelected = computed(() => {
+  const selectedInFiltered = selectorFilteredPhotos.value.filter((photo) =>
+    draftSelectedPhotoIds.value.includes(photo.id),
+  ).length
   return (
-    selectedPhotoIds.value.length > 0 &&
-    selectedPhotoIds.value.length < allPhotos.value.length
+    selectedInFiltered > 0 &&
+    selectedInFiltered < selectorFilteredPhotos.value.length
   )
 })
 
-const toggleAllPhotos = () => {
-  if (areAllPhotosSelected.value) {
-    selectedPhotoIds.value = []
-  } else {
-    selectedPhotoIds.value = allPhotos.value.map((p) => p.id)
+const toggleAllFilteredPhotos = () => {
+  if (areAllFilteredPhotosSelected.value) {
+    draftSelectedPhotoIds.value = draftSelectedPhotoIds.value.filter(
+      (id) => !selectorFilteredPhotos.value.some((photo) => photo.id === id),
+    )
+    if (
+      draftCoverPhotoId.value &&
+      !draftSelectedPhotoIds.value.includes(draftCoverPhotoId.value)
+    ) {
+      draftCoverPhotoId.value = ''
+    }
+    return
   }
+
+  const merged = new Set(draftSelectedPhotoIds.value)
+  for (const photo of selectorFilteredPhotos.value) {
+    merged.add(photo.id)
+  }
+  draftSelectedPhotoIds.value = [...merged]
 }
 
-const filteredPhotos = computed(() => {
-  const query = photoSelectorSearchQuery.value.toLowerCase()
-  if (!query) return allPhotos.value
+const selectorFilteredPhotos = computed(() => {
+  if (allPhotos.value.length === 0) return []
 
-  return allPhotos.value.filter(
-    (photo) =>
-      (photo.title?.toLowerCase() || '').includes(query) ||
-      (photo.description?.toLowerCase() || '').includes(query),
+  const ids = new Set(allPhotos.value.map((photo) => photo.id))
+  return unifiedFilteredPhotos.value.filter((photo) => ids.has(photo.id))
+})
+
+const selectedPhotosPreview = computed(() => {
+  return draftSelectedPhotoIds.value
+    .map((id) => allPhotos.value.find((photo) => photo.id === id))
+    .filter((photo): photo is Photo => Boolean(photo))
+    .slice(0, 8)
+})
+
+const selectedPhotosOverflowCount = computed(() => {
+  return Math.max(
+    draftSelectedPhotoIds.value.length - selectedPhotosPreview.value.length,
+    0,
   )
 })
 
@@ -513,7 +601,7 @@ const columns: any[] = [
             <button
               v-else
               class="w-full h-48 bg-gray-100 dark:bg-neutral-800 flex flex-col items-center justify-center text-gray-500 hover:text-gray-600 dark:hover:text-gray-400 hover:bg-gray-200 dark:hover:bg-neutral-700 transition-colors cursor-pointer"
-              @click="isPhotoSelectorOpen = true"
+              @click="openPhotoSelector"
             >
               <Icon
                 name="tabler:photo"
@@ -578,7 +666,7 @@ const columns: any[] = [
                   icon="tabler:photo-plus"
                   size="lg"
                   class="w-full"
-                  @click="isPhotoSelectorOpen = true"
+                  @click="openPhotoSelector"
                 >
                   {{
                     selectedPhotoIds.length > 0
@@ -671,183 +759,328 @@ const columns: any[] = [
 
         <UModal
           v-model:open="isPhotoSelectorOpen"
-          :ui="{ content: 'w-full max-w-6xl overflow-hidden' }"
+          portal
+          scrollable
+          :ui="{
+            wrapper: 'z-220',
+            overlay: 'z-220',
+            content: 'z-221 w-full max-w-6xl overflow-hidden',
+          }"
         >
           <template #content>
-            <div class="flex flex-col h-[85vh] max-h-[85vh]">
+            <div class="flex h-[88vh] max-h-[88vh] flex-col">
               <div
-                class="shrink-0 border-b border-gray-200 dark:border-neutral-700 p-3 sm:p-4 md:p-6"
+                class="shrink-0 border-b border-gray-200 bg-white/80 p-4 backdrop-blur-sm dark:border-neutral-700 dark:bg-neutral-900/80 sm:p-5"
               >
-                <div class="flex items-center justify-between mb-3 sm:mb-4">
+                <div class="flex items-center justify-between gap-2">
                   <div>
-                    <h2 class="text-lg sm:text-xl font-bold">
+                    <h2 class="text-lg font-semibold sm:text-xl">
                       {{ $t('dashboard.albums.modal.selectPhotos') }}
                     </h2>
-                    <p
-                      class="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-1"
-                    >
-                      {{
-                        $t('dashboard.albums.modal.totalPhotos', {
-                          count: allPhotos.length,
-                        })
-                      }}
-                      ·
-                      {{
-                        $t('dashboard.albums.modal.selectedPhotos', {
-                          count: selectedPhotoIds.length,
-                        })
-                      }}
-                    </p>
                   </div>
                   <UButton
-                    variant="ghost"
-                    color="neutral"
-                    size="md"
                     icon="tabler:x"
-                    @click="isPhotoSelectorOpen = false"
-                  />
-                </div>
-
-                <div
-                  class="flex flex-col sm:flex-row gap-2 items-stretch sm:items-center"
-                >
-                  <UInput
-                    v-model="photoSelectorSearchQuery"
-                    icon="tabler:search"
-                    :placeholder="
-                      $t('dashboard.albums.modal.searchPlaceholder')
-                    "
-                    class="flex-1 text-sm"
-                  />
-                  <div
-                    class="hidden sm:flex items-center gap-2 px-3 py-2 bg-gray-100 dark:bg-neutral-800 rounded-lg whitespace-nowrap"
-                  >
-                    <UCheckbox
-                      :model-value="areAllPhotosSelected"
-                      :indeterminate="areSomePhotosSelected"
-                      @update:model-value="toggleAllPhotos"
-                    />
-                    <span class="text-sm font-medium">{{
-                      $t('dashboard.albums.modal.selectAll')
-                    }}</span>
-                  </div>
-                  <UButton
-                    v-show="!areAllPhotosSelected && allPhotos.length > 0"
-                    class="sm:hidden"
-                    size="sm"
                     color="neutral"
-                    variant="soft"
-                    @click="toggleAllPhotos"
-                  >
-                    {{ $t('dashboard.albums.modal.selectAll') }}
-                  </UButton>
+                    variant="ghost"
+                    @click="closePhotoSelector"
+                  />
                 </div>
 
-                <div
-                  v-if="photoSelectorSearchQuery"
-                  class="text-xs text-gray-500 dark:text-gray-400 mt-2"
-                >
-                  {{
-                    $t('dashboard.albums.modal.searchResults', {
-                      current: filteredPhotos.length,
-                      total: allPhotos.length,
-                    })
-                  }}
+                <div class="mt-4 space-y-3">
+                  <div class="flex flex-wrap items-center gap-2">
+                    <UPopover
+                      v-model:open="isSelectorFilterOpen"
+                      :content="{
+                        side: 'bottom',
+                        align: 'start',
+                        sideOffset: 8,
+                      }"
+                      :ui="{ content: 'z-230' }"
+                    >
+                      <UButton
+                        icon="tabler:filter"
+                        :color="hasActiveFilters ? 'info' : 'neutral'"
+                        :variant="hasActiveFilters ? 'soft' : 'outline'"
+                        size="sm"
+                      >
+                        {{ $t('ui.action.filter.title') }}
+                        <UBadge
+                          v-if="totalSelectedFilters > 0"
+                          size="xs"
+                          color="info"
+                          variant="solid"
+                          class="ml-1"
+                        >
+                          {{ totalSelectedFilters }}
+                        </UBadge>
+                      </UButton>
+
+                      <template #content>
+                        <UCard variant="glassmorphism">
+                          <OverlayFilterPanel />
+                        </UCard>
+                      </template>
+                    </UPopover>
+
+                    <UButton
+                      v-if="hasActiveFilters"
+                      icon="tabler:filter-x"
+                      color="neutral"
+                      variant="ghost"
+                      size="sm"
+                      @click="clearAllFilters()"
+                    >
+                      {{ $t('ui.action.filter.clearAll') }}
+                    </UButton>
+
+                    <UButton
+                      color="neutral"
+                      variant="soft"
+                      size="sm"
+                      class="justify-center"
+                      :icon="
+                        areAllFilteredPhotosSelected
+                          ? 'tabler:checkbox'
+                          : areSomeFilteredPhotosSelected
+                            ? 'tabler:minus'
+                            : 'tabler:square'
+                      "
+                      @click="toggleAllFilteredPhotos"
+                    >
+                      {{ $t('dashboard.albums.modal.selectAll') }}
+                    </UButton>
+
+                    <div class="ml-auto flex flex-wrap items-center gap-1.5">
+                      <UBadge
+                        color="primary"
+                        variant="soft"
+                      >
+                        {{
+                          $t('dashboard.albums.modal.selectedPhotos', {
+                            count: draftSelectedPhotoIds.length,
+                          })
+                        }}
+                      </UBadge>
+                      <UBadge
+                        v-if="draftCoverPhotoId"
+                        color="warning"
+                        variant="soft"
+                        icon="tabler:star-filled"
+                      >
+                        {{ $t('dashboard.albums.modal.coverSetInfo') }}
+                      </UBadge>
+                    </div>
+                  </div>
+
+                  <div class="flex flex-wrap gap-1">
+                    <UBadge
+                      v-if="selectedCounts.tags"
+                      size="xs"
+                      color="neutral"
+                      variant="outline"
+                    >
+                      {{ $t('ui.action.filter.tabs.tags') }}:
+                      {{ selectedCounts.tags }}
+                    </UBadge>
+                    <UBadge
+                      v-if="selectedCounts.cameras"
+                      size="xs"
+                      color="neutral"
+                      variant="outline"
+                    >
+                      {{ $t('ui.action.filter.tabs.cameras') }}:
+                      {{ selectedCounts.cameras }}
+                    </UBadge>
+                    <UBadge
+                      v-if="selectedCounts.lenses"
+                      size="xs"
+                      color="neutral"
+                      variant="outline"
+                    >
+                      {{ $t('ui.action.filter.tabs.lenses') }}:
+                      {{ selectedCounts.lenses }}
+                    </UBadge>
+                    <UBadge
+                      v-if="selectedCounts.cities"
+                      size="xs"
+                      color="neutral"
+                      variant="outline"
+                    >
+                      {{ $t('ui.action.filter.tabs.cities') }}:
+                      {{ selectedCounts.cities }}
+                    </UBadge>
+                    <UBadge
+                      v-if="selectedCounts.ratings"
+                      size="xs"
+                      color="neutral"
+                      variant="outline"
+                    >
+                      {{ $t('ui.action.filter.tabs.ratings') }}
+                    </UBadge>
+                  </div>
+
+                  <UCard
+                    variant="subtle"
+                    :ui="{
+                      body: 'p-2 sm:p-2',
+                    }"
+                  >
+                    <div>
+                      <div
+                        v-if="selectedPhotosPreview.length > 0"
+                        class="flex h-full items-center gap-2 overflow-x-auto"
+                      >
+                        <button
+                          v-for="photo in selectedPhotosPreview"
+                          :key="photo.id"
+                          class="relative h-12 w-12 shrink-0 overflow-hidden rounded-md border-2 transition"
+                          :class="
+                            draftCoverPhotoId === photo.id
+                              ? 'border-warning-500'
+                              : 'border-transparent hover:border-gray-300 dark:hover:border-neutral-500'
+                          "
+                          @click="setDraftCoverPhoto(photo.id)"
+                        >
+                          <ThumbImage
+                            :src="photo.thumbnailUrl || ''"
+                            :alt="photo.title || 'Photo'"
+                            class="h-full w-full object-cover"
+                          />
+                          <div
+                            v-if="draftCoverPhotoId === photo.id"
+                            class="absolute inset-x-0 bottom-0 flex items-center justify-center bg-warning-500/90 py-0.5"
+                          >
+                            <Icon
+                              name="tabler:star-filled"
+                              size="12"
+                              class="text-white"
+                            />
+                          </div>
+                        </button>
+
+                        <UBadge
+                          v-if="selectedPhotosOverflowCount > 0"
+                          variant="soft"
+                          color="neutral"
+                          class="shrink-0"
+                        >
+                          +{{ selectedPhotosOverflowCount }}
+                        </UBadge>
+                      </div>
+                      <div
+                        v-else
+                        class="flex h-full items-center"
+                      >
+                        <div
+                          class="flex h-12 w-full items-center gap-2 rounded-md border border-dashed border-gray-300 bg-gray-50/80 px-3 text-xs text-gray-600 dark:border-neutral-700 dark:bg-neutral-800/60 dark:text-gray-300"
+                        >
+                          <Icon
+                            name="tabler:photo-plus"
+                            size="14"
+                            class="shrink-0 text-gray-500 dark:text-gray-400"
+                          />
+                          <span class="truncate">
+                            {{ $t('dashboard.albums.form.selectPhotos') }}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </UCard>
                 </div>
               </div>
 
-              <div class="flex-1 overflow-y-auto p-2 sm:p-3 md:p-6">
+              <div class="flex-1 overflow-y-auto p-3 sm:p-5">
                 <div
-                  v-if="filteredPhotos.length > 0"
-                  class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2 sm:gap-3"
+                  v-if="selectorFilteredPhotos.length > 0"
+                  class="grid grid-cols-3 gap-1.5 sm:grid-cols-4 sm:gap-2 lg:grid-cols-5 xl:grid-cols-6"
                 >
-                  <div
-                    v-for="photo in filteredPhotos"
+                  <button
+                    v-for="photo in selectorFilteredPhotos"
                     :key="photo.id"
-                    class="relative group cursor-pointer"
-                    @click="togglePhotoSelection(photo.id)"
+                    class="group text-left rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-400/60"
+                    @click="toggleDraftPhotoSelection(photo.id)"
                   >
                     <div
-                      class="relative aspect-square rounded-lg overflow-hidden bg-gray-200 dark:bg-neutral-700 border-2 sm:border-3 transition-all"
+                      class="relative aspect-square overflow-hidden rounded-lg border bg-gray-200/90 transition-all duration-200 dark:bg-neutral-700/80"
                       :class="{
-                        'border-primary-500 shadow-lg ring-2 ring-primary-300 dark:ring-primary-700':
-                          selectedPhotoIds.includes(photo.id),
-                        'border-gray-300 dark:border-neutral-600 hover:border-gray-400 dark:hover:border-neutral-500':
-                          !selectedPhotoIds.includes(photo.id),
+                        'border-primary-400 ring-1 ring-primary-300/60 dark:ring-primary-700/50':
+                          draftSelectedPhotoIds.includes(photo.id),
+                        'border-gray-200/70 hover:border-gray-300/90 dark:border-neutral-700 dark:hover:border-neutral-500':
+                          !draftSelectedPhotoIds.includes(photo.id),
                       }"
                     >
                       <ThumbImage
                         :src="photo.thumbnailUrl || ''"
                         :alt="photo.title || 'Photo'"
-                        class="w-full h-full object-cover"
+                        class="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
                       />
 
                       <div
-                        v-if="selectedPhotoIds.includes(photo.id)"
-                        class="absolute top-1 left-1 sm:top-2 sm:left-2 flex items-center justify-center w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-primary-500 border-2 border-white shadow-md"
+                        class="absolute inset-x-0 bottom-0 h-10 bg-linear-to-t from-black/55 via-black/10 to-transparent"
+                      />
+
+                      <div
+                        class="absolute inset-x-2 bottom-1.5 flex items-end justify-between gap-2"
                       >
+                        <div class="min-w-0">
+                          <p
+                            class="truncate text-[10px] font-medium text-white/92"
+                          >
+                            {{ photo.title || photo.storageKey || 'Untitled' }}
+                          </p>
+                          <p class="truncate text-[9px] text-white/72">
+                            {{
+                              photo.city
+                                ? `${photo.city} · ${dayjs(photo.createdAt).format('MM-DD')}`
+                                : dayjs(photo.createdAt).format('YYYY-MM-DD')
+                            }}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div
+                        v-if="draftSelectedPhotoIds.includes(photo.id)"
+                        class="absolute left-1.5 top-1.5 flex h-5 min-w-5 items-center justify-center rounded-full border border-white/85 bg-primary-500 px-1 text-white shadow-sm"
+                      >
+                        <span
+                          v-if="getDraftPhotoOrder(photo.id)"
+                          class="text-[10px] font-semibold"
+                        >
+                          {{ getDraftPhotoOrder(photo.id) }}
+                        </span>
                         <Icon
-                          name="tabler:check"
-                          size="12"
-                          class="text-white sm:hidden"
-                        />
-                        <Icon
+                          v-else
                           name="tabler:check"
                           size="14"
-                          class="text-white hidden sm:block"
                         />
                       </div>
 
-                      <UBadge
-                        v-if="coverPhotoId === photo.id"
-                        class="absolute top-1 right-1 sm:top-2 sm:right-2"
-                        variant="solid"
+                      <UButton
+                        v-if="draftCoverPhotoId !== photo.id"
+                        size="xs"
                         color="warning"
-                        size="sm"
+                        variant="solid"
+                        icon="tabler:star"
+                        class="absolute right-1.5 top-1.5 opacity-100 transition sm:opacity-0 sm:group-hover:opacity-100"
+                        @click.stop="setDraftCoverPhoto(photo.id)"
+                      />
+
+                      <UBadge
+                        v-else
+                        color="warning"
+                        variant="solid"
+                        icon="tabler:star-filled"
+                        class="absolute right-1.5 top-1.5"
                       >
-                        <Icon
-                          name="tabler:star-filled"
-                          class="inline mr-0.5"
-                          size="14"
-                        />
                         {{ $t('dashboard.albums.modal.setCover') }}
                       </UBadge>
-                      <UButton
-                        v-if="coverPhotoId !== photo.id"
-                        class="absolute bottom-1 right-1 sm:bottom-2 sm:right-2 opacity-0 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity"
-                        variant="solid"
-                        color="warning"
-                        size="xs"
-                        @click.stop="setCoverPhoto(photo.id)"
-                      >
-                        <Icon
-                          name="tabler:star"
-                          class="inline"
-                          size="12"
-                        />
-                        <span class="hidden sm:inline ml-1">{{
-                          $t('dashboard.albums.modal.setCover')
-                        }}</span>
-                      </UButton>
-
-                      <button
-                        v-if="coverPhotoId !== photo.id"
-                        class="sm:hidden absolute bottom-0 right-0 left-0 bg-linear-to-t from-black/80 to-transparent p-1 text-white flex items-center justify-center text-xs gap-1 rounded-b-lg"
-                        @click.stop="setCoverPhoto(photo.id)"
-                      >
-                        <Icon
-                          name="tabler:star"
-                          size="14"
-                        />
-                        <span>{{ $t('dashboard.albums.modal.setCover') }}</span>
-                      </button>
                     </div>
-                  </div>
+                  </button>
                 </div>
 
                 <div
                   v-else
-                  class="flex flex-col items-center justify-center h-64 text-gray-500"
+                  class="flex h-64 flex-col items-center justify-center text-gray-500"
                 >
                   <Icon
                     name="tabler:image-off"
@@ -856,14 +1089,14 @@ const columns: any[] = [
                   />
                   <p class="font-medium">
                     {{
-                      photoSelectorSearchQuery
+                      hasActiveFilters
                         ? $t('dashboard.albums.modal.noResults')
                         : $t('dashboard.albums.modal.noPhotos')
                     }}
                   </p>
                   <p
-                    v-if="photoSelectorSearchQuery"
-                    class="text-sm mt-1"
+                    v-if="hasActiveFilters"
+                    class="mt-1 text-sm"
                   >
                     {{ $t('dashboard.albums.modal.tryOtherKeywords') }}
                   </p>
@@ -871,64 +1104,31 @@ const columns: any[] = [
               </div>
 
               <div
-                class="shrink-0 border-t border-gray-200 dark:border-neutral-700 bg-gray-50 dark:bg-neutral-900/50 p-3 sm:p-4 md:p-6"
+                class="shrink-0 border-t border-gray-200 bg-white p-3 dark:border-neutral-700 dark:bg-neutral-900 sm:p-4"
               >
                 <div
-                  class="flex flex-col sm:flex-row gap-3 sm:gap-4 items-center justify-between"
+                  class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end"
                 >
-                  <div
-                    class="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4 text-xs sm:text-sm w-full sm:w-auto"
+                  <UButton
+                    variant="outline"
+                    color="neutral"
+                    class="w-full sm:w-auto"
+                    @click="closePhotoSelector"
                   >
-                    <div>
-                      <span class="font-medium">{{
-                        $t('dashboard.albums.modal.selectedInfo')
-                      }}</span>
-                      <span
-                        class="text-primary-600 dark:text-primary-400 font-bold"
-                      >
-                        {{ selectedPhotoIds.length }}
-                      </span>
-                      <span class="text-gray-600 dark:text-gray-400"
-                        >/ {{ allPhotos.length }}</span
-                      >
-                    </div>
-                    <div
-                      v-if="coverPhotoId"
-                      class="text-amber-600 dark:text-amber-400 flex items-center gap-1"
-                    >
-                      <Icon
-                        name="tabler:star-filled"
-                        size="16"
-                      />
-                      {{ $t('dashboard.albums.modal.coverSetInfo') }}
-                    </div>
-                  </div>
-
-                  <div class="flex gap-2 w-full sm:w-auto">
-                    <UButton
-                      variant="outline"
-                      color="neutral"
-                      class="flex-1 sm:flex-none"
-                      size="sm"
-                      @click="isPhotoSelectorOpen = false"
-                    >
-                      {{ $t('dashboard.albums.slideover.cancel') }}
-                    </UButton>
-                    <UButton
-                      icon="tabler:check"
-                      color="primary"
-                      class="flex-1 sm:flex-none"
-                      size="sm"
-                      :disabled="selectedPhotoIds.length === 0"
-                      @click="isPhotoSelectorOpen = false"
-                    >
-                      {{
-                        $t('dashboard.albums.modal.confirm', {
-                          count: selectedPhotoIds.length,
-                        })
-                      }}
-                    </UButton>
-                  </div>
+                    {{ $t('dashboard.albums.slideover.cancel') }}
+                  </UButton>
+                  <UButton
+                    icon="tabler:check"
+                    color="primary"
+                    class="w-full sm:w-auto"
+                    @click="confirmPhotoSelection"
+                  >
+                    {{
+                      $t('dashboard.albums.modal.confirm', {
+                        count: draftSelectedPhotoIds.length,
+                      })
+                    }}
+                  </UButton>
                 </div>
               </div>
             </div>
