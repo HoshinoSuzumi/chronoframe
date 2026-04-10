@@ -176,6 +176,25 @@ export default defineNuxtConfig({
     },
     build: {
       sourcemap: false,
+      rollupOptions: {
+        output: {
+          manualChunks(id) {
+            if (!id.includes('node_modules')) {
+              return
+            }
+
+            if (
+              id.includes('/mapbox-gl/') ||
+              id.includes('/maplibre-gl/') ||
+              id.includes('/@indoorequal/vue-maplibre-gl/') ||
+              id.includes('/nuxt-mapbox/') ||
+              id.includes('/nuxt-maplibre/')
+            ) {
+              return 'vendor-map'
+            }
+          },
+        },
+      },
       commonjsOptions: {
         include: [/maplibre-gl/, /node_modules/],
         transformMixedEsModules: true,
