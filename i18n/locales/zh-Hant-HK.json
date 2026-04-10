@@ -542,6 +542,8 @@
         "uploadSuccess": "相片上傳成功，處理中...",
         "uploadMultipleSuccess": "{count} 張相片上傳成功，處理中...",
         "reprocessSuccess": "重新處理任務已新增",
+        "batchReprocessSuccess": "已成功提交 {count} 張相片至重新處理佇列",
+        "batchReprocessing": "正在提交重新處理任務...",
         "reprocessTaskId": "任務 ID：{taskId}",
         "deleteSuccess": "相片已成功刪除",
         "batchDeleteSuccess": "成功刪除 {count} 張相片",

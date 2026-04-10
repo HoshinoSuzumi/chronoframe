@@ -542,6 +542,8 @@
         "uploadSuccess": "写真が正常にアップロードされました。処理中です...",
         "uploadMultipleSuccess": "{count}枚の写真が正常にアップロードされました。処理中です...",
         "reprocessSuccess": "再処理タスクが追加されました",
+        "batchReprocessSuccess": "{count}枚の写真の再処理タスクをキューに正常に送信しました",
+        "batchReprocessing": "再処理タスクを送信しています...",
         "reprocessTaskId": "タスク ID：{taskId}",
         "deleteSuccess": "写真が正常に削除されました",
         "batchDeleteSuccess": "{count}枚の写真を正常に削除しました",

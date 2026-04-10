@@ -330,8 +330,7 @@ const uploadImage = async (
     }
 
     if (signedUrlResponse.warningInfo) {
-      uploadingFile.error =
-        undefined
+      uploadingFile.error = undefined
       uploadingFile.warning =
         signedUrlResponse.warningInfo.warning ||
         signedUrlResponse.warningInfo.message
@@ -451,8 +450,7 @@ const uploadImage = async (
     if (isDuplicateConflict) {
       uploadingFile.status = 'blocked'
       uploadingFile.error =
-        error.data.message ||
-        $t('upload.duplicate.block.message', { fileName })
+        error.data.message || $t('upload.duplicate.block.message', { fileName })
 
       toast.add({
         title: error.data?.title || $t('upload.duplicate.block.title'),
@@ -1793,7 +1791,7 @@ const handleBatchReprocess = async () => {
 
   try {
     const reprocessToast = toast.add({
-      title: $t('dashboard.photos.messages.batchSelectRequired'),
+      title: $t('dashboard.photos.messages.batchReprocessing'),
       description: '',
       color: 'info',
     })
@@ -1815,7 +1813,7 @@ const handleBatchReprocess = async () => {
     if (result.success) {
       toast.update(reprocessToast.id, {
         title: $t('dashboard.photos.messages.reprocessSuccess'),
-        description: $t('dashboard.queue.title', {
+        description: $t('dashboard.photos.messages.batchReprocessSuccess', {
           count: photosWithStorageKey.length,
         }),
         color: 'success',
@@ -2060,11 +2058,34 @@ onUnmounted(() => {
 <template>
   <UDashboardPanel>
     <template #header>
-      <UDashboardNavbar :title="$t('dashboard.photos.toolbar.title')" />
+      <UDashboardNavbar :title="$t('dashboard.photos.toolbar.title')">
+        <template #right>
+          <div class="flex gap-2 items-center">
+            <UButton
+              variant="soft"
+              color="neutral"
+              icon="tabler:list-check"
+              @click="$router.push('/dashboard/queue')"
+            >
+              <span class="hidden sm:inline">{{
+                $t('dashboard.photos.buttons.queue')
+              }}</span>
+            </UButton>
+            <UButton
+              icon="tabler:cloud-upload"
+              @click="openUploadSlideover"
+            >
+              <span class="hidden sm:inline">{{
+                $t('dashboard.photos.buttons.upload')
+              }}</span>
+            </UButton>
+          </div>
+        </template>
+      </UDashboardNavbar>
     </template>
 
     <template #body>
-      <div class="flex flex-col gap-3">
+      <div class="flex flex-col gap-4 h-full flex-1 min-h-0">
         <!-- 上传队列容器 -->
         <UploadQueuePanel
           :uploading-files="uploadingFiles"
@@ -2072,118 +2093,8 @@ onUnmounted(() => {
           @clear-completed="clearCompletedUploads"
           @clear-all="clearAllUploads"
           @go-to-queue="$router.push('/dashboard/queue')"
+          class="shrink-0"
         />
-
-        <!-- 文件上传入口 -->
-        <div
-          class="relative overflow-hidden rounded-3xl border border-neutral-200/80 bg-linear-to-br from-white via-white to-neutral-50 shadow-sm transition dark:border-neutral-800/70 dark:from-neutral-900 dark:via-neutral-900/80 dark:to-neutral-900"
-        >
-          <div
-            class="pointer-events-none absolute -left-32 -top-24 h-72 w-[18rem] rounded-full bg-primary-400/20 blur-3xl dark:bg-primary-500/20"
-          />
-          <div class="relative flex flex-col gap-6 p-5 sm:p-8">
-            <div
-              class="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between"
-            >
-              <div class="space-y-4">
-                <div class="flex items-center gap-3">
-                  <span
-                    class="flex size-12 items-center justify-center rounded-2xl bg-primary-500/10 text-primary-600 dark:bg-primary-500/15 dark:text-primary-300"
-                  >
-                    <Icon
-                      name="tabler:cloud-upload"
-                      class="size-6"
-                    />
-                  </span>
-                  <div>
-                    <h2
-                      class="text-lg font-semibold text-neutral-800 dark:text-neutral-100"
-                    >
-                      {{ $t('dashboard.photos.title') }}
-                    </h2>
-                    <i18n-t
-                      keypath="dashboard.photos.subtitle"
-                      tag="p"
-                      class="mt-1 text-sm text-neutral-500 dark:text-neutral-400"
-                    >
-                      <template #default>
-                        <NuxtLink
-                          to="/dashboard/albums"
-                          class="text-primary font-medium"
-                        >
-                          {{ $t('title.albums') }}
-                        </NuxtLink>
-                      </template>
-                    </i18n-t>
-                  </div>
-                </div>
-                <div
-                  class="flex flex-wrap items-center gap-1 text-xs font-medium text-neutral-500 dark:text-neutral-400"
-                >
-                  <UBadge
-                    variant="soft"
-                    color="primary"
-                    size="sm"
-                  >
-                    JPEG / PNG
-                  </UBadge>
-                  <UBadge
-                    variant="soft"
-                    color="primary"
-                    size="sm"
-                  >
-                    HEIC
-                  </UBadge>
-                  <UBadge
-                    variant="soft"
-                    color="primary"
-                    size="sm"
-                  >
-                    {{ $t('ui.livePhoto') }}
-                  </UBadge>
-                  <UBadge
-                    variant="soft"
-                    color="primary"
-                    size="sm"
-                  >
-                    Motion Photo
-                  </UBadge>
-                  <UBadge
-                    variant="outline"
-                    color="neutral"
-                    size="sm"
-                  >
-                    {{
-                      $t('dashboard.photos.maxFileSize', {
-                        size: maxFileSizeMB,
-                      })
-                    }}
-                  </UBadge>
-                </div>
-              </div>
-
-              <div class="flex gap-2 items-center">
-                <UButton
-                  variant="soft"
-                  size="lg"
-                  class="w-full sm:w-auto"
-                  icon="tabler:list-check"
-                  @click="$router.push('/dashboard/queue')"
-                >
-                  {{ $t('dashboard.photos.buttons.queue') }}
-                </UButton>
-                <UButton
-                  size="lg"
-                  class="w-full sm:w-auto"
-                  icon="tabler:cloud-upload"
-                  @click="openUploadSlideover"
-                >
-                  {{ $t('dashboard.photos.buttons.upload') }}
-                </UButton>
-              </div>
-            </div>
-          </div>
-        </div>
 
         <USlideover
           v-model:open="isUploadSlideoverOpen"
@@ -2261,7 +2172,6 @@ onUnmounted(() => {
                   <USwitch v-model="uploadEraseLocationEnabled" />
                 </div>
               </UCard>
-
             </div>
           </template>
 
@@ -2309,21 +2219,29 @@ onUnmounted(() => {
           </template>
         </USlideover>
 
-        <!-- 工具栏 -->
+        <!-- 统合容器：工具栏 + 照片列表 -->
         <div
-          class="flex flex-row sm:items-center justify-between gap-3 sm:gap-0 p-3 sm:p-4 bg-neutral-50 dark:bg-neutral-900/50 border border-neutral-200 dark:border-neutral-700 rounded-lg"
+          class="relative flex-1 min-h-0 flex flex-col bg-white dark:bg-neutral-900 border border-neutral-200/80 dark:border-neutral-800/80 rounded-2xl shadow-sm overflow-hidden"
         >
-          <div class="flex items-center gap-2">
-            <UIcon
-              name="tabler:photo"
-              class="text-neutral-500"
-            />
-            <span
-              class="font-medium text-neutral-700 dark:text-neutral-300 hidden sm:inline"
-            >
-              {{ $t('dashboard.photos.toolbar.title') }}
-            </span>
-            <div class="flex items-center gap-1 sm:gap-2">
+          <!-- 工具栏 -->
+          <div
+            class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 sm:px-4 sm:py-3 bg-neutral-50/50 dark:bg-neutral-900/50 backdrop-blur-sm border-b border-neutral-200/80 dark:border-neutral-800/80 z-20"
+          >
+            <div class="flex items-center gap-3">
+              <div
+                class="flex size-8 items-center justify-center rounded-[10px] bg-neutral-200/50 dark:bg-neutral-800/50 border border-neutral-200/50 dark:border-neutral-700/50"
+              >
+                <UIcon
+                  name="tabler:photo"
+                  class="size-4.5 text-neutral-600 dark:text-neutral-400"
+                />
+              </div>
+              <span
+                class="font-semibold text-sm text-neutral-700 dark:text-neutral-300 hidden sm:inline"
+              >
+                {{ $t('dashboard.photos.toolbar.title') }}
+              </span>
+              <div class="flex items-center gap-1 sm:gap-2 sm:ml-1">
               <UBadge
                 v-if="livePhotoStats.staticPhotos > 0"
                 variant="soft"
@@ -2472,9 +2390,7 @@ onUnmounted(() => {
         </div>
 
         <!-- 照片列表 -->
-        <div
-          class="border border-neutral-300 dark:border-neutral-800 rounded overflow-hidden"
-        >
+        <div class="relative flex-1 min-h-0 flex flex-col">
           <UTable
             ref="table"
             v-model:row-selection="rowSelection"
@@ -2486,9 +2402,31 @@ onUnmounted(() => {
             :columns="columns"
             :loading="status === 'pending'"
             sticky
-            class="h-[calc(100vh-27rem)] sm:h-[calc(100vh-24.5rem)]"
+            class="h-full flex-1"
             :ui="{
-              separator: 'bg-neutral-200 dark:bg-neutral-700',
+              wrapper: 'relative scroll-smooth h-full overflow-auto',
+              base: 'min-w-full table-fixed',
+              divide:
+                'divide-y divide-neutral-200/80 dark:divide-neutral-800/80',
+              thead:
+                'bg-neutral-50/80 dark:bg-neutral-900/80 backdrop-blur-md sticky top-0 z-10 whitespace-nowrap',
+              tbody:
+                'divide-y divide-neutral-200/80 dark:divide-neutral-800/80 bg-white dark:bg-neutral-900',
+              tr: {
+                base: 'hover:bg-neutral-50/50 dark:hover:bg-neutral-800/50 transition-colors',
+                selected: 'bg-primary-50/50 dark:bg-primary-900/20',
+              },
+              th: {
+                base: 'text-left rtl:text-right ',
+                padding: 'px-4 py-3.5',
+                color: 'text-neutral-500 dark:text-neutral-400',
+                font: 'font-medium text-sm',
+              },
+              td: {
+                padding: 'px-4 py-3',
+                color: 'text-neutral-700 dark:text-neutral-300 text-sm',
+              },
+              separator: 'bg-neutral-200/80 dark:bg-neutral-800/80',
             }"
           >
             <template #actions-cell="{ row }">
@@ -2511,95 +2449,111 @@ onUnmounted(() => {
             </template>
           </UTable>
 
-          <!-- 选择状态信息和批量操作 -->
-          <div
-            class="px-4 py-4 border-t border-neutral-200 dark:border-neutral-700"
+          <!-- 悬浮版批量操作菜单 -->
+          <transition
+            enter-active-class="transition-all duration-300 ease-out"
+            enter-from-class="translate-y-8 opacity-0 scale-95"
+            enter-to-class="translate-y-0 opacity-100 scale-100"
+            leave-active-class="transition-all duration-200 ease-in"
+            leave-from-class="translate-y-0 opacity-100 scale-100"
+            leave-to-class="translate-y-8 opacity-0 scale-95"
           >
             <div
-              class="text-sm text-neutral-600 dark:text-neutral-400 flex items-center gap-2"
+              v-if="selectedRowsCount > 0"
+              class="fixed bottom-8 left-1/2 -translate-x-1/2 px-2 py-1.5 bg-white/90 dark:bg-neutral-900/90 backdrop-blur-xl shadow-xl rounded-full border border-neutral-200/80 dark:border-neutral-800/80 z-[60] flex items-center gap-3 sm:gap-6 shadow-black/5 dark:shadow-black/20"
             >
-              <div class="leading-6">
-                {{
-                  $t('dashboard.photos.selection.selected', {
-                    count: selectedRowsCount,
-                    total: totalRowsCount,
-                  })
-                }}
-              </div>
               <div
-                v-if="selectedRowsCount > 0"
-                class="flex items-center gap-1 sm:gap-2"
+                class="pl-4 pr-1 border-r border-neutral-200 dark:border-neutral-800 min-w-max"
               >
+                <p
+                  class="text-sm font-medium tracking-wide text-neutral-700 dark:text-neutral-200"
+                >
+                  {{
+                    $t('dashboard.photos.selection.selected', {
+                      count: selectedRowsCount,
+                      total: totalRowsCount,
+                    })
+                  }}
+                </p>
+              </div>
+
+              <div class="flex items-center gap-1 sm:gap-1.5 pr-2">
                 <UButton
-                  variant="soft"
-                  color="info"
-                  size="xs"
+                  color="neutral"
+                  variant="ghost"
+                  size="sm"
+                  class="rounded-full text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100 dark:text-neutral-400 dark:hover:text-white dark:hover:bg-neutral-800"
                   icon="tabler:refresh"
-                  class="flex-1 sm:flex-none"
                   @click="handleBatchReprocess"
                 >
-                  <span>{{
+                  <span class="hidden sm:inline">{{
                     $t('dashboard.photos.selection.batchReprocess')
                   }}</span>
                 </UButton>
 
                 <UButton
-                  variant="soft"
-                  color="primary"
-                  size="xs"
+                  color="neutral"
+                  variant="ghost"
+                  size="sm"
+                  class="rounded-full text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100 dark:text-neutral-400 dark:hover:text-white dark:hover:bg-neutral-800"
                   icon="tabler:map-off"
-                  class="flex-1 sm:flex-none"
                   @click="handleBatchEraseLocation"
                 >
-                  <span>{{
+                  <span class="hidden sm:inline">{{
                     $t('dashboard.photos.selection.batchEraseLocation')
                   }}</span>
                 </UButton>
 
                 <UButton
-                  variant="soft"
-                  color="primary"
-                  size="xs"
+                  color="neutral"
+                  variant="ghost"
+                  size="sm"
+                  class="rounded-full text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100 dark:text-neutral-400 dark:hover:text-white dark:hover:bg-neutral-800"
                   icon="tabler:download"
-                  class="flex-1 sm:flex-none"
                   @click="handleBatchDownload"
                 >
-                  <span>{{
+                  <span class="hidden sm:inline">{{
                     $t('dashboard.photos.selection.batchDownload')
                   }}</span>
                 </UButton>
 
                 <UButton
                   color="error"
-                  variant="soft"
-                  size="xs"
+                  variant="ghost"
+                  size="sm"
+                  class="rounded-full hover:bg-error-50 dark:hover:bg-error-500/20"
                   icon="tabler:trash"
-                  class="flex-1 sm:flex-none"
                   @click="handleBatchDelete"
                 >
-                  <span>{{
+                  <span class="hidden sm:inline">{{
                     $t('dashboard.photos.selection.batchDelete')
                   }}</span>
                 </UButton>
               </div>
             </div>
-          </div>
+          </transition>
         </div>
+      </div>
 
-        <USlideover
+      <USlideover
           v-model:open="isEditModalOpen"
           :title="$t('dashboard.photos.editModal.title')"
           :description="$t('dashboard.photos.editModal.description')"
           :ui="{
             content: 'sm:max-w-xl',
             body: 'p-2',
-            header: 'px-6 py-5 border-b border-neutral-200 dark:border-neutral-800',
-            footer: 'px-6 py-5 border-t border-neutral-200 dark:border-neutral-800',
+            header:
+              'px-6 py-5 border-b border-neutral-200 dark:border-neutral-800',
+            footer:
+              'px-6 py-5 border-t border-neutral-200 dark:border-neutral-800',
           }"
         >
           <template #body>
             <div class="space-y-6">
-              <div v-if="editingPhoto" class="space-y-1">
+              <div
+                v-if="editingPhoto"
+                class="space-y-1"
+              >
                 <p class="text-xs text-neutral-500 dark:text-neutral-500">
                   {{ editingPhoto.title || editingPhoto.id }}
                 </p>
@@ -2731,7 +2685,6 @@ onUnmounted(() => {
                     </span>
                   </div>
                 </div>
-
               </UForm>
             </div>
           </template>
@@ -2759,22 +2712,30 @@ onUnmounted(() => {
         </USlideover>
 
         <UModal v-model:open="isDeleteConfirmOpen">
-          <template #content>
-            <div class="p-6 space-y-4">
-              <div class="flex items-start gap-3">
-                <Icon
-                  name="tabler:trash"
-                  class="mt-1 size-6 shrink-0 text-error-500"
-                />
-                <div class="space-y-2">
-                  <h3 class="text-lg font-semibold">
+          <template #body>
+            <div class="space-y-4">
+              <div class="flex items-start gap-4">
+                <div
+                  class="flex size-10 items-center justify-center rounded-full bg-error-100 dark:bg-error-900/40 text-error-600 dark:text-error-400 shrink-0"
+                >
+                  <Icon
+                    name="tabler:trash"
+                    class="size-6"
+                  />
+                </div>
+                <div class="space-y-1.5 pt-1">
+                  <h3
+                    class="text-lg font-semibold text-neutral-900 dark:text-white leading-5"
+                  >
                     {{
                       deleteMode === 'single'
                         ? $t('dashboard.photos.delete.single.title')
                         : $t('dashboard.photos.delete.batch.title')
                     }}
                   </h3>
-                  <p class="text-sm text-neutral-600 dark:text-neutral-400">
+                  <p
+                    class="text-sm text-neutral-500 dark:text-neutral-400 leading-relaxed"
+                  >
                     {{
                       deleteMode === 'single'
                         ? $t('dashboard.photos.delete.single.message')
@@ -2783,29 +2744,41 @@ onUnmounted(() => {
                           })
                     }}
                   </p>
-                  <p class="text-sm text-error-500 dark:text-error-400">
-                    {{ $t('dashboard.photos.delete.warning') }}
-                  </p>
+                  <div
+                    class="mt-4 p-3 bg-error-50 dark:bg-error-500/10 border border-error-200/50 dark:border-error-500/20 rounded-lg"
+                  >
+                    <p
+                      class="text-sm font-medium text-error-600 dark:text-error-400 flex items-center gap-2"
+                    >
+                      <Icon
+                        name="tabler:alert-triangle-filled"
+                        class="size-4"
+                      />
+                      {{ $t('dashboard.photos.delete.warning') }}
+                    </p>
+                  </div>
                 </div>
               </div>
-              <div class="flex justify-end gap-2">
-                <UButton
-                  variant="ghost"
-                  color="neutral"
-                  :disabled="isDeleting"
-                  @click="isDeleteConfirmOpen = false"
-                >
-                  {{ $t('dashboard.photos.delete.buttons.cancel') }}
-                </UButton>
-                <UButton
-                  color="error"
-                  icon="tabler:trash"
-                  :loading="isDeleting"
-                  @click="confirmDelete"
-                >
-                  {{ $t('dashboard.photos.delete.buttons.confirm') }}
-                </UButton>
-              </div>
+            </div>
+          </template>
+          <template #footer>
+            <div class="flex justify-end gap-3 w-full">
+              <UButton
+                variant="ghost"
+                color="neutral"
+                :disabled="isDeleting"
+                @click="isDeleteConfirmOpen = false"
+              >
+                {{ $t('dashboard.photos.delete.buttons.cancel') }}
+              </UButton>
+              <UButton
+                color="error"
+                icon="tabler:trash"
+                :loading="isDeleting"
+                @click="confirmDelete"
+              >
+                {{ $t('dashboard.photos.delete.buttons.confirm') }}
+              </UButton>
             </div>
           </template>
         </UModal>

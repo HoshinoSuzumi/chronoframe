@@ -607,6 +607,8 @@
         "uploadSuccess": "Photo uploaded successfully, processing...",
         "uploadMultipleSuccess": "{count} photos uploaded successfully, processing...",
         "reprocessSuccess": "Reprocessing task added",
+        "batchReprocessSuccess": "Successfully submitted {count} photos to the reprocessing queue",
+        "batchReprocessing": "Submitting reprocessing tasks...",
         "reprocessTaskId": "Task ID: {taskId}",
         "deleteSuccess": "Photo deleted successfully",
         "batchDeleteSuccess": "Successfully deleted {count} photos",

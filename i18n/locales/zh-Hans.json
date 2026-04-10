@@ -609,6 +609,8 @@
         "uploadSuccess": "照片已成功上传，正在处理中...",
         "uploadMultipleSuccess": "已成功上传 {count} 张照片，正在处理中...",
         "reprocessSuccess": "已添加重新处理任务",
+        "batchReprocessSuccess": "已成功提交 {count} 张照片至重新处理队列",
+        "batchReprocessing": "正在提交重新处理任务...",
         "reprocessTaskId": "任务ID: {taskId}",
         "deleteSuccess": "照片删除成功",
         "batchDeleteSuccess": "已成功删除 {count} 张照片",
