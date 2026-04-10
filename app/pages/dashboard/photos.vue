@@ -2586,27 +2586,27 @@ onUnmounted(() => {
           </div>
         </div>
 
-        <UModal v-model:open="isEditModalOpen">
-          <template #content>
-            <div class="p-6 space-y-6">
-              <div class="space-y-1">
-                <h2
-                  class="text-lg font-semibold text-neutral-800 dark:text-neutral-100"
-                >
-                  {{ $t('dashboard.photos.editModal.title') }}
-                </h2>
-                <p class="text-sm text-neutral-500 dark:text-neutral-400">
-                  {{ $t('dashboard.photos.editModal.description') }}
-                </p>
-                <p
-                  v-if="editingPhoto"
-                  class="text-xs text-neutral-500 dark:text-neutral-500"
-                >
+        <USlideover
+          v-model:open="isEditModalOpen"
+          :title="$t('dashboard.photos.editModal.title')"
+          :description="$t('dashboard.photos.editModal.description')"
+          :ui="{
+            content: 'sm:max-w-xl',
+            body: 'p-2',
+            header: 'px-6 py-5 border-b border-neutral-200 dark:border-neutral-800',
+            footer: 'px-6 py-5 border-t border-neutral-200 dark:border-neutral-800',
+          }"
+        >
+          <template #body>
+            <div class="space-y-6">
+              <div v-if="editingPhoto" class="space-y-1">
+                <p class="text-xs text-neutral-500 dark:text-neutral-500">
                   {{ editingPhoto.title || editingPhoto.id }}
                 </p>
               </div>
 
               <UForm
+                id="edit-photo-form"
                 :state="editFormState"
                 class="space-y-5"
                 @submit="handleEditSubmit"
@@ -2732,29 +2732,31 @@ onUnmounted(() => {
                   </div>
                 </div>
 
-                <div
-                  class="flex items-center justify-end gap-2 pt-4 border-t border-neutral-200 dark:border-neutral-800"
-                >
-                  <UButton
-                    variant="ghost"
-                    color="neutral"
-                    @click.prevent="isEditModalOpen = false"
-                  >
-                    {{ $t('dashboard.photos.editModal.actions.cancel') }}
-                  </UButton>
-                  <UButton
-                    type="submit"
-                    :loading="isSavingMetadata"
-                    :disabled="!isMetadataDirty || isSavingMetadata"
-                    icon="tabler:device-floppy"
-                  >
-                    {{ $t('dashboard.photos.editModal.actions.save') }}
-                  </UButton>
-                </div>
               </UForm>
             </div>
           </template>
-        </UModal>
+
+          <template #footer>
+            <div class="flex items-center justify-end gap-2 w-full">
+              <UButton
+                variant="ghost"
+                color="neutral"
+                @click.prevent="isEditModalOpen = false"
+              >
+                {{ $t('dashboard.photos.editModal.actions.cancel') }}
+              </UButton>
+              <UButton
+                type="submit"
+                form="edit-photo-form"
+                :loading="isSavingMetadata"
+                :disabled="!isMetadataDirty || isSavingMetadata"
+                icon="tabler:device-floppy"
+              >
+                {{ $t('dashboard.photos.editModal.actions.save') }}
+              </UButton>
+            </div>
+          </template>
+        </USlideover>
 
         <UModal v-model:open="isDeleteConfirmOpen">
           <template #content>
