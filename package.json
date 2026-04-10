@@ -14,7 +14,7 @@
     "db:drop": "drizzle-kit drop",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
-    "build": "nuxt build",
+    "build": "NODE_OPTIONS=\"--max-old-space-size=8192\" nuxt build",
     "build:deps": "pnpm --filter @chronoframe/webgl-image build",
     "dev": "run-p dev:dep dev:wait-only",
     "dev:dep": "pnpm --filter @chronoframe/webgl-image dev",
