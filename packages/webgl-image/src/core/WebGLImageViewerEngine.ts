@@ -922,21 +922,22 @@ export class WebGLImageViewerEngine {
         isFinite(prevScale) &&
         prevScale > 0
       ) {
-        const imageCenterX =
+        const viewportCenterImageX =
           (prevCanvasWidth / 2 - this.transform.translateX) / prevScale
-        const imageCenterY =
+        const viewportCenterImageY =
           (prevCanvasHeight / 2 - this.transform.translateY) / prevScale
 
         const newInitialScale = this.getFitScale()
-        const relativeScale =
+        const relativeZoomLevel =
           oldInitialScale > 0 ? prevScale / oldInitialScale : 1
-        const nextScale = this.clampScale(newInitialScale * relativeScale)
+        const nextScale = this.clampScale(newInitialScale * relativeZoomLevel)
 
         this.initialScale = newInitialScale
         this.transform.scale = nextScale
-        this.transform.translateX = this.canvas.width / 2 - imageCenterX * nextScale
+        this.transform.translateX =
+          this.canvas.width / 2 - viewportCenterImageX * nextScale
         this.transform.translateY =
-          this.canvas.height / 2 - imageCenterY * nextScale
+          this.canvas.height / 2 - viewportCenterImageY * nextScale
       }
 
       this.constrainToBounds()
