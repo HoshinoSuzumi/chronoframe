@@ -86,6 +86,7 @@ export class WebGLImageViewerEngine {
   // 事件监听器
   private throttledRender: () => void
   private resizeObserver: ResizeObserver | null = null
+  private resizeAnimationFrameId: number | null = null
 
   // 绑定的事件处理器（用于正确添加/移除全局事件监听器）
   private boundHandleMouseDown: (event: MouseEvent) => void
@@ -448,7 +449,13 @@ export class WebGLImageViewerEngine {
 
   private setupResizeObserver(): void {
     this.resizeObserver = new ResizeObserver(() => {
-      this.resize()
+      if (this.resizeAnimationFrameId) {
+        cancelAnimationFrame(this.resizeAnimationFrameId)
+      }
+      this.resizeAnimationFrameId = requestAnimationFrame(() => {
+        this.resizeAnimationFrameId = null
+        this.resize()
+      })
     })
     this.resizeObserver.observe(this.canvas)
   }
@@ -899,14 +906,23 @@ export class WebGLImageViewerEngine {
     const dpr = window.devicePixelRatio || 1
     const prevCanvasWidth = this.canvas.width
     const prevCanvasHeight = this.canvas.height
+    const nextCanvasWidth = Math.max(1, Math.round(rect.width * dpr))
+    const nextCanvasHeight = Math.max(1, Math.round(rect.height * dpr))
 
     // 检查画布尺寸是否有效
     if (rect.width <= 0 || rect.height <= 0) {
       return
     }
 
-    this.canvas.width = rect.width * dpr
-    this.canvas.height = rect.height * dpr
+    if (
+      nextCanvasWidth === prevCanvasWidth &&
+      nextCanvasHeight === prevCanvasHeight
+    ) {
+      return
+    }
+
+    this.canvas.width = nextCanvasWidth
+    this.canvas.height = nextCanvasHeight
 
     this.gl.viewport(0, 0, this.canvas.width, this.canvas.height)
 
@@ -1841,6 +1857,10 @@ export class WebGLImageViewerEngine {
     if (this.resizeObserver) {
       this.resizeObserver.disconnect()
       this.resizeObserver = null
+    }
+    if (this.resizeAnimationFrameId) {
+      cancelAnimationFrame(this.resizeAnimationFrameId)
+      this.resizeAnimationFrameId = null
     }
 
     // 重置状态
