@@ -103,7 +103,7 @@
     "oxfmt": "^0.47.0",
     "oxlint": "^1.62.0",
     "sass-embedded": "^1.99.0",
-    "typescript": "^5.9.3",
+    "typescript": "^6.0.3",
     "vitepress": "2.0.0-alpha.17"
   },
   "pnpm": {
