@@ -1049,6 +1049,11 @@
       }
     },
     "location": {
+      "language": {
+        "label": "Location Language",
+        "description": "Language for geocoding location names",
+        "help": "Choose the language for reverse geocoding photo locations. Default is English."
+      },
       "mapbox": {
         "token": {
           "label": "Mapbox Token",

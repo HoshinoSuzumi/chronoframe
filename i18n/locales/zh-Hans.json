@@ -1053,6 +1053,11 @@
       }
     },
     "location": {
+      "language": {
+        "label": "地理位置语言",
+        "description": "进行逆地理编码时所使用的语言",
+        "help": "选择解析照片拍摄地点名称时所使用的语言。默认为英文。"
+      },
       "mapbox": {
         "token": {
           "label": "Mapbox Token",

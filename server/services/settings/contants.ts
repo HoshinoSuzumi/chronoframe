@@ -186,6 +186,16 @@ export const DEFAULT_SETTINGS = [
   // NAMESPACE: location
   {
     namespace: 'location',
+    key: 'language',
+    type: 'string',
+    defaultValue: 'en',
+    enum: ['en', 'zh-CN', 'zh-TW', 'ja'] as const,
+    label: 'settings.location.language.label',
+    description: 'settings.location.language.description',
+    isPublic: true,
+  },
+  {
+    namespace: 'location',
     key: 'mapbox.token',
     type: 'string',
     defaultValue: '',

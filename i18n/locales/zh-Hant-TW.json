@@ -984,6 +984,11 @@
       }
     },
     "location": {
+      "language": {
+        "label": "地理位置語言",
+        "description": "進行逆地理編碼時所使用的語言",
+        "help": "選擇解析照片拍攝地點名稱時所使用的語言。預設為英文。"
+      },
       "mapbox": {
         "token": {
           "label": "Mapbox Token",

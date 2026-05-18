@@ -34,12 +34,24 @@ export class MapboxGeocodingProvider implements GeocodingProvider {
           // 应用速率限制
           await this.applyRateLimit()
 
+          // 获取设置的地理编码语言，默认 'en'
+          const language =
+            (await settingsManager.get<string>('location', 'language')) || 'en'
+
           const url = new URL('/search/geocode/v6/reverse', this.baseUrl)
           url.searchParams.set('access_token', this.accessToken)
           url.searchParams.set('longitude', lon.toString())
           url.searchParams.set('latitude', lat.toString())
           url.searchParams.set('types', 'address,place,district,region,country')
-          url.searchParams.set('language', 'en')
+
+          // 映射 Mapbox 首选语言格式
+          let mapboxLang = language
+          if (language === 'zh-CN') {
+            mapboxLang = 'zh-Hans'
+          } else if (language === 'zh-TW') {
+            mapboxLang = 'zh-Hant'
+          }
+          url.searchParams.set('language', mapboxLang)
 
           logger.location.info(`Mapbox API URL: ${url.toString()}`)
 
@@ -138,12 +150,16 @@ export class NominatimGeocodingProvider implements GeocodingProvider {
           // 应用速率限制
           await this.applyRateLimit()
 
+          // 获取设置的地理编码语言，默认 'en'
+          const language =
+            (await settingsManager.get<string>('location', 'language')) || 'en'
+
           const url = new URL('/reverse', this.baseUrl)
           url.searchParams.set('lat', lat.toString())
           url.searchParams.set('lon', lon.toString())
           url.searchParams.set('format', 'json')
           url.searchParams.set('addressdetails', '1')
-          url.searchParams.set('accept-language', 'en')
+          url.searchParams.set('accept-language', `${language},en`)
 
           const response = await fetch(url.toString(), {
             headers: {
