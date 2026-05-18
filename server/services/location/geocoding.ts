@@ -39,7 +39,7 @@ export class MapboxGeocodingProvider implements GeocodingProvider {
           url.searchParams.set('longitude', lon.toString())
           url.searchParams.set('latitude', lat.toString())
           url.searchParams.set('types', 'address,place,district,region,country')
-          url.searchParams.set('language', 'zh-Hants')
+          url.searchParams.set('language', 'en')
 
           logger.location.info(`Mapbox API URL: ${url.toString()}`)
 
@@ -143,7 +143,7 @@ export class NominatimGeocodingProvider implements GeocodingProvider {
           url.searchParams.set('lon', lon.toString())
           url.searchParams.set('format', 'json')
           url.searchParams.set('addressdetails', '1')
-          url.searchParams.set('accept-language', 'zh-CN,zh,en')
+          url.searchParams.set('accept-language', 'en')
 
           const response = await fetch(url.toString(), {
             headers: {
