@@ -68,10 +68,8 @@ const handleClose = () => {
     isDirectAccess.value = false
     router.replace('/')
   } else if (returnRoute.value) {
-    // 如果有指定的返回路由，返回到该路由
-    const destination = returnRoute.value
     clearReturnRoute()
-    router.replace(destination)
+    router.back()
   } else {
     // 否则使用历史记录或默认返回首页
     if (window.history.length > 1) {
