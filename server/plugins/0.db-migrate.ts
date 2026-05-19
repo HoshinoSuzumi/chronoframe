@@ -1,4 +1,4 @@
-import { mkdirSync } from 'node:fs'
+import { existsSync, mkdirSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 
 import Database from 'better-sqlite3'
@@ -10,6 +10,16 @@ const migrationLogger = logger.dynamic('db-migrate')
 
 async function runMigrations() {
   const dbPath = resolve(process.env.DATABASE_URL || './data/app.sqlite3')
+  const migrationsFolderCandidates = [
+    resolve('./server/database/migrations'),
+    // `nuxi preview` runs with `Working directory: .output`, so we need to walk
+    // back to the repo root to find the migrations.
+    resolve('../server/database/migrations'),
+  ]
+  const migrationsFolder =
+    migrationsFolderCandidates.find((candidate) =>
+      existsSync(resolve(candidate, 'meta/_journal.json')),
+    ) || migrationsFolderCandidates[0]
 
   mkdirSync(dirname(dbPath), { recursive: true })
 
@@ -18,7 +28,7 @@ async function runMigrations() {
   try {
     const db = drizzle(sqlite)
     await migrate(db, {
-      migrationsFolder: resolve('./server/database/migrations'),
+      migrationsFolder,
     })
     migrationLogger.info('Database migration finished successfully')
   } finally {

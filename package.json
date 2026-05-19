@@ -32,7 +32,8 @@
     "postinstall": "nuxt prepare",
     "docs:dev": "vitepress dev docs",
     "docs:build": "vitepress build docs",
-    "docs:preview": "vitepress preview docs"
+    "docs:preview": "vitepress preview docs",
+    "test:smoke": "playwright test -c playwright.config.ts --project=chromium"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1042.0",
@@ -91,6 +92,7 @@
     "@iconify-json/svg-spinners": "^1.2.4",
     "@iconify-json/tabler": "^1.2.33",
     "@nuxt/test-utils": "4.0.3",
+    "@playwright/test": "^1.55.0",
     "@types/better-sqlite3": "^7.6.13",
     "@types/heic-convert": "^2.1.0",
     "@vueuse/core": "^14.3.0",

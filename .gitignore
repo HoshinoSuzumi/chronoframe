@@ -33,3 +33,7 @@ logs
 # VitePress outputs
 docs/.vitepress/dist
 docs/.vitepress/cache
+
+# Playwright outputs
+playwright-report
+test-results
