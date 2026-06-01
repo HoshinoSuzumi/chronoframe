@@ -6,6 +6,8 @@ import { exiftool } from 'exiftool-vendored'
 import { eq } from 'drizzle-orm'
 
 import { extractExifData } from '~~/server/services/image/exif'
+import { buildExifWriteTags } from '~~/server/services/image/exif-write'
+import { EXIF_ENUM_OPTIONS } from '~~/shared/constants/exifOptions'
 import { tables, useDB } from '~~/server/utils/db'
 import { useStorageProvider } from '~~/server/utils/useStorageProvider'
 
@@ -27,6 +29,49 @@ const bodySchema = z.object({
     ])
     .optional(),
   rating: z.union([z.number().int().min(0).max(5), z.null()]).optional(),
+  exif: z
+    .object({
+      Make: z.string().trim().max(256).nullish(),
+      Model: z.string().trim().max(256).nullish(),
+      LensMake: z.string().trim().max(256).nullish(),
+      LensModel: z.string().trim().max(256).nullish(),
+      FNumber: z.number().positive().max(1000).nullish(),
+      ExposureTime: z
+        .string()
+        .trim()
+        .max(32)
+        .regex(/^(\d+(\.\d+)?|\d+\/\d+)$/, 'Invalid exposure time')
+        .nullish(),
+      ISO: z.number().int().min(0).max(10_000_000).nullish(),
+      FocalLength: z.string().trim().max(32).nullish(),
+      FocalLengthIn35mmFormat: z.string().trim().max(32).nullish(),
+      Flash: z.enum(EXIF_ENUM_OPTIONS.flash).nullish(),
+      SceneCaptureType: z.enum(EXIF_ENUM_OPTIONS.sceneCaptureType).nullish(),
+      WhiteBalance: z.enum(EXIF_ENUM_OPTIONS.whiteBalance).nullish(),
+      MeteringMode: z.enum(EXIF_ENUM_OPTIONS.meteringMode).nullish(),
+      ExposureProgram: z.enum(EXIF_ENUM_OPTIONS.exposureProgram).nullish(),
+      ExposureMode: z.enum(EXIF_ENUM_OPTIONS.exposureMode).nullish(),
+      ColorSpace: z.enum(EXIF_ENUM_OPTIONS.colorSpace).nullish(),
+      Artist: z.string().trim().max(256).nullish(),
+      Copyright: z.string().trim().max(512).nullish(),
+      Software: z.string().trim().max(256).nullish(),
+      DateTimeOriginal: z
+        .string()
+        .trim()
+        .regex(
+          /^\d{4}:\d{2}:\d{2} \d{2}:\d{2}:\d{2}$/,
+          'Invalid date (expected YYYY:MM:DD HH:MM:SS)',
+        )
+        .nullish(),
+      OffsetTimeOriginal: z
+        .string()
+        .trim()
+        .regex(/^[+-]\d{2}:\d{2}$/, 'Invalid UTC offset')
+        .nullish(),
+      FocalPlaneXResolution: z.number().positive().max(1_000_000).nullish(),
+      FocalPlaneYResolution: z.number().positive().max(1_000_000).nullish(),
+    })
+    .optional(),
 })
 
 const normalizeTags = (tags: string[] | undefined) => {
@@ -51,12 +96,16 @@ export default eventHandler(async (event) => {
   const { photoId } = paramsSchema.parse(event.context.params ?? {})
   const payload = bodySchema.parse(await readBody(event))
 
+  const hasExifEdits =
+    payload.exif !== undefined && Object.keys(payload.exif).length > 0
+
   if (
     payload.title === undefined &&
     payload.description === undefined &&
     payload.tags === undefined &&
     payload.location === undefined &&
-    payload.rating === undefined
+    payload.rating === undefined &&
+    !hasExifEdits
   ) {
     throw createError({
       statusCode: 400,
@@ -154,6 +203,12 @@ export default eventHandler(async (event) => {
     exifUpdates.Rating = payload.rating !== null ? payload.rating : null
   }
 
+  const advancedExif = hasExifEdits
+    ? buildExifWriteTags(payload.exif!)
+    : { writeTags: {}, dbOverlay: {}, dateTakenIso: undefined }
+
+  Object.assign(exifUpdates, advancedExif.writeTags)
+
   const tempRoot = tmpdir()
   await mkdir(tempRoot, { recursive: true })
   const tempDir = await mkdtemp(path.join(tempRoot, 'cframe-edit-'))
@@ -179,10 +234,25 @@ export default eventHandler(async (event) => {
 
     const exifData = await extractExifData(updatedBuffer)
 
+    const overlaidExif: Record<string, any> = { ...exifData }
+    for (const [overlayKey, overlayValue] of Object.entries(
+      advancedExif.dbOverlay,
+    )) {
+      if (overlayValue === undefined) {
+        delete overlaidExif[overlayKey]
+      } else {
+        overlaidExif[overlayKey] = overlayValue
+      }
+    }
+
     const updateData: Record<string, any> = {
-      exif: exifData,
+      exif: overlaidExif,
       fileSize: updatedBuffer.length,
       lastModified: new Date().toISOString(),
+    }
+
+    if (advancedExif.dateTakenIso !== undefined) {
+      updateData.dateTaken = advancedExif.dateTakenIso
     }
 
     if (normalizedTitle !== undefined) {

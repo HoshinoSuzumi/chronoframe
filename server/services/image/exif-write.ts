@@ -35,8 +35,11 @@ export interface ExifWriteResult {
   writeTags: Record<string, unknown>
   /** Values to overlay onto the re-extracted exif before saving to DB. */
   dbOverlay: Record<string, unknown>
-  /** New ISO instant for the `dateTaken` column, if DateTimeOriginal changed. */
-  dateTakenIso?: string
+  /**
+   * Value for the `dateTaken` column when the capture date changed:
+   * an ISO instant when set, `null` when cleared, `undefined` when untouched.
+   */
+  dateTakenIso?: string | null
 }
 
 const emptyToNull = (value: string | null | undefined): string | null => {
@@ -52,7 +55,7 @@ const emptyToNull = (value: string | null | undefined): string | null => {
 export const buildExifWriteTags = (exif: EditableExif): ExifWriteResult => {
   const writeTags: Record<string, unknown> = {}
   const dbOverlay: Record<string, unknown> = {}
-  let dateTakenIso: string | undefined
+  let dateTakenIso: string | null | undefined
 
   for (const key of TEXT_FIELDS) {
     if (exif[key] === undefined) continue
@@ -85,6 +88,8 @@ export const buildExifWriteTags = (exif: EditableExif): ExifWriteResult => {
       dbOverlay.DateTimeOriginal = iso
       dbOverlay.OffsetTimeOriginal = offsetValue ?? undefined
     } else {
+      // Date explicitly cleared: also null the dateTaken sort column.
+      dateTakenIso = null
       dbOverlay.DateTimeOriginal = undefined
       dbOverlay.OffsetTimeOriginal = undefined
     }
