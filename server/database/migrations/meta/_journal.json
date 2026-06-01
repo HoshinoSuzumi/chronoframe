@@ -85,6 +85,13 @@
       "when": 1784142342471,
       "tag": "0011_update_location_language_enum",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "6",
+      "when": 1789503318512,
+      "tag": "0012_medical_raider",
+      "breakpoints": true
     }
   ]
 }
