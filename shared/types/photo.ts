@@ -101,3 +101,42 @@ export interface PhotoInfo {
   tags: string[]
   description: string
 }
+
+/**
+ * Subset of EXIF fields editable from the dashboard editor.
+ * Sent in the PUT /api/photos/:photoId body under `exif`.
+ *
+ * Convention: an omitted key = unchanged; `null` (or empty string for text)
+ * = clear the tag. `DateTimeOriginal` is sent in exiftool format
+ * ("YYYY:MM:DD HH:MM:SS") with `OffsetTimeOriginal` as "+02:00".
+ */
+export interface EditableExif {
+  Make?: string | null
+  Model?: string | null
+  LensMake?: string | null
+  LensModel?: string | null
+
+  FNumber?: number | null
+  ExposureTime?: string | null
+  ISO?: number | null
+  FocalLength?: string | null
+  FocalLengthIn35mmFormat?: string | null
+
+  Flash?: string | null
+  SceneCaptureType?: string | null
+  WhiteBalance?: string | null
+  MeteringMode?: string | null
+  ExposureProgram?: string | null
+  ExposureMode?: string | null
+  ColorSpace?: string | null
+
+  Artist?: string | null
+  Copyright?: string | null
+  Software?: string | null
+
+  DateTimeOriginal?: string | null
+  OffsetTimeOriginal?: string | null
+
+  FocalPlaneXResolution?: number | null
+  FocalPlaneYResolution?: number | null
+}
