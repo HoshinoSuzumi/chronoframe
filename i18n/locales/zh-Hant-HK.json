@@ -704,6 +704,49 @@
         "actions": {
           "cancel": "取消",
           "save": "儲存變更"
+        },
+        "advanced": {
+          "toggle": "進階 — EXIF 中繼資料",
+          "hint": "編輯 EXIF 欄位。變更將寫入圖像檔案。",
+          "groups": {
+            "cameraLens": "相機與鏡頭",
+            "exposure": "曝光",
+            "captureMode": "拍攝模式",
+            "authorship": "作者資訊",
+            "dateSensor": "日期與感光元件"
+          },
+          "fields": {
+            "make": "相機製造商",
+            "model": "相機型號",
+            "lensMake": "鏡頭製造商",
+            "lensModel": "鏡頭型號",
+            "fNumber": "光圈 (F值)",
+            "exposureTime": "快門 (曝光時間)",
+            "iso": "ISO",
+            "focalLength": "焦距",
+            "focalLength35": "焦距 (35mm 等效)",
+            "flash": "閃光燈",
+            "sceneCaptureType": "場景拍攝類型",
+            "whiteBalance": "白平衡",
+            "meteringMode": "測光模式",
+            "exposureProgram": "曝光程式",
+            "exposureMode": "曝光模式",
+            "colorSpace": "色彩空間",
+            "artist": "作者",
+            "copyright": "版權",
+            "software": "軟件",
+            "dateTaken": "拍攝日期",
+            "utcOffset": "UTC 偏移",
+            "focalPlaneXResolution": "焦平面 X 解析度",
+            "focalPlaneYResolution": "焦平面 Y 解析度"
+          },
+          "placeholders": {
+            "none": "未設定",
+            "utcOffset": "+08:00",
+            "exposureTime": "例如 1/250 或 0.004",
+            "focalLength": "例如 24 mm"
+          },
+          "colorSpaceNote": "色彩空間部分為自動偵測，編輯為盡力而為，可能不會更改檔案。"
         }
       },
       "uploadQueueItem": {

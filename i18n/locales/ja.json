@@ -704,6 +704,49 @@
         "actions": {
           "cancel": "キャンセル",
           "save": "変更を保存"
+        },
+        "advanced": {
+          "toggle": "詳細 — EXIF メタデータ",
+          "hint": "EXIF フィールドを編集します。変更は画像ファイルに書き込まれます。",
+          "groups": {
+            "cameraLens": "カメラとレンズ",
+            "exposure": "露出",
+            "captureMode": "撮影モード",
+            "authorship": "著作情報",
+            "dateSensor": "日付とセンサー"
+          },
+          "fields": {
+            "make": "カメラメーカー",
+            "model": "カメラ機種",
+            "lensMake": "レンズメーカー",
+            "lensModel": "レンズ機種",
+            "fNumber": "絞り (F値)",
+            "exposureTime": "シャッター (露出時間)",
+            "iso": "ISO",
+            "focalLength": "焦点距離",
+            "focalLength35": "焦点距離 (35mm換算)",
+            "flash": "フラッシュ",
+            "sceneCaptureType": "シーンキャプチャタイプ",
+            "whiteBalance": "ホワイトバランス",
+            "meteringMode": "測光モード",
+            "exposureProgram": "露出プログラム",
+            "exposureMode": "露出モード",
+            "colorSpace": "色空間",
+            "artist": "作成者",
+            "copyright": "著作権",
+            "software": "ソフトウェア",
+            "dateTaken": "撮影日時",
+            "utcOffset": "UTCオフセット",
+            "focalPlaneXResolution": "焦点面X解像度",
+            "focalPlaneYResolution": "焦点面Y解像度"
+          },
+          "placeholders": {
+            "none": "未設定",
+            "utcOffset": "+09:00",
+            "exposureTime": "例: 1/250 または 0.004",
+            "focalLength": "例: 24 mm"
+          },
+          "colorSpaceNote": "色空間は一部自動検出されるため、編集はベストエフォートでありファイルに反映されない場合があります。"
         }
       },
       "uploadQueueItem": {

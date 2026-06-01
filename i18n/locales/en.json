@@ -778,6 +778,49 @@
         "actions": {
           "cancel": "Cancel",
           "save": "Save changes"
+        },
+        "advanced": {
+          "toggle": "Advanced — EXIF metadata",
+          "hint": "Edit raw EXIF fields. Changes are written into the image file.",
+          "groups": {
+            "cameraLens": "Camera & lens",
+            "exposure": "Exposure",
+            "captureMode": "Capture mode",
+            "authorship": "Authorship",
+            "dateSensor": "Date & sensor"
+          },
+          "fields": {
+            "make": "Camera make",
+            "model": "Camera model",
+            "lensMake": "Lens make",
+            "lensModel": "Lens model",
+            "fNumber": "Aperture (f-number)",
+            "exposureTime": "Shutter (exposure time)",
+            "iso": "ISO",
+            "focalLength": "Focal length",
+            "focalLength35": "Focal length (35mm equiv.)",
+            "flash": "Flash",
+            "sceneCaptureType": "Scene capture type",
+            "whiteBalance": "White balance",
+            "meteringMode": "Metering mode",
+            "exposureProgram": "Exposure program",
+            "exposureMode": "Exposure mode",
+            "colorSpace": "Color space",
+            "artist": "Artist",
+            "copyright": "Copyright",
+            "software": "Software",
+            "dateTaken": "Date taken",
+            "utcOffset": "UTC offset",
+            "focalPlaneXResolution": "Focal plane X resolution",
+            "focalPlaneYResolution": "Focal plane Y resolution"
+          },
+          "placeholders": {
+            "none": "Not set",
+            "utcOffset": "+02:00",
+            "exposureTime": "e.g. 1/250 or 0.004",
+            "focalLength": "e.g. 24 mm"
+          },
+          "colorSpaceNote": "Color space is partly auto-detected; edits are best-effort and may not change the file."
         }
       },
       "uploadQueueItem": {
