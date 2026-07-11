@@ -116,6 +116,23 @@ export const PRIVACY_SETTINGS_UI: Record<string, FieldUIConfig> = {
   },
 }
 
+export const ANALYTICS_SETTINGS_UI: Record<string, FieldUIConfig> = {
+  headScripts: {
+    type: 'textarea',
+    rows: 12,
+    placeholder:
+      '<!-- Google Analytics -->\n<script async src="https://www.googletagmanager.com/gtag/js?id=G-XXXX"></script>\n<script>\n  window.dataLayer = window.dataLayer || [];\n  function gtag(){dataLayer.push(arguments);}\n  gtag(\'js\', new Date());\n  gtag(\'config\', \'G-XXXX\');\n</script>',
+    help: 'settings.analytics.headScripts.help',
+  },
+  bodyScripts: {
+    type: 'textarea',
+    rows: 12,
+    placeholder:
+      '<!-- Umami / Openpanel SDK -->\n<script src="https://analytics.example.com/script.js" data-website-id="xxx" defer></script>',
+    help: 'settings.analytics.bodyScripts.help',
+  },
+}
+
 export const SYSTEM_SETTINGS_UI: Record<string, FieldUIConfig> = {
   'upload.maxFileSize': {
     type: 'number',
@@ -343,6 +360,7 @@ export function getSettingUIConfig(
     map: MAP_SETTINGS_UI,
     location: LOCATION_SETTINGS_UI,
     storage: STORAGE_SETTINGS_UI,
+    analytics: ANALYTICS_SETTINGS_UI,
   }
 
   return uiConfigMap[namespace]?.[key]

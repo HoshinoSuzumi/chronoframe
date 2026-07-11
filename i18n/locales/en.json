@@ -399,7 +399,8 @@
     "privacySettings": "Privacy Settings",
     "mapAndLocation": "Map & Location",
     "storageSettings": "Storage Settings",
-    "systemSettings": "System Settings"
+    "systemSettings": "System Settings",
+    "analyticsSettings": "Analytics & Tracking"
   },
   "auth": {
     "form": {
@@ -1383,6 +1384,19 @@
       "actions": {
         "add": "Add Storage",
         "create": "Create Storage"
+      }
+    },
+    "analytics": {
+      "sectionDescription": "Inject custom <script> tags into <head> and <body> for analytics, tracking, or structured data. Scripts run for all visitors. Only paste code you trust.",
+      "headScripts": {
+        "label": "Head Scripts",
+        "description": "HTML fragment with <script> tags to inject into <head>.",
+        "help": "Paste full <script>...</script> tags (multiple allowed). For GA, Baidu, Plausible, Umami, JSON-LD, etc. The existing Matomo integration runs independently."
+      },
+      "bodyScripts": {
+        "label": "Body Scripts",
+        "description": "HTML fragment with <script> tags to inject at the top of <body>.",
+        "help": "Paste full <script>...</script> tags (multiple allowed). Suitable for scripts that should run after the body opens."
       }
     },
     "general": {

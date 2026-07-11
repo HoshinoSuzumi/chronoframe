@@ -399,7 +399,8 @@
     "mapAndLocation": "地圖和位置",
     "location": "位置服務",
     "storageSettings": "儲存設定",
-    "systemSettings": "系統設定"
+    "systemSettings": "系統設定",
+    "analyticsSettings": "分析與追蹤"
   },
   "auth": {
     "form": {
@@ -1309,6 +1310,19 @@
       "actions": {
         "add": "新增儲存",
         "create": "建立儲存"
+      }
+    },
+    "analytics": {
+      "sectionDescription": "將自訂 <script> 標籤注入到頁面 <head> 和 <body> 中，用於分析、追蹤或結構化資料。指令碼對所有訪客執行，請僅貼上可信程式碼。",
+      "headScripts": {
+        "label": "Head 指令碼",
+        "description": "包含 <script> 標籤的 HTML 片段，注入到頁面 <head> 中。",
+        "help": "貼上完整的 <script>...</script> 標籤（支援多個）。適用於 GA、百度統計、Plausible、Umami、JSON-LD 等。已有的 Matomo 整合獨立執行，互不干擾。"
+      },
+      "bodyScripts": {
+        "label": "Body 指令碼",
+        "description": "包含 <script> 標籤的 HTML 片段，注入到 <body> 開頭。",
+        "help": "貼上完整的 <script>...</script> 標籤（支援多個）。適用於需要在 body 開始處執行的指令碼。"
       }
     },
     "general": {
