@@ -1387,16 +1387,16 @@
       }
     },
     "analytics": {
-      "sectionDescription": "将自定义 <script> 标签注入到页面 <head> 和 <body> 中，用于分析、追踪或结构化数据。脚本对所有访客执行，请仅粘贴可信代码。",
+      "sectionDescription": "将自定义 script 标签注入到页面 head 和 body 中，用于分析、追踪或结构化数据。脚本对所有访客执行，请仅粘贴可信代码。",
       "headScripts": {
         "label": "Head 脚本",
-        "description": "包含 <script> 标签的 HTML 片段，注入到页面 <head> 中。",
-        "help": "粘贴完整的 <script>...</script> 标签（支持多个）。适用于 GA、百度统计、Plausible、Umami、JSON-LD 等。已有的 Matomo 集成独立运行，互不干扰。"
+        "description": "包含 script 标签的 HTML 片段，注入到页面 head 中。",
+        "help": "粘贴完整的 script 标签（支持多个）。适用于 GA、百度统计、Plausible、Umami、JSON-LD 等。已有的 Matomo 集成独立运行，互不干扰。"
       },
       "bodyScripts": {
         "label": "Body 脚本",
-        "description": "包含 <script> 标签的 HTML 片段，注入到 <body> 开头。",
-        "help": "粘贴完整的 <script>...</script> 标签（支持多个）。适用于需要在 body 开始处执行的脚本。"
+        "description": "包含 script 标签的 HTML 片段，注入到 body 开头。",
+        "help": "粘贴完整的 script 标签（支持多个）。适用于需要在 body 开始处执行的脚本。"
       }
     },
     "general": {

@@ -1387,16 +1387,16 @@
       }
     },
     "analytics": {
-      "sectionDescription": "Inject custom <script> tags into <head> and <body> for analytics, tracking, or structured data. Scripts run for all visitors. Only paste code you trust.",
+      "sectionDescription": "Inject custom script tags into the page head and body for analytics, tracking, or structured data. Scripts run for all visitors. Only paste code you trust.",
       "headScripts": {
         "label": "Head Scripts",
-        "description": "HTML fragment with <script> tags to inject into <head>.",
-        "help": "Paste full <script>...</script> tags (multiple allowed). For GA, Baidu, Plausible, Umami, JSON-LD, etc. The existing Matomo integration runs independently."
+        "description": "HTML fragment with script tags to inject into the page head.",
+        "help": "Paste full script tags (multiple allowed). For GA, Baidu, Plausible, Umami, JSON-LD, etc. The existing Matomo integration runs independently."
       },
       "bodyScripts": {
         "label": "Body Scripts",
-        "description": "HTML fragment with <script> tags to inject at the top of <body>.",
-        "help": "Paste full <script>...</script> tags (multiple allowed). Suitable for scripts that should run after the body opens."
+        "description": "HTML fragment with script tags to inject at the top of the page body.",
+        "help": "Paste full script tags (multiple allowed). Suitable for scripts that should run after the body opens."
       }
     },
     "general": {

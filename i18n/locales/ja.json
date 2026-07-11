@@ -1313,16 +1313,16 @@
       }
     },
     "analytics": {
-      "sectionDescription": "アナリティクス、トラッキング、または構造化データ用のカスタム <script> タグを <head> と <body> に注入します。スクリプトはすべての訪問者に実行されます。信頼できるコードのみ貼り付けてください。",
+      "sectionDescription": "アナリティクス、トラッキング、または構造化データ用のカスタム script タグを head と body に注入します。スクリプトはすべての訪問者に実行されます。信頼できるコードのみ貼り付けてください。",
       "headScripts": {
         "label": "Head スクリプト",
-        "description": "<head> に注入する <script> タグを含む HTML 断片。",
-        "help": "完全な <script>...</script> タグを貼り付けます（複数可）。GA、百度統計、Plausible、Umami、JSON-LD などに適用。既存の Matomo 統合は独立して実行されます。"
+        "description": "head に注入する script タグを含む HTML 断片。",
+        "help": "完全な script タグを貼り付けます（複数可）。GA、百度統計、Plausible、Umami、JSON-LD などに適用。既存の Matomo 統合は独立して実行されます。"
       },
       "bodyScripts": {
         "label": "Body スクリプト",
-        "description": "<body> の先頭に注入する <script> タグを含む HTML 断片。",
-        "help": "完全な <script>...</script> タグを貼り付けます（複数可）。body の開始時に実行する必要があるスクリプトに適しています。"
+        "description": "body の先頭に注入する script タグを含む HTML 断片。",
+        "help": "完全な script タグを貼り付けます（複数可）。body の開始時に実行する必要があるスクリプトに適しています。"
       }
     },
     "general": {
