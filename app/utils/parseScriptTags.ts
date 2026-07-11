@@ -76,7 +76,9 @@ function applyAttribute(
   }
 
   if (lower === 'crossorigin') {
-    out.crossorigin = value === true ? true : (value as string)
+    if (value === true || value === 'anonymous' || value === 'use-credentials') {
+      out.crossorigin = value
+    }
     return
   }
 
@@ -91,9 +93,10 @@ function parseAttributes(attrs: string, out: ParsedScriptTag): void {
   let match: RegExpExecArray | null
   while ((match = ATTR_RE.exec(attrs)) !== null) {
     const name = match[1]
-    // 优先级：双引号 > 单引号 > 无引号
+    if (!name) continue    // 类型守卫，同时避免无效匹配
     const value = match[2] ?? match[3] ?? match[4]
-    applyAttribute(name, value === undefined ? true : value, out)
+    const attrValue = value === undefined ? 'true' : value  // 统一为 string
+    applyAttribute(name, attrValue, out)
   }
 }
 
