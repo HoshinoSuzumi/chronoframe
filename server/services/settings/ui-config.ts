@@ -133,6 +133,31 @@ export const ANALYTICS_SETTINGS_UI: Record<string, FieldUIConfig> = {
   },
 }
 
+export const SITE_SETTINGS_UI: Record<string, FieldUIConfig> = {
+  icpNumber: {
+    type: 'input',
+    placeholder: '京ICP备12345678号',
+    help: 'settings.site.icpNumber.help',
+  },
+  policeNumber: {
+    type: 'input',
+    placeholder: '11010502000001',
+    help: 'settings.site.policeNumber.help',
+  },
+  customHeader: {
+    type: 'textarea',
+    rows: 6,
+    placeholder: '<!-- 自定义 header HTML，例如公告条、顶部 banner -->',
+    help: 'settings.site.customHeader.help',
+  },
+  customFooter: {
+    type: 'textarea',
+    rows: 6,
+    placeholder: '<!-- 自定义 footer HTML，例如版权声明、友情链接 -->',
+    help: 'settings.site.customFooter.help',
+  },
+}
+
 export const SYSTEM_SETTINGS_UI: Record<string, FieldUIConfig> = {
   'upload.maxFileSize': {
     type: 'number',
@@ -361,6 +386,7 @@ export function getSettingUIConfig(
     location: LOCATION_SETTINGS_UI,
     storage: STORAGE_SETTINGS_UI,
     analytics: ANALYTICS_SETTINGS_UI,
+    site: SITE_SETTINGS_UI,
   }
 
   return uiConfigMap[namespace]?.[key]

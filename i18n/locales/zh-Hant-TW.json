@@ -400,7 +400,8 @@
     "location": "位置服務",
     "storageSettings": "儲存設定",
     "systemSettings": "系統設定",
-    "analyticsSettings": "分析與追蹤"
+    "analyticsSettings": "分析與追蹤",
+    "siteSettings": "站點外觀與合規"
   },
   "auth": {
     "form": {
@@ -1323,6 +1324,29 @@
         "label": "Body 指令碼",
         "description": "包含 script 標籤的 HTML 片段，注入到 body 開頭。",
         "help": "貼上完整的 script 標籤（支援多個）。適用於需要在 body 開始處執行的指令碼。"
+      }
+    },
+    "site": {
+      "sectionDescription": "設定站點合規資訊（ICP 備案、網安備案）與自訂頁首頁尾 HTML。備案號將自動生成指向官方查詢頁的連結。",
+      "icpNumber": {
+        "label": "ICP 備案號",
+        "description": "工業和資訊化部備案號，留空則前台不顯示。",
+        "help": "填寫完整的 ICP 備案號（如「京ICP备12345678号」）。系統會自動生成指向工業和資訊化部官網的連結。"
+      },
+      "policeNumber": {
+        "label": "網安備案號",
+        "description": "公安部網路安全備案號，留空則前台不顯示。",
+        "help": "填寫網安備案編號（如「11010502000001」）。系統會自動拼接指向公安備案查詢頁的連結。"
+      },
+      "customHeader": {
+        "label": "自訂 Header HTML",
+        "description": "懸浮於畫廊頂部的自訂 HTML 片段。",
+        "help": "僅貼上可信 HTML，支援任意標籤。適合公告條、頂部 banner。留空則不顯示。"
+      },
+      "customFooter": {
+        "label": "自訂 Footer HTML",
+        "description": "與備案資訊一同顯示在畫廊底部的自訂 HTML 片段。",
+        "help": "僅貼上可信 HTML，支援任意標籤。適合版權聲明、友情連結。留空則不顯示。"
       }
     },
     "general": {
