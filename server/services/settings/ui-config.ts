@@ -1,3 +1,4 @@
+import i18nOptions from '~~/i18n/i18n.options'
 import type { FieldUIConfig } from '~~/shared/types/settings'
 
 /**
@@ -89,12 +90,10 @@ export const MAP_SETTINGS_UI: Record<string, FieldUIConfig> = {
 export const LOCATION_SETTINGS_UI: Record<string, FieldUIConfig> = {
   language: {
     type: 'select',
-    options: [
-      { label: 'English', value: 'en' },
-      { label: '简体中文 (Simplified Chinese)', value: 'zh-CN' },
-      { label: '繁體中文 (Traditional Chinese)', value: 'zh-TW' },
-      { label: '日本語 (Japanese)', value: 'ja' },
-    ],
+    options: i18nOptions.locales.map((locale) => ({
+      label: locale.label,
+      value: locale.language,
+    })),
     help: 'settings.location.language.help',
   },
   'mapbox.token': {
