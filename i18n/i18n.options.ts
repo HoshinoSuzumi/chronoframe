@@ -13,6 +13,7 @@ type AppLocaleCode =
   | 'zh-Hant-HK'
   | 'en'
   | 'ja'
+  | 'ru'
 
 type AppLocaleObject = LocaleObject<AppLocaleCode> & {
   label: string
@@ -55,6 +56,13 @@ export const locales: AppLocaleObject[] = [
     file: 'ja.json',
     language: 'ja',
   },
+  {
+    code: 'ru',
+    name: 'Русский',
+    label: 'Русский (Russian)',
+    file: 'ru.json',
+    language: 'ru',
+  },
 ]
 
 export const localeLanguages = locales.map(({ language }) => language)
@@ -64,6 +72,7 @@ export const dayjsLocales: DayjsLocale[] = [
   'zh-hk',
   'en',
   'ja',
+  'ru'
 ]
 
 export default {
