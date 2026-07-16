@@ -92,6 +92,9 @@ NUXT_PROVIDER_LOCAL_PATH=/app/data/storage
 
 # Session password (32‑char random string, required)
 NUXT_SESSION_PASSWORD=
+# Secret key for stable signing og images
+# Use: npx nuxt-og-image generate-secret
+NUXT_OG_IMAGE_SECRET=
 ```
 
 ### Pull Image

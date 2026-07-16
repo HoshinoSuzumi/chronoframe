@@ -240,8 +240,11 @@ export default defineNuxtConfig({
     },
   },
 
-  ogImage: {
-    fonts: ['Rubik:400', 'Rubik:700', 'Noto+Sans+SC:400', 'Noto+Sans+SC:700'],
+  fonts: {
+    families: [
+      { name: "Rubik", weights: [400, 500, 600, 700], global: true },
+      { name: "Noto Sans SC", weights: [400, 500, 600, 700], global: true },
+    ],
   },
 
   dayjs: {
