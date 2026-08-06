@@ -92,6 +92,9 @@ NUXT_PROVIDER_LOCAL_PATH=/app/data/storage
 
 # 会话密码（必须，32 位随机字符串）
 NUXT_SESSION_PASSWORD=
+# 用于稳定签名 OG 图片的密钥
+# 使用命令生成：npx nuxt-og-image generate-secret
+NUXT_OG_IMAGE_SECRET=
 ```
 
 ### 拉取镜像
