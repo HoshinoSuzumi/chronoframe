@@ -2,6 +2,7 @@ import type { _Object, S3ClientConfig } from '@aws-sdk/client-s3'
 import {
   DeleteObjectCommand,
   GetObjectCommand,
+  HeadObjectCommand,
   ListObjectsCommand,
   PutObjectCommand,
   S3Client,
@@ -196,7 +197,7 @@ export class S3StorageProvider implements StorageProvider {
 
   async getFileMeta(key: string): Promise<StorageObject | null> {
     try {
-      const cmd = new GetObjectCommand({
+      const cmd = new HeadObjectCommand({
         Bucket: this.config.bucket,
         Key: key,
       })
