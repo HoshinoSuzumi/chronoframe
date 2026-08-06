@@ -1,0 +1,1550 @@
+{
+  "plural": {
+    "photo": "нет фото | одно фото | {count} фото"
+  },
+  "ui": {
+    "action": {
+      "filter": {
+        "tooltip": "Фильтр фотографий",
+        "title": "Фильтр фотографий",
+        "clearAll": "Сбросить всё",
+        "tabs": {
+          "tags": "Теги",
+          "cameras": "Камеры",
+          "lenses": "Объективы",
+          "cities": "Города",
+          "ratings": "Рейтинг"
+        },
+        "empty": {
+          "tags": "Нет тегов",
+          "cameras": "Нет данных о камерах",
+          "lenses": "Нет данных об объективах",
+          "cities": "Нет данных о городах"
+        },
+        "rating": {
+          "showAll": "Показать все фотографии",
+          "showStarsAndAbove": "Показать фотографии с рейтингом от {count} звёзд"
+        },
+        "searchPlaceholder": "Поиск по именам файлов и другим данным…",
+        "shuffleTooltip": "Перемешать список"
+      },
+      "sort": {
+        "tooltip": "Сортировка фотографий",
+        "title": "Сортировать по",
+        "options": {
+          "dateTakenDesc": "Дате съёмки (сначала новые)",
+          "dateTakenAsc": "Дате съёмки (сначала старые)",
+          "fileSizeAsc": "Размеру файла (по возрастанию)",
+          "fileSizeDesc": "Размеру файла (по убыванию)",
+          "titleAsc": "Названию (по возрастанию)",
+          "titleDesc": "Названию (по убыванию)",
+          "shuffle": "В случайном порядке"
+        }
+      },
+      "theme": {
+        "tooltip": "Цветовая тема"
+      },
+      "dashboard": {
+        "tooltip": "Панель управления"
+      },
+      "logout": {
+        "tooltip": "Выйти"
+      },
+      "globe": {
+        "tooltip": "Глобус"
+      },
+      "home": {
+        "tooltip": "На главную"
+      },
+      "share": {
+        "tooltip": "Поделиться фотографией",
+        "title": "Поделиться фотографией",
+        "tabs": {
+          "social": "Социальные сети",
+          "advanced": "Дополнительно"
+        },
+        "platforms": {
+          "twitter": "Twitter",
+          "telegram": "Telegram",
+          "weibo": "Weibo",
+          "facebook": "Facebook",
+          "whatsapp": "WhatsApp",
+          "linkedin": "LinkedIn"
+        },
+        "actions": {
+          "nativeShare": "Поделиться через систему",
+          "copyLink": "Копировать ссылку",
+          "copyImage": "Копировать изображение",
+          "downloadImage": "Скачать оригинал",
+          "generateShareImage": "Создать изображение для публикации",
+          "shareUrl": "Поделиться ссылкой",
+          "downloadOgImage": "Скачать превью",
+          "downloadOriginal": "Скачать оригинал",
+          "downloadOriginalImage": "Скачать исходное изображение"
+        },
+        "success": {
+          "linkCopied": "Ссылка скопирована в буфер обмена",
+          "imageCopied": "Изображение скопировано в буфер обмена",
+          "ogImageDownloaded": "Превью успешно скачано",
+          "originalImageDownloaded": "Исходное изображение успешно скачано"
+        },
+        "error": {
+          "copyNotSupported": "Этот браузер не поддерживает копирование",
+          "shareFailed": "Не удалось поделиться",
+          "nativeShareFailed": "Не удалось открыть системное меню «Поделиться»",
+          "linkCopyFailed": "Не удалось скопировать ссылку",
+          "ogImageDownloadFailed": "Не удалось скачать превью",
+          "originalImageDownloadFailed": "Не удалось скачать исходное изображение"
+        },
+        "ogImage": {
+          "title": "Предпросмотр публикации",
+          "alt": "Превью фотографии для публикации",
+          "loading": "Загрузка…",
+          "loadError": "Не удалось загрузить"
+        },
+        "fallback": {
+          "photoTitle": "Красивая фотография"
+        },
+        "text": {
+          "prefix": "Посмотрите на эту фотографию:"
+        }
+      },
+      "backtotop": {
+        "tooltip": "Наверх",
+        "ariaLabel": "Вернуться наверх"
+      }
+    },
+    "stats": {
+      "totalPhotosWithRange": "{range}, всего @:plural.photo",
+      "noPhotosTip": "Фотографий пока нет — загрузите первые!"
+    },
+    "livePhoto": "Live Photo",
+    "indexPanelCountCity": "и ещё {count} городов",
+    "album": {
+      "noImage": "Пустой альбом",
+      "emptyAlbumTip": "Добавьте фотографии, чтобы начать",
+      "noDescription": "Нет описания"
+    },
+    "loading": "Загрузка",
+    "photo": {
+      "untitled": "Без названия",
+      "altFallback": "Фотография",
+      "loadError": "Не удалось загрузить изображение",
+      "avatarAlt": "Аватар автора"
+    },
+    "authForm": {
+      "logoAlt": "Логотип приложения"
+    },
+    "histogram": {
+      "rendering": "Отрисовка",
+      "loadError": "Не удалось загрузить гистограмму"
+    },
+    "calendarHeatmap": {
+      "on": "за",
+      "contributions": "фотографий"
+    }
+  },
+  "album": {
+    "notFound": "Альбом не найден",
+    "noDateInfo": "Нет данных о дате",
+    "noPhotosTip": "В этом альбоме пока нет фотографий",
+    "emptyAlbumTitle": "Этот альбом пуст",
+    "emptyAlbumDescription": "Здесь появятся новые прекрасные моменты.",
+    "failedToLoadTitle": "Не удалось загрузить альбом",
+    "failedToLoadDescription": "При загрузке альбома произошла ошибка.",
+    "failedToLoad": "Не удалось загрузить альбом",
+    "backToAlbums": "Вернуться к альбомам",
+    "noDescription": "Описание не указано",
+    "photo": "нет фотографий | {count} фотография | {count} фотографии | {count} фотографий",
+    "createdAt": "Создан {time}",
+    "metadata": {
+      "photos": "Фотографии",
+      "dateRange": "Диапазон дат",
+      "created": "Дата создания"
+    },
+    "createdTooltip": "Создан: {date}"
+  },
+  "map": {
+    "cluster": {
+      "details": "Нажмите, чтобы посмотреть подробности",
+      "nearbyPhotos": "Фотографий рядом: {0}",
+      "altFallback": "Кластер {id}"
+    },
+    "photo": {
+      "altFallback": "Фотография {id}",
+      "unknownCoord": "Неизвестно"
+    }
+  },
+  "minimap": {
+    "loading": "Загрузка мини-карты…"
+  },
+  "viewer": {
+    "hint": {
+      "livePhoto": {
+        "mobile": "Удерживайте, чтобы воспроизвести Live Photo · Дважды нажмите или сведите пальцы для масштабирования",
+        "desktop": "Наведите на значок воспроизведения · Двойной щелчок или прокрутка для масштабирования"
+      },
+      "mobile": "Дважды нажмите или сведите пальцы для масштабирования",
+      "desktop": "Двойной щелчок или колёсико мыши для масштабирования"
+    },
+    "reaction": {
+      "add": "Добавить реакцию",
+      "change": "Изменить реакцию",
+      "count": "нет реакций | {count} реакция | {count} реакции | {count} реакций",
+      "like": "Отличный кадр",
+      "love": "Обожаю",
+      "amazing": "Потрясающе",
+      "funny": "Ха-ха",
+      "wow": "Ого",
+      "sad": "Трогательно",
+      "fire": "Огонь",
+      "sparkle": "Блеск",
+      "error": {
+        "title": "Не удалось добавить реакцию",
+        "rateLimited": "Слишком много запросов. Повторите попытку позже"
+      }
+    },
+    "photoload": {
+      "loadError": "Не удалось загрузить изображение",
+      "loading": "Загрузка изображения",
+      "converting": "Преобразование…",
+      "loadingWebGL": "Загрузка WebGL…",
+      "loadingHEIC": "Загрузка изображения HEIC…",
+      "loadingTexture": "Создание текстуры"
+    }
+  },
+  "exif": {
+    "sections": {
+      "basic": "Основная информация",
+      "deviceInfomation": "Оборудование",
+      "specification": "Технические параметры",
+      "rating": "Рейтинг",
+      "tags": "Ключевые слова",
+      "albums": "Альбомы",
+      "histogram": "Гистограмма",
+      "capture": {},
+      "shooting": {
+        "parameters": "Параметры съёмки",
+        "mode": "Режим съёмки"
+      }
+    },
+    "aperture": "Значение диафрагмы",
+    "dateTaken": {
+      "title": "Время съёмки"
+    },
+    "filename": "Имя файла",
+    "fileSize": "Размер файла",
+    "resolution": "Разрешение",
+    "pixels": "Пиксели",
+    "colorSpace": {
+      "title": "Цветовое пространство"
+    },
+    "artist": "Автор",
+    "software": "Программное обеспечение",
+    "tz": "Часовой пояс",
+    "country": "Страна",
+    "city": "Город",
+    "gps": {
+      "title": "Координаты"
+    },
+    "focal": {
+      "length": {
+        "actual": "Фокусное расстояние",
+        "equivalent": "Эквивалент для 35 мм"
+      },
+      "plane": {
+        "resolution": "Разрешение фокальной плоскости"
+      }
+    },
+    "exposure": {
+      "time": "Выдержка",
+      "program": "Программа экспозиции",
+      "mode": "Режим экспозиции"
+    },
+    "camera": "Камера",
+    "lens": "Объектив",
+    "maxAperture": "Максимальная диафрагма",
+    "wb": {
+      "title": "Баланс белого",
+      "shiftAB": "Сдвиг ББ (янтарный — синий)",
+      "shiftGM": "Сдвиг ББ (зелёный — пурпурный)",
+      "bias": "Поправка баланса белого",
+      "fineTune": "Точная настройка баланса белого"
+    },
+    "metering": {
+      "title": "Режим экспозамера"
+    },
+    "flash": {
+      "title": "Вспышка",
+      "meteringMode": "Режим замера вспышки"
+    },
+    "scene": {
+      "captureType": "Тип сцены"
+    },
+    "brightness": {
+      "value": "Яркость"
+    },
+    "sensing": {
+      "method": "Метод считывания"
+    },
+    "values": {
+      "exposureProgram": {
+        "notDefined": "Не определено",
+        "manual": "Ручной",
+        "programAe": "Программная автоэкспозиция",
+        "aperturePriorityAe": "Приоритет диафрагмы",
+        "shutterSpeedPriorityAe": "Приоритет выдержки",
+        "creativeSlowSpeed": "Творческий режим (длинная выдержка)",
+        "actionHighSpeed": "Динамичная сцена (короткая выдержка)",
+        "portrait": "Портрет",
+        "landscape": "Пейзаж",
+        "bulb": "Ручная выдержка (Bulb)"
+      },
+      "exposureMode": {
+        "auto": "Автоматический",
+        "manual": "Ручной",
+        "autoBracket": "Автобрекетинг"
+      },
+      "flash": {
+        "noFlash": "Без вспышки",
+        "fired": "Сработала",
+        "firedReturnNotDetected": "Сработала, отражённый свет не обнаружен",
+        "firedReturnDetected": "Сработала, отражённый свет обнаружен",
+        "onDidNotFire": "Включена, не сработала",
+        "onFired": "Включена, сработала",
+        "onReturnNotDetected": "Включена, отражённый свет не обнаружен",
+        "onReturnDetected": "Включена, отражённый свет обнаружен",
+        "offDidNotFire": "Выключена, не сработала",
+        "offDidNotFireReturnNotDetected": "Выключена, не сработала, отражённый свет не обнаружен",
+        "autoDidNotFire": "Авто, не сработала",
+        "autoFired": "Авто, сработала",
+        "autoFiredReturnNotDetected": "Авто, сработала, отражённый свет не обнаружен",
+        "autoFiredReturnDetected": "Авто, сработала, отражённый свет обнаружен",
+        "noFlashFunction": "Функция вспышки отсутствует",
+        "offNoFlashFunction": "Выключена, функция вспышки отсутствует",
+        "firedRedEyeReduction": "Сработала, подавление эффекта красных глаз",
+        "firedRedEyeReductionReturnNotDetected": "Сработала, подавление эффекта красных глаз, отражённый свет не обнаружен",
+        "firedRedEyeReductionReturnDetected": "Сработала, подавление эффекта красных глаз, отражённый свет обнаружен",
+        "onRedEyeReduction": "Включена, подавление эффекта красных глаз",
+        "onRedEyeReductionReturnNotDetected": "Включена, подавление эффекта красных глаз, отражённый свет не обнаружен",
+        "onRedEyeReductionReturnDetected": "Включена, подавление эффекта красных глаз, отражённый свет обнаружен",
+        "offRedEyeReduction": "Выключена, подавление эффекта красных глаз",
+        "autoDidNotFireRedEyeReduction": "Авто, не сработала, подавление эффекта красных глаз",
+        "autoFiredRedEyeReduction": "Авто, сработала, подавление эффекта красных глаз",
+        "autoFiredRedEyeReductionReturnNotDetected": "Авто, сработала, подавление эффекта красных глаз, отражённый свет не обнаружен",
+        "autoFiredRedEyeReductionReturnDetected": "Авто, сработала, подавление эффекта красных глаз, отражённый свет обнаружен"
+      },
+      "meteringMode": {
+        "unknown": "Неизвестно",
+        "average": "Средний",
+        "centerWeightedAverage": "Центровзвешенный",
+        "spot": "Точечный",
+        "multiSpot": "Многоточечный",
+        "multiSegment": "Матричный",
+        "partial": "Частичный",
+        "other": "Другой"
+      },
+      "whiteBalance": {
+        "auto": "Автоматический",
+        "manual": "Ручной",
+        "auto1": "Обычная коррекция, нейтральные тона",
+        "auto2": "Сохранение тёплых оттенков освещения"
+      },
+      "sceneCaptureType": {
+        "standard": "Стандартный",
+        "landscape": "Пейзаж",
+        "portrait": "Портрет",
+        "night": "Ночная съёмка",
+        "other": "Другой"
+      },
+      "sensingMethod": {
+        "notDefined": "Не определено",
+        "monochromeArea": "Монохромный матричный сенсор",
+        "oneChipColorArea": "Одноматричный цветной сенсор",
+        "twoChipColorArea": "Двухматричный цветной сенсор",
+        "threeChipColorArea": "Трёхматричный цветной сенсор",
+        "colorSequentialArea": "Матричный сенсор с последовательной передачей цвета",
+        "monochromeLinear": "Монохромный линейный сенсор",
+        "trilinear": "Трёхлинейный сенсор",
+        "colorSequentialLinear": "Линейный сенсор с последовательной передачей цвета"
+      },
+      "colorSpace": {
+        "srgb": "sRGB",
+        "adobeRgb": "Adobe RGB",
+        "wideGamutRgb": "Wide Gamut RGB",
+        "displayP3": "Display P3",
+        "iccProfile": "Профиль ICC",
+        "uncalibrated": "Некалиброванное",
+        "rgb": "RGB"
+      }
+    },
+    "iso": "ISO"
+  },
+  "title": {
+    "gallery": "Галерея",
+    "fallback": {
+      "photo": "Фотография"
+    },
+    "dashboard": "Панель управления",
+    "photos": "Фотографии",
+    "locations": "Местоположения",
+    "globe": "Фотоглобус",
+    "queue": "Управление очередью",
+    "logs": "Системные журналы",
+    "albums": "Альбомы",
+    "siteAdministration": "Настройки сайта",
+    "location": "Службы геолокации",
+    "generalSettings": "Общие настройки",
+    "appearanceSettings": "Настройки оформления",
+    "privacySettings": "Настройки конфиденциальности",
+    "mapAndLocation": "Карта и геолокация",
+    "storageSettings": "Настройки хранилища",
+    "systemSettings": "Системные настройки"
+  },
+  "auth": {
+    "form": {
+      "errors": {
+        "invalidEmail": "Некорректный адрес электронной почты",
+        "invalidPassword": "Пароль должен содержать не менее 6 символов"
+      },
+      "signin": {
+        "title": "Вход",
+        "subtitle": "Войдите в {0}"
+      },
+      "action": {
+        "backToHome": "На главную",
+        "or": "ИЛИ",
+        "continue": "Продолжить"
+      },
+      "labels": {
+        "email": "Электронная почта",
+        "password": "Пароль"
+      }
+    },
+    "messages": {
+      "loginFailed": {
+        "title": "Не удалось войти",
+        "description": "Произошла непредвиденная ошибка. Повторите попытку."
+      }
+    }
+  },
+  "common": {
+    "unknown": "неизвестно",
+    "unsavedChanges": "Есть несохранённые изменения.",
+    "months": {
+      "jan": "янв.",
+      "feb": "февр.",
+      "mar": "мар.",
+      "apr": "апр.",
+      "may": "мая",
+      "jun": "июн.",
+      "jul": "июл.",
+      "aug": "авг.",
+      "sep": "сент.",
+      "oct": "окт.",
+      "nov": "нояб.",
+      "dec": "дек."
+    },
+    "days": {
+      "sun": "вс",
+      "mon": "пн",
+      "tue": "вт",
+      "wed": "ср",
+      "thu": "чт",
+      "fri": "пт",
+      "sat": "сб"
+    },
+    "heatmap": {
+      "legend": {
+        "less": "Меньше",
+        "more": "Больше",
+        "recentlyYear": "За последний год"
+      },
+      "tooltip": {
+        "data": "{0}: снято фотографий — {1}",
+        "noData": "За {0} нет фотографий"
+      }
+    },
+    "actions": {
+      "save": "Сохранить",
+      "saveSettings": "Сохранить настройки",
+      "reset": "Сбросить",
+      "cancel": "Отмена",
+      "continue": "Продолжить",
+      "delete": "Удалить"
+    },
+    "unknownError": "Неизвестная ошибка"
+  },
+  "upload": {
+    "duplicate": {
+      "block": {
+        "title": "Файл уже существует",
+        "message": "Фотография «{fileName}» уже существует, а загрузка дубликатов запрещена",
+        "suggestion": "Можно: 1) переименовать файл и загрузить его снова; 2) включить в настройках режим предупреждения, чтобы разрешить перезапись"
+      },
+      "skip": {
+        "title": "Дубликат пропущен",
+        "message": "Фотография «{fileName}» уже существует и была автоматически пропущена",
+        "info": "Существующая фотография снята {dateTaken}"
+      },
+      "warn": {
+        "title": "Обнаружен дубликат",
+        "message": "Фотография «{fileName}» уже существует. Если продолжить, существующая фотография будет перезаписана",
+        "warning": "Перезаписать существующий файл фотографии",
+        "info": "Существующая фотография: {title}, снята {dateTaken}"
+      }
+    },
+    "success": {
+      "upload": {
+        "single": "Фотография загружена и обрабатывается…",
+        "multiple": "Загружено фотографий: {count}. Выполняется обработка…"
+      },
+      "check": {
+        "title": "Проверка завершена",
+        "message": "Проверено файлов: {total}, найдено дубликатов: {duplicates}"
+      }
+    },
+    "error": {
+      "required": {
+        "title": "Не указан обязательный параметр",
+        "message": "Укажите параметр {field}"
+      },
+      "invalidType": {
+        "title": "Неподдерживаемый тип файла",
+        "message": "Неподдерживаемый тип медиафайла: {type}",
+        "suggestion": "Разрешённые типы: {allowed}"
+      },
+      "tooLarge": {
+        "title": "Файл слишком большой",
+        "message": "Размер файла {size} МБ превышает ограничение",
+        "suggestion": "Максимально допустимый размер: {maxSize} МБ"
+      },
+      "uploadFailed": {
+        "title": "Не удалось загрузить файл",
+        "message": "Во время загрузки произошла ошибка. Повторите попытку позже"
+      }
+    },
+    "runtimeError": {
+      "networkFailed": "Не удалось подключиться к сети",
+      "clientError": "Ошибка клиента ({status})",
+      "serverError": "Ошибка сервера ({status})",
+      "networkError": "Ошибка сети (статус: {status})",
+      "timeout": "Превышено время ожидания загрузки ({timeout} мс)",
+      "aborted": "Загрузка отменена",
+      "badRequest": "Некорректный формат запроса",
+      "unauthorized": "Требуется авторизация",
+      "forbidden": "Доступ запрещён",
+      "notFound": "Точка загрузки не найдена",
+      "conflict": "Конфликт файлов",
+      "fileTooLarge": "Файл слишком большой",
+      "unsupportedType": "Неподдерживаемый тип файла",
+      "rateLimited": "Превышен лимит запросов на загрузку",
+      "internalServerError": "Внутренняя ошибка сервера",
+      "serviceUnavailable": "Сервер временно недоступен",
+      "httpError": "Ошибка HTTP: {status}",
+      "retrying": "{message} (попытка {attempt} из {max})"
+    },
+    "progress": {
+      "calculating": "Расчёт…",
+      "seconds": "{seconds} с"
+    }
+  },
+  "dashboard": {
+    "photos": {
+      "title": "Загрузка фотографий",
+      "subtitle": "Фотографии будут автоматически обработаны и добавлены в вашу библиотеку. После этого их можно упорядочить в разделе {0}.",
+      "supportedFormats": "JPEG / PNG / HEIC / Live Photo / Motion Photo",
+      "maxFileSize": "Не более {size} МБ",
+      "buttons": {
+        "upload": "Загрузить фотографии",
+        "queue": "Очередь задач"
+      },
+      "uploader": {
+        "label": "Перетащите фотографии сюда или нажмите, чтобы выбрать их",
+        "description": "Поддерживаются фотографии JPEG, PNG и HEIC, а также видео Live Photo в формате MOV. Максимальный размер одного файла: {maxSize} МБ"
+      },
+      "toolbar": {
+        "title": "Управление фотографиями",
+        "filter": "Фильтр",
+        "refresh": "Обновить"
+      },
+      "photoFilter": {
+        "all": "Все фотографии",
+        "livephoto": "Live Photo",
+        "static": "Обычные фотографии"
+      },
+      "stats": {
+        "photos": "фотографии",
+        "livePhotos": "Live Photo"
+      },
+      "table": {
+        "columns": {
+          "thumbnail": {
+            "title": "Миниатюра",
+            "action": "Открыть фотографию в новой вкладке"
+          },
+          "id": "ID фотографии",
+          "title": "Название",
+          "tags": "Ключевые слова",
+          "rating": "Рейтинг",
+          "isLivePhoto": "Тип фотографии",
+          "location": "Местоположение",
+          "dateTaken": "Дата съёмки",
+          "lastModified": "Дата изменения",
+          "fileSize": "Размер файла",
+          "colorSpace": "Цветовое пространство",
+          "reactions": "Реакции",
+          "actions": "Действия"
+        },
+        "cells": {
+          "noTags": "Нет тегов",
+          "noRating": "Без оценки",
+          "noGps": "Нет данных GPS",
+          "unknown": "Неизвестно",
+          "staticPhoto": "Обычная фотография",
+          "noReactions": "Нет реакций"
+        },
+        "columnVisibility": {
+          "button": "Столбцы",
+          "description": "Настройка отображения столбцов"
+        },
+        "selectAllAria": "Выбрать все",
+        "selectRowAria": "Выбрать строку",
+        "thumbnailAlt": "Миниатюра фотографии"
+      },
+      "actions": {
+        "reprocess": "Обработать повторно",
+        "refreshLocation": "Повторно определить город",
+        "eraseLocationInfo": "Удалить данные о местоположении",
+        "delete": "Удалить",
+        "editMetadata": "Изменить метаданные",
+        "previewPhoto": "Предпросмотр фотографии"
+      },
+      "selection": {
+        "selected": "Выбрано строк: {count} из {total}",
+        "batchReprocess": "Обработать повторно",
+        "batchEraseLocation": "Удалить данные о местоположении",
+        "batchDownload": "Скачать",
+        "batchDelete": "Удалить выбранные"
+      },
+      "slideover": {
+        "title": "Загрузка фотографий",
+        "description": "Перетащите или выберите файлы. Фотографии будут автоматически обработаны и добавлены в библиотеку.",
+        "options": {
+          "eraseLocation": {
+            "label": "Удалять данные о местоположении при загрузке",
+            "description": "Для этой загрузки можно переопределить системную настройку и в любой момент включить или отключить удаление данных."
+          },
+          "duplicateCheck": {
+            "label": "Обработка дубликатов",
+            "descriptionEnabled": "Поиск дубликатов включён. Файлы с одинаковыми именами будут обработаны согласно выбранному режиму.",
+            "descriptionDisabled": "Поиск дубликатов отключён. Файлы с одинаковыми именами будут загружаться без предварительной проверки.",
+            "enabled": "Проверка включена",
+            "disabled": "Проверка отключена",
+            "currentMode": "Текущий режим: {mode}"
+          }
+        },
+        "buttons": {
+          "clear": "Очистить выбор",
+          "upload": "Загрузить файлов: {count}"
+        },
+        "footer": {
+          "noSelection": "Выберите фотографии для загрузки",
+          "prepared": "Файлов: {count} · {size}"
+        }
+      },
+      "delete": {
+        "single": {
+          "title": "Удаление фотографии",
+          "message": "Удалить эту фотографию?"
+        },
+        "batch": {
+          "title": "Удаление выбранных фотографий",
+          "message": "Удалить выбранные фотографии ({count})?"
+        },
+        "warning": "Будут удалены оригинал, миниатюра и видео Live Photo. Это действие нельзя отменить.",
+        "buttons": {
+          "cancel": "Отмена",
+          "confirm": "Удалить"
+        }
+      },
+      "livePhotoModal": {
+        "title": "Live Photo: {title}",
+        "staticImage": "Статичное изображение",
+        "livePhotoVideo": "Видео Live Photo",
+        "buttons": {
+          "openVideo": "Открыть видео в новом окне",
+          "downloadVideo": "Скачать видео",
+          "close": "Закрыть"
+        },
+        "notSupported": "Ваш браузер не поддерживает воспроизведение видео"
+      },
+      "messages": {
+        "uploadSuccess": "Фотография загружена и обрабатывается…",
+        "uploadMultipleSuccess": "Загружено фотографий: {count}. Выполняется обработка…",
+        "reprocessSuccess": "Задача повторной обработки добавлена",
+        "batchReprocessSuccess": "Фотографии отправлены в очередь повторной обработки: {count}",
+        "batchReprocessing": "Отправка задач повторной обработки…",
+        "reprocessTaskId": "ID задачи: {taskId}",
+        "deleteSuccess": "Фотография успешно удалена",
+        "batchDeleteSuccess": "Удалено фотографий: {count}",
+        "batchSelectRequired": "Выберите хотя бы одну фотографию",
+        "noStorageKey": "Обработка невозможна: отсутствуют данные о хранилище",
+        "batchNoStorageKey": "У фотографий отсутствуют данные о хранилище, поэтому их нельзя обработать: {count}",
+        "batchNoUrl": "Нет фотографий со ссылками для скачивания",
+        "batchPartialUrl": "Ссылки для скачивания есть только у {count} из {total} фотографий",
+        "downloadStarted": "Скачивание началось",
+        "downloadingCount": "Скачивание фотографий: {count}…",
+        "batchDownloadSuccess": "Пакетное скачивание завершено",
+        "batchDownloadFailed": "Не удалось выполнить пакетное скачивание",
+        "batchDownloadPartial": "Пакетное скачивание завершено с ошибками",
+        "downloadedCount": "Скачано фотографий: {count}",
+        "downloadFailedCount": "Не удалось скачать фотографий: {count}",
+        "downloadPartialCount": "Скачано: {success}, с ошибками: {failed}",
+        "warning": "Предупреждение",
+        "error": "Произошла ошибка",
+        "deleteFailed": "Не удалось удалить фотографию",
+        "batchDeleteFailed": "Не удалось удалить выбранные фотографии",
+        "batchReprocessFailed": "Не удалось запустить пакетную повторную обработку",
+        "reprocessFailed": "Не удалось повторно обработать фотографию",
+        "livePhotoNotFound": "Это не Live Photo",
+        "livePhotoLoadError": "Не удалось загрузить сведения о Live Photo",
+        "metadataUpdateSuccess": "Метаданные фотографии обновлены",
+        "metadataUpdateFailed": "Не удалось обновить метаданные фотографии",
+        "photoNotFound": "Фотография не найдена",
+        "photoFileMissing": "Файл фотографии отсутствует",
+        "noChangesProvided": "Нет изменений для применения",
+        "queueUnavailable": "Очередь задач недоступна",
+        "reverseGeocodeQueued": "Задача обратного геокодирования добавлена в очередь",
+        "reverseGeocodeFailed": "Не удалось добавить обратное геокодирование в очередь",
+        "eraseLocationQueued": "Задача удаления данных о местоположении добавлена в очередь",
+        "eraseLocationFailed": "Не удалось добавить задачу удаления данных о местоположении в очередь",
+        "batchEraseLocationQueued": "В очередь добавлены задачи удаления местоположения: {count}",
+        "batchEraseLocationFailed": "Не удалось добавить пакет задач удаления местоположения в очередь",
+        "taskSubmitFailed": "Не удалось отправить задачу",
+        "taskStatusCheckFailed": "Не удалось проверить состояние задачи",
+        "uploadFailed": "Не удалось загрузить файл"
+      },
+      "errors": {
+        "noSelection": "Выберите фотографии для загрузки",
+        "fileValidationFailed": "Файл не прошёл проверку",
+        "allFilesValidationFailed": "Ни один файл не прошёл проверку",
+        "allFilesTooLarge": "Все выбранные файлы ({count}) превышают максимальный размер ({maxSize} МБ).",
+        "filesTooLargeSkipped": "Пропущены слишком большие файлы: {count} (ограничение: {maxSize} МБ). Остальные файлы продолжат загружаться.",
+        "filesUnsupportedSkipped": "Пропущены файлы неподдерживаемых форматов: {count}. Остальные файлы продолжат загружаться.",
+        "unsupportedFormat": "Неподдерживаемый формат файла: {type}. Выберите фотографии JPEG, PNG или HEIC либо видео Live Photo в формате MOV.",
+        "fileTooLarge": "Файл слишком большой: {size} МБ. Максимальный поддерживаемый размер: {maxSize} МБ.",
+        "uploadFailed": "Не удалось загрузить файл",
+        "uploadNetworkError": "Ошибка подключения к сети или CORS. Проверьте настройки сети и хранилища.",
+        "uploadCorsError": "Ошибка запроса CORS. Проверьте настройки CORS хранилища.",
+        "uploadUnauthorized": "Сеанс авторизации истёк. Войдите снова.",
+        "taskSubmitFailed": "Не удалось отправить задачу обработки",
+        "taskStatusCheckFailed": "Не удалось проверить состояние задачи. Обновите страницу и повторите попытку."
+      },
+      "processing": {
+        "preparing": "Подготовка",
+        "uploading": "Загрузка",
+        "processing": "Обработка",
+        "completed": "Завершено",
+        "error": "Ошибка",
+        "skipped": "Пропущено",
+        "blocked": "Заблокировано"
+      },
+      "uploadQueue": {
+        "clearCompleted": "Удалить завершённые задачи",
+        "clearAll": "Удалить все задачи",
+        "taskCleared": "Завершённые задачи удалены",
+        "allTasksCleared": "Все задачи загрузки удалены",
+        "tasksCleared": "Удалено задач: {count}"
+      },
+      "editModal": {
+        "title": "Редактирование фотографии",
+        "description": "Измените название, описание, теги и место съёмки.",
+        "fields": {
+          "title": "Название",
+          "description": "Описание",
+          "tags": "Теги",
+          "tagsHint": "Нажимайте Enter после каждого тега.",
+          "location": "Местоположение",
+          "locationHint": "Нажмите на карту, чтобы указать место съёмки.",
+          "clearLocation": "Удалить данные о местоположении",
+          "coordinates": "Координаты",
+          "noLocation": "Местоположение не выбрано",
+          "rating": "Рейтинг",
+          "ratingHint": "Нажмите на звёзды, чтобы выставить фотографии оценку от 0 до 5.",
+          "noRating": "Без оценки"
+        },
+        "actions": {
+          "cancel": "Отмена",
+          "save": "Сохранить изменения"
+        }
+      },
+      "uploadQueueItem": {
+        "status": {
+          "waiting": "Ожидание",
+          "preparing": "Подготовка",
+          "uploading": "Загрузка: {0}%",
+          "pendingProcessing": "Ожидание обработки",
+          "completed": "Завершено",
+          "error": "Ошибка",
+          "skipped": "Пропущено",
+          "blocked": "Заблокировано",
+          "unknown": "Неизвестно"
+        },
+        "stage": {
+          "preprocessing": "Предварительная обработка",
+          "metadata": "Извлечение метаданных",
+          "thumbnail": "Создание миниатюры",
+          "exif": "Обработка EXIF",
+          "reverseGeocoding": "Обратное геокодирование",
+          "livePhoto": "Определение Live Photo"
+        },
+        "actions": {
+          "abort": "Отменить",
+          "clear": "Удалить"
+        },
+        "progress": {
+          "upload": "Ход загрузки",
+          "remainingTime": "Осталось времени: {0}",
+          "processing": "Состояние обработки"
+        },
+        "alerts": {
+          "longProcessing": "Обработка больших файлов может занять больше времени — это нормально.",
+          "success": "Файл успешно загружен и обработан"
+        }
+      },
+      "uploadQueuePanel": {
+        "title": "Очередь загрузки файлов",
+        "stats": {
+          "waiting": "ожидают",
+          "active": "выполняются",
+          "completed": "завершены",
+          "error": "с ошибкой",
+          "skipped": "пропущены",
+          "blocked": "заблокированы"
+        },
+        "summary": "Завершено: {completed}, с ошибкой: {error}, пропущено: {skipped}, заблокировано: {blocked}",
+        "actions": {
+          "clearCompleted": "Удалить завершённые",
+          "clearAll": "Удалить все",
+          "goToQueue": "Управление очередью"
+        }
+      },
+      "previewTitle": "Предпросмотр фотографии"
+    },
+    "albums": {
+      "title": "Управление альбомами",
+      "subtitle": "Создавайте альбомы и управляйте ими",
+      "createButton": "Создать альбом",
+      "noAlbums": "Альбомов пока нет",
+      "noAlbumsTip": "Создайте первый альбом, чтобы упорядочить фотографии",
+      "form": {
+        "title": "Название",
+        "titlePlaceholder": "Введите название альбома",
+        "titleRequired": "Введите название альбома",
+        "description": "Описание",
+        "descriptionPlaceholder": "Введите описание альбома (необязательно)",
+        "coverPhoto": "Обложка альбома",
+        "addCoverPhoto": "Добавить обложку",
+        "selectPhotos": "Выбрать фотографии",
+        "editPhotos": "Изменить набор фотографий",
+        "selectedCount": "Выбрано фотографий: {count}",
+        "clearAll": "Очистить всё",
+        "isHidden": "Скрыть альбом",
+        "isHiddenHint": "Фотографии из скрытых альбомов не отображаются на главной странице"
+      },
+      "table": {
+        "columns": {
+          "cover": "Обложка",
+          "title": "Название",
+          "description": "Описание",
+          "photoCount": "Фотографии",
+          "createdAt": "Дата создания",
+          "actions": "Действия"
+        }
+      },
+      "modal": {
+        "selectPhotos": "Выбор фотографий",
+        "totalPhotos": "Всего фотографий: {count}",
+        "selectedPhotos": "Выбрано фотографий: {count}",
+        "searchPlaceholder": "Поиск фотографий…",
+        "searchResults": "Результаты: {current} из {total}",
+        "selectAll": "Выбрать все",
+        "setCover": "Сделать обложкой",
+        "noPhotos": "Нет фотографий",
+        "noResults": "Подходящие фотографии не найдены",
+        "tryOtherKeywords": "Попробуйте другие ключевые слова",
+        "confirm": "Подтвердить ({count})",
+        "selectedInfo": "Выбрано:",
+        "coverSetInfo": "Обложка выбрана"
+      },
+      "slideover": {
+        "create": {
+          "title": "Создание альбома",
+          "description": "Создайте новый альбом, чтобы упорядочить фотографии"
+        },
+        "edit": {
+          "title": "Редактирование альбома",
+          "description": "Измените сведения об альбоме и набор фотографий"
+        },
+        "submitCreate": "Создать",
+        "submitEdit": "Сохранить",
+        "cancel": "Отмена"
+      },
+      "delete": {
+        "title": "Удаление альбома",
+        "message": "Удалить альбом «{title}»? Фотографии внутри не будут удалены — удалится только сам альбом.",
+        "cancel": "Отмена",
+        "confirm": "Удалить"
+      },
+      "messages": {
+        "createSuccess": "Альбом успешно создан",
+        "updateSuccess": "Альбом успешно обновлён",
+        "deleteSuccess": "Альбом успешно удалён",
+        "createError": "Не удалось создать альбом",
+        "updateError": "Не удалось обновить альбом",
+        "deleteError": "Не удалось удалить альбом",
+        "loadError": "Не удалось загрузить альбомы",
+        "loadDetailError": "Не удалось загрузить сведения об альбоме",
+        "loadPhotosError": "Не удалось загрузить фотографии"
+      },
+      "photoCount": "Фотографий: {count}"
+    },
+    "overview": {
+      "title": "Обзор",
+      "indicator": {
+        "totalPhotos": "Всего фотографий",
+        "thisMonth": "Новых за месяц",
+        "queueStatus": {
+          "title": "Состояние очереди",
+          "processing": "Обработка",
+          "pending": "Нет задач"
+        },
+        "storageUsage": "Использование хранилища"
+      },
+      "section": {
+        "runtimeInfo": {
+          "title": "Сведения о системе",
+          "version": "Версия",
+          "uptime": "Время работы",
+          "environment": "Окружение",
+          "lastUpdate": "Последнее обновление",
+          "systems": {
+            "windows": "Microsoft Windows",
+            "windows10": "Microsoft Windows 10",
+            "windows11": "Microsoft Windows 11",
+            "ubuntu": "Ubuntu",
+            "debian": "Debian",
+            "centos": "CentOS",
+            "redhat": "Red Hat Enterprise Linux",
+            "fedora": "Fedora",
+            "arch": "Arch Linux",
+            "alpine": "Alpine Linux",
+            "opensuse": "openSUSE",
+            "macos": "macOS",
+            "docker": "Контейнер Docker",
+            "unknown": "Неизвестная система"
+          }
+        },
+        "memory": {
+          "title": "Использование памяти"
+        },
+        "queue": {
+          "title": "Состояние очереди",
+          "activeWorkers": "Активные обработчики",
+          "totalWorkers": "Всего обработчиков",
+          "totalProcessed": "Обработано",
+          "totalFailed": "Ошибок",
+          "avgSuccessRate": "Доля успешных задач"
+        }
+      },
+      "shareSite": {
+        "label": "Поделиться сайтом",
+        "button": "Поделиться сайтом"
+      },
+      "memoryUnavailable": "Сведения о памяти недоступны"
+    },
+    "queue": {
+      "title": "Управление очередью",
+      "indicator": {
+        "pending": "Ожидают",
+        "processing": "Выполняются",
+        "completed": "Завершены",
+        "failed": "С ошибкой"
+      },
+      "actions": {
+        "refresh": "Обновить данные",
+        "clearCompleted": "Удалить завершённые",
+        "clearFailed": "Удалить задачи с ошибкой",
+        "clearAll": "Удалить все",
+        "retrySelected": "Повторить выбранные",
+        "retryAll": "Повторить все задачи с ошибкой",
+        "clearNonActive": "Удалить неактивные"
+      },
+      "table": {
+        "id": "ID задачи",
+        "type": "Тип",
+        "status": "Состояние",
+        "attempts": "Попытки",
+        "priority": "Приоритет",
+        "stage": "Этап",
+        "error": "Ошибка",
+        "errorMessage": "Сообщение об ошибке",
+        "createdAt": "Создана",
+        "completedAt": "Завершена",
+        "actions": "Действия",
+        "expandAria": "Развернуть",
+        "detail": {
+          "photoId": "ID фотографии",
+          "payload": "Данные задачи"
+        }
+      },
+      "status": {
+        "pending": "Ожидание",
+        "in-stages": "Обработка",
+        "completed": "Завершено",
+        "failed": "Ошибка"
+      },
+      "types": {
+        "photo": "Обработка фотографии",
+        "live-photo-video": "Обработка видео Live Photo",
+        "photo-reverse-geocoding": "Обратное геокодирование фотографии",
+        "photo-erase-location": "Удаление геоданных фотографии"
+      },
+      "stages": {
+        "preprocessing": "Предварительная обработка",
+        "metadata": "Метаданные",
+        "thumbnail": "Миниатюра",
+        "exif": "Обработка EXIF",
+        "motion-photo": "Обработка Motion Photo",
+        "reverse-geocoding": "Геокодирование",
+        "live-photo": "Обработка Live Photo",
+        "location-erase": "Удаление геоданных"
+      },
+      "buttons": {
+        "retry": "Повторить",
+        "delete": "Удалить"
+      },
+      "messages": {
+        "noTasks": "Задачи не найдены",
+        "retrySuccess": "Задача успешно отправлена на повторное выполнение",
+        "retryFailed": "Не удалось повторить задачу",
+        "deleteSuccess": "Задача успешно удалена",
+        "batchRetrySuccess": "Задачи успешно отправлены на повторное выполнение",
+        "clearSuccess": "Очистка завершена",
+        "operationFailed": "Не удалось выполнить операцию",
+        "clearSuccessDescription": "Удалено задач: {count}",
+        "clearFailed": "Не удалось удалить задачи",
+        "batchRetrySuccessDescription": "Повторно запущено задач: {count}",
+        "batchRetryFailed": "Не удалось повторно запустить задачи",
+        "deleteFailed": "Не удалось удалить задачу"
+      },
+      "filters": {
+        "all": "Все",
+        "status": "Фильтр по состоянию",
+        "type": "Фильтр по типу"
+      },
+      "taskListTitle": "Очередь задач"
+    },
+    "logs": {
+      "connectionStatus": {
+        "idle": "Отключено",
+        "connecting": "Подключение…",
+        "loadingHistory": "Загрузка истории…",
+        "live": "В реальном времени",
+        "error": "Ошибка подключения"
+      },
+      "search": {
+        "placeholder": "Поиск по журналу…",
+        "clearAriaLabel": "Очистить строку поиска"
+      },
+      "filter": {
+        "levelPlaceholder": "Уровень журнала",
+        "tagPlaceholder": "Фильтр по тегу"
+      },
+      "countLabel": "Всего / показано: {total} / {shown}",
+      "tagCount": "Тегов: {count}",
+      "empty": {
+        "waiting": "Ожидание записей журнала…",
+        "noMatch": "Подходящие записи не найдены"
+      }
+    },
+    "access": {
+      "pleaseLogin": "Войдите, чтобы открыть панель управления",
+      "noAccess": "У вас нет доступа к этой странице."
+    },
+    "nav": {
+      "documentation": "Документация"
+    }
+  },
+  "settings": {
+    "app": {
+      "title": {
+        "label": "Название приложения",
+        "description": "Название этого инстанса приложения"
+      },
+      "slogan": {
+        "label": "Слоган",
+        "description": "Слоган этого приложения",
+        "help": "Отображается под названием на главной странице"
+      },
+      "author": {
+        "label": "Владелец",
+        "description": "Имя владельца приложения"
+      },
+      "avatarUrl": {
+        "label": "URL аватара",
+        "description": "Ссылка на изображение аватара владельца",
+        "help": "Аватар отображается на экране загрузки и главной странице"
+      },
+      "appearance": {
+        "theme": {
+          "label": "Тема",
+          "description": "Выберите тему приложения",
+          "help": "Пользователи могут переопределить её в своём браузере",
+          "light": "Светлая",
+          "dark": "Тёмная",
+          "system": "Системная"
+        }
+      },
+      "upload": {
+        "maxFileSize": {
+          "label": "Максимальный размер загружаемого файла",
+          "description": "Максимальный размер одного загружаемого файла (МБ)",
+          "help": "Изменение применяется сразу ко всем пользователям"
+        }
+      }
+    },
+    "system": {
+      "sections": {
+        "thirdPartyLogin": "Вход через сторонние сервисы",
+        "fileProcessing": "Обработка файлов",
+        "debugSettings": "Настройки отладки"
+      },
+      "upload": {
+        "duplicateCheck": {
+          "enabled": {
+            "label": "Искать дубликаты при загрузке",
+            "description": "Определять дубликаты фотографий по имени файла и применять выбранный режим обработки",
+            "help": "Если отключено, предварительная проверка пропускается и файлы с одинаковыми именами сразу загружаются"
+          },
+          "mode": {
+            "label": "Режим обработки дубликатов",
+            "description": "Как обрабатывать файлы, определённые как дубликаты",
+            "help": "Действует только при включённом поиске дубликатов",
+            "options": {
+              "skip": "Пропускать",
+              "warn": "Предупреждать и перезаписывать",
+              "block": "Запрещать загрузку"
+            }
+          }
+        }
+      },
+      "webglImageViewerDebug": {
+        "label": "Режим отладки просмотрщика WebGL",
+        "description": "Показывать ли отладочные сведения просмотрщика WebGL в рабочем окружении",
+        "help": "Если включено, авторизованные пользователи увидят панель отладки WebGL в любом окружении. Если отключено — только в режиме разработки"
+      },
+      "auth": {
+        "github": {
+          "enabled": {
+            "label": "Разрешить вход через GitHub",
+            "description": "Включить авторизацию через GitHub OAuth"
+          },
+          "clientId": {
+            "label": "Client ID GitHub",
+            "description": "Client ID вашего приложения GitHub OAuth"
+          },
+          "clientSecret": {
+            "label": "Client Secret GitHub",
+            "description": "Client Secret вашего приложения GitHub OAuth"
+          }
+        }
+      },
+      "sectionDescription": "Настройте поведение системы. Изменения повлияют на общие правила загрузки и работу сервисов."
+    },
+    "map": {
+      "provider": {
+        "label": "Поставщик карт",
+        "description": "Выберите картографический сервис"
+      },
+      "mapbox": {
+        "token": {
+          "label": "Токен Mapbox",
+          "description": "Токен доступа к API Mapbox",
+          "help": "Используйте токен без ограничений по домену"
+        },
+        "style": {
+          "label": "Стиль Mapbox",
+          "description": "URL стиля карты Mapbox"
+        }
+      },
+      "maplibre": {
+        "token": {
+          "label": "Токен MapTiler",
+          "description": "Токен доступа к API MapTiler",
+          "help": "По умолчанию MapLibre использует бесплатный картографический сервис MapTiler"
+        },
+        "style": {
+          "label": "Стиль MapLibre",
+          "description": "URL стиля карты MapLibre"
+        }
+      },
+      "sectionDescription": "Настройте отображение карт и службы геокодирования. Выбранный поставщик определяет стили карт и необходимые данные доступа."
+    },
+    "location": {
+      "language": {
+        "label": "Язык названий мест",
+        "description": "Язык результатов геокодирования",
+        "help": "Выберите язык для обратного геокодирования мест съёмки. По умолчанию используется английский."
+      },
+      "mapbox": {
+        "token": {
+          "label": "Токен Mapbox",
+          "description": "Токен доступа к API Mapbox",
+          "help": "После настройки Mapbox заменит Nominatim в качестве службы геолокации"
+        }
+      },
+      "nominatim": {
+        "baseUrl": {
+          "label": "Базовый URL Nominatim",
+          "description": "Базовый URL API обратного геокодирования Nominatim",
+          "help": "Оставьте поле пустым, чтобы использовать общедоступный сервис Nominatim"
+        }
+      }
+    },
+    "privacy": {
+      "upload": {
+        "autoEraseLocation": {
+          "label": "Автоматически удалять геоданные при загрузке",
+          "description": "Автоматически удалять GPS-данные EXIF и очищать поля геолокации при обработке загруженных фотографий",
+          "help": "Если включено, удаление геоданных будет выполняться асинхронно через очередь обработки"
+        }
+      },
+      "sectionDescription": "Управляйте конфиденциальностью загружаемых фотографий. Для публичных сайтов рекомендуется включить удаление геоданных."
+    },
+    "storage": {
+      "name": {
+        "label": "Название хранилища",
+        "description": "Название конфигурации хранилища"
+      },
+      "provider": {
+        "label": "Провайдер хранилища",
+        "description": "Выберите провайдера хранилища",
+        "options": {
+          "local": {
+            "label": "Локальное хранилище",
+            "description": "Хранить фотографии непосредственно в файловой системе сервера."
+          },
+          "s3": {
+            "label": "S3-совместимое хранилище",
+            "description": "Использовать AWS S3, Cloudflare R2 или другой S3-совместимый сервис."
+          },
+          "openlist": {
+            "label": "OpenList",
+            "description": "Подключить экземпляр Alist или OpenList в качестве хранилища."
+          }
+        }
+      },
+      "s3": {
+        "bucket": {
+          "label": "Название бакета",
+          "description": "Название бакета S3 для хранения фотографий"
+        },
+        "region": {
+          "label": "Регион",
+          "description": "Регион AWS, в котором расположен бакет S3"
+        },
+        "endpoint": {
+          "label": "Эндпоинт S3",
+          "description": "URL собственного S3-совместимого эндпоинта, например MinIO"
+        },
+        "prefix": {
+          "label": "Префикс хранилища",
+          "description": "Префикс пути к объектам в бакете"
+        },
+        "cdnUrl": {
+          "label": "URL CDN",
+          "description": "Собственный URL CDN для доступа к изображениям"
+        },
+        "accessKeyId": {
+          "label": "Access Key ID",
+          "description": "AWS Access Key ID или аналогичный идентификатор"
+        },
+        "secretAccessKey": {
+          "label": "Secret Access Key",
+          "description": "AWS Secret Access Key или аналогичный секретный ключ"
+        },
+        "forcePathStyle": {
+          "label": "Принудительно использовать path-style URL",
+          "description": "Использовать URL с путём вместо virtual-hosted-style URL"
+        },
+        "maxKeys": {
+          "label": "Максимум ключей",
+          "description": "Максимальное количество ключей в одном запросе"
+        }
+      },
+      "local": {
+        "basePath": {
+          "label": "Базовый путь хранилища",
+          "description": "Путь в локальной файловой системе для хранения фотографий"
+        },
+        "baseUrl": {
+          "label": "Базовый URL",
+          "description": "Базовый публичный URL для доступа к сохранённым фотографиям"
+        },
+        "prefix": {
+          "label": "Префикс хранилища",
+          "description": "Префикс пути для организации фотографий в хранилище"
+        }
+      },
+      "openlist": {
+        "baseUrl": {
+          "label": "Базовый URL OpenList",
+          "description": "Базовый URL сервера OpenList"
+        },
+        "rootPath": {
+          "label": "Корневой путь",
+          "description": "Корневой путь для хранения фотографий в OpenList"
+        },
+        "token": {
+          "label": "Токен авторизации",
+          "description": "Токен авторизации API OpenList"
+        },
+        "uploadEndpoint": {
+          "label": "Эндпоинт загрузки",
+          "description": "Эндпоинт API для загрузки файлов (по умолчанию: /api/fs/put)"
+        },
+        "downloadEndpoint": {
+          "label": "Эндпоинт скачивания",
+          "description": "Эндпоинт API для скачивания файлов (необязательно)"
+        },
+        "listEndpoint": {
+          "label": "Эндпоинт списка файлов",
+          "description": "Эндпоинт API для получения списка файлов (необязательно)"
+        },
+        "deleteEndpoint": {
+          "label": "Эндпоинт удаления",
+          "description": "Эндпоинт API для удаления файлов (по умолчанию: /api/fs/remove)"
+        },
+        "metaEndpoint": {
+          "label": "Эндпоинт метаданных",
+          "description": "Эндпоинт API для получения метаданных файла (по умолчанию: /api/fs/get)"
+        },
+        "pathField": {
+          "label": "Название поля пути",
+          "description": "Название параметра пути к файлу в запросах API (по умолчанию: path)"
+        },
+        "cdnUrl": {
+          "label": "URL CDN",
+          "description": "Собственный URL CDN для доступа к изображениям"
+        }
+      },
+      "sectionDescription": "Управляйте хранилищем по умолчанию и доступными поставщиками. Настройки на этой странице применяются только к последующим загрузкам файлов.",
+      "table": {
+        "columns": {
+          "name": "Название хранилища",
+          "type": "Тип хранилища",
+          "actions": "Действия"
+        }
+      },
+      "messages": {
+        "saved": "Настройки сохранены",
+        "saveError": "Не удалось сохранить настройки",
+        "created": "Схема хранилища создана",
+        "createError": "Не удалось создать схему хранилища",
+        "deleted": "Схема хранилища удалена",
+        "deleteError": "Не удалось удалить схему хранилища"
+      },
+      "providers": {
+        "s3": "AWS S3-совместимое хранилище",
+        "local": "Локальное хранилище",
+        "openlist": "OpenList"
+      },
+      "sections": {
+        "currentDefault": "Текущее хранилище по умолчанию",
+        "management": "Управление схемами хранилища"
+      },
+      "form": {
+        "schemeLabel": "Схема хранилища",
+        "schemePlaceholder": "Выберите схему хранилища",
+        "typeLabel": "Тип хранилища",
+        "typePlaceholder": "Выберите тип хранилища",
+        "nameLabel": "Название хранилища"
+      },
+      "changeModal": {
+        "title": "Смена схемы хранилища",
+        "alertTitle": "Обратите внимание",
+        "alertDescription": "Файлы, загруженные после смены схемы, будут сохраняться в новом хранилище. Уже загруженные файлы не будут перенесены из прежнего хранилища."
+      },
+      "slideover": {
+        "title": "Создание схемы хранилища"
+      },
+      "actions": {
+        "add": "Добавить хранилище",
+        "create": "Создать хранилище"
+      }
+    },
+    "general": {
+      "description": "Управляйте основной информацией о сайте и его оформлением. Изменения сразу отобразятся в панели управления и публичной части сайта."
+    },
+    "form": {
+      "loadFailed": "Не удалось загрузить настройки",
+      "saveSuccess": "Настройки сохранены",
+      "saveFailed": "Не удалось сохранить настройки"
+    }
+  },
+  "wizard": {
+    "admin": {
+      "username": {
+        "label": "Имя пользователя"
+      },
+      "email": {
+        "label": "Электронная почта"
+      },
+      "password": {
+        "label": "Пароль"
+      },
+      "confirmPassword": {
+        "label": "Подтверждение пароля"
+      }
+    },
+    "map": {
+      "provider": {
+        "mapbox": {
+          "label": "Mapbox",
+          "description": "Высокопроизводительные карты с широкими возможностями оформления."
+        },
+        "maplibre": {
+          "label": "MapLibre",
+          "description": "Открытый форк Mapbox GL JS."
+        }
+      }
+    },
+    "form": {
+      "loadSchemaFailed": "Не удалось загрузить схему мастера настройки"
+    }
+  },
+  "onboarding": {
+    "layout": {
+      "steps": {
+        "welcome": "Добро пожаловать",
+        "admin": "Учётная запись администратора",
+        "site": "Сведения о сайте",
+        "storage": "Хранилище",
+        "map": "Картографический сервис",
+        "complete": "Завершение"
+      },
+      "current": "Текущий этап",
+      "stepCounter": "Шаг {0} из {1}",
+      "logoAlt": "Логотип ChronoFrame"
+    },
+    "actions": {
+      "next": "Далее",
+      "completeSetup": "Завершить настройку"
+    },
+    "welcome": {
+      "title": "Добро пожаловать в ChronoFrame",
+      "description": "Следуйте указаниям мастера, чтобы настроить галерею за несколько минут.",
+      "intro": "ChronoFrame — универсальное приложение для личной фотогалереи. Перед загрузкой фотографий нужно настроить несколько основных параметров:",
+      "cards": {
+        "admin": {
+          "title": "Учётная запись администратора",
+          "description": "Используется для входа в панель администрирования"
+        },
+        "site": {
+          "title": "Сведения о сайте",
+          "description": "Настройте галерею под себя"
+        },
+        "storage": {
+          "title": "Хранилище",
+          "description": "Храните фотографии локально или в облаке"
+        },
+        "map": {
+          "title": "Картографический сервис",
+          "description": "Отображайте местоположения и отмечайте места съёмки"
+        }
+      },
+      "privacyNotice": "ChronoFrame не собирает ваши данные.",
+      "start": "Начать настройку"
+    },
+    "admin": {
+      "title": "Учётная запись администратора",
+      "description": "Создайте учётную запись администратора"
+    },
+    "site": {
+      "title": "Сведения о сайте",
+      "description": "Настройте основную информацию о сайте"
+    },
+    "storage": {
+      "title": "Хранилище",
+      "description": "Выберите место хранения фотографий"
+    },
+    "map": {
+      "title": "Картографический сервис",
+      "description": "Настройте карты для фотоглобуса и мини-карты фотографий"
+    },
+    "complete": {
+      "title": "Почти готово!",
+      "description": "Галерея ChronoFrame готова к работе.",
+      "body": "Все основные этапы настройки завершены. Теперь можно войти с учётной записью администратора и начать загружать фотографии.",
+      "goToDashboard": "Перейти в панель управления",
+      "setupFailedTitle": "Не удалось завершить настройку",
+      "setupFailedDescription": "Во время завершения настройки произошла ошибка"
+    }
+  },
+  "globe": {
+    "analysis": {
+      "annotation": "Визуализация параметров съёмки",
+      "annotationDescription": "Показывать географическое распределение по параметрам съёмки",
+      "mode": {
+        "none": {
+          "label": "По умолчанию",
+          "description": "Отключить визуализацию"
+        },
+        "focalLength": {
+          "label": "Фокусное расстояние",
+          "description": "Широкоугольное / стандартное / телефото"
+        },
+        "shutterSpeed": {
+          "label": "Выдержка",
+          "description": "Короткая / средняя / длинная"
+        },
+        "altitude": {
+          "label": "Высота",
+          "description": "Низкая / средняя / высокая"
+        }
+      },
+      "legend": {
+        "focalLength": {
+          "title": "Распределение по фокусному расстоянию",
+          "wide": "Широкоугольное",
+          "standard": "Стандартное",
+          "telephoto": "Телефото"
+        },
+        "shutterSpeed": {
+          "title": "Распределение по выдержке",
+          "fast": "Короткая",
+          "medium": "Средняя",
+          "slow": "Длинная"
+        },
+        "altitude": {
+          "title": "Распределение по высоте",
+          "low": "Низкая высота",
+          "medium": "Средняя высота",
+          "high": "Большая высота"
+        }
+      }
+    },
+    "timeline": {
+      "toggle": "Включить или отключить временную шкалу",
+      "playPause": "Запустить или приостановить временную шкалу",
+      "title": "Временная шкала"
+    }
+  },
+  "photo": {
+    "image": {
+      "loadError": "Не удалось загрузить изображение"
+    }
+  }
+}

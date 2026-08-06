@@ -1,3 +1,4 @@
+import i18nOptions from '~~/i18n/i18n.options'
 import type { FieldUIConfig } from '~~/shared/types/settings'
 
 /**
@@ -89,12 +90,10 @@ export const MAP_SETTINGS_UI: Record<string, FieldUIConfig> = {
 export const LOCATION_SETTINGS_UI: Record<string, FieldUIConfig> = {
   language: {
     type: 'select',
-    options: [
-      { label: 'English', value: 'en' },
-      { label: '简体中文 (Simplified Chinese)', value: 'zh-CN' },
-      { label: '繁體中文 (Traditional Chinese)', value: 'zh-TW' },
-      { label: '日本語 (Japanese)', value: 'ja' },
-    ],
+    options: i18nOptions.locales.map((locale) => ({
+      label: locale.label,
+      value: locale.language,
+    })),
     help: 'settings.location.language.help',
   },
   'mapbox.token': {
@@ -113,6 +112,23 @@ export const PRIVACY_SETTINGS_UI: Record<string, FieldUIConfig> = {
   'upload.autoEraseLocation': {
     type: 'toggle',
     help: 'settings.privacy.upload.autoEraseLocation.help',
+  },
+}
+
+export const ANALYTICS_SETTINGS_UI: Record<string, FieldUIConfig> = {
+  headScripts: {
+    type: 'textarea',
+    rows: 12,
+    placeholder:
+      '<!-- Google Analytics -->\n<script async src="https://www.googletagmanager.com/gtag/js?id=G-XXXX"></script>\n<script>\n  window.dataLayer = window.dataLayer || [];\n  function gtag(){dataLayer.push(arguments);}\n  gtag(\'js\', new Date());\n  gtag(\'config\', \'G-XXXX\');\n</script>',
+    help: 'settings.analytics.headScripts.help',
+  },
+  bodyScripts: {
+    type: 'textarea',
+    rows: 12,
+    placeholder:
+      '<!-- Umami / Openpanel SDK -->\n<script src="https://analytics.example.com/script.js" data-website-id="xxx" defer></script>',
+    help: 'settings.analytics.bodyScripts.help',
   },
 }
 
@@ -343,6 +359,7 @@ export function getSettingUIConfig(
     map: MAP_SETTINGS_UI,
     location: LOCATION_SETTINGS_UI,
     storage: STORAGE_SETTINGS_UI,
+    analytics: ANALYTICS_SETTINGS_UI,
   }
 
   return uiConfigMap[namespace]?.[key]

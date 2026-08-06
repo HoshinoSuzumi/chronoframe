@@ -21,7 +21,7 @@ definePageMeta({
           class="p-4 rounded-xl bg-white/5 border border-white/10 flex items-start gap-4"
         >
           <div
-            class="size-12 flex items-center justify-center rounded-lg bg-primary-500/20 text-primary-400"
+            class="size-12 flex items-center justify-center rounded-lg shrink-0 bg-primary-500/20 text-primary-400"
           >
             <UIcon
               name="tabler:user"
@@ -38,7 +38,7 @@ definePageMeta({
           class="p-4 rounded-xl bg-white/5 border border-white/10 flex items-start gap-4"
         >
           <div
-            class="size-12 flex items-center justify-center rounded-lg bg-purple-500/20 text-purple-400"
+            class="size-12 flex items-center justify-center rounded-lg shrink-0 bg-purple-500/20 text-purple-400"
           >
             <UIcon
               name="tabler:device-laptop"
@@ -55,7 +55,7 @@ definePageMeta({
           class="p-4 rounded-xl bg-white/5 border border-white/10 flex items-start gap-4"
         >
           <div
-            class="size-12 flex items-center justify-center rounded-lg bg-blue-500/20 text-blue-400"
+            class="size-12 flex items-center justify-center rounded-lg shrink-0 bg-blue-500/20 text-blue-400"
           >
             <UIcon
               name="tabler:server"
@@ -74,7 +74,7 @@ definePageMeta({
           class="p-4 rounded-xl bg-white/5 border border-white/10 flex items-start gap-4"
         >
           <div
-            class="size-12 flex items-center justify-center rounded-lg bg-green-500/20 text-green-400"
+            class="size-12 flex items-center justify-center rounded-lg shrink-0 bg-green-500/20 text-green-400"
           >
             <UIcon
               name="tabler:map"
