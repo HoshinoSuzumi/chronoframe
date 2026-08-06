@@ -221,6 +221,25 @@ export const DEFAULT_SETTINGS = [
     label: 'settings.storage_provider.provider.label',
     description: 'settings.storage_provider.provider.description',
   },
+  // NAMESPACE: analytics
+  {
+    namespace: 'analytics',
+    key: 'headScripts',
+    type: 'string',
+    defaultValue: '',
+    label: 'settings.analytics.headScripts.label',
+    description: 'settings.analytics.headScripts.description',
+    isPublic: true,
+  },
+  {
+    namespace: 'analytics',
+    key: 'bodyScripts',
+    type: 'string',
+    defaultValue: '',
+    label: 'settings.analytics.bodyScripts.label',
+    description: 'settings.analytics.bodyScripts.description',
+    isPublic: true,
+  },
 ] as const satisfies SettingConfig[]
 
 export const settingNamespaces = [
