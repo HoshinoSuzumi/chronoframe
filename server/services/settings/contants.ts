@@ -240,6 +240,43 @@ export const DEFAULT_SETTINGS = [
     description: 'settings.analytics.bodyScripts.description',
     isPublic: true,
   },
+  // NAMESPACE: site
+  {
+    namespace: 'site',
+    key: 'icpNumber',
+    type: 'string',
+    defaultValue: '',
+    label: 'settings.site.icpNumber.label',
+    description: 'settings.site.icpNumber.description',
+    isPublic: true,
+  },
+  {
+    namespace: 'site',
+    key: 'policeNumber',
+    type: 'string',
+    defaultValue: '',
+    label: 'settings.site.policeNumber.label',
+    description: 'settings.site.policeNumber.description',
+    isPublic: true,
+  },
+  {
+    namespace: 'site',
+    key: 'customHeader',
+    type: 'string',
+    defaultValue: '',
+    label: 'settings.site.customHeader.label',
+    description: 'settings.site.customHeader.description',
+    isPublic: true,
+  },
+  {
+    namespace: 'site',
+    key: 'customFooter',
+    type: 'string',
+    defaultValue: '',
+    label: 'settings.site.customFooter.label',
+    description: 'settings.site.customFooter.description',
+    isPublic: true,
+  },
 ] as const satisfies SettingConfig[]
 
 export const settingNamespaces = [
