@@ -400,7 +400,8 @@
     "location": "位置情報サービス",
     "storageSettings": "ストレージ設定",
     "systemSettings": "システム設定",
-    "analyticsSettings": "アナリティクスとトラッキング"
+    "analyticsSettings": "アナリティクスとトラッキング",
+    "siteSettings": "サイト外観とコンプライアンス"
   },
   "auth": {
     "form": {
@@ -1323,6 +1324,29 @@
         "label": "Body スクリプト",
         "description": "body の先頭に注入する script タグを含む HTML 断片。",
         "help": "完全な script タグを貼り付けます（複数可）。body の開始時に実行する必要があるスクリプトに適しています。"
+      }
+    },
+    "site": {
+      "sectionDescription": "サイトのコンプライアンス情報（ICP / 公安届出番号）とカスタムヘッダー / フッター HTML を設定します。届出番号から公式照会ページへのリンクが自動生成されます。",
+      "icpNumber": {
+        "label": "ICP 届出番号",
+        "description": "工業・情報化部の ICP 届出番号。空の場合は非表示。",
+        "help": "完全な ICP 届出番号を入力（例：「京ICP备12345678号」）。公式サイトへのリンクが自動生成されます。"
+      },
+      "policeNumber": {
+        "label": "公安届出番号",
+        "description": "公安部サイバーセキュリティ届出番号。空の場合は非表示。",
+        "help": "公安届出番号を入力（例：「11010502000001」）。照会ページへのリンクが自動生成されます。"
+      },
+      "customHeader": {
+        "label": "カスタム Header HTML",
+        "description": "ギャラリー上部に浮遊するカスタム HTML 断片。",
+        "help": "信頼できる HTML のみ貼り付け。任意のタグ使用可。公告やトップバナーに適しています。空の場合は非表示。"
+      },
+      "customFooter": {
+        "label": "カスタム Footer HTML",
+        "description": "届出情報と共にギャラリー下部に表示されるカスタム HTML 断片。",
+        "help": "信頼できる HTML のみ貼り付け。任意のタグ使用可。著作権表示や相互リンクに適しています。空の場合は非表示。"
       }
     },
     "general": {

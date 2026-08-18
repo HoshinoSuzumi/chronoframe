@@ -73,6 +73,11 @@ const navItems = computed<NavigationMenuItem[][]>(() => [
           icon: 'tabler:chart-bar',
           to: '/dashboard/settings/analytics',
         },
+        {
+          label: $t('title.siteSettings'),
+          icon: 'tabler:building-cog',
+          to: '/dashboard/settings/site',
+        },
       ],
     },
   ],

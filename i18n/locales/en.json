@@ -400,7 +400,8 @@
     "mapAndLocation": "Map & Location",
     "storageSettings": "Storage Settings",
     "systemSettings": "System Settings",
-    "analyticsSettings": "Analytics & Tracking"
+    "analyticsSettings": "Analytics & Tracking",
+    "siteSettings": "Site Appearance & Compliance"
   },
   "auth": {
     "form": {
@@ -1397,6 +1398,29 @@
         "label": "Body Scripts",
         "description": "HTML fragment with script tags to inject at the top of the page body.",
         "help": "Paste full script tags (multiple allowed). Suitable for scripts that should run after the body opens."
+      }
+    },
+    "site": {
+      "sectionDescription": "Configure site compliance info (ICP / police filing numbers) and custom header/footer HTML. Filing numbers auto-generate links to official lookup pages.",
+      "icpNumber": {
+        "label": "ICP Filing Number",
+        "description": "MIIT ICP filing number. Hidden on the frontend when empty.",
+        "help": "Enter the full ICP filing number (e.g., '京ICP备12345678号'). A link to the MIIT official site is generated automatically."
+      },
+      "policeNumber": {
+        "label": "Police Filing Number",
+        "description": "MPS cybersecurity filing number. Hidden on the frontend when empty.",
+        "help": "Enter the police filing number (e.g., '11010502000001'). A link to the MPS filing lookup page is generated automatically."
+      },
+      "customHeader": {
+        "label": "Custom Header HTML",
+        "description": "Custom HTML fragment floating at the top of the gallery.",
+        "help": "Paste only trusted HTML; any tags allowed. Suitable for announcements or top banners. Hidden when empty."
+      },
+      "customFooter": {
+        "label": "Custom Footer HTML",
+        "description": "Custom HTML fragment shown alongside filing info at the bottom of the gallery.",
+        "help": "Paste only trusted HTML; any tags allowed. Suitable for copyright notices or friendly links. Hidden when empty."
       }
     },
     "general": {

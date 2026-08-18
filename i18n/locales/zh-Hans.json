@@ -399,6 +399,7 @@
     "privacySettings": "隐私设置",
     "systemSettings": "系统设置",
     "analyticsSettings": "分析与追踪",
+    "siteSettings": "站点外观与合规",
     "mapAndLocation": "地图和位置",
     "location": "位置服务"
   },
@@ -1397,6 +1398,29 @@
         "label": "Body 脚本",
         "description": "包含 script 标签的 HTML 片段，注入到 body 开头。",
         "help": "粘贴完整的 script 标签（支持多个）。适用于需要在 body 开始处执行的脚本。"
+      }
+    },
+    "site": {
+      "sectionDescription": "配置站点合规信息（ICP 备案、网安备案）与自定义页眉页脚 HTML。备案号将自动生成指向官方查询页的链接。",
+      "icpNumber": {
+        "label": "ICP 备案号",
+        "description": "工信部备案号，留空则前台不显示。",
+        "help": "填写完整的 ICP 备案号（如「京ICP备12345678号」）。系统会自动生成指向工信部备案查询官网的链接。"
+      },
+      "policeNumber": {
+        "label": "网安备案号",
+        "description": "公安部网络安全备案号，留空则前台不显示。",
+        "help": "填写网安备案编号（如「11010502000001」）。系统会自动拼接指向公安备案查询页的链接。"
+      },
+      "customHeader": {
+        "label": "自定义 Header HTML",
+        "description": "悬浮于画廊顶部的自定义 HTML 片段。",
+        "help": "仅粘贴可信 HTML，支持任意标签。适合公告条、顶部 banner。留空则不显示。"
+      },
+      "customFooter": {
+        "label": "自定义 Footer HTML",
+        "description": "与备案信息一同显示在画廊底部的自定义 HTML 片段。",
+        "help": "仅粘贴可信 HTML，支持任意标签。适合版权声明、友情链接。留空则不显示。"
       }
     },
     "general": {
