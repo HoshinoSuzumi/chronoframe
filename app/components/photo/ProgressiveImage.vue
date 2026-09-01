@@ -2,6 +2,7 @@
 import { WebGLImageViewer } from '@chronoframe/webgl-image'
 import type { LoadingIndicatorRef } from './LoadingIndicator.vue'
 import type { ImageLoaderManager } from '~/libs/image-loader-manager'
+import { resolveImageUrl } from '~/utils/image-url'
 
 interface Props {
   src: string
@@ -82,18 +83,18 @@ const showWebGLViewer = computed(() => {
 
 const loadImage = () => {
   loaderManagerRef.value = useImageLoader(
-    props.src,
-    props.isCurrentImage,
-    highResLoaded.value,
-    hasError.value,
-    props.loadingIndicatorRef,
-    props.onProgress,
-    props.onError,
-    (src) => (currentSrc.value = src),
-    (loaded) => (highResLoaded.value = loaded),
-    (error) => (hasError.value = error),
-    (rendered) => (highResRendered.value = rendered),
-    props.onImageLoaded,
+      resolveImageUrl(props.src),
+      props.isCurrentImage,
+      highResLoaded.value,
+      hasError.value,
+      props.loadingIndicatorRef,
+      props.onProgress,
+      props.onError,
+      (src) => (currentSrc.value = src),
+      (loaded) => (highResLoaded.value = loaded),
+      (error) => (hasError.value = error),
+      (rendered) => (highResRendered.value = rendered),
+      props.onImageLoaded,
   )
 }
 

@@ -164,7 +164,7 @@ export class ImageLoaderManager {
       isVisible: false,
     })
     return {
-      blobSrc: originalUrl,
+      blobSrc: url,
     }
   }
 

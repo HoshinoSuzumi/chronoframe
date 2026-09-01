@@ -1,4 +1,5 @@
 import { ref, computed } from 'vue'
+import { resolveImageUrl } from '~/utils/image-url'
 
 interface LivePhotoProcessingState {
   isProcessing: boolean
@@ -90,7 +91,7 @@ export const useLivePhotoProcessor = () => {
       const controller = new AbortController()
       const timeoutId = setTimeout(() => controller.abort(), 30000) // 30秒超时
 
-      const response = await fetch(movUrl, {
+      const response = await fetch(resolveImageUrl(movUrl), {
         signal: controller.signal,
         headers: {
           'Cache-Control': 'max-age=3600', // 缓存1小时

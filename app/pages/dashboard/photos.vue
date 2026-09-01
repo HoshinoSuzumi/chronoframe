@@ -4,6 +4,7 @@ import type { Photo, PipelineQueueItem } from '~~/server/utils/db'
 import { h, resolveComponent } from 'vue'
 import { Icon, UBadge } from '#components'
 import ThumbImage from '~/components/ui/ThumbImage.vue'
+import { resolveImageUrl } from '~/utils/image-url'
 
 const UCheckbox = resolveComponent('UCheckbox')
 const Rating = resolveComponent('Rating')
@@ -1976,7 +1977,7 @@ const handleBatchDownload = async () => {
   try {
     for (const photo of photosWithUrl) {
       try {
-        const response = await fetch(photo.originalUrl!)
+        const response = await fetch(resolveImageUrl(photo.originalUrl!))
         if (!response.ok) {
           failureCount++
           continue

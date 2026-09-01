@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import { motion, AnimatePresence } from 'motion-v'
+import { resolveImageUrl } from '~/utils/image-url'
 
 interface Props {
   isOpen: boolean
@@ -257,7 +258,7 @@ const downloadOgImage = async () => {
 
 const downloadOriginalImage = async () => {
   try {
-    const response = await fetch(props.photo.originalUrl!)
+    const response = await fetch(resolveImageUrl(props.photo.originalUrl!))
     const blob = await response.blob()
     const url = window.URL.createObjectURL(blob)
     const link = document.createElement('a')
