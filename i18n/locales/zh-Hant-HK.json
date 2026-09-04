@@ -472,7 +472,8 @@
       "reset": "重設",
       "cancel": "取消",
       "continue": "繼續",
-      "delete": "刪除"
+      "delete": "刪除",
+      "edit": "編輯"
     },
     "unknownError": "未知錯誤"
   },
@@ -1281,7 +1282,9 @@
         "created": "儲存方案已建立",
         "createError": "建立儲存方案時發生錯誤",
         "deleted": "儲存方案已刪除",
-        "deleteError": "刪除儲存方案失敗"
+        "deleteError": "刪除儲存方案失敗",
+        "updated": "儲存方案已更新",
+        "updateError": "更新儲存方案失敗"
       },
       "providers": {
         "s3": "AWS S3 相容儲存",
@@ -1293,6 +1296,7 @@
         "management": "儲存方案管理"
       },
       "form": {
+        "isrequired": "此項為必填項",
         "schemeLabel": "儲存方案",
         "schemePlaceholder": "選擇儲存方案",
         "typeLabel": "儲存類型",
@@ -1305,11 +1309,13 @@
         "alertDescription": "變更儲存方案之後上傳的檔案將會儲存到新的儲存方案中，原方案中已有檔案不會被遷移。"
       },
       "slideover": {
-        "title": "建立儲存方案"
+        "title": "建立儲存方案",
+        "editTitle": "編輯儲存方案"
       },
       "actions": {
         "add": "新增儲存",
-        "create": "建立儲存"
+        "create": "建立儲存",
+        "edit": "編輯"
       }
     },
     "analytics": {
@@ -1375,12 +1381,14 @@
         "map": "地圖服務",
         "complete": "完成"
       },
+      "tips": "唔使擔心填錯，之後可以喺管理後台進行修改",
       "current": "進行中",
       "stepCounter": "第 {0} 步 / 共 {1} 步",
       "logoAlt": "ChronoFrame 標誌"
     },
     "actions": {
       "next": "下一步",
+      "previous": "上一步",
       "completeSetup": "完成設定"
     },
     "welcome": {
@@ -1410,15 +1418,24 @@
     },
     "admin": {
       "title": "管理員帳號",
-      "description": "建立管理員帳號"
+      "description": "建立管理員帳號",
+      "invalidUsername": "用戶名必須包含至少2個字元",
+      "invalidEmail": "無效的電子郵件地址",
+      "invalidPassword": "密碼必須包含至少6個字元",
+      "invalidConfirmPassword": "確認密碼必須包含至少6個字元",
+      "passwordMismatch": "密碼與確認密碼不一致"
     },
     "site": {
       "title": "站點資訊",
-      "description": "設定站點基本資訊"
+      "description": "設定站點基本資訊",
+      "invalidTitle": "站點標題必須包含至少2個字元",
+      "invalidAvatarUrl": "無效的頭像 URL"
     },
     "storage": {
       "title": "存儲設定",
-      "description": "選擇照片存儲位置"
+      "description": "選擇照片存儲位置",
+      "isrequired": "此项為必填項目",
+      "invalidUrl": "無效的 URL"
     },
     "map": {
       "title": "地圖服務",
