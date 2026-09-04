@@ -1,11 +1,16 @@
 <script setup lang="ts">
 import { z } from 'zod'
+import { useWizardStore } from '~/stores/wizard'
 
 definePageMeta({
   layout: 'onboarding',
 })
 
 const router = useRouter()
+const wizardStore = useWizardStore()
+
+// Mark this step as accessible when entering the page
+wizardStore.markStepAccessible(1)
 
 // Use the wizard form composable
 const {
@@ -20,13 +25,13 @@ const {
 // but we can make it partial to allow extra fields if API adds them.
 const schema = z
   .object({
-    username: z.string().min(2, 'Username must be at least 2 characters'),
-    email: z.email('Invalid email address'),
-    password: z.string().min(6, 'Password must be at least 6 characters'),
-    confirmPassword: z.string(),
+    username: z.string().min(2, $t('onboarding.admin.invalidUsername')),
+    email: z.email($t('onboarding.admin.invalidEmail')),
+    password: z.string().min(6, $t('onboarding.admin.invalidPassword')),
+    confirmPassword: z.string().min(6, $t('onboarding.admin.invalidConfirmPassword')),
   })
   .refine((data) => data.password === data.confirmPassword, {
-    message: "Passwords don't match",
+    message: $t('onboarding.admin.passwordMismatch'),
     path: ['confirmPassword'],
   })
 
@@ -80,6 +85,14 @@ function onSubmit() {
     </UForm>
 
     <template #actions>
+      <WizardButton
+        to="/onboarding"
+        color="outline"
+        size="lg"
+        leading-icon="tabler:arrow-left"
+      >
+        {{ $t('onboarding.actions.previous') }}
+      </WizardButton>
       <WizardButton
         type="submit"
         form="admin-form"

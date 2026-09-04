@@ -1,11 +1,17 @@
 <script setup lang="ts">
 import { z } from 'zod'
+import type { ProviderOption } from '~/components/Wizard/ProviderSelector.vue'
+import { useWizardStore } from '~/stores/wizard'
 
 definePageMeta({
   layout: 'onboarding',
 })
 
 const router = useRouter()
+const wizardStore = useWizardStore()
+
+// Mark this step as accessible when entering the page
+wizardStore.markStepAccessible(2)
 
 // Use wizard form for 'app' namespace (site settings)
 const {
@@ -16,10 +22,10 @@ const {
 } = useWizardForm('app')
 
 const schema = z.object({
-  title: z.string().min(1, 'Title is required'),
+  title: z.string().min(1, $t('onboarding.site.invalidTitle')),
   slogan: z.string().optional(),
   author: z.string().optional(),
-  avatarUrl: z.string().url('Invalid URL').optional().or(z.literal('')),
+  avatarUrl: z.string().url($t('onboarding.site.invalidAvatarUrl')).optional().or(z.literal('')),
 })
 
 function onSubmit() {
@@ -32,6 +38,7 @@ function onSubmit() {
   <WizardStep
     :title="$t('onboarding.site.title')"
     :description="$t('onboarding.site.description')"
+    :tips="$t('onboarding.layout.tips')"
   >
     <div
       v-if="fetchingSchema"
@@ -56,7 +63,19 @@ function onSubmit() {
         :key="field.key"
       >
         <WizardFormField
-          v-if="isFieldVisible(field)"
+          v-if="isFieldVisible(field) && field.ui.type === 'tabs'"
+          :label="$t(field.label || '')"
+          :name="field.key"
+          :required="field.ui.required"
+          :help="$t(field.ui.help || '')"
+        >
+          <WizardProviderSelector
+            v-model="state[field.key]"
+            :options="(field.ui.options as ProviderOption[]) || []"
+          />
+        </WizardFormField>
+        <WizardFormField
+          v-else-if="isFieldVisible(field)"
           :label="$t(field.label || '')"
           :name="field.key"
           :required="field.ui.required"
@@ -72,6 +91,14 @@ function onSubmit() {
     </UForm>
 
     <template #actions>
+      <WizardButton
+        to="/onboarding/admin"
+        color="outline"
+        size="lg"
+        leading-icon="tabler:arrow-left"
+      >
+        {{ $t('onboarding.actions.previous') }}
+      </WizardButton>
       <WizardButton
         type="submit"
         form="site-form"
