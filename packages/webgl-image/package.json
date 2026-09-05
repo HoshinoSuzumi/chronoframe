@@ -51,13 +51,13 @@
     "type-check": "vue-tsc --noEmit"
   },
   "peerDependencies": {
-    "vue": "^3.5.35"
+    "vue": "^3.5.42"
   },
   "devDependencies": {
-    "@types/node": "^22.19.20",
-    "@vitejs/plugin-vue": "^6.0.7",
+    "@types/node": "^22.20.1",
+    "@vitejs/plugin-vue": "^6.0.8",
     "typescript": "^5.9.3",
-    "vite": "^7.3.5",
+    "vite": "^7.3.6",
     "vite-plugin-dts": "^4.5.4",
     "vue-tsc": "^2.2.12"
   }
