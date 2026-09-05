@@ -10,6 +10,8 @@ const toast = useToast()
 const route = useRoute()
 const router = useRouter()
 
+const appTitle = computed(() => settingsStore.getSetting('app:title') || config.public.app.title)
+
 const isLoading = ref(false)
 
 const githubOauthEnabled = computed(() => {
@@ -51,7 +53,7 @@ const onAuthSubmit = async (event: any) => {
   >
     <AuthForm
       :title="$t('auth.form.signin.title')"
-      :subtitle="$t('auth.form.signin.subtitle', [config.public.app.title])"
+      :subtitle="$t('auth.form.signin.subtitle', [appTitle])"
       :loading="isLoading"
       :providers="[
         githubOauthEnabled && {

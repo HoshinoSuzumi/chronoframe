@@ -1,12 +1,8 @@
 <script lang="ts" setup>
+import { z } from 'zod'
 import { UChip, UButton } from '#components'
 import type { TableColumn } from '@nuxt/ui'
-import {
-  s3StorageConfigSchema,
-  localStorageConfigSchema,
-  openListStorageConfigSchema,
-  type StorageConfig,
-} from '~~/shared/types/storage'
+import type { StorageConfig } from '~~/shared/types/storage'
 
 definePageMeta({
   layout: 'dashboard',
@@ -17,6 +13,7 @@ useHead({
 })
 
 const toast = useToast()
+const { t } = useI18n()
 
 const { data: currentStorageProvider, refresh: refreshCurrentStorageProvider } =
   await useFetch<{
@@ -71,6 +68,17 @@ const availableStorageColumns = computed<TableColumn<SettingStorageProvider>[]>(
     header: $t('settings.storage.table.columns.actions'),
     cell: (cell) => {
       return h('div', { class: 'flex items-center gap-2' }, [
+        h(
+          UButton,
+          {
+            size: 'sm',
+            variant: 'soft',
+            color: 'info',
+            icon: 'tabler:pencil',
+            onClick: () => onStorageEdit(cell.row.original),
+          },
+          { default: () => $t('common.actions.edit') },
+        ),
         h(
           UButton,
           {
@@ -137,6 +145,18 @@ const providerOptions = computed(() => [
   { label: $t('settings.storage.providers.openlist'), value: 'openlist', icon: PROVIDER_ICON.openlist },
 ])
 
+// Translate zod validation error messages
+const translateStorageError = (message: string, name?: string): string => {
+  const field = name || ''
+  if (message.includes('expected string, received undefined')) {
+    return t('settings.storage.form.isrequired', { field })
+  }
+  if (message.includes('Too small') || message.includes('too_small') || message.includes('at least 1 character')) {
+    return t('settings.storage.form.isrequired', { field })
+  }
+  return message
+}
+
 const storageConfigState = reactive<{
   name: string
   provider: string
@@ -151,17 +171,74 @@ const storageConfigState = reactive<{
   } as any,
 })
 
-// 根据 provider 值动态选择对应的 schema
+// 编辑状态
+const editingStorage = ref<SettingStorageProvider | null>(null)
+const editSlideoverOpen = ref(false)
+const nameError = ref('')
+
+const openEditSlideover = (storage: SettingStorageProvider) => {
+  editingStorage.value = storage
+  storageConfigState.name = storage.name
+  storageConfigState.provider = storage.provider
+  storageConfigState.config = { ...(storage.config as Partial<StorageConfig>) }
+  nameError.value = ''
+  editSlideoverOpen.value = true
+}
+
+const closeEditSlideover = () => {
+  editSlideoverOpen.value = false
+  editingStorage.value = null
+  resetStorageConfigForm()
+}
+
+// 编辑 slideover 关闭时（无论通过何种方式）重置表单
+watch(editSlideoverOpen, (open) => {
+  if (!open) {
+    editingStorage.value = null
+    resetStorageConfigForm()
+  }
+})
+
+// 根据 provider 值动态选择对应的 schema（使用翻译后的错误消息）
 const currentStorageSchema = computed(() => {
+  const requiredMsg = t('settings.storage.form.isrequired')
   const provider = storageConfigState.provider
   switch (provider) {
     case 'local':
-      return localStorageConfigSchema
+      return z.object({
+        provider: z.literal('local'),
+        basePath: z.string().min(1, requiredMsg),
+        baseUrl: z.string().optional(),
+        prefix: z.string().optional(),
+      })
     case 'openlist':
-      return openListStorageConfigSchema
+      return z.object({
+        provider: z.literal('openlist'),
+        baseUrl: z.string().min(1, requiredMsg),
+        rootPath: z.string().min(1, requiredMsg),
+        token: z.string().min(1, requiredMsg),
+        uploadEndpoint: z.string().default('/api/fs/put').optional(),
+        downloadEndpoint: z.string().optional(),
+        listEndpoint: z.string().optional(),
+        deleteEndpoint: z.string().default('/api/fs/remove').optional(),
+        metaEndpoint: z.string().default('/api/fs/get').optional(),
+        pathField: z.string().default('path').optional(),
+        cdnUrl: z.string().optional(),
+      })
     case 's3':
     default:
-      return s3StorageConfigSchema
+      return z.object({
+        provider: z.literal('s3'),
+        bucket: z.string().min(1, requiredMsg),
+        region: z.string().min(1, requiredMsg),
+        endpoint: z.string().min(1, requiredMsg),
+        prefix: z.string().default('/photos').optional(),
+        cdnUrl: z.string().optional(),
+        accessKeyId: z.string().min(1, requiredMsg),
+        secretAccessKey: z.string().min(1, requiredMsg),
+        forcePathStyle: z.boolean().optional(),
+        maxKeys: z.number().optional(),
+      })
   }
 })
 
@@ -173,21 +250,34 @@ const getStorageConfigDefaults = (provider: string): Partial<StorageConfig> => {
         provider: 'local',
         basePath: '/data/storage',
         baseUrl: '/storage',
+        prefix: '',
       } as any
     case 'openlist':
       return {
         provider: 'openlist',
+        baseUrl: '',
+        rootPath: '',
+        token: '',
         uploadEndpoint: '/api/fs/put',
         deleteEndpoint: '/api/fs/remove',
         metaEndpoint: '/api/fs/get',
         pathField: 'path',
+        downloadEndpoint: '',
+        listEndpoint: '',
+        cdnUrl: '',
       } as any
     case 's3':
     default:
       return {
         provider: 's3',
+        bucket: '',
         region: 'auto',
+        endpoint: '',
         prefix: '/photos',
+        accessKeyId: '',
+        secretAccessKey: '',
+        cdnUrl: '',
+        forcePathStyle: false,
       } as any
   }
 }
@@ -306,6 +396,11 @@ const onStorageConfigSubmit = async (
   event: { data: Partial<StorageConfig> },
   close?: () => void,
 ) => {
+  if (!storageConfigState.name.trim()) {
+    nameError.value = t('settings.storage.form.isrequired', { field: t('settings.storage.form.nameLabel') })
+    return
+  }
+  nameError.value = ''
   try {
     const payload = {
       name: storageConfigState.name,
@@ -322,10 +417,7 @@ const onStorageConfigSubmit = async (
       title: $t('settings.storage.messages.created'),
       color: 'success',
     })
-    // 重置表单
-    storageConfigState.name = ''
-    storageConfigState.provider = 's3'
-    storageConfigState.config = getStorageConfigDefaults('s3')
+    resetStorageConfigForm()
     close?.()
   } catch (error) {
     toast.add({
@@ -353,6 +445,54 @@ const onStorageDelete = async (storageId: number) => {
       color: 'error',
     })
   }
+}
+
+const onStorageEdit = (storage: SettingStorageProvider) => {
+  openEditSlideover(storage)
+}
+
+const onStorageConfigUpdate = async (
+  event: { data: Partial<StorageConfig> },
+  close?: () => void,
+) => {
+  if (!editingStorage.value) return
+  if (!storageConfigState.name.trim()) {
+    nameError.value = t('settings.storage.form.isrequired', { field: t('settings.storage.form.nameLabel') })
+    return
+  }
+  nameError.value = ''
+  try {
+    const payload = {
+      name: storageConfigState.name,
+      provider: storageConfigState.provider,
+      config: event.data,
+    }
+
+    await $fetch(`/api/system/settings/storage-config/${editingStorage.value.id}`, {
+      method: 'PUT',
+      body: payload,
+    })
+    refreshAvailableStorage()
+    refreshCurrentStorageProvider()
+    toast.add({
+      title: $t('settings.storage.messages.updated'),
+      color: 'success',
+    })
+    closeEditSlideover()
+    close?.()
+  } catch (error) {
+    toast.add({
+      title: $t('settings.storage.messages.updateError'),
+      description: (error as Error).message,
+      color: 'error',
+    })
+  }
+}
+
+const resetStorageConfigForm = () => {
+  storageConfigState.name = ''
+  storageConfigState.provider = 's3'
+  storageConfigState.config = getStorageConfigDefaults('s3')
 }
 </script>
 
@@ -536,11 +676,12 @@ const onStorageDelete = async (storageId: number) => {
                     <UFormField
                       :label="$t('settings.storage.form.nameLabel')"
                       required
+                      :error="nameError"
                       :ui="{
                         container: 'sm:max-w-full',
                       }"
                     >
-                      <UInput v-model="storageConfigState.name" />
+                      <UInput v-model="storageConfigState.name" @update:model-value="nameError = ''" />
                     </UFormField>
 
                     <USeparator />
@@ -550,6 +691,7 @@ const onStorageDelete = async (storageId: number) => {
                       :schema="currentStorageSchema"
                       :state="storageConfigState.config"
                       :fields-config="storageFieldsConfig"
+                      :translate-error="translateStorageError"
                       @submit="onStorageConfigSubmit($event, close)"
                     />
                   </div>
@@ -593,6 +735,77 @@ const onStorageDelete = async (storageId: number) => {
             />
           </div>
         </section>
+
+        <!-- Edit Storage Slideover -->
+        <USlideover
+          v-model:open="editSlideoverOpen"
+          :title="$t('settings.storage.slideover.editTitle')"
+          :ui="{ footer: 'justify-end' }"
+        >
+          <template #body="{ close }">
+            <div class="space-y-4">
+              <UFormField
+                :label="$t('settings.storage.form.typeLabel')"
+                class="w-full"
+                required
+                :ui="{
+                  container: 'sm:max-w-full',
+                }"
+              >
+                <USelectMenu
+                  v-model="storageConfigState.provider"
+                  :icon="
+                    PROVIDER_ICON[
+                      storageConfigState.provider as keyof typeof PROVIDER_ICON
+                    ] || 'tabler:database'
+                  "
+                  :items="providerOptions"
+                  label-key="label"
+                  value-key="value"
+                  disabled
+                />
+              </UFormField>
+
+              <UFormField
+                :label="$t('settings.storage.form.nameLabel')"
+                required
+                :error="nameError"
+                :ui="{
+                  container: 'sm:max-w-full',
+                }"
+              >
+                <UInput v-model="storageConfigState.name" @update:model-value="nameError = ''" />
+              </UFormField>
+
+              <USeparator />
+
+              <AutoForm
+                id="editStorageForm"
+                :schema="currentStorageSchema"
+                :state="storageConfigState.config"
+                :fields-config="storageFieldsConfig"
+                :translate-error="translateStorageError"
+                @submit="onStorageConfigUpdate($event, close)"
+              />
+            </div>
+          </template>
+
+          <template #footer="{ close }">
+            <UButton
+              :label="$t('common.actions.cancel')"
+              color="neutral"
+              variant="outline"
+              @click="closeEditSlideover"
+            />
+            <UButton
+              :label="$t('common.actions.save')"
+              variant="soft"
+              icon="tabler:check"
+              type="submit"
+              form="editStorageForm"
+            />
+          </template>
+        </USlideover>
       </div>
     </template>
   </UDashboardPanel>

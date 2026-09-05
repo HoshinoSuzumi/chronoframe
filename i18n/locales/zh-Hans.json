@@ -472,7 +472,8 @@
       "reset": "重置",
       "cancel": "取消",
       "continue": "继续",
-      "delete": "删除"
+      "delete": "删除",
+      "edit": "编辑"
     },
     "unknownError": "未知错误"
   },
@@ -1355,7 +1356,9 @@
         "created": "存储方案已创建",
         "createError": "创建存储方案时出错",
         "deleted": "存储方案已删除",
-        "deleteError": "删除存储方案失败"
+        "deleteError": "删除存储方案失败",
+        "updated": "存储方案已更新",
+        "updateError": "更新存储方案失败"
       },
       "providers": {
         "s3": "AWS S3 兼容存储",
@@ -1367,6 +1370,7 @@
         "management": "存储方案管理"
       },
       "form": {
+        "isrequired": "此项为必填项",
         "schemeLabel": "存储方案",
         "schemePlaceholder": "选择存储方案",
         "typeLabel": "存储类型",
@@ -1379,11 +1383,13 @@
         "alertDescription": "变更存储方案之后上传的文件将会存储到新的存储方案中，原方案中已有文件不会被迁移。"
       },
       "slideover": {
-        "title": "创建存储方案"
+        "title": "创建存储方案",
+        "editTitle": "编辑存储方案"
       },
       "actions": {
         "add": "添加存储",
-        "create": "创建存储"
+        "create": "创建存储",
+        "edit": "编辑"
       }
     },
     "analytics": {
@@ -1446,15 +1452,17 @@
         "admin": "管理员账户",
         "site": "站点信息",
         "storage": "存储配置",
-        "map": "地图服务",
+        "map": "地图服务", 
         "complete": "完成"
       },
+      "tips": "不用担心填错，后续可在管理后台进行修改",
       "current": "当前进行",
       "stepCounter": "第 {0} 步 / 共 {1} 步",
       "logoAlt": "ChronoFrame 标志"
     },
     "actions": {
       "next": "下一步",
+      "previous": "上一步",
       "completeSetup": "完成设置"
     },
     "welcome": {
@@ -1484,15 +1492,24 @@
     },
     "admin": {
       "title": "管理员账户",
-      "description": "创建一个管理员账户"
+      "description": "创建一个管理员账户",
+      "invalidUsername": "用户名必须至少包含 2 个字符",
+      "invalidEmail": "电子邮箱格式无效",
+      "invalidPassword": "密码必须至少包含 6 个字符",
+      "invalidConfirmPassword": "确认密码必须至少包含 6 个字符",
+      "passwordMismatch": "密码和确认密码不匹配"
     },
     "site": {
       "title": "站点信息",
-      "description": "配置站点基本信息"
+      "description": "配置站点基本信息",
+      "invalidTitle": "站点标题不能为空",
+      "invalidAvatarUrl": "无效的头像地址"
     },
     "storage": {
       "title": "存储配置",
-      "description": "选择将您的照片存储在何处"
+      "description": "选择将您的照片存储在何处",
+      "isrequired": "此项为必填项",
+      "invalidUrl": "无效的URL格式"
     },
     "map": {
       "title": "地图服务",

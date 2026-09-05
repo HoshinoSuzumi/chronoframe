@@ -1,12 +1,18 @@
 <script setup lang="ts">
 import { z } from 'zod'
 import type { ProviderOption } from '~/components/Wizard/ProviderSelector.vue'
+import { useWizardStore } from '~/stores/wizard'
 
 definePageMeta({
   layout: 'onboarding',
 })
 
 const router = useRouter()
+const { t } = useI18n()
+const wizardStore = useWizardStore()
+
+// Mark this step as accessible when entering the page
+wizardStore.markStepAccessible(4)
 
 const {
   fields,
@@ -25,7 +31,7 @@ const schema = computed(() => {
     if (field.ui.required) {
       validator = (validator as z.ZodString).min(
         1,
-        `${field.label} is required`,
+        `${$t('onboarding.storage.isrequired')}`,
       )
     } else {
       validator = (validator as z.ZodString).optional()
@@ -46,6 +52,7 @@ function onSubmit() {
   <WizardStep
     :title="$t('onboarding.map.title')"
     :description="$t('onboarding.map.description')"
+    :tips="$t('onboarding.layout.tips')"
   >
     <div
       v-if="fetchingSchema"
@@ -109,6 +116,14 @@ function onSubmit() {
     </div>
 
     <template #actions>
+      <WizardButton
+        to="/onboarding/storage"
+        color="outline"
+        size="lg"
+        leading-icon="tabler:arrow-left"
+      >
+        {{ $t('onboarding.actions.previous') }}
+      </WizardButton>
       <WizardButton
         type="submit"
         form="map-form"

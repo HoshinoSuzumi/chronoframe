@@ -472,7 +472,8 @@
       "reset": "Reset",
       "cancel": "Cancel",
       "continue": "Continue",
-      "delete": "Delete"
+      "delete": "Delete",
+      "edit": "Edit"
     },
     "unknownError": "Unknown error"
   },
@@ -1355,7 +1356,9 @@
         "created": "Storage scheme created",
         "createError": "Error creating storage scheme",
         "deleted": "Storage scheme deleted",
-        "deleteError": "Failed to delete storage scheme"
+        "deleteError": "Failed to delete storage scheme",
+        "updated": "Storage scheme updated",
+        "updateError": "Failed to update storage scheme"
       },
       "providers": {
         "s3": "AWS S3 Compatible Storage",
@@ -1367,6 +1370,7 @@
         "management": "Storage Scheme Management"
       },
       "form": {
+        "isrequired": "This field is required",
         "schemeLabel": "Storage Scheme",
         "schemePlaceholder": "Select a storage scheme",
         "typeLabel": "Storage Type",
@@ -1379,11 +1383,13 @@
         "alertDescription": "Files uploaded after changing the storage scheme will be stored in the new scheme. Files already in the original scheme will not be migrated."
       },
       "slideover": {
-        "title": "Create Storage Scheme"
+        "title": "Create Storage Scheme",
+        "editTitle": "Edit Storage Scheme"
       },
       "actions": {
         "add": "Add Storage",
-        "create": "Create Storage"
+        "create": "Create Storage",
+        "edit": "Edit"
       }
     },
     "analytics": {
@@ -1449,12 +1455,14 @@
         "map": "Map Service",
         "complete": "Complete"
       },
+      "tips": "Don't worry about mistakes, you can modify them later in the admin dashboard",
       "current": "In Progress",
       "stepCounter": "Step {0} / {1}",
       "logoAlt": "ChronoFrame Logo"
     },
     "actions": {
       "next": "Next",
+      "previous": "Previous",
       "completeSetup": "Complete Setup"
     },
     "welcome": {
@@ -1484,15 +1492,24 @@
     },
     "admin": {
       "title": "Admin Account",
-      "description": "Create an administrator account"
+      "description": "Create an administrator account",
+      "invalidUsername": "Username must be at least 2 characters",
+      "invalidEmail": "Invalid email address",
+      "invalidPassword": "Password must be at least 6 characters",
+      "invalidConfirmPassword": "Confirm password must be at least 6 characters",
+      "passwordMismatch": "Passwords and confirm password don't match"
     },
     "site": {
       "title": "Site Info",
-      "description": "Configure basic site information"
+      "description": "Configure basic site information",
+      "invalidTitle": "Site title is required",
+      "invalidAvatarUrl": "Invalid avatar URL format"
     },
     "storage": {
       "title": "Storage",
-      "description": "Choose where your photos are stored"
+      "description": "Choose where your photos are stored",
+      "isrequired": "This field is required",
+      "invalidUrl": "Invalid URL format"
     },
     "map": {
       "title": "Map Service",

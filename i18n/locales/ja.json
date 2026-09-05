@@ -472,7 +472,8 @@
       "reset": "リセット",
       "cancel": "キャンセル",
       "continue": "続行",
-      "delete": "削除"
+      "delete": "削除",
+      "edit": "編集"
     },
     "unknownError": "不明なエラー"
   },
@@ -1281,7 +1282,9 @@
         "created": "ストレージ構成を作成しました",
         "createError": "ストレージ構成の作成中にエラーが発生しました",
         "deleted": "ストレージ構成を削除しました",
-        "deleteError": "ストレージ構成の削除に失敗しました"
+        "deleteError": "ストレージ構成の削除に失敗しました",
+        "updated": "ストレージ構成を更新しました",
+        "updateError": "ストレージ構成の更新に失敗しました"
       },
       "providers": {
         "s3": "AWS S3 互換ストレージ",
@@ -1293,6 +1296,7 @@
         "management": "ストレージ構成管理"
       },
       "form": {
+        "isrequired": "この項目は必須です",
         "schemeLabel": "ストレージ構成",
         "schemePlaceholder": "ストレージ構成を選択",
         "typeLabel": "ストレージ種別",
@@ -1305,11 +1309,13 @@
         "alertDescription": "ストレージ構成を変更した後にアップロードされたファイルは新しいストレージ構成に保存されます。元の構成にある既存のファイルは移行されません。"
       },
       "slideover": {
-        "title": "ストレージ構成を作成"
+        "title": "ストレージ構成を作成",
+        "editTitle": "ストレージ構成を編集"
       },
       "actions": {
         "add": "ストレージを追加",
-        "create": "ストレージを作成"
+        "create": "ストレージを作成",
+        "edit": "編集"
       }
     },
     "analytics": {
@@ -1375,12 +1381,14 @@
         "map": "地図サービス",
         "complete": "完了"
       },
+      "tips": "入力間違いがあっても心配しないでください。後から管理画面で変更できます",
       "current": "進行中",
       "stepCounter": "ステップ {0} / {1}",
       "logoAlt": "ChronoFrame ロゴ"
     },
     "actions": {
       "next": "次へ",
+      "previous": "前へ",
       "completeSetup": "設定を完了"
     },
     "welcome": {
@@ -1390,15 +1398,24 @@
       "cards": {
         "admin": {
           "title": "管理者アカウント",
-          "description": "管理コンソールへのログインに使用します"
+          "description": "管理コンソールへのログインに使用します",
+          "invalidUsername": "ユーザー名は最小 2 文字以上です",
+          "invalidEmail": "メールアドレスは無効です",
+          "invalidPassword": "パスワードは最小 6 文字以上です",
+          "invalidConfirmPassword": "パスワード（確認）は最小 6 文字以上です",
+          "passwordMismatch": "パスワードと確認パスワードが一致しません"
         },
         "site": {
           "title": "サイト情報",
-          "description": "ギャラリーをパーソナライズします"
+          "description": "ギャラリーをパーソナライズします",
+          "invalidTitle": "サイトタイトルを入力してください",
+          "invalidAvatarUrl": "無効なアバター URL です"
         },
         "storage": {
           "title": "ストレージ",
-          "description": "写真をローカルまたはクラウドに保存します"
+          "description": "写真をローカルまたはクラウドに保存します",
+          "isrequired": "この項目は必須項目",
+          "invalidUrl": "無効な URL です"
         },
         "map": {
           "title": "地図サービス",
@@ -1410,15 +1427,24 @@
     },
     "admin": {
       "title": "管理者アカウント",
-      "description": "管理者アカウントを作成します"
+      "description": "管理者アカウントを作成します",
+      "invalidUsername": "ユーザー名は2文字以上で入力してください",
+      "invalidEmail": "有効なメールアドレスを入力してください",
+      "invalidPassword": "パスワードは6文字以上で入力してください",
+      "invalidConfirmPassword": "確認パスワードは6文字以上で入力してください",
+      "passwordMismatch": "パスワードと確認パスワードが一致しません"
     },
     "site": {
       "title": "サイト情報",
-      "description": "サイトの基本情報を設定します"
+      "description": "サイトの基本情報を設定します",
+      "invalidTitle": "サイトタイトルを入力してください",
+      "invalidAvatarUrl": "無効なアバターURLです"
     },
     "storage": {
       "title": "ストレージ設定",
-      "description": "写真の保存先を選択します"
+      "description": "写真の保存先を選択します",
+      "isrequired": "この項目は必須です",
+      "invalidUrl": "無効なURL形式です"
     },
     "map": {
       "title": "地図サービス",
