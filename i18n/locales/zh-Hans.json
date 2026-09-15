@@ -852,7 +852,10 @@
         "selectedCount": "已选择 {count} 张照片",
         "clearAll": "全部清除",
         "isHidden": "隐藏相簿",
-        "isHiddenHint": "隐藏的相簿中的照片不会在首页展示"
+        "isHiddenHint": "隐藏的相簿中的照片不会在首页展示",
+        "movePhotoUp": "上移照片",
+        "movePhotoDown": "下移照片",
+        "removePhoto": "移除照片"
       },
       "table": {
         "columns": {
@@ -907,9 +910,14 @@
         "deleteError": "删除相簿失败",
         "loadError": "加载相簿失败",
         "loadDetailError": "加载相簿详情失败",
-        "loadPhotosError": "加载照片失败"
+        "loadPhotosError": "加载照片失败",
+        "reorderError": "相簿排序失败"
       },
-      "photoCount": "{count} 张"
+      "photoCount": "{count} 张",
+      "actions": {
+        "moveUp": "上移",
+        "moveDown": "下移"
+      }
     },
     "overview": {
       "title": "仪表板概览",
