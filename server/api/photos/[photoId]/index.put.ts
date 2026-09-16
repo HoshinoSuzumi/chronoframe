@@ -103,7 +103,17 @@ export default eventHandler(async (event) => {
 
   const t = await useTranslation(event)
   const { photoId } = paramsSchema.parse(event.context.params ?? {})
-  const payload = bodySchema.parse(await readBody(event))
+  const parsed = bodySchema.safeParse(await readBody(event))
+  if (!parsed.success) {
+    const issue = parsed.error.issues[0]
+    throw createError({
+      statusCode: 400,
+      statusMessage: issue
+        ? `${issue.path.join('.') || 'body'}: ${issue.message}`
+        : 'Invalid request body',
+    })
+  }
+  const payload = parsed.data
 
   const hasExifEdits =
     payload.exif !== undefined && Object.keys(payload.exif).length > 0
