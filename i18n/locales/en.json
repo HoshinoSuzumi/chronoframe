@@ -852,7 +852,10 @@
         "selectedCount": "Selected {count} photos",
         "clearAll": "Clear all",
         "isHidden": "Hide album",
-        "isHiddenHint": "Photos in hidden albums are not shown on the home page"
+        "isHiddenHint": "Photos in hidden albums are not shown on the home page",
+        "movePhotoUp": "Move photo up",
+        "movePhotoDown": "Move photo down",
+        "removePhoto": "Remove photo"
       },
       "table": {
         "columns": {
@@ -907,9 +910,14 @@
         "deleteError": "Failed to delete album",
         "loadError": "Failed to load albums",
         "loadDetailError": "Failed to load album details",
-        "loadPhotosError": "Failed to load photos"
+        "loadPhotosError": "Failed to load photos",
+        "reorderError": "Failed to reorder albums"
       },
-      "photoCount": "{count} photos"
+      "photoCount": "{count} photos",
+      "actions": {
+        "moveUp": "Move up",
+        "moveDown": "Move down"
+      }
     },
     "overview": {
       "title": "Overview",
