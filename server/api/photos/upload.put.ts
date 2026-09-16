@@ -1,6 +1,7 @@
 import { useStorageProvider } from '~~/server/utils/useStorageProvider'
 import { logger } from '~~/server/utils/logger'
 import { settingsManager } from '~~/server/services/settings/settingsManager'
+import { resolveUploadContentType } from '~~/shared/utils/mime'
 
 export default eventHandler(async (event) => {
   await requireUserSession(event)
@@ -20,8 +21,13 @@ export default eventHandler(async (event) => {
     })
   }
 
-  const contentType =
-    getHeader(event, 'content-type') || 'application/octet-stream'
+  // Browsers on Windows/Android/Linux often have no registered type for HEIC
+  // and send application/octet-stream. Infer the type from the key's extension
+  // in that case so the whitelist is checked against the real format.
+  const contentType = resolveUploadContentType(
+    key,
+    getHeader(event, 'content-type'),
+  )
 
   // MIME 类型白名单验证（可通过环境变量配置）
   const config = useRuntimeConfig(event)
