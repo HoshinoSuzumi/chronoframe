@@ -101,3 +101,10 @@ export interface PhotoInfo {
   tags: string[]
   description: string
 }
+
+/**
+ * Subset of EXIF fields editable from the dashboard editor. Derived from the
+ * zod schema that validates the PUT /api/photos/:photoId body so the client
+ * type and the server validation cannot drift.
+ */
+export type { EditableExif } from '../schemas/exif'

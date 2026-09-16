@@ -240,6 +240,7 @@
       "title": "Color Space"
     },
     "artist": "Artist",
+    "copyright": "Copyright",
     "software": "Software",
     "tz": "Time Zone",
     "country": "Country",
@@ -778,6 +779,59 @@
         "actions": {
           "cancel": "Cancel",
           "save": "Save changes"
+        },
+        "advanced": {
+          "toggle": "Advanced — EXIF metadata",
+          "hint": "Edit raw EXIF fields. Changes are written into the image file.",
+          "groups": {
+            "cameraLens": "Camera & lens",
+            "exposure": "Exposure",
+            "captureMode": "Capture mode",
+            "authorship": "Authorship",
+            "dateSensor": "Date & sensor"
+          },
+          "fields": {
+            "make": "Camera make",
+            "model": "Camera model",
+            "lensMake": "Lens make",
+            "lensModel": "Lens model",
+            "fNumber": "Aperture (f-number)",
+            "exposureTime": "Shutter (exposure time)",
+            "iso": "ISO",
+            "focalLength": "Focal length",
+            "focalLength35": "Focal length (35mm equiv.)",
+            "flash": "Flash",
+            "sceneCaptureType": "Scene capture type",
+            "whiteBalance": "White balance",
+            "meteringMode": "Metering mode",
+            "exposureProgram": "Exposure program",
+            "exposureMode": "Exposure mode",
+            "artist": "Artist",
+            "copyright": "Copyright",
+            "software": "Software",
+            "dateTaken": "Date taken",
+            "utcOffset": "UTC offset",
+            "focalPlaneXResolution": "Focal plane X resolution",
+            "focalPlaneYResolution": "Focal plane Y resolution",
+            "colorSpace": "Color space"
+          },
+          "placeholders": {
+            "none": "Not set",
+            "utcOffset": "+02:00",
+            "exposureTime": "e.g. 1/250 or 0.004",
+            "focalLength": "e.g. 24 mm"
+          },
+          "notes": {
+            "colorSpace": "Read-only. The color space is inferred from the embedded ICC profile each time the photo is processed, so it cannot be edited here."
+          },
+          "errors": {
+            "number": "Enter a number greater than 0",
+            "integer": "Enter a whole number greater than 0",
+            "exposureTime": "Use a fraction such as 1/250 or a decimal such as 0.004",
+            "focalLength": "Use a value such as 24 or 24 mm",
+            "utcOffset": "Use the form +HH:MM, for example +02:00",
+            "date": "Enter a valid date and time"
+          }
         }
       },
       "uploadQueueItem": {

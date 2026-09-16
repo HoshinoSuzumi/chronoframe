@@ -237,6 +237,7 @@
       "title": "色彩空間"
     },
     "artist": "攝影師",
+    "copyright": "版權",
     "software": "軟體",
     "tz": "時區",
     "country": "國家",
@@ -704,6 +705,59 @@
         "actions": {
           "cancel": "取消",
           "save": "儲存變更"
+        },
+        "advanced": {
+          "toggle": "進階 — EXIF 中繼資料",
+          "hint": "編輯 EXIF 欄位。變更將寫入圖像檔案。",
+          "groups": {
+            "cameraLens": "相機與鏡頭",
+            "exposure": "曝光",
+            "captureMode": "拍攝模式",
+            "authorship": "作者資訊",
+            "dateSensor": "日期與感光元件"
+          },
+          "fields": {
+            "make": "相機製造商",
+            "model": "相機型號",
+            "lensMake": "鏡頭製造商",
+            "lensModel": "鏡頭型號",
+            "fNumber": "光圈 (F值)",
+            "exposureTime": "快門 (曝光時間)",
+            "iso": "ISO",
+            "focalLength": "焦距",
+            "focalLength35": "焦距 (35mm 等效)",
+            "flash": "閃光燈",
+            "sceneCaptureType": "場景拍攝類型",
+            "whiteBalance": "白平衡",
+            "meteringMode": "測光模式",
+            "exposureProgram": "曝光程式",
+            "exposureMode": "曝光模式",
+            "artist": "作者",
+            "copyright": "版權",
+            "software": "軟件",
+            "dateTaken": "拍攝日期",
+            "utcOffset": "UTC 偏移",
+            "focalPlaneXResolution": "焦平面 X 解析度",
+            "focalPlaneYResolution": "焦平面 Y 解析度",
+            "colorSpace": "色彩空間"
+          },
+          "placeholders": {
+            "none": "未設定",
+            "utcOffset": "+08:00",
+            "exposureTime": "例如 1/250 或 0.004",
+            "focalLength": "例如 24 mm"
+          },
+          "notes": {
+            "colorSpace": "唯讀。色彩空間會在每次處理照片時根據內嵌的 ICC 描述檔自動推斷，因此無法在此編輯。"
+          },
+          "errors": {
+            "number": "請輸入大於 0 的數字",
+            "integer": "請輸入大於 0 的整數",
+            "exposureTime": "請使用分數（如 1/250）或小數（如 0.004）",
+            "focalLength": "請使用如 24 或 24 mm 的格式",
+            "utcOffset": "請使用 +HH:MM 格式，例如 +02:00",
+            "date": "請輸入有效的日期和時間"
+          }
         }
       },
       "uploadQueueItem": {

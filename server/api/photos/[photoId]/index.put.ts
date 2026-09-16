@@ -5,7 +5,12 @@ import { z } from 'zod'
 import { exiftool } from 'exiftool-vendored'
 import { eq } from 'drizzle-orm'
 
-import { extractExifData } from '~~/server/services/image/exif'
+import {
+  extractExifData,
+  extractPhotoInfo,
+} from '~~/server/services/image/exif'
+import { buildExifWriteTags } from '~~/server/services/image/exif-write'
+import { editableExifSchema } from '~~/shared/schemas/exif'
 import { tables, useDB } from '~~/server/utils/db'
 import { useStorageProvider } from '~~/server/utils/useStorageProvider'
 
@@ -27,6 +32,7 @@ const bodySchema = z.object({
     ])
     .optional(),
   rating: z.union([z.number().int().min(0).max(5), z.null()]).optional(),
+  exif: editableExifSchema.optional(),
 })
 
 const normalizeTags = (tags: string[] | undefined) => {
@@ -49,14 +55,28 @@ export default eventHandler(async (event) => {
 
   const t = await useTranslation(event)
   const { photoId } = paramsSchema.parse(event.context.params ?? {})
-  const payload = bodySchema.parse(await readBody(event))
+  const parsed = bodySchema.safeParse(await readBody(event))
+  if (!parsed.success) {
+    const issue = parsed.error.issues[0]
+    throw createError({
+      statusCode: 400,
+      statusMessage: issue
+        ? `${issue.path.join('.') || 'body'}: ${issue.message}`
+        : 'Invalid request body',
+    })
+  }
+  const payload = parsed.data
+
+  const hasExifEdits =
+    payload.exif !== undefined && Object.keys(payload.exif).length > 0
 
   if (
     payload.title === undefined &&
     payload.description === undefined &&
     payload.tags === undefined &&
     payload.location === undefined &&
-    payload.rating === undefined
+    payload.rating === undefined &&
+    !hasExifEdits
   ) {
     throw createError({
       statusCode: 400,
@@ -154,6 +174,12 @@ export default eventHandler(async (event) => {
     exifUpdates.Rating = payload.rating !== null ? payload.rating : null
   }
 
+  const advancedExif = hasExifEdits
+    ? buildExifWriteTags(payload.exif!)
+    : { writeTags: {}, dateChanged: false }
+
+  Object.assign(exifUpdates, advancedExif.writeTags)
+
   const tempRoot = tmpdir()
   await mkdir(tempRoot, { recursive: true })
   const tempDir = await mkdtemp(path.join(tempRoot, 'cframe-edit-'))
@@ -163,8 +189,21 @@ export default eventHandler(async (event) => {
   try {
     await writeFile(tempFile, originalBuffer)
 
+    let exifWarnings: string[] = []
     if (Object.keys(exifUpdates).length > 0) {
-      await exiftool.write(tempFile, exifUpdates, ['-overwrite_original'])
+      const writeResult = await exiftool.write(tempFile, exifUpdates, [
+        '-overwrite_original',
+      ])
+      // exiftool reports tags it could not write as warnings, not errors.
+      // The DB is filled from a re-extraction below, so a skipped tag never
+      // appears as written; still surface it so the edit is not silently lost.
+      exifWarnings = writeResult.warnings ?? []
+      if (exifWarnings.length > 0) {
+        logger.image.warn(
+          `exiftool warnings while updating photo ${photoId}:`,
+          exifWarnings,
+        )
+      }
     }
 
     const updatedBuffer = await readFile(tempFile)
@@ -183,6 +222,16 @@ export default eventHandler(async (event) => {
       exif: exifData,
       fileSize: updatedBuffer.length,
       lastModified: new Date().toISOString(),
+    }
+
+    if (advancedExif.dateChanged) {
+      // Derive dateTaken from what exiftool actually wrote, exactly as ingest
+      // does (timezone inference included), so an edit and a later reprocess
+      // agree. A cleared date falls back to the filename date, else now.
+      updateData.dateTaken = extractPhotoInfo(
+        photo.storageKey,
+        exifData,
+      ).dateTaken
     }
 
     if (normalizedTitle !== undefined) {
@@ -259,6 +308,7 @@ export default eventHandler(async (event) => {
     return {
       success: true,
       photo: updatedPhoto,
+      warnings: exifWarnings,
     }
   } catch (error) {
     logger.image.error('Failed to update photo metadata', error)

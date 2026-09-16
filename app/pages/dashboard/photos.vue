@@ -1,6 +1,15 @@
 <script lang="ts" setup>
 import type { FormSubmitEvent, TableColumn } from '@nuxt/ui'
 import type { Photo, PipelineQueueItem } from '~~/server/utils/db'
+import type { EditableExif } from '~~/shared/types/photo'
+import {
+  buildExifPayload,
+  createEmptyExifFormState,
+  exifToFormState,
+  isExifFormDirty,
+  validateExifForm,
+  type ExifFormState,
+} from '~/utils/exifForm'
 import { h, resolveComponent } from 'vue'
 import { Icon, UBadge } from '#components'
 import ThumbImage from '~/components/ui/ThumbImage.vue'
@@ -169,6 +178,9 @@ const originalMetadata = ref<{
   rating: null,
 })
 
+const exifFormState = reactive<ExifFormState>(createEmptyExifFormState())
+const originalExif = ref<ExifFormState>(createEmptyExifFormState())
+
 const locationSelection = ref<{ latitude: number; longitude: number } | null>(
   null,
 )
@@ -243,13 +255,21 @@ const ratingChanged = computed(
   () => editFormState.rating !== originalMetadata.value.rating,
 )
 
+const exifChanged = computed(() =>
+  isExifFormDirty(exifFormState, originalExif.value),
+)
+
+const exifErrors = computed(() => validateExifForm(exifFormState))
+const exifHasErrors = computed(() => Object.keys(exifErrors.value).length > 0)
+
 const isMetadataDirty = computed(
   () =>
     titleChanged.value ||
     descriptionChanged.value ||
     tagsChanged.value ||
     locationChanged.value ||
-    ratingChanged.value,
+    ratingChanged.value ||
+    exifChanged.value,
 )
 
 const formattedCoordinates = computed(() => {
@@ -545,6 +565,8 @@ watch(isEditModalOpen, (open) => {
     }
     locationSelection.value = null
     locationTouched.value = false
+    Object.assign(exifFormState, createEmptyExifFormState())
+    originalExif.value = createEmptyExifFormState()
   }
 })
 
@@ -1282,6 +1304,10 @@ const openMetadataEditor = (photo: Photo) => {
   locationSelection.value = initialLocation ? { ...initialLocation } : null
   locationTouched.value = false
 
+  const populatedExif = exifToFormState(photo.exif)
+  Object.assign(exifFormState, populatedExif)
+  originalExif.value = { ...populatedExif }
+
   isEditModalOpen.value = true
 }
 
@@ -1321,7 +1347,7 @@ const enqueueEraseLocationTask = async (photo: Photo) => {
 }
 
 const saveMetadataChanges = async () => {
-  if (!editingPhoto.value || !isMetadataDirty.value) {
+  if (!editingPhoto.value || !isMetadataDirty.value || exifHasErrors.value) {
     return
   }
 
@@ -1333,6 +1359,7 @@ const saveMetadataChanges = async () => {
       tags?: string[]
       location?: { latitude: number; longitude: number } | null
       rating?: number | null
+      exif?: EditableExif
     } = {}
 
     if (titleChanged.value) {
@@ -1359,6 +1386,13 @@ const saveMetadataChanges = async () => {
 
     if (ratingChanged.value) {
       payload.rating = editFormState.rating
+    }
+
+    if (exifChanged.value) {
+      const exifPayload = buildExifPayload(exifFormState, originalExif.value)
+      if (exifPayload) {
+        payload.exif = exifPayload
+      }
     }
 
     let hasAnySuccessfulAction = false
@@ -1417,7 +1451,7 @@ const saveMetadataChanges = async () => {
 
 const handleEditSubmit = async (event: FormSubmitEvent<EditFormState>) => {
   event.preventDefault()
-  if (!isMetadataDirty.value) {
+  if (!isMetadataDirty.value || exifHasErrors.value) {
     return
   }
   await saveMetadataChanges()
@@ -2685,6 +2719,37 @@ onUnmounted(() => {
                     </span>
                   </div>
                 </div>
+
+                <UCollapsible
+                  class="border-t border-neutral-200 dark:border-neutral-800 pt-4"
+                >
+                  <UButton
+                    type="button"
+                    variant="ghost"
+                    color="neutral"
+                    class="group w-full justify-between"
+                    trailing-icon="tabler:chevron-down"
+                    :ui="{
+                      trailingIcon:
+                        'group-data-[state=open]:rotate-180 transition-transform',
+                    }"
+                  >
+                    {{ $t('dashboard.photos.editModal.advanced.toggle') }}
+                  </UButton>
+
+                  <template #content>
+                    <div class="pt-4 space-y-3">
+                      <p class="text-xs text-neutral-500 dark:text-neutral-400">
+                        {{ $t('dashboard.photos.editModal.advanced.hint') }}
+                      </p>
+                      <DashboardPhotoExifAdvancedFields
+                        v-model="exifFormState"
+                        :errors="exifErrors"
+                        :color-space="editingPhoto?.exif?.ColorSpace"
+                      />
+                    </div>
+                  </template>
+                </UCollapsible>
               </UForm>
             </div>
           </template>
@@ -2702,7 +2767,7 @@ onUnmounted(() => {
                 type="submit"
                 form="edit-photo-form"
                 :loading="isSavingMetadata"
-                :disabled="!isMetadataDirty || isSavingMetadata"
+                :disabled="!isMetadataDirty || isSavingMetadata || exifHasErrors"
                 icon="tabler:device-floppy"
               >
                 {{ $t('dashboard.photos.editModal.actions.save') }}
