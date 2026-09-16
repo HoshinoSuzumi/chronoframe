@@ -178,6 +178,13 @@ const formatedExifData = computed<Record<string, KVData[]>>(() => {
               icon: 'tabler:user',
             }
           : null,
+        props.exifData?.Copyright
+          ? {
+              label: $t('exif.copyright'),
+              value: props.exifData.Copyright,
+              icon: 'tabler:copyright',
+            }
+          : null,
         props.exifData?.Software
           ? {
               label: $t('exif.software'),

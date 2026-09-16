@@ -128,7 +128,6 @@ export interface EditableExif {
   MeteringMode?: string | null
   ExposureProgram?: string | null
   ExposureMode?: string | null
-  ColorSpace?: string | null
 
   Artist?: string | null
   Copyright?: string | null

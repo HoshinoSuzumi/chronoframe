@@ -237,6 +237,7 @@
       "title": "色彩空間"
     },
     "artist": "攝影師",
+    "copyright": "版權",
     "software": "軟體",
     "tz": "時區",
     "country": "國家",
@@ -731,7 +732,6 @@
             "meteringMode": "測光模式",
             "exposureProgram": "曝光程式",
             "exposureMode": "曝光模式",
-            "colorSpace": "色彩空間",
             "artist": "作者",
             "copyright": "版權",
             "software": "軟件",
@@ -745,8 +745,7 @@
             "utcOffset": "+08:00",
             "exposureTime": "例如 1/250 或 0.004",
             "focalLength": "例如 24 mm"
-          },
-          "colorSpaceNote": "色彩空間部分為自動偵測，編輯為盡力而為，可能不會更改檔案。"
+          }
         }
       },
       "uploadQueueItem": {

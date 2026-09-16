@@ -1,5 +1,5 @@
 import type { EditableExif } from '../../../shared/types/photo'
-import { exifDateAndOffsetToIsoInstant } from '../../../shared/utils/exifDateTime'
+import { exifDateAndOffsetToStoredIso } from '../../../shared/utils/exifDateTime'
 
 /** Text fields written 1:1 (null/'' clears the tag). */
 const TEXT_FIELDS = [
@@ -16,7 +16,6 @@ const TEXT_FIELDS = [
   'MeteringMode',
   'ExposureProgram',
   'ExposureMode',
-  'ColorSpace',
   'Artist',
   'Copyright',
   'Software',
@@ -37,7 +36,8 @@ export interface ExifWriteResult {
   dbOverlay: Record<string, unknown>
   /**
    * Value for the `dateTaken` column when the capture date changed:
-   * an ISO instant when set, `null` when cleared, `undefined` when untouched.
+   * an ISO instant when set, `null` when cleared (caller derives a fallback),
+   * `undefined` when untouched or unparseable.
    */
   dateTakenIso?: string | null
 }
@@ -81,14 +81,17 @@ export const buildExifWriteTags = (exif: EditableExif): ExifWriteResult => {
     writeTags.OffsetTimeOriginal = offsetValue
 
     if (dateValue) {
-      // Empty string means the date could not be parsed; treat as "no change".
-      const iso =
-        exifDateAndOffsetToIsoInstant(dateValue, offsetValue) || undefined
-      dateTakenIso = iso
-      dbOverlay.DateTimeOriginal = iso
-      dbOverlay.OffsetTimeOriginal = offsetValue ?? undefined
+      // Stored in the same shape the extractor produces (offset form, or
+      // zone-less when no offset is known) so ingest and edit agree.
+      const stored = exifDateAndOffsetToStoredIso(dateValue, offsetValue)
+      if (stored) {
+        dateTakenIso = new Date(stored).toISOString()
+        dbOverlay.DateTimeOriginal = stored
+        dbOverlay.OffsetTimeOriginal = offsetValue ?? undefined
+      }
+      // Unparseable date: leave the re-extracted values untouched.
     } else {
-      // Date explicitly cleared: also null the dateTaken sort column.
+      // Date explicitly cleared: the caller recomputes the dateTaken fallback.
       dateTakenIso = null
       dbOverlay.DateTimeOriginal = undefined
       dbOverlay.OffsetTimeOriginal = undefined

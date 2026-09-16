@@ -240,6 +240,7 @@
       "title": "Color Space"
     },
     "artist": "Artist",
+    "copyright": "Copyright",
     "software": "Software",
     "tz": "Time Zone",
     "country": "Country",
@@ -805,7 +806,6 @@
             "meteringMode": "Metering mode",
             "exposureProgram": "Exposure program",
             "exposureMode": "Exposure mode",
-            "colorSpace": "Color space",
             "artist": "Artist",
             "copyright": "Copyright",
             "software": "Software",
@@ -819,8 +819,7 @@
             "utcOffset": "+02:00",
             "exposureTime": "e.g. 1/250 or 0.004",
             "focalLength": "e.g. 24 mm"
-          },
-          "colorSpaceNote": "Color space is partly auto-detected; edits are best-effort and may not change the file."
+          }
         }
       },
       "uploadQueueItem": {

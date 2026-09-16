@@ -5,15 +5,28 @@ import { z } from 'zod'
 import { exiftool } from 'exiftool-vendored'
 import { eq } from 'drizzle-orm'
 
-import { extractExifData } from '~~/server/services/image/exif'
+import {
+  extractExifData,
+  extractPhotoInfo,
+} from '~~/server/services/image/exif'
 import { buildExifWriteTags } from '~~/server/services/image/exif-write'
 import { EXIF_ENUM_OPTIONS } from '~~/shared/constants/exifOptions'
+import { isValidExifDate, isValidUtcOffset } from '~~/shared/utils/exifDateTime'
 import { tables, useDB } from '~~/server/utils/db'
 import { useStorageProvider } from '~~/server/utils/useStorageProvider'
+import type { NeededExif } from '~~/shared/types/photo'
 
 const paramsSchema = z.object({
   photoId: z.string().min(1),
 })
+
+/** "24", "24.5", "24 mm" — what exiftool accepts for FocalLength tags. */
+const focalLengthSchema = z
+  .string()
+  .trim()
+  .max(32)
+  .regex(/^\d+(\.\d+)?( mm)?$/, 'Invalid focal length (expected e.g. 24 mm)')
+  .nullish()
 
 const bodySchema = z.object({
   title: z.string().trim().max(512).optional(),
@@ -43,30 +56,26 @@ const bodySchema = z.object({
         .regex(/^(\d+(\.\d+)?|\d+\/\d+)$/, 'Invalid exposure time')
         .nullish(),
       ISO: z.number().int().min(0).max(10_000_000).nullish(),
-      FocalLength: z.string().trim().max(32).nullish(),
-      FocalLengthIn35mmFormat: z.string().trim().max(32).nullish(),
+      FocalLength: focalLengthSchema,
+      FocalLengthIn35mmFormat: focalLengthSchema,
       Flash: z.enum(EXIF_ENUM_OPTIONS.flash).nullish(),
       SceneCaptureType: z.enum(EXIF_ENUM_OPTIONS.sceneCaptureType).nullish(),
       WhiteBalance: z.enum(EXIF_ENUM_OPTIONS.whiteBalance).nullish(),
       MeteringMode: z.enum(EXIF_ENUM_OPTIONS.meteringMode).nullish(),
       ExposureProgram: z.enum(EXIF_ENUM_OPTIONS.exposureProgram).nullish(),
       ExposureMode: z.enum(EXIF_ENUM_OPTIONS.exposureMode).nullish(),
-      ColorSpace: z.enum(EXIF_ENUM_OPTIONS.colorSpace).nullish(),
       Artist: z.string().trim().max(256).nullish(),
       Copyright: z.string().trim().max(512).nullish(),
       Software: z.string().trim().max(256).nullish(),
       DateTimeOriginal: z
         .string()
         .trim()
-        .regex(
-          /^\d{4}:\d{2}:\d{2} \d{2}:\d{2}:\d{2}$/,
-          'Invalid date (expected YYYY:MM:DD HH:MM:SS)',
-        )
+        .refine(isValidExifDate, 'Invalid date (expected YYYY:MM:DD HH:MM:SS)')
         .nullish(),
       OffsetTimeOriginal: z
         .string()
         .trim()
-        .regex(/^[+-]\d{2}:\d{2}$/, 'Invalid UTC offset')
+        .refine(isValidUtcOffset, 'Invalid UTC offset (expected +HH:MM)')
         .nullish(),
       FocalPlaneXResolution: z.number().positive().max(1_000_000).nullish(),
       FocalPlaneYResolution: z.number().positive().max(1_000_000).nullish(),
@@ -252,7 +261,11 @@ export default eventHandler(async (event) => {
     }
 
     if (advancedExif.dateTakenIso !== undefined) {
-      updateData.dateTaken = advancedExif.dateTakenIso
+      // Cleared date: fall back exactly as ingest does (filename date, else now)
+      // so the column never holds NULL and a reprocess would yield the same value.
+      updateData.dateTaken =
+        advancedExif.dateTakenIso ??
+        extractPhotoInfo(photo.storageKey, overlaidExif as NeededExif).dateTaken
     }
 
     if (normalizedTitle !== undefined) {

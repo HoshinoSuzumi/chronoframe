@@ -240,6 +240,7 @@
       "title": "Цветовое пространство"
     },
     "artist": "Автор",
+    "copyright": "Авторские права",
     "software": "Программное обеспечение",
     "tz": "Часовой пояс",
     "country": "Страна",
@@ -777,6 +778,47 @@
         "actions": {
           "cancel": "Отмена",
           "save": "Сохранить изменения"
+        },
+        "advanced": {
+          "toggle": "Дополнительно — метаданные EXIF",
+          "hint": "Редактирование полей EXIF. Изменения записываются в файл изображения.",
+          "groups": {
+            "cameraLens": "Камера и объектив",
+            "exposure": "Экспозиция",
+            "captureMode": "Режим съёмки",
+            "authorship": "Авторство",
+            "dateSensor": "Дата и сенсор"
+          },
+          "fields": {
+            "make": "Производитель камеры",
+            "model": "Модель камеры",
+            "lensMake": "Производитель объектива",
+            "lensModel": "Модель объектива",
+            "fNumber": "Диафрагма (f-число)",
+            "exposureTime": "Выдержка (время экспозиции)",
+            "iso": "ISO",
+            "focalLength": "Фокусное расстояние",
+            "focalLength35": "Фокусное расстояние (экв. 35 мм)",
+            "flash": "Вспышка",
+            "sceneCaptureType": "Тип сцены",
+            "whiteBalance": "Баланс белого",
+            "meteringMode": "Режим замера",
+            "exposureProgram": "Программа экспозиции",
+            "exposureMode": "Режим экспозиции",
+            "artist": "Автор",
+            "copyright": "Авторские права",
+            "software": "Программное обеспечение",
+            "dateTaken": "Дата съёмки",
+            "utcOffset": "Смещение UTC",
+            "focalPlaneXResolution": "Разрешение фокальной плоскости по X",
+            "focalPlaneYResolution": "Разрешение фокальной плоскости по Y"
+          },
+          "placeholders": {
+            "none": "Не задано",
+            "utcOffset": "+02:00",
+            "exposureTime": "напр. 1/250 или 0.004",
+            "focalLength": "напр. 24 mm"
+          }
         }
       },
       "uploadQueueItem": {

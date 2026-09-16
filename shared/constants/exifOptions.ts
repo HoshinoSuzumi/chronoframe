@@ -61,16 +61,6 @@ export const EXIF_ENUM_OPTIONS = {
     'Bulb',
   ],
   exposureMode: ['Auto', 'Manual', 'Auto bracket'],
-  // Some entries (e.g. Display P3, RGB) are app-inferred and may not be writable to the standard EXIF ColorSpace tag.
-  colorSpace: [
-    'sRGB',
-    'Adobe RGB',
-    'Wide Gamut RGB',
-    'Display P3',
-    'ICC Profile',
-    'Uncalibrated',
-    'RGB',
-  ],
 } as const
 
 /** Maps an editable enum EXIF tag name to its option-list category. */
@@ -81,7 +71,6 @@ export const EXIF_ENUM_FIELD_CATEGORY = {
   MeteringMode: 'meteringMode',
   ExposureProgram: 'exposureProgram',
   ExposureMode: 'exposureMode',
-  ColorSpace: 'colorSpace',
 } as const
 
 export type ExifEnumCategory = keyof typeof EXIF_ENUM_OPTIONS

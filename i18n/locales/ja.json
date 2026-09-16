@@ -240,6 +240,7 @@
       "title": "カラースペース"
     },
     "artist": "作者",
+    "copyright": "著作権",
     "software": "ソフトウェア",
     "tz": "タイムゾーン",
     "country": "国",
@@ -731,7 +732,6 @@
             "meteringMode": "測光モード",
             "exposureProgram": "露出プログラム",
             "exposureMode": "露出モード",
-            "colorSpace": "色空間",
             "artist": "作成者",
             "copyright": "著作権",
             "software": "ソフトウェア",
@@ -745,8 +745,7 @@
             "utcOffset": "+09:00",
             "exposureTime": "例: 1/250 または 0.004",
             "focalLength": "例: 24 mm"
-          },
-          "colorSpaceNote": "色空間は一部自動検出されるため、編集はベストエフォートでありファイルに反映されない場合があります。"
+          }
         }
       },
       "uploadQueueItem": {

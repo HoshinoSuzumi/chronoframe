@@ -236,6 +236,7 @@
       "title": "色彩空间"
     },
     "artist": "艺术家",
+    "copyright": "版权",
     "software": "软件",
     "tz": "时区",
     "country": "国家",
@@ -805,7 +806,6 @@
             "meteringMode": "测光模式",
             "exposureProgram": "曝光程序",
             "exposureMode": "曝光模式",
-            "colorSpace": "色彩空间",
             "artist": "作者",
             "copyright": "版权",
             "software": "软件",
@@ -819,8 +819,7 @@
             "utcOffset": "+08:00",
             "exposureTime": "例如 1/250 或 0.004",
             "focalLength": "例如 24 mm"
-          },
-          "colorSpaceNote": "色彩空间部分为自动检测，编辑为尽力而为，可能不会更改文件。"
+          }
         }
       },
       "uploadQueueItem": {

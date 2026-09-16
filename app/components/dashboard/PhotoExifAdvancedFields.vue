@@ -221,22 +221,6 @@ const a = (key: string) => $t(`dashboard.photos.editModal.advanced.${key}`)
             class="w-full"
           />
         </UFormField>
-        <UFormField
-          :label="a('fields.colorSpace')"
-          name="exifColorSpace"
-          class="sm:col-span-2"
-        >
-          <USelectMenu
-            v-model="state.ColorSpace"
-            :items="enumItems('ColorSpace')"
-            value-key="value"
-            label-key="label"
-            class="w-full"
-          />
-          <p class="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
-            {{ a('colorSpaceNote') }}
-          </p>
-        </UFormField>
       </div>
     </div>
 

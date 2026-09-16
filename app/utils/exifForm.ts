@@ -1,5 +1,7 @@
-/** UI form shape for the advanced EXIF editor. All values are strings for
- * binding simplicity; numbers are parsed and the date is converted at save. */
+/** UI form shape for the advanced EXIF editor. Values are bound as strings;
+ * numbers are parsed and the date is converted at save. Note that
+ * `<UInput type="number">` emits numbers, so always read through
+ * `normalizeFormValue` rather than calling string methods directly. */
 export interface ExifFormState {
   Make: string
   Model: string
@@ -16,7 +18,6 @@ export interface ExifFormState {
   MeteringMode: string
   ExposureProgram: string
   ExposureMode: string
-  ColorSpace: string
   Artist: string
   Copyright: string
   Software: string
@@ -43,7 +44,6 @@ export const createEmptyExifFormState = (): ExifFormState => ({
   MeteringMode: '',
   ExposureProgram: '',
   ExposureMode: '',
-  ColorSpace: '',
   Artist: '',
   Copyright: '',
   Software: '',
@@ -52,3 +52,7 @@ export const createEmptyExifFormState = (): ExifFormState => ({
   FocalPlaneXResolution: '',
   FocalPlaneYResolution: '',
 })
+
+/** Coerce a form value (string, or number from a numeric input) to a trimmed string. */
+export const normalizeFormValue = (value: unknown): string =>
+  value === null || value === undefined ? '' : String(value).trim()
