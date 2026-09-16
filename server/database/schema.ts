@@ -140,6 +140,8 @@ export const albums = sqliteTable('albums', {
     onDelete: 'set null',
   }),
   isHidden: integer('is_hidden', { mode: 'boolean' }).default(false).notNull(),
+  // Album sort position (ascending; smaller value appears first)
+  position: real('position').notNull().default(0),
   createdAt: integer('created_at', { mode: 'timestamp' })
     .notNull()
     .default(sql`(unixepoch())`),
