@@ -60,8 +60,9 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: 'Invalid path' })
   }
 
+  let stat: Awaited<ReturnType<typeof fs.stat>>
   try {
-    const stat = await fs.stat(absolute)
+    stat = await fs.stat(absolute)
     if (!stat.isFile()) {
       throw createError({ statusCode: 404, statusMessage: 'Not Found' })
     }
@@ -112,6 +113,11 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 404, statusMessage: 'Not Found' })
   }
 
+  // Full-file response: advertise the size so browsers can compute download
+  // progress (XHR `lengthComputable`). Without it Node falls back to chunked
+  // transfer encoding and the viewer's progress stays at 0% (#191).
+  setHeader(event, 'Accept-Ranges', 'bytes')
+  setHeader(event, 'Content-Length', stat.size)
   const stream = createReadStream(absolute)
   return sendStream(event, stream)
 })

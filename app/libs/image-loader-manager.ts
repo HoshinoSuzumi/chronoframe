@@ -119,6 +119,15 @@ export class ImageLoaderManager {
               bytesLoaded: event.loaded,
               bytesTotal: event.total,
             })
+          } else {
+            // No Content-Length (e.g. chunked responses behind some proxies):
+            // still surface the bytes received so the UI can show activity
+            // instead of a frozen 0%.
+            onUpdateLoadingState?.({
+              progress: 0,
+              bytesLoaded: event.loaded,
+              bytesTotal: 0,
+            })
           }
         }
 
