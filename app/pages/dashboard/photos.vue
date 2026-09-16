@@ -4,6 +4,7 @@ import type { Photo, PipelineQueueItem } from '~~/server/utils/db'
 import { h, resolveComponent } from 'vue'
 import { Icon, UBadge } from '#components'
 import ThumbImage from '~/components/ui/ThumbImage.vue'
+import { resolveUploadContentType } from '~~/shared/utils/mime'
 
 const UCheckbox = resolveComponent('UCheckbox')
 const Rating = resolveComponent('Rating')
@@ -302,7 +303,8 @@ const uploadImage = async (
       method: 'POST',
       body: {
         fileName: file.name,
-        contentType: file.type,
+        // 部分浏览器对 HEIC 等格式不提供 file.type，按扩展名兜底
+        contentType: resolveUploadContentType(file.name, file.type),
       },
     })
 

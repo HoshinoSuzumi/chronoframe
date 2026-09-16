@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { useStorageProvider } from '~~/server/utils/useStorageProvider'
 
 export default defineEventHandler(async (event) => {
   await requireUserSession(event)
@@ -34,6 +35,22 @@ export default defineEventHandler(async (event) => {
         maxAttempts: z.number().min(1).max(5).optional().default(3),
       }).parse,
     )
+
+    // Fail fast when the upload never landed (e.g. rejected by the MIME
+    // whitelist or a reverse proxy) instead of letting the queue retry
+    // against a key that does not exist and report "Storage object not found".
+    if (payload.type === 'photo' || payload.type === 'live-photo-video') {
+      const { storageProvider } = useStorageProvider(event)
+      const exists =
+        (await storageProvider.getFileMeta(payload.storageKey)) ||
+        (await storageProvider.get(payload.storageKey))
+      if (!exists) {
+        throw createError({
+          statusCode: 404,
+          statusMessage: `Storage object not found: ${payload.storageKey}`,
+        })
+      }
+    }
 
     const workerPool = globalThis.__workerPool
 
