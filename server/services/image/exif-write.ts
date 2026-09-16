@@ -1,5 +1,4 @@
-import type { EditableExif } from '../../../shared/types/photo'
-import { exifDateAndOffsetToStoredIso } from '../../../shared/utils/exifDateTime'
+import type { EditableExif } from '../../../shared/schemas/exif'
 
 /** Text fields written 1:1 (null/'' clears the tag). */
 const TEXT_FIELDS = [
@@ -19,7 +18,9 @@ const TEXT_FIELDS = [
   'Artist',
   'Copyright',
   'Software',
-] as const
+  'DateTimeOriginal',
+  'OffsetTimeOriginal',
+] as const satisfies readonly (keyof EditableExif)[]
 
 /** Numeric fields written 1:1 (null clears the tag). */
 const NUMBER_FIELDS = [
@@ -27,19 +28,24 @@ const NUMBER_FIELDS = [
   'ISO',
   'FocalPlaneXResolution',
   'FocalPlaneYResolution',
-] as const
+] as const satisfies readonly (keyof EditableExif)[]
+
+/** Editing either of these moves the capture instant, so `dateTaken` must be re-derived. */
+const DATE_FIELDS = [
+  'DateTimeOriginal',
+  'OffsetTimeOriginal',
+] as const satisfies readonly (keyof EditableExif)[]
 
 export interface ExifWriteResult {
-  /** Tag record for exiftool.write (only keys present in the payload). */
-  writeTags: Record<string, unknown>
-  /** Values to overlay onto the re-extracted exif before saving to DB. */
-  dbOverlay: Record<string, unknown>
+  /** Tag record for exiftool.write: only keys present in the payload, `null` clears. */
+  writeTags: Record<string, string | number | null>
   /**
-   * Value for the `dateTaken` column when the capture date changed:
-   * an ISO instant when set, `null` when cleared (caller derives a fallback),
-   * `undefined` when untouched or unparseable.
+   * True when DateTimeOriginal or OffsetTimeOriginal was edited. The caller
+   * must then re-derive `dateTaken` from the re-extracted EXIF (the same way
+   * ingest does) instead of trusting the payload, so that a later reprocess
+   * yields the same instant.
    */
-  dateTakenIso?: string | null
+  dateChanged: boolean
 }
 
 const emptyToNull = (value: string | null | undefined): string | null => {
@@ -49,58 +55,32 @@ const emptyToNull = (value: string | null | undefined): string | null => {
 }
 
 /**
- * Map an EditableExif payload to exiftool write tags + DB overlay values.
- * Only keys present (not `undefined`) in `exif` are processed.
+ * Map an EditableExif payload to exiftool write tags.
+ * Only keys present (not `undefined`) in `exif` are processed; each key is
+ * independent, so e.g. sending `DateTimeOriginal` alone leaves the file's
+ * existing `OffsetTimeOriginal` untouched.
+ *
+ * The file is the source of truth: after writing, the caller re-extracts the
+ * EXIF and stores that. Nothing from the payload is copied into the DB
+ * directly, so a tag exiftool refused to write never shows up as if it had
+ * been written.
  */
 export const buildExifWriteTags = (exif: EditableExif): ExifWriteResult => {
-  const writeTags: Record<string, unknown> = {}
-  const dbOverlay: Record<string, unknown> = {}
-  let dateTakenIso: string | null | undefined
+  const writeTags: Record<string, string | number | null> = {}
 
   for (const key of TEXT_FIELDS) {
-    if (exif[key] === undefined) continue
-    const value = emptyToNull(exif[key] as string | null | undefined)
-    writeTags[key] = value
-    dbOverlay[key] = value ?? undefined
+    const raw = exif[key]
+    if (raw === undefined) continue
+    writeTags[key] = emptyToNull(raw)
   }
 
   for (const key of NUMBER_FIELDS) {
-    if (exif[key] === undefined) continue
-    const raw = exif[key] as number | null | undefined
-    const value = raw === null || Number.isNaN(raw) ? null : raw
-    writeTags[key] = value
-    dbOverlay[key] = value ?? undefined
+    const raw = exif[key]
+    if (raw === undefined) continue
+    writeTags[key] = raw
   }
 
-  if (exif.DateTimeOriginal !== undefined) {
-    const dateValue = emptyToNull(exif.DateTimeOriginal)
-    const offsetValue = emptyToNull(exif.OffsetTimeOriginal)
+  const dateChanged = DATE_FIELDS.some((key) => exif[key] !== undefined)
 
-    // Both tags are written together so editing the date also asserts/clears its offset.
-    writeTags.DateTimeOriginal = dateValue
-    writeTags.OffsetTimeOriginal = offsetValue
-
-    if (dateValue) {
-      // Stored in the same shape the extractor produces (offset form, or
-      // zone-less when no offset is known) so ingest and edit agree.
-      const stored = exifDateAndOffsetToStoredIso(dateValue, offsetValue)
-      if (stored) {
-        dateTakenIso = new Date(stored).toISOString()
-        dbOverlay.DateTimeOriginal = stored
-        dbOverlay.OffsetTimeOriginal = offsetValue ?? undefined
-      }
-      // Unparseable date: leave the re-extracted values untouched.
-    } else {
-      // Date explicitly cleared: the caller recomputes the dateTaken fallback.
-      dateTakenIso = null
-      dbOverlay.DateTimeOriginal = undefined
-      dbOverlay.OffsetTimeOriginal = undefined
-    }
-  } else if (exif.OffsetTimeOriginal !== undefined) {
-    const offsetValue = emptyToNull(exif.OffsetTimeOriginal)
-    writeTags.OffsetTimeOriginal = offsetValue
-    dbOverlay.OffsetTimeOriginal = offsetValue ?? undefined
-  }
-
-  return { writeTags, dbOverlay, dateTakenIso }
+  return { writeTags, dateChanged }
 }

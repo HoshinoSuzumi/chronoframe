@@ -10,23 +10,13 @@ import {
   extractPhotoInfo,
 } from '~~/server/services/image/exif'
 import { buildExifWriteTags } from '~~/server/services/image/exif-write'
-import { EXIF_ENUM_OPTIONS } from '~~/shared/constants/exifOptions'
-import { isValidExifDate, isValidUtcOffset } from '~~/shared/utils/exifDateTime'
+import { editableExifSchema } from '~~/shared/schemas/exif'
 import { tables, useDB } from '~~/server/utils/db'
 import { useStorageProvider } from '~~/server/utils/useStorageProvider'
-import type { NeededExif } from '~~/shared/types/photo'
 
 const paramsSchema = z.object({
   photoId: z.string().min(1),
 })
-
-/** "24", "24.5", "24 mm" — what exiftool accepts for FocalLength tags. */
-const focalLengthSchema = z
-  .string()
-  .trim()
-  .max(32)
-  .regex(/^\d+(\.\d+)?( mm)?$/, 'Invalid focal length (expected e.g. 24 mm)')
-  .nullish()
 
 const bodySchema = z.object({
   title: z.string().trim().max(512).optional(),
@@ -42,45 +32,7 @@ const bodySchema = z.object({
     ])
     .optional(),
   rating: z.union([z.number().int().min(0).max(5), z.null()]).optional(),
-  exif: z
-    .object({
-      Make: z.string().trim().max(256).nullish(),
-      Model: z.string().trim().max(256).nullish(),
-      LensMake: z.string().trim().max(256).nullish(),
-      LensModel: z.string().trim().max(256).nullish(),
-      FNumber: z.number().positive().max(1000).nullish(),
-      ExposureTime: z
-        .string()
-        .trim()
-        .max(32)
-        .regex(/^(\d+(\.\d+)?|\d+\/\d+)$/, 'Invalid exposure time')
-        .nullish(),
-      ISO: z.number().int().min(0).max(10_000_000).nullish(),
-      FocalLength: focalLengthSchema,
-      FocalLengthIn35mmFormat: focalLengthSchema,
-      Flash: z.enum(EXIF_ENUM_OPTIONS.flash).nullish(),
-      SceneCaptureType: z.enum(EXIF_ENUM_OPTIONS.sceneCaptureType).nullish(),
-      WhiteBalance: z.enum(EXIF_ENUM_OPTIONS.whiteBalance).nullish(),
-      MeteringMode: z.enum(EXIF_ENUM_OPTIONS.meteringMode).nullish(),
-      ExposureProgram: z.enum(EXIF_ENUM_OPTIONS.exposureProgram).nullish(),
-      ExposureMode: z.enum(EXIF_ENUM_OPTIONS.exposureMode).nullish(),
-      Artist: z.string().trim().max(256).nullish(),
-      Copyright: z.string().trim().max(512).nullish(),
-      Software: z.string().trim().max(256).nullish(),
-      DateTimeOriginal: z
-        .string()
-        .trim()
-        .refine(isValidExifDate, 'Invalid date (expected YYYY:MM:DD HH:MM:SS)')
-        .nullish(),
-      OffsetTimeOriginal: z
-        .string()
-        .trim()
-        .refine(isValidUtcOffset, 'Invalid UTC offset (expected +HH:MM)')
-        .nullish(),
-      FocalPlaneXResolution: z.number().positive().max(1_000_000).nullish(),
-      FocalPlaneYResolution: z.number().positive().max(1_000_000).nullish(),
-    })
-    .optional(),
+  exif: editableExifSchema.optional(),
 })
 
 const normalizeTags = (tags: string[] | undefined) => {
@@ -224,7 +176,7 @@ export default eventHandler(async (event) => {
 
   const advancedExif = hasExifEdits
     ? buildExifWriteTags(payload.exif!)
-    : { writeTags: {}, dbOverlay: {}, dateTakenIso: undefined }
+    : { writeTags: {}, dateChanged: false }
 
   Object.assign(exifUpdates, advancedExif.writeTags)
 
@@ -237,8 +189,21 @@ export default eventHandler(async (event) => {
   try {
     await writeFile(tempFile, originalBuffer)
 
+    let exifWarnings: string[] = []
     if (Object.keys(exifUpdates).length > 0) {
-      await exiftool.write(tempFile, exifUpdates, ['-overwrite_original'])
+      const writeResult = await exiftool.write(tempFile, exifUpdates, [
+        '-overwrite_original',
+      ])
+      // exiftool reports tags it could not write as warnings, not errors.
+      // The DB is filled from a re-extraction below, so a skipped tag never
+      // appears as written; still surface it so the edit is not silently lost.
+      exifWarnings = writeResult.warnings ?? []
+      if (exifWarnings.length > 0) {
+        logger.image.warn(
+          `exiftool warnings while updating photo ${photoId}:`,
+          exifWarnings,
+        )
+      }
     }
 
     const updatedBuffer = await readFile(tempFile)
@@ -253,29 +218,20 @@ export default eventHandler(async (event) => {
 
     const exifData = await extractExifData(updatedBuffer)
 
-    const overlaidExif: Record<string, any> = { ...exifData }
-    for (const [overlayKey, overlayValue] of Object.entries(
-      advancedExif.dbOverlay,
-    )) {
-      if (overlayValue === undefined) {
-        delete overlaidExif[overlayKey]
-      } else {
-        overlaidExif[overlayKey] = overlayValue
-      }
-    }
-
     const updateData: Record<string, any> = {
-      exif: overlaidExif,
+      exif: exifData,
       fileSize: updatedBuffer.length,
       lastModified: new Date().toISOString(),
     }
 
-    if (advancedExif.dateTakenIso !== undefined) {
-      // Cleared date: fall back exactly as ingest does (filename date, else now)
-      // so the column never holds NULL and a reprocess would yield the same value.
-      updateData.dateTaken =
-        advancedExif.dateTakenIso ??
-        extractPhotoInfo(photo.storageKey, overlaidExif as NeededExif).dateTaken
+    if (advancedExif.dateChanged) {
+      // Derive dateTaken from what exiftool actually wrote, exactly as ingest
+      // does (timezone inference included), so an edit and a later reprocess
+      // agree. A cleared date falls back to the filename date, else now.
+      updateData.dateTaken = extractPhotoInfo(
+        photo.storageKey,
+        exifData,
+      ).dateTaken
     }
 
     if (normalizedTitle !== undefined) {
@@ -352,6 +308,7 @@ export default eventHandler(async (event) => {
     return {
       success: true,
       photo: updatedPhoto,
+      warnings: exifWarnings,
     }
   } catch (error) {
     logger.image.error('Failed to update photo metadata', error)

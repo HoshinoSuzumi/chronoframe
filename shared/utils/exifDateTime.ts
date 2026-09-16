@@ -69,26 +69,6 @@ export const wallClockToExifDate = (wallClock: string): string => {
 }
 
 /**
- * exiftool "YYYY:MM:DD HH:MM:SS" + optional offset -> the string form the
- * extractor stores for `DateTimeOriginal` ("YYYY-MM-DDTHH:mm:ss+02:00", or
- * zone-less "YYYY-MM-DDTHH:mm:ss" when no offset is known). Returns '' when
- * either part is not a valid value.
- *
- * Keeping the same shape as ingest means `new Date(stored)` yields the same
- * `dateTaken` instant whether the value came from upload or from an edit.
- */
-export const exifDateAndOffsetToStoredIso = (
-  exifDate: string,
-  offset: string | null | undefined,
-): string => {
-  if (!isValidExifDate(exifDate)) return ''
-  const trimmedOffset = (offset ?? '').trim()
-  if (trimmedOffset && !isValidUtcOffset(trimmedOffset)) return ''
-  const [datePart, timePart] = exifDate.trim().split(' ') as [string, string]
-  return `${datePart.replace(/:/g, '-')}T${timePart}${trimmedOffset}`
-}
-
-/**
  * Stored DateTimeOriginal + offset -> wall-clock "YYYY-MM-DDTHH:mm:ss" for
  * datetime-local. The wall clock is what the camera recorded, so it is taken
  * lexically from the stored string; only a true UTC instant ("...Z") needs
