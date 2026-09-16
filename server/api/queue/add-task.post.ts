@@ -39,12 +39,20 @@ export default defineEventHandler(async (event) => {
     // Fail fast when the upload never landed (e.g. rejected by the MIME
     // whitelist or a reverse proxy) instead of letting the queue retry
     // against a key that does not exist and report "Storage object not found".
+    //
+    // The check must never download the object on the request path, so it is
+    // only authoritative where it is cheap: the local provider (a stat plus a
+    // disk read). For remote providers an empty metadata result may just be a
+    // backend quirk or a transient error, so the task is let through and the
+    // worker decides, as it did before.
     if (payload.type === 'photo' || payload.type === 'live-photo-video') {
       const { storageProvider } = useStorageProvider(event)
-      const exists =
-        (await storageProvider.getFileMeta(payload.storageKey)) ||
-        (await storageProvider.get(payload.storageKey))
-      if (!exists) {
+      const isLocal = storageProvider.config?.provider === 'local'
+      let exists = !!(await storageProvider.getFileMeta(payload.storageKey))
+      if (!exists && isLocal) {
+        exists = !!(await storageProvider.get(payload.storageKey))
+      }
+      if (!exists && isLocal) {
         throw createError({
           statusCode: 404,
           statusMessage: `Storage object not found: ${payload.storageKey}`,
