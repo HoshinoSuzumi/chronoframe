@@ -778,7 +778,10 @@
         "selectedCount": "{count}枚の写真を選択しました",
         "clearAll": "すべてクリア",
         "isHidden": "アルバムを非表示",
-        "isHiddenHint": "非表示のアルバム内の写真はホームページに表示されません"
+        "isHiddenHint": "非表示のアルバム内の写真はホームページに表示されません",
+        "movePhotoUp": "写真を上へ移動",
+        "movePhotoDown": "写真を下へ移動",
+        "removePhoto": "写真を選択から外す"
       },
       "table": {
         "columns": {
@@ -833,9 +836,14 @@
         "deleteError": "アルバムの削除に失敗しました",
         "loadError": "アルバムの読み込みに失敗しました",
         "loadDetailError": "アルバムの詳細の読み込みに失敗しました",
-        "loadPhotosError": "写真の読み込みに失敗しました"
+        "loadPhotosError": "写真の読み込みに失敗しました",
+        "reorderError": "アルバムの並べ替えに失敗しました"
       },
-      "photoCount": "{count} 枚"
+      "photoCount": "{count} 枚",
+      "actions": {
+        "moveUp": "上へ移動",
+        "moveDown": "下へ移動"
+      }
     },
     "overview": {
       "title": "概要",
