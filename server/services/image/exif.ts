@@ -93,13 +93,24 @@ const neededKeys: Array<keyof Tags | (string & {})> = [
   'MicroVideoPresentationTimestampUs',
 ]
 
+/**
+ * Convert a date-like value to an ISO string, returning undefined instead of
+ * throwing `RangeError: Invalid time value` when the value cannot be parsed.
+ */
+const toValidISOString = (value: string | number | Date): string | undefined => {
+  const date = value instanceof Date ? value : new Date(value)
+  return Number.isNaN(date.getTime()) ? undefined : date.toISOString()
+}
+
 const formatExifDate = (date: string | ExifDateTime | undefined) => {
   if (!date) {
     return
   }
 
+  // exiftool returns the raw string when it cannot parse a date
+  // (e.g. "0000:00:00 00:00:00"), which `new Date()` cannot parse either.
   if (typeof date === 'string') {
-    return new Date(date).toISOString()
+    return toValidISOString(date)
   }
 
   return date.toISOString()
@@ -463,22 +474,24 @@ export const extractPhotoInfo = (
   }
 
   if (exifData?.DateTimeOriginal) {
-    try {
-      const dateTimeOriginal = new Date(exifData.DateTimeOriginal)
+    const dateTimeOriginal = toValidISOString(exifData.DateTimeOriginal)
 
-      if (dateTimeOriginal instanceof Date) {
-        dateTaken = dateTimeOriginal.toISOString()
-      }
-    } catch (error) {
+    if (dateTimeOriginal) {
+      dateTaken = dateTimeOriginal
+    } else {
       logger.image.warn(
         `Parse EXIF DateTimeOriginal failed: ${exifData.DateTimeOriginal}`,
-        error,
       )
     }
   } else {
+    // The match may be a false positive inside a longer digit run
+    // (e.g. "9101-28-18" in "IMG119101-28-18.jpg"), so validate before use.
     const dateMatch = fileName.match(/(\d{4}-\d{2}-\d{2})/)
-    if (dateMatch) {
-      dateTaken = new Date(dateMatch[1]).toISOString()
+    const dateFromFileName = dateMatch
+      ? toValidISOString(dateMatch[1]!)
+      : undefined
+    if (dateFromFileName) {
+      dateTaken = dateFromFileName
     }
   }
 
