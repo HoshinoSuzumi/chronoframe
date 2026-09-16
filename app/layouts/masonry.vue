@@ -8,6 +8,8 @@ const { photos } = usePhotos()
 
 <template>
   <div class="relative h-screen">
+    <SiteHeader />
+    <SiteFooter />
     <div class="h-svh px-1">
       <ClientOnly>
         <MasonryRoot
