@@ -4,339 +4,233 @@ import {
   EXIF_ENUM_OPTIONS,
   type ExifEnumField,
 } from '~~/shared/constants/exifOptions'
-import type { ExifFormState } from '~/utils/exifForm'
+import type {
+  ExifFormErrors,
+  ExifFormKey,
+  ExifFormState,
+} from '~/utils/exifForm'
 
-defineProps<{
-  state: ExifFormState
+type FieldKind = 'text' | 'decimal' | 'integer' | 'enum' | 'datetime'
+
+interface FieldConfig {
+  key: ExifFormKey
+  /** Suffix under `dashboard.photos.editModal.advanced.fields`. */
+  label: string
+  kind: FieldKind
+  /** Suffix under `dashboard.photos.editModal.advanced.placeholders`. */
+  placeholder?: string
+  /** Span both columns on wide layouts. */
+  wide?: boolean
+}
+
+interface GroupConfig {
+  /** Suffix under `dashboard.photos.editModal.advanced.groups`. */
+  key: string
+  fields: FieldConfig[]
+}
+
+/** Owned by the parent; the component edits it in place through v-model. */
+const model = defineModel<ExifFormState>({ required: true })
+
+const props = defineProps<{
+  /** Field-level error codes from `validateExifForm`. */
+  errors?: ExifFormErrors
   /** Inferred from the ICC profile on every reprocess; displayed read-only. */
   colorSpace?: string
 }>()
 
+const { t } = useI18n()
 const { localizeExif } = useExifLocalization()
 
-/** Build USelectMenu items for an enum field: '' (none) + localized values. */
-const enumItems = (field: ExifEnumField) => {
-  const category = EXIF_ENUM_FIELD_CATEGORY[field]
-  return [
-    {
-      label: $t('dashboard.photos.editModal.advanced.placeholders.none'),
-      value: '',
-    },
-    ...EXIF_ENUM_OPTIONS[category].map((value) => ({
-      label: localizeExif(category, value) || value,
-      value,
-    })),
-  ]
+const a = (key: string) => t(`dashboard.photos.editModal.advanced.${key}`)
+
+const GROUPS: GroupConfig[] = [
+  {
+    key: 'cameraLens',
+    fields: [
+      { key: 'Make', label: 'make', kind: 'text' },
+      { key: 'Model', label: 'model', kind: 'text' },
+      { key: 'LensMake', label: 'lensMake', kind: 'text' },
+      { key: 'LensModel', label: 'lensModel', kind: 'text' },
+    ],
+  },
+  {
+    key: 'exposure',
+    fields: [
+      { key: 'FNumber', label: 'fNumber', kind: 'decimal' },
+      {
+        key: 'ExposureTime',
+        label: 'exposureTime',
+        kind: 'text',
+        placeholder: 'exposureTime',
+      },
+      { key: 'ISO', label: 'iso', kind: 'integer' },
+      {
+        key: 'FocalLength',
+        label: 'focalLength',
+        kind: 'text',
+        placeholder: 'focalLength',
+      },
+      {
+        key: 'FocalLengthIn35mmFormat',
+        label: 'focalLength35',
+        kind: 'text',
+        placeholder: 'focalLength',
+      },
+    ],
+  },
+  {
+    key: 'captureMode',
+    fields: [
+      { key: 'Flash', label: 'flash', kind: 'enum' },
+      { key: 'SceneCaptureType', label: 'sceneCaptureType', kind: 'enum' },
+      { key: 'WhiteBalance', label: 'whiteBalance', kind: 'enum' },
+      { key: 'MeteringMode', label: 'meteringMode', kind: 'enum' },
+      { key: 'ExposureProgram', label: 'exposureProgram', kind: 'enum' },
+      { key: 'ExposureMode', label: 'exposureMode', kind: 'enum' },
+    ],
+  },
+  {
+    key: 'authorship',
+    fields: [
+      { key: 'Artist', label: 'artist', kind: 'text' },
+      { key: 'Software', label: 'software', kind: 'text' },
+      { key: 'Copyright', label: 'copyright', kind: 'text', wide: true },
+    ],
+  },
+  {
+    key: 'dateSensor',
+    fields: [
+      { key: 'dateTakenLocal', label: 'dateTaken', kind: 'datetime' },
+      {
+        key: 'utcOffset',
+        label: 'utcOffset',
+        kind: 'text',
+        placeholder: 'utcOffset',
+      },
+      {
+        key: 'FocalPlaneXResolution',
+        label: 'focalPlaneXResolution',
+        kind: 'decimal',
+      },
+      {
+        key: 'FocalPlaneYResolution',
+        label: 'focalPlaneYResolution',
+        kind: 'decimal',
+      },
+    ],
+  },
+]
+
+interface EnumItem {
+  label: string
+  value: string
 }
 
-const a = (key: string) => $t(`dashboard.photos.editModal.advanced.${key}`)
+/**
+ * USelectMenu items per enum field. An "unset" entry is deliberately not part
+ * of the list: Reka UI forbids an item whose value is an empty string, so the
+ * empty state is shown through the placeholder and cleared with `clear`.
+ */
+const enumItems = computed(() => {
+  const entries = (
+    Object.keys(EXIF_ENUM_FIELD_CATEGORY) as ExifEnumField[]
+  ).map((field) => {
+    const category = EXIF_ENUM_FIELD_CATEGORY[field]
+    const items: EnumItem[] = EXIF_ENUM_OPTIONS[category].map((value) => ({
+      label: localizeExif(category, value) || value,
+      value,
+    }))
+    return [field, items] as const
+  })
+  return Object.fromEntries(entries) as Record<ExifEnumField, EnumItem[]>
+})
+
+const errorMessage = (key: ExifFormKey): string | undefined => {
+  const code = props.errors?.[key]
+  return code ? a(`errors.${code}`) : undefined
+}
+
+const inputMode = (kind: FieldKind) => {
+  if (kind === 'decimal') return 'decimal'
+  if (kind === 'integer') return 'numeric'
+  return undefined
+}
+
+const colorSpaceLabel = computed(() =>
+  props.colorSpace
+    ? localizeExif('colorSpace', props.colorSpace) || props.colorSpace
+    : a('placeholders.none'),
+)
 </script>
 
 <template>
   <div class="space-y-6">
-    <!-- Camera & lens -->
-    <div class="space-y-3">
+    <section
+      v-for="group in GROUPS"
+      :key="group.key"
+      class="space-y-3"
+    >
       <h4
         class="text-xs font-semibold uppercase tracking-wide text-neutral-500 dark:text-neutral-400"
       >
-        {{ a('groups.cameraLens') }}
+        {{ a(`groups.${group.key}`) }}
       </h4>
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <UFormField
-          :label="a('fields.make')"
-          name="exifMake"
-        >
-          <UInput
-            v-model="state.Make"
-            class="w-full"
-          />
-        </UFormField>
-        <UFormField
-          :label="a('fields.model')"
-          name="exifModel"
-        >
-          <UInput
-            v-model="state.Model"
-            class="w-full"
-          />
-        </UFormField>
-        <UFormField
-          :label="a('fields.lensMake')"
-          name="exifLensMake"
-        >
-          <UInput
-            v-model="state.LensMake"
-            class="w-full"
-          />
-        </UFormField>
-        <UFormField
-          :label="a('fields.lensModel')"
-          name="exifLensModel"
-        >
-          <UInput
-            v-model="state.LensModel"
-            class="w-full"
-          />
-        </UFormField>
-      </div>
-    </div>
-
-    <!-- Exposure -->
-    <div class="space-y-3">
-      <h4
-        class="text-xs font-semibold uppercase tracking-wide text-neutral-500 dark:text-neutral-400"
-      >
-        {{ a('groups.exposure') }}
-      </h4>
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <UFormField
-          :label="a('fields.fNumber')"
-          name="exifFNumber"
-        >
-          <UInput
-            v-model="state.FNumber"
-            type="number"
-            step="0.1"
-            min="0"
-            class="w-full"
-          />
-        </UFormField>
-        <UFormField
-          :label="a('fields.exposureTime')"
-          name="exifExposureTime"
-        >
-          <UInput
-            v-model="state.ExposureTime"
-            :placeholder="a('placeholders.exposureTime')"
-            class="w-full"
-          />
-        </UFormField>
-        <UFormField
-          :label="a('fields.iso')"
-          name="exifIso"
-        >
-          <UInput
-            v-model="state.ISO"
-            type="number"
-            step="1"
-            min="0"
-            class="w-full"
-          />
-        </UFormField>
-        <UFormField
-          :label="a('fields.focalLength')"
-          name="exifFocalLength"
-        >
-          <UInput
-            v-model="state.FocalLength"
-            :placeholder="a('placeholders.focalLength')"
-            class="w-full"
-          />
-        </UFormField>
-        <UFormField
-          :label="a('fields.focalLength35')"
-          name="exifFocalLength35"
-        >
-          <UInput
-            v-model="state.FocalLengthIn35mmFormat"
-            class="w-full"
-          />
-        </UFormField>
-      </div>
-    </div>
-
-    <!-- Capture mode (enums) -->
-    <div class="space-y-3">
-      <h4
-        class="text-xs font-semibold uppercase tracking-wide text-neutral-500 dark:text-neutral-400"
-      >
-        {{ a('groups.captureMode') }}
-      </h4>
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <UFormField
-          :label="a('fields.flash')"
-          name="exifFlash"
+          v-for="field in group.fields"
+          :key="field.key"
+          :label="a(`fields.${field.label}`)"
+          :name="`exif.${field.key}`"
+          :error="errorMessage(field.key)"
+          :class="{ 'sm:col-span-2': field.wide }"
         >
           <USelectMenu
-            v-model="state.Flash"
-            :items="enumItems('Flash')"
+            v-if="field.kind === 'enum'"
+            :model-value="model[field.key]"
+            :items="enumItems[field.key as ExifEnumField]"
+            :placeholder="a('placeholders.none')"
             value-key="value"
             label-key="label"
+            clear
             class="w-full"
+            @update:model-value="(value) => (model[field.key] = value ?? '')"
           />
-        </UFormField>
-        <UFormField
-          :label="a('fields.sceneCaptureType')"
-          name="exifSceneCaptureType"
-        >
-          <USelectMenu
-            v-model="state.SceneCaptureType"
-            :items="enumItems('SceneCaptureType')"
-            value-key="value"
-            label-key="label"
-            class="w-full"
-          />
-        </UFormField>
-        <UFormField
-          :label="a('fields.whiteBalance')"
-          name="exifWhiteBalance"
-        >
-          <USelectMenu
-            v-model="state.WhiteBalance"
-            :items="enumItems('WhiteBalance')"
-            value-key="value"
-            label-key="label"
-            class="w-full"
-          />
-        </UFormField>
-        <UFormField
-          :label="a('fields.meteringMode')"
-          name="exifMeteringMode"
-        >
-          <USelectMenu
-            v-model="state.MeteringMode"
-            :items="enumItems('MeteringMode')"
-            value-key="value"
-            label-key="label"
-            class="w-full"
-          />
-        </UFormField>
-        <UFormField
-          :label="a('fields.exposureProgram')"
-          name="exifExposureProgram"
-        >
-          <USelectMenu
-            v-model="state.ExposureProgram"
-            :items="enumItems('ExposureProgram')"
-            value-key="value"
-            label-key="label"
-            class="w-full"
-          />
-        </UFormField>
-        <UFormField
-          :label="a('fields.exposureMode')"
-          name="exifExposureMode"
-        >
-          <USelectMenu
-            v-model="state.ExposureMode"
-            :items="enumItems('ExposureMode')"
-            value-key="value"
-            label-key="label"
-            class="w-full"
-          />
-        </UFormField>
-      </div>
-    </div>
-
-    <!-- Authorship -->
-    <div class="space-y-3">
-      <h4
-        class="text-xs font-semibold uppercase tracking-wide text-neutral-500 dark:text-neutral-400"
-      >
-        {{ a('groups.authorship') }}
-      </h4>
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <UFormField
-          :label="a('fields.artist')"
-          name="exifArtist"
-        >
           <UInput
-            v-model="state.Artist"
-            class="w-full"
-          />
-        </UFormField>
-        <UFormField
-          :label="a('fields.software')"
-          name="exifSoftware"
-        >
-          <UInput
-            v-model="state.Software"
-            class="w-full"
-          />
-        </UFormField>
-        <UFormField
-          :label="a('fields.copyright')"
-          name="exifCopyright"
-          class="sm:col-span-2"
-        >
-          <UInput
-            v-model="state.Copyright"
-            class="w-full"
-          />
-        </UFormField>
-      </div>
-    </div>
-
-    <!-- Date & sensor -->
-    <div class="space-y-3">
-      <h4
-        class="text-xs font-semibold uppercase tracking-wide text-neutral-500 dark:text-neutral-400"
-      >
-        {{ a('groups.dateSensor') }}
-      </h4>
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <UFormField
-          :label="a('fields.dateTaken')"
-          name="exifDateTaken"
-        >
-          <UInput
-            v-model="state.dateTakenLocal"
+            v-else-if="field.kind === 'datetime'"
+            v-model="model[field.key]"
             type="datetime-local"
             step="1"
             class="w-full"
           />
-        </UFormField>
-        <UFormField
-          :label="a('fields.utcOffset')"
-          name="exifUtcOffset"
-        >
           <UInput
-            v-model="state.utcOffset"
-            :placeholder="a('placeholders.utcOffset')"
+            v-else
+            v-model="model[field.key]"
+            type="text"
+            :inputmode="inputMode(field.kind)"
+            :placeholder="
+              field.placeholder
+                ? a(`placeholders.${field.placeholder}`)
+                : undefined
+            "
             class="w-full"
           />
         </UFormField>
+
         <UFormField
-          :label="a('fields.focalPlaneXResolution')"
-          name="exifFpx"
-        >
-          <UInput
-            v-model="state.FocalPlaneXResolution"
-            type="number"
-            step="0.01"
-            min="0"
-            class="w-full"
-          />
-        </UFormField>
-        <UFormField
-          :label="a('fields.focalPlaneYResolution')"
-          name="exifFpy"
-        >
-          <UInput
-            v-model="state.FocalPlaneYResolution"
-            type="number"
-            step="0.01"
-            min="0"
-            class="w-full"
-          />
-        </UFormField>
-        <UFormField
+          v-if="group.key === 'dateSensor'"
           :label="a('fields.colorSpace')"
           :help="a('notes.colorSpace')"
-          name="exifColorSpace"
+          name="exif.ColorSpace"
           class="sm:col-span-2"
         >
           <UInput
-            :model-value="
-              colorSpace
-                ? localizeExif('colorSpace', colorSpace) || colorSpace
-                : a('placeholders.none')
-            "
+            :model-value="colorSpaceLabel"
             disabled
             class="w-full"
           />
         </UFormField>
       </div>
-    </div>
+    </section>
   </div>
 </template>

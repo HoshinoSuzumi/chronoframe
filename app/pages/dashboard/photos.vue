@@ -1,16 +1,15 @@
 <script lang="ts" setup>
 import type { FormSubmitEvent, TableColumn } from '@nuxt/ui'
 import type { Photo, PipelineQueueItem } from '~~/server/utils/db'
-import type { EditableExif, NeededExif } from '~~/shared/types/photo'
+import type { EditableExif } from '~~/shared/types/photo'
 import {
+  buildExifPayload,
   createEmptyExifFormState,
-  normalizeFormValue,
+  exifToFormState,
+  isExifFormDirty,
+  validateExifForm,
   type ExifFormState,
 } from '~/utils/exifForm'
-import {
-  storedDateToWallClock,
-  wallClockToExifDate,
-} from '~~/shared/utils/exifDateTime'
 import { h, resolveComponent } from 'vue'
 import { Icon, UBadge } from '#components'
 import ThumbImage from '~/components/ui/ThumbImage.vue'
@@ -256,14 +255,12 @@ const ratingChanged = computed(
   () => editFormState.rating !== originalMetadata.value.rating,
 )
 
-const exifFieldChanged = (key: keyof ExifFormState) =>
-  normalizeFormValue(exifFormState[key]) !==
-  normalizeFormValue(originalExif.value[key])
+const exifChanged = computed(() =>
+  isExifFormDirty(exifFormState, originalExif.value),
+)
 
-const exifChanged = computed(() => {
-  const keys = Object.keys(exifFormState) as (keyof ExifFormState)[]
-  return keys.some(exifFieldChanged)
-})
+const exifErrors = computed(() => validateExifForm(exifFormState))
+const exifHasErrors = computed(() => Object.keys(exifErrors.value).length > 0)
 
 const isMetadataDirty = computed(
   () =>
@@ -568,6 +565,8 @@ watch(isEditModalOpen, (open) => {
     }
     locationSelection.value = null
     locationTouched.value = false
+    Object.assign(exifFormState, createEmptyExifFormState())
+    originalExif.value = createEmptyExifFormState()
   }
 })
 
@@ -1305,39 +1304,7 @@ const openMetadataEditor = (photo: Photo) => {
   locationSelection.value = initialLocation ? { ...initialLocation } : null
   locationTouched.value = false
 
-  const exif: Partial<NeededExif> = photo.exif ?? {}
-  const populatedExif: ExifFormState = {
-    Make: exif.Make ?? '',
-    Model: exif.Model ?? '',
-    LensMake: exif.LensMake ?? '',
-    LensModel: exif.LensModel ?? '',
-    FNumber: exif.FNumber != null ? String(exif.FNumber) : '',
-    ExposureTime: exif.ExposureTime != null ? String(exif.ExposureTime) : '',
-    ISO: exif.ISO != null ? String(exif.ISO) : '',
-    FocalLength: exif.FocalLength ?? '',
-    FocalLengthIn35mmFormat: exif.FocalLengthIn35mmFormat ?? '',
-    Flash: exif.Flash ?? '',
-    SceneCaptureType: exif.SceneCaptureType ?? '',
-    WhiteBalance: exif.WhiteBalance != null ? String(exif.WhiteBalance) : '',
-    MeteringMode: exif.MeteringMode != null ? String(exif.MeteringMode) : '',
-    ExposureProgram: exif.ExposureProgram ?? '',
-    ExposureMode: exif.ExposureMode ?? '',
-    Artist: exif.Artist ?? '',
-    Copyright: exif.Copyright ?? '',
-    Software: exif.Software ?? '',
-    dateTakenLocal: exif.DateTimeOriginal
-      ? storedDateToWallClock(exif.DateTimeOriginal, exif.OffsetTimeOriginal)
-      : '',
-    utcOffset: exif.OffsetTimeOriginal ?? '',
-    FocalPlaneXResolution:
-      exif.FocalPlaneXResolution != null
-        ? String(exif.FocalPlaneXResolution)
-        : '',
-    FocalPlaneYResolution:
-      exif.FocalPlaneYResolution != null
-        ? String(exif.FocalPlaneYResolution)
-        : '',
-  }
+  const populatedExif = exifToFormState(photo.exif)
   Object.assign(exifFormState, populatedExif)
   originalExif.value = { ...populatedExif }
 
@@ -1380,7 +1347,7 @@ const enqueueEraseLocationTask = async (photo: Photo) => {
 }
 
 const saveMetadataChanges = async () => {
-  if (!editingPhoto.value || !isMetadataDirty.value) {
+  if (!editingPhoto.value || !isMetadataDirty.value || exifHasErrors.value) {
     return
   }
 
@@ -1422,71 +1389,8 @@ const saveMetadataChanges = async () => {
     }
 
     if (exifChanged.value) {
-      const exifPayload: EditableExif = {}
-      const orig = originalExif.value
-
-      const setText = (
-        key: keyof EditableExif,
-        formKey: keyof ExifFormState,
-      ) => {
-        if (!exifFieldChanged(formKey)) return
-        const value = normalizeFormValue(exifFormState[formKey])
-        ;(exifPayload[key] as string | null) = value.length > 0 ? value : null
-      }
-
-      const setNumber = (
-        key: keyof EditableExif,
-        formKey: keyof ExifFormState,
-      ) => {
-        if (!exifFieldChanged(formKey)) return
-        const raw = normalizeFormValue(exifFormState[formKey])
-        if (raw.length === 0) {
-          ;(exifPayload[key] as number | null) = null
-          return
-        }
-        const parsed = Number(raw)
-        // Ignore non-numeric input rather than sending NaN (which clears the tag).
-        if (Number.isNaN(parsed)) return
-        ;(exifPayload[key] as number | null) = parsed
-      }
-
-      setText('Make', 'Make')
-      setText('Model', 'Model')
-      setText('LensMake', 'LensMake')
-      setText('LensModel', 'LensModel')
-      setNumber('FNumber', 'FNumber')
-      setText('ExposureTime', 'ExposureTime')
-      setNumber('ISO', 'ISO')
-      setText('FocalLength', 'FocalLength')
-      setText('FocalLengthIn35mmFormat', 'FocalLengthIn35mmFormat')
-      setText('Flash', 'Flash')
-      setText('SceneCaptureType', 'SceneCaptureType')
-      setText('WhiteBalance', 'WhiteBalance')
-      setText('MeteringMode', 'MeteringMode')
-      setText('ExposureProgram', 'ExposureProgram')
-      setText('ExposureMode', 'ExposureMode')
-      setText('Artist', 'Artist')
-      setText('Copyright', 'Copyright')
-      setText('Software', 'Software')
-      setNumber('FocalPlaneXResolution', 'FocalPlaneXResolution')
-      setNumber('FocalPlaneYResolution', 'FocalPlaneYResolution')
-
-      const dateChanged =
-        exifFieldChanged('dateTakenLocal') || exifFieldChanged('utcOffset')
-      if (dateChanged) {
-        const offset = normalizeFormValue(exifFormState.utcOffset)
-        exifPayload.OffsetTimeOriginal = offset.length > 0 ? offset : null
-        const localDate = normalizeFormValue(exifFormState.dateTakenLocal)
-        if (localDate) {
-          exifPayload.DateTimeOriginal = wallClockToExifDate(localDate)
-        } else if (normalizeFormValue(orig.dateTakenLocal)) {
-          // Date existed before and was cleared by the user.
-          exifPayload.DateTimeOriginal = null
-        }
-        // No date before and none now: do not send DateTimeOriginal.
-      }
-
-      if (Object.keys(exifPayload).length > 0) {
+      const exifPayload = buildExifPayload(exifFormState, originalExif.value)
+      if (exifPayload) {
         payload.exif = exifPayload
       }
     }
@@ -1547,7 +1451,7 @@ const saveMetadataChanges = async () => {
 
 const handleEditSubmit = async (event: FormSubmitEvent<EditFormState>) => {
   event.preventDefault()
-  if (!isMetadataDirty.value) {
+  if (!isMetadataDirty.value || exifHasErrors.value) {
     return
   }
   await saveMetadataChanges()
@@ -2839,7 +2743,8 @@ onUnmounted(() => {
                         {{ $t('dashboard.photos.editModal.advanced.hint') }}
                       </p>
                       <DashboardPhotoExifAdvancedFields
-                        :state="exifFormState"
+                        v-model="exifFormState"
+                        :errors="exifErrors"
                         :color-space="editingPhoto?.exif?.ColorSpace"
                       />
                     </div>
@@ -2862,7 +2767,7 @@ onUnmounted(() => {
                 type="submit"
                 form="edit-photo-form"
                 :loading="isSavingMetadata"
-                :disabled="!isMetadataDirty || isSavingMetadata"
+                :disabled="!isMetadataDirty || isSavingMetadata || exifHasErrors"
                 icon="tabler:device-floppy"
               >
                 {{ $t('dashboard.photos.editModal.actions.save') }}
