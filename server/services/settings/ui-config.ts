@@ -19,7 +19,7 @@ export const APP_SETTINGS_UI: Record<string, FieldUIConfig> = {
   slogan: {
     type: 'input',
     placeholder: 'Your gallery slogan',
-    help: 'settings.app.slogan.help',
+    help: 'settings.app.slogan.help', 
   },
   author: {
     type: 'input',
@@ -231,7 +231,7 @@ export const STORAGE_SETTINGS_UI: Record<string, FieldUIConfig> = {
   },
   // S3
   's3.endpoint': {
-    type: 'input',
+    type: 'url',
     required: true,
     placeholder: 'https://s3.amazonaws.com',
     help: 'settings.storage.s3.endpoint.description',
@@ -284,7 +284,7 @@ export const STORAGE_SETTINGS_UI: Record<string, FieldUIConfig> = {
   },
   // OpenList
   'openlist.baseUrl': {
-    type: 'input',
+    type: 'url',
     required: true,
     placeholder: 'https://alist.example.com',
     help: 'settings.storage.openlist.baseUrl.description',

@@ -36,7 +36,7 @@ export default defineNuxtConfig({
         accessToken: '',
       },
       app: {
-        title: 'ChronoFrame',
+        title: '',
         slogan: '',
         author: '',
         avatarUrl: '',
@@ -241,10 +241,13 @@ export default defineNuxtConfig({
     },
   },
 
+  // 解决服务端无法访问谷歌字体时字体显示异常问题，你只需要将字体文件放在public/fonts目录下即可
+  // Resolve the issue of abnormal display of fonts when the server cannot access Google fonts
+  // You need to place the font files in the public/fonts directory
   fonts: {
     families: [
       { name: "Rubik", weights: [400, 500, 600, 700], global: true },
-      { name: "Noto Sans SC", weights: [400, 500, 600, 700], global: true },
+      { name: "Noto Sans SC", weights: [400, 500, 600, 700], global: true, provider: "local", },
     ],
   },
 
