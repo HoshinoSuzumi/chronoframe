@@ -738,13 +738,17 @@
             "dateTaken": "撮影日時",
             "utcOffset": "UTCオフセット",
             "focalPlaneXResolution": "焦点面X解像度",
-            "focalPlaneYResolution": "焦点面Y解像度"
+            "focalPlaneYResolution": "焦点面Y解像度",
+            "colorSpace": "色空間"
           },
           "placeholders": {
             "none": "未設定",
             "utcOffset": "+09:00",
             "exposureTime": "例: 1/250 または 0.004",
             "focalLength": "例: 24 mm"
+          },
+          "notes": {
+            "colorSpace": "読み取り専用。色空間は写真の処理時に埋め込み ICC プロファイルから毎回推定されるため、ここでは編集できません。"
           }
         }
       },

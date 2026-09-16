@@ -2840,6 +2840,7 @@ onUnmounted(() => {
                       </p>
                       <DashboardPhotoExifAdvancedFields
                         :state="exifFormState"
+                        :color-space="editingPhoto?.exif?.ColorSpace"
                       />
                     </div>
                   </template>

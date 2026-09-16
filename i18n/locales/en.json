@@ -812,13 +812,17 @@
             "dateTaken": "Date taken",
             "utcOffset": "UTC offset",
             "focalPlaneXResolution": "Focal plane X resolution",
-            "focalPlaneYResolution": "Focal plane Y resolution"
+            "focalPlaneYResolution": "Focal plane Y resolution",
+            "colorSpace": "Color space"
           },
           "placeholders": {
             "none": "Not set",
             "utcOffset": "+02:00",
             "exposureTime": "e.g. 1/250 or 0.004",
             "focalLength": "e.g. 24 mm"
+          },
+          "notes": {
+            "colorSpace": "Read-only. The color space is inferred from the embedded ICC profile each time the photo is processed, so it cannot be edited here."
           }
         }
       },

@@ -6,7 +6,11 @@ import {
 } from '~~/shared/constants/exifOptions'
 import type { ExifFormState } from '~/utils/exifForm'
 
-defineProps<{ state: ExifFormState }>()
+defineProps<{
+  state: ExifFormState
+  /** Inferred from the ICC profile on every reprocess; displayed read-only. */
+  colorSpace?: string
+}>()
 
 const { localizeExif } = useExifLocalization()
 
@@ -313,6 +317,22 @@ const a = (key: string) => $t(`dashboard.photos.editModal.advanced.${key}`)
             type="number"
             step="0.01"
             min="0"
+            class="w-full"
+          />
+        </UFormField>
+        <UFormField
+          :label="a('fields.colorSpace')"
+          :help="a('notes.colorSpace')"
+          name="exifColorSpace"
+          class="sm:col-span-2"
+        >
+          <UInput
+            :model-value="
+              colorSpace
+                ? localizeExif('colorSpace', colorSpace) || colorSpace
+                : a('placeholders.none')
+            "
+            disabled
             class="w-full"
           />
         </UFormField>

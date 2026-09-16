@@ -738,13 +738,17 @@
             "dateTaken": "拍攝日期",
             "utcOffset": "UTC 偏移",
             "focalPlaneXResolution": "焦平面 X 解析度",
-            "focalPlaneYResolution": "焦平面 Y 解析度"
+            "focalPlaneYResolution": "焦平面 Y 解析度",
+            "colorSpace": "色彩空間"
           },
           "placeholders": {
             "none": "未設定",
             "utcOffset": "+08:00",
             "exposureTime": "例如 1/250 或 0.004",
             "focalLength": "例如 24 mm"
+          },
+          "notes": {
+            "colorSpace": "唯讀。色彩空間會在每次處理相片時根據內嵌的 ICC 描述檔自動推斷，因此無法在此編輯。"
           }
         }
       },
