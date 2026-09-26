@@ -474,12 +474,16 @@ const onAlbumClick = (albumId: number) => {
       x: isMobile ? 0 : 80,
       y: isMobile ? 20 : 0,
     }"
-    :transition="{ type: 'spring', duration: 0.4, bounce: 0, delay: 0.1 }"
+    :transition="{
+      type: 'tween',
+      duration: 0.2,
+      ease: [0.25, 0.1, 0.25, 1],
+    }"
     class="bg-black/20 dark:bg-black/30 backdrop-blur-xl border-white/10"
     :class="{
       'fixed inset-x-2 bottom-2 max-h-[70vh] border rounded-xl z-50 flex flex-col':
         isMobile,
-      'w-80 border-l': !isMobile,
+      'absolute inset-y-0 right-0 z-40 flex w-80 flex-col border-l': !isMobile,
     }"
   >
     <div
@@ -489,7 +493,7 @@ const onAlbumClick = (albumId: number) => {
         {{ currentPhoto.title }}
       </h3>
       <UButton
-        v-if="isMobile && onClose"
+        v-if="onClose"
         icon="tabler:x"
         variant="ghost"
         color="neutral"

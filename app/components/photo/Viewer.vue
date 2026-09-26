@@ -475,7 +475,8 @@ const handleReactionSelect = async (reactionId: string, iconName: string) => {
       toast.add({
         icon: 'tabler:alert-circle',
         title: $t('viewer.reaction.error.title'),
-        description: error instanceof Error ? error.message : $t('common.unknownError'),
+        description:
+          error instanceof Error ? error.message : $t('common.unknownError'),
         color: 'warning',
       })
     }
@@ -584,10 +585,7 @@ const swiperModules = [Navigation, Keyboard, Virtual]
         :style="{ touchAction: isMobile ? 'manipulation' : 'none' }"
         @click.self="emit('close')"
       >
-        <div
-          class="flex w-full h-full"
-          :class="isMobile ? 'flex-col' : 'flex-row'"
-        >
+        <div class="relative flex h-full w-full flex-col">
           <!-- 图片显示区域 -->
           <div class="z-10 flex min-h-0 min-w-0 flex-1 flex-col">
             <div class="group relative flex min-h-0 min-w-0 flex-1">
@@ -597,9 +595,14 @@ const swiperModules = [Navigation, Keyboard, Virtual]
                 :animate="{ opacity: 1 }"
                 :exit="{ opacity: 0 }"
                 :transition="{ duration: 0.3 }"
-                class="absolute z-30 flex items-center justify-between"
+                class="absolute z-30 flex items-center justify-between transition-[right] duration-200 ease-[cubic-bezier(0.25,0.1,0.25,1)]"
                 :class="
-                  isMobile ? 'top-2 right-2 left-2' : 'top-4 right-4 left-4'
+                  isMobile
+                    ? 'top-2 inset-x-2'
+                    : [
+                        'top-4 left-4',
+                        showExifPanel ? 'right-[21rem]' : 'right-4',
+                      ]
                 "
               >
                 <!-- 左侧工具按钮 -->
@@ -633,9 +636,8 @@ const swiperModules = [Navigation, Keyboard, Virtual]
 
                 <!-- 右侧按钮组 -->
                 <div class="flex items-center gap-2">
-                  <!-- 信息按钮 - 在移动设备上显示 -->
+                  <!-- 信息按钮 -->
                   <GlassButton
-                    v-if="isMobile"
                     icon="tabler:info-circle"
                     :class="
                       !showExifPanel
@@ -949,7 +951,8 @@ const swiperModules = [Navigation, Keyboard, Virtual]
                 <button
                   v-if="currentIndex < photos.length - 1"
                   type="button"
-                  class="absolute top-1/2 right-4 z-20 flex size-8 -translate-y-1/2 items-center justify-center rounded-full text-white opacity-0 backdrop-blur-sm duration-200 group-hover:opacity-100 bg-black/30 hover:bg-black/40"
+                  class="absolute top-1/2 z-20 flex size-8 -translate-y-1/2 items-center justify-center rounded-full text-white opacity-0 backdrop-blur-sm duration-200 group-hover:opacity-100 bg-black/30 hover:bg-black/40 transition-[right]"
+                  :class="showExifPanel ? 'right-[21rem]' : 'right-4'"
                   @click="handleNext"
                 >
                   <Icon
@@ -968,8 +971,8 @@ const swiperModules = [Navigation, Keyboard, Virtual]
             />
           </div>
 
-          <!-- EXIF 面板 - 在桌面端始终显示，在移动端根据状态显示 -->
-          <AnimatePresence v-if="isMobile">
+          <!-- EXIF 面板 - 默认关闭，通过信息按钮开关 -->
+          <AnimatePresence>
             <InfoPanel
               v-if="showExifPanel && currentPhoto"
               :current-photo="currentPhoto"
@@ -977,11 +980,6 @@ const swiperModules = [Navigation, Keyboard, Virtual]
               :on-close="() => (showExifPanel = false)"
             />
           </AnimatePresence>
-          <InfoPanel
-            v-else-if="currentPhoto"
-            :current-photo="currentPhoto"
-            :exif-data="currentPhoto?.exif"
-          />
         </div>
       </motion.div>
     </AnimatePresence>
