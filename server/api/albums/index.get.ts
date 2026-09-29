@@ -1,8 +1,13 @@
+import { asc, desc } from 'drizzle-orm'
+
 export default eventHandler(async (_event) => {
   const db = useDB()
 
-  // 获取所有相册，按创建时间倒序
-  const albums = await db.select().from(tables.albums)
+  // Fetch all albums ordered by position asc (createdAt desc as secondary sort)
+  const albums = await db
+    .select()
+    .from(tables.albums)
+    .orderBy(asc(tables.albums.position), desc(tables.albums.createdAt))
 
   // 为每个相册获取照片 ID 列表（避免循环引用）
   const albumsWithPhotoIds = await Promise.all(
@@ -24,8 +29,6 @@ export default eventHandler(async (_event) => {
     }),
   )
 
-  // 按创建时间倒序排列
-  return albumsWithPhotoIds.sort(
-    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
-  )
+  // Already ordered by position asc at the SQL layer
+  return albumsWithPhotoIds
 })

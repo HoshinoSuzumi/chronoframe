@@ -779,7 +779,10 @@
         "selectedCount": "已選擇 {count} 張相片",
         "clearAll": "全部清除",
         "isHidden": "隱藏相簿",
-        "isHiddenHint": "隱藏相簿中的照片不會在首頁顯示"
+        "isHiddenHint": "隱藏相簿中的照片不會在首頁顯示",
+        "movePhotoUp": "上移相片",
+        "movePhotoDown": "下移相片",
+        "removePhoto": "移除相片"
       },
       "table": {
         "columns": {
@@ -834,9 +837,14 @@
         "deleteError": "刪除相簿失敗",
         "loadError": "載入相簿失敗",
         "loadDetailError": "載入相簿詳情失敗",
-        "loadPhotosError": "載入相片失敗"
+        "loadPhotosError": "載入相片失敗",
+        "reorderError": "相簿排序失敗"
       },
-      "photoCount": "{count} 張"
+      "photoCount": "{count} 張",
+      "actions": {
+        "moveUp": "上移",
+        "moveDown": "下移"
+      }
     },
     "overview": {
       "title": "儀表板概覽",

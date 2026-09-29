@@ -552,22 +552,8 @@ watch(isEditModalOpen, (open) => {
 const rowSelection = ref({})
 const table: any = useTemplateRef('table')
 
-// 列可见性状态
-const columnVisibility = ref({
-  thumbnailUrl: true,
-  id: true,
-  actions: true,
-  title: true,
-  tags: true,
-  rating: true,
-  isLivePhoto: true,
-  location: true,
-  dateTaken: true,
-  lastModified: true,
-  fileSize: true,
-  colorSpace: true,
-  reactions: true,
-})
+// 列可见性状态，选择结果保存在 localStorage，刷新后恢复
+const columnVisibility = useDashboardPhotoColumnVisibility()
 
 const selectedRowsCount = computed((): number => {
   return table.value?.tableApi?.getFilteredSelectedRowModel().rows.length || 0

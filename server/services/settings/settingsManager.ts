@@ -161,7 +161,7 @@ export class SettingsManager {
             isPublic: config.isPublic,
             isReadonly: config.isReadonly,
             isSecret: config.isSecret,
-            enum: config.enum ? config.enum : null,
+            enum: config.enum ? [...config.enum] : null,
           })
           .run()
       }
@@ -207,6 +207,36 @@ export class SettingsManager {
     this.settingsCache.set(cacheKey, value)
 
     return value as T
+  }
+
+  /**
+   * Check whether a setting still holds its default value, i.e. it has never
+   * been customized by the user (via the dashboard, the wizard, or a previous
+   * runtime-config migration with a non-default value).
+   * @returns true if the stored value equals the stored default value.
+   *          Also true if the setting does not exist.
+   */
+  isDefault(
+    namespace: SettingNamespace,
+    key: SettingKey<typeof namespace>,
+  ): boolean {
+    const db = useDB()
+    const setting = db
+      .select({
+        value: tables.settings.value,
+        defaultValue: tables.settings.defaultValue,
+      })
+      .from(tables.settings)
+      .where(
+        and(
+          eq(tables.settings.namespace, namespace),
+          eq(tables.settings.key, key),
+        ),
+      )
+      .get()
+
+    if (!setting) return true
+    return setting.value === setting.defaultValue
   }
 
   async set(

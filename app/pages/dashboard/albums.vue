@@ -231,6 +231,49 @@ const deleteAlbum = async () => {
   }
 }
 
+// Move an album one step up (-1) or down (+1) and persist the new order.
+// Optimistic update: revert and toast on failure. Only one reorder request
+// runs at a time so a failed revert cannot clobber a later move.
+const isReorderingAlbums = ref(false)
+const moveAlbum = async (index: number, direction: -1 | 1) => {
+  if (isReorderingAlbums.value) return
+  const target = index + direction
+  if (target < 0 || target >= albums.value.length) return
+  isReorderingAlbums.value = true
+
+  const previous = albums.value
+  const next = [...albums.value]
+  ;[next[index], next[target]] = [next[target]!, next[index]!]
+  albums.value = next
+
+  try {
+    await $fetch('/api/albums/reorder', {
+      method: 'PUT',
+      body: { albumIds: next.map((album) => album.id) },
+    })
+  } catch (error) {
+    console.error('Failed to reorder albums:', error)
+    albums.value = previous
+    useToast().add({
+      title: $t('dashboard.albums.messages.reorderError'),
+      color: 'error',
+    })
+  } finally {
+    isReorderingAlbums.value = false
+  }
+}
+
+// Move a selected photo one step up (-1) or down (+1) within the album.
+// Persisted on save via PUT /api/albums/:id (order = selectedPhotoIds order).
+const movePhoto = (index: number, direction: -1 | 1) => {
+  const target = index + direction
+  if (target < 0 || target >= selectedPhotoIds.value.length) return
+
+  const next = [...selectedPhotoIds.value]
+  ;[next[index], next[target]] = [next[target]!, next[index]!]
+  selectedPhotoIds.value = next
+}
+
 const togglePhotoSelection = (photoId: string) => {
   const index = selectedPhotoIds.value.indexOf(photoId)
   if (index > -1) {
@@ -515,6 +558,24 @@ const columns = computed<any[]>(() => [
               <div class="flex gap-1">
                 <UButton
                   variant="ghost"
+                  color="neutral"
+                  size="xs"
+                  icon="tabler:chevron-up"
+                  :disabled="row.index === 0 || isReorderingAlbums"
+                  :aria-label="$t('dashboard.albums.actions.moveUp')"
+                  @click="moveAlbum(row.index, -1)"
+                />
+                <UButton
+                  variant="ghost"
+                  color="neutral"
+                  size="xs"
+                  icon="tabler:chevron-down"
+                  :disabled="row.index === albums.length - 1 || isReorderingAlbums"
+                  :aria-label="$t('dashboard.albums.actions.moveDown')"
+                  @click="moveAlbum(row.index, 1)"
+                />
+                <UButton
+                  variant="ghost"
                   color="primary"
                   size="xs"
                   icon="tabler:edit"
@@ -703,7 +764,7 @@ const columns = computed<any[]>(() => [
                     class="grid grid-cols-4 gap-2 p-3 bg-gray-50 dark:bg-neutral-800/50 rounded-lg border border-gray-200 dark:border-neutral-700"
                   >
                     <div
-                      v-for="photoId in selectedPhotoIds"
+                      v-for="(photoId, index) in selectedPhotoIds"
                       :key="photoId"
                       class="relative group aspect-square rounded-lg overflow-hidden bg-gray-200 dark:bg-neutral-700"
                     >
@@ -723,15 +784,44 @@ const columns = computed<any[]>(() => [
                         {{ $t('dashboard.albums.modal.setCover') }}
                       </div>
 
-                      <button
-                        class="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
-                        @click="togglePhotoSelection(photoId)"
+                      <div
+                        class="absolute top-1 right-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-black/60 px-1 text-[10px] font-semibold text-white"
                       >
-                        <Icon
-                          name="tabler:x"
-                          class="text-white"
+                        {{ index + 1 }}
+                      </div>
+
+                      <div
+                        class="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex flex-wrap items-center justify-center gap-1"
+                      >
+                        <UButton
+                          size="xs"
+                          color="neutral"
+                          variant="solid"
+                          icon="tabler:chevron-up"
+                          :disabled="index === 0"
+                          :aria-label="$t('dashboard.albums.form.movePhotoUp')"
+                          @click="movePhoto(index, -1)"
                         />
-                      </button>
+                        <UButton
+                          size="xs"
+                          color="neutral"
+                          variant="solid"
+                          icon="tabler:chevron-down"
+                          :disabled="index === selectedPhotoIds.length - 1"
+                          :aria-label="
+                            $t('dashboard.albums.form.movePhotoDown')
+                          "
+                          @click="movePhoto(index, 1)"
+                        />
+                        <UButton
+                          size="xs"
+                          color="error"
+                          variant="solid"
+                          icon="tabler:x"
+                          :aria-label="$t('dashboard.albums.form.removePhoto')"
+                          @click="togglePhotoSelection(photoId)"
+                        />
+                      </div>
                     </div>
                   </div>
                 </div>
