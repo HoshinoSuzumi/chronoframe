@@ -2,6 +2,7 @@
 import type { AttributionControlOptions, StyleSpecification } from 'maplibre-gl'
 import { twMerge } from 'tailwind-merge'
 import type { MapboxMap, MapInstance, MaplibreMap } from '~~/shared/types/map'
+import { useMapSetupNotice } from '~/composables/useMapSetupNotice'
 import { isMapServiceConfigured } from '~~/shared/utils/map-service'
 
 import ChronoFrameLightStyle from '~/assets/mapStyles/chronoframe_light.json'
