@@ -153,7 +153,10 @@ const loadingVariants = {
                     : $t('viewer.photoload.loading')
                 }}
               </p>
-              <span class="text-xs text-white/60 tabular-nums">
+              <span
+                v-if="loadingState.bytesTotal > 0"
+                class="text-xs text-white/60 tabular-nums"
+              >
                 {{ Math.round(loadingState.progress) }}%
               </span>
             </div>
@@ -163,6 +166,12 @@ const loadingVariants = {
             >
               {{ (loadingState.bytesLoaded / 1024 / 1024).toFixed(1) }}MB /
               {{ (loadingState.bytesTotal / 1024 / 1024).toFixed(1) }}MB
+            </p>
+            <p
+              v-else-if="loadingState.bytesLoaded > 0"
+              class="text-xs text-white/70 tabular-nums"
+            >
+              {{ (loadingState.bytesLoaded / 1024 / 1024).toFixed(1) }}MB
             </p>
           </template>
         </div>

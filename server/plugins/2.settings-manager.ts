@@ -1,4 +1,6 @@
+import type { SettingValue } from '~~/shared/types/settings'
 import { DEFAULT_SETTINGS } from '../services/settings/contants'
+import type { SettingNamespace } from '../services/settings/contants'
 import { settingsManager } from '../services/settings/settingsManager'
 import { and, eq, tables, useDB } from '../utils/db'
 
@@ -28,7 +30,12 @@ export default defineNitroPlugin(async (_nitroApp) => {
 })
 
 /**
- * Migrate existing configurations from runtimeConfig to the settings system
+ * Migrate existing configurations from runtimeConfig to the settings system.
+ *
+ * Runtime config (env vars / nuxt.config defaults) is only used to seed
+ * settings that the user has never customized. Once a value has been changed
+ * in the dashboard or the setup wizard, it must survive restarts, so settings
+ * that already differ from their default are left untouched.
  */
 async function migrateRuntimeConfigToSettings() {
   const config = useRuntimeConfig() as any
@@ -47,12 +54,7 @@ async function migrateRuntimeConfigToSettings() {
 
       for (const [key, value] of Object.entries(appSettings)) {
         if (value) {
-          try {
-            await settingsManager.set('app', key as any, value, undefined, true)
-            _logger.debug(`Migrated app.${key}`)
-          } catch (error) {
-            _logger.warn(`Failed to migrate app.${key}:`, error)
-          }
+          await migrateSetting('app', key, value, _logger)
         }
       }
     }
@@ -70,12 +72,7 @@ async function migrateRuntimeConfigToSettings() {
 
       for (const [key, value] of Object.entries(mapSettings)) {
         if (value) {
-          try {
-            await settingsManager.set('map', key as any, value, undefined, true)
-            _logger.debug(`Migrated map.${key}`)
-          } catch (error) {
-            _logger.warn(`Failed to migrate map.${key}:`, error)
-          }
+          await migrateSetting('map', key, value, _logger)
         }
       }
     }
@@ -83,18 +80,7 @@ async function migrateRuntimeConfigToSettings() {
     // Migrate auth settings (GitHub OAuth)
     const githubOauthConfig = config.oauth?.github || {}
     if (config.public?.oauth?.github?.enabled === true) {
-      try {
-        await settingsManager.set(
-          'system',
-          'auth.github.enabled' as any,
-          true,
-          undefined,
-          true,
-        )
-        _logger.debug('Migrated system.auth.github.enabled=true')
-      } catch (error) {
-        _logger.warn('Failed to migrate system.auth.github.enabled:', error)
-      }
+      await migrateSetting('system', 'auth.github.enabled', true, _logger)
     }
 
     const githubOauthSettings = {
@@ -104,12 +90,7 @@ async function migrateRuntimeConfigToSettings() {
 
     for (const [key, value] of Object.entries(githubOauthSettings)) {
       if (typeof value === 'string' && value.length > 0) {
-        try {
-          await settingsManager.set('system', key as any, value, undefined, true)
-          _logger.debug(`Migrated system.${key}`)
-        } catch (error) {
-          _logger.warn(`Failed to migrate system.${key}:`, error)
-        }
+        await migrateSetting('system', key, value, _logger)
       }
     }
 
@@ -175,6 +156,33 @@ async function migrateRuntimeConfigToSettings() {
     _logger.info('Configuration migration completed')
   } catch (error) {
     _logger.error('Failed to migrate configurations:', error)
+  }
+}
+
+/**
+ * Write a runtime-config value into a setting, but only if the setting still
+ * holds its default value. This keeps the migration one-shot per setting and
+ * prevents nuxt.config defaults (e.g. app.title = "ChronoFrame") from
+ * overwriting user changes on every server start.
+ */
+async function migrateSetting(
+  namespace: SettingNamespace,
+  key: string,
+  value: SettingValue,
+  _logger: ReturnType<typeof logger.dynamic>,
+) {
+  if (!settingsManager.isDefault(namespace, key as any)) {
+    _logger.debug(
+      `Skipping migration of ${namespace}.${key}: already customized by user`,
+    )
+    return
+  }
+
+  try {
+    await settingsManager.set(namespace, key as any, value, undefined, true)
+    _logger.debug(`Migrated ${namespace}.${key}`)
+  } catch (error) {
+    _logger.warn(`Failed to migrate ${namespace}.${key}:`, error)
   }
 }
 

@@ -34,6 +34,8 @@
         "options": {
           "dateTakenDesc": "Date Taken (Newest First)",
           "dateTakenAsc": "Date Taken (Oldest First)",
+          "lastModifiedDesc": "Last Modified (Newest First)",
+          "lastModifiedAsc": "Last Modified (Oldest First)",
           "fileSizeAsc": "File Size (Ascending)",
           "fileSizeDesc": "File Size (Descending)",
           "titleAsc": "Title (Ascending)",
@@ -399,7 +401,8 @@
     "privacySettings": "Privacy Settings",
     "mapAndLocation": "Map & Location",
     "storageSettings": "Storage Settings",
-    "systemSettings": "System Settings"
+    "systemSettings": "System Settings",
+    "analyticsSettings": "Analytics & Tracking"
   },
   "auth": {
     "form": {
@@ -851,7 +854,10 @@
         "selectedCount": "Selected {count} photos",
         "clearAll": "Clear all",
         "isHidden": "Hide album",
-        "isHiddenHint": "Photos in hidden albums are not shown on the home page"
+        "isHiddenHint": "Photos in hidden albums are not shown on the home page",
+        "movePhotoUp": "Move photo up",
+        "movePhotoDown": "Move photo down",
+        "removePhoto": "Remove photo"
       },
       "table": {
         "columns": {
@@ -906,9 +912,14 @@
         "deleteError": "Failed to delete album",
         "loadError": "Failed to load albums",
         "loadDetailError": "Failed to load album details",
-        "loadPhotosError": "Failed to load photos"
+        "loadPhotosError": "Failed to load photos",
+        "reorderError": "Failed to reorder albums"
       },
-      "photoCount": "{count} photos"
+      "photoCount": "{count} photos",
+      "actions": {
+        "moveUp": "Move up",
+        "moveDown": "Move down"
+      }
     },
     "overview": {
       "title": "Overview",
@@ -1383,6 +1394,19 @@
       "actions": {
         "add": "Add Storage",
         "create": "Create Storage"
+      }
+    },
+    "analytics": {
+      "sectionDescription": "Inject custom script tags into the page head and body for analytics, tracking, or structured data. Scripts run for all visitors. Only paste code you trust.",
+      "headScripts": {
+        "label": "Head Scripts",
+        "description": "HTML fragment with script tags to inject into the page head.",
+        "help": "Paste full script tags (multiple allowed). For GA, Baidu, Plausible, Umami, JSON-LD, etc. The existing Matomo integration runs independently."
+      },
+      "bodyScripts": {
+        "label": "Body Scripts",
+        "description": "HTML fragment with script tags to inject at the top of the page body.",
+        "help": "Paste full script tags (multiple allowed). Suitable for scripts that should run after the body opens."
       }
     },
     "general": {

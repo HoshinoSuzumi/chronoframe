@@ -1,3 +1,4 @@
+import { min } from 'drizzle-orm'
 import z from 'zod'
 
 export default eventHandler(async (event) => {
@@ -17,6 +18,14 @@ export default eventHandler(async (event) => {
   const db = useDB()
 
   const album = db.transaction((tx) => {
+    // Place new album first (min position minus one gap), preserving the
+    // default "newest first" order
+    const minRow = tx
+      .select({ min: min(tables.albums.position) })
+      .from(tables.albums)
+      .get()
+    const position = (minRow?.min ?? 1000) - 1000
+
     const newAlbum = tx
       .insert(tables.albums)
       .values({
@@ -24,6 +33,7 @@ export default eventHandler(async (event) => {
         description: body.description || null,
         coverPhotoId: body.coverPhotoId || null,
         isHidden: body.isHidden || false,
+        position,
       })
       .returning()
       .get()

@@ -32,6 +32,22 @@ const globalSortState = ref<SortState>({
       order: 'asc',
     },
     {
+      key: 'lastModified-desc',
+      labelI18n: 'ui.action.sort.options.lastModifiedDesc',
+      icon: 'tabler:sort-descending',
+      value: (photo: Photo) =>
+        photo.lastModified ? new Date(photo.lastModified).getTime() : 0,
+      order: 'desc',
+    },
+    {
+      key: 'lastModified-asc',
+      labelI18n: 'ui.action.sort.options.lastModifiedAsc',
+      icon: 'tabler:sort-ascending',
+      value: (photo: Photo) =>
+        photo.lastModified ? new Date(photo.lastModified).getTime() : 0,
+      order: 'asc',
+    },
+    {
       key: 'fileSize-asc',
       labelI18n: 'ui.action.sort.options.fileSizeAsc',
       icon: 'tabler:sort-ascending-small-big',

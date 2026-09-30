@@ -47,6 +47,8 @@
         "options": {
           "dateTakenAsc": "日期（最舊的在前）",
           "dateTakenDesc": "日期（最新的在前）",
+          "lastModifiedAsc": "上次修改（最舊的在前）",
+          "lastModifiedDesc": "上次修改（最新的在前）",
           "fileSizeAsc": "檔案大小（升冪）",
           "fileSizeDesc": "檔案大小（降冪）",
           "titleAsc": "標題（A-Z）",
@@ -399,7 +401,8 @@
     "mapAndLocation": "地圖和位置",
     "location": "位置服務",
     "storageSettings": "儲存設定",
-    "systemSettings": "系統設定"
+    "systemSettings": "系統設定",
+    "analyticsSettings": "分析與追蹤"
   },
   "auth": {
     "form": {
@@ -777,7 +780,10 @@
         "selectedCount": "已選擇 {count} 張相片",
         "clearAll": "全部清除",
         "isHidden": "隱藏相簿",
-        "isHiddenHint": "隱藏相簿中的照片不會在首頁顯示"
+        "isHiddenHint": "隱藏相簿中的照片不會在首頁顯示",
+        "movePhotoUp": "上移相片",
+        "movePhotoDown": "下移相片",
+        "removePhoto": "移除相片"
       },
       "table": {
         "columns": {
@@ -832,9 +838,14 @@
         "deleteError": "刪除相簿失敗",
         "loadError": "載入相簿失敗",
         "loadDetailError": "載入相簿詳情失敗",
-        "loadPhotosError": "載入相片失敗"
+        "loadPhotosError": "載入相片失敗",
+        "reorderError": "相簿排序失敗"
       },
-      "photoCount": "{count} 張"
+      "photoCount": "{count} 張",
+      "actions": {
+        "moveUp": "上移",
+        "moveDown": "下移"
+      }
     },
     "overview": {
       "title": "儀表板概覽",
@@ -1309,6 +1320,19 @@
       "actions": {
         "add": "新增儲存",
         "create": "建立儲存"
+      }
+    },
+    "analytics": {
+      "sectionDescription": "將自訂 script 標籤注入到頁面 head 和 body 中，用於分析、追蹤或結構化資料。指令碼對所有訪客執行，請僅貼上可信程式碼。",
+      "headScripts": {
+        "label": "Head 指令碼",
+        "description": "包含 script 標籤的 HTML 片段，注入到頁面 head 中。",
+        "help": "貼上完整的 script 標籤（支援多個）。適用於 GA、百度統計、Plausible、Umami、JSON-LD 等。已有的 Matomo 整合獨立執行，互不干擾。"
+      },
+      "bodyScripts": {
+        "label": "Body 指令碼",
+        "description": "包含 script 標籤的 HTML 片段，注入到 body 開頭。",
+        "help": "貼上完整的 script 標籤（支援多個）。適用於需要在 body 開始處執行的指令碼。"
       }
     },
     "general": {

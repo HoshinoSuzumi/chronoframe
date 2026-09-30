@@ -97,7 +97,7 @@ const getComponentProps = (): Record<string, any> => {
         : []
       break
     case 'textarea':
-      propsMap.rows = 3
+      propsMap.rows = props.field.ui.rows ?? 3
       break
   }
 

@@ -47,6 +47,8 @@
         "options": {
           "dateTakenAsc": "日期(最旧的在前)",
           "dateTakenDesc": "日期(最新的在前)",
+          "lastModifiedAsc": "最后更新(最旧的在前)",
+          "lastModifiedDesc": "最后更新(最新的在前)",
           "fileSizeAsc": "文件大小(升序)",
           "fileSizeDesc": "文件大小(降序)",
           "titleAsc": "标题(A-Z)",
@@ -398,6 +400,7 @@
     "storageSettings": "存储设置",
     "privacySettings": "隐私设置",
     "systemSettings": "系统设置",
+    "analyticsSettings": "分析与追踪",
     "mapAndLocation": "地图和位置",
     "location": "位置服务"
   },
@@ -851,7 +854,10 @@
         "selectedCount": "已选择 {count} 张照片",
         "clearAll": "全部清除",
         "isHidden": "隐藏相簿",
-        "isHiddenHint": "隐藏的相簿中的照片不会在首页展示"
+        "isHiddenHint": "隐藏的相簿中的照片不会在首页展示",
+        "movePhotoUp": "上移照片",
+        "movePhotoDown": "下移照片",
+        "removePhoto": "移除照片"
       },
       "table": {
         "columns": {
@@ -906,9 +912,14 @@
         "deleteError": "删除相簿失败",
         "loadError": "加载相簿失败",
         "loadDetailError": "加载相簿详情失败",
-        "loadPhotosError": "加载照片失败"
+        "loadPhotosError": "加载照片失败",
+        "reorderError": "相簿排序失败"
       },
-      "photoCount": "{count} 张"
+      "photoCount": "{count} 张",
+      "actions": {
+        "moveUp": "上移",
+        "moveDown": "下移"
+      }
     },
     "overview": {
       "title": "仪表板概览",
@@ -1383,6 +1394,19 @@
       "actions": {
         "add": "添加存储",
         "create": "创建存储"
+      }
+    },
+    "analytics": {
+      "sectionDescription": "将自定义 script 标签注入到页面 head 和 body 中，用于分析、追踪或结构化数据。脚本对所有访客执行，请仅粘贴可信代码。",
+      "headScripts": {
+        "label": "Head 脚本",
+        "description": "包含 script 标签的 HTML 片段，注入到页面 head 中。",
+        "help": "粘贴完整的 script 标签（支持多个）。适用于 GA、百度统计、Plausible、Umami、JSON-LD 等。已有的 Matomo 集成独立运行，互不干扰。"
+      },
+      "bodyScripts": {
+        "label": "Body 脚本",
+        "description": "包含 script 标签的 HTML 片段，注入到 body 开头。",
+        "help": "粘贴完整的 script 标签（支持多个）。适用于需要在 body 开始处执行的脚本。"
       }
     },
     "general": {

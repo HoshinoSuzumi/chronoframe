@@ -76,6 +76,10 @@ export interface FieldUIConfig {
   size?: 'sm' | 'md' | 'lg'
   variant?: 'soft' | 'outline'
   icon?: string
+
+  // 行数（仅用于 textarea 类型，可选）
+  // SettingField.vue 默认值为 3
+  rows?: number
 }
 
 /**
