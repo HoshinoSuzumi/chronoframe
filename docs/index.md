@@ -47,6 +47,15 @@ features:
 Here are some well-running ChronoFrame instances built by developers and community members:
 
 - [**TimoYin's Mems**](https://lens.bh8.ga)
+- [**懒洋洋喝咖啡**](https://oreo.tanmantang.com) — 用镜头记录每个精彩瞬间
+- [**My Photo Gallery**](https://photo.fivk.cn)
+- [**An ISFP Conductor of Current, Pixels, and Code.**](https://gallery.xiaoten.com)
+- [**我的旅行相册**](https://gallery.junlan.site) — 记录光影，留存回忆
+- [**Z.Zhou's Photography**](https://photography.zzhou612.com/) — Catch the Moment
+- [**Each Photo Turns a Moment Into Eternity.**](https://eachphoto.com)
+- [**WhyPhoto**](https://photo.limina.top/)
+- [**用图片记录生活**](https://gallery.d.cr)
+- [**Ahmet Ömer's Photography**](https://photography.ahmeto.com/)
 
 ## 💬 Community Support
 
