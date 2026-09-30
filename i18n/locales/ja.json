@@ -34,6 +34,8 @@
         "options": {
           "dateTakenDesc": "撮影日（新しい順）",
           "dateTakenAsc": "撮影日（古い順）",
+          "lastModifiedDesc": "最終更新（新しい順）",
+          "lastModifiedAsc": "最終更新（古い順）",
           "fileSizeAsc": "ファイルサイズ（昇順）",
           "fileSizeDesc": "ファイルサイズ（降順）",
           "titleAsc": "タイトル（昇順）",

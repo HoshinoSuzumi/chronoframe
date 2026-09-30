@@ -47,6 +47,8 @@
         "options": {
           "dateTakenAsc": "日期（最舊的在前）",
           "dateTakenDesc": "日期（最新的在前）",
+          "lastModifiedAsc": "上次修改（最舊的在前）",
+          "lastModifiedDesc": "上次修改（最新的在前）",
           "fileSizeAsc": "檔案大小（升冪）",
           "fileSizeDesc": "檔案大小（降冪）",
           "titleAsc": "標題（A-Z）",

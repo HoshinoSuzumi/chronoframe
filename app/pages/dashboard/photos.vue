@@ -47,6 +47,7 @@ const dayjs = useDayjs()
 
 const { status, refresh } = usePhotos()
 const { filteredPhotos, selectedCounts, hasActiveFilters } = usePhotoFilters()
+const { currentSortIcon, currentSortOption } = usePhotoSort()
 
 const totalSelectedFilters = computed(() => {
   return Object.values(selectedCounts.value).reduce(
@@ -552,22 +553,8 @@ watch(isEditModalOpen, (open) => {
 const rowSelection = ref({})
 const table: any = useTemplateRef('table')
 
-// 列可见性状态
-const columnVisibility = ref({
-  thumbnailUrl: true,
-  id: true,
-  actions: true,
-  title: true,
-  tags: true,
-  rating: true,
-  isLivePhoto: true,
-  location: true,
-  dateTaken: true,
-  lastModified: true,
-  fileSize: true,
-  colorSpace: true,
-  reactions: true,
-})
+// 列可见性状态，选择结果保存在 localStorage，刷新后恢复
+const columnVisibility = useDashboardPhotoColumnVisibility()
 
 const selectedRowsCount = computed((): number => {
   return table.value?.tableApi?.getFilteredSelectedRowModel().rows.length || 0
@@ -2294,6 +2281,25 @@ onUnmounted(() => {
                 <UCard variant="glassmorphism">
                   <OverlayFilterPanel />
                 </UCard>
+              </template>
+            </UPopover>
+            <UPopover>
+              <UTooltip :text="$t('ui.action.sort.tooltip')">
+                <UButton
+                  variant="soft"
+                  :color="
+                    currentSortOption?.key === 'dateTaken-desc'
+                      ? 'neutral'
+                      : 'info'
+                  "
+                  class="bg-transparent rounded-full cursor-pointer"
+                  :icon="currentSortIcon"
+                  size="sm"
+                />
+              </UTooltip>
+
+              <template #content>
+                <OverlaySortPanel />
               </template>
             </UPopover>
             <!-- 过滤器 -->
