@@ -60,7 +60,7 @@
     "heic-convert": "^2.1.0",
     "maplibre-gl": "^5.24.0",
     "motion-v": "^2.3.0",
-    "nuxt": "^4.4.8",
+    "nuxt": "^4.5.1",
     "nuxt-auth-utils": "0.5.29",
     "nuxt-gtag": "4.1.0",
     "nuxt-mapbox": "1.6.4",
