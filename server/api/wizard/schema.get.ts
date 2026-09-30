@@ -262,6 +262,19 @@ export default eventHandler(async (event) => {
         }
       }
 
+      if (
+        query.namespace === 'map' &&
+        (setting.key === 'mapbox.token' || setting.key === 'maplibre.token')
+      ) {
+        return {
+          ...setting,
+          ui: {
+            ...(uiConfig || { type: 'password' as const }),
+            required: false,
+          },
+        }
+      }
+
       return {
         ...setting,
         ui: uiConfig || {

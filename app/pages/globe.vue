@@ -760,8 +760,10 @@ onBeforeUnmount(() => {
       class="w-full h-full"
     >
       <ClientOnly>
+        <MapSetupNotice />
         <!-- mapbox://styles/hoshinosuzumi/cmev0eujf01dw01pje3g9cmlg -->
         <MapProvider
+          setup-notice
           class="w-full h-full"
           :map-id="generateRandomKey()"
           :zoom="mapViewState.zoom"

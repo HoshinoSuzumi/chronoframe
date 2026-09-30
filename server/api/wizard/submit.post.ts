@@ -24,7 +24,7 @@ export default eventHandler(async (event) => {
       }),
       map: z.object({
         provider: z.enum(['mapbox', 'maplibre']),
-        token: z.string().min(1),
+        token: z.string().optional().default(''),
         style: z.string().optional(),
       }),
     }).parse,
@@ -88,12 +88,15 @@ export default eventHandler(async (event) => {
 
   // 4. Handle Map Settings
   await settingsManager.set('map', 'provider', body.map.provider)
+  const mapToken = body.map.token.trim()
   if (body.map.provider === 'mapbox') {
-    await settingsManager.set('map', 'mapbox.token', body.map.token)
+    if (mapToken)
+      await settingsManager.set('map', 'mapbox.token', mapToken)
     if (body.map.style)
       await settingsManager.set('map', 'mapbox.style', body.map.style)
   } else {
-    await settingsManager.set('map', 'maplibre.token', body.map.token)
+    if (mapToken)
+      await settingsManager.set('map', 'maplibre.token', mapToken)
     if (body.map.style)
       await settingsManager.set('map', 'maplibre.style', body.map.style)
   }
