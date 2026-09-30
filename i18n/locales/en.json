@@ -167,6 +167,12 @@
     "createdTooltip": "Created: {date}"
   },
   "map": {
+    "setupNotice": {
+      "title": "Map service is not set up",
+      "description": "This map needs a MapTiler or Mapbox access token before it can load. An administrator can add one in Map & Location settings. A custom MapLibre style URL can be used instead of a MapTiler token.",
+      "openSettings": "Open map settings",
+      "dismiss": "Close"
+    },
     "cluster": {
       "details": "Click to view details",
       "nearbyPhotos": "{0} photos nearby",
@@ -1506,7 +1512,8 @@
     },
     "map": {
       "title": "Map Service",
-      "description": "Configure map service for globe view and photo minimap"
+      "description": "Configure map service for globe view and photo minimap",
+      "tokenOptional": "The access token is optional. You can add it later in Map & Location settings. Until then, the globe, photo minimap, and location picker stay blank. A custom MapLibre style URL works without a MapTiler token."
     },
     "complete": {
       "title": "Almost Done!",

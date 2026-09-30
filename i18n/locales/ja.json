@@ -167,6 +167,12 @@
     "createdTooltip": "作成日：{date}"
   },
   "map": {
+    "setupNotice": {
+      "title": "地図サービスが未設定です",
+      "description": "この地図を表示するには MapTiler または Mapbox のアクセストークンが必要です。管理者は「地図と場所」の設定から追加できます。MapTiler トークンの代わりに、カスタム MapLibre スタイル URL を使うこともできます。",
+      "openSettings": "地図設定を開く",
+      "dismiss": "閉じる"
+    },
     "cluster": {
       "details": "クリックして詳細を見る",
       "nearbyPhotos": "近くに {0} 枚の写真",
@@ -1432,7 +1438,8 @@
     },
     "map": {
       "title": "地図サービス",
-      "description": "グローブ表示と写真詳細のミニマップ向けに地図サービスを設定します"
+      "description": "グローブ表示と写真詳細のミニマップ向けに地図サービスを設定します",
+      "tokenOptional": "アクセストークンは任意です。あとから「地図と場所」の設定で追加できます。追加するまで、グローブ、写真のミニマップ、位置選択は空白のままです。カスタム MapLibre スタイル URL なら MapTiler トークンなしで利用できます。"
     },
     "complete": {
       "title": "まもなく完了です！",

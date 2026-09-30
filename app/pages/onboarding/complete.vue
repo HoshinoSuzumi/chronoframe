@@ -44,7 +44,7 @@ async function onComplete() {
 
     const mapData = {
       provider: mapProvider,
-      token: mapState[mapTokenKey],
+      token: mapState[mapTokenKey] || '',
       style: mapState[mapStyleKey],
     }
 

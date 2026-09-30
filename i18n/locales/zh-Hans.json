@@ -1,5 +1,11 @@
 {
   "map": {
+    "setupNotice": {
+      "title": "地图服务尚未配置",
+      "description": "此地图需要 MapTiler 或 Mapbox 访问令牌才能加载。管理员可以在“地图和位置”设置中添加令牌。也可以使用自定义 MapLibre 样式 URL 代替 MapTiler 令牌。",
+      "openSettings": "打开地图设置",
+      "dismiss": "关闭"
+    },
     "cluster": {
       "details": "点击图片查看详情",
       "nearbyPhotos": "附近有 {0} 张照片",
@@ -1506,7 +1512,8 @@
     },
     "map": {
       "title": "地图服务",
-      "description": "为地球仪视图以及照片详情中的小地图配置地图服务"
+      "description": "为地球仪视图以及照片详情中的小地图配置地图服务",
+      "tokenOptional": "访问令牌是可选的。你可以稍后在“地图和位置”设置中添加。在此之前，地球仪、照片小地图和位置选择器会保持空白。自定义 MapLibre 样式 URL 可以在没有 MapTiler 令牌的情况下使用。"
     },
     "complete": {
       "title": "即将完成！",

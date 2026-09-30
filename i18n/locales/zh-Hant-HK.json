@@ -1,5 +1,11 @@
 {
   "map": {
+    "setupNotice": {
+      "title": "地圖服務尚未設定",
+      "description": "此地圖需要 MapTiler 或 Mapbox 存取權杖才能載入。管理員可以在「地圖和位置」設定中新增權杖。也可以使用自訂 MapLibre 樣式 URL 代替 MapTiler 權杖。",
+      "openSettings": "開啟地圖設定",
+      "dismiss": "關閉"
+    },
     "cluster": {
       "details": "點擊圖片查看詳情",
       "nearbyPhotos": "附近有 {0} 張相片",
@@ -1432,7 +1438,8 @@
     },
     "map": {
       "title": "地圖服務",
-      "description": "為地球儀檢視與照片詳情小地圖設定地圖服務"
+      "description": "為地球儀檢視與照片詳情小地圖設定地圖服務",
+      "tokenOptional": "存取權杖為選填。你可以稍後在「地圖和位置」設定中新增。在此之前，地球儀、照片小地圖和位置選擇器會保持空白。自訂 MapLibre 樣式 URL 可以在沒有 MapTiler 權杖的情況下使用。"
     },
     "complete": {
       "title": "即將完成！",

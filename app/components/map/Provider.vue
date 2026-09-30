@@ -2,11 +2,12 @@
 import type { AttributionControlOptions, StyleSpecification } from 'maplibre-gl'
 import { twMerge } from 'tailwind-merge'
 import type { MapboxMap, MapInstance, MaplibreMap } from '~~/shared/types/map'
+import { isMapServiceConfigured } from '~~/shared/utils/map-service'
 
 import ChronoFrameLightStyle from '~/assets/mapStyles/chronoframe_light.json'
 import ChronoFrameDarkStyle from '~/assets/mapStyles/chronoframe_dark.json'
 
-withDefaults(
+const props = withDefaults(
   defineProps<{
     class?: string
     mapId?: string
@@ -15,6 +16,7 @@ withDefaults(
     interactive?: boolean
     attributionControl?: false | AttributionControlOptions
     language?: string
+    setupNotice?: boolean
   }>(),
   {
     class: undefined,
@@ -24,6 +26,7 @@ withDefaults(
     interactive: true,
     attributionControl: false,
     language: undefined,
+    setupNotice: false,
   },
 )
 
@@ -40,6 +43,31 @@ const mapConfig = computed(() => {
 })
 
 const provider = computed(() => mapConfig.value.provider || 'maplibre')
+const isConfigured = computed(() =>
+  isMapServiceConfigured(mapConfig.value as Record<string, unknown>),
+)
+
+const { show: showMapSetupNotice, hide: hideMapSetupNotice } =
+  useMapSetupNotice()
+
+const syncMapSetupNotice = () => {
+  if (!props.setupNotice) return
+  if (isConfigured.value) {
+    hideMapSetupNotice()
+    return
+  }
+  showMapSetupNotice()
+}
+
+onMounted(syncMapSetupNotice)
+watch([isConfigured, () => props.setupNotice], () => {
+  if (import.meta.client) syncMapSetupNotice()
+})
+onBeforeUnmount(() => {
+  if (!props.setupNotice) return
+  hideMapSetupNotice()
+})
+
 const mapStyle = computed(() => {
   if (provider.value === 'mapbox') {
     return mapConfig.value['mapbox.style'] || `mapbox://styles/mapbox/standard`
@@ -65,7 +93,16 @@ const mapStyle = computed(() => {
 
 <template>
   <div :class="twMerge('w-full h-full', $props.class)">
-    <ClientOnly>
+    <div
+      v-if="!isConfigured"
+      class="flex h-full w-full items-center justify-center bg-neutral-100 dark:bg-neutral-900"
+    >
+      <UIcon
+        name="tabler:map-off"
+        class="size-10 text-neutral-400"
+      />
+    </div>
+    <ClientOnly v-else>
       <MglMap
         v-if="provider === 'maplibre'"
         class="w-full h-full"
