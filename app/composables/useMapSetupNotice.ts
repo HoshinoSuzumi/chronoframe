@@ -33,6 +33,7 @@ export function useMapSetupNotice() {
 
   function hide() {
     state.value.open = false
+    state.value.dismissedPath = ''
   }
 
   function dismiss() {
