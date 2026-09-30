@@ -1388,6 +1388,10 @@
         "alertTitle": "Note",
         "alertDescription": "Files uploaded after changing the storage scheme will be stored in the new scheme. Files already in the original scheme will not be migrated."
       },
+      "deleteModal": {
+        "title": "Delete Storage Scheme",
+        "message": "Are you sure you want to delete \"{name}\"? This removes the scheme from ChronoFrame. Files already stored with it are not deleted."
+      },
       "slideover": {
         "title": "Create Storage Scheme"
       },
