@@ -1320,6 +1320,10 @@
         "alertTitle": "注意",
         "alertDescription": "變更儲存方案之後上傳的檔案將會儲存到新的儲存方案中，原方案中已有檔案不會被遷移。"
       },
+      "deleteModal": {
+        "title": "刪除儲存方案",
+        "message": "確定要刪除「{name}」嗎？這會從 ChronoFrame 中移除該方案。已使用該方案儲存的檔案不會被刪除。"
+      },
       "slideover": {
         "title": "建立儲存方案"
       },

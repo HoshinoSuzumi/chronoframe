@@ -1394,6 +1394,10 @@
         "alertTitle": "注意",
         "alertDescription": "变更存储方案之后上传的文件将会存储到新的存储方案中，原方案中已有文件不会被迁移。"
       },
+      "deleteModal": {
+        "title": "删除存储方案",
+        "message": "确定要删除“{name}”吗？这将从 ChronoFrame 中移除该方案。已使用该方案存储的文件不会被删除。"
+      },
       "slideover": {
         "title": "创建存储方案"
       },

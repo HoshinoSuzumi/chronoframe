@@ -80,7 +80,7 @@ const availableStorageColumns = computed<TableColumn<SettingStorageProvider>[]>(
             icon: 'tabler:trash',
             disabled:
               currentStorageProvider.value?.value === cell.row.original.id,
-            onClick: () => onStorageDelete(cell.row.original.id),
+            onClick: () => openStorageDeleteConfirm(cell.row.original),
           },
           { default: () => $t('common.actions.delete') },
         ),
@@ -336,12 +336,27 @@ const onStorageConfigSubmit = async (
   }
 }
 
-const onStorageDelete = async (storageId: number) => {
+const isDeleteConfirmOpen = ref(false)
+const isDeletingStorage = ref(false)
+const storagePendingDelete = ref<SettingStorageProvider | null>(null)
+
+const openStorageDeleteConfirm = (storage: SettingStorageProvider) => {
+  storagePendingDelete.value = storage
+  isDeleteConfirmOpen.value = true
+}
+
+const confirmStorageDelete = async () => {
+  const storageId = storagePendingDelete.value?.id
+  if (storageId == null || isDeletingStorage.value) return
+
+  isDeletingStorage.value = true
   try {
     await $fetch(`/api/system/settings/storage-config/${storageId}`, {
       method: 'DELETE',
     })
-    refreshAvailableStorage()
+    await refreshAvailableStorage()
+    isDeleteConfirmOpen.value = false
+    storagePendingDelete.value = null
     toast.add({
       title: $t('settings.storage.messages.deleted'),
       color: 'success',
@@ -352,6 +367,8 @@ const onStorageDelete = async (storageId: number) => {
       description: (error as Error).message,
       color: 'error',
     })
+  } finally {
+    isDeletingStorage.value = false
   }
 }
 </script>
@@ -594,6 +611,52 @@ const onStorageDelete = async (storageId: number) => {
           </div>
         </section>
       </div>
+
+      <UModal
+        v-model:open="isDeleteConfirmOpen"
+        :title="$t('settings.storage.deleteModal.title')"
+        :ui="{
+          title: 'flex items-center gap-2',
+          footer: 'justify-end',
+        }"
+      >
+        <template #title>
+          <Icon
+            name="tabler:trash"
+            class="size-5 shrink-0 text-error"
+          />
+          <span>{{ $t('settings.storage.deleteModal.title') }}</span>
+        </template>
+        <template #body>
+          <p class="text-sm leading-relaxed text-neutral-500 dark:text-neutral-400">
+            {{
+              $t('settings.storage.deleteModal.message', {
+                name: storagePendingDelete?.name,
+              })
+            }}
+          </p>
+        </template>
+        <template #footer>
+          <div class="flex w-full justify-end gap-3">
+            <UButton
+              variant="ghost"
+              color="neutral"
+              :disabled="isDeletingStorage"
+              @click="isDeleteConfirmOpen = false"
+            >
+              {{ $t('common.actions.cancel') }}
+            </UButton>
+            <UButton
+              color="error"
+              icon="tabler:trash"
+              :loading="isDeletingStorage"
+              @click="confirmStorageDelete"
+            >
+              {{ $t('common.actions.delete') }}
+            </UButton>
+          </div>
+        </template>
+      </UModal>
     </template>
   </UDashboardPanel>
 </template>
