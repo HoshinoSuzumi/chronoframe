@@ -66,7 +66,13 @@ const viewerPhotos = computed(() => scopedPhotos.value ?? photos.value)
 
 const handleIndexChange = (newIndex: number) => {
   switchToIndex(newIndex)
-  router.replace(`/${viewerPhotos.value[newIndex]?.id}`)
+  const photoId = viewerPhotos.value[newIndex]?.id
+  if (!photoId) return
+  if (returnRoute.value?.startsWith('/albums/') && route.path === returnRoute.value) {
+    router.replace({ path: route.path, query: { ...route.query, photo: photoId } })
+  } else {
+    router.replace(`/${photoId}`)
+  }
 }
 
 const handleClose = () => {

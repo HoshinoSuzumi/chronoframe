@@ -13,9 +13,13 @@ const emit = defineEmits<{
 
 const toast = useToast()
 const { gtag } = useGtag()
+const { returnRoute } = storeToRefs(useViewerState())
 
 const shareUrl = computed(() => {
   if (typeof window !== 'undefined') {
+    if (returnRoute.value && /^\/albums\/\d+$/.test(returnRoute.value)) {
+      return `${window.location.origin}${returnRoute.value}?photo=${encodeURIComponent(props.photo.id)}`
+    }
     return `${window.location.origin}/${props.photo.id}`
   }
   return ''

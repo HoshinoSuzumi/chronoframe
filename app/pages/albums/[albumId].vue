@@ -128,9 +128,28 @@ const handleOpenViewer = (index: number) => {
     // Scope the viewer to the album's photos so prev/next stays within this album.
     // The fetched photos are serialized rows of the same shape as Photo.
     openViewer(index, albumRoute, photos as Photo[])
-    router.push(`/${photos[index].id}`)
+    router.push({ path: albumRoute, query: { photo: photos[index].id } })
   }
 }
+
+watch(
+  [() => route.query.photo, () => albumData.value?.photos],
+  ([requestedPhoto, photos]) => {
+    const viewer = useViewerState()
+    if (typeof requestedPhoto !== 'string' || !photos) {
+      if (viewer.returnRoute === `/albums/${albumId.value}`) viewer.closeViewer()
+      return
+    }
+    const index = photos.findIndex((photo) => photo.id === requestedPhoto)
+    if (index < 0) {
+      if (viewer.returnRoute === `/albums/${albumId.value}`) viewer.closeViewer()
+      return
+    }
+    const { openViewer } = viewer
+    openViewer(index, `/albums/${albumId.value}`, photos as Photo[])
+  },
+  { immediate: true },
+)
 
 const coverPhoto = computed(() => {
   const album = albumData.value
