@@ -110,7 +110,6 @@ export function grantAlbumAccess(
     sameSite: 'lax',
     secure,
     path: '/',
-    maxAge: grantLifetimeSeconds,
   })
 }
 
