@@ -286,6 +286,15 @@ const togglePhotoSelection = (photoId: string) => {
   }
 }
 
+const selectorRangeSelection = useShiftRangeSelection()
+
+watch(
+  () => draftSelectedPhotoIds.value.length === 0,
+  (isEmpty) => {
+    if (isEmpty) selectorRangeSelection.resetAnchor()
+  },
+)
+
 const openPhotoSelector = () => {
   draftSelectedPhotoIds.value = [...selectedPhotoIds.value]
   draftCoverPhotoId.value =
@@ -293,6 +302,7 @@ const openPhotoSelector = () => {
       ? coverPhotoId.value
       : ''
   isSelectorFilterOpen.value = false
+  selectorRangeSelection.resetAnchor()
   isPhotoSelectorOpen.value = true
 }
 
@@ -311,17 +321,31 @@ const confirmPhotoSelection = () => {
   isPhotoSelectorOpen.value = false
 }
 
-const toggleDraftPhotoSelection = (photoId: string) => {
-  const index = draftSelectedPhotoIds.value.indexOf(photoId)
-  if (index > -1) {
-    draftSelectedPhotoIds.value.splice(index, 1)
-    if (draftCoverPhotoId.value === photoId) {
-      draftCoverPhotoId.value = ''
+const toggleDraftPhotoSelection = (photoId: string, event: MouseEvent) => {
+  const shouldSelect = !draftSelectedPhotoIds.value.includes(photoId)
+  const rangeIds = selectorRangeSelection.getRangeIds(
+    selectorFilteredPhotos.value.map((photo) => photo.id),
+    photoId,
+    event.shiftKey,
+  )
+
+  if (shouldSelect) {
+    const selected = new Set(draftSelectedPhotoIds.value)
+    for (const id of rangeIds) {
+      if (!selected.has(id)) {
+        draftSelectedPhotoIds.value.push(id)
+      }
     }
     return
   }
 
-  draftSelectedPhotoIds.value.push(photoId)
+  const removed = new Set(rangeIds)
+  draftSelectedPhotoIds.value = draftSelectedPhotoIds.value.filter(
+    (id) => !removed.has(id),
+  )
+  if (removed.has(draftCoverPhotoId.value)) {
+    draftCoverPhotoId.value = ''
+  }
 }
 
 const setDraftCoverPhoto = (photoId: string) => {
@@ -962,6 +986,16 @@ const columns = computed<any[]>(() => [
                     </div>
                   </div>
 
+                  <p
+                    class="hidden items-center gap-1.5 text-xs text-neutral-500 pointer-fine:flex dark:text-neutral-400"
+                  >
+                    <Icon
+                      name="tabler:info-circle"
+                      class="size-3.5 shrink-0"
+                    />
+                    {{ $t('ui.action.select.rangeTip') }}
+                  </p>
+
                   <div class="flex flex-wrap gap-1">
                     <UBadge
                       v-if="selectedCounts.tags"
@@ -1088,7 +1122,10 @@ const columns = computed<any[]>(() => [
                     v-for="photo in selectorFilteredPhotos"
                     :key="photo.id"
                     class="group text-left rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-400/60"
-                    @click="toggleDraftPhotoSelection(photo.id)"
+                    @mousedown="
+                      selectorRangeSelection.preventShiftTextSelection
+                    "
+                    @click="toggleDraftPhotoSelection(photo.id, $event)"
                   >
                     <div
                       class="relative aspect-square overflow-hidden rounded-lg border bg-gray-200/90 transition-all duration-200 dark:bg-neutral-700/80"

@@ -49,6 +49,9 @@
       "logout": {
         "tooltip": "登出"
       },
+      "select": {
+        "rangeTip": "提示：按住 Shift 鍵並點擊，即可選擇一個範圍內的相片"
+      },
       "sort": {
         "options": {
           "dateTakenAsc": "日期（最舊的在前）",

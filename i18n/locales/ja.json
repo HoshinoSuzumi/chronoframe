@@ -28,6 +28,9 @@
         "searchPlaceholder": "ファイル名などで検索...",
         "shuffleTooltip": "リストをシャッフル"
       },
+      "select": {
+        "rangeTip": "ヒント：Shift キーを押しながらクリックすると、範囲内の写真をまとめて選択できます"
+      },
       "sort": {
         "tooltip": "写真の並び替え",
         "title": "並び替え",
