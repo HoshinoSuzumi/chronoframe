@@ -14,17 +14,22 @@ export default eventHandler(async (event) => {
   }
 
   url = decodeURIComponent(url)
-  const restricted = await assertPhotoAccess(event, url.startsWith('/storage/') || url.startsWith('/image/')
-    ? url.replace(/^\/(?:storage|image)\//, '') : url)
+  const protectedPhotoMatch = /^\/image\/__photo__\/([^/]+)\/(?:thumbnail|original|live)$/.exec(url)
+  const accessKey = protectedPhotoMatch
+    ? decodeURIComponent(protectedPhotoMatch[1] || '')
+    : (url.startsWith('/storage/') || url.startsWith('/image/')
+        ? url.replace(/^\/(?:storage|image)\//, '')
+        : url)
+  const restricted = await assertPhotoAccess(event, accessKey)
   if (restricted) setHeader(event, 'Cache-Control', 'private, no-store')
 
   const shouldForwardCookieToStorage =
     storageProvider.config?.provider === 'local' &&
-    url.startsWith('/storage/')
+    (url.startsWith('/storage/') || url.startsWith('/image/'))
 
   if (
     storageProvider.config?.provider === 'local' &&
-    url.startsWith('/storage/')
+    (url.startsWith('/storage/') || url.startsWith('/image/'))
   ) {
     const scheme = event.node.req.headers['x-forwarded-proto'] || 'http'
     url = `${scheme}://${event.node.req.headers.host}${url}`

@@ -5,14 +5,25 @@ import { grantAlbumAccess, verifyAlbumPassword } from '../../../utils/album-acce
 
 const UNLOCK_WINDOW_MS = 60_000
 const UNLOCK_MAX_ATTEMPTS = 8
+const UNLOCK_MAX_ENTRIES = 5_000
 const unlockAttempts = new Map<string, { count: number; resetAt: number }>()
 
+function pruneUnlockAttempts(now: number) {
+  for (const [key, attempt] of unlockAttempts) {
+    if (attempt.resetAt <= now) unlockAttempts.delete(key)
+  }
+}
+
 function assertUnlockRateLimit(event: H3Event, albumId: number) {
-  const ip = getRequestIP(event, { xForwardedFor: true }) || 'unknown'
+  const ip = getRequestIP(event, { xForwardedFor: false }) || 'unknown'
   const now = Date.now()
+  pruneUnlockAttempts(now)
   const key = `${albumId}:${ip}`
   const attempt = unlockAttempts.get(key)
   if (!attempt || attempt.resetAt <= now) {
+    if (unlockAttempts.size >= UNLOCK_MAX_ENTRIES) {
+      unlockAttempts.delete(unlockAttempts.keys().next().value as string)
+    }
     unlockAttempts.set(key, { count: 1, resetAt: now + UNLOCK_WINDOW_MS })
     return
   }
@@ -27,13 +38,13 @@ export default eventHandler(async (event) => {
     z.object({ albumId: z.coerce.number().int().positive() }).parse)
   const { password } = await readValidatedBody(event,
     z.object({ password: z.string().min(1).max(128) }).parse)
-  const clientIp = getRequestIP(event, { xForwardedFor: true }) || 'unknown'
-  assertUnlockRateLimit(event, albumId)
+  const clientIp = getRequestIP(event, { xForwardedFor: false }) || 'unknown'
   const album = useDB().select().from(tables.albums)
     .where(eq(tables.albums.id, albumId)).get()
   if (!album || album.isHidden || !album.passwordHash) {
     throw createError({ statusCode: 404, statusMessage: 'Album not found' })
   }
+  assertUnlockRateLimit(event, albumId)
   if (!await verifyAlbumPassword(password, album.passwordHash)) {
     throw createError({ statusCode: 401, statusMessage: 'Incorrect album password' })
   }
