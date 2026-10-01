@@ -1,4 +1,4 @@
-name: 'translator'
+name: translator
 on:
   issues:
     types: [opened, edited]
@@ -13,16 +13,22 @@ on:
   pull_request_review_comment:
     types: [created, edited]
 
+permissions:
+  contents: read
+  issues: write
+  discussions: write
+  pull-requests: write
+
 jobs:
   translate:
-    permissions:
-      issues: write
-      discussions: write
-      pull-requests: write
     runs-on: ubuntu-latest
+
     steps:
-      - uses: actions/checkout@v3
-      - uses: lizheming/github-translate-action@1.1.2
+      - uses: actions/checkout@v4
+
+      - name: Translate content
+        uses: lizheming/github-translate-action@1.1.2
+        continue-on-error: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
