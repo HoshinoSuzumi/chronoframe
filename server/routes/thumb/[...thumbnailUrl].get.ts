@@ -18,6 +18,10 @@ export default eventHandler(async (event) => {
     ? url.replace(/^\/(?:storage|image)\//, '') : url)
   if (restricted) setHeader(event, 'Cache-Control', 'private, no-store')
 
+  const shouldForwardCookieToStorage =
+    storageProvider.config?.provider === 'local' &&
+    url.startsWith('/storage/')
+
   if (
     storageProvider.config?.provider === 'local' &&
     url.startsWith('/storage/')
@@ -26,7 +30,10 @@ export default eventHandler(async (event) => {
     url = `${scheme}://${event.node.req.headers.host}${url}`
   }
 
-  const photo = await fetch(url)
+  const cookie = getHeader(event, 'cookie')
+  const photo = await fetch(url, cookie && shouldForwardCookieToStorage
+    ? { headers: { cookie } }
+    : undefined)
     .then((res) => {
       if (!res.ok) {
         throw createError({ statusCode: 404, statusMessage: 'Photo not found' })

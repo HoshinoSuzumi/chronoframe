@@ -150,10 +150,10 @@
     }
   },
   "album": {
-    "passwordRequired": "Password required",
-    "passwordPlaceholder": "Enter album password",
-    "incorrectPassword": "Incorrect password",
-    "unlock": "Unlock album",
+    "passwordRequired": "Требуется пароль",
+    "passwordPlaceholder": "Введите пароль альбома",
+    "incorrectPassword": "Неверный пароль",
+    "unlock": "Разблокировать альбом",
     "notFound": "Альбом не найден",
     "noDateInfo": "Нет данных о дате",
     "noPhotosTip": "В этом альбоме пока нет фотографий",

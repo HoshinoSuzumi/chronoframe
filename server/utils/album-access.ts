@@ -1,10 +1,12 @@
-import { createHash, createHmac, randomBytes, scryptSync, timingSafeEqual } from 'node:crypto'
+import { createHash, createHmac, randomBytes, scrypt, scryptSync, timingSafeEqual } from 'node:crypto'
+import { promisify } from 'node:util'
 import { eq, or } from 'drizzle-orm'
 import type { H3Event } from 'h3'
 import { tables, useDB } from './db'
 
 const cookieName = 'album_access'
 type Grant = { id: number; hash: string }
+const scryptAsync = promisify(scrypt)
 const passwordVersion = (hash: string) =>
   createHash('sha256').update(hash).digest('hex').slice(0, 16)
 
@@ -13,10 +15,10 @@ export function hashAlbumPassword(password: string): string {
   return `${salt}:${scryptSync(password, salt, 64).toString('hex')}`
 }
 
-export function verifyAlbumPassword(password: string, stored: string): boolean {
+export async function verifyAlbumPassword(password: string, stored: string): Promise<boolean> {
   const [salt, expected] = stored.split(':')
   if (!salt || !expected || !/^[a-f0-9]{128}$/.test(expected)) return false
-  const actual = scryptSync(password, salt, 64)
+  const actual = await scryptAsync(password, salt, 64)
   return timingSafeEqual(actual, Buffer.from(expected, 'hex'))
 }
 
@@ -70,6 +72,7 @@ export async function assertPhotoAccess(event: H3Event, key: string): Promise<bo
   const values = [key, `/storage/${key}`, `/image/${key}`]
   const photo = db.select().from(tables.photos).where(or(
     ...values.flatMap((value) => [
+      eq(tables.photos.id, value),
       eq(tables.photos.storageKey, value), eq(tables.photos.thumbnailKey, value),
       eq(tables.photos.originalUrl, value), eq(tables.photos.thumbnailUrl, value),
       eq(tables.photos.livePhotoVideoKey, value), eq(tables.photos.livePhotoVideoUrl, value),

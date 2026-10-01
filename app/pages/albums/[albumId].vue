@@ -28,12 +28,12 @@ if (error.value && error.value.statusCode !== 403) {
 
 const albumPassword = ref('')
 const isUnlocking = ref(false)
-const unlockError = ref(false)
+const unlockErrorMessageKey = ref<string | null>(null)
 const unlockSucceeded = ref(false)
 const prefersReducedMotion = useMediaQuery('(prefers-reduced-motion: reduce)')
 const unlockAlbum = async () => {
   isUnlocking.value = true
-  unlockError.value = false
+  unlockErrorMessageKey.value = null
   unlockSucceeded.value = false
   try {
     await $fetch(`/api/albums/${albumId.value}/unlock`, {
@@ -45,8 +45,10 @@ const unlockAlbum = async () => {
     if (!prefersReducedMotion.value) {
       await new Promise((resolve) => setTimeout(resolve, 220))
     }
-  } catch {
-    unlockError.value = true
+  } catch (err: any) {
+    unlockErrorMessageKey.value = err?.statusCode === 401 || err?.status === 401
+      ? 'album.incorrectPassword'
+      : 'album.failedToLoad'
   } finally {
     isUnlocking.value = false
   }
@@ -224,15 +226,15 @@ useHead({
         >
           <form class="flex flex-col gap-3" @submit.prevent="unlockAlbum">
             <motion.div
-              :animate="unlockError && !prefersReducedMotion
+              :animate="unlockErrorMessageKey && !prefersReducedMotion
                 ? { x: [0, -6, 6, -4, 4, 0] } : { x: 0 }"
               :transition="{ duration: 0.32 }"
             >
               <UInput v-model="albumPassword" type="password" autocomplete="off"
                 :placeholder="$t('album.passwordPlaceholder')" autofocus class="w-full" />
             </motion.div>
-            <p v-if="unlockError" role="alert" class="text-sm text-error-500">
-              {{ $t('album.incorrectPassword') }}
+            <p v-if="unlockErrorMessageKey" role="alert" class="text-sm text-error-500">
+              {{ $t(unlockErrorMessageKey) }}
             </p>
             <UButton type="submit" block :loading="isUnlocking" :disabled="!albumPassword">
               {{ $t('album.unlock') }}

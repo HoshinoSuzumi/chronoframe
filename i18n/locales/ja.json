@@ -150,10 +150,10 @@
     }
   },
   "album": {
-    "passwordRequired": "Password required",
-    "passwordPlaceholder": "Enter album password",
-    "incorrectPassword": "Incorrect password",
-    "unlock": "Unlock album",
+    "passwordRequired": "パスワードが必要です",
+    "passwordPlaceholder": "アルバムのパスワードを入力",
+    "incorrectPassword": "パスワードが正しくありません",
+    "unlock": "アルバムのロックを解除",
     "notFound": "アルバムが見つかりません",
     "noDateInfo": "日付情報なし",
     "noPhotosTip": "このアルバムにはまだ写真がありません",

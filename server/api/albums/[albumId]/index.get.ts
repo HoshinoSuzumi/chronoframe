@@ -47,7 +47,17 @@ export default eventHandler(async (event) => {
   // Anonymous viewers must not see photos that are also members of any
   // hidden album — otherwise a photo shared between a public and a hidden
   // album would leak through the public album (see issue #299).
-  const photos = await fetchAlbumPhotos(db, tables, albumId, isLoggedIn)
+  const rows = await fetchAlbumPhotos(db, tables, albumId, isLoggedIn)
+  const photos = album.passwordHash
+    ? rows.map((photo) => ({
+        ...photo,
+        originalUrl: `/image/__photo__/${encodeURIComponent(photo.id)}/original`,
+        thumbnailUrl: `/image/__photo__/${encodeURIComponent(photo.id)}/thumbnail`,
+        livePhotoVideoUrl: photo.livePhotoVideoUrl
+          ? `/image/__photo__/${encodeURIComponent(photo.id)}/live`
+          : null,
+      }))
+    : rows
 
   return {
     ...album,
