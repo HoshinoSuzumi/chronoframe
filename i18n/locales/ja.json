@@ -765,7 +765,7 @@
         "actions": {
           "clearCompleted": "完了済みを削除",
           "clearAll": "すべて削除",
-          "goToQueue": "キュー管理"
+          "goToQueue": "キュー"
         }
       },
       "previewTitle": "写真プレビュー"

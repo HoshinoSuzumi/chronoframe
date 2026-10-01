@@ -838,7 +838,7 @@
         "actions": {
           "clearCompleted": "Удалить завершённые",
           "clearAll": "Удалить все",
-          "goToQueue": "Управление очередью"
+          "goToQueue": "Очередь"
         }
       },
       "previewTitle": "Предпросмотр фотографии"

@@ -839,7 +839,7 @@
         "actions": {
           "clearCompleted": "Clear Completed",
           "clearAll": "Clear All",
-          "goToQueue": "Queue Management"
+          "goToQueue": "Queue"
         }
       },
       "previewTitle": "Photo Preview"
