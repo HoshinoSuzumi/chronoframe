@@ -552,6 +552,15 @@ watch(isEditModalOpen, (open) => {
 // 表格多选状态
 const rowSelection = ref({})
 const table: any = useTemplateRef('table')
+const getPhotoRowId = (photo: Photo) => photo.id
+const rowRangeSelection = useShiftRangeSelection()
+
+watch(
+  () => Object.keys(rowSelection.value).length === 0,
+  (isEmpty) => {
+    if (isEmpty) rowRangeSelection.resetAnchor()
+  },
+)
 
 // 列可见性状态，选择结果保存在 localStorage，刷新后恢复
 const columnVisibility = useDashboardPhotoColumnVisibility()
@@ -789,13 +798,21 @@ const columns = computed<TableColumn<Photo>[]>(() => [
           table.toggleAllPageRowsSelected(!!value),
         'aria-label': $t('dashboard.photos.table.selectAllAria'),
       }),
-    cell: ({ row }) =>
-      h(UCheckbox, {
-        modelValue: row.getIsSelected(),
-        'onUpdate:modelValue': (value: boolean | 'indeterminate') =>
-          row.toggleSelected(!!value),
-        'aria-label': $t('dashboard.photos.table.selectRowAria'),
-      }),
+    cell: ({ row, table }) =>
+      h(
+        'div',
+        {
+          class: 'flex',
+          onClickCapture: rowRangeSelection.captureModifiers,
+          onMousedown: rowRangeSelection.preventShiftTextSelection,
+        },
+        h(UCheckbox, {
+          modelValue: row.getIsSelected(),
+          'onUpdate:modelValue': (value: boolean | 'indeterminate') =>
+            rowRangeSelection.toggleTableRow(table, row, !!value),
+          'aria-label': $t('dashboard.photos.table.selectRowAria'),
+        }),
+      ),
     enableHiding: false,
   },
   {
@@ -2401,6 +2418,7 @@ onUnmounted(() => {
             ref="table"
             v-model:row-selection="rowSelection"
             v-model:column-visibility="columnVisibility"
+            :get-row-id="getPhotoRowId"
             :column-pinning="{
               right: ['actions'],
             }"
@@ -2466,75 +2484,89 @@ onUnmounted(() => {
           >
             <div
               v-if="selectedRowsCount > 0"
-              class="fixed bottom-8 left-1/2 -translate-x-1/2 px-2 py-1.5 bg-white/90 dark:bg-neutral-900/90 backdrop-blur-xl shadow-xl rounded-full border border-neutral-200/80 dark:border-neutral-800/80 z-60 flex items-center gap-3 sm:gap-6 shadow-black/5 dark:shadow-black/20"
+              class="fixed bottom-8 left-1/2 -translate-x-1/2 z-60 w-max flex flex-col items-center gap-2"
             >
-              <div
-                class="pl-4 pr-1 border-r border-neutral-200 dark:border-neutral-800 min-w-max"
+              <p
+                class="hidden items-center gap-1.5 max-w-[calc(100vw-2rem)] px-3 py-1 rounded-full bg-white/80 dark:bg-neutral-900/80 backdrop-blur-xl border border-neutral-200/80 dark:border-neutral-800/80 text-xs text-neutral-500 dark:text-neutral-400 pointer-fine:flex"
               >
-                <p
-                  class="text-sm font-medium tracking-wide text-neutral-700 dark:text-neutral-200"
-                >
-                  {{
-                    $t('dashboard.photos.selection.selected', {
-                      count: selectedRowsCount,
-                      total: totalRowsCount,
-                    })
-                  }}
-                </p>
-              </div>
+                <Icon
+                  name="tabler:info-circle"
+                  class="size-3.5 shrink-0"
+                />
+                {{ $t('ui.action.select.rangeTip') }}
+              </p>
 
-              <div class="flex items-center gap-1 sm:gap-1.5 pr-2">
-                <UButton
-                  color="neutral"
-                  variant="ghost"
-                  size="sm"
-                  class="rounded-full text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100 dark:text-neutral-400 dark:hover:text-white dark:hover:bg-neutral-800"
-                  icon="tabler:refresh"
-                  @click="handleBatchReprocess"
+              <div
+                class="px-2 py-1.5 bg-white/90 dark:bg-neutral-900/90 backdrop-blur-xl shadow-xl rounded-full border border-neutral-200/80 dark:border-neutral-800/80 flex items-center gap-3 sm:gap-6 shadow-black/5 dark:shadow-black/20"
+              >
+                <div
+                  class="pl-4 pr-1 border-r border-neutral-200 dark:border-neutral-800 min-w-max"
                 >
-                  <span class="hidden sm:inline">{{
-                    $t('dashboard.photos.selection.batchReprocess')
-                  }}</span>
-                </UButton>
+                  <p
+                    class="text-sm font-medium tracking-wide text-neutral-700 dark:text-neutral-200"
+                  >
+                    {{
+                      $t('dashboard.photos.selection.selected', {
+                        count: selectedRowsCount,
+                        total: totalRowsCount,
+                      })
+                    }}
+                  </p>
+                </div>
 
-                <UButton
-                  color="neutral"
-                  variant="ghost"
-                  size="sm"
-                  class="rounded-full text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100 dark:text-neutral-400 dark:hover:text-white dark:hover:bg-neutral-800"
-                  icon="tabler:map-off"
-                  @click="handleBatchEraseLocation"
-                >
-                  <span class="hidden sm:inline">{{
-                    $t('dashboard.photos.selection.batchEraseLocation')
-                  }}</span>
-                </UButton>
+                <div class="flex items-center gap-1 sm:gap-1.5 pr-2">
+                  <UButton
+                    color="neutral"
+                    variant="ghost"
+                    size="sm"
+                    class="rounded-full text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100 dark:text-neutral-400 dark:hover:text-white dark:hover:bg-neutral-800"
+                    icon="tabler:refresh"
+                    @click="handleBatchReprocess"
+                  >
+                    <span class="hidden sm:inline">{{
+                      $t('dashboard.photos.selection.batchReprocess')
+                    }}</span>
+                  </UButton>
 
-                <UButton
-                  color="neutral"
-                  variant="ghost"
-                  size="sm"
-                  class="rounded-full text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100 dark:text-neutral-400 dark:hover:text-white dark:hover:bg-neutral-800"
-                  icon="tabler:download"
-                  @click="handleBatchDownload"
-                >
-                  <span class="hidden sm:inline">{{
-                    $t('dashboard.photos.selection.batchDownload')
-                  }}</span>
-                </UButton>
+                  <UButton
+                    color="neutral"
+                    variant="ghost"
+                    size="sm"
+                    class="rounded-full text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100 dark:text-neutral-400 dark:hover:text-white dark:hover:bg-neutral-800"
+                    icon="tabler:map-off"
+                    @click="handleBatchEraseLocation"
+                  >
+                    <span class="hidden sm:inline">{{
+                      $t('dashboard.photos.selection.batchEraseLocation')
+                    }}</span>
+                  </UButton>
 
-                <UButton
-                  color="error"
-                  variant="ghost"
-                  size="sm"
-                  class="rounded-full hover:bg-error-50 dark:hover:bg-error-500/20"
-                  icon="tabler:trash"
-                  @click="handleBatchDelete"
-                >
-                  <span class="hidden sm:inline">{{
-                    $t('dashboard.photos.selection.batchDelete')
-                  }}</span>
-                </UButton>
+                  <UButton
+                    color="neutral"
+                    variant="ghost"
+                    size="sm"
+                    class="rounded-full text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100 dark:text-neutral-400 dark:hover:text-white dark:hover:bg-neutral-800"
+                    icon="tabler:download"
+                    @click="handleBatchDownload"
+                  >
+                    <span class="hidden sm:inline">{{
+                      $t('dashboard.photos.selection.batchDownload')
+                    }}</span>
+                  </UButton>
+
+                  <UButton
+                    color="error"
+                    variant="ghost"
+                    size="sm"
+                    class="rounded-full hover:bg-error-50 dark:hover:bg-error-500/20"
+                    icon="tabler:trash"
+                    @click="handleBatchDelete"
+                  >
+                    <span class="hidden sm:inline">{{
+                      $t('dashboard.photos.selection.batchDelete')
+                    }}</span>
+                  </UButton>
+                </div>
               </div>
             </div>
           </transition>
