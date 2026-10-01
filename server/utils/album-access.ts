@@ -1,5 +1,4 @@
 import {
-  createHash,
   createHmac,
   randomBytes,
   scrypt,
@@ -14,8 +13,16 @@ import { tables, useDB } from './db'
 const cookieName = 'album_access'
 type Grant = { id: number; hash: string }
 const scryptAsync = promisify(scrypt)
+function sessionSecret(): string {
+  const secret = process.env.NUXT_SESSION_PASSWORD
+  if (!secret) {
+    throw new Error('NUXT_SESSION_PASSWORD is not configured')
+  }
+  return secret
+}
+
 const passwordVersion = (hash: string) =>
-  createHash('sha256').update(hash).digest('hex').slice(0, 16)
+  createHmac('sha256', sessionSecret()).update(hash).digest('hex').slice(0, 16)
 
 export function hashAlbumPassword(password: string): string {
   const salt = randomBytes(16).toString('hex')
@@ -33,11 +40,9 @@ export async function verifyAlbumPassword(
 }
 
 function signature(payload: string): string {
-  const secret = process.env.NUXT_SESSION_PASSWORD
-  if (!secret) {
-    throw new Error('NUXT_SESSION_PASSWORD is not configured')
-  }
-  return createHmac('sha256', secret).update(payload).digest('base64url')
+  return createHmac('sha256', sessionSecret())
+    .update(payload)
+    .digest('base64url')
 }
 
 function readGrants(event: H3Event): Grant[] {
