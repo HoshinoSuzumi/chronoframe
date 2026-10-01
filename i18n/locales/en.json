@@ -869,6 +869,7 @@
         "isHidden": "Hide album",
         "isHiddenHint": "Photos in hidden albums are not shown on the home page",
         "passwordProtection": "Password protection",
+        "passwordProtectionHint": "A password will be required to access this album",
         "password": "Password",
         "passwordPlaceholder": "Enter a password",
         "passwordKeepHint": "Leave blank to keep the current password",

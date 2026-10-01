@@ -795,6 +795,7 @@
         "isHidden": "隱藏相簿",
         "isHiddenHint": "隱藏相簿中的照片不會在首頁顯示",
         "passwordProtection": "密碼保護",
+        "passwordProtectionHint": "存取此相簿需要輸入密碼",
         "password": "密碼",
         "passwordPlaceholder": "輸入密碼",
         "passwordKeepHint": "留空以保留目前密碼",

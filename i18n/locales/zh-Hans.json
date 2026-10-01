@@ -869,6 +869,7 @@
         "isHidden": "隐藏相簿",
         "isHiddenHint": "隐藏的相簿中的照片不会在首页展示",
         "passwordProtection": "密码保护",
+        "passwordProtectionHint": "访问此相簿需要输入密码",
         "password": "密码",
         "passwordPlaceholder": "输入密码",
         "passwordKeepHint": "留空以保留当前密码",

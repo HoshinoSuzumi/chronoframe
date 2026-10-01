@@ -746,20 +746,20 @@ const columns = computed<any[]>(() => [
                   />
                 </UFormField>
 
-                <UFormField
-                  :label="$t('dashboard.albums.form.isHidden')"
-                  name="isHidden"
-                  :hint="$t('dashboard.albums.form.isHiddenHint')"
-                >
+                <UFormField name="isHidden">
                   <UCheckbox
                     v-model="formData.isHidden"
                     :label="$t('dashboard.albums.form.isHidden')"
+                    :description="$t('dashboard.albums.form.isHiddenHint')"
                   />
                 </UFormField>
 
-                <UFormField :label="$t('dashboard.albums.form.passwordProtection')">
-                  <UCheckbox v-model="formData.passwordEnabled"
-                    :label="$t('dashboard.albums.form.passwordProtection')" />
+                <UFormField name="passwordEnabled">
+                  <UCheckbox
+                    v-model="formData.passwordEnabled"
+                    :label="$t('dashboard.albums.form.passwordProtection')"
+                    :description="$t('dashboard.albums.form.passwordProtectionHint')"
+                  />
                 </UFormField>
                 <UFormField v-if="formData.passwordEnabled"
                   :label="$t('dashboard.albums.form.password')" name="password"
