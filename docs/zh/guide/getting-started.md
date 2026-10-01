@@ -150,6 +150,8 @@ docker compose up -d
 
 在生产环境中部署时，您通常需要一个反向代理服务器（如 Nginx 或 Caddy）来处理 HTTPS 和域名解析。以下是一些示例配置。
 
+使用下方 Nginx 或 Traefik 示例时，请在 `.env` 中设置 `NUXT_TRUST_PROXY=true`，并确保 3000 端口只能由反向代理访问。若代理会原样转发客户端提供的 `X-Forwarded-For`，请勿启用此选项。
+
 ### Nginx
 
 ```nginx
@@ -184,7 +186,7 @@ server {
         proxy_set_header Connection 'upgrade';
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-For $remote_addr;
         proxy_set_header X-Forwarded-Proto $scheme;
         proxy_cache_bypass $http_upgrade;
 
@@ -199,7 +201,7 @@ server {
     }
 
     # 静态资源缓存
-    location ~* \.(jpg|jpeg|png|gif|webp|svg|css|js|ico|woff|woff2|ttf|eot)$ {
+    location /_nuxt/ {
         proxy_pass http://localhost:3000;
         expires 1y;
         add_header Cache-Control "public, immutable";

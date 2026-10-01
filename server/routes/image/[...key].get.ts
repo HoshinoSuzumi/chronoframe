@@ -29,7 +29,6 @@ export default eventHandler(async (event) => {
       throw createError({ statusCode: 404, statusMessage: 'Photo not found' })
     }
     const restricted = await assertPhotoAccess(event, photo.id)
-    if (restricted) setHeader(event, 'Cache-Control', 'private, no-store')
 
     const targetUrl =
       kind === 'original'
@@ -65,11 +64,12 @@ export default eventHandler(async (event) => {
       'content-disposition',
       'etag',
       'last-modified',
-      'cache-control',
+      ...(restricted ? [] : ['cache-control']),
     ]) {
       const value = response.headers.get(name)
       if (value) setHeader(event, name, value)
     }
+    if (restricted) setHeader(event, 'Cache-Control', 'private, no-store')
     if (!response.body) {
       throw createError({ statusCode: 404, statusMessage: 'Photo not found' })
     }

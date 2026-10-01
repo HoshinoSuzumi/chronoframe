@@ -3,9 +3,9 @@ import type { useDB } from './db'
 import type * as schema from '../database/schema'
 
 /**
- * Returns the photos of a given album, optionally stripping those that also
- * appear in any hidden album (so anonymous viewers cannot reach them via a
- * public album).
+ * Returns the photos of a given album, stripping hidden-album members for
+ * anonymous viewers and, unless explicitly allowed, other protected-album
+ * members.
  *
  * Kept as a small pure helper so the visibility contract can be exercised
  * from tests without spinning up the Nitro event-handler runtime. The
@@ -32,11 +32,11 @@ export async function fetchAlbumPhotos(
     .orderBy(asc(tables.albumPhotos.position))
     .all()
 
-  if (includePasswordProtected) {
+  if (loggedIn) {
     return rows
   }
 
-  const hiddenPhotoIds = (
+  const excludedPhotoIds = (
     await db
       .select({ photoId: tables.albumPhotos.photoId })
       .from(tables.albumPhotos)
@@ -45,21 +45,23 @@ export async function fetchAlbumPhotos(
         eq(tables.albumPhotos.albumId, tables.albums.id),
       )
       .where(
-        or(
-          eq(tables.albums.isHidden, true),
-          and(
-            isNotNull(tables.albums.passwordHash),
-            ne(tables.albums.id, albumId),
-          ),
-        ),
+        includePasswordProtected
+          ? eq(tables.albums.isHidden, true)
+          : or(
+              eq(tables.albums.isHidden, true),
+              and(
+                isNotNull(tables.albums.passwordHash),
+                ne(tables.albums.id, albumId),
+              ),
+            ),
       )
       .all()
   ).map((r: { photoId: string }) => r.photoId)
 
-  if (hiddenPhotoIds.length === 0) {
+  if (excludedPhotoIds.length === 0) {
     return rows
   }
 
-  const hidden = new Set(hiddenPhotoIds)
-  return rows.filter((row: { id: string }) => !hidden.has(row.id))
+  const excluded = new Set(excludedPhotoIds)
+  return rows.filter((row: { id: string }) => !excluded.has(row.id))
 }
