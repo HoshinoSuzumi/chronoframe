@@ -2,6 +2,7 @@ import { eq } from 'drizzle-orm'
 import z from 'zod'
 
 import { fetchAlbumPhotos } from '../../../utils/album-visibility'
+import { albumAccess } from '../../../utils/album-access'
 
 export default eventHandler(async (event) => {
   const { albumId } = await getValidatedRouterParams(
@@ -30,14 +31,17 @@ export default eventHandler(async (event) => {
   }
 
   // 检查相册是否隐藏，如果隐藏则需要用户登录才能访问
-  const session = await getUserSession(event)
-  const isLoggedIn = Boolean(session.user)
+  const { admin: isLoggedIn, canAccess } = await albumAccess(event)
 
   if (album.isHidden && !isLoggedIn) {
     throw createError({
       statusCode: 404,
       statusMessage: 'Album not found',
     })
+  }
+
+  if (!canAccess(album)) {
+    throw createError({ statusCode: 403, statusMessage: 'Album password required' })
   }
 
   // Anonymous viewers must not see photos that are also members of any
@@ -47,6 +51,8 @@ export default eventHandler(async (event) => {
 
   return {
     ...album,
+    passwordHash: undefined,
+    hasPassword: Boolean(album.passwordHash),
     photos,
   }
 })

@@ -150,6 +150,10 @@
     }
   },
   "album": {
+    "passwordRequired": "Password required",
+    "passwordPlaceholder": "Enter album password",
+    "incorrectPassword": "Incorrect password",
+    "unlock": "Unlock album",
     "notFound": "Альбом не найден",
     "noDateInfo": "Нет данных о дате",
     "noPhotosTip": "В этом альбоме пока нет фотографий",
@@ -863,6 +867,11 @@
         "clearAll": "Очистить всё",
         "isHidden": "Скрыть альбом",
         "isHiddenHint": "Фотографии из скрытых альбомов не отображаются на главной странице",
+        "passwordProtection": "Password protection",
+        "password": "Password",
+        "passwordPlaceholder": "Enter a password",
+        "passwordKeepHint": "Leave blank to keep the current password",
+        "passwordRequired": "Please enter a password",
         "movePhotoUp": "Переместить фотографию вверх",
         "movePhotoDown": "Переместить фотографию вниз",
         "removePhoto": "Убрать фотографию"

@@ -1,4 +1,4 @@
-import { asc, eq, getTableColumns } from 'drizzle-orm'
+import { asc, eq, getTableColumns, or, isNotNull, ne, and } from 'drizzle-orm'
 import type { useDB } from './db'
 import type * as schema from '../database/schema'
 
@@ -43,7 +43,8 @@ export async function fetchAlbumPhotos(
         tables.albums,
         eq(tables.albumPhotos.albumId, tables.albums.id),
       )
-      .where(eq(tables.albums.isHidden, true))
+      .where(or(eq(tables.albums.isHidden, true), and(
+        isNotNull(tables.albums.passwordHash), ne(tables.albums.id, albumId))))
       .all()
   ).map((r: { photoId: string }) => r.photoId)
 

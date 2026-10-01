@@ -150,6 +150,10 @@
     }
   },
   "album": {
+    "passwordRequired": "Password required",
+    "passwordPlaceholder": "Enter album password",
+    "incorrectPassword": "Incorrect password",
+    "unlock": "Unlock album",
     "notFound": "アルバムが見つかりません",
     "noDateInfo": "日付情報なし",
     "noPhotosTip": "このアルバムにはまだ写真がありません",
@@ -790,6 +794,11 @@
         "clearAll": "すべてクリア",
         "isHidden": "アルバムを非表示",
         "isHiddenHint": "非表示のアルバム内の写真はホームページに表示されません",
+        "passwordProtection": "Password protection",
+        "password": "Password",
+        "passwordPlaceholder": "Enter a password",
+        "passwordKeepHint": "Leave blank to keep the current password",
+        "passwordRequired": "Please enter a password",
         "movePhotoUp": "写真を上へ移動",
         "movePhotoDown": "写真を下へ移動",
         "removePhoto": "写真を選択から外す"

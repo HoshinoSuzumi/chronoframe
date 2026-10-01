@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { hashAlbumPassword } from '../../../utils/album-access'
 
 export default eventHandler(async (event) => {
   await requireUserSession(event)
@@ -21,6 +22,7 @@ export default eventHandler(async (event) => {
       coverPhotoId: z.string().optional(),
       photoIds: z.array(z.string()).optional(),
       isHidden: z.boolean().optional(),
+      password: z.string().max(128).optional(),
     }).parse,
   )
 
@@ -60,6 +62,9 @@ export default eventHandler(async (event) => {
     }
     if (body.isHidden !== undefined) {
       updateData.isHidden = body.isHidden
+    }
+    if (body.password !== undefined) {
+      updateData.passwordHash = body.password ? hashAlbumPassword(body.password) : null
     }
 
     tx.update(tables.albums)
@@ -104,5 +109,5 @@ export default eventHandler(async (event) => {
       .get()
   })
 
-  return updatedAlbum
+  return { ...updatedAlbum, passwordHash: undefined, hasPassword: Boolean(updatedAlbum?.passwordHash) }
 })

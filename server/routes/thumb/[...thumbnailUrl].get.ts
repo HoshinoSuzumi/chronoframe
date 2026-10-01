@@ -1,4 +1,5 @@
 import sharp from 'sharp'
+import { assertPhotoAccess } from '../../utils/album-access'
 
 export default eventHandler(async (event) => {
   const { storageProvider } = useStorageProvider(event)
@@ -13,6 +14,9 @@ export default eventHandler(async (event) => {
   }
 
   url = decodeURIComponent(url)
+  const restricted = await assertPhotoAccess(event, url.startsWith('/storage/') || url.startsWith('/image/')
+    ? url.replace(/^\/(?:storage|image)\//, '') : url)
+  if (restricted) setHeader(event, 'Cache-Control', 'private, no-store')
 
   if (
     storageProvider.config?.provider === 'local' &&

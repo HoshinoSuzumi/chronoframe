@@ -164,6 +164,10 @@
     }
   },
   "album": {
+    "passwordRequired": "此相簿需要密码",
+    "passwordPlaceholder": "输入相簿密码",
+    "incorrectPassword": "密码错误",
+    "unlock": "解锁相簿",
     "notFound": "相簿未找到",
     "noDateInfo": "无日期信息",
     "noPhotosTip": "该相簿中还没有照片",
@@ -864,6 +868,11 @@
         "clearAll": "全部清除",
         "isHidden": "隐藏相簿",
         "isHiddenHint": "隐藏的相簿中的照片不会在首页展示",
+        "passwordProtection": "密码保护",
+        "password": "密码",
+        "passwordPlaceholder": "输入密码",
+        "passwordKeepHint": "留空以保留当前密码",
+        "passwordRequired": "请输入密码",
         "movePhotoUp": "上移照片",
         "movePhotoDown": "下移照片",
         "removePhoto": "移除照片"

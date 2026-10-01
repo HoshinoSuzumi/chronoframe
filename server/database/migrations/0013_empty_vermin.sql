@@ -1,0 +1,1 @@
+ALTER TABLE `albums` ADD `password_hash` text;
