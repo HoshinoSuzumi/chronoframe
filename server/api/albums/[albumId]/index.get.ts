@@ -41,13 +41,22 @@ export default eventHandler(async (event) => {
   }
 
   if (!canAccess(album)) {
-    throw createError({ statusCode: 403, statusMessage: 'Album password required' })
+    throw createError({
+      statusCode: 403,
+      statusMessage: 'Album password required',
+    })
   }
 
   // Anonymous viewers must not see photos that are also members of any
   // hidden album — otherwise a photo shared between a public and a hidden
   // album would leak through the public album (see issue #299).
-  const rows = await fetchAlbumPhotos(db, tables, albumId, isLoggedIn)
+  const rows = await fetchAlbumPhotos(
+    db,
+    tables,
+    albumId,
+    isLoggedIn,
+    isLoggedIn || Boolean(album.passwordHash),
+  )
   const photos = album.passwordHash
     ? rows.map((photo) => ({
         ...photo,

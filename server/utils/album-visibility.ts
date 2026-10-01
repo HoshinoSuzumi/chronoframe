@@ -17,6 +17,7 @@ export async function fetchAlbumPhotos(
   tables: typeof schema,
   albumId: number,
   loggedIn: boolean,
+  includePasswordProtected = loggedIn,
 ) {
   const rows = await db
     .select({
@@ -31,7 +32,7 @@ export async function fetchAlbumPhotos(
     .orderBy(asc(tables.albumPhotos.position))
     .all()
 
-  if (loggedIn) {
+  if (includePasswordProtected) {
     return rows
   }
 
@@ -43,8 +44,15 @@ export async function fetchAlbumPhotos(
         tables.albums,
         eq(tables.albumPhotos.albumId, tables.albums.id),
       )
-      .where(or(eq(tables.albums.isHidden, true), and(
-        isNotNull(tables.albums.passwordHash), ne(tables.albums.id, albumId))))
+      .where(
+        or(
+          eq(tables.albums.isHidden, true),
+          and(
+            isNotNull(tables.albums.passwordHash),
+            ne(tables.albums.id, albumId),
+          ),
+        ),
+      )
       .all()
   ).map((r: { photoId: string }) => r.photoId)
 
