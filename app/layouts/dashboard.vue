@@ -12,6 +12,11 @@ const appTitle = computed(() => {
   return value ? String(value) : $t('title.dashboard')
 })
 
+const avatarUrl = computed(() => {
+  const value = settingsStore.getSetting('app:avatarUrl')
+  return typeof value === 'string' && value.trim() ? value.trim() : undefined
+})
+
 const navItems = computed<NavigationMenuItem[][]>(() => [
   [
     {
@@ -231,9 +236,12 @@ const handleLogin = () => {
         >
           <UButton
             :avatar="{
-              src: user?.avatar || '',
+              src: avatarUrl,
               alt: user?.username || user?.email || 'User Avatar',
               icon: 'tabler:user',
+              ui: {
+                image: 'object-cover',
+              },
             }"
             :label="collapsed ? undefined : user?.username || 'User'"
             :trailing-icon="collapsed ? undefined : 'tabler:selector'"
