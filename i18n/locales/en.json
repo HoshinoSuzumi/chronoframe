@@ -3,6 +3,10 @@
     "photo": "no photos | one photo | {count} photos"
   },
   "ui": {
+    "locale": {
+      "label": "Language",
+      "auto": "Auto (browser language)"
+    },
     "action": {
       "filter": {
         "tooltip": "Filter Photos",
@@ -1094,7 +1098,8 @@
       "noAccess": "Sorry, you do not have access to this page."
     },
     "nav": {
-      "documentation": "Documentation"
+      "documentation": "Documentation",
+      "viewGallery": "View Gallery"
     }
   },
   "settings": {

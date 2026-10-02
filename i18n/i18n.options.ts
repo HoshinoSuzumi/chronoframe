@@ -7,7 +7,7 @@ export const defaultLocale = 'en'
 
 type DayjsLocale = NonNullable<DayjsModuleOptions['locales']>[number]
 
-type AppLocaleCode =
+export type AppLocaleCode =
   | 'zh-Hans'
   | 'zh-Hant-TW'
   | 'zh-Hant-HK'
@@ -65,7 +65,12 @@ export const locales: AppLocaleObject[] = [
   },
 ]
 
+export const localeCodes = locales.map(({ code }) => code)
 export const localeLanguages = locales.map(({ language }) => language)
+
+export function isAppLocaleCode(value: unknown): value is AppLocaleCode {
+  return localeCodes.some((code) => code === value)
+}
 export const dayjsLocales: DayjsLocale[] = [
   'zh-cn',
   'zh-tw',

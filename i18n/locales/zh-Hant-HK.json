@@ -17,6 +17,10 @@
     }
   },
   "ui": {
+    "locale": {
+      "label": "語言",
+      "auto": "自動（跟隨瀏覽器）"
+    },
     "livePhoto": "原況",
     "action": {
       "dashboard": {
@@ -1020,7 +1024,8 @@
       "noAccess": "抱歉，您沒有存取此頁面的權限。"
     },
     "nav": {
-      "documentation": "文件"
+      "documentation": "文件",
+      "viewGallery": "查看畫廊"
     }
   },
   "settings": {

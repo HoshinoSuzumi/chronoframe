@@ -29,6 +29,7 @@ const appTitle = useSettingRef('app:title')
 colorMode.preference = useSettingRef('app:appearance.theme').value as string
 
 useHead({
+  htmlAttrs: { lang: localeRef },
   titleTemplate: (title) =>
     `${title ? title + ' | ' : ''}${appTitle.value || 'ChronoFrame'}`,
 })
