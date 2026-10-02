@@ -2,6 +2,8 @@
 
 ChronoFrame supports multiple storage backends to save your photos and thumbnails. This document will detail how to configure different storage providers.
 
+> Password-protected albums require media URLs that cannot be fetched without ChronoFrame authorization. S3 buckets, OpenList download endpoints, and CDNs configured with public access do **not** meet this requirement: changing an album password does not revoke previously issued direct URLs or cached copies. Use local storage for protected albums until private remote-object delivery is supported. If media was already published, restrict access at the storage/CDN, purge its cache, and rotate or move the objects; changing only the album setting is insufficient.
+
 | Provider                                    | Support | Use Case                                | Cost               |
 | ------------------------------------------- | :-----: | --------------------------------------- | ------------------ |
 | [**S3 Compatible**](#s3-compatible-storage) |   ✅    | Production environment, cloud storage   | Varies by provider |

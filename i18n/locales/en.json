@@ -3,6 +3,10 @@
     "photo": "no photos | one photo | {count} photos"
   },
   "ui": {
+    "locale": {
+      "label": "Language",
+      "auto": "Auto (browser language)"
+    },
     "action": {
       "filter": {
         "tooltip": "Filter Photos",
@@ -150,6 +154,10 @@
     }
   },
   "album": {
+    "passwordRequired": "Password required",
+    "passwordPlaceholder": "Enter album password",
+    "incorrectPassword": "Incorrect password",
+    "unlock": "Unlock album",
     "notFound": "Album not found",
     "noDateInfo": "No date info",
     "noPhotosTip": "No photos in this album yet",
@@ -863,6 +871,12 @@
         "clearAll": "Clear all",
         "isHidden": "Hide album",
         "isHiddenHint": "Photos in hidden albums are not shown on the home page",
+        "passwordProtection": "Password protection",
+        "passwordProtectionHint": "A password will be required to access this album",
+        "password": "Password",
+        "passwordPlaceholder": "Enter a password",
+        "passwordKeepHint": "Leave blank to keep the current password",
+        "passwordRequired": "Please enter a password",
         "movePhotoUp": "Move photo up",
         "movePhotoDown": "Move photo down",
         "removePhoto": "Remove photo"
@@ -1093,7 +1107,8 @@
       "noAccess": "Sorry, you do not have access to this page."
     },
     "nav": {
-      "documentation": "Documentation"
+      "documentation": "Documentation",
+      "viewGallery": "View Gallery"
     }
   },
   "settings": {

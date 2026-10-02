@@ -1,11 +1,11 @@
-import { asc, eq, getTableColumns } from 'drizzle-orm'
+import { asc, eq, getTableColumns, or, isNotNull, ne, and } from 'drizzle-orm'
 import type { useDB } from './db'
 import type * as schema from '../database/schema'
 
 /**
- * Returns the photos of a given album, optionally stripping those that also
- * appear in any hidden album (so anonymous viewers cannot reach them via a
- * public album).
+ * Returns the photos of a given album, stripping hidden-album members for
+ * anonymous viewers and, unless explicitly allowed, other protected-album
+ * members.
  *
  * Kept as a small pure helper so the visibility contract can be exercised
  * from tests without spinning up the Nitro event-handler runtime. The
@@ -17,6 +17,7 @@ export async function fetchAlbumPhotos(
   tables: typeof schema,
   albumId: number,
   loggedIn: boolean,
+  includePasswordProtected = loggedIn,
 ) {
   const rows = await db
     .select({
@@ -35,7 +36,7 @@ export async function fetchAlbumPhotos(
     return rows
   }
 
-  const hiddenPhotoIds = (
+  const excludedPhotoIds = (
     await db
       .select({ photoId: tables.albumPhotos.photoId })
       .from(tables.albumPhotos)
@@ -43,14 +44,24 @@ export async function fetchAlbumPhotos(
         tables.albums,
         eq(tables.albumPhotos.albumId, tables.albums.id),
       )
-      .where(eq(tables.albums.isHidden, true))
+      .where(
+        includePasswordProtected
+          ? eq(tables.albums.isHidden, true)
+          : or(
+              eq(tables.albums.isHidden, true),
+              and(
+                isNotNull(tables.albums.passwordHash),
+                ne(tables.albums.id, albumId),
+              ),
+            ),
+      )
       .all()
   ).map((r: { photoId: string }) => r.photoId)
 
-  if (hiddenPhotoIds.length === 0) {
+  if (excludedPhotoIds.length === 0) {
     return rows
   }
 
-  const hidden = new Set(hiddenPhotoIds)
-  return rows.filter((row: { id: string }) => !hidden.has(row.id))
+  const excluded = new Set(excludedPhotoIds)
+  return rows.filter((row: { id: string }) => !excluded.has(row.id))
 }

@@ -13,9 +13,13 @@ const emit = defineEmits<{
 
 const toast = useToast()
 const { gtag } = useGtag()
+const { returnRoute } = storeToRefs(useViewerState())
 
 const shareUrl = computed(() => {
   if (typeof window !== 'undefined') {
+    if (returnRoute.value && /^\/albums\/\d+$/.test(returnRoute.value)) {
+      return `${window.location.origin}${returnRoute.value}?photo=${encodeURIComponent(props.photo.id)}`
+    }
     return `${window.location.origin}/${props.photo.id}`
   }
   return ''
@@ -262,7 +266,19 @@ const downloadOriginalImage = async () => {
     const url = window.URL.createObjectURL(blob)
     const link = document.createElement('a')
     link.href = url
-    const extension = props.photo.originalUrl!.split('.').pop() || 'jpg'
+    const mimeType = blob.type.toLowerCase()
+    const extensionByMime: Record<string, string> = {
+      'image/jpeg': 'jpg',
+      'image/png': 'png',
+      'image/webp': 'webp',
+      'image/gif': 'gif',
+      'image/avif': 'avif',
+      'image/heic': 'heic',
+      'image/heif': 'heif',
+      'image/bmp': 'bmp',
+      'image/tiff': 'tiff',
+    }
+    const extension = extensionByMime[mimeType] || props.photo.originalUrl!.split('.').pop() || 'jpg'
     link.download = `${props.photo.title || 'photo'}.${extension}`
     document.body.appendChild(link)
     link.click()

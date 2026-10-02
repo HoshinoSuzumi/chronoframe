@@ -151,6 +151,8 @@ docker compose up -d
 
 For production you typically place ChronoFrame behind a reverse proxy (Nginx, Caddy, Traefik) to terminate HTTPS and serve via your domain.
 
+For the Nginx or Traefik examples below, set `NUXT_TRUST_PROXY=true` in `.env` and make port 3000 accessible only to the proxy. Do not enable this setting behind a proxy that forwards client-supplied `X-Forwarded-For` values unchanged.
+
 ### Nginx Example
 
 ```nginx
@@ -180,7 +182,7 @@ server {
         proxy_set_header Connection 'upgrade';
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-For $remote_addr;
         proxy_set_header X-Forwarded-Proto $scheme;
         proxy_cache_bypass $http_upgrade;
         proxy_connect_timeout 60s;

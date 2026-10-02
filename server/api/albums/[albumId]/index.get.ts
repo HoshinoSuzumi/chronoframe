@@ -2,6 +2,7 @@ import { eq } from 'drizzle-orm'
 import z from 'zod'
 
 import { fetchAlbumPhotos } from '../../../utils/album-visibility'
+import { albumAccess } from '../../../utils/album-access'
 
 export default eventHandler(async (event) => {
   const { albumId } = await getValidatedRouterParams(
@@ -30,8 +31,7 @@ export default eventHandler(async (event) => {
   }
 
   // 检查相册是否隐藏，如果隐藏则需要用户登录才能访问
-  const session = await getUserSession(event)
-  const isLoggedIn = Boolean(session.user)
+  const { admin: isLoggedIn, canAccess } = await albumAccess(event)
 
   if (album.isHidden && !isLoggedIn) {
     throw createError({
@@ -40,13 +40,48 @@ export default eventHandler(async (event) => {
     })
   }
 
+  if (!canAccess(album)) {
+    throw createError({
+      statusCode: 403,
+      statusMessage: 'Album password required',
+    })
+  }
+
   // Anonymous viewers must not see photos that are also members of any
   // hidden album — otherwise a photo shared between a public and a hidden
   // album would leak through the public album (see issue #299).
-  const photos = await fetchAlbumPhotos(db, tables, albumId, isLoggedIn)
+  const rows = await fetchAlbumPhotos(
+    db,
+    tables,
+    albumId,
+    isLoggedIn,
+    isLoggedIn || Boolean(album.passwordHash),
+  )
+  const photos = album.passwordHash
+    ? rows.map((photo) => {
+        const fileName = photo.storageKey?.split(/[\\/]/).pop() || null
+        const {
+          storageKey: _storageKey,
+          thumbnailKey: _thumbnailKey,
+          livePhotoVideoKey: _livePhotoVideoKey,
+          ...safePhoto
+        } = photo
+        return {
+          ...safePhoto,
+          fileName,
+          originalUrl: `/image/__photo__/${encodeURIComponent(photo.id)}/original`,
+          thumbnailUrl: `/image/__photo__/${encodeURIComponent(photo.id)}/thumbnail`,
+          livePhotoVideoUrl: photo.livePhotoVideoUrl
+            ? `/image/__photo__/${encodeURIComponent(photo.id)}/live`
+            : null,
+        }
+      })
+    : rows
 
   return {
     ...album,
+    passwordHash: undefined,
+    hasPassword: Boolean(album.passwordHash),
     photos,
   }
 })

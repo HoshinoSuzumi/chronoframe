@@ -92,6 +92,13 @@
       "when": 1789503318512,
       "tag": "0012_medical_raider",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "6",
+      "when": 1790848090071,
+      "tag": "0013_empty_vermin",
+      "breakpoints": true
     }
   ]
 }

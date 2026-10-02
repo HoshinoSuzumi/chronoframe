@@ -42,6 +42,7 @@
 | NUXT_OAUTH_GITHUB_CLIENT_ID              | GitHub OAuth 应用的 Client ID                        | 无                                    | 否(可选,用于 GitHub 登录)                                             |
 | NUXT_OAUTH_GITHUB_CLIENT_SECRET          | GitHub OAuth 应用的 Client Secret                    | 无                                    | 否(可选,用于 GitHub 登录)                                             |
 | NUXT_SESSION_PASSWORD                    | 用于加密会话的密码，32 位随机字符串                  | 无                                    | 是                                                                    |
+| NUXT_TRUST_PROXY                         | 相簿解锁限流是否信任 `X-Forwarded-For`；仅在可信反代覆盖客户端同名请求头时启用 | `false`                               | 否                                                                    |
 | NUXT_PUBLIC_GTAG_ID                      | Google Analytics 追踪 ID                             | 无                                    | 否                                                                    |
 | NUXT_PUBLIC_ANALYTICS_MATOMO_ENABLED     | 是否启用 Matomo 分析追踪                             | `false`                               | 否                                                                    |
 | NUXT_PUBLIC_ANALYTICS_MATOMO_URL         | Matomo 实例 URL 地址(如: https://matomo.example.com) | 无                                    | 否(启用 Matomo 时必需)                                                |

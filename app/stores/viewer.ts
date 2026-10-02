@@ -24,6 +24,7 @@ export const useViewerState = defineStore('photo-viewer-state', () => {
       returnRoute.value = route
       isDirectAccess.value = false
     } else {
+      returnRoute.value = null
       isDirectAccess.value = true
     }
   }

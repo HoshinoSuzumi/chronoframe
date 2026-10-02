@@ -1,5 +1,6 @@
 import { min } from 'drizzle-orm'
 import z from 'zod'
+import { hashAlbumPassword } from '../../utils/album-access'
 
 export default eventHandler(async (event) => {
   await requireUserSession(event)
@@ -12,6 +13,7 @@ export default eventHandler(async (event) => {
       coverPhotoId: z.string().optional(),
       photoIds: z.array(z.string()).optional(),
       isHidden: z.boolean().optional(),
+      password: z.string().min(1).max(128).optional(),
     }).parse,
   )
 
@@ -33,6 +35,7 @@ export default eventHandler(async (event) => {
         description: body.description || null,
         coverPhotoId: body.coverPhotoId || null,
         isHidden: body.isHidden || false,
+        passwordHash: body.password ? hashAlbumPassword(body.password) : null,
         position,
       })
       .returning()
@@ -59,7 +62,7 @@ export default eventHandler(async (event) => {
       }
     }
 
-    return newAlbum
+    return { ...newAlbum, passwordHash: undefined, hasPassword: Boolean(newAlbum.passwordHash) }
   })
 
   return album

@@ -1,6 +1,7 @@
 import path from 'node:path'
 import { createReadStream, promises as fs } from 'node:fs'
 import { getStorageManager } from '../../plugins/3.storage'
+import { assertPhotoAccess } from '../../utils/album-access'
 // lightweight: avoid TS type dep; fallback when not resolvable
 const guessContentType = (filePath: string): string => {
   const ext = (filePath.split('.').pop() || '').toLowerCase()
@@ -47,8 +48,14 @@ export default defineEventHandler(async (event) => {
     .replace(/\/+/g, '/')
     .replace(/^\/+/, '')
 
+  if (decodedPath !== relPath) {
+    throw createError({ statusCode: 404, statusMessage: 'Not Found' })
+  }
+
+  const restricted = await assertPhotoAccess(event, relPath)
+
   // 阻止路径穿越
-  if (relPath.includes('..')) {
+  if (relPath.includes('..') || relPath.split('/').includes('.')) {
     throw createError({ statusCode: 400, statusMessage: 'Invalid path' })
   }
 
@@ -71,7 +78,11 @@ export default defineEventHandler(async (event) => {
     const etag = `W/"${stat.size}-${stat.mtimeMs}"`
     setHeader(event, 'ETag', etag)
     setHeader(event, 'Last-Modified', stat.mtime.toUTCString())
-    setHeader(event, 'Cache-Control', 'public, max-age=31536000, immutable')
+    setHeader(
+      event,
+      'Cache-Control',
+      restricted ? 'private, no-store' : 'public, max-age=31536000, immutable',
+    )
 
     // Content-Type
     const contentType = guessContentType(absolute)
