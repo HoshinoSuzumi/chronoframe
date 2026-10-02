@@ -835,7 +835,6 @@
           "skipped": "跳过",
           "blocked": "被阻止"
         },
-        "summary": "{completed} 完成, {error} 失败, {skipped} 跳过, {blocked} 阻止",
         "actions": {
           "clearCompleted": "清除已完成",
           "clearAll": "清除全部",

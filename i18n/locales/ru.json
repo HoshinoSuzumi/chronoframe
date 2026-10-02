@@ -834,7 +834,6 @@
           "skipped": "пропущены",
           "blocked": "заблокированы"
         },
-        "summary": "Завершено: {completed}, с ошибкой: {error}, пропущено: {skipped}, заблокировано: {blocked}",
         "actions": {
           "clearCompleted": "Удалить завершённые",
           "clearAll": "Удалить все",
