@@ -1,14 +1,20 @@
 <script lang="ts" setup>
-import type { NavigationMenuItem } from '@nuxt/ui'
+import type { DropdownMenuItem, NavigationMenuItem } from '@nuxt/ui'
 
 const route = useRoute()
 const router = useRouter()
-const { loggedIn, user } = useUserSession()
+const { loggedIn, user, clear: clearUserSession } = useUserSession()
 const settingsStore = useSettingsStore()
+const { menuItems: localeMenuItems } = useLocalePreference()
 
 const appTitle = computed(() => {
   const value = settingsStore.getSetting('app:title')
   return value ? String(value) : $t('title.dashboard')
+})
+
+const avatarUrl = computed(() => {
+  const value = settingsStore.getSetting('app:avatarUrl')
+  return typeof value === 'string' && value.trim() ? value.trim() : undefined
 })
 
 const navItems = computed<NavigationMenuItem[][]>(() => [
@@ -94,6 +100,36 @@ const navItems = computed<NavigationMenuItem[][]>(() => [
       icon: 'tabler:brand-discord',
       to: 'https://discord.gg/MM4ZK4Ed7s',
       target: '_blank',
+    },
+  ],
+])
+
+const handleLogout = async () => {
+  await clearUserSession()
+  await navigateTo('/')
+}
+
+const accountMenuItems = computed<DropdownMenuItem[][]>(() => [
+  [
+    {
+      label: $t('ui.locale.label'),
+      icon: 'tabler:language',
+      children: localeMenuItems.value,
+    },
+  ],
+  [
+    {
+      label: $t('dashboard.nav.viewGallery'),
+      icon: 'tabler:photo',
+      to: '/',
+    },
+  ],
+  [
+    {
+      label: $t('ui.action.logout.tooltip'),
+      icon: 'tabler:logout',
+      color: 'error',
+      onSelect: handleLogout,
     },
   ],
 ])
@@ -189,19 +225,34 @@ const handleLogin = () => {
       </template>
 
       <template #footer="{ collapsed }">
-        <UButton
-          :avatar="{
-            src: user?.avatar || '',
-            alt: user?.username || user?.email || 'User Avatar',
-            icon: 'tabler:user',
+        <UDropdownMenu
+          :items="accountMenuItems"
+          :content="{ align: 'center', collisionPadding: 12 }"
+          :ui="{
+            content: collapsed
+              ? 'min-w-48'
+              : 'min-w-(--reka-dropdown-menu-trigger-width)',
           }"
-          :label="collapsed ? undefined : user?.username || 'User'"
-          size="lg"
-          color="neutral"
-          variant="ghost"
-          class="w-full"
-          :block="collapsed"
-        />
+        >
+          <UButton
+            :avatar="{
+              src: avatarUrl,
+              alt: user?.username || user?.email || 'User Avatar',
+              icon: 'tabler:user',
+              ui: {
+                image: 'object-cover',
+              },
+            }"
+            :label="collapsed ? undefined : user?.username || 'User'"
+            :trailing-icon="collapsed ? undefined : 'tabler:selector'"
+            size="lg"
+            color="neutral"
+            variant="ghost"
+            class="w-full data-[state=open]:bg-elevated"
+            :block="collapsed"
+            :ui="{ trailingIcon: 'text-dimmed ms-auto' }"
+          />
+        </UDropdownMenu>
       </template>
     </UDashboardSidebar>
 

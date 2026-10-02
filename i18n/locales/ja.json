@@ -3,6 +3,10 @@
     "photo": "写真がありません | 写真 {count} 枚"
   },
   "ui": {
+    "locale": {
+      "label": "言語",
+      "auto": "自動（ブラウザの言語）"
+    },
     "action": {
       "filter": {
         "tooltip": "写真をフィルター",
@@ -1019,7 +1023,8 @@
       "noAccess": "申し訳ありませんが、このページにアクセスする権限がありません。"
     },
     "nav": {
-      "documentation": "ドキュメント"
+      "documentation": "ドキュメント",
+      "viewGallery": "ギャラリーを表示"
     }
   },
   "settings": {

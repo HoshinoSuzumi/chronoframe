@@ -17,6 +17,10 @@
     }
   },
   "ui": {
+    "locale": {
+      "label": "语言",
+      "auto": "自动（跟随浏览器）"
+    },
     "livePhoto": "实况",
     "action": {
       "dashboard": {
@@ -1093,7 +1097,8 @@
       "noAccess": "抱歉，您没有访问此页面的权限。"
     },
     "nav": {
-      "documentation": "文档"
+      "documentation": "文档",
+      "viewGallery": "查看画廊"
     }
   },
   "settings": {
