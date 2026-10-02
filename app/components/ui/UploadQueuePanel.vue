@@ -307,42 +307,43 @@ const clearAllFiles = () => {
           style="transform-origin: bottom"
           class="p-3 border-t border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800/50"
         >
-          <div class="flex items-center justify-between gap-2">
-            <div class="text-xs text-neutral-500 dark:text-neutral-400">
-              {{ $t('dashboard.photos.uploadQueuePanel.summary', { completed: stats.completed, error: stats.error, skipped: stats.skipped, blocked: stats.blocked }) }}
-            </div>
+          <div class="flex items-stretch gap-1.5">
+            <UButton
+              v-if="stats.completed > 0"
+              size="xs"
+              variant="soft"
+              color="neutral"
+              icon="tabler:clear-all"
+              block
+              class="flex-1 min-w-0 py-2"
+              @click="clearCompletedFiles"
+            >
+              {{ $t('dashboard.photos.uploadQueuePanel.actions.clearCompleted') }}
+            </UButton>
 
-            <div class="flex items-center gap-0.5">
-              <UButton
-                v-if="stats.completed > 0"
-                size="xs"
-                variant="ghost"
-                color="neutral"
-                @click="clearCompletedFiles"
-              >
-                {{ $t('dashboard.photos.uploadQueuePanel.actions.clearCompleted') }}
-              </UButton>
+            <UButton
+              size="xs"
+              variant="soft"
+              color="error"
+              icon="tabler:trash"
+              block
+              class="flex-1 min-w-0 py-2"
+              @click="clearAllFiles"
+            >
+              {{ $t('dashboard.photos.uploadQueuePanel.actions.clearAll') }}
+            </UButton>
 
-              <UButton
-                size="xs"
-                variant="ghost"
-                color="error"
-                icon="tabler:trash"
-                @click="clearAllFiles"
-              >
-                {{ $t('dashboard.photos.uploadQueuePanel.actions.clearAll') }}
-              </UButton>
-
-              <UButton
-                size="xs"
-                variant="ghost"
-                color="info"
-                icon="tabler:list-check"
-                @click="emit('goToQueue')"
-              >
-                {{ $t('dashboard.photos.uploadQueuePanel.actions.goToQueue') }}
-              </UButton>
-            </div>
+            <UButton
+              size="xs"
+              variant="soft"
+              color="info"
+              icon="tabler:list-check"
+              block
+              class="flex-1 min-w-0 py-2"
+              @click="emit('goToQueue')"
+            >
+              {{ $t('dashboard.photos.uploadQueuePanel.actions.goToQueue') }}
+            </UButton>
           </div>
         </motion.div>
       </AnimatePresence>

@@ -835,11 +835,10 @@
           "skipped": "skipped",
           "blocked": "blocked"
         },
-        "summary": "{completed} completed, {error} failed, {skipped} skipped, {blocked} blocked",
         "actions": {
           "clearCompleted": "Clear Completed",
           "clearAll": "Clear All",
-          "goToQueue": "Queue Management"
+          "goToQueue": "Queue"
         }
       },
       "previewTitle": "Photo Preview"
