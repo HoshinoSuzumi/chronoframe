@@ -9,10 +9,10 @@ Whether using Docker or Docker Compose (.env) deployment, configuration is done 
 | CFRAME_ADMIN_EMAIL                       | Initial admin user email                                        | `admin@chronoframe.com`               | Yes                                                  |
 | CFRAME_ADMIN_NAME                        | Initial admin username                                          | `Chronoframe`                         | No                                                   |
 | CFRAME_ADMIN_PASSWORD                    | Initial admin user password                                     | `CF1234@!`                            | No                                                   |
-| NUXT_PUBLIC_APP_TITLE                    | Application title                                               | `ChronoFrame`                         | No                                                   |
-| NUXT_PUBLIC_APP_SLOGAN                   | Application slogan                                              | None                                  | No                                                   |
-| NUXT_PUBLIC_APP_AUTHOR                   | Application author                                              | None                                  | No                                                   |
-| NUXT_PUBLIC_APP_AVATAR_URL               | Application avatar URL                                          | None                                  | No                                                   |
+| NUXT_PUBLIC_APP_TITLE                    | Initial application title (seeded once into settings; dashboard wins after) | `ChronoFrame`                         | No                                                   |
+| NUXT_PUBLIC_APP_SLOGAN                   | Initial application slogan (seeded once into settings; dashboard wins after) | None                                  | No                                                   |
+| NUXT_PUBLIC_APP_AUTHOR                   | Initial application author (seeded once into settings; dashboard wins after) | None                                  | No                                                   |
+| NUXT_PUBLIC_APP_AVATAR_URL               | Initial application avatar URL (seeded once into settings; dashboard wins after) | None                                  | No                                                   |
 | NUXT_PUBLIC_COLOR_MODE_PREFERENCE        | Color mode preference, options: `light`, `dark`, `system`       | `system`                              | No                                                   |
 | NUXT_PUBLIC_MAP_PROVIDER                 | Map provider, options: `mapbox`, `maplibre`                     | `maplibre`                            | No                                                   |
 | NUXT_PUBLIC_MAPBOX_ACCESS_TOKEN          | Mapbox access token (URL restricted), for map services          | None                                  | Required when `NUXT_PUBLIC_MAP_PROVIDER` is `mapbox` |
@@ -49,6 +49,30 @@ Whether using Docker or Docker Compose (.env) deployment, configuration is done 
 | NUXT_UPLOAD_MIME_WHITELIST_ENABLED       | Enable MIME type whitelist validation for uploads               | `true`                                | No                                                   |
 | NUXT_UPLOAD_MIME_WHITELIST               | Allowed MIME types for uploads (comma-separated)                | See below                             | No                                                   |
 | ALLOW_INSECURE_COOKIE                    | Allow insecure cookies (only for development environment)       | `false`                               | No                                                   |
+
+## App settings vs environment variables
+
+`NUXT_PUBLIC_APP_TITLE`, `NUXT_PUBLIC_APP_SLOGAN`, `NUXT_PUBLIC_APP_AUTHOR`, and `NUXT_PUBLIC_APP_AVATAR_URL` are **first-boot seeds** only.
+
+On startup, ChronoFrame copies an env value into the settings database **only when**:
+
+1. The env var is explicitly set to a non-empty value, and
+2. That setting still equals its schema default (never customized)
+
+After you change Instance Name (or related fields) in **Dashboard → Settings → General**, or during the setup wizard, the database value is the source of truth. Later restarts do **not** re-apply env, even if the env var still holds an older title.
+
+Recommendations:
+
+- Prefer setting the instance name in the dashboard after install.
+- Leave these env vars empty unless you want a non-default title on a fresh database.
+- In Docker Compose / Coolify, avoid personal fallbacks such as `${CFRAME_APP_TITLE:-My Studio Name}`. Empty should stay empty:
+
+```yaml
+environment:
+  NUXT_PUBLIC_APP_TITLE: '${CFRAME_APP_TITLE:-}'
+```
+
+Clearing an env var does not reset a title already stored in the database; change it in the dashboard instead.
 
 ## Upload File Type Whitelist
 

@@ -11,6 +11,7 @@ const route = useRoute()
 const router = useRouter()
 
 const isLoading = ref(false)
+const appTitle = useSettingRef('app:title')
 
 const githubOauthEnabled = computed(() => {
   const settingsValue = settingsStore.getSetting('system:auth.github.enabled')
@@ -51,7 +52,7 @@ const onAuthSubmit = async (event: any) => {
   >
     <AuthForm
       :title="$t('auth.form.signin.title')"
-      :subtitle="$t('auth.form.signin.subtitle', [config.public.app.title])"
+      :subtitle="$t('auth.form.signin.subtitle', [appTitle || 'ChronoFrame'])"
       :loading="isLoading"
       :providers="[
         githubOauthEnabled && {

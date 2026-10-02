@@ -4,7 +4,7 @@ import type { Album } from '~~/server/utils/db'
 interface AlbumWithPhotos extends Album {
   photoIds?: string[]
 }
-const config = useRuntimeConfig()
+const appSlogan = useSettingRef('app:slogan')
 const { photos } = usePhotos()
 const { loggedIn } = useUserSession()
 const { data: albums } = useAsyncData<AlbumWithPhotos[]>(
@@ -202,7 +202,7 @@ const hoveredAlbum = ref<number | null>(null)
       <p
         class="mt-2 text-lg text-neutral-600 dark:text-neutral-400 font-medium font-[Pacifico]"
       >
-        {{ config.public.app.slogan }}
+        {{ appSlogan }}
       </p>
     </div>
 

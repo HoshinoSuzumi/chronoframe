@@ -9,10 +9,10 @@
 | CFRAME_ADMIN_EMAIL                       | 初始管理员用户的邮箱                                 | `admin@chronoframe.com`               | 是                                                                    |
 | CFRAME_ADMIN_NAME                        | 初始管理员用户的用户名                               | `Chronoframe`                         | 否                                                                    |
 | CFRAME_ADMIN_PASSWORD                    | 初始管理员用户的密码                                 | `CF1234@!`                            | 否                                                                    |
-| NUXT_PUBLIC_APP_TITLE                    | 应用标题                                             | `ChronoFrame`                         | 否                                                                    |
-| NUXT_PUBLIC_APP_SLOGAN                   | 应用口号                                             | 无                                    | 否                                                                    |
-| NUXT_PUBLIC_APP_AUTHOR                   | 应用作者                                             | 无                                    | 否                                                                    |
-| NUXT_PUBLIC_APP_AVATAR_URL               | 应用头像 URL                                         | 无                                    | 否                                                                    |
+| NUXT_PUBLIC_APP_TITLE                    | 初始应用标题（仅首次写入设置；之后以仪表盘为准）     | `ChronoFrame`                         | 否                                                                    |
+| NUXT_PUBLIC_APP_SLOGAN                   | 初始应用口号（仅首次写入设置；之后以仪表盘为准）     | 无                                    | 否                                                                    |
+| NUXT_PUBLIC_APP_AUTHOR                   | 初始应用作者（仅首次写入设置；之后以仪表盘为准）     | 无                                    | 否                                                                    |
+| NUXT_PUBLIC_APP_AVATAR_URL               | 初始应用头像 URL（仅首次写入设置；之后以仪表盘为准） | 无                                    | 否                                                                    |
 | NUXT_PUBLIC_COLOR_MODE_PREFERENCE        | 颜色模式偏好，可选 `light`、`dark`、`system`         | system                                | 否                                                                    |
 | NUXT_PUBLIC_MAP_PROVIDER                 | 地图提供者，可选 `mapbox`、`maplibre`                | `maplibre`                            | 否                                                                    |
 | NUXT_PUBLIC_MAPBOX_ACCESS_TOKEN          | Mapbox 访问令牌(可限制 URL)，用于地图服务            | 无                                    | 当 `NUXT_PUBLIC_MAP_PROVIDER` 为 `mapbox` 时必需                      |
@@ -49,6 +49,30 @@
 | NUXT_UPLOAD_MIME_WHITELIST_ENABLED       | 是否启用上传文件 MIME 类型白名单验证                 | `true`                                | 否                                                                    |
 | NUXT_UPLOAD_MIME_WHITELIST               | 上传文件允许的 MIME 类型列表（逗号分隔）             | 见下方说明                            | 否                                                                    |
 | ALLOW_INSECURE_COOKIE                    | 是否允许非安全 Cookie（仅在开发环境使用）            | `false`                               | 否                                                                    |
+
+## 应用设置与环境变量
+
+`NUXT_PUBLIC_APP_TITLE`、`NUXT_PUBLIC_APP_SLOGAN`、`NUXT_PUBLIC_APP_AUTHOR`、`NUXT_PUBLIC_APP_AVATAR_URL` 仅作为**首次启动的种子值**。
+
+启动时，ChronoFrame 仅在以下条件同时满足时，才会把环境变量写入设置数据库：
+
+1. 该环境变量被显式设置为非空值，并且
+2. 对应设置仍等于 schema 默认值（尚未被自定义）
+
+在 **仪表盘 → 设置 → 常规** 或安装向导中修改实例名称（及相关字段）后，数据库中的值即为唯一数据源。之后即使环境变量仍保留旧标题，重启也不会再次覆盖。
+
+建议：
+
+- 安装完成后优先在仪表盘中设置实例名称。
+- 除非希望全新数据库使用非默认标题，否则请将这些环境变量留空。
+- 在 Docker Compose / Coolify 中，避免使用个人化的回退值，例如 `${CFRAME_APP_TITLE:-我的工作室}`。空值应保持为空：
+
+```yaml
+environment:
+  NUXT_PUBLIC_APP_TITLE: '${CFRAME_APP_TITLE:-}'
+```
+
+清空环境变量不会重置数据库中已保存的标题；请改在仪表盘中修改。
 
 ## 上传文件类型白名单
 

@@ -51,7 +51,7 @@ CFRAME_ADMIN_NAME=
 # 管理员密码（可选，默认 CF1234@!）
 CFRAME_ADMIN_PASSWORD=
 
-# 站点信息（均可选）
+# 站点信息（可选，仅首次启动写入；之后请在仪表盘 → 设置 → 常规中修改）
 NUXT_PUBLIC_APP_TITLE=
 NUXT_PUBLIC_APP_SLOGAN=
 NUXT_PUBLIC_APP_AUTHOR=

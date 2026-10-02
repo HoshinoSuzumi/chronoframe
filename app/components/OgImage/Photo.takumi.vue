@@ -7,16 +7,27 @@ initIconBundle(addIcon)
 
 interface PhotoProps {
   photo?: Photo
+  appTitle?: string
 }
 
-const { photo } = defineProps<PhotoProps>()
+const { photo, appTitle: appTitleProp } = defineProps<PhotoProps>()
 
 const { $i18n } = useNuxtApp()
-const config = useRuntimeConfig()
+
+const resolvedAppTitle = computed(() => {
+  if (typeof appTitleProp === 'string' && appTitleProp.length > 0) {
+    return appTitleProp
+  }
+  const fromSettings = getSetting('app:title')
+  if (typeof fromSettings === 'string' && fromSettings.length > 0) {
+    return fromSettings
+  }
+  return 'ChronoFrame'
+})
 
 const headline = computed(() => (photo ? $i18n.t('title.fallback.photo') : 'ChronoFrame'))
-const title = computed(() => (photo?.title || config.public.app.title).slice(0, 60))
-const description = computed(() => (photo ? photo.description || '' : config.public.app.title).slice(0, 200))
+const title = computed(() => (photo?.title || resolvedAppTitle.value).slice(0, 60))
+const description = computed(() => (photo ? photo.description || '' : resolvedAppTitle.value).slice(0, 200))
 const thumbnailUrl = computed(() => 
   photo?.thumbnailKey && photo.thumbnailUrl
   ? `/thumb/${encodeURIComponent(photo.thumbnailUrl)}`
@@ -47,7 +58,7 @@ const thumbnailUrl = computed(() =>
           v-if="headline"
           class="m-0 mb-2 uppercase text-4xl font-semibold text-rose-500"
         >
-          {{ headline }} · {{ config.public.app.title }}
+          {{ headline }} · {{ resolvedAppTitle }}
         </p>
         <h1
           v-if="title"
