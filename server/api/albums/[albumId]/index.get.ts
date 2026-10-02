@@ -58,14 +58,24 @@ export default eventHandler(async (event) => {
     isLoggedIn || Boolean(album.passwordHash),
   )
   const photos = album.passwordHash
-    ? rows.map((photo) => ({
-        ...photo,
-        originalUrl: `/image/__photo__/${encodeURIComponent(photo.id)}/original`,
-        thumbnailUrl: `/image/__photo__/${encodeURIComponent(photo.id)}/thumbnail`,
-        livePhotoVideoUrl: photo.livePhotoVideoUrl
-          ? `/image/__photo__/${encodeURIComponent(photo.id)}/live`
-          : null,
-      }))
+    ? rows.map((photo) => {
+        const fileName = photo.storageKey?.split(/[\\/]/).pop() || null
+        const {
+          storageKey: _storageKey,
+          thumbnailKey: _thumbnailKey,
+          livePhotoVideoKey: _livePhotoVideoKey,
+          ...safePhoto
+        } = photo
+        return {
+          ...safePhoto,
+          fileName,
+          originalUrl: `/image/__photo__/${encodeURIComponent(photo.id)}/original`,
+          thumbnailUrl: `/image/__photo__/${encodeURIComponent(photo.id)}/thumbnail`,
+          livePhotoVideoUrl: photo.livePhotoVideoUrl
+            ? `/image/__photo__/${encodeURIComponent(photo.id)}/live`
+            : null,
+        }
+      })
     : rows
 
   return {

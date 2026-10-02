@@ -14,13 +14,26 @@ export default eventHandler(async (event) => {
   }
 
   url = decodeURIComponent(url)
-  const protectedPhotoMatch = /^\/image\/__photo__\/([^/]+)\/(?:thumbnail|original|live)$/.exec(url)
+  const isAppPath = url.startsWith('/storage/') || url.startsWith('/image/')
+  let absoluteUrl: URL | undefined
+  if (!isAppPath) {
+    try {
+      absoluteUrl = new URL(url)
+    } catch {
+      throw createError({ statusCode: 404, statusMessage: 'Photo not found' })
+    }
+    if (absoluteUrl.protocol !== 'http:' && absoluteUrl.protocol !== 'https:') {
+      throw createError({ statusCode: 404, statusMessage: 'Photo not found' })
+    }
+  }
+  const protectedPhotoMatch =
+    /^\/image\/__photo__\/([^/]+)\/(?:thumbnail|original|live)$/.exec(url)
   const accessKey = protectedPhotoMatch
     ? decodeURIComponent(protectedPhotoMatch[1] || '')
-    : (url.startsWith('/storage/') || url.startsWith('/image/')
-        ? url.replace(/^\/(?:storage|image)\//, '')
-        : url)
-  const restricted = await assertPhotoAccess(event, accessKey)
+    : isAppPath
+      ? url.replace(/^\/(?:storage|image)\//, '')
+      : url
+  const restricted = await assertPhotoAccess(event, accessKey, !isAppPath)
   if (restricted) setHeader(event, 'Cache-Control', 'private, no-store')
 
   const shouldForwardCookieToStorage =
@@ -36,9 +49,12 @@ export default eventHandler(async (event) => {
   }
 
   const cookie = getHeader(event, 'cookie')
-  const photo = await fetch(url, cookie && shouldForwardCookieToStorage
-    ? { headers: { cookie } }
-    : undefined)
+  const photo = await fetch(
+    url,
+    cookie && shouldForwardCookieToStorage
+      ? { headers: { cookie } }
+      : undefined,
+  )
     .then((res) => {
       if (!res.ok) {
         throw createError({ statusCode: 404, statusMessage: 'Photo not found' })

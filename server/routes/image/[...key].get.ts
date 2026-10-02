@@ -11,7 +11,14 @@ export default eventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: 'Invalid key' })
   }
   const decodedKey = decodeURIComponent(key)
-  if (decodedKey.split(/[\\/]/).some((part) => part === '..' || part === '.')) {
+  const cleanKey = decodedKey
+    .replace(/\\/g, '/')
+    .replace(/\/+/g, '/')
+    .replace(/^\/+/, '')
+  if (decodedKey !== cleanKey) {
+    throw createError({ statusCode: 404, statusMessage: 'Photo not found' })
+  }
+  if (cleanKey.split('/').some((part) => part === '..' || part === '.')) {
     throw createError({ statusCode: 400, statusMessage: 'Invalid key' })
   }
 
@@ -76,10 +83,10 @@ export default eventHandler(async (event) => {
     return sendStream(event, Readable.fromWeb(response.body))
   }
 
-  const restricted = await assertPhotoAccess(event, decodedKey)
+  const restricted = await assertPhotoAccess(event, cleanKey)
   if (restricted) setHeader(event, 'Cache-Control', 'private, no-store')
 
-  const photo = await storageProvider.get(decodedKey)
+  const photo = await storageProvider.get(cleanKey)
   if (!photo) {
     throw createError({ statusCode: 404, statusMessage: 'Photo not found' })
   }

@@ -136,9 +136,21 @@ export async function albumAccess(event: H3Event) {
 export async function assertPhotoAccess(
   event: H3Event,
   key: string,
+  requireKnown = false,
 ): Promise<boolean> {
+  const { admin, canAccess } = await albumAccess(event)
+  // Match the local storage provider's path cleanup, but never silently
+  // authorize a non-canonical spelling that the provider would normalize.
+  const isAbsoluteUrl = /^https?:\/\//i.test(key)
+  const cleanKey = isAbsoluteUrl
+    ? key
+    : key.replace(/\\/g, '/').replace(/\/+/g, '/').replace(/^\/+/, '')
+  if (!isAbsoluteUrl && key !== cleanKey) {
+    throw createError({ statusCode: 404, statusMessage: 'Photo not found' })
+  }
+
   const db = useDB()
-  const values = [key, `/storage/${key}`, `/image/${key}`]
+  const values = [cleanKey, `/storage/${cleanKey}`, `/image/${cleanKey}`]
   const photos = db
     .select()
     .from(tables.photos)
@@ -156,10 +168,37 @@ export async function assertPhotoAccess(
       ),
     )
     .all()
-  if (photos.length === 0) return false
-  const { admin, canAccess } = await albumAccess(event)
+  const normalized = db.select().from(tables.photos).all()
+  const matches = normalized.filter((photo) =>
+    [
+      photo.id,
+      photo.storageKey,
+      photo.thumbnailKey,
+      photo.originalUrl,
+      photo.thumbnailUrl,
+      photo.livePhotoVideoKey,
+      photo.livePhotoVideoUrl,
+    ]
+      .filter((value): value is string => Boolean(value))
+      .some(
+        (value) =>
+          value.replace(/\\/g, '/').replace(/\/+/g, '/').replace(/^\/+/, '') ===
+          cleanKey,
+      ),
+  )
+  const matchedPhotos = [
+    ...new Map(
+      [...photos, ...matches].map((photo) => [photo.id, photo]),
+    ).values(),
+  ]
+  if (matchedPhotos.length === 0) {
+    if (!admin || requireKnown) {
+      throw createError({ statusCode: 404, statusMessage: 'Photo not found' })
+    }
+    return false
+  }
   let restricted = false
-  for (const photo of photos) {
+  for (const photo of matchedPhotos) {
     const memberships = db
       .select({ album: tables.albums })
       .from(tables.albumPhotos)
