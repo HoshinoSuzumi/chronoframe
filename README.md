@@ -70,7 +70,7 @@ CFRAME_ADMIN_NAME=
 # Admin password (optional, default CF1234@!)
 CFRAME_ADMIN_PASSWORD=
 
-# Site metadata (optional first-boot seeds only; change later in Dashboard → Settings → General)
+# Site metadata (all optional)
 NUXT_PUBLIC_APP_TITLE=
 NUXT_PUBLIC_APP_SLOGAN=
 NUXT_PUBLIC_APP_AUTHOR=

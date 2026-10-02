@@ -51,7 +51,7 @@ CFRAME_ADMIN_NAME=
 # 管理员密码（可选，默认 CF1234@!）
 CFRAME_ADMIN_PASSWORD=
 
-# 站点信息（可选，仅首次启动写入；之后请在仪表盘 → 设置 → 常规中修改）
+# 站点信息（均可选）
 NUXT_PUBLIC_APP_TITLE=
 NUXT_PUBLIC_APP_SLOGAN=
 NUXT_PUBLIC_APP_AUTHOR=
@@ -201,7 +201,7 @@ server {
     }
 
     # 静态资源缓存
-    location ~* \.(jpg|jpeg|png|gif|webp|svg|css|js|ico|woff|woff2|ttf|eot)$ {
+    location /_nuxt/ {
         proxy_pass http://localhost:3000;
         expires 1y;
         add_header Cache-Control "public, immutable";
