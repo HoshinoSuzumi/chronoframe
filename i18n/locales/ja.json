@@ -765,11 +765,10 @@
           "skipped": "スキップ",
           "blocked": "ブロック"
         },
-        "summary": "{completed} 完了, {error} 失敗, {skipped} スキップ, {blocked} ブロック",
         "actions": {
           "clearCompleted": "完了済みを削除",
           "clearAll": "すべて削除",
-          "goToQueue": "キュー管理"
+          "goToQueue": "キュー"
         }
       },
       "previewTitle": "写真プレビュー"
