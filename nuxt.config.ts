@@ -141,32 +141,34 @@ export default defineNuxtConfig({
   vite: {
     optimizeDeps: {
       include: [
-        'zod',
-        'dayjs',
-        'dayjs/plugin/updateLocale',
-        'dayjs/locale/zh-cn',
-        'dayjs/locale/zh-hk',
-        'dayjs/locale/zh-tw',
-        'dayjs/locale/en',
-        'dayjs/plugin/relativeTime',
-        'dayjs/plugin/utc',
-        'dayjs/plugin/timezone',
-        'dayjs/plugin/duration',
-        'dayjs/plugin/localizedFormat',
-        'dayjs/plugin/isBetween',
+        '@indoorequal/vue-maplibre-gl',
         '@yeger/vue-masonry-wall',
+        'dayjs', // CJS
+        'dayjs/locale/en', // CJS
+        'dayjs/locale/ja', // CJS
+        'dayjs/locale/ru', // CJS
+        'dayjs/locale/zh-cn', // CJS
+        'dayjs/locale/zh-hk', // CJS
+        'dayjs/locale/zh-tw', // CJS
+        'dayjs/plugin/duration', // CJS
+        'dayjs/plugin/isBetween', // CJS
+        'dayjs/plugin/localizedFormat', // CJS
+        'dayjs/plugin/relativeTime', // CJS
+        'dayjs/plugin/timezone', // CJS
+        'dayjs/plugin/updateLocale', // CJS
+        'dayjs/plugin/utc', // CJS
+        'es-toolkit',
+        'file-type',
+        'mapbox-gl', // CJS
+        'maplibre-gl',
         'motion-v',
-        'swiper/vue',
+        'reka-ui',
         'swiper/modules',
+        'swiper/vue',
         'tailwind-merge',
         'thumbhash',
-        'mapbox-gl',
-        'maplibre-gl',
-        '@indoorequal/vue-maplibre-gl',
-        'file-type',
-        'reka-ui',
-        'es-toolkit',
         'tippy.js',
+        'zod',
       ],
     },
     ssr: {
@@ -243,8 +245,8 @@ export default defineNuxtConfig({
 
   fonts: {
     families: [
-      { name: "Rubik", weights: [400, 500, 600, 700], global: true },
-      { name: "Noto Sans SC", weights: [400, 500, 600, 700], global: true },
+      { name: 'Rubik', weights: [400, 500, 600, 700], global: true },
+      { name: 'Noto Sans SC', weights: [400, 500, 600, 700], global: true },
     ],
   },
 
