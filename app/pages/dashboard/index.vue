@@ -11,7 +11,8 @@ useHead({
 })
 
 const dayjs = useDayjs()
-const config = useRuntimeConfig()
+const appTitle = useSettingRef('app:title')
+const appSlogan = useSettingRef('app:slogan')
 const { photos } = usePhotos()
 
 const { data: dashboardStats, refresh: refreshStats } =
@@ -128,8 +129,8 @@ const yearOptions = computed(() => {
 const onShareSite = () => {
   const discussionParams = new URLSearchParams({
     category: 'showcases',
-    title: `Show: ${config.public.app.title}`,
-    body: `## Description / Motto\n\n${config.public.app.slogan}\n\n## URL\n\n[${window.location.origin}](${window.location.origin})`,
+    title: `Show: ${appTitle.value || 'ChronoFrame'}`,
+    body: `## Description / Motto\n\n${appSlogan.value || ''}\n\n## URL\n\n[${window.location.origin}](${window.location.origin})`,
   })
   window.open(
     `https://github.com/HoshinoSuzumi/chronoframe/discussions/new?${discussionParams}`,

@@ -30,66 +30,75 @@ export default defineNitroPlugin(async (_nitroApp) => {
 })
 
 /**
- * Migrate existing configurations from runtimeConfig to the settings system.
+ * Read an environment variable only when the operator explicitly set a
+ * non-empty value. This ignores nuxt.config built-in defaults that always
+ * appear in useRuntimeConfig() (e.g. public.app.title = "ChronoFrame").
+ */
+function getExplicitEnv(name: string): string | undefined {
+  const value = process.env[name]
+  if (typeof value !== 'string') return undefined
+  const trimmed = value.trim()
+  return trimmed.length > 0 ? trimmed : undefined
+}
+
+/**
+ * Seed settings from explicit environment variables.
  *
- * Runtime config (env vars / nuxt.config defaults) is only used to seed
- * settings that the user has never customized. Once a value has been changed
- * in the dashboard or the setup wizard, it must survive restarts, so settings
- * that already differ from their default are left untouched.
+ * Env vars are a one-shot bootstrap for fresh installs. Values already
+ * customized in the dashboard or setup wizard (value !== default_value) are
+ * left untouched, so UI changes survive restarts even if env still has an
+ * older title.
  */
 async function migrateRuntimeConfigToSettings() {
   const config = useRuntimeConfig() as any
   const _logger = logger.dynamic('settings-migration')
 
   try {
-    // Migrate app settings
-    if (config.public.app) {
-      _logger.info('Migrating app settings')
-      const appSettings = {
-        title: config.public.app.title,
-        slogan: config.public.app.slogan,
-        author: config.public.app.author,
-        avatarUrl: config.public.app.avatarUrl,
-      }
+    _logger.info('Migrating app settings from explicit env')
+    const appEnvSeeds: Array<[string, string | undefined]> = [
+      ['title', getExplicitEnv('NUXT_PUBLIC_APP_TITLE')],
+      ['slogan', getExplicitEnv('NUXT_PUBLIC_APP_SLOGAN')],
+      ['author', getExplicitEnv('NUXT_PUBLIC_APP_AUTHOR')],
+      ['avatarUrl', getExplicitEnv('NUXT_PUBLIC_APP_AVATAR_URL')],
+    ]
 
-      for (const [key, value] of Object.entries(appSettings)) {
-        if (value) {
-          await migrateSetting('app', key, value, _logger)
-        }
+    for (const [key, value] of appEnvSeeds) {
+      if (value !== undefined) {
+        await migrateSetting('app', key, value, _logger)
       }
     }
 
-    // Migrate map settings
-    if (config.public.map) {
-      _logger.info('Migrating map settings')
-      const mapSettings = {
-        provider: config.public.map.provider,
-        'mapbox.token': config.mapbox?.accessToken || '',
-        'mapbox.style': config.public.map.mapbox?.style || '',
-        'maplibre.token': config.public.map.maplibre?.token || '',
-        'maplibre.style': config.public.map.maplibre?.style || '',
-      }
+    _logger.info('Migrating map settings from explicit env')
+    const mapEnvSeeds: Array<[string, string | undefined]> = [
+      ['provider', getExplicitEnv('NUXT_PUBLIC_MAP_PROVIDER')],
+      ['mapbox.token', getExplicitEnv('NUXT_MAPBOX_ACCESS_TOKEN')],
+      ['mapbox.style', getExplicitEnv('NUXT_PUBLIC_MAP_MAPBOX_STYLE')],
+      ['maplibre.token', getExplicitEnv('NUXT_PUBLIC_MAP_MAPLIBRE_TOKEN')],
+      ['maplibre.style', getExplicitEnv('NUXT_PUBLIC_MAP_MAPLIBRE_STYLE')],
+    ]
 
-      for (const [key, value] of Object.entries(mapSettings)) {
-        if (value) {
-          await migrateSetting('map', key, value, _logger)
-        }
+    for (const [key, value] of mapEnvSeeds) {
+      if (value !== undefined) {
+        await migrateSetting('map', key, value, _logger)
       }
     }
 
-    // Migrate auth settings (GitHub OAuth)
-    const githubOauthConfig = config.oauth?.github || {}
-    if (config.public?.oauth?.github?.enabled === true) {
+    // Migrate auth settings (GitHub OAuth) from explicit env only
+    const githubOauthEnabled = getExplicitEnv('NUXT_PUBLIC_OAUTH_GITHUB_ENABLED')
+    if (githubOauthEnabled === 'true') {
       await migrateSetting('system', 'auth.github.enabled', true, _logger)
     }
 
-    const githubOauthSettings = {
-      'auth.github.clientId': githubOauthConfig.clientId || '',
-      'auth.github.clientSecret': githubOauthConfig.clientSecret || '',
-    }
+    const githubOauthSettings: Array<[string, string | undefined]> = [
+      ['auth.github.clientId', getExplicitEnv('NUXT_OAUTH_GITHUB_CLIENT_ID')],
+      [
+        'auth.github.clientSecret',
+        getExplicitEnv('NUXT_OAUTH_GITHUB_CLIENT_SECRET'),
+      ],
+    ]
 
-    for (const [key, value] of Object.entries(githubOauthSettings)) {
-      if (typeof value === 'string' && value.length > 0) {
+    for (const [key, value] of githubOauthSettings) {
+      if (value !== undefined) {
         await migrateSetting('system', key, value, _logger)
       }
     }
@@ -160,10 +169,10 @@ async function migrateRuntimeConfigToSettings() {
 }
 
 /**
- * Write a runtime-config value into a setting, but only if the setting still
- * holds its default value. This keeps the migration one-shot per setting and
- * prevents nuxt.config defaults (e.g. app.title = "ChronoFrame") from
- * overwriting user changes on every server start.
+ * Write an explicit env value into a setting, but only if the setting still
+ * holds its default value. This keeps seeding one-shot per setting and
+ * prevents env / compose defaults from overwriting dashboard changes on
+ * every server start.
  */
 async function migrateSetting(
   namespace: SettingNamespace,

@@ -21,6 +21,7 @@ const currentPhoto = computed(() =>
 
 defineOgImage('Photo', {
   photo: currentPhoto.value || undefined,
+  appTitle: (getSetting('app:title') as string) || 'ChronoFrame',
 })
 
 // 处理标签查询参数
