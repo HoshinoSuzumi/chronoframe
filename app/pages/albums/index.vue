@@ -3,6 +3,7 @@ import { motion } from 'motion-v'
 import type { Album } from '~~/server/utils/db'
 interface AlbumWithPhotos extends Album {
   photoIds?: string[]
+  hasPassword?: boolean
 }
 const config = useRuntimeConfig()
 const { photos } = usePhotos()
@@ -274,14 +275,14 @@ const hoveredAlbum = ref<number | null>(null)
               class="absolute inset-0 rounded-xl shadow-lg bg-linear-to-br from-neutral-100 to-neutral-50 dark:from-neutral-700 dark:to-neutral-800 flex flex-col items-center justify-center gap-3 border border-neutral-200 dark:border-neutral-600 group-hover:shadow-xl dark:group-hover:shadow-neutral-900/50 transition-shadow"
             >
               <Icon
-                name="tabler:library-photo"
+                :name="album.hasPassword ? 'tabler:lock' : 'tabler:library-photo'"
                 class="size-10 text-neutral-400 dark:text-neutral-500"
               />
               <div class="text-center">
                 <p
                   class="text-sm font-medium text-neutral-700 dark:text-neutral-300"
                 >
-                  {{ $t('ui.album.noImage') }}
+                  {{ album.hasPassword ? $t('album.passwordRequired') : $t('ui.album.noImage') }}
                 </p>
                 <!-- <p class="text-xs text-neutral-500 dark:text-neutral-400 mt-1">
                   {{ $t('ui.album.emptyAlbumTip') }}

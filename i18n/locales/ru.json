@@ -154,6 +154,10 @@
     }
   },
   "album": {
+    "passwordRequired": "Требуется пароль",
+    "passwordPlaceholder": "Введите пароль альбома",
+    "incorrectPassword": "Неверный пароль",
+    "unlock": "Разблокировать альбом",
     "notFound": "Альбом не найден",
     "noDateInfo": "Нет данных о дате",
     "noPhotosTip": "В этом альбоме пока нет фотографий",
@@ -866,6 +870,12 @@
         "clearAll": "Очистить всё",
         "isHidden": "Скрыть альбом",
         "isHiddenHint": "Фотографии из скрытых альбомов не отображаются на главной странице",
+        "passwordProtection": "Защита паролем",
+        "passwordProtectionHint": "Для доступа к этому альбому потребуется пароль",
+        "password": "Пароль",
+        "passwordPlaceholder": "Введите пароль",
+        "passwordKeepHint": "Оставьте поле пустым, чтобы сохранить текущий пароль",
+        "passwordRequired": "Введите пароль",
         "movePhotoUp": "Переместить фотографию вверх",
         "movePhotoDown": "Переместить фотографию вниз",
         "removePhoto": "Убрать фотографию"

@@ -1,4 +1,4 @@
-import { desc, notInArray } from 'drizzle-orm'
+import { desc, notInArray, or, isNotNull } from 'drizzle-orm'
 
 export default eventHandler(async (_event) => {
   const db = useDB()
@@ -10,7 +10,7 @@ export default eventHandler(async (_event) => {
     })
     .from(tables.albumPhotos)
     .innerJoin(tables.albums, eq(tables.albumPhotos.albumId, tables.albums.id))
-    .where(eq(tables.albums.isHidden, true))
+    .where(or(eq(tables.albums.isHidden, true), isNotNull(tables.albums.passwordHash)))
     .all()
 
   const hiddenPhotoIds = hiddenAlbumPhotos.map((row) => row.photoId)

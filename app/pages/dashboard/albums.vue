@@ -11,6 +11,7 @@ useHead({
 })
 
 interface AlbumItem extends Album {
+  hasPassword?: boolean
   photoCount?: number
   photoIds?: string[]
   coverPhoto?: Photo | null
@@ -20,6 +21,8 @@ interface AlbumFormState {
   title: string
   description: string
   isHidden: boolean
+  password: string
+  passwordEnabled: boolean
 }
 
 const albums = ref<AlbumItem[]>([])
@@ -37,6 +40,8 @@ const formData = reactive<AlbumFormState>({
   title: '',
   description: '',
   isHidden: false,
+  password: '',
+  passwordEnabled: false,
 })
 
 const formRef = ref()
@@ -70,6 +75,9 @@ const validateForm = (state: any): FormError[] => {
       name: 'title',
       message: $t('dashboard.albums.form.titleRequired'),
     })
+  }
+  if (state.passwordEnabled && !state.password && !currentAlbum.value?.hasPassword) {
+    errors.push({ name: 'password', message: $t('dashboard.albums.form.passwordRequired') })
   }
   return errors
 }
@@ -121,6 +129,8 @@ const openCreateSlideover = () => {
   formData.title = ''
   formData.description = ''
   formData.isHidden = false
+  formData.password = ''
+  formData.passwordEnabled = false
   selectedPhotoIds.value = []
   coverPhotoId.value = ''
   formRef.value?.clear()
@@ -134,6 +144,8 @@ const openEditSlideover = async (album: AlbumItem) => {
     formData.title = album.title
     formData.description = album.description || ''
     formData.isHidden = album.isHidden || false
+    formData.password = ''
+    formData.passwordEnabled = Boolean(album.hasPassword)
     selectedPhotoIds.value = (albumDetail.photos || []).map((p: Photo) => p.id)
     coverPhotoId.value = album.coverPhotoId || ''
     formRef.value?.clear()
@@ -164,6 +176,8 @@ const onFormSubmit = async (event: FormSubmitEvent<AlbumFormState>) => {
           coverPhotoId: coverPhotoId.value || undefined,
           photoIds: selectedPhotoIds.value,
           isHidden: event.data.isHidden,
+          password: event.data.passwordEnabled
+            ? (event.data.password || undefined) : '',
         },
       })
 
@@ -182,6 +196,7 @@ const onFormSubmit = async (event: FormSubmitEvent<AlbumFormState>) => {
           coverPhotoId: coverPhotoId.value || undefined,
           photoIds: selectedPhotoIds.value,
           isHidden: event.data.isHidden,
+          password: event.data.passwordEnabled ? event.data.password : undefined,
         },
       })
 
@@ -731,15 +746,26 @@ const columns = computed<any[]>(() => [
                   />
                 </UFormField>
 
-                <UFormField
-                  :label="$t('dashboard.albums.form.isHidden')"
-                  name="isHidden"
-                  :hint="$t('dashboard.albums.form.isHiddenHint')"
-                >
+                <UFormField name="isHidden">
                   <UCheckbox
                     v-model="formData.isHidden"
                     :label="$t('dashboard.albums.form.isHidden')"
+                    :description="$t('dashboard.albums.form.isHiddenHint')"
                   />
+                </UFormField>
+
+                <UFormField name="passwordEnabled">
+                  <UCheckbox
+                    v-model="formData.passwordEnabled"
+                    :label="$t('dashboard.albums.form.passwordProtection')"
+                    :description="$t('dashboard.albums.form.passwordProtectionHint')"
+                  />
+                </UFormField>
+                <UFormField v-if="formData.passwordEnabled"
+                  :label="$t('dashboard.albums.form.password')" name="password"
+                  :hint="currentAlbum?.hasPassword ? $t('dashboard.albums.form.passwordKeepHint') : undefined">
+                  <UInput v-model="formData.password" type="password" autocomplete="new-password"
+                    class="w-full" :placeholder="$t('dashboard.albums.form.passwordPlaceholder')" />
                 </UFormField>
               </UForm>
 

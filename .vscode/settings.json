@@ -49,5 +49,6 @@
     "繁体中文(台湾)",
     "繁体中文(香港)",
     "English"
-  ]
+  ],
+  "js/ts.tsdk.path": "node_modules/typescript/lib"
 }
