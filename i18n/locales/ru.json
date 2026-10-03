@@ -988,6 +988,11 @@
           "totalProcessed": "Обработано",
           "totalFailed": "Ошибок",
           "avgSuccessRate": "Доля успешных задач"
+        },
+        "recentActivity": {
+          "title": "Недавняя активность",
+          "viewQueue": "Очередь",
+          "empty": "Пока нет недавних задач."
         }
       },
       "shareSite": {
