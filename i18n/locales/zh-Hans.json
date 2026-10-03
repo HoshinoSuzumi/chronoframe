@@ -989,6 +989,11 @@
           "totalProcessed": "已处理",
           "totalFailed": "失败计数",
           "avgSuccessRate": "成功率"
+        },
+        "recentActivity": {
+          "title": "最近动态",
+          "viewQueue": "队列",
+          "empty": "暂无最近的任务。"
         }
       },
       "shareSite": {

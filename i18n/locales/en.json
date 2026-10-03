@@ -989,6 +989,11 @@
           "totalProcessed": "Processed",
           "totalFailed": "Failure count",
           "avgSuccessRate": "Success rate"
+        },
+        "recentActivity": {
+          "title": "Recent Activity",
+          "viewQueue": "Queue",
+          "empty": "No recent tasks yet."
         }
       },
       "shareSite": {

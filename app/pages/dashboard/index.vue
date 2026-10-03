@@ -471,6 +471,8 @@ const onShareSite = () => {
             </UCard>
           </div>
         </div>
+
+        <DashboardRecentActivity />
       </div>
     </template>
   </UDashboardPanel>
