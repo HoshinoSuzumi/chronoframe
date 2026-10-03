@@ -802,7 +802,10 @@
         "password": "パスワード",
         "passwordPlaceholder": "パスワードを入力",
         "passwordKeepHint": "現在のパスワードを変更しない場合は空欄にしてください",
+        "passwordLengthHint": "{min}〜{max} 文字で入力してください",
         "passwordRequired": "パスワードを入力してください",
+        "passwordTooShort": "パスワードは {min} 文字以上にしてください",
+        "passwordTooLong": "パスワードは {max} 文字以下にしてください",
         "movePhotoUp": "写真を上へ移動",
         "movePhotoDown": "写真を下へ移動",
         "removePhoto": "写真を選択から外す"
