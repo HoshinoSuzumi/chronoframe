@@ -802,7 +802,10 @@
         "password": "密碼",
         "passwordPlaceholder": "輸入密碼",
         "passwordKeepHint": "留空以保留目前密碼",
+        "passwordLengthHint": "長度須為 {min}–{max} 個字元",
         "passwordRequired": "請輸入密碼",
+        "passwordTooShort": "密碼至少需要 {min} 個字元",
+        "passwordTooLong": "密碼最多 {max} 個字元",
         "movePhotoUp": "上移照片",
         "movePhotoDown": "下移照片",
         "removePhoto": "移除照片"

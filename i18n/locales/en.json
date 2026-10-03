@@ -876,7 +876,10 @@
         "password": "Password",
         "passwordPlaceholder": "Enter a password",
         "passwordKeepHint": "Leave blank to keep the current password",
+        "passwordLengthHint": "Must be {min}–{max} characters",
         "passwordRequired": "Please enter a password",
+        "passwordTooShort": "Password must be at least {min} characters",
+        "passwordTooLong": "Password must be at most {max} characters",
         "movePhotoUp": "Move photo up",
         "movePhotoDown": "Move photo down",
         "removePhoto": "Remove photo"
