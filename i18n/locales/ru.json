@@ -875,7 +875,10 @@
         "password": "Пароль",
         "passwordPlaceholder": "Введите пароль",
         "passwordKeepHint": "Оставьте поле пустым, чтобы сохранить текущий пароль",
+        "passwordLengthHint": "Длина должна быть от {min} до {max} символов",
         "passwordRequired": "Введите пароль",
+        "passwordTooShort": "Пароль должен содержать не менее {min} символов",
+        "passwordTooLong": "Пароль должен содержать не более {max} символов",
         "movePhotoUp": "Переместить фотографию вверх",
         "movePhotoDown": "Переместить фотографию вниз",
         "removePhoto": "Убрать фотографию"

@@ -876,7 +876,10 @@
         "password": "密码",
         "passwordPlaceholder": "输入密码",
         "passwordKeepHint": "留空以保留当前密码",
+        "passwordLengthHint": "长度须为 {min}–{max} 个字符",
         "passwordRequired": "请输入密码",
+        "passwordTooShort": "密码至少需要 {min} 个字符",
+        "passwordTooLong": "密码最多 {max} 个字符",
         "movePhotoUp": "上移照片",
         "movePhotoDown": "下移照片",
         "removePhoto": "移除照片"

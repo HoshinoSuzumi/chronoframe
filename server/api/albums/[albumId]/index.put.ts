@@ -1,4 +1,8 @@
 import { z } from 'zod'
+import {
+  ALBUM_PASSWORD_MAX_LENGTH,
+  ALBUM_PASSWORD_MIN_LENGTH,
+} from '~~/shared/utils/album-password'
 import { hashAlbumPassword } from '../../../utils/album-access'
 
 export default eventHandler(async (event) => {
@@ -22,7 +26,15 @@ export default eventHandler(async (event) => {
       coverPhotoId: z.string().optional(),
       photoIds: z.array(z.string()).optional(),
       isHidden: z.boolean().optional(),
-      password: z.string().max(128).optional(),
+      password: z
+        .union([
+          z.literal(''),
+          z
+            .string()
+            .min(ALBUM_PASSWORD_MIN_LENGTH)
+            .max(ALBUM_PASSWORD_MAX_LENGTH),
+        ])
+        .optional(),
     }).parse,
   )
 
@@ -64,7 +76,9 @@ export default eventHandler(async (event) => {
       updateData.isHidden = body.isHidden
     }
     if (body.password !== undefined) {
-      updateData.passwordHash = body.password ? hashAlbumPassword(body.password) : null
+      updateData.passwordHash = body.password
+        ? hashAlbumPassword(body.password)
+        : null
     }
 
     tx.update(tables.albums)
@@ -109,5 +123,9 @@ export default eventHandler(async (event) => {
       .get()
   })
 
-  return { ...updatedAlbum, passwordHash: undefined, hasPassword: Boolean(updatedAlbum?.passwordHash) }
+  return {
+    ...updatedAlbum,
+    passwordHash: undefined,
+    hasPassword: Boolean(updatedAlbum?.passwordHash),
+  }
 })
