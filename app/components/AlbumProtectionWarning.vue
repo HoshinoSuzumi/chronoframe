@@ -1,0 +1,9 @@
+<template>
+  <UAlert
+    color="info"
+    variant="subtle"
+    icon="tabler:info-circle"
+    :title="$t('albumProtectionWarning.title')"
+    :description="$t('albumProtectionWarning.description')"
+  />
+</template>
