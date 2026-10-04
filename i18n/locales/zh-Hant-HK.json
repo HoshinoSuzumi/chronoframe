@@ -1033,8 +1033,11 @@
         "levelPlaceholder": "篩選等級",
         "tagPlaceholder": "篩選 Tag"
       },
-      "countLabel": "總筆數/顯示: {total}/{shown}",
-      "tagCount": "Tag: {count}",
+      "loadedCount": "已載入 {count} 筆",
+      "matchedCount": "符合 {count} 筆",
+      "errorCount": "錯誤 {count}",
+      "warningCount": "警告 {count}",
+      "timeRange": "時間範圍：{start} ～ {end}",
       "empty": {
         "waiting": "等待日誌資料...",
         "noMatch": "沒有符合的日誌條目"

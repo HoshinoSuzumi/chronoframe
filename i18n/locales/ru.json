@@ -1106,8 +1106,11 @@
         "levelPlaceholder": "Уровень журнала",
         "tagPlaceholder": "Фильтр по тегу"
       },
-      "countLabel": "Всего / показано: {total} / {shown}",
-      "tagCount": "Тегов: {count}",
+      "loadedCount": "Загружено: {count}",
+      "matchedCount": "Совпадений: {count}",
+      "errorCount": "Ошибок: {count}",
+      "warningCount": "Предупреждений: {count}",
+      "timeRange": "Период: {start} – {end}",
       "empty": {
         "waiting": "Ожидание записей журнала…",
         "noMatch": "Подходящие записи не найдены"
