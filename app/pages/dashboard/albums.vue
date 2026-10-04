@@ -30,6 +30,22 @@ interface AlbumFormState {
   passwordEnabled: boolean
 }
 
+const { data: currentStorageProvider } = await useFetch<{
+  namespace: string
+  key: string
+  value: SettingValue
+}>('/api/system/settings/storage/provider')
+const { data: availableStorage } = await useFetch<SettingStorageProvider[]>(
+  '/api/system/settings/storage-config',
+)
+
+const isCurrentStorageNonLocal = computed(() => {
+  const provider = availableStorage.value?.find(
+    (item) => item.id === currentStorageProvider.value?.value,
+  )
+  return Boolean(provider && provider.provider !== 'local')
+})
+
 const albums = ref<AlbumItem[]>([])
 const isLoadingAlbums = ref(false)
 const allPhotos = ref<Photo[]>([])
@@ -801,6 +817,9 @@ const columns = computed<any[]>(() => [
                     "
                   />
                 </UFormField>
+                <AlbumProtectionWarning
+                  v-if="formData.passwordEnabled && isCurrentStorageNonLocal"
+                />
                 <UFormField
                   v-if="formData.passwordEnabled"
                   :label="$t('dashboard.albums.form.password')"

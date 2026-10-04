@@ -1,4 +1,8 @@
 {
+  "albumProtectionWarning": {
+    "title": "Album password protection limitations",
+    "description": "Album passwords cannot protect public S3, OpenList or CDN photo URLs: anyone with a direct link can still access the file without the password. Use local storage for protected albums. Changing the password or default storage does not revoke existing links or cached copies. If photos were already public, disable public access at the storage/CDN, clear caches and change object URLs."
+  },
   "plural": {
     "photo": "no photos | one photo | {count} photos"
   },
