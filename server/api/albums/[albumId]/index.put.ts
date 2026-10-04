@@ -54,6 +54,13 @@ export default eventHandler(async (event) => {
     })
   }
 
+  const passwordHash =
+    body.password !== undefined
+      ? body.password
+        ? await hashAlbumPassword(body.password)
+        : null
+      : undefined
+
   // 使用事务更新相簿
   const updatedAlbum = db.transaction((tx) => {
     // 更新基本信息
@@ -75,10 +82,8 @@ export default eventHandler(async (event) => {
     if (body.isHidden !== undefined) {
       updateData.isHidden = body.isHidden
     }
-    if (body.password !== undefined) {
-      updateData.passwordHash = body.password
-        ? hashAlbumPassword(body.password)
-        : null
+    if (passwordHash !== undefined) {
+      updateData.passwordHash = passwordHash
     }
 
     tx.update(tables.albums)

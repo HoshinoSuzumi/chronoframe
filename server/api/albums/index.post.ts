@@ -27,6 +27,10 @@ export default eventHandler(async (event) => {
 
   const db = useDB()
 
+  const passwordHash = body.password
+    ? await hashAlbumPassword(body.password)
+    : null
+
   const album = db.transaction((tx) => {
     // Place new album first (min position minus one gap), preserving the
     // default "newest first" order
@@ -43,7 +47,7 @@ export default eventHandler(async (event) => {
         description: body.description || null,
         coverPhotoId: body.coverPhotoId || null,
         isHidden: body.isHidden || false,
-        passwordHash: body.password ? hashAlbumPassword(body.password) : null,
+        passwordHash,
         position,
       })
       .returning()
