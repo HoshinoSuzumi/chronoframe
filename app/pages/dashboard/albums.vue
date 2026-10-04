@@ -136,9 +136,10 @@ const loadAlbums = async () => {
     }))
 
     for (const album of albums.value) {
-      if (album.coverPhotoId && allPhotos.value.length > 0) {
+      const displayCoverPhotoId = album.coverPhotoId || album.photoIds?.[0]
+      if (displayCoverPhotoId && allPhotos.value.length > 0) {
         const coverPhoto = allPhotos.value.find(
-          (p) => p.id === album.coverPhotoId,
+          (p) => p.id === displayCoverPhotoId,
         )
         if (coverPhoto) {
           album.coverPhoto = coverPhoto
@@ -584,7 +585,7 @@ const columns = computed<any[]>(() => [
                   class="w-full h-full flex items-center justify-center text-gray-400 dark:text-gray-600"
                 >
                   <Icon
-                    name="tabler:image"
+                    name="tabler:photo"
                     size="20"
                   />
                 </div>
