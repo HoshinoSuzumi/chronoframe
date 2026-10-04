@@ -1107,8 +1107,11 @@
         "levelPlaceholder": "过滤级别",
         "tagPlaceholder": "筛选 Tag"
       },
-      "countLabel": "总条数/展示: {total}/{shown}",
-      "tagCount": "Tag: {count}",
+      "loadedCount": "已载入 {count} 条",
+      "matchedCount": "匹配 {count} 条",
+      "errorCount": "错误 {count}",
+      "warningCount": "警告 {count}",
+      "timeRange": "时间范围：{start} ～ {end}",
       "empty": {
         "waiting": "等待日志数据...",
         "noMatch": "没有匹配的日志条目"

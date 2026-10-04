@@ -1033,8 +1033,11 @@
         "levelPlaceholder": "レベルで絞り込む",
         "tagPlaceholder": "タグで絞り込む"
       },
-      "countLabel": "合計/表示: {total}/{shown}",
-      "tagCount": "タグ: {count}",
+      "loadedCount": "読み込み済み {count} 件",
+      "matchedCount": "一致 {count} 件",
+      "errorCount": "エラー {count}",
+      "warningCount": "警告 {count}",
+      "timeRange": "期間：{start} ～ {end}",
       "empty": {
         "waiting": "ログデータを待機中...",
         "noMatch": "一致するログエントリがありません"

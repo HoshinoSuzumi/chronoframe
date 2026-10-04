@@ -1,216 +1,120 @@
-import fs from 'node:fs'
+import { open } from 'node:fs/promises'
 import path from 'node:path'
-
-const DEFAULT_INITIAL_LINES = 400
-const MAX_INITIAL_LINES = 2000
-const ALL_INITIAL_LINES = 'all'
-
-type InitialLinesMode = number | typeof ALL_INITIAL_LINES
-
-const clampInitialLines = (value: unknown): InitialLinesMode => {
-  if (typeof value === 'string' && value.toLowerCase() === ALL_INITIAL_LINES) {
-    return ALL_INITIAL_LINES
-  }
-
-  const parsed = Number(value)
-  if (!Number.isFinite(parsed)) {
-    return DEFAULT_INITIAL_LINES
-  }
-  return Math.max(0, Math.min(MAX_INITIAL_LINES, Math.floor(parsed)))
-}
-
-const readLastLines = async (
-  filePath: string,
-  maxLines: number,
-): Promise<{ lines: string[]; fileSize: number }> => {
-  const handle = await fs.promises.open(filePath, 'r')
-  try {
-    const stat = await handle.stat()
-    const fileSize = stat.size
-
-    if (maxLines <= 0 || fileSize <= 0) {
-      return { lines: [], fileSize }
-    }
-
-    const chunkSize = 64 * 1024
-    const maxReadBytes = 2 * 1024 * 1024
-    let position = fileSize
-    let totalReadBytes = 0
-    let content = ''
-    let newlineCount = 0
-
-    while (position > 0 && newlineCount <= maxLines && totalReadBytes < maxReadBytes) {
-      const readSize = Math.min(chunkSize, position)
-      const start = position - readSize
-      const chunk = Buffer.allocUnsafe(readSize)
-      const { bytesRead } = await handle.read(chunk, 0, readSize, start)
-      if (bytesRead <= 0) {
-        break
-      }
-
-      content = chunk.toString('utf-8', 0, bytesRead) + content
-      position = start
-      totalReadBytes += bytesRead
-      newlineCount = (content.match(/\n/g) || []).length
-    }
-
-    const lines = content
-      .split('\n')
-      .map((line) => line.trim())
-      .filter(Boolean)
-      .slice(-maxLines)
-
-    return { lines, fileSize }
-  } finally {
-    await handle.close()
-  }
-}
-
-const readAllLines = async (
-  filePath: string,
-): Promise<{ lines: string[]; fileSize: number }> => {
-  const stat = await fs.promises.stat(filePath)
-  if (stat.size <= 0) {
-    return { lines: [], fileSize: stat.size }
-  }
-
-  const content = await fs.promises.readFile(filePath, 'utf-8')
-  const lines = content
-    .split('\n')
-    .map((line) => line.trim())
-    .filter(Boolean)
-
-  return { lines, fileSize: stat.size }
-}
-
-const streamNewLines = async (
-  filePath: string,
-  fromOffset: number,
-): Promise<{ lines: string[]; nextOffset: number }> => {
-  const stat = await fs.promises.stat(filePath)
-  const safeOffset = Math.max(0, Math.min(fromOffset, stat.size))
-  const nextOffset = stat.size
-
-  if (nextOffset <= safeOffset) {
-    return { lines: [], nextOffset }
-  }
-
-  const stream = fs.createReadStream(filePath, {
-    encoding: 'utf-8',
-    start: safeOffset,
-    end: nextOffset - 1,
-  })
-
-  let buffer = ''
-  for await (const chunk of stream) {
-    buffer += chunk
-  }
-
-  const lines = buffer
-    .split('\n')
-    .map((line) => line.trim())
-    .filter(Boolean)
-
-  return { lines, nextOffset }
-}
+import {
+  LOG_PAGE_BYTES,
+  logIdentity,
+  readLogPage,
+} from '../../utils/log-reader'
 
 export default defineEventHandler(async (event) => {
   await requireUserSession(event)
-
-  const eventStream = createEventStream(event)
-
-  const logFilePath = path.join(process.cwd(), 'data', 'logs', 'app.log')
-  const logDirPath = path.dirname(logFilePath)
+  const file = path.join(process.cwd(), 'data', 'logs', 'app.log')
   const query = getQuery(event)
-  const initialLines = clampInitialLines(query.initial)
-
-  fs.mkdirSync(logDirPath, { recursive: true })
-
-  let lastReadOffset = 0
-  let isClosed = false
-  let flushScheduled = false
-  let isFlushing = false
-
-  setImmediate(async () => {
-    try {
-      if (fs.existsSync(logFilePath)) {
-        const { lines, fileSize } =
-          initialLines === ALL_INITIAL_LINES
-            ? await readAllLines(logFilePath)
-            : await readLastLines(logFilePath, initialLines)
-        for (const line of lines) {
-          if (isClosed) {
-            return
-          }
-          await eventStream.push(line)
-        }
-        lastReadOffset = fileSize
-      }
-    } catch (error) {
-      console.error('Error initializing log stream:', error)
+  const parseOffset = (value: unknown) => {
+    if (value === undefined) return undefined
+    const offset = Number(value)
+    if (!Number.isSafeInteger(offset) || offset < 0) {
+      throw createError({
+        statusCode: 400,
+        statusMessage: 'Invalid log cursor',
+      })
     }
-  })
-
-  const flushNewLogs = async () => {
-    if (isClosed || isFlushing) {
-      return
-    }
-
-    isFlushing = true
+    return offset
+  }
+  const cursor = parseOffset(query.before)
+  if (query.stream !== '1') {
     try {
-      if (!fs.existsSync(logFilePath)) {
-        lastReadOffset = 0
-        return
-      }
-
-      const stat = await fs.promises.stat(logFilePath)
-      if (stat.size < lastReadOffset) {
-        // 日志被截断或轮转，重置偏移
-        lastReadOffset = 0
-      }
-
-      const { lines, nextOffset } = await streamNewLines(logFilePath, lastReadOffset)
-      for (const line of lines) {
-        if (isClosed) {
-          return
-        }
-        await eventStream.push(line)
-      }
-      lastReadOffset = nextOffset
-    } catch (error) {
-      console.error('Error flushing log stream:', error)
-    } finally {
-      isFlushing = false
-      if (flushScheduled) {
-        flushScheduled = false
-        setImmediate(() => {
-          void flushNewLogs()
+      const page = await readLogPage(file, cursor)
+      if (query.identity && query.identity !== page.identity) {
+        throw createError({
+          statusCode: 409,
+          statusMessage: 'Log file changed; reload history',
         })
       }
+      return page
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error
+      return { lines: [], before: 0, offset: 0, identity: '' }
     }
   }
 
-  const scheduleFlush = () => {
-    flushScheduled = true
-    setImmediate(() => {
-      void flushNewLogs()
-    })
+  const stream = createEventStream(event)
+  let offset = parseOffset(query.offset) ?? 0
+  let identity = String(query.identity || '')
+  let closed = false
+  let busy = false
+  let ticks = 0
+  let skippingOversized = false
+  const flush = async () => {
+    if (closed || busy) return
+    busy = true
+    let handle
+    try {
+      handle = await open(file, 'r')
+      if (closed) return
+      const stat = await handle.stat()
+      const currentIdentity = logIdentity(stat)
+      if ((identity && currentIdentity !== identity) || stat.size < offset) {
+        offset = 0
+        skippingOversized = false
+        await stream.push({ event: 'reset', data: '{}' })
+      }
+      identity = currentIdentity
+      if (stat.size > offset) {
+        const buffer = Buffer.alloc(
+          Math.min(LOG_PAGE_BYTES, stat.size - offset),
+        )
+        const { bytesRead } = await handle.read(
+          buffer,
+          0,
+          buffer.length,
+          offset,
+        )
+        const data = buffer.subarray(0, bytesRead)
+        const first = skippingOversized ? data.indexOf(10) + 1 : 0
+        const last = data.lastIndexOf(10)
+        if (last >= 0) {
+          offset += last + 1
+          skippingOversized = false
+          await stream.push({
+            event: 'logs',
+            id: String(offset),
+            data: JSON.stringify({
+              lines: data
+                .subarray(first, last)
+                .toString('utf8')
+                .split('\n')
+                .filter(Boolean),
+              offset,
+              identity,
+            }),
+          })
+        } else if (bytesRead === LOG_PAGE_BYTES) {
+          // Skip oversized records in bounded chunks instead of growing memory without limit.
+          offset += bytesRead
+          skippingOversized = true
+        }
+      }
+      if (++ticks % 60 === 0)
+        await stream.push({ event: 'heartbeat', data: '{}' })
+    } catch (error) {
+      if (!closed && (error as NodeJS.ErrnoException).code !== 'ENOENT') {
+        await stream.push({ event: 'failure', data: '{}' }).catch(() => {})
+      }
+    } finally {
+      await handle?.close()
+      busy = false
+    }
   }
-
-  const watcher = fs.watch(logDirPath, (_eventType, filename) => {
-    if (!filename) {
-      return
-    }
-    if (filename.toString() === path.basename(logFilePath)) {
-      scheduleFlush()
-    }
+  const timer = setInterval(() => {
+    void flush()
+  }, 250)
+  stream.onClosed(() => {
+    closed = true
+    clearInterval(timer)
   })
-
-  eventStream.onClosed(async () => {
-    isClosed = true
-    watcher.close()
-    await eventStream.close()
-  })
-
-  return eventStream.send()
+  // Flush an initial event so quiet logs do not delay the browser's open event.
+  void stream.push({ event: 'ready', data: '{}' }).catch(() => {})
+  void flush()
+  return stream.send()
 })

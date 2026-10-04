@@ -1107,8 +1107,11 @@
         "levelPlaceholder": "Filter level",
         "tagPlaceholder": "Filter Tag"
       },
-      "countLabel": "Total/Shown: {total}/{shown}",
-      "tagCount": "Tags: {count}",
+      "loadedCount": "{count} logs loaded",
+      "matchedCount": "{count} matches",
+      "errorCount": "Errors {count}",
+      "warningCount": "Warnings {count}",
+      "timeRange": "Time range: {start} – {end}",
       "empty": {
         "waiting": "Waiting for log data...",
         "noMatch": "No matching log entries"
