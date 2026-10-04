@@ -31,7 +31,6 @@ const normalizedSearchQuery = computed(() =>
 )
 const scrollTop = ref(0)
 const containerHeight = ref(0)
-const MAX_LOG_LINES = 6000
 const historyCursor = ref(0)
 const isLoadingOlder = ref(false)
 let liveOffset = 0
@@ -401,7 +400,7 @@ const appendLines = (lines: string[]) => {
   const entries = lines
     .map(parseLogLine)
     .filter((entry): entry is LogEntry => entry !== null)
-  logs.value = [...logs.value, ...entries].slice(-MAX_LOG_LINES)
+  logs.value = [...logs.value, ...entries]
   if (autoScroll.value) void scrollToBottom('smooth')
 }
 
@@ -480,12 +479,7 @@ const connectLogStream = async () => {
 }
 
 const loadOlderLogs = async () => {
-  if (
-    isInitialLoading.value ||
-    isLoadingOlder.value ||
-    !historyCursor.value ||
-    logs.value.length >= MAX_LOG_LINES
-  )
+  if (isInitialLoading.value || isLoadingOlder.value || !historyCursor.value)
     return
   const controller = requestController
   let loaded = false
@@ -502,9 +496,7 @@ const loadOlderLogs = async () => {
     const entries = page.lines
       .map(parseLogLine)
       .filter((entry): entry is LogEntry => entry !== null)
-    const capacity = Math.max(0, MAX_LOG_LINES - logs.value.length)
-    const added = capacity > 0 ? entries.slice(-capacity) : []
-    logs.value = [...added, ...logs.value]
+    logs.value = [...entries, ...logs.value]
     historyCursor.value = page.before
     // Update the virtual range in the same render as the prepend. Count only rows
     // that pass the current filters so the visible log retains its pixel position.
