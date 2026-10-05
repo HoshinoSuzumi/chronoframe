@@ -1,10 +1,4 @@
-import {
-  createHmac,
-  randomBytes,
-  scrypt,
-  scryptSync,
-  timingSafeEqual,
-} from 'node:crypto'
+import { createHmac, randomBytes, scrypt, timingSafeEqual } from 'node:crypto'
 import { promisify } from 'node:util'
 import { eq, or } from 'drizzle-orm'
 import type { H3Event } from 'h3'
@@ -30,9 +24,10 @@ const passwordVersion = (hash: string) =>
     .digest('hex')
     .slice(0, 32)
 
-export function hashAlbumPassword(password: string): string {
+export async function hashAlbumPassword(password: string): Promise<string> {
   const salt = randomBytes(16).toString('hex')
-  return `${salt}:${scryptSync(password, salt, 64).toString('hex')}`
+  const derived = (await scryptAsync(password, salt, 64)) as Buffer
+  return `${salt}:${derived.toString('hex')}`
 }
 
 export async function verifyAlbumPassword(

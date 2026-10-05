@@ -1,5 +1,6 @@
 import { eq } from 'drizzle-orm'
 import { z } from 'zod'
+import { ALBUM_PASSWORD_MAX_LENGTH } from '~~/shared/utils/album-password'
 import {
   grantAlbumAccess,
   verifyAlbumPassword,
@@ -16,9 +17,11 @@ export default eventHandler(async (event) => {
     event,
     z.object({ albumId: z.coerce.number().int().positive() }).parse,
   )
+  // Keep min(1) so albums set before the stronger length policy can still unlock.
   const { password } = await readValidatedBody(
     event,
-    z.object({ password: z.string().min(1).max(128) }).parse,
+    z.object({ password: z.string().min(1).max(ALBUM_PASSWORD_MAX_LENGTH) })
+      .parse,
   )
   const clientIp =
     getRequestIP(event, { xForwardedFor: trustProxy }) || 'unknown'

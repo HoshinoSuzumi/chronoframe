@@ -1,0 +1,6 @@
+interface:
+  display_name: "Git Change Summary"
+  short_description: "Draft English commit and pull request text"
+  default_prompt: "Use $git-change-summary to generate an English commit message, PR title, and PR description for the current changes."
+policy:
+  allow_implicit_invocation: true

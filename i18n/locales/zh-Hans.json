@@ -1,4 +1,8 @@
 {
+  "albumProtectionWarning": {
+    "title": "相簿密码保护的限制",
+    "description": "相簿密码无法保护 S3、OpenList 或 CDN 的公开照片直链：持有直链的人仍可无需密码访问文件。受保护相簿请使用本地存储。修改密码或默认存储不会撤销已有直链或缓存副本。若照片已经公开，还需在存储/CDN 侧关闭公开访问、清理缓存并更换对象地址。"
+  },
   "map": {
     "setupNotice": {
       "title": "地图服务尚未配置",
@@ -877,7 +881,10 @@
         "password": "密码",
         "passwordPlaceholder": "输入密码",
         "passwordKeepHint": "留空以保留当前密码",
+        "passwordLengthHint": "长度须为 {min}–{max} 个字符",
         "passwordRequired": "请输入密码",
+        "passwordTooShort": "密码至少需要 {min} 个字符",
+        "passwordTooLong": "密码最多 {max} 个字符",
         "movePhotoUp": "上移照片",
         "movePhotoDown": "下移照片",
         "removePhoto": "移除照片"
@@ -1101,8 +1108,11 @@
         "levelPlaceholder": "过滤级别",
         "tagPlaceholder": "筛选 Tag"
       },
-      "countLabel": "总条数/展示: {total}/{shown}",
-      "tagCount": "Tag: {count}",
+      "loadedCount": "已载入 {count} 条",
+      "matchedCount": "匹配 {count} 条",
+      "errorCount": "错误 {count}",
+      "warningCount": "警告 {count}",
+      "timeRange": "时间范围：{start} ～ {end}",
       "empty": {
         "waiting": "等待日志数据...",
         "noMatch": "没有匹配的日志条目"

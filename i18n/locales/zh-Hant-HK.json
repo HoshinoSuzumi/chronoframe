@@ -1,4 +1,8 @@
 {
+  "albumProtectionWarning": {
+    "title": "相簿密碼保護的限制",
+    "description": "相簿密碼無法保護 S3、OpenList 或 CDN 的公開相片直連網址：持有網址的人仍可無需密碼存取檔案。受保護相簿請使用本機儲存。修改密碼或預設儲存不會撤銷既有網址或快取副本。若相片已經公開，還需在儲存/CDN 端關閉公開存取、清除快取並更換物件網址。"
+  },
   "map": {
     "setupNotice": {
       "title": "地圖服務尚未設定",
@@ -803,7 +807,10 @@
         "password": "密碼",
         "passwordPlaceholder": "輸入密碼",
         "passwordKeepHint": "留空以保留目前密碼",
+        "passwordLengthHint": "長度須為 {min}–{max} 個字元",
         "passwordRequired": "請輸入密碼",
+        "passwordTooShort": "密碼至少需要 {min} 個字元",
+        "passwordTooLong": "密碼最多 {max} 個字元",
         "movePhotoUp": "上移相片",
         "movePhotoDown": "下移相片",
         "removePhoto": "移除相片"
@@ -1027,8 +1034,11 @@
         "levelPlaceholder": "篩選等級",
         "tagPlaceholder": "篩選 Tag"
       },
-      "countLabel": "總筆數/顯示: {total}/{shown}",
-      "tagCount": "Tag: {count}",
+      "loadedCount": "已載入 {count} 筆",
+      "matchedCount": "符合 {count} 筆",
+      "errorCount": "錯誤 {count}",
+      "warningCount": "警告 {count}",
+      "timeRange": "時間範圍：{start} ～ {end}",
       "empty": {
         "waiting": "等待日誌資料...",
         "noMatch": "沒有符合的日誌條目"
