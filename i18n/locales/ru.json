@@ -157,6 +157,7 @@
     "passwordRequired": "Требуется пароль",
     "passwordPlaceholder": "Введите пароль альбома",
     "incorrectPassword": "Неверный пароль",
+    "tooManyAttempts": "Слишком много попыток. Повторите попытку в течение минуты.",
     "unlock": "Разблокировать альбом",
     "notFound": "Альбом не найден",
     "noDateInfo": "Нет данных о дате",

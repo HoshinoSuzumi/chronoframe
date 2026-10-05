@@ -157,6 +157,7 @@
     "passwordRequired": "Password required",
     "passwordPlaceholder": "Enter album password",
     "incorrectPassword": "Incorrect password",
+    "tooManyAttempts": "Too many attempts. Try again within a minute.",
     "unlock": "Unlock album",
     "notFound": "Album not found",
     "noDateInfo": "No date info",

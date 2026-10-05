@@ -46,9 +46,13 @@ const unlockAlbum = async () => {
       await new Promise((resolve) => setTimeout(resolve, 220))
     }
   } catch (err: any) {
-    unlockErrorMessageKey.value = err?.statusCode === 401 || err?.status === 401
-      ? 'album.incorrectPassword'
-      : 'album.failedToLoad'
+    const status = err?.statusCode ?? err?.status
+    unlockErrorMessageKey.value =
+      status === 401
+        ? 'album.incorrectPassword'
+        : status === 429
+          ? 'album.tooManyAttempts'
+          : 'album.failedToLoad'
   } finally {
     isUnlocking.value = false
   }
