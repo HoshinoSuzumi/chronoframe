@@ -5,7 +5,7 @@ layout: home
 hero:
   name: 'ChronoFrame'
   text: '自部署个人画廊'
-  tagline: '在线管理照片，多存储后端、LivePhoto、地球仪视图'
+  tagline: '上传、整理和分享照片，在网页中完成站点设置'
   image:
     src: /logo.png
     alt: ChronoFrame
@@ -18,8 +18,8 @@ hero:
       text: 查看 GitHub
       link: https://github.com/HoshinoSuzumi/chronoframe
     - theme: alt
-      text: 查看演示
-      link: https://lens.bh8.ga
+      text: 演示站点
+      link: /zh/demo-sites
 
 features:
   - title: 强大的照片管理
@@ -27,16 +27,16 @@ features:
     details: 通过网页界面轻松管理和浏览照片，并在地图上查看照片拍摄地点。
   - title: 简单部署
     icon: 🚀
-    details: 使用 Docker 一条命令即可部署，无需数据库（基于 SQLite3）。
+    details: 使用 Docker 启动后，通过设置向导创建管理员和选择存储。SQLite 数据库随应用运行，无需单独部署。
   - title: 灵活的存储方案
     icon: 💾
-    details: 支持多种存储后端，包括兼容 S3 的存储和本地文件系统。
+    details: 支持本地文件系统、S3 兼容存储和 OpenList，在后台管理存储方案。
   - title: 智能地理位置
     icon: 🌍
-    details: 自动提取照片 GPS 信息，使用 Mapbox 进行地理编码，在地图上展示照片拍摄位置。
-  - title: 响应式设计
+    details: 提取照片 GPS，通过反向地理编码识别地点，使用 MapLibre 或 Mapbox 浏览地图。
+  - title: 相册与隐私
     icon: 📱
-    details: 完美适配桌面端和移动端，支持触摸操作和手势控制，提供原生应用般的体验。
+    details: 整理相册和照片顺序，设置隐藏相册或密码相册，控制画廊中的访问。
   - title: Live/Motion Photo 支持
     icon: 🎬
     details: 完整支持 Apple LivePhoto 格式和 Google 标准的 Motion Photo，自动检测和处理 MOV 视频文件，保留动态照片效果。
@@ -44,23 +44,11 @@ features:
 
 ## 🌍 演示站点
 
-下面是一些由开发者、社区成员搭建的，运行良好的 ChronoFrame 实例：
-
-- [**TimoYin's Mems**](https://lens.bh8.ga)
-- [**懒洋洋喝咖啡**](https://oreo.tanmantang.com) — 用镜头记录每个精彩瞬间
-- [**My Photo Gallery**](https://photo.fivk.cn)
-- [**An ISFP Conductor of Current, Pixels, and Code.**](https://gallery.xiaoten.com)
-- [**我的旅行相册**](https://gallery.junlan.site) — 记录光影，留存回忆
-- [**Z.Zhou's Photography**](https://photography.zzhou612.com/) — Catch the Moment
-- [**Each Photo Turns a Moment Into Eternity.**](https://eachphoto.com)
-- [**WhyPhoto**](https://photo.limina.top/)
-- [**用图片记录生活**](https://gallery.d.cr)
-- [**Ahmet Ömer's Photography**](https://photography.ahmeto.com/)
-- [**何来尘埃飞舞**](https://photo.jefftay.com/)
+在[演示站点页面](/zh/demo-sites)浏览开发者和社区用户分享的画廊。
 
 ## 💬 社区支持
 
-- **GitHub Issues**: [报告问题](https://github.com/HoshinoSuzumi/chronoframe/issues)
+- **GitHub Issues**: [报告问题](https://github.com/HoshinoSuzumi/chronoframe/issues/new/choose)
 - **GitHub Discussions**: [讨论分享](https://github.com/HoshinoSuzumi/chronoframe/discussions)
 - **Discord**: [加入我们](https://discord.gg/MM4ZK4Ed7s)
 

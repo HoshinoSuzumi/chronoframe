@@ -8,8 +8,8 @@
   <a href="https://github.com/HoshinoSuzumi/chronoframe/releases/latest">
     <img src="https://badgen.net/github/release/HoshinoSuzumi/chronoframe/stable?icon=docker&label=稳定" alt="Latest Release">
   </a>
-  <a href="https://github.com/HoshinoSuzumi/chronoframe/releases?q=beta&expanded=false">
-    <img src="https://badgen.net/github/release/HoshinoSuzumi/chronoframe?icon=docker&label=测试" alt="Latest Nightly Release">
+  <a href="https://github.com/HoshinoSuzumi/chronoframe/releases">
+    <img src="https://badgen.net/github/release/HoshinoSuzumi/chronoframe?icon=docker&label=测试" alt="Latest Prerelease">
   </a>
   <img src="https://img.shields.io/badge/License-MIT-green.svg" alt="License">
 </p>
@@ -27,103 +27,24 @@
 
 **Languages:** [English](README.md) | 中文
 
-丝滑的照片展示和管理应用，支持多种图片格式和大尺寸图片渲染。
+ChronoFrame 是一个可以自行部署的照片画廊。上传照片后，应用会提取 EXIF、生成预览并整理拍摄地点；访客可以按时间、相册或地图浏览，也能查看大图和播放实况照片。
 
-[在线演示: TimoYin's Mems](https://lens.bh8.ga)
+[在线演示](https://lens.bh8.ga) · [使用文档](https://chronoframe.bh8.ga/zh/) · [更新日志](https://chronoframe.bh8.ga/zh/changelog)
 
-## ✨ 特性
+## ✨ 功能
 
-### 🖼️ 强大的图片管理
-
-- **在线管理照片** - 通过 Web 界面轻松管理和浏览照片
-- **探索地图** - 在地图上浏览照片拍摄位置
-- **智能 EXIF 解析** - 自动提取拍摄时间、地理位置、相机参数等元数据
-- **地理位置识别** - 自动识别(Reverse Geocoding)照片拍摄地点
-- **多格式支持** - 支持 JPEG、PNG、HEIC/HEIF 等主流图片格式
-- **智能缩略图** - 基于 ThumbHash 技术的高效缩略图生成
-
-### 🔧 现代技术栈
-
-- **Nuxt 4** - 基于最新的 Nuxt 框架，提供 SSR/SSG 支持
-- **TypeScript** - 完整的类型安全保障
-- **TailwindCSS** - 现代化的 CSS 框架
-- **Drizzle ORM** - 类型安全的数据库 ORM
-
-### ☁️ 灵活的存储方案
-
-- **多存储后端** - 支持 S3 兼容存储、本地文件系统
-- **CDN 加速** - 可配置 CDN 地址加速图片访问
+- **照片浏览**：瀑布流、筛选与排序、WebGL 大图缩放和分块渲染、照片直方图、原图下载与分享预览。
+- **动态照片**：支持 Apple Live Photo 和 Motion Photo，照片与视频自动配对，支持悬停或长按播放。
+- **相册**：组织照片、调整相册及照片顺序，支持隐藏相册和密码相册。
+- **后台管理**：批量上传、编辑元数据、评分、批量下载和重新索引；查看处理队列、实时日志与最近活动。
+- **存储**：支持本地文件系统、S3 兼容对象存储和 OpenList，可在后台管理存储方案和 CDN 地址。
+- **地图与地点**：MapLibre / Mapbox 地图，反向地理编码和可选的地名语言。
+- **设置向导**：首次启动在网页中创建管理员、设置站点与存储；日常设置在后台修改，无需维护一长串环境变量。
+- **多语言与登录**：后台语言切换，邮箱密码登录，可选 GitHub OAuth；支持自定义统计脚本和上传隐私设置。
 
 ## 🐳 部署
 
-推荐使用预构建的 docker 镜像部署，[在 ghcr 上查看镜像](https://github.com/HoshinoSuzumi/chronoframe/pkgs/container/chronoframe)
-
-创建 `.env` 文件并配置。
-
-下面是**最小化配置**示例，完整的配置项参考 [配置指南](https://chronoframe.bh8.ga/zh/guide/configuration.html)：
-
-```bash
-# 管理员邮箱（必须）
-CFRAME_ADMIN_EMAIL=
-# 管理员用户名（可选，默认 ChronoFrame）
-CFRAME_ADMIN_NAME=
-# 管理员密码（可选，默认 CF1234@!）
-CFRAME_ADMIN_PASSWORD=
-
-# 站点信息（均可选）
-NUXT_PUBLIC_APP_TITLE=
-NUXT_PUBLIC_APP_SLOGAN=
-NUXT_PUBLIC_APP_AUTHOR=
-NUXT_PUBLIC_APP_AVATAR_URL=
-
-# 地图提供器 (maplibre/mapbox)
-NUXT_PUBLIC_MAP_PROVIDER=maplibre
-# 使用 MapLibre 需要 MapTiler 访问令牌
-NUXT_PUBLIC_MAP_MAPLIBRE_TOKEN=
-# 使用 Mapbox 需要 Mapbox 访问令牌
-NUXT_PUBLIC_MAPBOX_ACCESS_TOKEN=
-
-# Mapbox 无域名限制令牌（反向地理编码，可选）
-NUXT_MAPBOX_ACCESS_TOKEN=
-
-# 存储提供者（local、s3 或 openlist）
-NUXT_STORAGE_PROVIDER=local
-NUXT_PROVIDER_LOCAL_PATH=/app/data/storage
-
-# 会话密码（必须，32 位随机字符串）
-NUXT_SESSION_PASSWORD=
-# 用于稳定签名 OG 图片的密钥
-# 使用命令生成：npx nuxt-og-image generate-secret
-NUXT_OG_IMAGE_SECRET=
-```
-
-### 拉取镜像
-
-我们推荐使用预构建的 Docker 镜像进行部署，镜像托管在 GHCR 和 Docker Hub，您可以根据网络情况选择合适的源。
-
-#### [GitHub Container Registry (GHCR)](https://github.com/HoshinoSuzumi/chronoframe/pkgs/container/chronoframe)
-
-```bash
-docker pull ghcr.io/hoshinosuzumi/chronoframe:latest
-```
-
-#### [Docker Hub](https://hub.docker.com/r/hoshinosuzumi/chronoframe)
-
-```bash
-docker pull hoshinosuzumi/chronoframe:latest
-```
-
-### Docker
-
-一行命令启动：
-
-```bash
-docker run -d --name chronoframe -p 3000:3000 -v $(pwd)/data:/app/data --env-file .env ghcr.io/hoshinosuzumi/chronoframe:latest
-```
-
-### Docker Compose
-
-创建 `docker-compose.yml`：
+推荐使用 Docker。创建 `docker-compose.yml`：
 
 ```yaml
 services:
@@ -135,32 +56,35 @@ services:
       - '3000:3000'
     volumes:
       - ./data:/app/data
-    env_file:
-      - .env
 ```
-
-启动：
 
 ```bash
 docker compose up -d
 ```
 
-## 📖 使用指南
+也可以使用 Docker Hub 镜像 `hoshinosuzumi/chronoframe:latest`。需要固定版本时，将标签换成 `v1.0.0`。
 
-> 如未配置 `CFRAME_ADMIN_EMAIL` 和 `CFRAME_ADMIN_PASSWORD`，默认账号如下：
->
-> - 邮箱: `admin@chronoframe.com`
-> - 密码: `CF1234@!`
+直接使用 Docker 启动：
 
-### 登录到控制台
+```bash
+docker run -d --name chronoframe --restart unless-stopped \
+  -p 3000:3000 -v "$(pwd)/data:/app/data" \
+  ghcr.io/hoshinosuzumi/chronoframe:latest
+```
 
-1. 点击头像跳转到登录页面，可以使用账号密码或 GitHub 登录
+打开 `http://localhost:3000`，按设置向导创建管理员并选择存储。使用本地存储时填写 `/app/data/storage`。地图令牌可以稍后补充，不影响先完成部署和上传照片。
 
-### 上传照片
+请保留 `./data` 挂载，其中包含数据库、设置、会话密钥，以及采用上述路径时的本地照片。
 
-1. 访问仪表板页面 `/dashboard`
-2. 在 `Photos` 页面中选择图片并点击上传（支持批量上传和拖拽上传）
-3. 系统将自动提取 EXIF 信息、生成缩略图并逆编码照片地理位置
+部署到公网时使用 HTTPS。反向代理、数据备份和旧版迁移见[快速开始](https://chronoframe.bh8.ga/zh/guide/getting-started)和[升级指南](https://chronoframe.bh8.ga/zh/guide/updates)。
+
+## 📖 使用
+
+登录后进入 `/dashboard` 上传和整理照片。上传完成后，任务队列会继续处理 EXIF、缩略图、地点和实况照片，失败任务可以查看原因并重试。
+
+Apple Live Photo 的图片和 MOV 文件需要相同文件名，例如 `IMG_1234.heic` 和 `IMG_1234.mov`，上传顺序不限。照片支持 JPEG、PNG、WebP、GIF、BMP、TIFF、HEIC / HEIF 等格式。
+
+密码相册限制的是通过 ChronoFrame 访问的内容。如果 S3、OpenList 或 CDN 提供公开的图片直链，需要同时管理外部服务的权限。详见[日常使用](https://chronoframe.bh8.ga/zh/guide/usage)。
 
 ## 📸 截图
 
@@ -171,165 +95,35 @@ docker compose up -d
 
 ## 🛠️ 开发
 
-### 环境要求
-
-- Node.js 18+
-- pnpm 9.0+
-
-### 安装依赖
+使用 Node.js 22 和项目指定的 pnpm 10.34.1：
 
 ```bash
-# 使用 pnpm (推荐)
-pnpm install
-
-# 或使用其他包管理器
-npm install
-yarn install
-```
-
-### 配置环境变量
-
-复制环境变量模板并根据需要配置：
-
-```bash
-cp .env.example .env
-```
-
-### 数据库初始化
-
-```bash
-# 2. 生成数据库迁移文件(可选)
-pnpm db:generate
-
-# 3. 执行数据库迁移
-pnpm db:migrate
-```
-
-### 启动开发服务器
-
-```bash
+corepack enable
+pnpm install --frozen-lockfile
 pnpm dev
 ```
 
-应用将在 `http://localhost:3000` 启动。
-
-### 项目结构
-
-```
-chronoframe/
-├── app/                    # Nuxt 应用
-│   ├── components/         # 组件
-│   ├── pages/              # 页面路由
-│   ├── composables/        # 组合式函数
-│   └── stores/             # Pinia 状态管理
-├── packages/
-│   └── webgl-image/        # WebGL 图片查看器
-├── server/
-│   ├── api/                # API 路由
-│   ├── database/           # 数据库 schema 和迁移
-│   └── services/           # 业务逻辑服务
-└── shared/                 # 共享类型和工具
-```
-
-### 构建命令
+打开 `http://localhost:3000`，通过向导完成本地初始化。本地存储可以使用 `./data/storage`。
 
 ```bash
-# 开发模式 (包含依赖包构建)
-pnpm dev
-
-# 仅构建依赖包
-pnpm build:deps
-
-# 构建生产版本
-pnpm build
-
-# 数据库操作
-pnpm db:generate    # 生成迁移文件
-pnpm db:migrate     # 执行迁移
-
-# 预览生产版本
-pnpm preview
+pnpm lint          # Oxlint
+pnpm fmt:check     # Oxfmt
+pnpm build:deps    # 构建 WebGL 包
+pnpm build         # 构建应用
+pnpm docs:build    # 构建文档
 ```
 
-## 🤝 贡献
+修改数据库 schema 后，使用 `pnpm db:generate` 生成迁移并检查 SQL。仅启动项目时无需生成迁移。更多说明见[贡献指南](https://chronoframe.bh8.ga/zh/development/contributing)。
 
-欢迎贡献代码！请确保：
+## 🤝 贡献与交流
 
-1. Fork 本仓库
-2. 创建功能分支 (`git checkout -b feature/amazing-feature`)
-3. 提交更改 (`git commit -m 'Add some amazing feature'`)
-4. 推送到分支 (`git push origin feature/amazing-feature`)
-5. 开启 Pull Request
+欢迎提交问题和 Pull Request。请说明问题、改动后的行为和验证结果；文档改动请同步维护中文和英文。
 
-### 开发规范
-
-- 使用 TypeScript 进行类型安全的开发
-- 遵循 ESLint 和 Prettier 代码规范
-- 更新相关文档
-
-## 📄 许可证
-
-本项目基于 [MIT 许可证](LICENSE) 开源。
-
-## 👤 作者
-
-**Timothy Yin**
-
-- Email: master@uniiem.com
-- GitHub: [@HoshinoSuzumi](https://github.com/HoshinoSuzumi)
-- Website: [bh8.ga](https://bh8.ga)
-- Gallery: [lens.bh8.ga](https://lens.bh8.ga)
-
-## ❓ FAQ
-
-<details>
-  <summary>如何创建管理员用户？</summary>
-  <p>
-    首次启动时，会根据环境变量 <code>CFRAME_ADMIN_EMAIL</code>、<code>CFRAME_ADMIN_NAME</code> 和 <code>CFRAME_ADMIN_PASSWORD</code> 环境变量创建一个管理员用户。<code>CFRAME_ADMIN_EMAIL</code> 必须是登录使用的 GitHub 账户的邮箱。
-  </p>
-</details>
-<details>
-  <summary>支持哪些图片格式？</summary>
-  <p>
-    支持 JPEG、PNG、HEIC/HEIF、MOV(作为实况照片) 格式。
-  </p>
-</details>
-<details>
-  <summary>为什么无法使用 GitHub/Local 存储？</summary>
-  <p>
-    目前支持 S3 兼容存储，未来计划支持 GitHub 和本地文件系统存储。
-  </p>
-</details>
-<details>
-  <summary>为什么需要/如何配置地图服务？</summary>
-  <p>
-    地图服务用于在地图上浏览照片拍摄位置，以及照片详情中的小地图渲染。目前使用 Mapbox，注册后<a href="https://console.mapbox.com/account/access-tokens/">获取访问令牌</a>并配置到 <code>MAPBOX_TOKEN</code> 环境变量中。
-  </p>
-</details>
-<details>
-  <summary>为什么我上传的 MOV 文件没有被识别为实况照片？</summary>
-  <p>
-    需要确保实况照片对的图片(.heic)和视频(.mov)的文件名一致（例如 <code>IMG_1234.heic</code> 与 <code>IMG_1234.mov</code> 会自动匹配）。
-    一般情况来说，不管是上传 .heic 还是 .mov，都会检测一次配对，因此上传的顺序无关紧要。
-    如果仍然没有被识别为实况照片，请在仪表盘中找到图片，在操作菜单中手动触发配对检测。
-  </p>
-</details>
-<details>
-  <summary>如何导入存储中已有的照片？</summary>
-  <p>
-    目前不支持直接导入已有照片，未来计划支持通过指定目录扫描导入。
-  </p>
-</details>
+[GitHub Issues](https://github.com/HoshinoSuzumi/chronoframe/issues/new/choose) · [Discussions](https://github.com/HoshinoSuzumi/chronoframe/discussions) · [Discord](https://discord.gg/MM4ZK4Ed7s)
 
 ## 🙏 致谢
 
-本项目受启发于 Afilmory，同样优秀的个人相册项目。
-
-感谢以下优秀的开源项目和库：
-
-- [Nuxt](https://nuxt.com/)
-- [TailwindCSS](https://tailwindcss.com/)
-- [Drizzle ORM](https://orm.drizzle.team/)
+感谢 [Nuxt](https://nuxt.com/)、[Vue](https://vuejs.org/)、[Tailwind CSS](https://tailwindcss.com/)、[Drizzle ORM](https://orm.drizzle.team/) 及其他开源项目的维护者，也感谢参与测试、翻译和开发的贡献者。
 
 ## ⭐️ Star History
 

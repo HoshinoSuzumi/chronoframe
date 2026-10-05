@@ -8,8 +8,8 @@
   <a href="https://github.com/HoshinoSuzumi/chronoframe/releases/latest">
     <img src="https://badgen.net/github/release/HoshinoSuzumi/chronoframe/stable?icon=docker&label=stable" alt="Latest Release">
   </a>
-  <a href="https://github.com/HoshinoSuzumi/chronoframe/releases?q=beta&expanded=false">
-    <img src="https://badgen.net/github/release/HoshinoSuzumi/chronoframe?icon=docker&label=nightly" alt="Latest Nightly Release">
+  <a href="https://github.com/HoshinoSuzumi/chronoframe/releases">
+    <img src="https://badgen.net/github/release/HoshinoSuzumi/chronoframe?icon=docker&label=prerelease" alt="Latest Prerelease">
   </a>
   <img src="https://img.shields.io/badge/License-MIT-green.svg" alt="License">
 </p>
@@ -27,103 +27,24 @@
 
 **Languages:** English | [中文](README_zh.md)
 
-A smooth photo display and management application, supporting multiple image formats and large-size image rendering.
+ChronoFrame is a self-hosted photo gallery. Upload your photos and it extracts EXIF, creates previews and identifies shooting locations. Visitors can browse by time, album or map, zoom into large images and play Live Photos.
 
-[Live Demo: TimoYin's Mems](https://lens.bh8.ga)
+[Live demo](https://lens.bh8.ga) · [Documentation](https://chronoframe.bh8.ga/) · [Changelog](https://chronoframe.bh8.ga/changelog)
 
 ## ✨ Features
 
-### 🖼️ Powerful Photo Management
-
-- **Manage photos online** - Easily manage and browse photos via the web interface
-- **Explore map** - Browse photo locations on a map
-- **Smart EXIF parsing** - Automatically extracts metadata such as capture time, geolocation, and camera parameters
-- **Reverse geocoding** - Automatically identifies photo shooting locations
-- **Multi-format support** - Supports mainstream formats including JPEG, PNG, HEIC/HEIF
-- **Smart thumbnails** - Efficient thumbnail generation using ThumbHash
-
-### 🔧 Modern Tech Stack
-
-- **Nuxt 4** - Built on the latest Nuxt framework with SSR/SSG support
-- **TypeScript** - Full type safety
-- **TailwindCSS** - Modern CSS framework
-- **Drizzle ORM** - Type-safe database ORM
-
-### ☁️ Flexible Storage Solutions
-
-- **Multiple storage backends** - Supports S3-compatible storage, local filesystem
-- **CDN acceleration** - Configurable CDN URL for faster photo delivery
+- **Photo browsing**: masonry layout, filters and sorting, WebGL zoom and tiled rendering, histograms, original downloads and share previews.
+- **Live and Motion Photos**: automatic image/video pairing, with hover or long-press playback.
+- **Albums**: organize and reorder albums and photos, hide albums or protect them with passwords.
+- **Dashboard**: batch uploads, metadata and rating editing, batch downloads and reindexing; task queues, live logs and recent activity.
+- **Storage**: local files, S3-compatible services and OpenList, with storage schemes and CDN URLs managed in the dashboard.
+- **Maps and locations**: MapLibre / Mapbox maps, reverse geocoding and a choice of place-name language.
+- **Setup wizard**: create an administrator and configure your site and storage in the browser. Manage everyday settings in the dashboard.
+- **Languages and login**: dashboard language switching, email/password login and optional GitHub OAuth, custom analytics scripts and upload privacy settings.
 
 ## 🐳 Deployment
 
-We recommend deploying with the prebuilt Docker image. [View the image on ghcr](https://github.com/HoshinoSuzumi/chronoframe/pkgs/container/chronoframe)
-
-Create a `.env` file and configure environment variables.
-
-Below is a **minimal configuration** example. For complete configuration options, see [Configuration Guide](https://chronoframe.bh8.ga/guide/configuration.html):
-
-```bash
-# Admin email (required)
-CFRAME_ADMIN_EMAIL=
-# Admin username (optional, default Chronoframe)
-CFRAME_ADMIN_NAME=
-# Admin password (optional, default CF1234@!)
-CFRAME_ADMIN_PASSWORD=
-
-# Site metadata (all optional)
-NUXT_PUBLIC_APP_TITLE=
-NUXT_PUBLIC_APP_SLOGAN=
-NUXT_PUBLIC_APP_AUTHOR=
-NUXT_PUBLIC_APP_AVATAR_URL=
-
-# Map provider (maplibre/mapbox)
-NUXT_PUBLIC_MAP_PROVIDER=maplibre
-# MapTiler access token for MapLibre
-NUXT_PUBLIC_MAP_MAPLIBRE_TOKEN=
-# Mapbox access token for Mapbox
-NUXT_PUBLIC_MAPBOX_ACCESS_TOKEN=
-
-# Mapbox unrestricted token (optional, reverse geocoding)
-NUXT_MAPBOX_ACCESS_TOKEN=
-
-# Storage provider (local, s3 or openlist)
-NUXT_STORAGE_PROVIDER=local
-NUXT_PROVIDER_LOCAL_PATH=/app/data/storage
-
-# Session password (32‑char random string, required)
-NUXT_SESSION_PASSWORD=
-# Secret key for stable signing og images
-# Use: npx nuxt-og-image generate-secret
-NUXT_OG_IMAGE_SECRET=
-```
-
-### Pull Image
-
-Use the published image on GitHub Container Registry and Docker Hub. Choose the source that works best for your network:
-
-#### [GitHub Container Registry (GHCR)](https://github.com/HoshinoSuzumi/chronoframe/pkgs/container/chronoframe)
-
-```bash
-docker pull ghcr.io/hoshinosuzumi/chronoframe:latest
-```
-
-#### [Docker Hub](https://hub.docker.com/r/hoshinosuzumi/chronoframe)
-
-```bash
-docker pull hoshinosuzumi/chronoframe:latest
-```
-
-### Docker
-
-Run with customized environment variables:
-
-```bash
-docker run -d --name chronoframe -p 3000:3000 -v $(pwd)/data:/app/data --env-file .env ghcr.io/hoshinosuzumi/chronoframe:latest
-```
-
-### Docker Compose
-
-Create docker-compose.yml:
+Docker is the recommended option. Create `docker-compose.yml`:
 
 ```yaml
 services:
@@ -135,32 +56,35 @@ services:
       - '3000:3000'
     volumes:
       - ./data:/app/data
-    env_file:
-      - .env
 ```
-
-Start:
 
 ```bash
 docker compose up -d
 ```
 
-## 📖 User Guide
+You can also use `hoshinosuzumi/chronoframe:latest` from Docker Hub. Replace the tag with `v1.0.0` to pin the version.
 
-> If `CFRAME_ADMIN_EMAIL` and `CFRAME_ADMIN_PASSWORD` are not set, the default admin account is:
->
-> - Email: `admin@chronoframe.com`
-> - Password: `CF1234@!`
+To run directly with Docker:
 
-### Logging into the Dashboard
+```bash
+docker run -d --name chronoframe --restart unless-stopped \
+  -p 3000:3000 -v "$(pwd)/data:/app/data" \
+  ghcr.io/hoshinosuzumi/chronoframe:latest
+```
 
-1. Click avatar to sign in with GitHub OAuth or use email/password login
+Open `http://localhost:3000` and use the setup wizard to create your administrator and choose storage. For local storage, enter `/app/data/storage`. You can add a map token later and start uploading photos first.
 
-### Uploading Photos
+Keep the `./data` mount: it holds the database, settings, session secret and local photos when using the path above.
 
-1. Go to the dashboard at /dashboard
-2. On the Photos page, select and upload images (supports batch & drag-and-drop)
-3. System will automatically parse EXIF data, generate thumbnails, and perform reverse geocoding
+Use HTTPS for a public deployment. See [Getting Started](https://chronoframe.bh8.ga/guide/getting-started) and the [update guide](https://chronoframe.bh8.ga/guide/updates) for proxies, backups and migration from older versions.
+
+## 📖 Usage
+
+Sign in and open `/dashboard` to upload and organize photos. After upload, the task queue processes EXIF, thumbnails, locations and Live Photos. Failed tasks show an error and can be retried.
+
+For Apple Live Photos, the image and MOV must share a filename, such as `IMG_1234.heic` and `IMG_1234.mov`; either can be uploaded first. Image formats include JPEG, PNG, WebP, GIF, BMP, TIFF and HEIC / HEIF.
+
+Album passwords control access through ChronoFrame. If S3, OpenList or a CDN exposes public image URLs, manage access in that service too. Read [Using ChronoFrame](https://chronoframe.bh8.ga/guide/usage) for details.
 
 ## 📸 Screenshots
 
@@ -171,161 +95,35 @@ docker compose up -d
 
 ## 🛠️ Development
 
-### Requirements
-
-- Node.js 18+
-- pnpm 9.0+
-
-### Install dependencies
+Use Node.js 22 and the project's pinned pnpm 10.34.1:
 
 ```bash
-# With pnpm (recommended)
-pnpm install
-
-# Or with other package managers
-npm install
-yarn install
-```
-
-### Configure environment variables
-
-```bash
-cp .env.example .env
-```
-
-### Initialize database
-
-```bash
-# 2. Generate migration files (optional)
-pnpm db:generate
-
-# 3. Run database migrations
-pnpm db:migrate
-```
-
-### Start development server
-
-```bash
+corepack enable
+pnpm install --frozen-lockfile
 pnpm dev
 ```
 
-App will start at http://localhost:3000.
-
-### Project Structure
-
-```
-chronoframe/
-├── app/                    # Nuxt app
-│   ├── components/         # Components
-│   ├── pages/              # Page routes
-│   ├── composables/        # Composables
-│   └── stores/             # Pinia stores
-├── packages/
-│   └── webgl-image/        # WebGL image viewer
-├── server/
-│   ├── api/                # API routes
-│   ├── database/           # DB schema & migrations
-│   └── services/           # Business logic services
-└── shared/                 # Shared types & utils
-```
-
-### Build commands
+Open `http://localhost:3000` and complete local setup in the wizard. Use `./data/storage` for local development storage.
 
 ```bash
-# Development (with dependencies build)
-pnpm dev
-
-# Build only dependencies
-pnpm build:deps
-
-# Production build
-pnpm build
-
-# Database operations
-pnpm db:generate    # Generate migration files
-pnpm db:migrate     # Run migrations
-
-# Preview production build
-pnpm preview
+pnpm lint          # Oxlint
+pnpm fmt:check     # Oxfmt
+pnpm build:deps    # Build the WebGL package
+pnpm build         # Build the application
+pnpm docs:build    # Build documentation
 ```
 
-## 🤝 Contributing
+After changing the database schema, run `pnpm db:generate` and review the SQL. Generating migrations is unnecessary just to start the app. See the [contributing guide](https://chronoframe.bh8.ga/development/contributing) for more.
 
-Contributions are welcome! Please:
+## 🤝 Contributing and community
 
-1. Fork the repo
-2. Create a feature branch (git checkout -b feature/amazing-feature)
-3. Commit changes (git commit -m 'Add some amazing feature')
-4. Push to branch (git push origin feature/amazing-feature)
-5. Open a Pull Request
+Issues and pull requests are welcome. Explain the problem, resulting behavior and verification. Keep English and Chinese documentation in sync.
 
-### Coding Guidelines
-
-- Use TypeScript for type safety
-- Follow ESLint and Prettier conventions
-- Update documentation accordingly
-
-## 📄 License
-
-This project is licensed under the MIT License.
-
-## 👤 Author
-
-**Timothy Yin**
-
-- Email: master@uniiem.com
-- GitHub: @HoshinoSuzumi
-- Website: bh8.ga
-- Gallery: lens.bh8.ga
-
-## ❓ FAQ
-
-<details>
-  <summary>How is the admin user created?</summary>
-  <p>
-    On first startup, an admin user is created based on <code>CFRAME_ADMIN_EMAIL</code>, <code>CFRAME_ADMIN_NAME</code>, and <code>CFRAME_ADMIN_PASSWORD</code>. The email must match your GitHub account email used for login.
-  </p>
-</details>
-<details>
-  <summary>Which image formats are supported?</summary>
-  <p>
-    Supported formats: JPEG, PNG, HEIC/HEIF, MOV (for Live Photos).
-  </p>
-</details>
-<details>
-  <summary>Why can’t I use GitHub/Local storage?</summary>
-  <p>
-    Currently only S3-compatible storage is supported. GitHub and local storage support is planned.
-  </p>
-</details>
-<details>
-  <summary>Why is a map service required and how to configure it?</summary>
-  <p>
-    The map is used to browse photo locations and render mini-maps in photo details. Currently Mapbox is used. After registering, <a href="https://console.mapbox.com/account/access-tokens/">get an access token</a> and set it to the <code>MAPBOX_TOKEN</code> variable.
-  </p>
-</details>
-<details>
-  <summary>Why wasn’t my MOV file recognized as a Live Photo?</summary>
-  <p>
-    Ensure the image (.heic) and video (.mov) share the same filename (e.g., <code>IMG_1234.heic</code> and <code>IMG_1234.mov</code>). Upload order does not matter. If not recognized, you can trigger pairing manually from the dashboard.
-  </p>
-</details>
-<details>
-  <summary>How do I import existing photos from storage?</summary>
-  <p>
-    Direct import of existing photos is not yet supported. A directory scanning import feature is planned.
-  </p>
-</details>
+[GitHub Issues](https://github.com/HoshinoSuzumi/chronoframe/issues/new/choose) · [Discussions](https://github.com/HoshinoSuzumi/chronoframe/discussions) · [Discord](https://discord.gg/MM4ZK4Ed7s)
 
 ## 🙏 Acknowledgements
 
-This project was inspired by Afilmory, another excellent personal gallery project.
-
-Thanks to the following open-source projects and libraries:
-
-- [Nuxt](https://nuxt.com/)
-- [TailwindCSS](https://tailwindcss.com/)
-- [Drizzle ORM](https://orm.drizzle.team/)
+Thanks to the maintainers of [Nuxt](https://nuxt.com/), [Vue](https://vuejs.org/), [Tailwind CSS](https://tailwindcss.com/), [Drizzle ORM](https://orm.drizzle.team/) and other open-source dependencies, and everyone contributing testing, translations and code.
 
 ## ⭐️ Star History
 

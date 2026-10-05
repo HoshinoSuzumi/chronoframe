@@ -1,117 +1,44 @@
 # Update Guide
 
-This document will guide you through safely updating and upgrading ChronoFrame to the latest version.
+Read the [changelog](/changelog) before choosing a target version and review its migration notes. The dashboard overview shows your running version.
 
-## Version Check
+## Back up
 
-### View Current Version
-
-#### Through Web Interface
-
-1. Login to ChronoFrame admin dashboard
-2. Go to "Dashboard" page
-3. Check version number in "Runtime Information" panel
-
-## Update Process
-
-### Preparation
-
-#### 1. Data Backup
+Stop the container before copying the complete data directory and Compose file. If your older deployment uses `.env`, save it too. Back up local storage separately if it is outside `data`, and back up S3 or OpenList files in their storage service.
 
 ```bash
-# Stop service
-docker-compose down
-
-# Create complete backup
-ts=$(date +%Y%m%d-%H%M%S) && mkdir -p backups/$ts && cp -r data/ .env docker-compose.yml backups/$ts/
+docker compose stop chronoframe
+mkdir -p backups
+cp -a data "backups/data-$(date +%Y%m%d-%H%M%S)"
+cp docker-compose.yml backups/docker-compose.yml
 ```
 
-#### 2. Check Compatibility
+## Replace the image
 
-Review [Release Notes](https://github.com/HoshinoSuzumi/chronoframe/releases) to understand:
-
-- Breaking changes
-- New environment variables
-- Feature deprecation notices
-
-### Docker Compose Update (Recommended)
-
-#### Standard Update Process
+Change the image tag in Compose to the version you want, for example `v1.0.0`, then run:
 
 ```bash
-# 1. Enter project directory
-cd /path/to/chronoframe
-
-# 2. Backup current configuration
-cp docker-compose.yml docker-compose.yml.backup
-
-# 3. Stop current service
-docker-compose down
-
-# 4. Pull latest image
-docker-compose pull
-
-# 5. Start new version
-docker-compose up -d
-
-# 6. View startup logs
-docker-compose logs -f chronoframe
+docker compose pull chronoframe
+docker compose up -d chronoframe
+docker compose logs -f chronoframe
 ```
 
-#### Specific Version Update
+Database migrations run automatically at startup. Manual migration commands are normally unnecessary. The current runtime image has no shell or package manager, so older instructions using `docker exec ... sh` or `npx drizzle-kit migrate` inside the container do not apply.
 
-If you need to update to a specific version:
+For a `docker run` deployment, stop and remove the old container, then recreate it with the new tag and the same data mount. Preserve your ports, networks and any deployment environment variables you still need.
 
-```yaml
-# docker-compose.yml
-services:
-  chronoframe:
-    image: ghcr.io/hoshinosuzumi/chronoframe:v1.2.3 # Specify version
-    # ... other configurations
-```
+## From v0.14.1 to 1.0.0
 
-```bash
-docker-compose up -d
-```
+- Use `v1.0.0` to pin this release or `latest` to follow stable releases.
+- Keep your old environment variables during the first upgrade so the application can migrate recognized settings and storage schemes. Verify site details, maps, login and storage in the dashboard before cleaning up `.env`.
+- 1.0.0 fixes settings being overwritten on restart; dashboard settings remain in effect.
+- If setup appears after upgrading, use the existing administrator email and confirm the original storage path. Check the data mount and startup logs before proceeding; do not create an empty replacement data directory.
+- Preserve the session secret, database and storage paths. Deployment options such as proxy trust still belong in the runtime environment.
 
-### Single Container Update
+## Check the result
 
-```bash
-# Stop existing container
-docker stop chronoframe
-docker rm chronoframe
+Sign in, open several existing photos, upload a photo and check albums, maps and the task queue. 1.0.0 adds access restrictions for photos in hidden albums; check your public gallery after upgrading.
 
-# Pull latest image
-docker pull ghcr.io/hoshinosuzumi/chronoframe:latest
+## Roll back
 
-# Start new container with same configuration
-docker run -d \
-  --name chronoframe \
-  -p 3000:3000 \
-  -v $(pwd)/data:/app/data \
-  --env-file .env \
-  ghcr.io/hoshinosuzumi/chronoframe:latest
-```
-
-## Database Migration
-
-### Automatic Migration
-
-ChronoFrame automatically executes database migrations on startup:
-
-```bash
-# View migration logs
-docker logs chronoframe | grep -i migration
-```
-
-### Manual Migration (Advanced)
-
-In special cases, you may need to manually execute migrations:
-
-```bash
-# Enter container
-docker exec -it chronoframe sh
-
-# Execute migration
-npx drizzle-kit migrate
-```
+Migrations may change the database schema. To roll back, stop the new container, restore the complete backup from before the upgrade and start the original image tag. Downgrading only the image while retaining a migrated database is not a reliable rollback.
