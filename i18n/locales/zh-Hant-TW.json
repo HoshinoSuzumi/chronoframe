@@ -175,6 +175,7 @@
     "passwordRequired": "此相簿需要密碼",
     "passwordPlaceholder": "輸入相簿密碼",
     "incorrectPassword": "密碼錯誤",
+    "tooManyAttempts": "嘗試次數過多。請在一分鐘內再試。",
     "unlock": "解鎖相簿",
     "notFound": "找不到相簿",
     "noDateInfo": "無日期資訊",

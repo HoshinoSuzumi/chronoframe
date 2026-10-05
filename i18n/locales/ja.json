@@ -161,6 +161,7 @@
     "passwordRequired": "パスワードが必要です",
     "passwordPlaceholder": "アルバムのパスワードを入力",
     "incorrectPassword": "パスワードが正しくありません",
+    "tooManyAttempts": "試行回数が多すぎます。1分以内に再度お試しください。",
     "unlock": "アルバムのロックを解除",
     "notFound": "アルバムが見つかりません",
     "noDateInfo": "日付情報なし",
