@@ -1,3 +1,5 @@
+import { resolveUploadContentType } from '~~/shared/utils/mime'
+
 export interface UploadProgress {
   loaded: number
   total: number
@@ -176,96 +178,148 @@ export function useUpload(options: UseUploadOptions = {}) {
         }
       })
 
-      // 成功处理
-      xhr.addEventListener('load', () => {
+      // 根据 HTTP 状态码生成错误信息，并尽量附带服务端返回的详细说明
+      const buildHttpErrorMessage = (): string => {
+        let errorMessage = ''
+        switch (xhr.status) {
+          case 400:
+            errorMessage = t('upload.runtimeError.badRequest')
+            break
+          case 401:
+            errorMessage = t('upload.runtimeError.unauthorized')
+            break
+          case 403:
+            errorMessage = t('upload.runtimeError.forbidden')
+            break
+          case 404:
+            errorMessage = t('upload.runtimeError.notFound')
+            break
+          case 409:
+            errorMessage = t('upload.runtimeError.conflict')
+            break
+          case 413:
+            errorMessage = t('upload.runtimeError.fileTooLarge')
+            break
+          case 415:
+            errorMessage = t('upload.runtimeError.unsupportedType')
+            break
+          case 429:
+            errorMessage = t('upload.runtimeError.rateLimited')
+            break
+          case 500:
+            errorMessage = t('upload.runtimeError.internalServerError')
+            break
+          case 502:
+          case 503:
+          case 504:
+            errorMessage = t('upload.runtimeError.serviceUnavailable')
+            break
+          default:
+            errorMessage = t('upload.runtimeError.httpError', {
+              status: xhr.status,
+            })
+        }
+
+        // 尝试获取服务器返回的详细错误信息
+        try {
+          const responseText = xhr.responseText
+          if (responseText) {
+            try {
+              const responseData = JSON.parse(responseText)
+              if (responseData.data?.message) {
+                errorMessage = responseData.data.title || errorMessage
+              }
+            } catch {
+              // 如果不是 JSON，使用原始文本
+              errorMessage += ` - ${responseText}`
+            }
+          }
+        } catch {
+          // 忽略解析错误
+        }
+
+        return errorMessage
+      }
+
+      // 统一的失败处理：可重试时延迟重试，否则上报错误
+      const failUpload = (errorMessage: string, canRetry: boolean) => {
         const endTime = Date.now()
-        updateStatus({ status: 'success', endTime })
-        callbacks.onStatusChange?.('success')
-        callbacks.onSuccess?.(xhr)
-        resolve(xhr)
+
+        if (canRetry && attempt < maxRetries) {
+          updateStatus({
+            status: 'error',
+            error: t('upload.runtimeError.retrying', {
+              message: errorMessage,
+              attempt,
+              max: maxRetries,
+            }),
+            endTime,
+          })
+          callbacks.onRetry?.(attempt, maxRetries)
+
+          // 延迟后重试
+          setTimeout(() => {
+            uploadFile(file, signedUrl, callbacks, attempt + 1)
+              .then(resolve)
+              .catch(reject)
+          }, retryDelay * attempt) // 指数退避
+          return
+        }
+
+        updateStatus({ status: 'error', error: errorMessage, endTime })
+        callbacks.onStatusChange?.('error')
+        callbacks.onError?.(errorMessage, xhr)
+        reject(new Error(errorMessage))
+      }
+
+      // 响应到达。注意 `load` 对任何 HTTP 状态码都会触发（包括 4xx/5xx），
+      // 只有 2xx 才算上传成功，否则调用方会为一个并不存在的文件创建处理任务
+      xhr.addEventListener('load', () => {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          const endTime = Date.now()
+          updateStatus({ status: 'success', endTime })
+          callbacks.onStatusChange?.('success')
+          callbacks.onSuccess?.(xhr)
+          resolve(xhr)
+          return
+        }
+
+        // 服务器错误和频率限制可以重试，客户端错误（如 413/415）重试无意义
+        const canRetry = xhr.status >= 500 || xhr.status === 429
+        failUpload(buildHttpErrorMessage(), canRetry)
       })
 
-      // 错误处理
+      // 网络层错误（连接失败、CORS、服务器不可达等），此时通常没有状态码
       xhr.addEventListener('error', () => {
-        const endTime = Date.now()
         let errorMessage = ''
 
         if (xhr.status === 0) {
           // 状态码 0 通常表示网络连接失败、CORS 问题或服务器不可达
           errorMessage = t('upload.runtimeError.networkFailed')
         } else if (xhr.status >= 400 && xhr.status < 500) {
-          errorMessage = t('upload.runtimeError.clientError', { status: xhr.status })
-        } else if (xhr.status >= 500) {
-          errorMessage = t('upload.runtimeError.serverError', { status: xhr.status })
-        } else {
-          errorMessage = t('upload.runtimeError.networkError', { status: xhr.status })
-        }
-
-        // 检查是否可以重试
-        const canRetry =
-          attempt < maxRetries &&
-          (xhr.status === 0 || // 网络错误
-            xhr.status >= 500 || // 服务器错误
-            xhr.status === 429) // 频率限制
-
-        if (canRetry) {
-          updateStatus({
-            status: 'error',
-            error: t('upload.runtimeError.retrying', {
-              message: errorMessage,
-              attempt,
-              max: maxRetries,
-            }),
-            endTime,
+          errorMessage = t('upload.runtimeError.clientError', {
+            status: xhr.status,
           })
-          callbacks.onRetry?.(attempt, maxRetries)
-
-          // 延迟后重试
-          setTimeout(() => {
-            uploadFile(file, signedUrl, callbacks, attempt + 1)
-              .then(resolve)
-              .catch(reject)
-          }, retryDelay * attempt) // 指数退避
+        } else if (xhr.status >= 500) {
+          errorMessage = t('upload.runtimeError.serverError', {
+            status: xhr.status,
+          })
         } else {
-          updateStatus({ status: 'error', error: errorMessage, endTime })
-          callbacks.onStatusChange?.('error')
-          callbacks.onError?.(errorMessage, xhr)
-          reject(new Error(errorMessage))
+          errorMessage = t('upload.runtimeError.networkError', {
+            status: xhr.status,
+          })
         }
+
+        const canRetry =
+          xhr.status === 0 || // 网络错误
+          xhr.status >= 500 || // 服务器错误
+          xhr.status === 429 // 频率限制
+        failUpload(errorMessage, canRetry)
       })
 
-      // 超时处理
+      // 超时处理（超时也可以重试）
       xhr.addEventListener('timeout', () => {
-        const endTime = Date.now()
-        const errorMessage = t('upload.runtimeError.timeout', { timeout })
-
-        // 检查是否可以重试（超时也可以重试）
-        const canRetry = attempt < maxRetries
-
-        if (canRetry) {
-          updateStatus({
-            status: 'error',
-            error: t('upload.runtimeError.retrying', {
-              message: errorMessage,
-              attempt,
-              max: maxRetries,
-            }),
-            endTime,
-          })
-          callbacks.onRetry?.(attempt, maxRetries)
-
-          // 延迟后重试
-          setTimeout(() => {
-            uploadFile(file, signedUrl, callbacks, attempt + 1)
-              .then(resolve)
-              .catch(reject)
-          }, retryDelay * attempt) // 指数退避
-        } else {
-          updateStatus({ status: 'error', error: errorMessage, endTime })
-          callbacks.onStatusChange?.('error')
-          callbacks.onError?.(errorMessage, xhr)
-          reject(new Error(errorMessage))
-        }
+        failUpload(t('upload.runtimeError.timeout', { timeout }), true)
       })
 
       // 中止处理
@@ -277,86 +331,14 @@ export function useUpload(options: UseUploadOptions = {}) {
         reject(new Error(t('upload.runtimeError.aborted')))
       })
 
-      // 状态变化处理
-      xhr.addEventListener('readystatechange', () => {
-        if (xhr.readyState === XMLHttpRequest.DONE) {
-          if (xhr.status >= 200 && xhr.status < 300) {
-            // 成功情况在 load 事件中处理
-            return
-          } else if (xhr.status >= 400) {
-            const endTime = Date.now()
-            let errorMessage = ''
-
-            // 根据状态码提供更友好的错误信息
-            switch (xhr.status) {
-              case 400:
-                errorMessage = t('upload.runtimeError.badRequest')
-                break
-              case 401:
-                errorMessage = t('upload.runtimeError.unauthorized')
-                break
-              case 403:
-                errorMessage = t('upload.runtimeError.forbidden')
-                break
-              case 404:
-                errorMessage = t('upload.runtimeError.notFound')
-                break
-              case 409:
-                errorMessage = t('upload.runtimeError.conflict')
-                break
-              case 413:
-                errorMessage = t('upload.runtimeError.fileTooLarge')
-                break
-              case 415:
-                errorMessage = t('upload.runtimeError.unsupportedType')
-                break
-              case 429:
-                errorMessage = t('upload.runtimeError.rateLimited')
-                break
-              case 500:
-                errorMessage = t('upload.runtimeError.internalServerError')
-                break
-              case 502:
-              case 503:
-              case 504:
-                errorMessage = t('upload.runtimeError.serviceUnavailable')
-                break
-              default:
-                errorMessage = t('upload.runtimeError.httpError', { status: xhr.status })
-            }
-
-            // 尝试获取服务器返回的详细错误信息
-            try {
-              const responseText = xhr.responseText
-              if (responseText) {
-                try {
-                  const responseData = JSON.parse(responseText)
-                  if (responseData.data?.message) {
-                    errorMessage = responseData.data.title || errorMessage
-                  }
-                } catch {
-                  // 如果不是 JSON，使用原始文本
-                  errorMessage += ` - ${responseText}`
-                }
-              }
-            } catch {
-              // 忽略解析错误
-            }
-
-            updateStatus({ status: 'error', error: errorMessage, endTime })
-            callbacks.onStatusChange?.('error')
-            callbacks.onError?.(errorMessage, xhr)
-          }
-        }
-      })
-
       // 准备请求
       xhr.open('PUT', signedUrl)
 
-      // 设置请求头
+      // 设置请求头。部分浏览器/系统（Windows、Android）对 HEIC 等格式
+      // 不提供 file.type，此时按扩展名推断，避免被服务端 MIME 白名单拒绝
       xhr.setRequestHeader(
         'Content-Type',
-        file.type || 'application/octet-stream',
+        resolveUploadContentType(file.name, file.type),
       )
 
       // 设置自定义请求头
