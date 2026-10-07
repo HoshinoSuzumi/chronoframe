@@ -560,6 +560,10 @@ const confirmStorageDelete = async () => {
                       <UInput v-model="storageConfigState.name" />
                     </UFormField>
 
+                    <AlbumProtectionWarning
+                      v-if="storageConfigState.provider !== 'local'"
+                    />
+
                     <USeparator />
 
                     <AutoForm

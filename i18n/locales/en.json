@@ -1,4 +1,8 @@
 {
+  "albumProtectionWarning": {
+    "title": "Album password protection limitations",
+    "description": "Album passwords cannot protect public S3, OpenList or CDN photo URLs: anyone with a direct link can still access the file without the password. Use local storage for protected albums. Changing the password or default storage does not revoke existing links or cached copies. If photos were already public, disable public access at the storage/CDN, clear caches and change object URLs."
+  },
   "plural": {
     "photo": "no photos | one photo | {count} photos"
   },
@@ -157,6 +161,7 @@
     "passwordRequired": "Password required",
     "passwordPlaceholder": "Enter album password",
     "incorrectPassword": "Incorrect password",
+    "tooManyAttempts": "Too many attempts. Try again within a minute.",
     "unlock": "Unlock album",
     "notFound": "Album not found",
     "noDateInfo": "No date info",
@@ -876,7 +881,10 @@
         "password": "Password",
         "passwordPlaceholder": "Enter a password",
         "passwordKeepHint": "Leave blank to keep the current password",
+        "passwordLengthHint": "Must be {min}–{max} characters",
         "passwordRequired": "Please enter a password",
+        "passwordTooShort": "Password must be at least {min} characters",
+        "passwordTooLong": "Password must be at most {max} characters",
         "movePhotoUp": "Move photo up",
         "movePhotoDown": "Move photo down",
         "removePhoto": "Remove photo"
@@ -1100,8 +1108,11 @@
         "levelPlaceholder": "Filter level",
         "tagPlaceholder": "Filter Tag"
       },
-      "countLabel": "Total/Shown: {total}/{shown}",
-      "tagCount": "Tags: {count}",
+      "loadedCount": "{count} logs loaded",
+      "matchedCount": "{count} matches",
+      "errorCount": "Errors {count}",
+      "warningCount": "Warnings {count}",
+      "timeRange": "Time range: {start} – {end}",
       "empty": {
         "waiting": "Waiting for log data...",
         "noMatch": "No matching log entries"

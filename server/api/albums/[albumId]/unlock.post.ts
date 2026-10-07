@@ -1,53 +1,27 @@
 import { eq } from 'drizzle-orm'
-import type { H3Event } from 'h3'
 import { z } from 'zod'
+import { ALBUM_PASSWORD_MAX_LENGTH } from '~~/shared/utils/album-password'
 import {
   grantAlbumAccess,
   verifyAlbumPassword,
 } from '../../../utils/album-access'
+import {
+  assertAlbumUnlockRateLimit,
+  clearAlbumUnlockClient,
+} from '../../../utils/album-unlock-limit'
 
-const UNLOCK_WINDOW_MS = 60_000
-const UNLOCK_MAX_ATTEMPTS = 8
-const UNLOCK_MAX_ENTRIES = 5_000
-const unlockAttempts = new Map<string, { count: number; resetAt: number }>()
 const trustProxy = process.env.NUXT_TRUST_PROXY === 'true'
-
-function pruneUnlockAttempts(now: number) {
-  for (const [key, attempt] of unlockAttempts) {
-    if (attempt.resetAt <= now) unlockAttempts.delete(key)
-  }
-}
-
-function assertUnlockRateLimit(event: H3Event, albumId: number) {
-  const ip = getRequestIP(event, { xForwardedFor: trustProxy }) || 'unknown'
-  const now = Date.now()
-  pruneUnlockAttempts(now)
-  const key = `${albumId}:${ip}`
-  const attempt = unlockAttempts.get(key)
-  if (!attempt || attempt.resetAt <= now) {
-    if (unlockAttempts.size >= UNLOCK_MAX_ENTRIES) {
-      unlockAttempts.delete(unlockAttempts.keys().next().value as string)
-    }
-    unlockAttempts.set(key, { count: 1, resetAt: now + UNLOCK_WINDOW_MS })
-    return
-  }
-  if (attempt.count >= UNLOCK_MAX_ATTEMPTS) {
-    throw createError({
-      statusCode: 429,
-      statusMessage: 'Too many unlock attempts',
-    })
-  }
-  attempt.count += 1
-}
 
 export default eventHandler(async (event) => {
   const { albumId } = await getValidatedRouterParams(
     event,
     z.object({ albumId: z.coerce.number().int().positive() }).parse,
   )
+  // Keep min(1) so albums set before the stronger length policy can still unlock.
   const { password } = await readValidatedBody(
     event,
-    z.object({ password: z.string().min(1).max(128) }).parse,
+    z.object({ password: z.string().min(1).max(ALBUM_PASSWORD_MAX_LENGTH) })
+      .parse,
   )
   const clientIp =
     getRequestIP(event, { xForwardedFor: trustProxy }) || 'unknown'
@@ -59,14 +33,14 @@ export default eventHandler(async (event) => {
   if (!album || album.isHidden || !album.passwordHash) {
     throw createError({ statusCode: 404, statusMessage: 'Album not found' })
   }
-  assertUnlockRateLimit(event, albumId)
+  assertAlbumUnlockRateLimit(albumId, clientIp)
   if (!(await verifyAlbumPassword(password, album.passwordHash))) {
     throw createError({
       statusCode: 401,
       statusMessage: 'Incorrect album password',
     })
   }
-  unlockAttempts.delete(`${albumId}:${clientIp}`)
+  clearAlbumUnlockClient(albumId, clientIp)
   grantAlbumAccess(event, album.id, album.passwordHash)
   return { ok: true }
 })

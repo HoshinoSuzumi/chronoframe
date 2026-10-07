@@ -1,6 +1,11 @@
 <script lang="ts" setup>
 import type { Album, Photo } from '~~/server/utils/db'
 import type { FormSubmitEvent, FormError } from '@nuxt/ui'
+import {
+  ALBUM_PASSWORD_MAX_LENGTH,
+  ALBUM_PASSWORD_MIN_LENGTH,
+  isValidAlbumPasswordLength,
+} from '~~/shared/utils/album-password'
 
 definePageMeta({
   layout: 'dashboard',
@@ -24,6 +29,22 @@ interface AlbumFormState {
   password: string
   passwordEnabled: boolean
 }
+
+const { data: currentStorageProvider } = await useFetch<{
+  namespace: string
+  key: string
+  value: SettingValue
+}>('/api/system/settings/storage/provider')
+const { data: availableStorage } = await useFetch<SettingStorageProvider[]>(
+  '/api/system/settings/storage-config',
+)
+
+const isCurrentStorageNonLocal = computed(() => {
+  const provider = availableStorage.value?.find(
+    (item) => item.id === currentStorageProvider.value?.value,
+  )
+  return Boolean(provider && provider.provider !== 'local')
+})
 
 const albums = ref<AlbumItem[]>([])
 const isLoadingAlbums = ref(false)
@@ -76,8 +97,31 @@ const validateForm = (state: any): FormError[] => {
       message: $t('dashboard.albums.form.titleRequired'),
     })
   }
-  if (state.passwordEnabled && !state.password && !currentAlbum.value?.hasPassword) {
-    errors.push({ name: 'password', message: $t('dashboard.albums.form.passwordRequired') })
+  if (state.passwordEnabled) {
+    if (!state.password) {
+      if (!currentAlbum.value?.hasPassword) {
+        errors.push({
+          name: 'password',
+          message: $t('dashboard.albums.form.passwordRequired'),
+        })
+      }
+    } else if (!isValidAlbumPasswordLength(state.password)) {
+      if (state.password.length < ALBUM_PASSWORD_MIN_LENGTH) {
+        errors.push({
+          name: 'password',
+          message: $t('dashboard.albums.form.passwordTooShort', {
+            min: ALBUM_PASSWORD_MIN_LENGTH,
+          }),
+        })
+      } else {
+        errors.push({
+          name: 'password',
+          message: $t('dashboard.albums.form.passwordTooLong', {
+            max: ALBUM_PASSWORD_MAX_LENGTH,
+          }),
+        })
+      }
+    }
   }
   return errors
 }
@@ -92,9 +136,10 @@ const loadAlbums = async () => {
     }))
 
     for (const album of albums.value) {
-      if (album.coverPhotoId && allPhotos.value.length > 0) {
+      const displayCoverPhotoId = album.coverPhotoId || album.photoIds?.[0]
+      if (displayCoverPhotoId && allPhotos.value.length > 0) {
         const coverPhoto = allPhotos.value.find(
-          (p) => p.id === album.coverPhotoId,
+          (p) => p.id === displayCoverPhotoId,
         )
         if (coverPhoto) {
           album.coverPhoto = coverPhoto
@@ -177,7 +222,8 @@ const onFormSubmit = async (event: FormSubmitEvent<AlbumFormState>) => {
           photoIds: selectedPhotoIds.value,
           isHidden: event.data.isHidden,
           password: event.data.passwordEnabled
-            ? (event.data.password || undefined) : '',
+            ? event.data.password || undefined
+            : '',
         },
       })
 
@@ -196,7 +242,9 @@ const onFormSubmit = async (event: FormSubmitEvent<AlbumFormState>) => {
           coverPhotoId: coverPhotoId.value || undefined,
           photoIds: selectedPhotoIds.value,
           isHidden: event.data.isHidden,
-          password: event.data.passwordEnabled ? event.data.password : undefined,
+          password: event.data.passwordEnabled
+            ? event.data.password
+            : undefined,
         },
       })
 
@@ -537,7 +585,7 @@ const columns = computed<any[]>(() => [
                   class="w-full h-full flex items-center justify-center text-gray-400 dark:text-gray-600"
                 >
                   <Icon
-                    name="tabler:image"
+                    name="tabler:photo"
                     size="20"
                   />
                 </div>
@@ -579,7 +627,12 @@ const columns = computed<any[]>(() => [
                 variant="soft"
                 color="neutral"
               >
-                {{ $t('dashboard.albums.photoCount', { count: (row.original as unknown as AlbumItem).photoCount || 0 }) }}
+                {{
+                  $t('dashboard.albums.photoCount', {
+                    count:
+                      (row.original as unknown as AlbumItem).photoCount || 0,
+                  })
+                }}
               </UBadge>
             </template>
 
@@ -609,7 +662,9 @@ const columns = computed<any[]>(() => [
                   color="neutral"
                   size="xs"
                   icon="tabler:chevron-down"
-                  :disabled="row.index === albums.length - 1 || isReorderingAlbums"
+                  :disabled="
+                    row.index === albums.length - 1 || isReorderingAlbums
+                  "
                   :aria-label="$t('dashboard.albums.actions.moveDown')"
                   @click="moveAlbum(row.index, 1)"
                 />
@@ -758,14 +813,38 @@ const columns = computed<any[]>(() => [
                   <UCheckbox
                     v-model="formData.passwordEnabled"
                     :label="$t('dashboard.albums.form.passwordProtection')"
-                    :description="$t('dashboard.albums.form.passwordProtectionHint')"
+                    :description="
+                      $t('dashboard.albums.form.passwordProtectionHint')
+                    "
                   />
                 </UFormField>
-                <UFormField v-if="formData.passwordEnabled"
-                  :label="$t('dashboard.albums.form.password')" name="password"
-                  :hint="currentAlbum?.hasPassword ? $t('dashboard.albums.form.passwordKeepHint') : undefined">
-                  <UInput v-model="formData.password" type="password" autocomplete="new-password"
-                    class="w-full" :placeholder="$t('dashboard.albums.form.passwordPlaceholder')" />
+                <AlbumProtectionWarning
+                  v-if="formData.passwordEnabled && isCurrentStorageNonLocal"
+                />
+                <UFormField
+                  v-if="formData.passwordEnabled"
+                  :label="$t('dashboard.albums.form.password')"
+                  name="password"
+                  :hint="
+                    currentAlbum?.hasPassword
+                      ? $t('dashboard.albums.form.passwordKeepHint')
+                      : $t('dashboard.albums.form.passwordLengthHint', {
+                          min: ALBUM_PASSWORD_MIN_LENGTH,
+                          max: ALBUM_PASSWORD_MAX_LENGTH,
+                        })
+                  "
+                >
+                  <UInput
+                    v-model="formData.password"
+                    type="password"
+                    autocomplete="new-password"
+                    class="w-full"
+                    :minlength="ALBUM_PASSWORD_MIN_LENGTH"
+                    :maxlength="ALBUM_PASSWORD_MAX_LENGTH"
+                    :placeholder="
+                      $t('dashboard.albums.form.passwordPlaceholder')
+                    "
+                  />
                 </UFormField>
               </UForm>
 
@@ -1179,7 +1258,11 @@ const columns = computed<any[]>(() => [
                           <p
                             class="truncate text-[10px] font-medium text-white/92"
                           >
-                            {{ photo.title || photo.storageKey || $t('ui.photo.untitled') }}
+                            {{
+                              photo.title ||
+                              photo.storageKey ||
+                              $t('ui.photo.untitled')
+                            }}
                           </p>
                           <p class="truncate text-[9px] text-white/72">
                             {{

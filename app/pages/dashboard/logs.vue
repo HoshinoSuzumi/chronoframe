@@ -15,33 +15,46 @@ interface LogEntry {
   raw: string
 }
 
-const logs = ref<LogEntry[]>([])
+const logs = shallowRef<LogEntry[]>([])
 const searchQuery = ref('')
 const selectedLevels = ref<string[]>([])
 const selectedTags = ref<string[]>([])
 const autoScroll = ref(true)
 const isConnected = ref(false)
-const connectionState = ref<'idle' | 'connecting' | 'loadingHistory' | 'live' | 'error'>('idle')
+const connectionState = ref<
+  'idle' | 'connecting' | 'loadingHistory' | 'live' | 'error'
+>('idle')
 const logContainer = ref<HTMLElement>()
 const isInitialLoading = ref(false)
-const loadingProgress = ref(0)
 const normalizedSearchQuery = computed(() =>
   searchQuery.value.trim().toLowerCase(),
 )
 const scrollTop = ref(0)
 const containerHeight = ref(0)
+const historyCursor = ref(0)
+const isLoadingOlder = ref(false)
+let liveOffset = 0
+let fileIdentity = ''
+let requestController: AbortController | null = null
+let reconnectTimer: ReturnType<typeof setTimeout> | null = null
+let disposed = false
+let isPositioningInitialLogs = false
+let smoothScrollTarget: number | null = null
+const cancelSmoothScroll = () => {
+  smoothScrollTarget = null
+}
 
-// 批处理队列
-const batchQueue = ref<LogEntry[]>([])
-const isBatchProcessing = ref(false)
-const MAX_LOG_LINES = 6000
-const TRIM_TO_LOG_LINES = 4000
-const BATCH_SIZE = 100 // 每批处理的日志条数
-const BATCH_DELAY = 8 // 每批处理间隔（毫秒）
-const INITIAL_LOG_LINES = 'all'
+interface LogPage {
+  lines: string[]
+  before: number
+  offset: number
+  identity: string
+}
+
 const ROW_HEIGHT = 28
 const VIRTUAL_OVERSCAN = 20
 const VIRTUAL_BOTTOM_PADDING = 8
+const HISTORY_LOAD_THRESHOLD = ROW_HEIGHT * 10
 
 let resizeObserver: ResizeObserver | null = null
 
@@ -62,53 +75,6 @@ const getLevelType = (level: number): string => {
 // EventSource 连接
 let eventSource: EventSource | null = null
 
-// 批处理添加日志
-const addLogEntry = (logEntry: LogEntry) => {
-  batchQueue.value.push(logEntry)
-  if (!isBatchProcessing.value) {
-    processBatch()
-  }
-}
-
-// 处理批队列
-const processBatch = async () => {
-  if (isBatchProcessing.value || batchQueue.value.length === 0) return
-
-  isBatchProcessing.value = true
-
-  while (batchQueue.value.length > 0) {
-    const batch = batchQueue.value.splice(0, BATCH_SIZE)
-    logs.value.push(...batch)
-
-    // 限制日志条数，避免内存泄漏
-    if (logs.value.length > MAX_LOG_LINES) {
-      logs.value = logs.value.slice(-TRIM_TO_LOG_LINES)
-    }
-
-    // 更新加载进度（只在初始加载时显示）
-    if (isInitialLoading.value) {
-      loadingProgress.value = Math.min(
-        95,
-        loadingProgress.value + batch.length * 0.05,
-      )
-    }
-
-    // 自动滚动到底部
-    if (autoScroll.value) {
-      await scrollToBottom()
-    }
-
-    // 如果还有更多批次，延迟处理以避免阻塞UI
-    if (batchQueue.value.length > 0) {
-      await new Promise((resolve) => setTimeout(resolve, BATCH_DELAY))
-    }
-  }
-
-  isBatchProcessing.value = false
-
-  // 注意：初始加载完成现在由消息超时检测控制，不在这里处理
-}
-
 // 解析日志行
 const parseLogLine = (line: string): LogEntry | null => {
   try {
@@ -127,7 +93,7 @@ const parseLogLine = (line: string): LogEntry | null => {
       message,
       messageLower: message.toLowerCase(),
       type: logData.type || 'info',
-      level: logData.level || 3,
+      level: logData.level ?? 3,
       tag,
       tagLower: tag.toLowerCase(),
       raw: line,
@@ -178,6 +144,34 @@ const filteredLogs = computed(() => {
   return filtered
 })
 
+const hasActiveFilters = computed(() =>
+  Boolean(
+    normalizedSearchQuery.value ||
+    selectedLevels.value.length ||
+    selectedTags.value.length,
+  ),
+)
+
+// Summarize the loaded window, rather than implying a count of the full archive.
+const logSummary = computed(() => {
+  let errors = 0
+  let warnings = 0
+  for (const log of logs.value) {
+    const type = log.type || getLevelType(log.level)
+    if (type === 'error') errors++
+    if (type === 'warn') warnings++
+  }
+  const first = logs.value[0]?.date
+  const last = logs.value.at(-1)?.date
+  const hasTimeRange = Boolean(
+    first &&
+    last &&
+    Number.isFinite(Date.parse(first)) &&
+    Number.isFinite(Date.parse(last)),
+  )
+  return { errors, warnings, first, last, hasTimeRange }
+})
+
 const availableTags = computed(() => {
   const tags = new Set<string>()
   for (const log of logs.value) {
@@ -192,6 +186,24 @@ const availableTags = computed(() => {
       label: tag,
       value: tag,
     }))
+})
+
+const tagMeasureContext = shallowRef<CanvasRenderingContext2D | null>(null)
+const timeColumnWidth = computed(() => {
+  const width = tagMeasureContext.value?.measureText('23:59:59.999').width ?? 96
+  return `${Math.ceil(width) + 16}px`
+})
+const tagColumnWidth = computed(() => {
+  const context = tagMeasureContext.value
+  let width = 0
+  for (const tag of availableTags.value) {
+    // The fallback also reserves enough room for full-width characters.
+    const measured = context
+      ? context.measureText(tag.value).width
+      : Array.from(tag.value).length * 12
+    width = Math.max(width, measured)
+  }
+  return `${Math.ceil(width) + 16}px`
 })
 
 const totalVirtualHeight = computed(
@@ -267,7 +279,10 @@ const getLogLineStyle = (log: LogEntry) => {
 const getConnectionStatusClass = () => {
   if (connectionState.value === 'live') {
     return 'text-success'
-  } else if (connectionState.value === 'connecting' || connectionState.value === 'loadingHistory') {
+  } else if (
+    connectionState.value === 'connecting' ||
+    connectionState.value === 'loadingHistory'
+  ) {
     return 'text-info'
   } else if (connectionState.value === 'error') {
     return 'text-error'
@@ -286,7 +301,10 @@ const getConnectionStatusColor = ():
   if (connectionState.value === 'live') {
     return 'success'
   }
-  if (connectionState.value === 'connecting' || connectionState.value === 'loadingHistory') {
+  if (
+    connectionState.value === 'connecting' ||
+    connectionState.value === 'loadingHistory'
+  ) {
     return 'info'
   }
   if (connectionState.value === 'error') {
@@ -314,15 +332,21 @@ const highlightSearch = (content: string) => {
 const toggleAutoScroll = () => {
   autoScroll.value = !autoScroll.value
   if (autoScroll.value) {
-    scrollToBottom()
+    void scrollToBottom('smooth')
   }
 }
 
 // 滚动到底部
-const scrollToBottom = async () => {
+const scrollToBottom = async (behavior: ScrollBehavior = 'instant') => {
   await nextTick()
-  if (logContainer.value) {
-    logContainer.value.scrollTop = logContainer.value.scrollHeight
+  if (logContainer.value && autoScroll.value && !disposed) {
+    const top = Math.max(
+      0,
+      logContainer.value.scrollHeight - logContainer.value.clientHeight,
+    )
+    smoothScrollTarget = behavior === 'smooth' ? top : null
+    if (behavior !== 'smooth') scrollTop.value = top
+    logContainer.value.scrollTo({ top, behavior })
   }
 }
 
@@ -335,8 +359,21 @@ const handleScroll = () => {
     scrollHeight,
     clientHeight,
   } = logContainer.value
+  const previousTop = scrollTop.value
   scrollTop.value = currentScrollTop
   containerHeight.value = clientHeight
+  // Animation frames are programmatic scrolling, not upward history navigation.
+  if (smoothScrollTarget !== null) {
+    if (Math.abs(currentScrollTop - smoothScrollTarget) <= 1)
+      smoothScrollTarget = null
+    else return
+  }
+  if (
+    isInitialLoading.value ||
+    isPositioningInitialLogs ||
+    isLoadingOlder.value
+  )
+    return
   const isNearBottom = currentScrollTop + clientHeight >= scrollHeight - 50 // 距离底部50px以内
   const isAtTop = currentScrollTop + clientHeight < scrollHeight - 200 // 距离底部200px以上
 
@@ -348,71 +385,143 @@ const handleScroll = () => {
   else if (isAtTop && autoScroll.value) {
     autoScroll.value = false
   }
+
+  if (
+    currentScrollTop < previousTop &&
+    currentScrollTop <= HISTORY_LOAD_THRESHOLD &&
+    !autoScroll.value
+  ) {
+    void loadOlderLogs()
+  }
 }
 
-// 连接日志流
-const connectLogStream = () => {
-  if (eventSource) {
-    eventSource.close()
-  }
+// History and live delivery share byte cursors, so writes during the fetch are retained.
+const appendLines = (lines: string[]) => {
+  const entries = lines
+    .map(parseLogLine)
+    .filter((entry): entry is LogEntry => entry !== null)
+  logs.value = [...logs.value, ...entries]
+  if (autoScroll.value) void scrollToBottom('smooth')
+}
 
-  // 重置状态
-  logs.value = []
-  batchQueue.value = []
-  isInitialLoading.value = true
-  loadingProgress.value = 5
-
+const openLiveStream = () => {
+  if (disposed) return
   connectionState.value = 'connecting'
-  eventSource = new EventSource(`/api/system/logs?initial=${INITIAL_LOG_LINES}`)
-
-  let initialLoadCompleteTimer: NodeJS.Timeout | null = null
-  const MESSAGE_TIMEOUT = 2000 // 消息间隔超时时间（毫秒）
-
-  eventSource.onopen = () => {
+  eventSource?.close()
+  const source = new EventSource(
+    `/api/system/logs?stream=1&offset=${liveOffset}&identity=${encodeURIComponent(fileIdentity)}`,
+  )
+  eventSource = source
+  source.onopen = () => {
+    if (source !== eventSource || disposed) return
     isConnected.value = true
-    connectionState.value = 'loadingHistory'
+    connectionState.value = 'live'
   }
-
-  eventSource.onmessage = (event) => {
-    const logLine = event.data
-    if (logLine && logLine.trim()) {
-      const logEntry = parseLogLine(logLine)
-      if (logEntry) {
-        // 清除之前的定时器
-        if (initialLoadCompleteTimer) {
-          clearTimeout(initialLoadCompleteTimer)
-          initialLoadCompleteTimer = null
-        }
-
-        if (isInitialLoading.value) {
-          addLogEntry(logEntry)
-          loadingProgress.value = Math.min(90, loadingProgress.value + 0.2)
-
-          // 设置新的定时器，如果在指定时间内没有新消息，认为初始加载完成
-          initialLoadCompleteTimer = setTimeout(() => {
-            if (isInitialLoading.value) {
-              connectionState.value = 'live'
-              // 让加载指示器显示完成状态后再隐藏
-              setTimeout(() => {
-                isInitialLoading.value = false
-                loadingProgress.value = 100
-                autoScroll.value = true
-                scrollToBottom()
-              }, 500)
-            }
-          }, MESSAGE_TIMEOUT)
-        } else {
-          // 实时日志直接添加
-          addLogEntry(logEntry)
-        }
-      }
-    }
-  }
-
-  eventSource.onerror = (error) => {
+  source.addEventListener('logs', (event) => {
+    if (source !== eventSource || disposed) return
+    const batch = JSON.parse((event as MessageEvent).data) as LogPage
+    liveOffset = batch.offset
+    fileIdentity = batch.identity
+    appendLines(batch.lines)
+  })
+  source.addEventListener('reset', () => {
+    if (source !== eventSource || disposed) return
+    void connectLogStream()
+  })
+  const retry = () => {
+    if (source !== eventSource || disposed) return
+    source.close()
+    if (reconnectTimer) clearTimeout(reconnectTimer)
     isConnected.value = false
     connectionState.value = 'error'
-    console.error('EventSource error:', error)
+    reconnectTimer = setTimeout(openLiveStream, 2000)
+  }
+  source.addEventListener('failure', retry)
+  source.onerror = retry
+}
+
+const connectLogStream = async () => {
+  eventSource?.close()
+  eventSource = null
+  if (reconnectTimer) clearTimeout(reconnectTimer)
+  requestController?.abort()
+  const controller = new AbortController()
+  requestController = controller
+  isInitialLoading.value = true
+  isPositioningInitialLogs = true
+  isConnected.value = false
+  connectionState.value = 'loadingHistory'
+  try {
+    const page = await $fetch<LogPage>('/api/system/logs', {
+      signal: controller.signal,
+    })
+    if (controller.signal.aborted || disposed) return
+    autoScroll.value = true
+    logs.value = page.lines
+      .map(parseLogLine)
+      .filter((entry): entry is LogEntry => entry !== null)
+    historyCursor.value = page.before
+    liveOffset = page.offset
+    fileIdentity = page.identity
+    // Remove the loading hint before measuring the final viewport height.
+    isInitialLoading.value = false
+    await scrollToBottom()
+    if (controller.signal.aborted || disposed) return
+    openLiveStream()
+  } catch {
+    if (!controller.signal.aborted && !disposed) connectionState.value = 'error'
+  } finally {
+    if (requestController === controller) {
+      isInitialLoading.value = false
+      isPositioningInitialLogs = false
+    }
+  }
+}
+
+const loadOlderLogs = async () => {
+  if (isInitialLoading.value || isLoadingOlder.value || !historyCursor.value)
+    return
+  const controller = requestController
+  let loaded = false
+  isLoadingOlder.value = true
+  autoScroll.value = false
+  try {
+    const page = await $fetch<LogPage>('/api/system/logs', {
+      query: { before: historyCursor.value, identity: fileIdentity },
+      signal: controller?.signal,
+    })
+    if (controller !== requestController || disposed) return
+    const previousTop = logContainer.value?.scrollTop ?? 0
+    const previousVisibleCount = filteredLogs.value.length
+    const entries = page.lines
+      .map(parseLogLine)
+      .filter((entry): entry is LogEntry => entry !== null)
+    logs.value = [...entries, ...logs.value]
+    historyCursor.value = page.before
+    // Update the virtual range in the same render as the prepend. Count only rows
+    // that pass the current filters so the visible log retains its pixel position.
+    const restoredTop =
+      previousTop +
+      (filteredLogs.value.length - previousVisibleCount) * ROW_HEIGHT
+    scrollTop.value = restoredTop
+    await nextTick()
+    if (controller !== requestController || disposed) return
+    logContainer.value?.scrollTo({ top: restoredTop, behavior: 'instant' })
+    loaded = true
+  } catch {
+    if (!controller?.signal.aborted && !disposed)
+      connectionState.value = 'error'
+  } finally {
+    isLoadingOlder.value = false
+  }
+  // Filtered or short pages may leave the viewport near the top without a new
+  // scroll event. Continue prefetching until there is enough visible history.
+  if (
+    loaded &&
+    !autoScroll.value &&
+    (logContainer.value?.scrollTop ?? Infinity) <= HISTORY_LOAD_THRESHOLD
+  ) {
+    void loadOlderLogs()
   }
 }
 
@@ -428,6 +537,13 @@ watch(
 
 onMounted(() => {
   if (logContainer.value) {
+    const context = document.createElement('canvas').getContext('2d')
+    if (context) {
+      const fontSize =
+        parseFloat(getComputedStyle(document.documentElement).fontSize) * 0.75
+      context.font = `${fontSize}px ${getComputedStyle(logContainer.value).fontFamily}`
+      tagMeasureContext.value = context
+    }
     containerHeight.value = logContainer.value.clientHeight
   }
 
@@ -444,6 +560,9 @@ onMounted(() => {
 })
 
 onUnmounted(() => {
+  disposed = true
+  requestController?.abort()
+  if (reconnectTimer) clearTimeout(reconnectTimer)
   if (eventSource) {
     eventSource.close()
   }
@@ -489,10 +608,32 @@ onUnmounted(() => {
                 </UBadge>
               </div>
               <div
-                class="mt-1 flex items-center gap-2 text-xs text-neutral-500 dark:text-neutral-400"
+                class="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-neutral-500 dark:text-neutral-400"
               >
-                <span>{{ $t('dashboard.logs.countLabel', { total: logs.length, shown: filteredLogs.length }) }}</span>
-                <span v-if="availableTags.length">{{ $t('dashboard.logs.tagCount', { count: availableTags.length }) }}</span>
+                <span>{{
+                  $t('dashboard.logs.loadedCount', { count: logs.length })
+                }}</span>
+                <span v-if="hasActiveFilters">{{
+                  $t('dashboard.logs.matchedCount', {
+                    count: filteredLogs.length,
+                  })
+                }}</span>
+                <span :class="{ 'text-error': logSummary.errors > 0 }">{{
+                  $t('dashboard.logs.errorCount', { count: logSummary.errors })
+                }}</span>
+                <span :class="{ 'text-warning': logSummary.warnings > 0 }">{{
+                  $t('dashboard.logs.warningCount', {
+                    count: logSummary.warnings,
+                  })
+                }}</span>
+                <span v-if="logSummary.hasTimeRange">{{
+                  $t('dashboard.logs.timeRange', {
+                    start: $dayjs(logSummary.first).format(
+                      'YYYY-MM-DD HH:mm:ss',
+                    ),
+                    end: $dayjs(logSummary.last).format('YYYY-MM-DD HH:mm:ss'),
+                  })
+                }}</span>
               </div>
             </div>
             <span
@@ -563,78 +704,80 @@ onUnmounted(() => {
               class="ms-auto sm:ms-0"
               @click="toggleAutoScroll"
             />
-            <!-- Download raw log -->
-            <!-- TODO: Download raw log file -->
-            <!-- <UButton 
-            as="a"
-            target="_blank"
-            rel="noopener"
-            icon="tabler:download"
-            color="neutral"
-            size="sm"
-            variant="soft"
-          /> -->
+            <UButton
+              v-if="connectionState === 'error'"
+              icon="tabler:refresh"
+              color="neutral"
+              size="sm"
+              @click="connectLogStream"
+            />
           </div>
         </div>
-        <!-- 加载进度指示器 -->
         <div
           v-if="isInitialLoading"
-          class="absolute inset-0 bg-white/80 dark:bg-black/80 backdrop-blur-sm flex items-center justify-center z-10"
+          class="px-4 py-2 text-sm text-neutral-500"
+          role="status"
         >
-          <div class="text-center">
-            <div class="mb-4">
-              <UIcon
-                name="tabler:loader-2"
-                class="animate-spin w-8 h-8 text-blue-500"
-              />
-            </div>
-            <div class="text-sm text-gray-600 dark:text-gray-400 mb-2">
-              {{ $t('dashboard.logs.connectionStatus.loadingHistory') }}
-            </div>
-            <div class="w-64 bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-              <div
-                class="bg-blue-500 h-2 rounded-full transition-all duration-300 ease-out"
-                :style="{ width: `${loadingProgress}%` }"
-              ></div>
-            </div>
-            <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">
-              {{ Math.round(loadingProgress) }}%
-            </div>
-          </div>
+          <UIcon
+            name="tabler:loader-2"
+            class="animate-spin mr-2"
+          />
+          {{ $t('dashboard.logs.connectionStatus.loadingHistory') }}
         </div>
 
         <div
           ref="logContainer"
-          class="flex-1 min-h-0 overflow-y-auto overflow-x-auto scroll-smooth font-mono text-sm relative"
+          class="flex-1 min-h-0 min-w-0 overflow-y-auto overflow-x-auto font-mono text-sm relative"
+          style="overflow-anchor: none"
+          :style="{
+            '--log-tag-width': tagColumnWidth,
+            '--log-time-width': timeColumnWidth,
+          }"
           @scroll="handleScroll"
+          @wheel.passive="cancelSmoothScroll"
+          @touchstart.passive="cancelSmoothScroll"
+          @pointerdown="cancelSmoothScroll"
+          @keydown="cancelSmoothScroll"
         >
+          <div
+            v-if="isLoadingOlder"
+            class="sticky top-0 h-0 z-10 flex justify-center pointer-events-none"
+            role="status"
+          >
+            <UIcon
+              name="tabler:loader-2"
+              class="animate-spin mt-2 text-blue-500"
+              :aria-label="$t('dashboard.logs.connectionStatus.loadingHistory')"
+            />
+          </div>
           <div
             class="relative"
             :style="{ height: `${totalVirtualHeight}px` }"
           >
             <div
-              class="absolute left-0 right-0 px-2"
+              class="absolute left-0 w-max min-w-full"
               :style="{ transform: `translateY(${virtualOffset}px)` }"
             >
               <div
                 v-for="(log, index) in visibleLogs"
                 :key="`${virtualStart + index}-${log.raw}`"
                 :class="[
-                  'px-2 py-0.5 rounded border-l-4',
+                  'group log-row grid items-center',
                   getLogLineStyle(log),
                 ]"
                 :style="{ height: `${ROW_HEIGHT}px` }"
               >
-                <div class="flex items-center space-x-3 text-sm h-full">
-                  <!-- 时间戳 -->
-                  <span
-                    class="text-neutral-400 dark:text-neutral-500 text-xs whitespace-nowrap min-w-0 shrink-0"
-                  >
-                    {{ $dayjs(log.date).format('HH:mm:ss.SSS') }}
-                  </span>
+                <!-- 时间戳 -->
+                <span
+                  class="log-time log-fixed-cell text-neutral-400 dark:text-neutral-500 text-xs whitespace-nowrap"
+                >
+                  {{ $dayjs(log.date).format('HH:mm:ss.SSS') }}
+                </span>
 
-                  <!-- 日志级别 -->
+                <!-- 日志级别 -->
+                <div class="log-level log-fixed-cell">
                   <UBadge
+                    class="shrink-0"
                     size="sm"
                     :variant="log.level <= 1 ? 'solid' : 'soft'"
                     :color="getBadgeColor(log.type || getLevelType(log.level))"
@@ -645,30 +788,30 @@ onUnmounted(() => {
                         .slice(0, 4)
                     }}
                   </UBadge>
+                </div>
 
-                  <!-- 日志内容 -->
-                  <div class="flex-1 min-w-0">
-                    <span
-                      v-if="normalizedSearchQuery"
-                      class="block whitespace-nowrap overflow-hidden text-ellipsis"
-                      v-html="highlightSearch(log.message)"
-                    ></span>
-                    <span
-                      v-else
-                      class="block whitespace-nowrap overflow-hidden text-ellipsis"
-                    >
-                      {{ log.message }}
-                    </span>
-                  </div>
-
-                  <!-- 标签 -->
+                <!-- 日志内容 -->
+                <div class="px-2 min-w-0">
                   <span
-                    v-if="log.tag"
-                    class="text-xs whitespace-nowrap shrink-0 truncate text-neutral-400/80"
+                    v-if="normalizedSearchQuery"
+                    class="block whitespace-nowrap"
+                    v-html="highlightSearch(log.message)"
+                  ></span>
+                  <span
+                    v-else
+                    class="block whitespace-nowrap"
                   >
-                    {{ log.tag }}
+                    {{ log.message }}
                   </span>
                 </div>
+
+                <!-- 标签 -->
+                <span
+                  class="log-tag log-fixed-cell text-xs whitespace-nowrap text-neutral-400/80"
+                  :title="log.tag"
+                >
+                  {{ log.tag }}
+                </span>
               </div>
             </div>
 
@@ -677,7 +820,9 @@ onUnmounted(() => {
               v-if="filteredLogs.length === 0"
               class="text-center py-8 text-gray-500 dark:text-gray-400 absolute inset-0"
             >
-              <div v-if="logs.length === 0">{{ $t('dashboard.logs.empty.waiting') }}</div>
+              <div v-if="logs.length === 0">
+                {{ $t('dashboard.logs.empty.waiting') }}
+              </div>
               <div v-else>{{ $t('dashboard.logs.empty.noMatch') }}</div>
             </div>
           </div>
@@ -688,9 +833,66 @@ onUnmounted(() => {
 </template>
 
 <style scoped>
+/* The shared horizontal scroll moves messages while metadata stays pinned. */
+.log-row {
+  --log-level-width: 3.5rem;
+  grid-template-columns:
+    var(--log-time-width) var(--log-level-width) minmax(6rem, 1fr)
+    var(--log-tag-width);
+}
+
+.log-fixed-cell {
+  position: sticky;
+  z-index: 1;
+  height: 100%;
+  align-content: center;
+  padding-inline: 0.5rem;
+  background: var(--color-neutral-100);
+}
+
+:global(.dark) .log-fixed-cell {
+  background: var(--color-neutral-950);
+}
+
+.log-row:hover .log-fixed-cell {
+  background: var(--color-neutral-200);
+}
+
+:global(.dark) .log-row:hover .log-fixed-cell {
+  background: var(--color-neutral-800);
+}
+
+.log-time {
+  left: 0;
+}
+.log-level {
+  left: var(--log-time-width);
+}
+.log-tag {
+  right: 0;
+  text-align: right;
+}
+
+@media (width < 640px) {
+  .log-row {
+    --log-level-width: 3rem;
+  }
+  .log-fixed-cell {
+    padding-inline: 0.25rem;
+  }
+  .log-level,
+  .log-tag {
+    position: static;
+    left: auto;
+    right: auto;
+    z-index: auto;
+  }
+}
+
 /* 自定义滚动条样式 */
 .overflow-y-auto::-webkit-scrollbar {
   width: 8px;
+  height: 8px;
 }
 
 .overflow-y-auto::-webkit-scrollbar-track {
