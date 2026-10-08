@@ -1,6 +1,6 @@
 import { createHmac, randomBytes, scrypt, timingSafeEqual } from 'node:crypto'
 import { promisify } from 'node:util'
-import { eq } from 'drizzle-orm'
+import { eq, inArray } from 'drizzle-orm'
 import type { H3Event } from 'h3'
 import { tables, useDB } from './db'
 
@@ -108,15 +108,34 @@ export function grantAlbumAccess(
   })
 }
 
+type AlbumAccessTarget = {
+  id: number
+  isHidden: boolean
+  passwordHash: string | null
+}
+
+function photoNotFound() {
+  return createError({ statusCode: 404, statusMessage: 'Photo not found' })
+}
+
+function photoAccessDenied(
+  admin: boolean,
+  memberships: { album: AlbumAccessTarget }[],
+  canAccess: (album: AlbumAccessTarget) => boolean,
+): boolean {
+  if (admin) return false
+  return (
+    memberships.some(({ album }) => album.isHidden) ||
+    (memberships.some(({ album }) => album.passwordHash) &&
+      !memberships.some(({ album }) => album.passwordHash && canAccess(album)))
+  )
+}
+
 export async function albumAccess(event: H3Event) {
   const session = await getUserSession(event)
   const admin = Boolean(session.user)
   const grants = readGrants(event)
-  const canAccess = (album: {
-    id: number
-    isHidden: boolean
-    passwordHash: string | null
-  }) =>
+  const canAccess = (album: AlbumAccessTarget) =>
     admin ||
     (!album.isHidden &&
       (!album.passwordHash ||
@@ -141,7 +160,7 @@ export async function assertPhotoAccess(
     ? key
     : key.replace(/\\/g, '/').replace(/\/+/g, '/').replace(/^\/+/, '')
   if (!isAbsoluteUrl && key !== cleanKey) {
-    throw createError({ statusCode: 404, statusMessage: 'Photo not found' })
+    throw photoNotFound()
   }
 
   const db = useDB()
@@ -154,9 +173,7 @@ export async function assertPhotoAccess(
     .where(eq(tables.photoAccessKeys.accessKey, cleanKey))
     .all()
   if (matchedPhotos.length === 0) {
-    if (!admin || requireKnown) {
-      throw createError({ statusCode: 404, statusMessage: 'Photo not found' })
-    }
+    if (!admin || requireKnown) throw photoNotFound()
     return false
   }
   let restricted = false
@@ -173,16 +190,77 @@ export async function assertPhotoAccess(
     if (memberships.some(({ album }) => album.isHidden || album.passwordHash)) {
       restricted = true
     }
-    if (
-      !admin &&
-      (memberships.some(({ album }) => album.isHidden) ||
-        (memberships.some(({ album }) => album.passwordHash) &&
-          !memberships.some(
-            ({ album }) => album.passwordHash && canAccess(album),
-          )))
-    ) {
-      throw createError({ statusCode: 404, statusMessage: 'Photo not found' })
-    }
+    if (photoAccessDenied(admin, memberships, canAccess)) throw photoNotFound()
   }
   return restricted
+}
+
+const photoIdQueryChunkSize = 500
+
+// Indexed photo-id check with the same album rule as assertPhotoAccess.
+// Unknown ids and photos in hidden or locked albums are both omitted, so a
+// guessed id cannot be confirmed. Reactions are keyed by photo id, so this
+// looks those ids up directly instead of matching storage keys.
+export async function filterAccessiblePhotoIds(
+  event: H3Event,
+  photoIds: string[],
+): Promise<Set<string>> {
+  const uniqueIds = [...new Set(photoIds.filter((id) => id.length > 0))]
+  if (uniqueIds.length === 0) return new Set()
+
+  const { admin, canAccess } = await albumAccess(event)
+  const db = useDB()
+  const accessible = new Set<string>()
+
+  for (
+    let offset = 0;
+    offset < uniqueIds.length;
+    offset += photoIdQueryChunkSize
+  ) {
+    const chunk = uniqueIds.slice(offset, offset + photoIdQueryChunkSize)
+    const existing = db
+      .select({ id: tables.photos.id })
+      .from(tables.photos)
+      .where(inArray(tables.photos.id, chunk))
+      .all()
+    if (existing.length === 0) continue
+
+    const ids = existing.map((photo) => photo.id)
+    if (admin) {
+      for (const id of ids) accessible.add(id)
+      continue
+    }
+
+    const rows = db
+      .select({
+        photoId: tables.albumPhotos.photoId,
+        album: tables.albums,
+      })
+      .from(tables.albumPhotos)
+      .innerJoin(
+        tables.albums,
+        eq(tables.albumPhotos.albumId, tables.albums.id),
+      )
+      .where(inArray(tables.albumPhotos.photoId, ids))
+      .all()
+    const membershipsByPhoto = new Map<string, { album: AlbumAccessTarget }[]>()
+    for (const row of rows) {
+      const memberships = membershipsByPhoto.get(row.photoId)
+      const membership = { album: row.album }
+      if (memberships) memberships.push(membership)
+      else membershipsByPhoto.set(row.photoId, [membership])
+    }
+
+    for (const id of ids) {
+      const memberships = membershipsByPhoto.get(id) ?? []
+      if (!photoAccessDenied(admin, memberships, canAccess)) accessible.add(id)
+    }
+  }
+
+  return accessible
+}
+
+export async function assertPhotoIdAccess(event: H3Event, photoId: string) {
+  const accessible = await filterAccessiblePhotoIds(event, [photoId])
+  if (!accessible.has(photoId)) throw photoNotFound()
 }
