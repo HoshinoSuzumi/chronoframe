@@ -1,5 +1,6 @@
 import type { H3Event } from 'h3'
 import { eq, and, sql } from 'drizzle-orm'
+import { assertPhotoIdAccess } from '../../../utils/album-access'
 
 const REACTION_TYPES = [
   'like',
@@ -58,6 +59,8 @@ export default defineEventHandler(async (event) => {
       message: 'Photo ID is required',
     })
   }
+
+  await assertPhotoIdAccess(event, photoId)
 
   const db = useDB()
   const method = event.method
@@ -126,20 +129,6 @@ export default defineEventHandler(async (event) => {
       throw createError({
         statusCode: 429,
         message: 'Too many reactions. Please try again later.',
-      })
-    }
-
-    // 检查照片是否存在
-    const photo = await db
-      .select()
-      .from(tables.photos)
-      .where(eq(tables.photos.id, photoId))
-      .get()
-
-    if (!photo) {
-      throw createError({
-        statusCode: 404,
-        message: 'Photo not found',
       })
     }
 

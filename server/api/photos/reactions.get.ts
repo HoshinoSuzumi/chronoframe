@@ -1,4 +1,5 @@
 import { sql, inArray } from 'drizzle-orm'
+import { filterAccessiblePhotoIds } from '../../utils/album-access'
 
 export default defineEventHandler(async (event) => {
   const query = getQuery(event)
@@ -11,10 +12,15 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  // 支持单个或多个 ID
-  const ids = Array.isArray(photoIds) ? photoIds : [photoIds]
+  // 支持单个或多个 ID。不可见的照片与不存在的 ID 一样不出现在结果里。
+  const requestedIds = (Array.isArray(photoIds) ? photoIds : [photoIds]).filter(
+    (id): id is string => typeof id === 'string' && id.length > 0,
+  )
+  const accessibleIds = [
+    ...(await filterAccessiblePhotoIds(event, requestedIds)),
+  ]
 
-  if (ids.length === 0) {
+  if (accessibleIds.length === 0) {
     return {}
   }
 
@@ -28,14 +34,14 @@ export default defineEventHandler(async (event) => {
       count: sql<number>`count(*)`,
     })
     .from(tables.photoReactions)
-    .where(inArray(tables.photoReactions.photoId, ids as string[]))
+    .where(inArray(tables.photoReactions.photoId, accessibleIds))
     .groupBy(tables.photoReactions.photoId, tables.photoReactions.reactionType)
     .all()
 
   const result: Record<string, Record<string, number>> = {}
 
-  ids.forEach((id) => {
-    result[id as string] = {
+  for (const id of accessibleIds) {
+    result[id] = {
       like: 0,
       love: 0,
       amazing: 0,
@@ -45,14 +51,14 @@ export default defineEventHandler(async (event) => {
       fire: 0,
       sparkle: 0,
     }
-  })
+  }
 
-  // 填充实际的计数
-  reactions.forEach((r) => {
-    if (r.photoId && r.reactionType) {
-      result[r.photoId][r.reactionType] = r.count
-    }
-  })
+  for (const reaction of reactions) {
+    if (!reaction.photoId || !reaction.reactionType) continue
+    const counts = result[reaction.photoId]
+    if (!counts) continue
+    counts[reaction.reactionType] = reaction.count
+  }
 
   return result
 })
