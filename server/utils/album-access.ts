@@ -1,6 +1,6 @@
 import { createHmac, randomBytes, scrypt, timingSafeEqual } from 'node:crypto'
 import { promisify } from 'node:util'
-import { eq, inArray, or } from 'drizzle-orm'
+import { eq, inArray } from 'drizzle-orm'
 import type { H3Event } from 'h3'
 import { tables, useDB } from './db'
 
@@ -164,47 +164,14 @@ export async function assertPhotoAccess(
   }
 
   const db = useDB()
-  const values = [cleanKey, `/storage/${cleanKey}`, `/image/${cleanKey}`]
-  const photos = db
-    .select()
-    .from(tables.photos)
-    .where(
-      or(
-        ...values.flatMap((value) => [
-          eq(tables.photos.id, value),
-          eq(tables.photos.storageKey, value),
-          eq(tables.photos.thumbnailKey, value),
-          eq(tables.photos.originalUrl, value),
-          eq(tables.photos.thumbnailUrl, value),
-          eq(tables.photos.livePhotoVideoKey, value),
-          eq(tables.photos.livePhotoVideoUrl, value),
-        ]),
-      ),
-    )
+  // photo_access_keys is filled when a photo is written, including tidied
+  // aliases of storage keys and /storage or /image URLs. This is one index
+  // lookup; it does not read photo payloads.
+  const matchedPhotos = db
+    .select({ id: tables.photoAccessKeys.photoId })
+    .from(tables.photoAccessKeys)
+    .where(eq(tables.photoAccessKeys.accessKey, cleanKey))
     .all()
-  const normalized = db.select().from(tables.photos).all()
-  const matches = normalized.filter((photo) =>
-    [
-      photo.id,
-      photo.storageKey,
-      photo.thumbnailKey,
-      photo.originalUrl,
-      photo.thumbnailUrl,
-      photo.livePhotoVideoKey,
-      photo.livePhotoVideoUrl,
-    ]
-      .filter((value): value is string => Boolean(value))
-      .some(
-        (value) =>
-          value.replace(/\\/g, '/').replace(/\/+/g, '/').replace(/^\/+/, '') ===
-          cleanKey,
-      ),
-  )
-  const matchedPhotos = [
-    ...new Map(
-      [...photos, ...matches].map((photo) => [photo.id, photo]),
-    ).values(),
-  ]
   if (matchedPhotos.length === 0) {
     if (!admin || requireKnown) throw photoNotFound()
     return false
@@ -232,8 +199,8 @@ const photoIdQueryChunkSize = 500
 
 // Indexed photo-id check with the same album rule as assertPhotoAccess.
 // Unknown ids and photos in hidden or locked albums are both omitted, so a
-// guessed id cannot be confirmed. This does not call assertPhotoAccess,
-// which loads every photo row.
+// guessed id cannot be confirmed. Reactions are keyed by photo id, so this
+// looks those ids up directly instead of matching storage keys.
 export async function filterAccessiblePhotoIds(
   event: H3Event,
   photoIds: string[],

@@ -1,9 +1,11 @@
 import { sql } from 'drizzle-orm'
 import {
+  index,
+  integer,
+  primaryKey,
+  real,
   sqliteTable,
   text,
-  integer,
-  real,
   uniqueIndex,
 } from 'drizzle-orm/sqlite-core'
 import type { NeededExif } from '~~/shared/types/photo'
@@ -68,6 +70,24 @@ export const photos = sqliteTable('photos', {
   livePhotoVideoUrl: text('live_photo_video_url'),
   livePhotoVideoKey: text('live_photo_video_key'),
 })
+
+// One row per string an image request may use to identify a photo: the photo
+// id, each storage key, each public URL, and the tidied form of those paths.
+// Photos insert/update/delete triggers (migration 0014) keep the rows in sync.
+// Album checks look up this indexed key instead of reading every photos row.
+export const photoAccessKeys = sqliteTable(
+  'photo_access_keys',
+  {
+    accessKey: text('access_key').notNull(),
+    photoId: text('photo_id')
+      .notNull()
+      .references(() => photos.id, { onDelete: 'cascade' }),
+  },
+  (t) => [
+    primaryKey({ columns: [t.accessKey, t.photoId] }),
+    index('idx_photo_access_keys_photo_id').on(t.photoId),
+  ],
+)
 
 export const pipelineQueue = sqliteTable('pipeline_queue', {
   id: integer('id').primaryKey({ autoIncrement: true }),
