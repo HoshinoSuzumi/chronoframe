@@ -10,6 +10,7 @@ interface UploadFile {
     | 'waiting'
     | 'preparing'
     | 'uploading'
+    | 'finalizing'
     | 'processing'
     | 'completed'
     | 'error'
@@ -59,6 +60,7 @@ const statusColor = computed(() => {
     case 'preparing':
       return 'primary'
     case 'uploading':
+    case 'finalizing':
       return 'primary'
     case 'processing':
       return 'info'
@@ -72,33 +74,6 @@ const statusColor = computed(() => {
       return 'error'
     default:
       return 'neutral'
-  }
-})
-
-const statusText = computed(() => {
-  switch (props.uploadingFile.status) {
-    case 'waiting':
-      return $t('dashboard.photos.uploadQueueItem.status.waiting')
-    case 'preparing':
-      return $t('dashboard.photos.uploadQueueItem.status.preparing')
-    case 'uploading':
-      return $t('dashboard.photos.uploadQueueItem.status.uploading', [
-        props.uploadingFile.progress || 0,
-      ])
-    case 'processing':
-      return props.uploadingFile.stage
-        ? getStageText(props.uploadingFile.stage)
-        : $t('dashboard.photos.uploadQueueItem.status.pendingProcessing')
-    case 'completed':
-      return $t('dashboard.photos.uploadQueueItem.status.completed')
-    case 'error':
-      return $t('dashboard.photos.uploadQueueItem.status.error')
-    case 'skipped':
-      return $t('dashboard.photos.uploadQueueItem.status.skipped')
-    case 'blocked':
-      return $t('dashboard.photos.uploadQueueItem.status.blocked')
-    default:
-      return $t('dashboard.photos.uploadQueueItem.status.unknown')
   }
 })
 
@@ -316,13 +291,6 @@ const generateParticleStyle = (index: number) => {
             >
               {{ uploadingFile.fileName }}
             </p>
-            <UBadge
-              :color="statusColor"
-              variant="soft"
-              size="sm"
-            >
-              {{ statusText }}
-            </UBadge>
           </div>
 
           <div
@@ -331,12 +299,11 @@ const generateParticleStyle = (index: number) => {
             <span>{{ formatBytes(uploadingFile.file.size) }}</span>
             <span
               v-if="
-                uploadingFile.uploadProgress?.speedText &&
                 uploadingFile.status === 'uploading'
               "
-              class="hidden sm:inline"
+              class="inline tabular-nums"
             >
-              • {{ uploadingFile.uploadProgress.speedText }}
+              • {{ uploadingFile.uploadProgress?.speedText || '0 B/s' }}
             </span>
           </div>
         </div>
@@ -346,7 +313,10 @@ const generateParticleStyle = (index: number) => {
       <div class="flex items-center gap-2 ml-2">
         <!-- 中止上传按钮 -->
         <motion.div
-          v-if="uploadingFile.status === 'uploading' && uploadingFile.canAbort"
+          v-if="
+            (uploadingFile.status === 'uploading' || uploadingFile.status === 'finalizing') &&
+            uploadingFile.canAbort
+          "
           :initial="{ opacity: 0, scale: 0.8 }"
           :animate="{ opacity: 1, scale: 1 }"
           :exit="{ opacity: 0, scale: 0.8 }"
@@ -392,6 +362,7 @@ const generateParticleStyle = (index: number) => {
       <motion.div
         v-if="
           uploadingFile.status === 'uploading' ||
+          uploadingFile.status === 'finalizing' ||
           uploadingFile.status === 'processing'
         "
         :initial="{ opacity: 0, height: 0 }"
@@ -429,14 +400,19 @@ const generateParticleStyle = (index: number) => {
           </motion.div>
 
           <div
-            v-if="uploadingFile.uploadProgress?.timeRemainingText"
-            class="text-xs text-neutral-500 dark:text-neutral-400"
+            class="text-xs text-neutral-500 dark:text-neutral-400 tabular-nums"
           >
-            {{ $t('dashboard.photos.uploadQueueItem.progress.remainingTime', [uploadingFile.uploadProgress.timeRemainingText]) }}
+            {{ $t('dashboard.photos.uploadQueueItem.progress.remainingTime', [uploadingFile.uploadProgress?.timeRemainingText || '—']) }}
           </div>
         </div>
 
         <!-- 处理进度 -->
+        <div v-if="uploadingFile.status === 'finalizing'" class="space-y-1">
+          <span class="text-xs text-neutral-600 dark:text-neutral-400">
+            {{ $t('dashboard.photos.uploadQueueItem.status.finalizing') }}
+          </span>
+          <UProgress :model-value="null" animation="swing" color="primary" />
+        </div>
         <div
           v-if="uploadingFile.status === 'processing'"
           class="space-y-1"

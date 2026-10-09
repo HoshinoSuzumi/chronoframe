@@ -112,6 +112,7 @@ interface UploadingFile {
     | 'waiting'
     | 'preparing'
     | 'uploading'
+    | 'finalizing'
     | 'processing'
     | 'completed'
     | 'error'
@@ -272,7 +273,7 @@ const uploadImage = async (
   const fileId = existingFileId || `${Date.now()}-${fileName}`
 
   const uploadManager = useUpload({
-    timeout: 10 * 60 * 1000, // 10分钟超时
+    timeout: 60 * 1000, // 单个分片一分钟超时，避免请求长时间卡住
   })
 
   // 获取或创建 uploadingFile
@@ -304,6 +305,8 @@ const uploadImage = async (
       body: {
         fileName: file.name,
         contentType: file.type,
+        fileSize: file.size,
+        chunked: true,
       },
     })
 
@@ -345,7 +348,7 @@ const uploadImage = async (
     uploadingFiles.value = new Map(uploadingFiles.value)
 
     // 第二步：使用 composable 上传文件到存储
-    await uploadManager.uploadFile(file, signedUrlResponse.signedUrl, {
+    await uploadManager.uploadFile(file, signedUrlResponse.upload || signedUrlResponse.signedUrl, {
       onProgress: (progress: UploadProgress) => {
         uploadingFile.progress = progress.percentage
         uploadingFile.uploadProgress = {
@@ -355,14 +358,15 @@ const uploadImage = async (
           speed: progress.speed,
           timeRemaining: progress.timeRemaining,
           speedText: progress.speed ? `${formatBytes(progress.speed)}/s` : '',
-          timeRemainingText: progress.timeRemaining
-            ? dayjs.duration(progress.timeRemaining, 'seconds').humanize()
+          timeRemainingText: progress.timeRemaining !== undefined
+            ? uploadManager.formatTime(progress.timeRemaining)
             : '',
         }
         uploadingFiles.value = new Map(uploadingFiles.value)
       },
       onStatusChange: (status: string) => {
-        uploadingFile.canAbort = status === 'uploading'
+        uploadingFile.canAbort = status === 'uploading' || status === 'finalizing'
+        if (status === 'finalizing') uploadingFile.status = 'finalizing'
         uploadingFiles.value = new Map(uploadingFiles.value)
       },
       onSuccess: async (_xhr: XMLHttpRequest) => {
@@ -758,7 +762,10 @@ const clearAllUploads = () => {
     toRemove.push(fileId)
 
     // 如果是正在上传的任务，先中止
-    if (uploadingFile.status === 'uploading' && uploadingFile.abortUpload) {
+    if (
+      (uploadingFile.status === 'uploading' || uploadingFile.status === 'finalizing') &&
+      uploadingFile.abortUpload
+    ) {
       uploadingFile.abortUpload()
     }
 
@@ -1114,7 +1121,8 @@ const validateFile = (
 }
 
 const handleUpload = async () => {
-  const fileList = selectedFiles.value
+  const fileList = [...selectedFiles.value]
+  const eraseLocation = uploadEraseLocationEnabled.value
 
   if (fileList.length === 0) {
     return
@@ -1186,6 +1194,7 @@ const handleUpload = async () => {
   }
 
   // 立即为所有有效文件创建队列条目，状态为 waiting
+  const nextUploadingFiles = new Map(uploadingFiles.value)
   for (const file of validFiles) {
     const fileId = fileIdMapping.get(file)!
     const uploadingFile: UploadingFile = {
@@ -1195,11 +1204,18 @@ const handleUpload = async () => {
       status: 'waiting',
       canAbort: false,
     }
-    uploadingFiles.value.set(fileId, uploadingFile)
+    nextUploadingFiles.set(fileId, uploadingFile)
   }
 
   // 触发队列更新
-  uploadingFiles.value = new Map(uploadingFiles.value)
+  uploadingFiles.value = nextUploadingFiles
+
+  // 本批次已经交给队列，立即释放选择器并关闭抽屉。
+  selectedFiles.value = []
+  isUploadSlideoverOpen.value = false
+  await nextTick()
+  // 让浏览器先处理界面更新，再启动文件上传。
+  await new Promise<void>((resolve) => setTimeout(resolve, 0))
 
   // 动态并发上传，始终保持 CONCURRENT_LIMIT 个文件在上传
   const CONCURRENT_LIMIT = 3 // 限制同时上传的文件数量
@@ -1212,7 +1228,7 @@ const handleUpload = async () => {
   const startUpload = async (file: File): Promise<void> => {
     const fileId = fileIdMapping.get(file)!
     try {
-      await uploadImage(file, fileId, uploadEraseLocationEnabled.value)
+      await uploadImage(file, fileId, eraseLocation)
     } catch (error: any) {
       errors.push(`${file.name}: ${error.message || '上传失败'}`)
       console.error('上传错误:', error)
@@ -1248,10 +1264,6 @@ const handleUpload = async () => {
   if (errors.length > 0) {
     console.error('批量上传错误详情:', errors)
   }
-
-  // 清空选中的文件
-  selectedFiles.value = []
-  isUploadSlideoverOpen.value = false
 }
 
 const openMetadataEditor = (photo: Photo) => {

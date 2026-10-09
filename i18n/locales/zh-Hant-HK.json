@@ -735,6 +735,7 @@
           "waiting": "等待上傳",
           "preparing": "準備中",
           "uploading": "上傳中 {0}%",
+          "finalizing": "正在儲存檔案",
           "pendingProcessing": "等待處理",
           "completed": "完成",
           "error": "錯誤",
@@ -1586,6 +1587,7 @@
       }
     },
     "runtimeError": {
+      "missingEtag": "儲存回應未公開 ETag，請在儲存桶 CORS 的 ExposeHeaders 中加入 ETag。",
       "networkFailed": "網絡連線失敗",
       "clientError": "客戶端錯誤 ({status})",
       "serverError": "伺服器錯誤 ({status})",

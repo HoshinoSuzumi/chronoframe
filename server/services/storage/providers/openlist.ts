@@ -1,5 +1,12 @@
 import type { Logger } from '../../../utils/logger'
-import type { StorageProvider, StorageObject } from '../interfaces'
+import { createReadStream } from 'node:fs'
+import { stat } from 'node:fs/promises'
+import type {
+  StorageProvider,
+  StorageObject,
+  DirectUploadSetup,
+} from '../interfaces'
+import path from 'node:path'
 
 /**
  * OpenListStorageProvider implements StorageProvider for OpenList API.
@@ -143,6 +150,113 @@ export class OpenListStorageProvider implements StorageProvider {
       throw new Error(`OpenList delete failed: ${resp.status}`)
     }
     this.logger?.success(`Deleted object: ${key}`)
+  }
+
+  async createFromFile(
+    key: string,
+    filePath: string,
+    contentType: string,
+  ): Promise<StorageObject> {
+    const { size } = await stat(filePath)
+    const body = createReadStream(filePath)
+    try {
+      const init = {
+        method: 'PUT',
+        duplex: 'half',
+        headers: {
+          'Content-Type': contentType,
+          'Content-Length': String(size),
+          'File-Path': encodeURIComponent(
+            this.toAbsolutePath(this.withRoot(key)),
+          ),
+        },
+        body,
+      }
+      const response = await this.request(
+        this.config.uploadEndpoint || '/api/fs/put',
+        init as unknown as RequestInit,
+      )
+      if (!response.ok)
+        throw new Error(`OpenList upload failed: ${response.status}`)
+      const result = (await response.json()) as {
+        code?: number
+        message?: string
+      }
+      if (result.code !== undefined && result.code !== 200)
+        throw new Error(result.message || 'OpenList upload failed')
+      return { key: this.withRoot(key), size }
+    } finally {
+      body.destroy()
+    }
+  }
+
+  async prepareDirectUpload(
+    key: string,
+    size: number,
+  ): Promise<DirectUploadSetup | null> {
+    const absoluteKey = this.toAbsolutePath(this.withRoot(key))
+    const response = await this.request('/api/fs/get_direct_upload_info', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        path: path.posix.dirname(absoluteKey),
+        file_name: path.posix.basename(absoluteKey),
+        file_size: size,
+        tool: 'HttpDirect',
+      }),
+    })
+    if ([404, 405, 501].includes(response.status)) return null
+    if (!response.ok)
+      throw new Error(
+        `OpenList direct upload preparation failed: ${response.status}`,
+      )
+    const result = (await response.json()) as {
+      code: number
+      message?: string
+      data?: {
+        upload_url?: string
+        chunk_size?: number
+        method?: string
+        headers?: Record<string, string>
+      } | null
+    }
+    if (result.code !== 200) {
+      if (
+        [404, 405, 501].includes(result.code) ||
+        /not supported|unsupported|not implement/i.test(result.message || '')
+      )
+        return null
+      throw new Error(
+        result.message || 'OpenList direct upload preparation failed',
+      )
+    }
+    const info = result.data
+    if (!info?.upload_url) return null
+    if (info.method && !['PUT', 'POST'].includes(info.method.toUpperCase()))
+      return null
+    const url = new URL(info.upload_url)
+    if (!['http:', 'https:'].includes(url.protocol))
+      throw new Error('Invalid OpenList upload URL')
+    const token = await this.ensureAuthToken()
+    if (
+      info.upload_url.includes(token) ||
+      Object.values(info.headers || {}).some((value) => value.includes(token))
+    ) {
+      throw new Error('OpenList direct upload returned the server credential')
+    }
+    const common = {
+      url: info.upload_url,
+      method: (info.method?.toUpperCase() || 'PUT') as 'PUT' | 'POST',
+      headers: info.headers,
+    }
+    if ((info.chunk_size ?? 0) > 0) {
+      if (!Number.isSafeInteger(info.chunk_size))
+        throw new Error('Invalid OpenList upload chunk size')
+      // OpenList's HttpDirect protocol uses sequential Content-Range requests.
+      // It does not advertise random-order/concurrent writes to this URL.
+      return { mode: 'range', partSize: info.chunk_size!, ...common }
+    }
+    return { mode: 'single', ...common }
   }
 
   async get(key: string): Promise<Buffer | null> {

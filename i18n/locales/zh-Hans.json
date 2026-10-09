@@ -550,6 +550,7 @@
       }
     },
     "runtimeError": {
+      "missingEtag": "存储响应未公开 ETag，请在存储桶 CORS 的 ExposeHeaders 中添加 ETag。",
       "networkFailed": "网络连接失败",
       "clientError": "客户端错误 ({status})",
       "serverError": "服务器错误 ({status})",
@@ -809,6 +810,7 @@
           "waiting": "等待上传",
           "preparing": "准备中",
           "uploading": "上传中 {0}%",
+          "finalizing": "正在保存文件",
           "pendingProcessing": "等待处理",
           "completed": "完成",
           "error": "错误",

@@ -549,6 +549,7 @@
       }
     },
     "runtimeError": {
+      "missingEtag": "Ответ хранилища не раскрывает ETag. Добавьте ETag в ExposeHeaders настроек CORS корзины.",
       "networkFailed": "Не удалось подключиться к сети",
       "clientError": "Ошибка клиента ({status})",
       "serverError": "Ошибка сервера ({status})",
@@ -808,6 +809,7 @@
           "waiting": "Ожидание",
           "preparing": "Подготовка",
           "uploading": "Загрузка: {0}%",
+          "finalizing": "Сохранение файла",
           "pendingProcessing": "Ожидание обработки",
           "completed": "Завершено",
           "error": "Ошибка",

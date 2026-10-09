@@ -1,4 +1,15 @@
 import type { StorageConfig } from '.'
+import type { UploadPart, UploadPlan } from '../../../shared/types/upload'
+
+export type DirectUploadSetup =
+  | Extract<UploadPlan, { mode: 'single' | 'range' }>
+  | {
+      mode: 'multipart'
+      partSize: number
+      partUrls: string[]
+      complete(parts: UploadPart[]): Promise<void>
+      abort(): Promise<void>
+    }
 
 export interface StorageObject {
   key: string
@@ -16,6 +27,16 @@ export interface UploadOptions {
 
 export interface StorageProvider {
   config?: StorageConfig
+  prepareDirectUpload?(
+    key: string,
+    size: number,
+    contentType: string,
+  ): Promise<DirectUploadSetup | null>
+  createFromFile(
+    key: string,
+    filePath: string,
+    contentType: string,
+  ): Promise<StorageObject>
   create(
     key: string,
     fileBuffer: Buffer,
