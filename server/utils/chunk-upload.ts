@@ -4,7 +4,6 @@ import { tmpdir } from 'node:os'
 import path from 'node:path'
 import type { StorageProvider } from '../services/storage/interfaces'
 
-export { UPLOAD_CHUNK_SIZE } from '../../shared/utils/upload'
 const TTL = 60 * 60 * 1000
 export const chunkUploads = new Map<string, ChunkUpload>()
 

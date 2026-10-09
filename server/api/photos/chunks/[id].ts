@@ -1,9 +1,9 @@
 import { open, stat, rm } from 'node:fs/promises'
+import { UPLOAD_CHUNK_SIZE } from '../../../../shared/utils/upload'
 import {
   chunkUploads,
   chunkHash,
   removeChunkUpload,
-  UPLOAD_CHUNK_SIZE,
 } from '~~/server/utils/chunk-upload'
 
 export default eventHandler(async (event) => {
