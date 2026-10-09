@@ -1,5 +1,6 @@
 import { open, stat, rm } from 'node:fs/promises'
 import { UPLOAD_CHUNK_SIZE } from '../../../../shared/utils/upload'
+import { logUpload } from '../../../utils/upload-log'
 import {
   chunkUploads,
   chunkHash,
@@ -17,6 +18,12 @@ export default eventHandler(async (event) => {
     })
   }
   if (event.method === 'DELETE') {
+    logUpload('local.cancel.requested', {
+      sessionId: id,
+      key: upload.key,
+      activeParts: upload.activeParts.size,
+      busy: upload.busy,
+    })
     await removeChunkUpload(id)
     return { ok: true }
   }
@@ -27,9 +34,19 @@ export default eventHandler(async (event) => {
   upload.busy = event.method === 'POST'
   let activeIndex: number | undefined
   upload.touched = Date.now()
+  const startedAt = Date.now()
   try {
     if (event.method === 'POST') {
-      if (upload.completed) return { ok: true, key: upload.key }
+      if (upload.completed) {
+        logUpload('local.complete.repeated', { sessionId: id, key: upload.key })
+        return { ok: true, key: upload.key }
+      }
+      logUpload('local.complete.started', {
+        sessionId: id,
+        key: upload.key,
+        receivedParts: upload.hashes.size,
+        size: upload.size,
+      })
       if (
         upload.hashes.size !== Math.ceil(upload.size / UPLOAD_CHUNK_SIZE) ||
         (await stat(upload.filePath)).size !== upload.size
@@ -45,6 +62,12 @@ export default eventHandler(async (event) => {
         upload.contentType,
       )
       upload.completed = true
+      logUpload('local.complete.succeeded', {
+        sessionId: id,
+        key: upload.key,
+        size: upload.size,
+        durationMs: Date.now() - startedAt,
+      })
       await rm(upload.filePath, { force: true }).catch(() => {})
       return { ok: true, key: upload.key }
     }
@@ -70,6 +93,14 @@ export default eventHandler(async (event) => {
       UPLOAD_CHUNK_SIZE,
       upload.size - index * UPLOAD_CHUNK_SIZE,
     )
+    logUpload('local.part.started', {
+      sessionId: id,
+      key: upload.key,
+      partNumber: index + 1,
+      partCount: count,
+      expectedBytes: expected,
+      activeParts: upload.activeParts.size,
+    })
     const chunks: Buffer[] = []
     let size = 0
     // Nitro's dev proxy can provide a cached/web body rather than a live Node
@@ -113,6 +144,13 @@ export default eventHandler(async (event) => {
           statusCode: 409,
           statusMessage: 'Chunk content mismatch',
         })
+      logUpload('local.part.duplicate', {
+        sessionId: id,
+        key: upload.key,
+        partNumber: index + 1,
+        bytes: size,
+        durationMs: Date.now() - startedAt,
+      })
       return { ok: true }
     }
     const file = await open(upload.filePath, 'r+')
@@ -131,7 +169,29 @@ export default eventHandler(async (event) => {
       await file.close()
     }
     upload.hashes.set(index, hash)
+    logUpload('local.part.received', {
+      sessionId: id,
+      key: upload.key,
+      partNumber: index + 1,
+      bytes: size,
+      receivedParts: upload.hashes.size,
+      partCount: count,
+      durationMs: Date.now() - startedAt,
+    })
     return { ok: true }
+  } catch (error) {
+    logUpload(
+      'local.request.failed',
+      {
+        sessionId: id,
+        key: upload.key,
+        method: event.method,
+        partNumber: activeIndex === undefined ? undefined : activeIndex + 1,
+        durationMs: Date.now() - startedAt,
+      },
+      error,
+    )
+    throw error
   } finally {
     if (event.method === 'POST') upload.busy = false
     if (activeIndex !== undefined) upload.activeParts.delete(activeIndex)

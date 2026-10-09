@@ -3,6 +3,8 @@ import { mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import type { StorageProvider } from '../services/storage/interfaces'
+import { logUpload } from './upload-log'
+import { UPLOAD_CHUNK_SIZE } from '../../shared/utils/upload'
 
 const TTL = 60 * 60 * 1000
 export const chunkUploads = new Map<string, ChunkUpload>()
@@ -33,6 +35,12 @@ export async function removeChunkUpload(id: string) {
   if (upload.busy || upload.activeParts.size) return
   await rm(upload.directory, { recursive: true, force: true })
   chunkUploads.delete(id)
+  logUpload('local.session.removed', {
+    sessionId: id,
+    key: upload.key,
+    completed: upload.completed,
+    receivedParts: upload.hashes.size,
+  })
 }
 
 export async function createChunkUpload(
@@ -60,6 +68,14 @@ export async function createChunkUpload(
     completed: false,
     touched: Date.now(),
   })
+  logUpload('local.session.created', {
+    sessionId: id,
+    owner,
+    key,
+    size,
+    partSize: UPLOAD_CHUNK_SIZE,
+    partCount: Math.ceil(size / UPLOAD_CHUNK_SIZE),
+  })
   return `/api/photos/chunks/${id}`
 }
 
@@ -70,8 +86,13 @@ const cleanup = setInterval(() => {
       !upload.activeParts.size &&
       Date.now() - upload.touched > TTL
     ) {
+      logUpload('local.session.expired', { sessionId: id, key: upload.key })
       void removeChunkUpload(id).catch((error) =>
-        console.error('Upload cleanup failed', error),
+        logUpload(
+          'local.cleanup.failed',
+          { sessionId: id, key: upload.key },
+          error,
+        ),
       )
     }
   }

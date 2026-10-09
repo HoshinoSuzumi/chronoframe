@@ -1,5 +1,6 @@
 import { directUploads, abortDirectUpload } from '~~/server/utils/direct-upload'
 import type { UploadPart } from '~~/shared/types/upload'
+import { logUpload } from '../../../utils/upload-log'
 
 export default eventHandler(async (event) => {
   const user = await requireUserSession(event)
@@ -11,6 +12,11 @@ export default eventHandler(async (event) => {
       statusMessage: 'Upload session not found',
     })
   if (event.method === 'DELETE') {
+    logUpload('multipart.cancel.requested', {
+      sessionId: id,
+      key: session.key,
+      busy: session.busy,
+    })
     await abortDirectUpload(id)
     return { ok: true }
   }
@@ -19,9 +25,21 @@ export default eventHandler(async (event) => {
     throw createError({ statusCode: 410, statusMessage: 'Upload cancelled' })
   if (session.busy)
     throw createError({ statusCode: 409, statusMessage: 'Upload is busy' })
-  if (session.completed) return { ok: true, key: session.key }
+  if (session.completed) {
+    logUpload('multipart.complete.repeated', {
+      sessionId: id,
+      key: session.key,
+    })
+    return { ok: true, key: session.key }
+  }
   session.busy = true
   session.touched = Date.now()
+  const startedAt = Date.now()
+  logUpload('multipart.complete.started', {
+    sessionId: id,
+    key: session.key,
+    partCount: session.setup.partUrls.length,
+  })
   try {
     const body = (await readBody(event)) as { parts?: UploadPart[] }
     const parts = body?.parts
@@ -45,7 +63,20 @@ export default eventHandler(async (event) => {
       throw createError({ statusCode: 410, statusMessage: 'Upload cancelled' })
     await session.setup.complete(parts)
     session.completed = true
+    logUpload('multipart.complete.succeeded', {
+      sessionId: id,
+      key: session.key,
+      partCount: parts.length,
+      durationMs: Date.now() - startedAt,
+    })
     return { ok: true, key: session.key }
+  } catch (error) {
+    logUpload(
+      'multipart.complete.failed',
+      { sessionId: id, key: session.key, durationMs: Date.now() - startedAt },
+      error,
+    )
+    throw error
   } finally {
     session.busy = false
     session.touched = Date.now()

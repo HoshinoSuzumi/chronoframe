@@ -22,6 +22,7 @@ import type {
   DirectUploadSetup,
 } from '../interfaces'
 import { UPLOAD_CHUNK_SIZE } from '../../../../shared/utils/upload'
+import { logUpload } from '../../../utils/upload-log'
 
 const createClient = (config: S3StorageConfig): S3Client => {
   if (config.provider !== 's3') {
@@ -238,6 +239,12 @@ export class S3StorageProvider implements StorageProvider {
     })
     if (size <= UPLOAD_CHUNK_SIZE) return single()
     const base = { Bucket: this.config.bucket, Key: key }
+    const startedAt = Date.now()
+    logUpload('s3.multipart.initialize.started', {
+      key,
+      size,
+      bucket: this.config.bucket,
+    })
     let uploadId: string | undefined
     try {
       uploadId = (
@@ -249,6 +256,16 @@ export class S3StorageProvider implements StorageProvider {
         )
       ).UploadId
     } catch (error) {
+      logUpload(
+        's3.multipart.initialize.failed',
+        {
+          key,
+          size,
+          bucket: this.config.bucket,
+          durationMs: Date.now() - startedAt,
+        },
+        error,
+      )
       const unsupported = error as {
         name?: string
         Code?: string
@@ -265,17 +282,34 @@ export class S3StorageProvider implements StorageProvider {
       ) {
         // A provider can allow ordinary PUT uploads while denying multipart
         // initiation. Keep the file on the direct path in that case.
-        this.logger?.warn(
-          `Multipart initialization rejected (${unsupported.name || unsupported.Code || unsupported.$metadata?.httpStatusCode}); falling back to direct PUT`,
-        )
+        logUpload('s3.multipart.fallback.single', {
+          key,
+          size,
+          reason:
+            unsupported.name ||
+            unsupported.Code ||
+            String(unsupported.$metadata?.httpStatusCode),
+        })
         return single()
       }
       throw error
     }
     if (!uploadId) throw new Error('S3 did not return a multipart upload ID')
+    logUpload('s3.multipart.initialize.succeeded', {
+      key,
+      uploadId,
+      durationMs: Date.now() - startedAt,
+    })
     const params = { ...base, UploadId: uploadId }
     const abort = async () => {
-      await this.client.send(new AbortMultipartUploadCommand(params))
+      logUpload('s3.multipart.abort.started', { key, uploadId })
+      try {
+        await this.client.send(new AbortMultipartUploadCommand(params))
+        logUpload('s3.multipart.abort.succeeded', { key, uploadId })
+      } catch (error) {
+        logUpload('s3.multipart.abort.failed', { key, uploadId }, error)
+        throw error
+      }
     }
     const partSize = Math.max(
       UPLOAD_CHUNK_SIZE,
@@ -292,12 +326,24 @@ export class S3StorageProvider implements StorageProvider {
           ),
         ),
       )
+      logUpload('s3.multipart.parts.signed', {
+        key,
+        uploadId,
+        partSize,
+        partCount: count,
+      })
       return {
         mode: 'multipart',
         partSize,
         partUrls,
         abort,
         complete: async (parts) => {
+          logUpload('s3.multipart.verify.started', {
+            key,
+            uploadId,
+            partCount: count,
+            size,
+          })
           // Verify remote part sizes before publishing the object. Presigned
           // upload URLs alone do not enforce the declared total file size.
           const remote = new Map<number, { size?: number; etag?: string }>()
@@ -329,6 +375,19 @@ export class S3StorageProvider implements StorageProvider {
             })
           )
             throw new Error('S3 multipart upload size or ETag mismatch')
+          for (const [partNumber, part] of remote) {
+            logUpload('s3.multipart.part.verified', {
+              key,
+              uploadId,
+              partNumber,
+              bytes: part.size,
+            })
+          }
+          logUpload('s3.multipart.complete.started', {
+            key,
+            uploadId,
+            partCount: count,
+          })
           await this.client.send(
             new CompleteMultipartUploadCommand({
               ...params,
@@ -340,9 +399,16 @@ export class S3StorageProvider implements StorageProvider {
               },
             }),
           )
+          logUpload('s3.multipart.complete.succeeded', {
+            key,
+            uploadId,
+            size,
+            durationMs: Date.now() - startedAt,
+          })
         },
       }
     } catch (error) {
+      logUpload('s3.multipart.signing.failed', { key, uploadId }, error)
       await abort().catch(() => {})
       throw error
     }

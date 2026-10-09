@@ -5,6 +5,7 @@ import type {
 } from '../services/storage/interfaces'
 import type { UploadPlan } from '../../shared/types/upload'
 import { createChunkUpload } from './chunk-upload'
+import { logUpload } from './upload-log'
 
 export const directUploads = new Map<
   string,
@@ -26,6 +27,11 @@ export async function abortDirectUpload(id: string) {
   if (session.busy) return
   if (!session.completed) await session.setup.abort()
   directUploads.delete(id)
+  logUpload('multipart.session.removed', {
+    sessionId: id,
+    key: session.key,
+    completed: session.completed,
+  })
 }
 
 export async function prepareUpload(
@@ -36,9 +42,25 @@ export async function prepareUpload(
   provider: StorageProvider,
   chunked: boolean,
 ): Promise<UploadPlan> {
+  logUpload('prepare.started', {
+    provider: provider.config?.provider,
+    owner,
+    key,
+    size,
+    chunked,
+  })
   if (provider.prepareDirectUpload && Number.isSafeInteger(size) && size > 0) {
     const setup = await provider.prepareDirectUpload(key, size, contentType)
-    if (setup?.mode === 'single' || setup?.mode === 'range') return setup
+    if (setup?.mode === 'single' || setup?.mode === 'range') {
+      logUpload('prepare.direct', {
+        provider: provider.config?.provider,
+        key,
+        size,
+        mode: setup.mode,
+        partSize: setup.mode === 'range' ? setup.partSize : undefined,
+      })
+      return setup
+    }
     if (setup?.mode === 'multipart') {
       const id = randomUUID()
       directUploads.set(id, {
@@ -50,6 +72,15 @@ export async function prepareUpload(
         completed: false,
         touched: Date.now(),
       })
+      logUpload('multipart.session.created', {
+        sessionId: id,
+        provider: provider.config?.provider,
+        owner,
+        key,
+        size,
+        partSize: setup.partSize,
+        partCount: setup.partUrls.length,
+      })
       return {
         mode: 'multipart',
         url: `/api/photos/multipart/${id}`,
@@ -59,6 +90,11 @@ export async function prepareUpload(
     }
   }
   if (provider.getSignedUrl) {
+    logUpload('prepare.single', {
+      provider: provider.config?.provider,
+      key,
+      size,
+    })
     return {
       mode: 'single',
       url: await provider.getSignedUrl(key, 3600, { contentType }),
@@ -79,8 +115,17 @@ export async function prepareUpload(
 const cleanup = setInterval(() => {
   for (const [id, session] of directUploads) {
     if (!session.busy && Date.now() - session.touched > 60 * 60_000) {
+      logUpload('multipart.session.expired', {
+        sessionId: id,
+        key: session.key,
+        completed: session.completed,
+      })
       void abortDirectUpload(id).catch((error) =>
-        console.error('Multipart cleanup failed', error),
+        logUpload(
+          'multipart.cleanup.failed',
+          { sessionId: id, key: session.key },
+          error,
+        ),
       )
     }
   }
