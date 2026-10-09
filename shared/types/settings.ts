@@ -15,6 +15,11 @@ export type SettingConfig = Omit<
   value?: SettingValue
   defaultValue: SettingValue
   enum?: ReadonlyArray<string>
+  /**
+   * Internal settings that are never rendered in the settings UI. They are
+   * still stored and readable server-side, but excluded from the fields API.
+   */
+  hidden?: boolean
 }
 
 export type SettingStorageProvider =
@@ -36,6 +41,7 @@ export type FieldUIType =
   | 'tabs' // 标签页选择
   | 'toggle' // 开关
   | 'number' // 数字输入
+  | 'avatar' // 头像上传/外链
   | 'custom' // 自定义组件
 
 /**

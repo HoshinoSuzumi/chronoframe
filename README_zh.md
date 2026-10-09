@@ -74,6 +74,7 @@ CFRAME_ADMIN_PASSWORD=
 NUXT_PUBLIC_APP_TITLE=
 NUXT_PUBLIC_APP_SLOGAN=
 NUXT_PUBLIC_APP_AUTHOR=
+# 外部头像 URL（可选，也可在后台上传头像，存储在已配置的存储提供商中）
 NUXT_PUBLIC_APP_AVATAR_URL=
 
 # 地图提供器 (maplibre/mapbox)

@@ -1143,9 +1143,18 @@
         "description": "The owner name of the instance"
       },
       "avatarUrl": {
-        "label": "Avatar URL",
-        "description": "Link to the owner's avatar image",
-        "help": "The avatar is displayed on the loading page and homepage"
+        "label": "Avatar",
+        "description": "Upload an image or link to the owner's avatar",
+        "help": "The avatar is displayed on the loading page and homepage",
+        "upload": "Upload",
+        "replace": "Replace",
+        "remove": "Remove",
+        "uploadSuccess": "Avatar updated",
+        "uploadFailed": "Failed to upload avatar",
+        "removeSuccess": "Avatar removed",
+        "removeFailed": "Failed to remove avatar",
+        "invalidType": "Please choose a PNG, JPEG, WebP, or GIF image",
+        "tooLarge": "Image must be smaller than {size}MB"
       },
       "appearance": {
         "theme": {
@@ -1474,6 +1483,11 @@
       },
       "confirmPassword": {
         "label": "Confirm Password"
+      }
+    },
+    "site": {
+      "avatarUrl": {
+        "help": "The avatar is displayed on the loading page and homepage. You'll be able to upload an image as well after setting up a storage."
       }
     },
     "map": {

@@ -26,7 +26,7 @@ export const APP_SETTINGS_UI: Record<string, FieldUIConfig> = {
     placeholder: 'Your name',
   },
   avatarUrl: {
-    type: 'url',
+    type: 'avatar',
     placeholder: 'https://example.com/avatar.jpg',
     help: 'settings.app.avatarUrl.help',
   },
