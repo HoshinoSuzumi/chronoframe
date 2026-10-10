@@ -33,3 +33,6 @@ logs
 # VitePress outputs
 docs/.vitepress/dist
 docs/.vitepress/cache
+
+# Temporary files
+.tmp
