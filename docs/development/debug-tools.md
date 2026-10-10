@@ -64,4 +64,4 @@ keep the window inside the viewport. Configure `minWidth`, `minHeight`,
 small screens. Maximization fills the viewport and preserves the normal rect.
 Slots: default content, `title`, `actions`, and `footer`.
 
-Validation: `node --test tests/debug-tools.test.mjs`.
+Validation: `pnpm lint`.

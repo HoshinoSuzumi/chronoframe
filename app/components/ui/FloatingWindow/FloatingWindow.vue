@@ -31,6 +31,7 @@ const props = withDefaults(
   },
 )
 const open = defineModel<boolean>({ default: true })
+const windowEl = ref<HTMLElement | null>(null)
 const rect = ref<FloatingRect>({
   x: props.initialX,
   y: props.initialY,
@@ -139,7 +140,12 @@ function startGesture(event: PointerEvent, edge?: string) {
   stopGesture = stop
 }
 function handleKey(event: KeyboardEvent) {
-  if (open.value && event.key === 'Escape' && !event.defaultPrevented)
+  if (
+    open.value &&
+    event.key === 'Escape' &&
+    !event.defaultPrevented &&
+    windowEl.value?.contains(document.activeElement)
+  )
     open.value = false
 }
 onMounted(() => {
@@ -197,6 +203,7 @@ onBeforeUnmount(() => {
     >
       <section
         v-if="open && ready"
+        ref="windowEl"
         role="dialog"
         tabindex="-1"
         :aria-label="title"
