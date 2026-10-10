@@ -1145,9 +1145,18 @@
         "description": "实例的所有者名称"
       },
       "avatarUrl": {
-        "label": "头像 URL",
-        "description": "所有者头像的图片链接",
-        "help": "头像显示加载页面和首页头像中"
+        "label": "头像",
+        "description": "上传图片或填写所有者头像的链接",
+        "help": "头像会显示在加载页面和首页中。",
+        "upload": "上传",
+        "replace": "更换",
+        "remove": "移除",
+        "uploadSuccess": "头像已更新",
+        "uploadFailed": "头像上传失败",
+        "removeSuccess": "头像已移除",
+        "removeFailed": "头像移除失败",
+        "invalidType": "请选择 PNG、JPEG、WebP 或 GIF 图片",
+        "tooLarge": "图片大小必须小于 {size}MB"
       },
       "appearance": {
         "theme": {
@@ -1476,6 +1485,11 @@
       },
       "confirmPassword": {
         "label": "确认密码"
+      }
+    },
+    "site": {
+      "avatarUrl": {
+        "help": "头像会显示在加载页面和首页中。设置好存储后，你还可以上传图片。"
       }
     },
     "map": {

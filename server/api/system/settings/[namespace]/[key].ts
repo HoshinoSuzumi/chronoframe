@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import {
+  getHiddenSettingKeys,
   settingKeys,
   settingNamespaces,
 } from '~~/server/services/settings/contants'
@@ -14,6 +15,13 @@ export default eventHandler(async (event) => {
       key: z.enum([...settingKeys]),
     }).parse,
   )
+
+  if (getHiddenSettingKeys(namespace).has(key)) {
+    throw createError({
+      statusCode: 404,
+      statusMessage: `Setting ${namespace}:${key} not found`,
+    })
+  }
 
   if (event.method === 'GET') {
     try {

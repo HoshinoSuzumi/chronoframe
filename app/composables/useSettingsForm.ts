@@ -1,7 +1,12 @@
+import type { InjectionKey } from 'vue'
 import type {
   FieldDescriptor,
   SettingsFieldsResponse,
 } from '~~/shared/types/settings'
+
+export const settingsFieldCommitKey: InjectionKey<
+  (fieldKey: string, value: any) => void
+> = Symbol('settings-field-commit')
 
 /**
  * Settings Form Composable
@@ -138,6 +143,14 @@ export function useSettingsForm(namespace: string) {
     return state[fieldKey]
   }
 
+  const commitField = (fieldKey: string, value: any) => {
+    state[fieldKey] = value
+    const field = fields.value.find((item) => item.key === fieldKey)
+    if (field) {
+      field.value = value
+    }
+  }
+
   // 组件挂载时自动获取字段
   onMounted(() => {
     fetchFields()
@@ -159,5 +172,6 @@ export function useSettingsForm(namespace: string) {
     updateField,
     getField,
     getFieldValue,
+    commitField,
   }
 }
