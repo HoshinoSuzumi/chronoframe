@@ -3,6 +3,10 @@ import dayjsLocale_zhCN from 'dayjs/locale/zh-cn'
 import dayjsLocale_zhTW from 'dayjs/locale/zh-tw'
 import dayjsLocale_zhHK from 'dayjs/locale/zh-hk'
 
+const DebugPanel = import.meta.dev
+  ? defineAsyncComponent(() => import('~/components/debug/Panel.vue'))
+  : null
+
 const router = useRouter()
 const dayjs = useDayjs()
 const colorMode = useColorMode()
@@ -69,8 +73,14 @@ const handleIndexChange = (newIndex: number) => {
   switchToIndex(newIndex)
   const photoId = viewerPhotos.value[newIndex]?.id
   if (!photoId) return
-  if (returnRoute.value?.startsWith('/albums/') && route.path === returnRoute.value) {
-    router.replace({ path: route.path, query: { ...route.query, photo: photoId } })
+  if (
+    returnRoute.value?.startsWith('/albums/') &&
+    route.path === returnRoute.value
+  ) {
+    router.replace({
+      path: route.path,
+      query: { ...route.query, photo: photoId },
+    })
   } else {
     router.replace(`/${photoId}`)
   }
@@ -132,6 +142,10 @@ provide(
         <NuxtPage />
       </NuxtLayout>
       <ClientOnly>
+        <component
+          :is="DebugPanel"
+          v-if="DebugPanel"
+        />
         <PhotoViewer
           :photos="viewerPhotos"
           :current-index="currentPhotoIndex"

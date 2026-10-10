@@ -924,7 +924,30 @@
           "totalWorkers": "總 Workers",
           "totalProcessed": "已處理",
           "totalFailed": "失敗計數",
-          "avgSuccessRate": "成功率"
+          "avgSuccessRate": "成功率",
+          "pending": "待處理",
+          "workers": "Workers",
+          "states": {
+            "unknown": "未知",
+            "stopped": "已停止",
+            "processing": "處理中",
+            "attention": "需要關注",
+            "idle": "閒置"
+          },
+          "stoppedNotice": "Workers 已停止，仍有 {count} 項任務等待處理。",
+          "waitNotice": "最早任務已等待 {minutes} 分鐘。",
+          "failedNotice": "有 {count} 項失敗任務待檢查。",
+          "debug": {
+            "label": "模擬預覽",
+            "scenarios": {
+              "empty": "無處理紀錄",
+              "processing": "處理中",
+              "backlog": "任務積壓",
+              "stopped": "已停止",
+              "failures": "部分失敗",
+              "allFailed": "全部失敗"
+            }
+          }
         },
         "recentActivity": {
           "title": "最近動態",
@@ -1647,5 +1670,54 @@
     "image": {
       "loadError": "圖片載入失敗"
     }
+  },
+  "debug": {
+    "title": "偵錯工具",
+    "open": "開啟偵錯工具",
+    "info": "基本資訊",
+    "route": "目前路由",
+    "version": "版本",
+    "viewport": "視窗尺寸",
+    "locale": "語言",
+    "theme": "主題",
+    "general": "通用操作",
+    "outline": "顯示元素輪廓",
+    "refresh": "重新整理資料",
+    "reload": "重新載入頁面",
+    "reset": "重設偵錯設定",
+    "page": "目前頁面",
+    "empty": "此頁面暫無偵錯設定。",
+    "scenario": "模擬情境",
+    "window": {
+      "maximize": "最大化",
+      "restore": "還原",
+      "close": "關閉"
+    },
+    "viewer": {
+      "title": "相片檢視器",
+      "visibility": "WebGL 診斷顯示",
+      "system": "遵循系統設定",
+      "show": "強制顯示",
+      "hide": "強制隱藏",
+      "delay": "載入延遲（毫秒）",
+      "failure": "模擬載入失敗",
+      "reload": "重新載入目前圖片",
+      "systemValue": "系統設定值",
+      "effective": "最終生效值",
+      "stage": "載入階段",
+      "waiting": "模擬載入延遲中",
+      "stages": {
+        "idle": "閒置",
+        "delay": "模擬延遲",
+        "image": "載入圖片",
+        "texture": "載入紋理",
+        "ready": "已就緒",
+        "error": "載入失敗",
+        "tile": "載入分塊"
+      }
+    },
+    "ogImage": "頁面 OG 圖",
+    "openOgImage": "開啟 OG 圖",
+    "ogImageError": "OG 圖載入失敗。"
   }
 }

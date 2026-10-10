@@ -7,6 +7,7 @@ definePageMeta({
 
 const route = useRoute()
 const router = useRouter()
+const { t } = useI18n()
 
 const { switchToIndex, closeViewer, openViewer } = useViewerState()
 const { isViewerOpen, scopedPhotos } = storeToRefs(useViewerState())
@@ -19,10 +20,59 @@ const currentPhoto = computed(() =>
   photos.value.find((photo) => photo.id === photoId.value),
 )
 
-defineOgImage('Photo', {
-  photo: currentPhoto.value || undefined,
-  appTitle: (getSetting('app:title') as string) || 'ChronoFrame',
+const nuxtApp = useNuxtApp()
+// This public collection is route-independent; late results must only update
+// Home metadata while the current route is still the home page.
+const { data: publicPhotos, execute: loadPublicPhotos } = await useFetch<
+  Photo[]
+>('/api/photos/visible', { immediate: !photoId.value })
+watch(photoId, (id) => {
+  if (!id && !publicPhotos.value) void loadPublicPhotos()
 })
+
+function updateOgImage() {
+  const id = photoId.value
+  const appTitle = (getSetting('app:title') as string) || 'ChronoFrame'
+  nuxtApp.runWithContext(() => {
+    if (id) {
+      defineOgImage('Photo', {
+        photo: currentPhoto.value?.id === id ? currentPhoto.value : undefined,
+        appTitle,
+      })
+      return
+    }
+    const visiblePhotos = publicPhotos.value || []
+    defineOgImage('Home', {
+      appTitle,
+      slogan: (getSetting('app:slogan') as string) || '',
+      author: (getSetting('app:author') as string) || '',
+      photoCount: visiblePhotos.length,
+      photoCountLabel: t(
+        'plural.photo',
+        { count: visiblePhotos.length },
+        visiblePhotos.length,
+      ),
+      thumbnails: visiblePhotos
+        .map((photo) => photo.thumbnailUrl)
+        .filter((url): url is string => Boolean(url))
+        .slice(0, 3),
+    })
+  })
+}
+watch(
+  [
+    photoId,
+    currentPhoto,
+    publicPhotos,
+    () => route.fullPath,
+    () => t('plural.photo', 0),
+  ],
+  updateOgImage,
+  { immediate: true },
+)
+// nuxt-og-image skips client updates during hydration. Reconcile once mounted
+// in case the route changed while the initial public-photo request was pending.
+onMounted(updateOgImage)
 
 // 处理标签查询参数
 const { clearAllFilters, toggleFilter } = usePhotoFilters()

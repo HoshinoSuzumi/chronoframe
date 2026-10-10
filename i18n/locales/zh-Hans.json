@@ -999,7 +999,30 @@
           "totalWorkers": "总 Workers",
           "totalProcessed": "已处理",
           "totalFailed": "失败计数",
-          "avgSuccessRate": "成功率"
+          "avgSuccessRate": "成功率",
+          "pending": "待处理",
+          "workers": "Workers",
+          "states": {
+            "unknown": "未知",
+            "stopped": "已停止",
+            "processing": "处理中",
+            "attention": "需要关注",
+            "idle": "空闲"
+          },
+          "stoppedNotice": "Workers 已停止，仍有 {count} 项任务等待处理。",
+          "waitNotice": "最早任务已等待 {minutes} 分钟。",
+          "failedNotice": "有 {count} 项失败任务待检查。",
+          "debug": {
+            "label": "模拟预览",
+            "scenarios": {
+              "empty": "无处理记录",
+              "processing": "处理中",
+              "backlog": "任务积压",
+              "stopped": "已停止",
+              "failures": "部分失败",
+              "allFailed": "全部失败"
+            }
+          }
         },
         "recentActivity": {
           "title": "最近动态",
@@ -1521,7 +1544,7 @@
         "admin": "管理员账户",
         "site": "站点信息",
         "storage": "存储配置",
-        "map": "地图服务", 
+        "map": "地图服务",
         "complete": "完成"
       },
       "tips": "不用担心填错，后续可在管理后台进行修改",
@@ -1647,5 +1670,54 @@
     "image": {
       "loadError": "图片加载失败"
     }
+  },
+  "debug": {
+    "title": "调试工具",
+    "open": "打开调试工具",
+    "info": "基础信息",
+    "route": "当前路由",
+    "version": "版本",
+    "viewport": "视口尺寸",
+    "locale": "语言",
+    "theme": "主题",
+    "general": "通用操作",
+    "outline": "显示元素轮廓",
+    "refresh": "刷新数据",
+    "reload": "重新加载页面",
+    "reset": "重置调试配置",
+    "page": "当前页面",
+    "empty": "此页面暂无调试配置。",
+    "scenario": "模拟场景",
+    "window": {
+      "maximize": "最大化",
+      "restore": "恢复",
+      "close": "关闭"
+    },
+    "viewer": {
+      "title": "照片查看器",
+      "visibility": "WebGL 诊断显示",
+      "system": "遵循系统设置",
+      "show": "强制显示",
+      "hide": "强制隐藏",
+      "delay": "加载延迟（毫秒）",
+      "failure": "模拟加载失败",
+      "reload": "重新加载当前图片",
+      "systemValue": "系统设置值",
+      "effective": "最终生效值",
+      "stage": "加载阶段",
+      "waiting": "模拟加载延迟中",
+      "stages": {
+        "idle": "空闲",
+        "delay": "模拟延迟",
+        "image": "加载图片",
+        "texture": "加载纹理",
+        "ready": "已就绪",
+        "error": "加载失败",
+        "tile": "加载分块"
+      }
+    },
+    "ogImage": "页面 OG 图",
+    "openOgImage": "打开 OG 图",
+    "ogImageError": "OG 图加载失败。"
   }
 }

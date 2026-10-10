@@ -51,6 +51,173 @@ const systemStatus = computed(() => {
   return 'healthy'
 })
 
+const queueDebugEnabled = useDebugValue<boolean>(
+  'dashboard:queue:enabled',
+  false,
+)
+const queueDebugScenario = useDebugValue(
+  'dashboard:queue:scenario',
+  'processing',
+)
+const queueDebugScenarios = {
+  empty: {
+    activeWorkers: 0,
+    totalWorkers: 5,
+    totalProcessed: 0,
+    totalErrors: 0,
+    isActive: true,
+    pending: 0,
+    failed: 0,
+    oldestWaitSeconds: 0,
+  },
+  processing: {
+    activeWorkers: 3,
+    totalWorkers: 5,
+    totalProcessed: 128,
+    totalErrors: 2,
+    isActive: true,
+    pending: 24,
+    failed: 0,
+    oldestWaitSeconds: 40,
+  },
+  backlog: {
+    activeWorkers: 0,
+    totalWorkers: 5,
+    totalProcessed: 80,
+    totalErrors: 5,
+    isActive: true,
+    pending: 156,
+    failed: 0,
+    oldestWaitSeconds: 720,
+  },
+  stopped: {
+    activeWorkers: 0,
+    totalWorkers: 5,
+    totalProcessed: 42,
+    totalErrors: 3,
+    isActive: false,
+    pending: 18,
+    failed: 0,
+    oldestWaitSeconds: 120,
+  },
+  failures: {
+    activeWorkers: 1,
+    totalWorkers: 5,
+    totalProcessed: 12,
+    totalErrors: 8,
+    isActive: true,
+    pending: 4,
+    failed: 8,
+    oldestWaitSeconds: 30,
+  },
+  allFailed: {
+    activeWorkers: 0,
+    totalWorkers: 5,
+    totalProcessed: 0,
+    totalErrors: 6,
+    isActive: true,
+    pending: 0,
+    failed: 6,
+    oldestWaitSeconds: 0,
+  },
+}
+const queueDebugOptions = computed(() =>
+  Object.keys(queueDebugScenarios).map((value) => ({
+    value,
+    label: $t('dashboard.overview.section.queue.debug.scenarios.' + value),
+  })),
+)
+useDebugSection(() => ({
+  id: 'dashboard:queue',
+  route: '/dashboard',
+  title: $t('dashboard.overview.section.queue.title'),
+  controls: [
+    {
+      key: 'dashboard:queue:enabled',
+      label: $t('dashboard.overview.section.queue.debug.label'),
+      type: 'switch',
+      default: false,
+    },
+    {
+      key: 'dashboard:queue:scenario',
+      label: $t('debug.scenario'),
+      type: 'select',
+      default: 'processing',
+      options: queueDebugOptions.value,
+      disabled: !queueDebugEnabled.value,
+    },
+  ],
+}))
+
+const queueDisplayStats = computed(() => {
+  if (!import.meta.dev || !queueDebugEnabled.value) return dashboardStats.value
+  const mock =
+    queueDebugScenarios[
+      queueDebugScenario.value as keyof typeof queueDebugScenarios
+    ]
+  if (!mock) return dashboardStats.value
+  const attempts = mock.totalProcessed + mock.totalErrors
+  return {
+    workerPool: {
+      ...mock,
+      averageSuccessRate: attempts ? (mock.totalProcessed / attempts) * 100 : 0,
+    },
+    queue: {
+      pending: mock.pending,
+      failed: mock.failed,
+      oldestWaitSeconds: mock.oldestWaitSeconds,
+    },
+  }
+})
+
+const queueState = computed(() => {
+  if (!queueDisplayStats.value) return 'unknown'
+  const pool = queueDisplayStats.value.workerPool
+  if (!pool?.isActive || pool.totalWorkers === 0) return 'stopped'
+  if (pool.activeWorkers > 0) return 'processing'
+  if ((queueDisplayStats.value.queue?.oldestWaitSeconds || 0) >= 300)
+    return 'attention'
+  return 'idle'
+})
+
+const queueNotice = computed(() => {
+  const queue = queueDisplayStats.value?.queue
+  if (!queue) return ''
+  if (queue.pending > 0 && queueState.value === 'stopped')
+    return $t('dashboard.overview.section.queue.stoppedNotice', {
+      count: queue.pending,
+    })
+  if (queue.oldestWaitSeconds >= 300)
+    return $t('dashboard.overview.section.queue.waitNotice', {
+      minutes: Math.floor(queue.oldestWaitSeconds / 60),
+    })
+  if (queue.failed > 0)
+    return $t('dashboard.overview.section.queue.failedNotice', {
+      count: queue.failed,
+    })
+  return ''
+})
+
+const hasQueueActivity = computed(() => {
+  const pool = queueDisplayStats.value?.workerPool
+  return (pool?.totalProcessed || 0) > 0 || (pool?.totalErrors || 0) > 0
+})
+
+const queueSuccessRate = computed(() =>
+  Math.min(
+    100,
+    Math.max(0, queueDisplayStats.value?.workerPool?.averageSuccessRate || 0),
+  ),
+)
+
+const queueSuccessColor = computed(() => {
+  const pool = queueDisplayStats.value?.workerPool
+  if (!pool || !hasQueueActivity.value) return 'neutral'
+  if (pool.averageSuccessRate > 90) return 'success'
+  if (pool.averageSuccessRate > 70) return 'warning'
+  return 'error'
+})
+
 // 获取所有有照片的年份
 const availableYears = computed(() => {
   if (!photos.value || photos.value.length === 0) return []
@@ -185,9 +352,10 @@ const onShareSite = () => {
         <!-- 运行信息 -->
         <UCard>
           <template #header>
-            <h2 class="text-lg font-semibold pb-1.5">
-              {{ $t('dashboard.overview.section.runtimeInfo.title') }}
-            </h2>
+            <DashboardSectionHeader
+              :title="$t('dashboard.overview.section.runtimeInfo.title')"
+              icon="tabler:server"
+            />
           </template>
 
           <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -267,9 +435,9 @@ const onShareSite = () => {
         </UCard>
 
         <!-- 详细统计区域 -->
-        <div class="grid grid-cols-1 lg:grid-cols-5 gap-4">
+        <div class="grid grid-cols-1 items-start lg:grid-cols-5 gap-4">
           <!-- 左侧 -->
-          <div class="lg:col-span-3">
+          <div class="min-w-0 space-y-4 lg:col-span-3">
             <UCard>
               <div class="heatmap-container">
                 <ClientOnly>
@@ -347,16 +515,18 @@ const onShareSite = () => {
                 </ClientOnly>
               </div>
             </UCard>
+            <DashboardRecentActivity />
           </div>
 
           <!-- 右侧：系统资源监控 -->
-          <div class="lg:col-span-2 w-full space-y-4">
+          <div class="min-w-0 lg:col-span-2 w-full space-y-4">
             <!-- 内存使用 -->
             <UCard>
               <template #header>
-                <h3 class="font-semibold pb-1.5">
-                  {{ $t('dashboard.overview.section.memory.title') }}
-                </h3>
+                <DashboardSectionHeader
+                  :title="$t('dashboard.overview.section.memory.title')"
+                  icon="tabler:cpu"
+                />
               </template>
 
               <div class="space-y-2">
@@ -407,72 +577,166 @@ const onShareSite = () => {
             <!-- 队列详情 -->
             <UCard>
               <template #header>
-                <h3 class="font-semibold pb-1.5">
-                  {{ $t('dashboard.overview.section.queue.title') }}
-                </h3>
+                <DashboardSectionHeader
+                  :title="$t('dashboard.overview.section.queue.title')"
+                  icon="tabler:list-check"
+                >
+                  <span class="flex items-center gap-1.5 text-xs text-muted">
+                    <span
+                      class="size-1.5 rounded-full"
+                      :class="{
+                        'bg-success': queueState === 'processing',
+                        'bg-warning': queueState === 'attention',
+                        'bg-error': queueState === 'stopped',
+                        'bg-neutral-400':
+                          queueState === 'idle' || queueState === 'unknown',
+                      }"
+                    />
+                    {{
+                      $t(
+                        'dashboard.overview.section.queue.states.' + queueState,
+                      )
+                    }}
+                  </span>
+                </DashboardSectionHeader>
               </template>
 
-              <div class="space-y-1">
-                <div class="flex justify-between items-center text-sm">
-                  <span>
-                    {{ $t('dashboard.overview.section.queue.activeWorkers') }}
-                  </span>
-                  <UBadge variant="soft">
-                    {{ dashboardStats?.workerPool?.activeWorkers || 0 }}
-                  </UBadge>
+              <div
+                class="grid grid-cols-[100px_minmax(0,1fr)] overflow-hidden rounded-lg border border-default"
+              >
+                <div
+                  class="flex flex-col items-center justify-center gap-1 border-r border-default bg-elevated/50 px-2 py-3"
+                >
+                  <div class="relative h-12 w-20">
+                    <svg
+                      viewBox="0 0 100 60"
+                      class="h-full w-full"
+                      aria-hidden="true"
+                    >
+                      <path
+                        d="M 10 50 A 40 40 0 0 1 90 50"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="7"
+                        stroke-linecap="round"
+                        class="text-border"
+                      />
+                      <path
+                        v-if="hasQueueActivity && queueSuccessRate > 0"
+                        d="M 10 50 A 40 40 0 0 1 90 50"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="7"
+                        stroke-linecap="round"
+                        pathLength="100"
+                        :stroke-dasharray="queueSuccessRate + ' 100'"
+                        :class="{
+                          'text-success': queueSuccessColor === 'success',
+                          'text-warning': queueSuccessColor === 'warning',
+                          'text-error': queueSuccessColor === 'error',
+                        }"
+                      />
+                    </svg>
+                    <span
+                      class="absolute inset-x-0 bottom-0 text-center text-base font-semibold leading-5 tabular-nums"
+                      :class="{ 'text-muted': !hasQueueActivity }"
+                      >{{
+                        hasQueueActivity
+                          ? Math.round(queueSuccessRate) + '%'
+                          : '—'
+                      }}</span
+                    >
+                  </div>
+                  <span class="text-center text-xs leading-4 text-muted">{{
+                    $t('dashboard.overview.section.queue.avgSuccessRate')
+                  }}</span>
                 </div>
-                <div class="flex justify-between items-center text-sm">
-                  <span>
-                    {{ $t('dashboard.overview.section.queue.totalWorkers') }}
-                  </span>
-                  <UBadge variant="soft">
-                    {{ dashboardStats?.workerPool?.totalWorkers || 0 }}
-                  </UBadge>
-                </div>
-                <div class="flex justify-between items-center text-sm">
-                  <span>
-                    {{ $t('dashboard.overview.section.queue.totalProcessed') }}
-                  </span>
-                  <UBadge variant="soft">
-                    {{ dashboardStats?.workerPool?.totalProcessed || 0 }}
-                  </UBadge>
-                </div>
-                <div class="flex justify-between items-center text-sm">
-                  <span>
-                    {{ $t('dashboard.overview.section.queue.totalFailed') }}
-                  </span>
-                  <UBadge variant="soft">
-                    {{ dashboardStats?.workerPool?.totalErrors || 0 }}
-                  </UBadge>
-                </div>
-                <div class="flex justify-between items-center text-sm">
-                  <span>
-                    {{ $t('dashboard.overview.section.queue.avgSuccessRate') }}
-                  </span>
-                  <UBadge
-                    :color="
-                      (dashboardStats?.workerPool?.averageSuccessRate || 0) > 90
-                        ? 'success'
-                        : (dashboardStats?.workerPool?.averageSuccessRate ||
-                              0) > 70
-                          ? 'warning'
-                          : 'error'
-                    "
-                    variant="soft"
+                <div class="grid min-w-0 grid-cols-2 gap-px bg-border">
+                  <div
+                    class="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5 bg-default px-3 py-2.5"
                   >
-                    {{
-                      Math.round(
-                        dashboardStats?.workerPool?.averageSuccessRate || 0,
-                      )
-                    }}%
-                  </UBadge>
+                    <UIcon
+                      name="tabler:activity"
+                      class="size-4 shrink-0 text-muted"
+                    />
+                    <span class="min-w-0 flex-1 text-xs text-muted">{{
+                      $t('dashboard.overview.section.queue.workers')
+                    }}</span>
+                    <span class="text-base font-semibold tabular-nums">{{
+                      (queueDisplayStats?.workerPool?.activeWorkers || 0) +
+                      '/' +
+                      (queueDisplayStats?.workerPool?.totalWorkers || 0)
+                    }}</span>
+                  </div>
+                  <div
+                    class="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5 bg-default px-3 py-2.5"
+                  >
+                    <UIcon
+                      name="tabler:hourglass"
+                      class="size-4 shrink-0 text-muted"
+                    />
+                    <span class="min-w-0 flex-1 text-xs text-muted">{{
+                      $t('dashboard.overview.section.queue.pending')
+                    }}</span>
+                    <span class="text-base font-semibold tabular-nums">{{
+                      queueDisplayStats?.queue?.pending || 0
+                    }}</span>
+                  </div>
+                  <div
+                    class="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5 bg-default px-3 py-2.5"
+                  >
+                    <UIcon
+                      name="tabler:circle-check"
+                      class="size-4 shrink-0 text-muted"
+                    />
+                    <span class="min-w-0 flex-1 text-xs text-muted">{{
+                      $t('dashboard.overview.section.queue.totalProcessed')
+                    }}</span>
+                    <span class="text-base font-semibold tabular-nums">{{
+                      queueDisplayStats?.workerPool?.totalProcessed || 0
+                    }}</span>
+                  </div>
+                  <div
+                    class="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5 bg-default px-3 py-2.5"
+                  >
+                    <UIcon
+                      name="tabler:circle-x"
+                      class="size-4 shrink-0 text-muted"
+                    />
+                    <span class="min-w-0 flex-1 text-xs text-muted">{{
+                      $t('dashboard.overview.section.queue.totalFailed')
+                    }}</span>
+                    <span
+                      class="text-base font-semibold tabular-nums"
+                      :class="{
+                        'text-error':
+                          (queueDisplayStats?.workerPool?.totalErrors || 0) > 0,
+                      }"
+                      >{{
+                        queueDisplayStats?.workerPool?.totalErrors || 0
+                      }}</span
+                    >
+                  </div>
                 </div>
               </div>
+              <NuxtLink
+                v-if="queueNotice"
+                to="/dashboard/queue"
+                class="mt-3 flex items-start gap-2 text-xs text-muted hover:text-default"
+              >
+                <UIcon
+                  name="tabler:alert-circle"
+                  class="size-4 shrink-0 text-warning"
+                />
+                <span>{{ queueNotice }}</span>
+                <UIcon
+                  name="tabler:arrow-right"
+                  class="ml-auto size-4 shrink-0"
+                />
+              </NuxtLink>
             </UCard>
           </div>
         </div>
-
-        <DashboardRecentActivity />
       </div>
     </template>
   </UDashboardPanel>
