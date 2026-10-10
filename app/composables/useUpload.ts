@@ -1,3 +1,6 @@
+import { UPLOAD_CHUNK_SIZE } from '~~/shared/utils/upload'
+import type { UploadPlan, UploadPart } from '~~/shared/types/upload'
+
 export interface UploadProgress {
   loaded: number
   total: number
@@ -7,7 +10,7 @@ export interface UploadProgress {
 }
 
 export interface UploadStatus {
-  status: 'idle' | 'uploading' | 'success' | 'error' | 'aborted'
+  status: 'idle' | 'uploading' | 'finalizing' | 'success' | 'error' | 'aborted'
   progress: UploadProgress
   error?: string
   startTime?: number
@@ -25,9 +28,11 @@ export interface UploadCallbacks {
 
 export interface UseUploadOptions {
   timeout?: number // 超时时间（毫秒）
+  finalizeTimeout?: number
+  chunkConcurrency?: number // 每个文件同时上传的分片数量（1–6）
   withCredentials?: boolean
   headers?: Record<string, string>
-  speedSampleSize?: number // 用于计算速度的样本数量
+  speedSampleSize?: number // 速度平均窗口（秒）
   maxRetries?: number // 最大重试次数
   retryDelay?: number // 重试延迟（毫秒）
 }
@@ -40,7 +45,9 @@ export function useUpload(options: UseUploadOptions = {}) {
   const { $i18n } = useNuxtApp()
   const t = $i18n.t
   const {
-    timeout = 0,
+    timeout = 60_000,
+    finalizeTimeout = 10 * 60_000,
+    chunkConcurrency = 3,
     withCredentials = false,
     headers = {},
     speedSampleSize = 5,
@@ -60,19 +67,41 @@ export function useUpload(options: UseUploadOptions = {}) {
 
   // 当前的 XMLHttpRequest 实例
   let currentXHR: XMLHttpRequest | null = null
+  const activeXHRs = new Set<XMLHttpRequest>()
+  const retryWaits = new Map<ReturnType<typeof setTimeout>, () => void>()
+  const stopRequests = () => {
+    for (const xhr of activeXHRs) xhr.abort()
+    for (const [timer, resolve] of retryWaits) {
+      clearTimeout(timer)
+      resolve()
+    }
+    retryWaits.clear()
+  }
 
   // 用于计算速度的数据点
-  const speedSamples: Array<{ timestamp: number; loaded: number }> = []
+  const speedSamples: Array<{
+    timestamp: number
+    loaded: number
+    useful: number
+  }> = []
+  let transferred = 0
 
   // 计算上传速度和剩余时间
   const calculateSpeed = (
     loaded: number,
   ): { speed: number; timeRemaining?: number } => {
-    const now = Date.now()
-    speedSamples.push({ timestamp: now, loaded })
+    const now = performance.now()
+    const previous = speedSamples.at(-1)
+    if (!previous || now - previous.timestamp >= 200) {
+      speedSamples.push({ timestamp: now, loaded: transferred, useful: loaded })
+    }
 
-    // 保持样本数量在限制内
-    if (speedSamples.length > speedSampleSize) {
+    // Use a time window so short pauses between parts do not erase the estimate.
+    const windowStart = now - Math.max(1, speedSampleSize) * 1000
+    while (
+      speedSamples.length > 2 &&
+      speedSamples[1]!.timestamp <= windowStart
+    ) {
       speedSamples.shift()
     }
 
@@ -91,12 +120,19 @@ export function useUpload(options: UseUploadOptions = {}) {
     const timeDiff = (lastSample.timestamp - firstSample.timestamp) / 1000 // 转换为秒
     const bytesDiff = lastSample.loaded - firstSample.loaded
 
-    const speed = timeDiff > 0 ? bytesDiff / timeDiff : 0
+    const speed = timeDiff > 0 ? Math.max(0, bytesDiff / timeDiff) : 0
 
     // 计算剩余时间
     const total = uploadStatus.value.progress.total
     const remaining = total - loaded
-    const timeRemaining = speed > 0 ? remaining / speed : undefined
+    // Retransmitted bytes consume bandwidth but do not reduce the remaining
+    // file size. Estimate from useful progress rather than wire throughput.
+    const usefulSpeed =
+      timeDiff > 0
+        ? Math.max(0, (lastSample.useful - firstSample.useful) / timeDiff)
+        : 0
+    const timeRemaining =
+      usefulSpeed > 0 && remaining > 0 ? remaining / usefulSpeed : undefined
 
     return { speed, timeRemaining }
   }
@@ -108,15 +144,26 @@ export function useUpload(options: UseUploadOptions = {}) {
 
   // 更新进度
   const updateProgress = (loaded: number, total: number) => {
-    const percentage = total > 0 ? Math.round((loaded / total) * 100) : 0
-    const { speed, timeRemaining } = calculateSpeed(loaded)
+    loaded = Math.min(
+      total,
+      Math.max(uploadStatus.value.progress.loaded, loaded),
+    )
+    const percentage =
+      total > 0
+        ? Math.min(
+            uploadStatus.value.status === 'uploading' ? 99 : 100,
+            Math.floor((loaded / total) * 100),
+          )
+        : 0
+    const finalizing = uploadStatus.value.status === 'finalizing'
+    const metrics = calculateSpeed(loaded)
 
     const progress: UploadProgress = {
       loaded,
       total,
       percentage,
-      speed,
-      timeRemaining,
+      speed: finalizing ? 0 : metrics.speed,
+      timeRemaining: finalizing ? undefined : metrics.timeRemaining,
     }
 
     updateStatus({ progress })
@@ -125,6 +172,7 @@ export function useUpload(options: UseUploadOptions = {}) {
   // 重置状态
   const resetStatus = () => {
     speedSamples.length = 0
+    transferred = 0
     updateStatus({
       status: 'idle',
       progress: {
@@ -138,244 +186,284 @@ export function useUpload(options: UseUploadOptions = {}) {
     })
   }
 
-  // 主要的上传函数
+  let cancelled = false
+  let active = false
+
   const uploadFile = async (
     file: File,
-    signedUrl: string,
+    target: string | UploadPlan,
     callbacks: UploadCallbacks = {},
-    attempt: number = 1,
   ): Promise<XMLHttpRequest> => {
-    // 重置状态（仅在第一次尝试时）
-    if (attempt === 1) {
-      resetStatus()
-    }
-
-    return new Promise((resolve, reject) => {
-      // 创建新的 XHR 实例
-      currentXHR = new XMLHttpRequest()
-      const xhr = currentXHR
-
-      // 设置超时
-      if (timeout > 0) {
-        xhr.timeout = timeout
+    if (active) throw new Error('An upload is already active')
+    resetStatus()
+    cancelled = false
+    active = true
+    updateStatus({ status: 'uploading', startTime: Date.now() })
+    callbacks.onStatusChange?.('uploading')
+    const plan: UploadPlan =
+      typeof target === 'string'
+        ? {
+            mode: target.startsWith('/api/photos/chunks/')
+              ? 'chunks'
+              : 'single',
+            url: target,
+          }
+        : target
+    const signedUrl = plan.url
+    const chunked = plan.mode !== 'single'
+    const managedSession = plan.mode === 'chunks' || plan.mode === 'multipart'
+    let stopped = false
+    let failureXHR: XMLHttpRequest | null = null
+    let loadedTotal = 0
+    const partProgress = new Map<number, number>()
+    const recordProgress = (index: number, loaded: number) => {
+      const previous = partProgress.get(index) ?? 0
+      const next = Math.max(previous, loaded)
+      partProgress.set(index, next)
+      loadedTotal += next - previous
+      if (
+        loadedTotal >= file.size &&
+        uploadStatus.value.status === 'uploading'
+      ) {
+        updateStatus({ status: 'finalizing' })
+        callbacks.onStatusChange?.('finalizing')
       }
-
-      // 设置是否携带凭证
-      xhr.withCredentials = withCredentials
-
-      // 记录开始时间
-      const startTime = Date.now()
-      updateStatus({ status: 'uploading', startTime })
-      callbacks.onStatusChange?.('uploading')
-
-      // 进度事件处理
-      xhr.upload.addEventListener('progress', (event) => {
-        if (event.lengthComputable) {
-          updateProgress(event.loaded, event.total)
-          callbacks.onProgress?.(uploadStatus.value.progress)
-        }
-      })
-
-      // 成功处理
-      xhr.addEventListener('load', () => {
-        const endTime = Date.now()
-        updateStatus({ status: 'success', endTime })
-        callbacks.onStatusChange?.('success')
-        callbacks.onSuccess?.(xhr)
-        resolve(xhr)
-      })
-
-      // 错误处理
-      xhr.addEventListener('error', () => {
-        const endTime = Date.now()
-        let errorMessage = ''
-
-        if (xhr.status === 0) {
-          // 状态码 0 通常表示网络连接失败、CORS 问题或服务器不可达
-          errorMessage = t('upload.runtimeError.networkFailed')
-        } else if (xhr.status >= 400 && xhr.status < 500) {
-          errorMessage = t('upload.runtimeError.clientError', { status: xhr.status })
-        } else if (xhr.status >= 500) {
-          errorMessage = t('upload.runtimeError.serverError', { status: xhr.status })
-        } else {
-          errorMessage = t('upload.runtimeError.networkError', { status: xhr.status })
-        }
-
-        // 检查是否可以重试
-        const canRetry =
-          attempt < maxRetries &&
-          (xhr.status === 0 || // 网络错误
-            xhr.status >= 500 || // 服务器错误
-            xhr.status === 429) // 频率限制
-
-        if (canRetry) {
-          updateStatus({
-            status: 'error',
-            error: t('upload.runtimeError.retrying', {
-              message: errorMessage,
-              attempt,
-              max: maxRetries,
-            }),
-            endTime,
-          })
-          callbacks.onRetry?.(attempt, maxRetries)
-
-          // 延迟后重试
-          setTimeout(() => {
-            uploadFile(file, signedUrl, callbacks, attempt + 1)
-              .then(resolve)
-              .catch(reject)
-          }, retryDelay * attempt) // 指数退避
-        } else {
-          updateStatus({ status: 'error', error: errorMessage, endTime })
-          callbacks.onStatusChange?.('error')
-          callbacks.onError?.(errorMessage, xhr)
-          reject(new Error(errorMessage))
-        }
-      })
-
-      // 超时处理
-      xhr.addEventListener('timeout', () => {
-        const endTime = Date.now()
-        const errorMessage = t('upload.runtimeError.timeout', { timeout })
-
-        // 检查是否可以重试（超时也可以重试）
-        const canRetry = attempt < maxRetries
-
-        if (canRetry) {
-          updateStatus({
-            status: 'error',
-            error: t('upload.runtimeError.retrying', {
-              message: errorMessage,
-              attempt,
-              max: maxRetries,
-            }),
-            endTime,
-          })
-          callbacks.onRetry?.(attempt, maxRetries)
-
-          // 延迟后重试
-          setTimeout(() => {
-            uploadFile(file, signedUrl, callbacks, attempt + 1)
-              .then(resolve)
-              .catch(reject)
-          }, retryDelay * attempt) // 指数退避
-        } else {
-          updateStatus({ status: 'error', error: errorMessage, endTime })
-          callbacks.onStatusChange?.('error')
-          callbacks.onError?.(errorMessage, xhr)
-          reject(new Error(errorMessage))
-        }
-      })
-
-      // 中止处理
-      xhr.addEventListener('abort', () => {
-        const endTime = Date.now()
-        updateStatus({ status: 'aborted', endTime })
-        callbacks.onStatusChange?.('aborted')
-        callbacks.onAbort?.()
-        reject(new Error(t('upload.runtimeError.aborted')))
-      })
-
-      // 状态变化处理
-      xhr.addEventListener('readystatechange', () => {
-        if (xhr.readyState === XMLHttpRequest.DONE) {
-          if (xhr.status >= 200 && xhr.status < 300) {
-            // 成功情况在 load 事件中处理
-            return
-          } else if (xhr.status >= 400) {
-            const endTime = Date.now()
-            let errorMessage = ''
-
-            // 根据状态码提供更友好的错误信息
-            switch (xhr.status) {
-              case 400:
-                errorMessage = t('upload.runtimeError.badRequest')
-                break
-              case 401:
-                errorMessage = t('upload.runtimeError.unauthorized')
-                break
-              case 403:
-                errorMessage = t('upload.runtimeError.forbidden')
-                break
-              case 404:
-                errorMessage = t('upload.runtimeError.notFound')
-                break
-              case 409:
-                errorMessage = t('upload.runtimeError.conflict')
-                break
-              case 413:
-                errorMessage = t('upload.runtimeError.fileTooLarge')
-                break
-              case 415:
-                errorMessage = t('upload.runtimeError.unsupportedType')
-                break
-              case 429:
-                errorMessage = t('upload.runtimeError.rateLimited')
-                break
-              case 500:
-                errorMessage = t('upload.runtimeError.internalServerError')
-                break
-              case 502:
-              case 503:
-              case 504:
-                errorMessage = t('upload.runtimeError.serviceUnavailable')
-                break
-              default:
-                errorMessage = t('upload.runtimeError.httpError', { status: xhr.status })
-            }
-
-            // 尝试获取服务器返回的详细错误信息
-            try {
-              const responseText = xhr.responseText
-              if (responseText) {
-                try {
-                  const responseData = JSON.parse(responseText)
-                  if (responseData.data?.message) {
-                    errorMessage = responseData.data.title || errorMessage
-                  }
-                } catch {
-                  // 如果不是 JSON，使用原始文本
-                  errorMessage += ` - ${responseText}`
-                }
+      updateProgress(loadedTotal, file.size)
+    }
+    updateProgress(0, file.size)
+    callbacks.onProgress?.(uploadStatus.value.progress)
+    // Update even when the connection stalls, so stale speed/ETA do not linger.
+    const progressTimer = setInterval(() => {
+      updateProgress(uploadStatus.value.progress.loaded, file.size)
+      callbacks.onProgress?.(uploadStatus.value.progress)
+    }, 250)
+    const request = async (
+      method: string,
+      url: string,
+      body?: Blob,
+      partIndex = 0,
+      requestHeaders: Record<string, string> = {},
+      filePayload = true,
+    ): Promise<XMLHttpRequest> => {
+      for (let attempt = 1; ; attempt++) {
+        if (cancelled || stopped)
+          throw new Error(t('upload.runtimeError.aborted'))
+        let xhr: XMLHttpRequest | undefined
+        try {
+          return await new Promise<XMLHttpRequest>((resolve, reject) => {
+            const requestXHR = new XMLHttpRequest()
+            xhr = requestXHR
+            let sent = 0
+            currentXHR = requestXHR
+            activeXHRs.add(requestXHR)
+            requestXHR.open(method, url)
+            requestXHR.timeout =
+              !filePayload || plan.mode === 'single' ? finalizeTimeout : timeout
+            requestXHR.withCredentials = withCredentials
+            if (body)
+              requestXHR.setRequestHeader(
+                'Content-Type',
+                filePayload
+                  ? file.type || 'application/octet-stream'
+                  : 'application/json',
+              )
+            Object.entries({ ...headers, ...requestHeaders }).forEach(
+              ([key, value]) => requestXHR.setRequestHeader(key, value),
+            )
+            requestXHR.upload.addEventListener('progress', (event) => {
+              if (event.lengthComputable && filePayload) {
+                const loaded = Math.min(body?.size ?? 0, event.loaded)
+                transferred += Math.max(0, loaded - sent)
+                sent = Math.max(sent, loaded)
+                recordProgress(partIndex, loaded)
               }
-            } catch {
-              // 忽略解析错误
+            })
+            requestXHR.addEventListener('load', () => {
+              if (requestXHR.status >= 200 && requestXHR.status < 300) {
+                if (filePayload) {
+                  transferred += Math.max(0, (body?.size ?? 0) - sent)
+                  if (body) recordProgress(partIndex, body.size)
+                }
+                resolve(requestXHR)
+              } else
+                reject(
+                  new Error(
+                    t('upload.runtimeError.httpError', {
+                      status: requestXHR.status,
+                    }),
+                  ),
+                )
+            })
+            requestXHR.addEventListener('error', () =>
+              reject(new Error(t('upload.runtimeError.networkFailed'))),
+            )
+            requestXHR.addEventListener('timeout', () =>
+              reject(
+                new Error(
+                  t('upload.runtimeError.timeout', {
+                    timeout: requestXHR.timeout,
+                  }),
+                ),
+              ),
+            )
+            requestXHR.addEventListener('abort', () =>
+              reject(new Error(t('upload.runtimeError.aborted'))),
+            )
+            requestXHR.send(body)
+          })
+        } catch (error) {
+          const status = xhr?.status ?? 0
+          if (
+            cancelled ||
+            stopped ||
+            attempt >= Math.max(1, maxRetries) ||
+            (status > 0 && status < 500 && status !== 429)
+          ) {
+            failureXHR = xhr ?? null
+            throw error
+          }
+          callbacks.onRetry?.(attempt, maxRetries)
+          if (cancelled || stopped) throw error
+          await new Promise<void>((resolve) => {
+            const timer = setTimeout(() => {
+              retryWaits.delete(timer)
+              resolve()
+            }, retryDelay * attempt)
+            retryWaits.set(timer, resolve)
+          })
+        } finally {
+          if (xhr) activeXHRs.delete(xhr)
+        }
+      }
+    }
+    try {
+      let response: XMLHttpRequest
+      if (plan.mode === 'range') {
+        if (!Number.isSafeInteger(plan.partSize) || plan.partSize <= 0)
+          throw new Error('Invalid range upload plan')
+        let lastResponse: XMLHttpRequest | undefined
+        for (
+          let index = 0, offset = 0;
+          offset < file.size;
+          index++, offset += plan.partSize
+        ) {
+          const end = Math.min(offset + plan.partSize, file.size)
+          lastResponse = await request(
+            plan.method || 'PUT',
+            plan.url,
+            file.slice(offset, end),
+            index,
+            {
+              ...plan.headers,
+              'Content-Range': `bytes ${offset}-${end - 1}/${file.size}`,
+            },
+          )
+        }
+        if (!lastResponse) throw new Error('Empty upload')
+        response = lastResponse
+      } else if (chunked) {
+        const partSize =
+          plan.mode === 'multipart' ? plan.partSize : UPLOAD_CHUNK_SIZE
+        const count = Math.ceil(file.size / partSize)
+        if (
+          plan.mode === 'multipart' &&
+          (partSize <= 0 || plan.partUrls.length !== count)
+        )
+          throw new Error('Invalid multipart upload plan')
+        const parts: UploadPart[] = []
+        const concurrency = Number.isFinite(chunkConcurrency)
+          ? Math.max(1, Math.min(6, Math.floor(chunkConcurrency)))
+          : 3
+        let nextIndex = 0
+        let failure: unknown
+        const worker = async () => {
+          try {
+            while (!cancelled && !stopped && nextIndex < count) {
+              const index = nextIndex++
+              const offset = index * partSize
+              const partResponse = await request(
+                'PUT',
+                plan.mode === 'multipart'
+                  ? plan.partUrls[index]!
+                  : `${signedUrl}?index=${index}`,
+                file.slice(offset, offset + partSize),
+                index,
+              )
+              if (plan.mode === 'multipart') {
+                const etag = partResponse.getResponseHeader('ETag')
+                if (!etag) throw new Error(t('upload.runtimeError.missingEtag'))
+                parts[index] = { partNumber: index + 1, etag }
+              }
             }
-
-            updateStatus({ status: 'error', error: errorMessage, endTime })
-            callbacks.onStatusChange?.('error')
-            callbacks.onError?.(errorMessage, xhr)
+          } catch (error) {
+            if (!stopped) {
+              failure = error
+              stopped = true
+              stopRequests()
+            }
           }
         }
-      })
-
-      // 准备请求
-      xhr.open('PUT', signedUrl)
-
-      // 设置请求头
-      xhr.setRequestHeader(
-        'Content-Type',
-        file.type || 'application/octet-stream',
-      )
-
-      // 设置自定义请求头
-      Object.entries(headers).forEach(([key, value]) => {
-        xhr.setRequestHeader(key, value)
-      })
-
-      // 开始上传
-      xhr.send(file)
-    })
-  }
-
-  // 中止上传
-  const abortUpload = () => {
-    if (currentXHR && uploadStatus.value.status === 'uploading') {
-      currentXHR.abort()
+        await Promise.all(
+          Array.from({ length: Math.min(count, concurrency) }, worker),
+        )
+        if (failure) throw failure
+        if (cancelled) throw new Error(t('upload.runtimeError.aborted'))
+        updateStatus({ status: 'finalizing' })
+        updateProgress(file.size, file.size)
+        callbacks.onProgress?.(uploadStatus.value.progress)
+        callbacks.onStatusChange?.('finalizing')
+        response = await request(
+          'POST',
+          signedUrl,
+          plan.mode === 'multipart'
+            ? new Blob([JSON.stringify({ parts })], {
+                type: 'application/json',
+              })
+            : undefined,
+          0,
+          {},
+          false,
+        )
+      } else {
+        response = await request(
+          plan.mode === 'single' ? plan.method || 'PUT' : 'PUT',
+          signedUrl,
+          file,
+          0,
+          plan.mode === 'single' ? plan.headers : {},
+        )
+      }
+      if (cancelled) throw new Error(t('upload.runtimeError.aborted'))
+      updateStatus({ status: 'success', endTime: Date.now() })
+      updateProgress(file.size, file.size)
+      callbacks.onProgress?.(uploadStatus.value.progress)
+      callbacks.onStatusChange?.('success')
+      callbacks.onSuccess?.(response)
+      return response
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error)
+      const status = cancelled ? 'aborted' : 'error'
+      updateStatus({ status, error: message, endTime: Date.now() })
+      callbacks.onStatusChange?.(status)
+      if (cancelled) callbacks.onAbort?.()
+      else if (failureXHR || currentXHR)
+        callbacks.onError?.(message, (failureXHR || currentXHR)!)
+      if (managedSession)
+        void $fetch(signedUrl, { method: 'DELETE' }).catch(() => {})
+      throw error
+    } finally {
+      clearInterval(progressTimer)
+      stopRequests()
+      active = false
+      currentXHR = null
     }
   }
 
+  const abortUpload = () => {
+    if (!active) return
+    cancelled = true
+    stopRequests()
+  }
   // 格式化字节大小
   const formatBytes = (bytes: number): string => {
     if (bytes === 0) return '0 B'
@@ -387,11 +475,13 @@ export function useUpload(options: UseUploadOptions = {}) {
 
   // 格式化时间
   const formatTime = (seconds: number): string => {
-    if (!isFinite(seconds) || seconds < 0) return t('upload.progress.calculating')
+    if (!isFinite(seconds) || seconds < 0)
+      return t('upload.progress.calculating')
 
-    const hours = Math.floor(seconds / 3600)
-    const minutes = Math.floor((seconds % 3600) / 60)
-    const secs = Math.floor(seconds % 60)
+    const rounded = Math.ceil(seconds)
+    const hours = Math.floor(rounded / 3600)
+    const minutes = Math.floor((rounded % 3600) / 60)
+    const secs = rounded % 60
 
     if (hours > 0) {
       return `${hours}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
@@ -403,7 +493,9 @@ export function useUpload(options: UseUploadOptions = {}) {
   }
 
   // 计算属性
-  const isUploading = computed(() => uploadStatus.value.status === 'uploading')
+  const isUploading = computed(() =>
+    ['uploading', 'finalizing'].includes(uploadStatus.value.status),
+  )
   const isIdle = computed(() => uploadStatus.value.status === 'idle')
   const isSuccess = computed(() => uploadStatus.value.status === 'success')
   const isError = computed(() => uploadStatus.value.status === 'error')
@@ -419,7 +511,8 @@ export function useUpload(options: UseUploadOptions = {}) {
       loadedText: formatBytes(loaded),
       totalText: formatBytes(total),
       speedText: speed ? `${formatBytes(speed)}/s` : '',
-      timeRemainingText: timeRemaining ? formatTime(timeRemaining) : '',
+      timeRemainingText:
+        timeRemaining !== undefined ? formatTime(timeRemaining) : '',
       progressText: `${formatBytes(loaded)} / ${formatBytes(total)} (${percentage}%)`,
     }
   })

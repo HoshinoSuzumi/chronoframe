@@ -14,6 +14,7 @@
         class="w-full h-full object-cover"
         :src="getSetting('app:avatarUrl')?.toString()"
         :alt="$t('ui.loading')"
+        @error="handleAvatarError"
       />
       <img
         v-else

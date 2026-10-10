@@ -1,10 +1,6 @@
 import { promises as fs } from 'node:fs'
 import path from 'node:path'
-import type {
-  LocalStorageConfig,
-  StorageObject,
-  StorageProvider,
-} from '../interfaces'
+import type { StorageObject, StorageProvider } from '../interfaces'
 
 const ensureDir = async (dirPath: string) => {
   await fs.mkdir(dirPath, { recursive: true })
@@ -14,7 +10,7 @@ const sanitizeKey = (key: string) =>
   key.replace(/\\/g, '/').replace(/\/+/g, '/').replace(/^\/+/, '')
 
 const combinePrefixAndKey = (prefix: string | undefined, key: string) => {
-  const cleanPrefix = (prefix || '').replace(/\/+$/, '')
+  const cleanPrefix = (prefix || '').replace(/^\/+|\/+$/g, '')
   const cleanKey = key.replace(/^\/+/, '')
   if (!cleanPrefix) return cleanKey
   return cleanKey.startsWith(cleanPrefix + '/')
@@ -50,6 +46,20 @@ export class LocalStorageProvider implements StorageProvider {
       key: relKey,
       size: stat.size,
       lastModified: stat.mtime,
+    }
+  }
+
+  async createFromFile(key: string, filePath: string): Promise<StorageObject> {
+    const { absFile, relKey } = this.resolveAbsoluteKey(key)
+    await ensureDir(path.dirname(absFile))
+    const tempFile = `${absFile}.tmp-${crypto.randomUUID()}`
+    try {
+      await fs.copyFile(filePath, tempFile)
+      await fs.rename(tempFile, absFile)
+      const stat = await fs.stat(absFile)
+      return { key: relKey, size: stat.size, lastModified: stat.mtime }
+    } finally {
+      await fs.rm(tempFile, { force: true })
     }
   }
 

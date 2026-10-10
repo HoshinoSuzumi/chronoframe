@@ -74,6 +74,7 @@ const isRepoLinkHovering = ref(false)
                 :class="!loggedIn && 'cursor-pointer'"
                 :alt="$t('ui.photo.avatarAlt')"
                 @click="!loggedIn && handleOpenLogin()"
+                @error="handleAvatarError"
               />
             </div>
             <h1

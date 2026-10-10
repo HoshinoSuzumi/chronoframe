@@ -56,6 +56,13 @@ export const DEFAULT_SETTINGS = [
   },
   {
     namespace: 'app',
+    key: 'avatarStorageKey',
+    type: 'string',
+    defaultValue: '',
+    hidden: true,
+  },
+  {
+    namespace: 'app',
     key: 'appearance.theme',
     type: 'string',
     defaultValue: 'system',
@@ -255,3 +262,12 @@ export type SettingKey<N extends SettingNamespace> = Extract<
   (typeof DEFAULT_SETTINGS)[number],
   { namespace: N }
 >['key']
+
+export function getHiddenSettingKeys(namespace: string): Set<string> {
+  const settings = DEFAULT_SETTINGS as readonly SettingConfig[]
+  return new Set(
+    settings
+      .filter((setting) => setting.namespace === namespace && setting.hidden)
+      .map((setting) => setting.key),
+  )
+}

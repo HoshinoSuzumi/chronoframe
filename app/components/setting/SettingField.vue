@@ -24,6 +24,7 @@ const getComponentName = (uiType: FieldUIType): string => {
     tabs: 'UTabs',
     toggle: 'USwitch',
     number: 'UInput',
+    avatar: 'SettingAvatar',
     custom: 'UInput', // 默认降级到 input
   }
 
@@ -37,6 +38,7 @@ const URadioGroup = resolveComponent('URadioGroup')
 const UTabs = resolveComponent('UTabs')
 const USwitch = resolveComponent('USwitch')
 const UFormField = resolveComponent('UFormField')
+const SettingAvatar = resolveComponent('SettingAvatar')
 
 const componentName = computed(() => {
   const name = getComponentName(props.field.ui.type)
@@ -53,6 +55,8 @@ const componentName = computed(() => {
       return UTabs
     case 'USwitch':
       return USwitch
+    case 'SettingAvatar':
+      return SettingAvatar
     default:
       return UInput
   }
@@ -98,6 +102,9 @@ const getComponentProps = (): Record<string, any> => {
       break
     case 'textarea':
       propsMap.rows = props.field.ui.rows ?? 3
+      break
+    case 'avatar':
+      propsMap.fieldKey = props.field.key
       break
   }
 

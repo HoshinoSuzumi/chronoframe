@@ -74,6 +74,7 @@ CFRAME_ADMIN_PASSWORD=
 NUXT_PUBLIC_APP_TITLE=
 NUXT_PUBLIC_APP_SLOGAN=
 NUXT_PUBLIC_APP_AUTHOR=
+# External avatar URL (optional; you can also upload an avatar from the dashboard, stored in the configured storage provider)
 NUXT_PUBLIC_APP_AVATAR_URL=
 
 # Map provider (maplibre/mapbox)

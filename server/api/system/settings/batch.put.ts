@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import {
+  getHiddenSettingKeys,
   settingKeys,
   settingNamespaces,
 } from '~~/server/services/settings/contants'
@@ -63,6 +64,14 @@ export default eventHandler(async (event) => {
 
     // 逐个更新设置
     for (const update of body.updates) {
+      if (getHiddenSettingKeys(update.namespace).has(update.key)) {
+        errors.push({
+          namespace: update.namespace,
+          key: update.key,
+          error: 'Setting is not directly modifiable',
+        })
+        continue
+      }
       try {
         await settingsManager.set(
           update.namespace,

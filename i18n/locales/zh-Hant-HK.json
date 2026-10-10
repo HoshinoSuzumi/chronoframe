@@ -736,6 +736,7 @@
           "waiting": "等待上傳",
           "preparing": "準備中",
           "uploading": "上傳中 {0}%",
+          "finalizing": "正在儲存檔案",
           "pendingProcessing": "等待處理",
           "completed": "完成",
           "error": "錯誤",
@@ -1070,9 +1071,18 @@
         "description": "實例的所有者名稱"
       },
       "avatarUrl": {
-        "label": "頭像 URL",
-        "description": "所有者頭像的圖片連結",
-        "help": "頭像顯示加載頁面同首頁頭像中"
+        "label": "頭像",
+        "description": "上傳圖片或填寫所有者頭像嘅連結",
+        "help": "頭像會顯示喺載入頁面同首頁中。",
+        "upload": "上傳",
+        "replace": "更換",
+        "remove": "移除",
+        "uploadSuccess": "頭像已更新",
+        "uploadFailed": "頭像上傳失敗",
+        "removeSuccess": "頭像已移除",
+        "removeFailed": "頭像移除失敗",
+        "invalidType": "請選擇 PNG、JPEG、WebP 或 GIF 圖片",
+        "tooLarge": "圖片大小必須小於 {size}MB"
       },
       "appearance": {
         "theme": {
@@ -1408,6 +1418,11 @@
         "label": "確認密碼"
       }
     },
+    "site": {
+      "avatarUrl": {
+        "help": "頭像會顯示喺載入頁面同首頁中。設定好儲存之後，你都可以上傳圖片。"
+      }
+    },
     "map": {
       "provider": {
         "mapbox": {
@@ -1603,6 +1618,7 @@
       }
     },
     "runtimeError": {
+      "missingEtag": "儲存回應未公開 ETag，請在儲存桶 CORS 的 ExposeHeaders 中加入 ETag。",
       "networkFailed": "網絡連線失敗",
       "clientError": "客戶端錯誤 ({status})",
       "serverError": "伺服器錯誤 ({status})",

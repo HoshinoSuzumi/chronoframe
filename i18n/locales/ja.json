@@ -736,6 +736,7 @@
           "waiting": "アップロード待機",
           "preparing": "準備中",
           "uploading": "アップロード中 {0}%",
+          "finalizing": "ファイルを保存中",
           "pendingProcessing": "処理待ち",
           "completed": "完了",
           "error": "エラー",
@@ -1070,9 +1071,18 @@
         "description": "インスタンスのオーナー名"
       },
       "avatarUrl": {
-        "label": "アバター URL",
-        "description": "オーナーのアバター画像へのリンク",
-        "help": "アバターはローディングページとホームページに表示されます"
+        "label": "アバター",
+        "description": "画像をアップロードするか、オーナーのアバターへのリンクを入力",
+        "help": "アバターはローディングページとホームページに表示されます。",
+        "upload": "アップロード",
+        "replace": "変更",
+        "remove": "削除",
+        "uploadSuccess": "アバターを更新しました",
+        "uploadFailed": "アバターのアップロードに失敗しました",
+        "removeSuccess": "アバターを削除しました",
+        "removeFailed": "アバターの削除に失敗しました",
+        "invalidType": "PNG、JPEG、WebP、または GIF 画像を選択してください",
+        "tooLarge": "画像は {size}MB 未満である必要があります"
       },
       "appearance": {
         "theme": {
@@ -1408,6 +1418,11 @@
         "label": "パスワード（確認）"
       }
     },
+    "site": {
+      "avatarUrl": {
+        "help": "アバターはローディングページとホームページに表示されます。ストレージを設定すると、画像のアップロードもできるようになります。"
+      }
+    },
     "map": {
       "provider": {
         "mapbox": {
@@ -1612,6 +1627,7 @@
       }
     },
     "runtimeError": {
+      "missingEtag": "ストレージの応答から ETag を読み取れません。バケットの CORS ExposeHeaders に ETag を追加してください。",
       "networkFailed": "ネットワーク接続に失敗しました",
       "clientError": "クライアントエラー ({status})",
       "serverError": "サーバーエラー ({status})",

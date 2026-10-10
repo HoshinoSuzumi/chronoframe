@@ -3,6 +3,7 @@ import { useStorageProvider } from '~~/server/utils/useStorageProvider'
 import { eq } from 'drizzle-orm'
 import { generateSafePhotoId } from '~~/server/utils/file-utils'
 import { settingsManager } from '~~/server/services/settings/settingsManager'
+import { prepareUpload } from '~~/server/utils/direct-upload'
 
 const VIDEO_EXTENSIONS = new Set(['.mov', '.mp4'])
 
@@ -42,12 +43,12 @@ const isLikelyImageKey = (storageKey?: string | null): boolean => {
 }
 
 export default eventHandler(async (event) => {
-  await requireUserSession(event)
+  const session = await requireUserSession(event)
   const { storageProvider } = useStorageProvider(event)
   const t = await useTranslation(event)
 
   const body = await readBody(event)
-  const { fileName, contentType, skipDuplicateCheck } = body
+  const { fileName, contentType, skipDuplicateCheck, fileSize, chunked } = body
   const isVideoUpload = fileName ? isVideoFile(fileName, contentType) : false
 
   if (!fileName) {
@@ -57,15 +58,55 @@ export default eventHandler(async (event) => {
     })
   }
 
+  if (chunked || fileSize !== undefined) {
+    const maxMB =
+      (await settingsManager.get<number>('system', 'upload.maxFileSize')) ?? 256
+    if (!Number.isSafeInteger(fileSize) || fileSize <= 0)
+      throw createError({ statusCode: 400, statusMessage: 'Invalid file size' })
+    if (fileSize > maxMB * 1024 * 1024)
+      throw createError({
+        statusCode: 413,
+        statusMessage: t('upload.error.tooLarge.title'),
+      })
+    const mime = useRuntimeConfig(event).upload.mime
+    const allowed = mime.whitelist
+      .split(',')
+      .map((type: string) => type.trim())
+      .filter(Boolean)
+    if (
+      mime.whitelistEnabled &&
+      allowed.length &&
+      !allowed.includes(contentType || 'application/octet-stream')
+    ) {
+      throw createError({
+        statusCode: 415,
+        statusMessage: t('upload.error.invalidType.title'),
+      })
+    }
+    if (
+      typeof fileName !== 'string' ||
+      /[\\/]/.test(fileName) ||
+      fileName === '.' ||
+      fileName === '..'
+    ) {
+      throw createError({ statusCode: 400, statusMessage: 'Invalid file name' })
+    }
+  }
+
   try {
-    const objectKey = `${(storageProvider.config?.prefix || '').replace(/\/+$/, '')}/${fileName}`
+    const providerConfig = storageProvider.config
+    const prefix =
+      providerConfig && 'prefix' in providerConfig ? providerConfig.prefix : ''
+    const objectKey = `${(prefix || '').replace(/\/+$/, '')}/${fileName}`
 
     // 重复文件检测
     const duplicateCheckEnabled =
       ((await settingsManager.get<boolean>(
         'system',
         'upload.duplicateCheck.enabled',
-      )) ?? true) && !skipDuplicateCheck
+      )) ??
+        true) &&
+      !skipDuplicateCheck
     let existingPhoto = null
 
     if (duplicateCheckEnabled) {
@@ -131,14 +172,20 @@ export default eventHandler(async (event) => {
       }
     }
 
-    // 若存储提供商支持预签名 URL，返回外部直传地址
-    if (storageProvider.getSignedUrl) {
-      const signedUrl = await storageProvider.getSignedUrl(objectKey, 3600, {
-        contentType: contentType || 'application/octet-stream',
-      })
+    // Let the provider choose direct upload before considering a local receiver.
+    {
+      const upload = await prepareUpload(
+        String(session.user.id),
+        objectKey,
+        fileSize,
+        contentType || 'application/octet-stream',
+        storageProvider,
+        Boolean(chunked),
+      )
 
       const response: any = {
-        signedUrl,
+        signedUrl: upload.url,
+        upload,
         fileKey: objectKey,
         expiresIn: 3600,
       }
@@ -160,31 +207,6 @@ export default eventHandler(async (event) => {
 
       return response
     }
-
-    // 否则回退到内部直传端点（需会话）
-    const internalUploadUrl = `/api/photos/upload?key=${encodeURIComponent(objectKey)}`
-    const response: any = {
-      signedUrl: internalUploadUrl,
-      fileKey: objectKey,
-      expiresIn: 3600,
-    }
-
-    if (existingPhoto) {
-      response.duplicate = true
-      response.existingPhoto = existingPhoto
-      response.warningInfo = {
-        title: t('upload.duplicate.warn.title'),
-        message: t('upload.duplicate.warn.message', { fileName }),
-        warning: t('upload.duplicate.warn.warning'),
-        info: t('upload.duplicate.warn.info', {
-          title: existingPhoto.title || fileName,
-          dateTaken:
-            existingPhoto.dateTaken || t('common.unknown', 'unknown date'),
-        }),
-      }
-    }
-
-    return response
   } catch (error) {
     if ((error as any).statusCode) {
       throw error
