@@ -5,7 +5,7 @@ layout: home
 hero:
   name: 'ChronoFrame'
   text: 'Self-hosted Personal Gallery'
-  tagline: 'Manage photos online with multi-storage backends, LivePhoto, and globe view'
+  tagline: 'Upload, organize and share your photos, with setup in your browser'
   image:
     src: /logo.png
     alt: ChronoFrame
@@ -18,8 +18,8 @@ hero:
       text: View on GitHub
       link: https://github.com/HoshinoSuzumi/chronoframe
     - theme: alt
-      text: View Demo
-      link: https://lens.bh8.ga
+      text: Demo Sites
+      link: /demo-sites
 
 features:
   - title: Powerful Photo Management
@@ -27,16 +27,16 @@ features:
     details: Easily manage and browse photos through web interface, view photo locations on map.
   - title: Simple Deployment
     icon: 🚀
-    details: Deploy with one command using Docker, no database required (based on SQLite3).
+    details: Start with Docker, then create your administrator and choose storage in the setup wizard. SQLite runs with the application.
   - title: Flexible Storage Solutions
     icon: 💾
-    details: Support multiple storage backends including S3-compatible storage and local filesystem.
+    details: Use local files, S3-compatible storage or OpenList, with storage schemes managed in the dashboard.
   - title: Smart Geolocation
     icon: 🌍
-    details: Automatically extract photo GPS information, use Mapbox for geocoding, display photo locations on map.
-  - title: Responsive Design
+    details: Extract GPS and identify places through reverse geocoding, then browse them with MapLibre or Mapbox.
+  - title: Albums and Privacy
     icon: 📱
-    details: Perfect for desktop and mobile, support touch operations and gesture controls, native app-like experience.
+    details: Organize and reorder albums, hide them from public browsing or require a password.
   - title: Live/Motion Photo Support
     icon: 🎬
     details: Full support for Apple LivePhoto format and Google-standard Motion Photo, automatically detect and process MOV video files, preserve dynamic photo effects.
@@ -44,23 +44,11 @@ features:
 
 ## 🌍 Demo Sites
 
-Here are some well-running ChronoFrame instances built by developers and community members:
-
-- [**TimoYin's Mems**](https://lens.bh8.ga)
-- [**懒洋洋喝咖啡**](https://oreo.tanmantang.com) — 用镜头记录每个精彩瞬间
-- [**My Photo Gallery**](https://photo.fivk.cn)
-- [**An ISFP Conductor of Current, Pixels, and Code.**](https://gallery.xiaoten.com)
-- [**我的旅行相册**](https://gallery.junlan.site) — 记录光影，留存回忆
-- [**Z.Zhou's Photography**](https://photography.zzhou612.com/) — Catch the Moment
-- [**Each Photo Turns a Moment Into Eternity.**](https://eachphoto.com)
-- [**WhyPhoto**](https://photo.limina.top/)
-- [**用图片记录生活**](https://gallery.d.cr)
-- [**Ahmet Ömer's Photography**](https://photography.ahmeto.com/)
-- [**何来尘埃飞舞**](https://photo.jefftay.com/)
+Browse galleries shared by developers and community members on the [Demo Sites page](/demo-sites).
 
 ## 💬 Community Support
 
-- **GitHub Issues**: [Report Issues](https://github.com/HoshinoSuzumi/chronoframe/issues)
+- **GitHub Issues**: [Report Issues](https://github.com/HoshinoSuzumi/chronoframe/issues/new/choose)
 - **GitHub Discussions**: [Discussions](https://github.com/HoshinoSuzumi/chronoframe/discussions)
 - **Discord**: [Join Us](https://discord.gg/MM4ZK4Ed7s)
 

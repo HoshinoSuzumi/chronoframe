@@ -1,117 +1,44 @@
 # 升级指南
 
-本文档将指导您如何安全地更新和升级 ChronoFrame 到最新版本。
+升级前先查看[更新日志](/zh/changelog)，确定目标版本及其迁移说明。可以在后台概览的运行信息中查看当前版本。
 
-## 版本检查
+## 备份
 
-### 查看当前版本
-
-#### 通过 Web 界面
-
-1. 登录 ChronoFrame 管理后台
-2. 进入「仪表板」页面
-3. 查看「运行信息」面板中的版本号
-
-## 更新流程
-
-### 准备工作
-
-#### 1. 数据备份
+停止容器后备份整个数据目录和 Compose 文件。如果旧部署仍使用 `.env`，也要保存它；本地存储不在 `data` 中时，需要额外备份对应目录。S3 和 OpenList 的文件应在外部服务中单独备份。
 
 ```bash
-# 停止服务
-docker-compose down
-
-# 创建完整备份
-ts=$(date +%Y%m%d-%H%M%S) && mkdir -p backups/$ts && cp -r data/ .env docker-compose.yml backups/$ts/
+docker compose stop chronoframe
+mkdir -p backups
+cp -a data "backups/data-$(date +%Y%m%d-%H%M%S)"
+cp docker-compose.yml backups/docker-compose.yml
 ```
 
-#### 2. 检查兼容性
+## 更新镜像
 
-查看 [发布说明](https://github.com/HoshinoSuzumi/chronoframe/releases) 了解：
-
-- 破坏性变更
-- 新增环境变量
-- 功能弃用通知
-
-### Docker Compose 更新（推荐）
-
-#### 标准更新流程
+在 Compose 文件中将镜像标签改为目标版本，例如 `v1.0.0`，然后执行：
 
 ```bash
-# 1. 进入项目目录
-cd /path/to/chronoframe
-
-# 2. 备份当前配置
-cp docker-compose.yml docker-compose.yml.backup
-
-# 3. 停止当前服务
-docker-compose down
-
-# 4. 拉取最新镜像
-docker-compose pull
-
-# 5. 启动新版本
-docker-compose up -d
-
-# 6. 查看启动日志
-docker-compose logs -f chronoframe
+docker compose pull chronoframe
+docker compose up -d chronoframe
+docker compose logs -f chronoframe
 ```
 
-#### 指定版本更新
+容器启动时会自动执行数据库迁移，正常情况下无需手动运行迁移命令。当前运行镜像不包含 shell 和包管理器，旧文档中的 `docker exec ... sh` 或容器内 `npx drizzle-kit migrate` 不适用。
 
-如果需要更新到特定版本：
+直接使用 `docker run` 的部署，先停止并移除旧容器，再用新标签和相同的数据挂载重建。保留原有的端口、网络和仍有用途的部署环境变量。
 
-```yaml
-# docker-compose.yml
-services:
-  chronoframe:
-    image: ghcr.io/hoshinosuzumi/chronoframe:v1.2.3 # 指定版本
-    # ... 其他配置
-```
+## 从 v0.14.1 升级到 1.0.0
 
-```bash
-docker-compose up -d
-```
+- 使用 `v1.0.0` 标签固定版本，或使用 `latest` 跟随正式版。
+- 首次升级时先保留旧环境变量，让应用迁移可识别的设置和存储方案。启动后在后台核对站点、地图、登录和存储是否正确，再整理旧 `.env`。
+- 1.0.0 修复了重启覆盖后台设置的问题，后续以后台保存的设置为准。
+- 如果升级后进入向导，使用已有管理员邮箱，确认原存储路径，不要新建空数据目录。先核对挂载和启动日志，再继续操作。
+- 会话密钥、数据库、存储路径等部署数据必须保留。代理信任等部署选项仍由运行环境提供，不属于可删除的旧站点设置。
 
-### 单容器更新
+## 升级后检查
 
-```bash
-# 停止现有容器
-docker stop chronoframe
-docker rm chronoframe
+确认能登录后台，打开几张已有照片，尝试上传一张照片，并检查相册、地图和任务队列。1.0.0 新增了隐藏相册照片的访问限制，升级后也应检查公开画廊。
 
-# 拉取最新镜像
-docker pull ghcr.io/hoshinosuzumi/chronoframe:latest
+## 回退
 
-# 使用相同配置启动新容器
-docker run -d \
-  --name chronoframe \
-  -p 3000:3000 \
-  -v $(pwd)/data:/app/data \
-  --env-file .env \
-  ghcr.io/hoshinosuzumi/chronoframe:latest
-```
-
-## 数据库迁移
-
-### 自动迁移
-
-ChronoFrame 在启动时会自动执行数据库迁移：
-
-```bash
-# 查看迁移日志
-docker logs chronoframe | grep -i migration
-```
-
-### 手动迁移（高级）
-
-在特殊情况下，您可能需要手动执行迁移：
-
-```bash
-# 进入容器
-docker exec -it chronoframe sh
-
-# 执行迁移
-npx drizzle-kit migrate
-```
+数据库迁移可能改变结构。需要回退时，停止新容器，恢复升级前的完整数据备份，再使用原版本标签启动。不要只降级镜像并继续使用已经迁移的数据库。

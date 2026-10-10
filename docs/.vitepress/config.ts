@@ -1,4 +1,5 @@
 import { defineConfig } from 'vitepress'
+import zhConfig from '../zh/config'
 
 // https://vitepress.dev/reference/site-config
 export default defineConfig({
@@ -32,11 +33,13 @@ export default defineConfig({
   ],
   lastUpdated: true,
   themeConfig: {
+    logo: { src: '/logo.png', alt: 'ChronoFrame' },
     // https://vitepress.dev/reference/default-theme-config
     nav: [
       { text: 'Guide', link: '/guide/getting-started' },
       { text: 'Development', link: '/development/contributing' },
-      { text: 'Demo', link: 'https://lens.bh8.ga' },
+      { text: 'Changelog', link: '/changelog' },
+      { text: 'Demo Sites', link: '/demo-sites' },
     ],
 
     sidebar: [
@@ -44,30 +47,24 @@ export default defineConfig({
         text: 'Guide',
         items: [
           { text: 'Getting Started', link: '/guide/getting-started' },
-          { text: 'Configuration', link: '/guide/configuration' },
+          { text: 'Using ChronoFrame', link: '/guide/usage' },
           { text: 'Update Guide', link: '/guide/updates' },
-        ],
-      },
-      {
-        text: 'Configuration',
-        items: [
-          {
-            text: 'Storage Providers',
-            link: '/configuration/storage-providers',
-          },
-          { text: 'Map Providers', link: '/configuration/map-providers' },
-          {
-            text: 'Location Providers',
-            link: '/configuration/location-providers',
-          },
+          { text: 'Changelog', link: '/changelog' },
+          { text: 'Demo Sites', link: '/demo-sites' },
         ],
       },
       {
         text: 'Development',
         items: [
-          { text: 'Contributing Guide', link: '/development/contributing' },
+          { text: 'Contributing', link: '/development/contributing' },
           { text: 'API Documentation', link: '/development/api' },
+          { text: 'Adding a Setting', link: '/development/how-to-add-setting' },
         ],
+      },
+      {
+        text: 'Legacy',
+        collapsed: true,
+        items: [{ text: 'Archived documentation', link: '/legacy/' }],
       },
     ],
 
@@ -100,6 +97,7 @@ export default defineConfig({
       label: '简体中文',
       lang: 'zh',
       link: '/zh/',
+      themeConfig: zhConfig.themeConfig,
     },
   },
 

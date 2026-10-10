@@ -9,7 +9,8 @@ export default defineConfig({
     nav: [
       { text: '指南', link: '/zh/guide/getting-started' },
       { text: '开发文档', link: '/zh/development/contributing' },
-      { text: '演示', link: 'https://lens.bh8.ga' },
+      { text: '更新日志', link: '/zh/changelog' },
+      { text: '演示站点', link: '/zh/demo-sites' },
     ],
 
     sidebar: [
@@ -17,16 +18,10 @@ export default defineConfig({
         text: '指南',
         items: [
           { text: '快速开始', link: '/zh/guide/getting-started' },
-          { text: '配置说明', link: '/zh/guide/configuration' },
+          { text: '日常使用', link: '/zh/guide/usage' },
           { text: '升级指南', link: '/zh/guide/updates' },
-        ],
-      },
-      {
-        text: '配置',
-        items: [
-          { text: '存储提供器', link: '/zh/configuration/storage-providers' },
-          { text: '地图提供器', link: '/zh/configuration/map-providers' },
-          { text: '位置提供器', link: '/zh/configuration/location-providers' },
+          { text: '更新日志', link: '/zh/changelog' },
+          { text: '演示站点', link: '/zh/demo-sites' },
         ],
       },
       {
@@ -34,7 +29,13 @@ export default defineConfig({
         items: [
           { text: '贡献指南', link: '/zh/development/contributing' },
           { text: 'API 文档', link: '/zh/development/api' },
+          { text: '添加设置项', link: '/zh/development/how-to-add-setting' },
         ],
+      },
+      {
+        text: 'Legacy',
+        collapsed: true,
+        items: [{ text: '历史文档', link: '/zh/legacy/' }],
       },
     ],
 
