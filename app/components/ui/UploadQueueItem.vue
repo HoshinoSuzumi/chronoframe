@@ -1,41 +1,17 @@
 <script lang="ts" setup>
 import { motion, AnimatePresence } from 'motion-v'
 import { computed, ref, watch, nextTick, onUnmounted } from 'vue'
-
-interface UploadFile {
-  file: File
-  fileName: string
-  fileId: string
-  status:
-    | 'waiting'
-    | 'preparing'
-    | 'uploading'
-    | 'finalizing'
-    | 'processing'
-    | 'completed'
-    | 'error'
-    | 'skipped'
-    | 'blocked'
-  stage?: string | null
-  progress?: number
-  error?: string
-  warning?: string
-  taskId?: number
-  uploadProgress?: {
-    loaded: number
-    total: number
-    percentage: number
-    speed?: number
-    timeRemaining?: number
-    speedText?: string
-    timeRemainingText?: string
-  }
-  canAbort?: boolean
-  abortUpload?: () => void
-}
+import type { UploadingFile } from '~~/shared/types/uploading-file'
+import {
+  UploadQueueStatus,
+  isAbortableUploadStatus,
+  isActiveUploadStatus,
+  isDismissibleUploadStatus,
+  isSkippedOrBlockedUploadStatus,
+} from '~~/shared/utils/upload-status'
 
 const props = defineProps<{
-  uploadingFile: UploadFile
+  uploadingFile: UploadingFile
   fileId: string
 }>()
 
@@ -53,29 +29,21 @@ const fileIcon = computed(() => {
   return 'tabler:file'
 })
 
-const statusColor = computed(() => {
-  switch (props.uploadingFile.status) {
-    case 'waiting':
-      return 'neutral'
-    case 'preparing':
-      return 'primary'
-    case 'uploading':
-    case 'finalizing':
-      return 'primary'
-    case 'processing':
-      return 'info'
-    case 'completed':
-      return 'success'
-    case 'error':
-      return 'error'
-    case 'skipped':
-      return 'warning'
-    case 'blocked':
-      return 'error'
-    default:
-      return 'neutral'
-  }
-})
+const STATUS_COLOR = {
+  [UploadQueueStatus.Waiting]: 'neutral',
+  [UploadQueueStatus.Preparing]: 'primary',
+  [UploadQueueStatus.Uploading]: 'primary',
+  [UploadQueueStatus.Finalizing]: 'primary',
+  [UploadQueueStatus.Processing]: 'info',
+  [UploadQueueStatus.Completed]: 'success',
+  [UploadQueueStatus.Error]: 'error',
+  [UploadQueueStatus.Skipped]: 'warning',
+  [UploadQueueStatus.Blocked]: 'error',
+} as const satisfies Record<UploadQueueStatus, string>
+
+const statusColor = computed(
+  () => STATUS_COLOR[props.uploadingFile.status] ?? 'neutral',
+)
 
 // 获取处理阶段文本
 const getStageText = (stage: string) => {
@@ -84,7 +52,9 @@ const getStageText = (stage: string) => {
     metadata: $t('dashboard.photos.uploadQueueItem.stage.metadata'),
     thumbnail: $t('dashboard.photos.uploadQueueItem.stage.thumbnail'),
     exif: $t('dashboard.photos.uploadQueueItem.stage.exif'),
-    'reverse-geocoding': $t('dashboard.photos.uploadQueueItem.stage.reverseGeocoding'),
+    'reverse-geocoding': $t(
+      'dashboard.photos.uploadQueueItem.stage.reverseGeocoding',
+    ),
     'live-photo': $t('dashboard.photos.uploadQueueItem.stage.livePhoto'),
   }
   return stageMap[stage] || stage
@@ -111,7 +81,10 @@ let processingTimer: NodeJS.Timeout | null = null
 watch(
   () => props.uploadingFile.status,
   async (newStatus, oldStatus) => {
-    if (newStatus === 'completed' && oldStatus !== 'completed') {
+    if (
+      newStatus === UploadQueueStatus.Completed &&
+      oldStatus !== UploadQueueStatus.Completed
+    ) {
       await nextTick()
       // 延迟触发粒子动画，让完成指示器先显示
       setTimeout(() => {
@@ -124,18 +97,24 @@ watch(
     }
 
     // 处理状态变化时的时间跟踪
-    if (newStatus === 'processing' && oldStatus !== 'processing') {
+    if (
+      newStatus === UploadQueueStatus.Processing &&
+      oldStatus !== UploadQueueStatus.Processing
+    ) {
       // 开始处理，记录时间
       processingStartTime.value = Date.now()
       showProcessingWarning.value = false
 
       // 30秒后显示警告
       processingTimer = setTimeout(() => {
-        if (props.uploadingFile.status === 'processing') {
+        if (props.uploadingFile.status === UploadQueueStatus.Processing) {
           showProcessingWarning.value = true
         }
       }, 30000)
-    } else if (oldStatus === 'processing' && newStatus !== 'processing') {
+    } else if (
+      oldStatus === UploadQueueStatus.Processing &&
+      newStatus !== UploadQueueStatus.Processing
+    ) {
       // 处理结束，清理定时器和状态
       if (processingTimer) {
         clearTimeout(processingTimer)
@@ -184,8 +163,12 @@ const generateParticleStyle = (index: number) => {
         <motion.div
           class="relative shrink-0"
           :transition="{
-            duration: uploadingFile.status === 'processing' ? 2 : 0.3,
-            repeat: uploadingFile.status === 'processing' ? Infinity : 0,
+            duration:
+              uploadingFile.status === UploadQueueStatus.Processing ? 2 : 0.3,
+            repeat:
+              uploadingFile.status === UploadQueueStatus.Processing
+                ? Infinity
+                : 0,
             ease: 'linear',
           }"
         >
@@ -223,7 +206,7 @@ const generateParticleStyle = (index: number) => {
 
           <!-- 完成指示器 -->
           <motion.div
-            v-if="uploadingFile.status === 'completed'"
+            v-if="uploadingFile.status === UploadQueueStatus.Completed"
             class="absolute -top-2 -right-2 size-5 bg-green-900 rounded-full border-2 border-white dark:border-neutral-800 flex items-center justify-center"
             :initial="{ scale: 0 }"
             :animate="{ scale: 1 }"
@@ -237,7 +220,7 @@ const generateParticleStyle = (index: number) => {
 
           <!-- 跳过指示器 -->
           <motion.div
-            v-if="uploadingFile.status === 'skipped'"
+            v-if="uploadingFile.status === UploadQueueStatus.Skipped"
             class="absolute -top-2 -right-2 size-5 bg-yellow-600 rounded-full border-2 border-white dark:border-neutral-800 flex items-center justify-center"
             :initial="{ scale: 0 }"
             :animate="{ scale: 1 }"
@@ -251,7 +234,7 @@ const generateParticleStyle = (index: number) => {
 
           <!-- 阻止指示器 -->
           <motion.div
-            v-if="uploadingFile.status === 'blocked'"
+            v-if="uploadingFile.status === UploadQueueStatus.Blocked"
             class="absolute -top-2 -right-2 size-5 bg-red-600 rounded-full border-2 border-white dark:border-neutral-800 flex items-center justify-center"
             :initial="{ scale: 0 }"
             :animate="{ scale: 1 }"
@@ -266,7 +249,10 @@ const generateParticleStyle = (index: number) => {
           <!-- 完成粒子动画 -->
           <AnimatePresence>
             <motion.div
-              v-if="showParticles && uploadingFile.status === 'completed'"
+              v-if="
+                showParticles &&
+                uploadingFile.status === UploadQueueStatus.Completed
+              "
               class="absolute -top-2 -right-2 size-5 pointer-events-none"
               :initial="{ opacity: 0 }"
               :animate="{ opacity: 1 }"
@@ -298,9 +284,7 @@ const generateParticleStyle = (index: number) => {
           >
             <span>{{ formatBytes(uploadingFile.file.size) }}</span>
             <span
-              v-if="
-                uploadingFile.status === 'uploading'
-              "
+              v-if="uploadingFile.status === UploadQueueStatus.Uploading"
               class="inline tabular-nums"
             >
               • {{ uploadingFile.uploadProgress?.speedText || '0 B/s' }}
@@ -314,7 +298,7 @@ const generateParticleStyle = (index: number) => {
         <!-- 中止上传按钮 -->
         <motion.div
           v-if="
-            (uploadingFile.status === 'uploading' || uploadingFile.status === 'finalizing') &&
+            isAbortableUploadStatus(uploadingFile.status) &&
             uploadingFile.canAbort
           "
           :initial="{ opacity: 0, scale: 0.8 }"
@@ -334,12 +318,7 @@ const generateParticleStyle = (index: number) => {
 
         <!-- 清除按钮 -->
         <motion.div
-          v-if="
-            uploadingFile.status === 'completed' ||
-            uploadingFile.status === 'error' ||
-            uploadingFile.status === 'skipped' ||
-            uploadingFile.status === 'blocked'
-          "
+          v-if="isDismissibleUploadStatus(uploadingFile.status)"
           :initial="{ opacity: 0, scale: 0.8 }"
           :animate="{ opacity: 1, scale: 1 }"
           :exit="{ opacity: 0, scale: 0.8 }"
@@ -360,11 +339,7 @@ const generateParticleStyle = (index: number) => {
     <!-- 进度条区域 -->
     <AnimatePresence>
       <motion.div
-        v-if="
-          uploadingFile.status === 'uploading' ||
-          uploadingFile.status === 'finalizing' ||
-          uploadingFile.status === 'processing'
-        "
+        v-if="isActiveUploadStatus(uploadingFile.status)"
         :initial="{ opacity: 0, height: 0 }"
         :animate="{ opacity: 1, height: 'auto' }"
         :exit="{ opacity: 0, height: 0 }"
@@ -373,7 +348,7 @@ const generateParticleStyle = (index: number) => {
       >
         <!-- 上传进度 -->
         <div
-          v-if="uploadingFile.status === 'uploading'"
+          v-if="uploadingFile.status === UploadQueueStatus.Uploading"
           class="space-y-1"
         >
           <div class="flex justify-between items-center">
@@ -402,19 +377,30 @@ const generateParticleStyle = (index: number) => {
           <div
             class="text-xs text-neutral-500 dark:text-neutral-400 tabular-nums"
           >
-            {{ $t('dashboard.photos.uploadQueueItem.progress.remainingTime', [uploadingFile.uploadProgress?.timeRemainingText || '—']) }}
+            {{
+              $t('dashboard.photos.uploadQueueItem.progress.remainingTime', [
+                uploadingFile.uploadProgress?.timeRemainingText || '—',
+              ])
+            }}
           </div>
         </div>
 
         <!-- 处理进度 -->
-        <div v-if="uploadingFile.status === 'finalizing'" class="space-y-1">
+        <div
+          v-if="uploadingFile.status === UploadQueueStatus.Finalizing"
+          class="space-y-1"
+        >
           <span class="text-xs text-neutral-600 dark:text-neutral-400">
             {{ $t('dashboard.photos.uploadQueueItem.status.finalizing') }}
           </span>
-          <UProgress :model-value="null" animation="swing" color="primary" />
+          <UProgress
+            :model-value="null"
+            animation="swing"
+            color="primary"
+          />
         </div>
         <div
-          v-if="uploadingFile.status === 'processing'"
+          v-if="uploadingFile.status === UploadQueueStatus.Processing"
           class="space-y-1"
         >
           <div class="flex justify-between items-center">
@@ -442,7 +428,10 @@ const generateParticleStyle = (index: number) => {
     <!-- 错误信息 -->
     <AnimatePresence>
       <motion.div
-        v-if="uploadingFile.status === 'error' && uploadingFile.error"
+        v-if="
+          uploadingFile.status === UploadQueueStatus.Error &&
+          uploadingFile.error
+        "
         :initial="{ opacity: 0, height: 0, y: -10 }"
         :animate="{ opacity: 1, height: 'auto', y: 0 }"
         :exit="{ opacity: 0, height: 0, y: -10 }"
@@ -465,9 +454,8 @@ const generateParticleStyle = (index: number) => {
     <AnimatePresence>
       <motion.div
         v-if="
-          (uploadingFile.status === 'skipped' ||
-            uploadingFile.status === 'blocked') &&
-            uploadingFile.error
+          isSkippedOrBlockedUploadStatus(uploadingFile.status) &&
+          uploadingFile.error
         "
         :initial="{ opacity: 0, height: 0, y: -10 }"
         :animate="{ opacity: 1, height: 'auto', y: 0 }"
@@ -477,10 +465,14 @@ const generateParticleStyle = (index: number) => {
       >
         <UAlert
           :description="uploadingFile.error"
-          :color="uploadingFile.status === 'blocked' ? 'error' : 'warning'"
+          :color="
+            uploadingFile.status === UploadQueueStatus.Blocked
+              ? 'error'
+              : 'warning'
+          "
           variant="soft"
           :icon="
-            uploadingFile.status === 'blocked'
+            uploadingFile.status === UploadQueueStatus.Blocked
               ? 'tabler:ban'
               : 'tabler:player-track-next'
           "
@@ -516,7 +508,10 @@ const generateParticleStyle = (index: number) => {
     <!-- 处理时间警告 -->
     <AnimatePresence>
       <motion.div
-        v-if="showProcessingWarning && uploadingFile.status === 'processing'"
+        v-if="
+          showProcessingWarning &&
+          uploadingFile.status === UploadQueueStatus.Processing
+        "
         :initial="{ opacity: 0, height: 0, y: -10 }"
         :animate="{ opacity: 1, height: 'auto', y: 0 }"
         :exit="{ opacity: 0, height: 0, y: -10 }"
@@ -524,7 +519,9 @@ const generateParticleStyle = (index: number) => {
         class="mt-3"
       >
         <UAlert
-          :description="$t('dashboard.photos.uploadQueueItem.alerts.longProcessing')"
+          :description="
+            $t('dashboard.photos.uploadQueueItem.alerts.longProcessing')
+          "
           color="info"
           variant="soft"
           icon="tabler:info-circle"
@@ -538,7 +535,7 @@ const generateParticleStyle = (index: number) => {
     <!-- 成功动画 -->
     <AnimatePresence>
       <motion.div
-        v-if="uploadingFile.status === 'completed'"
+        v-if="uploadingFile.status === UploadQueueStatus.Completed"
         :initial="{ opacity: 0, scale: 0.8, y: 10 }"
         :animate="{
           opacity: 1,
