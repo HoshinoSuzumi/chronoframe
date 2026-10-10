@@ -86,10 +86,10 @@ const getItemMeta = (item: ActivityItem) => {
 <template>
   <UCard>
     <template #header>
-      <div class="flex items-center justify-between gap-3 pb-1.5">
-        <h2 class="text-lg font-semibold">
-          {{ $t('dashboard.overview.section.recentActivity.title') }}
-        </h2>
+      <DashboardSectionHeader
+        :title="$t('dashboard.overview.section.recentActivity.title')"
+        icon="tabler:activity"
+      >
         <UButton
           to="/dashboard/queue"
           size="xs"
@@ -99,7 +99,7 @@ const getItemMeta = (item: ActivityItem) => {
         >
           {{ $t('dashboard.overview.section.recentActivity.viewQueue') }}
         </UButton>
-      </div>
+      </DashboardSectionHeader>
     </template>
 
     <div
