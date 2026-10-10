@@ -550,6 +550,7 @@
       }
     },
     "runtimeError": {
+      "missingEtag": "The storage response does not expose ETag. Add ETag to the bucket CORS ExposeHeaders setting.",
       "networkFailed": "Network connection failed",
       "clientError": "Client error ({status})",
       "serverError": "Server error ({status})",
@@ -809,6 +810,7 @@
           "waiting": "Waiting",
           "preparing": "Preparing",
           "uploading": "Uploading {0}%",
+          "finalizing": "Saving to storage",
           "pendingProcessing": "Waiting to process",
           "completed": "Completed",
           "error": "Error",

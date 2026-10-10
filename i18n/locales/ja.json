@@ -735,6 +735,7 @@
           "waiting": "アップロード待機",
           "preparing": "準備中",
           "uploading": "アップロード中 {0}%",
+          "finalizing": "ファイルを保存中",
           "pendingProcessing": "処理待ち",
           "completed": "完了",
           "error": "エラー",
@@ -1586,6 +1587,7 @@
       }
     },
     "runtimeError": {
+      "missingEtag": "ストレージの応答から ETag を読み取れません。バケットの CORS ExposeHeaders に ETag を追加してください。",
       "networkFailed": "ネットワーク接続に失敗しました",
       "clientError": "クライアントエラー ({status})",
       "serverError": "サーバーエラー ({status})",

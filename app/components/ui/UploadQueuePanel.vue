@@ -9,6 +9,7 @@ interface UploadFile {
     | 'waiting'
     | 'preparing'
     | 'uploading'
+    | 'finalizing'
     | 'processing'
     | 'completed'
     | 'error'
@@ -52,14 +53,19 @@ const stats = computed(() => {
   return {
     total: files.length,
     waiting: files.filter((f) => f.status === 'waiting').length,
-    uploading: files.filter((f) => f.status === 'uploading').length,
+    uploading: files.filter(
+      (f) => f.status === 'uploading' || f.status === 'finalizing',
+    ).length,
     processing: files.filter((f) => f.status === 'processing').length,
     completed: files.filter((f) => f.status === 'completed').length,
     error: files.filter((f) => f.status === 'error').length,
     skipped: files.filter((f) => f.status === 'skipped').length,
     blocked: files.filter((f) => f.status === 'blocked').length,
     active: files.filter(
-      (f) => f.status === 'uploading' || f.status === 'processing',
+      (f) =>
+        f.status === 'uploading' ||
+        f.status === 'finalizing' ||
+        f.status === 'processing',
     ).length,
     pending: files.filter(
       (f) => f.status === 'waiting' || f.status === 'preparing',
@@ -80,7 +86,7 @@ const overallProgress = computed(() => {
     } else if (file.status === 'uploading' && file.progress !== undefined) {
       // 上传中：上传进度 * 0.7（上传占总进度的70%）
       totalProgress += file.progress * 0.7
-    } else if (file.status === 'processing') {
+    } else if (file.status === 'processing' || file.status === 'finalizing') {
       // 处理中：上传完成(70%)
       totalProgress += 70
     } else if (file.status === 'preparing') {
