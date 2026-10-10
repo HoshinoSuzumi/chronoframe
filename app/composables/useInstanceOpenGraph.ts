@@ -106,7 +106,10 @@ export async function useInstanceOpenGraph(photos: ComputedRef<Photo[]>) {
       }
 
       const visiblePhotos = previewPhotos.value
-      const count = visiblePhotos.length
+      // A signed-in homepage has no public list until that request resolves.
+      // An empty array is a real zero; null means the count is still unknown.
+      const publicPhotoCountPending =
+        isHome.value && loggedIn.value && publicPhotos.value == null
       defineOgImage(
         'Home',
         {
@@ -114,8 +117,14 @@ export async function useInstanceOpenGraph(photos: ComputedRef<Photo[]>) {
           slogan: slogan.value,
           author: author.value,
           avatarUrl: avatarUrl.value,
-          photoCount: isHome.value ? count : undefined,
-          photoCountLabel: isHome.value ? photoCountLabel(i18n, count) : '',
+          ...(publicPhotoCountPending
+            ? {}
+            : {
+                photoCount: isHome.value ? visiblePhotos.length : undefined,
+                photoCountLabel: isHome.value
+                  ? photoCountLabel(i18n, visiblePhotos.length)
+                  : '',
+              }),
           thumbnails: visiblePhotos
             .map((photo) => photo.thumbnailUrl)
             .filter((url): url is string => Boolean(url))
