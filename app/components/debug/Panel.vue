@@ -326,7 +326,7 @@ onBeforeUnmount(() => {
           </dl>
           <div
             v-if="ogImageUrl"
-            class="mt-3 space-y-2"
+            class="mt-3 w-full max-w-lg space-y-2"
           >
             <div class="flex items-center justify-between gap-2">
               <span class="text-xs text-muted">{{ $t('debug.ogImage') }}</span>
