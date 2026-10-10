@@ -7,6 +7,7 @@ definePageMeta({
 
 const route = useRoute()
 const router = useRouter()
+const { t } = useI18n()
 
 const { switchToIndex, closeViewer, openViewer } = useViewerState()
 const { isViewerOpen, scopedPhotos } = storeToRefs(useViewerState())
@@ -19,10 +20,30 @@ const currentPhoto = computed(() =>
   photos.value.find((photo) => photo.id === photoId.value),
 )
 
-defineOgImage('Photo', {
-  photo: currentPhoto.value || undefined,
-  appTitle: (getSetting('app:title') as string) || 'ChronoFrame',
-})
+if (photoId.value) {
+  defineOgImage('Photo', {
+    photo: currentPhoto.value || undefined,
+    appTitle: (getSetting('app:title') as string) || 'ChronoFrame',
+  })
+} else {
+  // Social previews must never include photos visible only to administrators.
+  const { data: publicPhotos } = await useFetch<Photo[]>('/api/photos/visible')
+  defineOgImage('Home', {
+    appTitle: (getSetting('app:title') as string) || 'ChronoFrame',
+    slogan: (getSetting('app:slogan') as string) || '',
+    author: (getSetting('app:author') as string) || '',
+    photoCount: publicPhotos.value?.length || 0,
+    photoCountLabel: t(
+      'plural.photo',
+      { count: publicPhotos.value?.length || 0 },
+      publicPhotos.value?.length || 0,
+    ),
+    thumbnails: (publicPhotos.value || [])
+      .filter((photo) => photo.thumbnailUrl)
+      .slice(0, 3)
+      .map((photo) => photo.thumbnailUrl),
+  })
+}
 
 // 处理标签查询参数
 const { clearAllFilters, toggleFilter } = usePhotoFilters()
