@@ -999,7 +999,30 @@
           "totalWorkers": "Total Workers",
           "totalProcessed": "Processed",
           "totalFailed": "Failure count",
-          "avgSuccessRate": "Success rate"
+          "avgSuccessRate": "Success rate",
+          "pending": "Pending",
+          "workers": "Workers",
+          "states": {
+            "unknown": "Unknown",
+            "stopped": "Stopped",
+            "processing": "Processing",
+            "attention": "Needs attention",
+            "idle": "Idle"
+          },
+          "stoppedNotice": "{count} tasks are waiting while workers are stopped.",
+          "waitNotice": "Oldest task has waited {minutes} minutes.",
+          "failedNotice": "{count} failed tasks need review.",
+          "debug": {
+            "label": "Mock preview",
+            "scenarios": {
+              "empty": "No tasks",
+              "processing": "Processing",
+              "backlog": "Backlog",
+              "stopped": "Stopped",
+              "failures": "Failures",
+              "allFailed": "All failed"
+            }
+          }
         },
         "recentActivity": {
           "title": "Recent Activity",
@@ -1647,5 +1670,54 @@
     "image": {
       "loadError": "Failed to load image"
     }
+  },
+  "debug": {
+    "title": "Debug tools",
+    "open": "Open debug tools",
+    "info": "Basic information",
+    "route": "Route",
+    "version": "Version",
+    "viewport": "Viewport",
+    "locale": "Language",
+    "theme": "Theme",
+    "general": "General tools",
+    "outline": "Show element outlines",
+    "refresh": "Refresh data",
+    "reload": "Reload page",
+    "reset": "Reset debug settings",
+    "page": "Current page",
+    "empty": "No debug options on this page.",
+    "scenario": "Scenario",
+    "window": {
+      "maximize": "Maximize",
+      "restore": "Restore",
+      "close": "Close"
+    },
+    "viewer": {
+      "title": "Image viewer",
+      "visibility": "WebGL diagnostics",
+      "system": "Follow system setting",
+      "show": "Force show",
+      "hide": "Force hide",
+      "delay": "Load delay (ms)",
+      "failure": "Simulate load failure",
+      "reload": "Reload current image",
+      "systemValue": "System setting",
+      "effective": "Effective visibility",
+      "stage": "Load stage",
+      "waiting": "Simulated loading delay",
+      "stages": {
+        "idle": "Idle",
+        "delay": "Simulated delay",
+        "image": "Loading image",
+        "texture": "Loading texture",
+        "ready": "Ready",
+        "error": "Failed",
+        "tile": "Loading tiles"
+      }
+    },
+    "ogImage": "Page OG image",
+    "openOgImage": "Open OG image",
+    "ogImageError": "Could not load the OG image."
   }
 }

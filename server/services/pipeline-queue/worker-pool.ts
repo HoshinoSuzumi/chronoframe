@@ -154,17 +154,9 @@ export class WorkerPool {
       (stats) => stats.isProcessing,
     ).length
 
-    // 只计算已执行过操作的worker的平均成功率
-    const workersWithActivity = workerStats.filter(
-      (stats) => stats.processedCount > 0,
-    )
+    const totalAttempts = totalProcessed + totalErrors
     const averageSuccessRate =
-      workersWithActivity.length > 0
-        ? workersWithActivity.reduce(
-            (sum, stats) => sum + stats.successRate,
-            0,
-          ) / workersWithActivity.length
-        : 0
+      totalAttempts > 0 ? (totalProcessed / totalAttempts) * 100 : 0
 
     return {
       totalWorkers: this.workers.length,

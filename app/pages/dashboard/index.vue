@@ -51,20 +51,167 @@ const systemStatus = computed(() => {
   return 'healthy'
 })
 
+const queueDebugEnabled = useDebugValue<boolean>(
+  'dashboard:queue:enabled',
+  false,
+)
+const queueDebugScenario = useDebugValue(
+  'dashboard:queue:scenario',
+  'processing',
+)
+const queueDebugScenarios = {
+  empty: {
+    activeWorkers: 0,
+    totalWorkers: 5,
+    totalProcessed: 0,
+    totalErrors: 0,
+    isActive: true,
+    pending: 0,
+    failed: 0,
+    oldestWaitSeconds: 0,
+  },
+  processing: {
+    activeWorkers: 3,
+    totalWorkers: 5,
+    totalProcessed: 128,
+    totalErrors: 2,
+    isActive: true,
+    pending: 24,
+    failed: 0,
+    oldestWaitSeconds: 40,
+  },
+  backlog: {
+    activeWorkers: 0,
+    totalWorkers: 5,
+    totalProcessed: 80,
+    totalErrors: 5,
+    isActive: true,
+    pending: 156,
+    failed: 0,
+    oldestWaitSeconds: 720,
+  },
+  stopped: {
+    activeWorkers: 0,
+    totalWorkers: 5,
+    totalProcessed: 42,
+    totalErrors: 3,
+    isActive: false,
+    pending: 18,
+    failed: 0,
+    oldestWaitSeconds: 120,
+  },
+  failures: {
+    activeWorkers: 1,
+    totalWorkers: 5,
+    totalProcessed: 12,
+    totalErrors: 8,
+    isActive: true,
+    pending: 4,
+    failed: 8,
+    oldestWaitSeconds: 30,
+  },
+  allFailed: {
+    activeWorkers: 0,
+    totalWorkers: 5,
+    totalProcessed: 0,
+    totalErrors: 6,
+    isActive: true,
+    pending: 0,
+    failed: 6,
+    oldestWaitSeconds: 0,
+  },
+}
+const queueDebugOptions = computed(() =>
+  Object.keys(queueDebugScenarios).map((value) => ({
+    value,
+    label: $t('dashboard.overview.section.queue.debug.scenarios.' + value),
+  })),
+)
+useDebugSection(() => ({
+  id: 'dashboard:queue',
+  route: '/dashboard',
+  title: $t('dashboard.overview.section.queue.title'),
+  controls: [
+    {
+      key: 'dashboard:queue:enabled',
+      label: $t('dashboard.overview.section.queue.debug.label'),
+      type: 'switch',
+      default: false,
+    },
+    {
+      key: 'dashboard:queue:scenario',
+      label: $t('debug.scenario'),
+      type: 'select',
+      default: 'processing',
+      options: queueDebugOptions.value,
+      disabled: !queueDebugEnabled.value,
+    },
+  ],
+}))
+
+const queueDisplayStats = computed(() => {
+  if (!import.meta.dev || !queueDebugEnabled.value) return dashboardStats.value
+  const mock =
+    queueDebugScenarios[
+      queueDebugScenario.value as keyof typeof queueDebugScenarios
+    ]
+  if (!mock) return dashboardStats.value
+  const attempts = mock.totalProcessed + mock.totalErrors
+  return {
+    workerPool: {
+      ...mock,
+      averageSuccessRate: attempts ? (mock.totalProcessed / attempts) * 100 : 0,
+    },
+    queue: {
+      pending: mock.pending,
+      failed: mock.failed,
+      oldestWaitSeconds: mock.oldestWaitSeconds,
+    },
+  }
+})
+
+const queueState = computed(() => {
+  if (!queueDisplayStats.value) return 'unknown'
+  const pool = queueDisplayStats.value.workerPool
+  if (!pool?.isActive || pool.totalWorkers === 0) return 'stopped'
+  if (pool.activeWorkers > 0) return 'processing'
+  if ((queueDisplayStats.value.queue?.oldestWaitSeconds || 0) >= 300)
+    return 'attention'
+  return 'idle'
+})
+
+const queueNotice = computed(() => {
+  const queue = queueDisplayStats.value?.queue
+  if (!queue) return ''
+  if (queue.pending > 0 && queueState.value === 'stopped')
+    return $t('dashboard.overview.section.queue.stoppedNotice', {
+      count: queue.pending,
+    })
+  if (queue.oldestWaitSeconds >= 300)
+    return $t('dashboard.overview.section.queue.waitNotice', {
+      minutes: Math.floor(queue.oldestWaitSeconds / 60),
+    })
+  if (queue.failed > 0)
+    return $t('dashboard.overview.section.queue.failedNotice', {
+      count: queue.failed,
+    })
+  return ''
+})
+
 const hasQueueActivity = computed(() => {
-  const pool = dashboardStats.value?.workerPool
+  const pool = queueDisplayStats.value?.workerPool
   return (pool?.totalProcessed || 0) > 0 || (pool?.totalErrors || 0) > 0
 })
 
 const queueSuccessRate = computed(() =>
   Math.min(
     100,
-    Math.max(0, dashboardStats.value?.workerPool?.averageSuccessRate || 0),
+    Math.max(0, queueDisplayStats.value?.workerPool?.averageSuccessRate || 0),
   ),
 )
 
 const queueSuccessColor = computed(() => {
-  const pool = dashboardStats.value?.workerPool
+  const pool = queueDisplayStats.value?.workerPool
   if (!pool || !hasQueueActivity.value) return 'neutral'
   if (pool.averageSuccessRate > 90) return 'success'
   if (pool.averageSuccessRate > 70) return 'warning'
@@ -433,7 +580,25 @@ const onShareSite = () => {
                 <DashboardSectionHeader
                   :title="$t('dashboard.overview.section.queue.title')"
                   icon="tabler:list-check"
-                />
+                >
+                  <span class="flex items-center gap-1.5 text-xs text-muted">
+                    <span
+                      class="size-1.5 rounded-full"
+                      :class="{
+                        'bg-success': queueState === 'processing',
+                        'bg-warning': queueState === 'attention',
+                        'bg-error': queueState === 'stopped',
+                        'bg-neutral-400':
+                          queueState === 'idle' || queueState === 'unknown',
+                      }"
+                    />
+                    {{
+                      $t(
+                        'dashboard.overview.section.queue.states.' + queueState,
+                      )
+                    }}
+                  </span>
+                </DashboardSectionHeader>
               </template>
 
               <div
@@ -495,24 +660,26 @@ const onShareSite = () => {
                       class="size-4 shrink-0 text-muted"
                     />
                     <span class="min-w-0 flex-1 text-xs text-muted">{{
-                      $t('dashboard.overview.section.queue.activeWorkers')
+                      $t('dashboard.overview.section.queue.workers')
                     }}</span>
                     <span class="text-base font-semibold tabular-nums">{{
-                      dashboardStats?.workerPool?.activeWorkers || 0
+                      (queueDisplayStats?.workerPool?.activeWorkers || 0) +
+                      '/' +
+                      (queueDisplayStats?.workerPool?.totalWorkers || 0)
                     }}</span>
                   </div>
                   <div
                     class="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5 bg-default px-3 py-2.5"
                   >
                     <UIcon
-                      name="tabler:cpu"
+                      name="tabler:hourglass"
                       class="size-4 shrink-0 text-muted"
                     />
                     <span class="min-w-0 flex-1 text-xs text-muted">{{
-                      $t('dashboard.overview.section.queue.totalWorkers')
+                      $t('dashboard.overview.section.queue.pending')
                     }}</span>
                     <span class="text-base font-semibold tabular-nums">{{
-                      dashboardStats?.workerPool?.totalWorkers || 0
+                      queueDisplayStats?.queue?.pending || 0
                     }}</span>
                   </div>
                   <div
@@ -526,7 +693,7 @@ const onShareSite = () => {
                       $t('dashboard.overview.section.queue.totalProcessed')
                     }}</span>
                     <span class="text-base font-semibold tabular-nums">{{
-                      dashboardStats?.workerPool?.totalProcessed || 0
+                      queueDisplayStats?.workerPool?.totalProcessed || 0
                     }}</span>
                   </div>
                   <div
@@ -543,13 +710,30 @@ const onShareSite = () => {
                       class="text-base font-semibold tabular-nums"
                       :class="{
                         'text-error':
-                          (dashboardStats?.workerPool?.totalErrors || 0) > 0,
+                          (queueDisplayStats?.workerPool?.totalErrors || 0) > 0,
                       }"
-                      >{{ dashboardStats?.workerPool?.totalErrors || 0 }}</span
+                      >{{
+                        queueDisplayStats?.workerPool?.totalErrors || 0
+                      }}</span
                     >
                   </div>
                 </div>
               </div>
+              <NuxtLink
+                v-if="queueNotice"
+                to="/dashboard/queue"
+                class="mt-3 flex items-start gap-2 text-xs text-muted hover:text-default"
+              >
+                <UIcon
+                  name="tabler:alert-circle"
+                  class="size-4 shrink-0 text-warning"
+                />
+                <span>{{ queueNotice }}</span>
+                <UIcon
+                  name="tabler:arrow-right"
+                  class="ml-auto size-4 shrink-0"
+                />
+              </NuxtLink>
             </UCard>
           </div>
         </div>

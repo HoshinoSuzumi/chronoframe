@@ -924,7 +924,30 @@
           "totalWorkers": "総 Workers",
           "totalProcessed": "処理",
           "totalFailed": "障害カウント",
-          "avgSuccessRate": "成功率"
+          "avgSuccessRate": "成功率",
+          "pending": "待機中",
+          "workers": "ワーカー",
+          "states": {
+            "unknown": "不明",
+            "stopped": "停止中",
+            "processing": "処理中",
+            "attention": "要確認",
+            "idle": "待機中"
+          },
+          "stoppedNotice": "ワーカーが停止中です。{count} 件のタスクが待機しています。",
+          "waitNotice": "最も古いタスクは {minutes} 分待機しています。",
+          "failedNotice": "{count} 件の失敗タスクを確認してください。",
+          "debug": {
+            "label": "模擬プレビュー",
+            "scenarios": {
+              "empty": "処理履歴なし",
+              "processing": "処理中",
+              "backlog": "滞留",
+              "stopped": "停止中",
+              "failures": "一部失敗",
+              "allFailed": "すべて失敗"
+            }
+          }
         },
         "recentActivity": {
           "title": "最近のアクティビティ",
@@ -1656,5 +1679,54 @@
     "image": {
       "loadError": "画像の読み込み失敗"
     }
+  },
+  "debug": {
+    "title": "デバッグツール",
+    "open": "デバッグツールを開く",
+    "info": "基本情報",
+    "route": "ルート",
+    "version": "バージョン",
+    "viewport": "画面サイズ",
+    "locale": "言語",
+    "theme": "テーマ",
+    "general": "共通操作",
+    "outline": "要素の輪郭を表示",
+    "refresh": "データ更新",
+    "reload": "ページ再読み込み",
+    "reset": "設定をリセット",
+    "page": "現在のページ",
+    "empty": "このページにデバッグ設定はありません。",
+    "scenario": "シナリオ",
+    "window": {
+      "maximize": "最大化",
+      "restore": "元に戻す",
+      "close": "閉じる"
+    },
+    "viewer": {
+      "title": "写真ビューア",
+      "visibility": "WebGL 診断表示",
+      "system": "システム設定に従う",
+      "show": "強制表示",
+      "hide": "強制非表示",
+      "delay": "読込遅延（ms）",
+      "failure": "読込失敗を模擬",
+      "reload": "現在の画像を再読込",
+      "systemValue": "システム設定",
+      "effective": "実際の表示",
+      "stage": "読込段階",
+      "waiting": "模擬遅延中",
+      "stages": {
+        "idle": "待機",
+        "delay": "模擬遅延",
+        "image": "画像読込",
+        "texture": "テクスチャ読込",
+        "ready": "準備完了",
+        "error": "失敗",
+        "tile": "タイル読込"
+      }
+    },
+    "ogImage": "ページの OG 画像",
+    "openOgImage": "OG 画像を開く",
+    "ogImageError": "OG 画像を読み込めませんでした。"
   }
 }
