@@ -1,4 +1,8 @@
 import { UPLOAD_CHUNK_SIZE } from '~~/shared/utils/upload'
+import {
+  UploadTransportStatus,
+  isInFlightTransportStatus,
+} from '~~/shared/utils/upload-status'
 import type { UploadPlan, UploadPart } from '~~/shared/types/upload'
 
 export interface UploadProgress {
@@ -10,7 +14,7 @@ export interface UploadProgress {
 }
 
 export interface UploadStatus {
-  status: 'idle' | 'uploading' | 'finalizing' | 'success' | 'error' | 'aborted'
+  status: UploadTransportStatus
   progress: UploadProgress
   error?: string
   startTime?: number
@@ -57,7 +61,7 @@ export function useUpload(options: UseUploadOptions = {}) {
 
   // 响应式状态
   const uploadStatus = ref<UploadStatus>({
-    status: 'idle',
+    status: UploadTransportStatus.Idle,
     progress: {
       loaded: 0,
       total: 0,
@@ -151,11 +155,14 @@ export function useUpload(options: UseUploadOptions = {}) {
     const percentage =
       total > 0
         ? Math.min(
-            uploadStatus.value.status === 'uploading' ? 99 : 100,
+            uploadStatus.value.status === UploadTransportStatus.Uploading
+              ? 99
+              : 100,
             Math.floor((loaded / total) * 100),
           )
         : 0
-    const finalizing = uploadStatus.value.status === 'finalizing'
+    const finalizing =
+      uploadStatus.value.status === UploadTransportStatus.Finalizing
     const metrics = calculateSpeed(loaded)
 
     const progress: UploadProgress = {
@@ -174,7 +181,7 @@ export function useUpload(options: UseUploadOptions = {}) {
     speedSamples.length = 0
     transferred = 0
     updateStatus({
-      status: 'idle',
+      status: UploadTransportStatus.Idle,
       progress: {
         loaded: 0,
         total: 0,
@@ -198,8 +205,11 @@ export function useUpload(options: UseUploadOptions = {}) {
     resetStatus()
     cancelled = false
     active = true
-    updateStatus({ status: 'uploading', startTime: Date.now() })
-    callbacks.onStatusChange?.('uploading')
+    updateStatus({
+      status: UploadTransportStatus.Uploading,
+      startTime: Date.now(),
+    })
+    callbacks.onStatusChange?.(UploadTransportStatus.Uploading)
     const plan: UploadPlan =
       typeof target === 'string'
         ? {
@@ -223,10 +233,10 @@ export function useUpload(options: UseUploadOptions = {}) {
       loadedTotal += next - previous
       if (
         loadedTotal >= file.size &&
-        uploadStatus.value.status === 'uploading'
+        uploadStatus.value.status === UploadTransportStatus.Uploading
       ) {
-        updateStatus({ status: 'finalizing' })
-        callbacks.onStatusChange?.('finalizing')
+        updateStatus({ status: UploadTransportStatus.Finalizing })
+        callbacks.onStatusChange?.(UploadTransportStatus.Finalizing)
       }
       updateProgress(loadedTotal, file.size)
     }
@@ -408,10 +418,10 @@ export function useUpload(options: UseUploadOptions = {}) {
         )
         if (failure) throw failure
         if (cancelled) throw new Error(t('upload.runtimeError.aborted'))
-        updateStatus({ status: 'finalizing' })
+        updateStatus({ status: UploadTransportStatus.Finalizing })
         updateProgress(file.size, file.size)
         callbacks.onProgress?.(uploadStatus.value.progress)
-        callbacks.onStatusChange?.('finalizing')
+        callbacks.onStatusChange?.(UploadTransportStatus.Finalizing)
         response = await request(
           'POST',
           signedUrl,
@@ -434,15 +444,20 @@ export function useUpload(options: UseUploadOptions = {}) {
         )
       }
       if (cancelled) throw new Error(t('upload.runtimeError.aborted'))
-      updateStatus({ status: 'success', endTime: Date.now() })
+      updateStatus({
+        status: UploadTransportStatus.Success,
+        endTime: Date.now(),
+      })
       updateProgress(file.size, file.size)
       callbacks.onProgress?.(uploadStatus.value.progress)
-      callbacks.onStatusChange?.('success')
+      callbacks.onStatusChange?.(UploadTransportStatus.Success)
       callbacks.onSuccess?.(response)
       return response
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error)
-      const status = cancelled ? 'aborted' : 'error'
+      const status = cancelled
+        ? UploadTransportStatus.Aborted
+        : UploadTransportStatus.Error
       updateStatus({ status, error: message, endTime: Date.now() })
       callbacks.onStatusChange?.(status)
       if (cancelled) callbacks.onAbort?.()
@@ -494,12 +509,20 @@ export function useUpload(options: UseUploadOptions = {}) {
 
   // 计算属性
   const isUploading = computed(() =>
-    ['uploading', 'finalizing'].includes(uploadStatus.value.status),
+    isInFlightTransportStatus(uploadStatus.value.status),
   )
-  const isIdle = computed(() => uploadStatus.value.status === 'idle')
-  const isSuccess = computed(() => uploadStatus.value.status === 'success')
-  const isError = computed(() => uploadStatus.value.status === 'error')
-  const isAborted = computed(() => uploadStatus.value.status === 'aborted')
+  const isIdle = computed(
+    () => uploadStatus.value.status === UploadTransportStatus.Idle,
+  )
+  const isSuccess = computed(
+    () => uploadStatus.value.status === UploadTransportStatus.Success,
+  )
+  const isError = computed(
+    () => uploadStatus.value.status === UploadTransportStatus.Error,
+  )
+  const isAborted = computed(
+    () => uploadStatus.value.status === UploadTransportStatus.Aborted,
+  )
   const canAbort = computed(() => isUploading.value && currentXHR !== null)
 
   // 格式化的进度信息

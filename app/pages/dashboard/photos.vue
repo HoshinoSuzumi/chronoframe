@@ -1,6 +1,14 @@
 <script lang="ts" setup>
 import type { FormSubmitEvent, TableColumn } from '@nuxt/ui'
-import type { Photo, PipelineQueueItem } from '~~/server/utils/db'
+import type { Photo } from '~~/server/utils/db'
+import type { UploadingFile } from '~~/shared/types/uploading-file'
+import {
+  UploadQueueStatus,
+  UploadTransportStatus,
+  isAbortableUploadStatus,
+  isClearableUploadStatus,
+  isInFlightTransportStatus,
+} from '~~/shared/utils/upload-status'
 import { h, resolveComponent } from 'vue'
 import { Icon, UBadge } from '#components'
 import ThumbImage from '~/components/ui/ThumbImage.vue'
@@ -102,39 +110,6 @@ const fetchReactions = async (photoIds: string[]) => {
   } finally {
     reactionsLoading.value = false
   }
-}
-
-interface UploadingFile {
-  file: File
-  fileName: string
-  fileId: string
-  status:
-    | 'waiting'
-    | 'preparing'
-    | 'uploading'
-    | 'finalizing'
-    | 'processing'
-    | 'completed'
-    | 'error'
-    | 'skipped'
-    | 'blocked'
-  stage?: PipelineQueueItem['statusStage'] | null
-  progress?: number
-  error?: string
-  warning?: string
-  taskId?: number
-  signedUrlResponse?: { signedUrl: string; fileKey: string; expiresIn: number }
-  uploadProgress?: {
-    loaded: number
-    total: number
-    percentage: number
-    speed?: number
-    timeRemaining?: number
-    speedText?: string
-    timeRemainingText?: string
-  }
-  canAbort?: boolean
-  abortUpload?: () => void
 }
 
 const uploadingFiles = ref<Map<string, UploadingFile>>(new Map())
@@ -283,14 +258,14 @@ const uploadImage = async (
       file,
       fileName,
       fileId,
-      status: 'preparing',
+      status: UploadQueueStatus.Preparing,
       canAbort: false,
       abortUpload: () => uploadManager.abortUpload(),
     }
     uploadingFiles.value.set(fileId, uploadingFile)
   } else {
     // 更新现有条目的状态和回调
-    uploadingFile.status = 'preparing'
+    uploadingFile.status = UploadQueueStatus.Preparing
     uploadingFile.canAbort = false
     uploadingFile.warning = undefined
     uploadingFile.abortUpload = () => uploadManager.abortUpload()
@@ -299,7 +274,7 @@ const uploadImage = async (
 
   try {
     // 第一步：获取预签名 URL
-    uploadingFile.status = 'preparing'
+    uploadingFile.status = UploadQueueStatus.Preparing
     const signedUrlResponse = await $fetch('/api/photos', {
       method: 'POST',
       body: {
@@ -314,7 +289,7 @@ const uploadImage = async (
 
     // 检查是否为跳过模式（重复文件）
     if (signedUrlResponse.skipped) {
-      uploadingFile.status = 'skipped'
+      uploadingFile.status = UploadQueueStatus.Skipped
       uploadingFile.progress = 100
       uploadingFile.canAbort = false
       uploadingFile.error =
@@ -342,7 +317,7 @@ const uploadImage = async (
       uploadingFiles.value = new Map(uploadingFiles.value)
     }
 
-    uploadingFile.status = 'uploading'
+    uploadingFile.status = UploadQueueStatus.Uploading
     uploadingFile.canAbort = true
     uploadingFile.progress = 0
     uploadingFiles.value = new Map(uploadingFiles.value)
@@ -364,14 +339,15 @@ const uploadImage = async (
         }
         uploadingFiles.value = new Map(uploadingFiles.value)
       },
-      onStatusChange: (status: string) => {
-        uploadingFile.canAbort = status === 'uploading' || status === 'finalizing'
-        if (status === 'finalizing') uploadingFile.status = 'finalizing'
+      onStatusChange: (status: UploadTransportStatus) => {
+        uploadingFile.canAbort = isInFlightTransportStatus(status)
+        if (status === UploadTransportStatus.Finalizing)
+          uploadingFile.status = UploadQueueStatus.Finalizing
         uploadingFiles.value = new Map(uploadingFiles.value)
       },
       onSuccess: async (_xhr: XMLHttpRequest) => {
         // 第三步：上传完成，提交到队列任务
-        uploadingFile.status = 'processing'
+        uploadingFile.status = UploadQueueStatus.Processing
         uploadingFile.progress = 100
         uploadingFile.canAbort = false
         uploadingFile.stage = null // 重置 stage，准备显示任务状态
@@ -405,20 +381,20 @@ const uploadImage = async (
 
           if (resp.success) {
             uploadingFile.taskId = resp.taskId
-            uploadingFile.status = 'processing'
+            uploadingFile.status = UploadQueueStatus.Processing
             uploadingFiles.value = new Map(uploadingFiles.value)
 
             // 开始任务状态检查
             startTaskStatusCheck(resp.taskId, fileId)
           } else {
-            uploadingFile.status = 'error'
+            uploadingFile.status = UploadQueueStatus.Error
             uploadingFile.error = $t(
               'dashboard.photos.messages.taskSubmitFailed',
             )
             uploadingFiles.value = new Map(uploadingFiles.value)
           }
         } catch (processError: any) {
-          uploadingFile.status = 'error'
+          uploadingFile.status = UploadQueueStatus.Error
           uploadingFile.error = `${$t('dashboard.photos.messages.taskSubmitFailed')}: ${processError.message}`
           uploadingFile.canAbort = false
           uploadingFiles.value = new Map(uploadingFiles.value)
@@ -428,12 +404,12 @@ const uploadImage = async (
         const isConflict = /\b409\b|Conflict/i.test(error)
 
         if (isConflict) {
-          uploadingFile.status = 'blocked'
+          uploadingFile.status = UploadQueueStatus.Blocked
           uploadingFile.error = $t('upload.duplicate.block.message', {
             fileName,
           })
         } else {
-          uploadingFile.status = 'error'
+          uploadingFile.status = UploadQueueStatus.Error
           uploadingFile.error = error
         }
 
@@ -442,7 +418,7 @@ const uploadImage = async (
       },
     })
   } catch (error: any) {
-    uploadingFile.status = 'error'
+    uploadingFile.status = UploadQueueStatus.Error
     uploadingFile.canAbort = false
 
     // 处理重复文件阻止模式的错误
@@ -453,7 +429,7 @@ const uploadImage = async (
       (error.data?.duplicate || /Conflict|409/i.test(error.message || ''))
 
     if (isDuplicateConflict) {
-      uploadingFile.status = 'blocked'
+      uploadingFile.status = UploadQueueStatus.Blocked
       uploadingFile.error =
         error.data.message || $t('upload.duplicate.block.message', { fileName })
 
@@ -639,7 +615,7 @@ const startTaskStatusCheck = (taskId: number, fileId: string) => {
 
       if (response.status === 'completed') {
         // 任务完成
-        uploadingFile.status = 'completed'
+        uploadingFile.status = UploadQueueStatus.Completed
         uploadingFile.stage = null
         uploadingFiles.value = new Map(uploadingFiles.value)
 
@@ -659,7 +635,7 @@ const startTaskStatusCheck = (taskId: number, fileId: string) => {
         // }, 2000)
       } else if (response.status === 'failed') {
         // 任务失败
-        uploadingFile.status = 'error'
+        uploadingFile.status = UploadQueueStatus.Error
         uploadingFile.error = `${$t('dashboard.photos.messages.error')}: ${response.errorMessage || $t('dashboard.photos.table.cells.unknown')}`
         uploadingFile.stage = null
         uploadingFiles.value = new Map(uploadingFiles.value)
@@ -680,7 +656,7 @@ const startTaskStatusCheck = (taskId: number, fileId: string) => {
 
       const uploadingFile = uploadingFiles.value.get(fileId)
       if (uploadingFile) {
-        uploadingFile.status = 'error'
+        uploadingFile.status = UploadQueueStatus.Error
         uploadingFile.error = $t(
           'dashboard.photos.messages.taskStatusCheckFailed',
         )
@@ -715,10 +691,7 @@ const clearCompletedTasks = () => {
   const toRemove: string[] = []
 
   for (const [fileId, uploadingFile] of uploadingFiles.value) {
-    if (
-      uploadingFile.status === 'completed' ||
-      uploadingFile.status === 'error'
-    ) {
+    if (isClearableUploadStatus(uploadingFile.status)) {
       toRemove.push(fileId)
 
       // 清理可能存在的定时器
@@ -763,7 +736,7 @@ const clearAllUploads = () => {
 
     // 如果是正在上传的任务，先中止
     if (
-      (uploadingFile.status === 'uploading' || uploadingFile.status === 'finalizing') &&
+      isAbortableUploadStatus(uploadingFile.status) &&
       uploadingFile.abortUpload
     ) {
       uploadingFile.abortUpload()
@@ -1201,7 +1174,7 @@ const handleUpload = async () => {
       file,
       fileName: file.name,
       fileId,
-      status: 'waiting',
+      status: UploadQueueStatus.Waiting,
       canAbort: false,
     }
     nextUploadingFiles.set(fileId, uploadingFile)

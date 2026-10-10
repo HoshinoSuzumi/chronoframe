@@ -1,39 +1,16 @@
 <script lang="ts" setup>
 import { motion, AnimatePresence } from 'motion-v'
-
-interface UploadFile {
-  file: File
-  fileName: string
-  fileId: string
-  status:
-    | 'waiting'
-    | 'preparing'
-    | 'uploading'
-    | 'finalizing'
-    | 'processing'
-    | 'completed'
-    | 'error'
-    | 'skipped'
-    | 'blocked'
-  stage?: string | null
-  progress?: number
-  error?: string
-  taskId?: number
-  uploadProgress?: {
-    loaded: number
-    total: number
-    percentage: number
-    speed?: number
-    timeRemaining?: number
-    speedText?: string
-    timeRemainingText?: string
-  }
-  canAbort?: boolean
-  abortUpload?: () => void
-}
+import type { UploadingFile } from '~~/shared/types/uploading-file'
+import {
+  UploadQueueStatus,
+  isAbortableUploadStatus,
+  isActiveUploadStatus,
+  isQueuedUploadStatus,
+  isSkippedOrBlockedUploadStatus,
+} from '~~/shared/utils/upload-status'
 
 const props = defineProps<{
-  uploadingFiles: Map<string, UploadFile>
+  uploadingFiles: Map<string, UploadingFile>
   collapsed?: boolean
 }>()
 
@@ -52,24 +29,17 @@ const stats = computed(() => {
   const files = Array.from(props.uploadingFiles.values())
   return {
     total: files.length,
-    waiting: files.filter((f) => f.status === 'waiting').length,
-    uploading: files.filter(
-      (f) => f.status === 'uploading' || f.status === 'finalizing',
-    ).length,
-    processing: files.filter((f) => f.status === 'processing').length,
-    completed: files.filter((f) => f.status === 'completed').length,
-    error: files.filter((f) => f.status === 'error').length,
-    skipped: files.filter((f) => f.status === 'skipped').length,
-    blocked: files.filter((f) => f.status === 'blocked').length,
-    active: files.filter(
-      (f) =>
-        f.status === 'uploading' ||
-        f.status === 'finalizing' ||
-        f.status === 'processing',
-    ).length,
-    pending: files.filter(
-      (f) => f.status === 'waiting' || f.status === 'preparing',
-    ).length,
+    waiting: files.filter((f) => f.status === UploadQueueStatus.Waiting).length,
+    uploading: files.filter((f) => isAbortableUploadStatus(f.status)).length,
+    processing: files.filter((f) => f.status === UploadQueueStatus.Processing)
+      .length,
+    completed: files.filter((f) => f.status === UploadQueueStatus.Completed)
+      .length,
+    error: files.filter((f) => f.status === UploadQueueStatus.Error).length,
+    skipped: files.filter((f) => f.status === UploadQueueStatus.Skipped).length,
+    blocked: files.filter((f) => f.status === UploadQueueStatus.Blocked).length,
+    active: files.filter((f) => isActiveUploadStatus(f.status)).length,
+    pending: files.filter((f) => isQueuedUploadStatus(f.status)).length,
   }
 })
 
@@ -80,22 +50,28 @@ const overallProgress = computed(() => {
 
   let totalProgress = 0
   files.forEach((file) => {
-    if (file.status === 'completed') {
+    if (file.status === UploadQueueStatus.Completed) {
       // 完成状态：100%
       totalProgress += 100
-    } else if (file.status === 'uploading' && file.progress !== undefined) {
+    } else if (
+      file.status === UploadQueueStatus.Uploading &&
+      file.progress !== undefined
+    ) {
       // 上传中：上传进度 * 0.7（上传占总进度的70%）
       totalProgress += file.progress * 0.7
-    } else if (file.status === 'processing' || file.status === 'finalizing') {
+    } else if (
+      file.status === UploadQueueStatus.Processing ||
+      file.status === UploadQueueStatus.Finalizing
+    ) {
       // 处理中：上传完成(70%)
       totalProgress += 70
-    } else if (file.status === 'preparing') {
+    } else if (file.status === UploadQueueStatus.Preparing) {
       // 准备中：0%
       totalProgress += 0
-    } else if (file.status === 'waiting') {
+    } else if (file.status === UploadQueueStatus.Waiting) {
       // 等待状态：0%
       totalProgress += 0
-    } else if (file.status === 'skipped' || file.status === 'blocked') {
+    } else if (isSkippedOrBlockedUploadStatus(file.status)) {
       // 跳过或被阻止：0%（不参与进度计算）
       totalProgress += 0
     }
