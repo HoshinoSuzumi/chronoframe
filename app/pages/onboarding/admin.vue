@@ -28,7 +28,9 @@ const schema = z
     username: z.string().min(2, $t('onboarding.admin.invalidUsername')),
     email: z.email($t('onboarding.admin.invalidEmail')),
     password: z.string().min(6, $t('onboarding.admin.invalidPassword')),
-    confirmPassword: z.string().min(6, $t('onboarding.admin.invalidConfirmPassword')),
+    confirmPassword: z
+      .string()
+      .min(6, $t('onboarding.admin.invalidConfirmPassword')),
   })
   .refine((data) => data.password === data.confirmPassword, {
     message: $t('onboarding.admin.passwordMismatch'),
@@ -87,7 +89,8 @@ function onSubmit() {
     <template #actions>
       <WizardButton
         to="/onboarding"
-        color="outline"
+        variant="outline"
+        color="primary"
         size="lg"
         leading-icon="tabler:arrow-left"
       >

@@ -121,7 +121,8 @@ function onSubmit() {
     <template #actions>
       <WizardButton
         to="/onboarding/storage"
-        color="outline"
+        variant="outline"
+        color="primary"
         size="lg"
         leading-icon="tabler:arrow-left"
       >

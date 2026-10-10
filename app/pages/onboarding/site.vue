@@ -25,7 +25,11 @@ const schema = z.object({
   title: z.string().min(1, $t('onboarding.site.invalidTitle')),
   slogan: z.string().optional(),
   author: z.string().optional(),
-  avatarUrl: z.string().url($t('onboarding.site.invalidAvatarUrl')).optional().or(z.literal('')),
+  avatarUrl: z
+    .string()
+    .url($t('onboarding.site.invalidAvatarUrl'))
+    .optional()
+    .or(z.literal('')),
 })
 
 function onSubmit() {
@@ -93,7 +97,8 @@ function onSubmit() {
     <template #actions>
       <WizardButton
         to="/onboarding/admin"
-        color="outline"
+        variant="outline"
+        color="primary"
         size="lg"
         leading-icon="tabler:arrow-left"
       >

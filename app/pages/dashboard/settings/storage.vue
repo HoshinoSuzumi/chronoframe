@@ -26,10 +26,9 @@ const {
   data: availableStorage,
   refresh: refreshAvailableStorage,
   status: availableStorageStatus,
-} =
-  await useFetch<SettingStorageProvider[]>(
-    '/api/system/settings/storage-config',
-  )
+} = await useFetch<SettingStorageProvider[]>(
+  '/api/system/settings/storage-config',
+)
 
 const PROVIDER_ICON = {
   s3: 'tabler:brand-aws',
@@ -39,62 +38,65 @@ const PROVIDER_ICON = {
 
 const availableStorageColumns = computed<TableColumn<SettingStorageProvider>[]>(
   () => [
-  {
-    accessorKey: 'status',
-    header: '',
-    meta: {
-      class: {
-        th: 'w-10',
+    {
+      accessorKey: 'status',
+      header: '',
+      meta: {
+        class: {
+          th: 'w-10',
+        },
+      },
+      cell: (cell) => {
+        const isActive =
+          currentStorageProvider.value?.value === cell.row.original.id
+        return h(UChip, {
+          size: 'md',
+          inset: true,
+          standalone: true,
+          color: isActive ? 'success' : undefined,
+          ui: {
+            base: !isActive ? 'bg-neutral-200 dark:bg-neutral-700' : '',
+          },
+        })
       },
     },
-    cell: (cell) => {
-      const isActive =
-        currentStorageProvider.value?.value === cell.row.original.id
-      return h(UChip, {
-        size: 'md',
-        inset: true,
-        standalone: true,
-        color: isActive ? 'success' : undefined,
-        ui: {
-          base: !isActive ? 'bg-neutral-200 dark:bg-neutral-700' : '',
-        },
-      })
+    { accessorKey: 'name', header: $t('settings.storage.table.columns.name') },
+    {
+      accessorKey: 'provider',
+      header: $t('settings.storage.table.columns.type'),
     },
-  },
-  { accessorKey: 'name', header: $t('settings.storage.table.columns.name') },
-  { accessorKey: 'provider', header: $t('settings.storage.table.columns.type') },
-  {
-    accessorKey: 'actions',
-    header: $t('settings.storage.table.columns.actions'),
-    cell: (cell) => {
-      return h('div', { class: 'flex items-center gap-2' }, [
-        h(
-          UButton,
-          {
-            size: 'sm',
-            variant: 'soft',
-            color: 'info',
-            icon: 'tabler:pencil',
-            onClick: () => onStorageEdit(cell.row.original),
-          },
-          { default: () => $t('common.actions.edit') },
-        ),
-        h(
-          UButton,
-          {
-            size: 'sm',
-            variant: 'soft',
-            color: 'error',
-            icon: 'tabler:trash',
-            disabled:
-              currentStorageProvider.value?.value === cell.row.original.id,
-            onClick: () => openStorageDeleteConfirm(cell.row.original),
-          },
-          { default: () => $t('common.actions.delete') },
-        ),
-      ])
+    {
+      accessorKey: 'actions',
+      header: $t('settings.storage.table.columns.actions'),
+      cell: (cell) => {
+        return h('div', { class: 'flex items-center gap-2' }, [
+          h(
+            UButton,
+            {
+              size: 'sm',
+              variant: 'soft',
+              color: 'info',
+              icon: 'tabler:pencil',
+              onClick: () => onStorageEdit(cell.row.original),
+            },
+            { default: () => $t('common.actions.edit') },
+          ),
+          h(
+            UButton,
+            {
+              size: 'sm',
+              variant: 'soft',
+              color: 'error',
+              icon: 'tabler:trash',
+              disabled:
+                currentStorageProvider.value?.value === cell.row.original.id,
+              onClick: () => openStorageDeleteConfirm(cell.row.original),
+            },
+            { default: () => $t('common.actions.delete') },
+          ),
+        ])
+      },
     },
-  },
   ],
 )
 
@@ -107,7 +109,9 @@ const storageSettingsState = reactive<{
 })
 
 const isStorageDefaultDirty = computed(() => {
-  return storageSettingsState.storageConfigId !== currentStorageProvider.value?.value
+  return (
+    storageSettingsState.storageConfigId !== currentStorageProvider.value?.value
+  )
 })
 
 const resetStorageDefault = () => {
@@ -140,22 +144,22 @@ const handleStorageSettingsSubmit = async (close?: () => void) => {
 }
 
 const providerOptions = computed(() => [
-  { label: $t('settings.storage.providers.s3'), value: 's3', icon: PROVIDER_ICON.s3 },
-  { label: $t('settings.storage.providers.local'), value: 'local', icon: PROVIDER_ICON.local },
-  { label: $t('settings.storage.providers.openlist'), value: 'openlist', icon: PROVIDER_ICON.openlist },
+  {
+    label: $t('settings.storage.providers.s3'),
+    value: 's3',
+    icon: PROVIDER_ICON.s3,
+  },
+  {
+    label: $t('settings.storage.providers.local'),
+    value: 'local',
+    icon: PROVIDER_ICON.local,
+  },
+  {
+    label: $t('settings.storage.providers.openlist'),
+    value: 'openlist',
+    icon: PROVIDER_ICON.openlist,
+  },
 ])
-
-// Translate zod validation error messages
-const translateStorageError = (message: string, name?: string): string => {
-  const field = name || ''
-  if (message.includes('expected string, received undefined')) {
-    return t('settings.storage.form.isrequired', { field })
-  }
-  if (message.includes('Too small') || message.includes('too_small') || message.includes('at least 1 character')) {
-    return t('settings.storage.form.isrequired', { field })
-  }
-  return message
-}
 
 const storageConfigState = reactive<{
   name: string
@@ -397,7 +401,9 @@ const onStorageConfigSubmit = async (
   close?: () => void,
 ) => {
   if (!storageConfigState.name.trim()) {
-    nameError.value = t('settings.storage.form.isrequired', { field: t('settings.storage.form.nameLabel') })
+    nameError.value = t('settings.storage.form.isrequired', {
+      field: t('settings.storage.form.nameLabel'),
+    })
     return
   }
   nameError.value = ''
@@ -474,7 +480,9 @@ const onStorageConfigUpdate = async (
 ) => {
   if (!editingStorage.value) return
   if (!storageConfigState.name.trim()) {
-    nameError.value = t('settings.storage.form.isrequired', { field: t('settings.storage.form.nameLabel') })
+    nameError.value = t('settings.storage.form.isrequired', {
+      field: t('settings.storage.form.nameLabel'),
+    })
     return
   }
   nameError.value = ''
@@ -485,10 +493,13 @@ const onStorageConfigUpdate = async (
       config: event.data,
     }
 
-    await $fetch(`/api/system/settings/storage-config/${editingStorage.value.id}`, {
-      method: 'PUT',
-      body: payload,
-    })
+    await $fetch(
+      `/api/system/settings/storage-config/${editingStorage.value.id}`,
+      {
+        method: 'PUT',
+        body: payload,
+      },
+    )
     refreshAvailableStorage()
     refreshCurrentStorageProvider()
     toast.add({
@@ -521,8 +532,12 @@ const resetStorageConfigForm = () => {
 
     <template #body>
       <div class="mx-auto w-full max-w-5xl space-y-6">
-        <section class="space-y-2 border-b border-neutral-200 pb-4 dark:border-neutral-800">
-          <h2 class="text-xl font-semibold text-neutral-900 dark:text-neutral-100">
+        <section
+          class="space-y-2 border-b border-neutral-200 pb-4 dark:border-neutral-800"
+        >
+          <h2
+            class="text-xl font-semibold text-neutral-900 dark:text-neutral-100"
+          >
             {{ $t('title.storageSettings') }}
           </h2>
           <p class="text-sm text-neutral-600 dark:text-neutral-400">
@@ -530,9 +545,15 @@ const resetStorageConfigForm = () => {
           </p>
         </section>
 
-        <section class="rounded-md border border-neutral-200 bg-white dark:border-neutral-800 dark:bg-neutral-950">
-          <header class="border-b border-neutral-200 px-5 py-4 dark:border-neutral-800">
-            <h3 class="text-base font-semibold text-neutral-900 dark:text-neutral-100">
+        <section
+          class="rounded-md border border-neutral-200 bg-white dark:border-neutral-800 dark:bg-neutral-950"
+        >
+          <header
+            class="border-b border-neutral-200 px-5 py-4 dark:border-neutral-800"
+          >
+            <h3
+              class="text-base font-semibold text-neutral-900 dark:text-neutral-100"
+            >
               {{ $t('settings.storage.sections.currentDefault') }}
             </h3>
           </header>
@@ -581,7 +602,9 @@ const resetStorageConfigForm = () => {
             </UFormField>
           </div>
 
-          <footer class="border-t border-neutral-200 px-5 py-4 dark:border-neutral-800">
+          <footer
+            class="border-t border-neutral-200 px-5 py-4 dark:border-neutral-800"
+          >
             <div
               v-if="isStorageDefaultDirty"
               class="mb-3 rounded-md border border-warning-200 bg-warning-50 px-3 py-2 text-sm text-warning-800 dark:border-warning-900/60 dark:bg-warning-950/30 dark:text-warning-200"
@@ -614,7 +637,9 @@ const resetStorageConfigForm = () => {
                     color="neutral"
                     variant="subtle"
                     :title="$t('settings.storage.changeModal.alertTitle')"
-                    :description="$t('settings.storage.changeModal.alertDescription')"
+                    :description="
+                      $t('settings.storage.changeModal.alertDescription')
+                    "
                     icon="tabler:arrows-exchange"
                   />
                 </template>
@@ -640,9 +665,15 @@ const resetStorageConfigForm = () => {
           </footer>
         </section>
 
-        <section class="rounded-md border border-neutral-200 bg-white dark:border-neutral-800 dark:bg-neutral-950">
-          <header class="flex w-full items-center justify-between border-b border-neutral-200 px-5 py-4 dark:border-neutral-800">
-            <h3 class="text-base font-semibold text-neutral-900 dark:text-neutral-100">
+        <section
+          class="rounded-md border border-neutral-200 bg-white dark:border-neutral-800 dark:bg-neutral-950"
+        >
+          <header
+            class="flex w-full items-center justify-between border-b border-neutral-200 px-5 py-4 dark:border-neutral-800"
+          >
+            <h3
+              class="text-base font-semibold text-neutral-900 dark:text-neutral-100"
+            >
               {{ $t('settings.storage.sections.management') }}
             </h3>
             <div>
@@ -679,7 +710,9 @@ const resetStorageConfigForm = () => {
                         :items="providerOptions"
                         label-key="label"
                         value-key="value"
-                        :placeholder="$t('settings.storage.form.typePlaceholder')"
+                        :placeholder="
+                          $t('settings.storage.form.typePlaceholder')
+                        "
                         @update:model-value="
                           (val: string) => {
                             storageConfigState.provider = val
@@ -698,7 +731,10 @@ const resetStorageConfigForm = () => {
                         container: 'sm:max-w-full',
                       }"
                     >
-                      <UInput v-model="storageConfigState.name" @update:model-value="nameError = ''" />
+                      <UInput
+                        v-model="storageConfigState.name"
+                        @update:model-value="nameError = ''"
+                      />
                     </UFormField>
 
                     <AlbumProtectionWarning
@@ -712,7 +748,6 @@ const resetStorageConfigForm = () => {
                       :schema="currentStorageSchema"
                       :state="storageConfigState.config"
                       :fields-config="storageFieldsConfig"
-                      :translate-error="translateStorageError"
                       @submit="onStorageConfigSubmit($event, close)"
                     />
                   </div>
@@ -795,7 +830,10 @@ const resetStorageConfigForm = () => {
                   container: 'sm:max-w-full',
                 }"
               >
-                <UInput v-model="storageConfigState.name" @update:model-value="nameError = ''" />
+                <UInput
+                  v-model="storageConfigState.name"
+                  @update:model-value="nameError = ''"
+                />
               </UFormField>
 
               <USeparator />
@@ -805,7 +843,6 @@ const resetStorageConfigForm = () => {
                 :schema="currentStorageSchema"
                 :state="storageConfigState.config"
                 :fields-config="storageFieldsConfig"
-                :translate-error="translateStorageError"
                 @submit="onStorageConfigUpdate($event, close)"
               />
             </div>
@@ -845,7 +882,9 @@ const resetStorageConfigForm = () => {
           <span>{{ $t('settings.storage.deleteModal.title') }}</span>
         </template>
         <template #body>
-          <p class="text-sm leading-relaxed text-neutral-500 dark:text-neutral-400">
+          <p
+            class="text-sm leading-relaxed text-neutral-500 dark:text-neutral-400"
+          >
             {{
               $t('settings.storage.deleteModal.message', {
                 name: storagePendingDelete?.name,

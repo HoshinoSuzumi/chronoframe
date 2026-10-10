@@ -62,7 +62,11 @@ const schema = computed(() => {
       if (field.ui.required) {
         validator = z.string().url($t('onboarding.storage.invalidUrl'))
       } else {
-        validator = z.string().url($t('onboarding.storage.invalidUrl')).optional().or(z.literal(''))
+        validator = z
+          .string()
+          .url($t('onboarding.storage.invalidUrl'))
+          .optional()
+          .or(z.literal(''))
       }
     }
 
@@ -154,7 +158,8 @@ function onSubmit() {
     <template #actions>
       <WizardButton
         to="/onboarding/site"
-        color="outline"
+        variant="outline"
+        color="primary"
         size="lg"
         leading-icon="tabler:arrow-left"
       >

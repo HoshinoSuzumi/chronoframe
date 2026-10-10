@@ -1481,7 +1481,7 @@
     "site": {
       "title": "站點資訊",
       "description": "設定站點基本資訊",
-      "invalidTitle": "站點標題必須包含至少2個字元",
+      "invalidTitle": "站點標題必須包含至少1個字元",
       "invalidAvatarUrl": "無效的頭像 URL"
     },
     "storage": {
