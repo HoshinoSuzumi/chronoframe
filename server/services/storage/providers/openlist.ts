@@ -114,7 +114,10 @@ export class OpenListStorageProvider implements StorageProvider {
       rootPath: this.normalizedRoot(),
     })
 
-    const meta = await this.getFileMeta(rootedKey)
+    const meta = await this.getFileMeta(rootedKey).catch((error) => {
+      this.logger?.warn('Uploaded object metadata lookup failed:', error)
+      return null
+    })
     return (
       meta || {
         key: rootedKey,

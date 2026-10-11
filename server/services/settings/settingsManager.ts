@@ -308,7 +308,14 @@ export class SettingsManager {
       key === 'queue.workerCount' &&
       !this.isInitializing
     ) {
-      await globalThis.__workerPool?.setWorkerCount(value as number)
+      void globalThis.__workerPool
+        ?.setWorkerCount(value as number)
+        .catch((error) => {
+          this._logger.error(
+            'Failed to apply queue concurrency setting:',
+            error,
+          )
+        })
     }
 
     // Trigger storage provider switch if storage:provider is being changed
