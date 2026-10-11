@@ -294,31 +294,28 @@ const hoveredAlbum = ref<number | null>(null)
           <!-- Album Info -->
           <div class="px-2">
             <div class="flex flex-col gap-0">
-              <div class="flex items-center gap-8">
-                <h2
-                  class="flex-1 truncate text-lg font-semibold text-neutral-800 dark:text-neutral-200 transition-colors"
-                  :class="{
-                    'text-primary-600 dark:text-primary-400':
-                      hoveredAlbum === album.id,
-                  }"
-                >
-                  {{ album.title }}
-                </h2>
-
-                <p
-                  class="flex items-center gap-0.5 text-sm text-neutral-600 dark:text-neutral-400"
-                >
-                  <Icon
-                    name="tabler:clock"
-                    class="h-lh size-4"
-                  />
-                  {{ $dayjs(album.createdAt).fromNow() }}
-                </p>
-              </div>
+              <h2
+                class="truncate text-lg font-semibold text-neutral-800 dark:text-neutral-200 transition-colors"
+                :class="{
+                  'text-primary-600 dark:text-primary-400':
+                    hoveredAlbum === album.id,
+                }"
+              >
+                {{ album.title }}
+              </h2>
               <p
                 class="text-sm text-neutral-600 dark:text-neutral-400 line-clamp-2"
               >
                 {{ album.description || $t('ui.album.noDescription') }}
+              </p>
+              <p
+                class="mt-1 flex items-center justify-start gap-0.5 text-sm text-neutral-600 dark:text-neutral-400"
+              >
+                <Icon
+                  name="tabler:clock"
+                  class="h-lh size-4"
+                />
+                {{ $dayjs(album.createdAt).fromNow() }}
               </p>
             </div>
           </div>
