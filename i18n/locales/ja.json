@@ -85,6 +85,9 @@
           "linkedin": "LinkedIn"
         },
         "actions": {
+          "nativeShareShort": "共有",
+          "originalShort": "元画像",
+          "shareCardShort": "共有カード",
           "nativeShare": "システム共有を使用",
           "copyLink": "リンクをコピー",
           "copied": "コピー済み",
