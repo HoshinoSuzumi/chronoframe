@@ -3,21 +3,21 @@ const props = defineProps<{
   appTitle?: string
   slogan?: string
   author?: string
+  avatarUrl?: string
   photoCountLabel?: string
   photoCount?: number
   thumbnails?: string[]
 }>()
 const { $i18n } = useNuxtApp()
 const title = computed(() => props.appTitle || 'ChronoFrame')
-const photoCountLabel = computed(
-  () =>
-    props.photoCountLabel ||
-    $i18n.t(
-      'plural.photo',
-      { count: props.photoCount || 0 },
-      props.photoCount || 0,
-    ),
+const avatar = computed(
+  () => props.avatarUrl || '/web-app-manifest-512x512.png',
 )
+const countLabel = computed(() => {
+  if (props.photoCountLabel) return props.photoCountLabel
+  if (typeof props.photoCount !== 'number') return ''
+  return $i18n.t('plural.photo', { count: props.photoCount }, props.photoCount)
+})
 const covers = computed(() => (props.thumbnails || []).slice(0, 3))
 </script>
 
@@ -28,6 +28,10 @@ const covers = computed(() => (props.thumbnails || []).slice(0, 3))
         <span class="og-home__dot" />PHOTOGRAPHY
       </div>
       <div class="og-home__heading">
+        <img
+          :src="avatar"
+          class="og-home__avatar"
+        />
         <h1 class="og-home__title">
           {{ title.slice(0, 50) }}
         </h1>
@@ -44,10 +48,17 @@ const covers = computed(() => (props.thumbnails || []).slice(0, 3))
           class="og-home__author"
           >{{ author.slice(0, 40) }}</span
         >
-        <span class="og-home__count">{{ photoCountLabel }}</span>
+        <span
+          v-if="countLabel"
+          class="og-home__count"
+          >{{ countLabel }}</span
+        >
       </div>
     </div>
-    <div class="og-home__gallery">
+    <div
+      v-if="covers.length"
+      class="og-home__gallery"
+    >
       <div class="og-home__frame">
         <img
           v-if="covers[0]"
@@ -91,6 +102,15 @@ const covers = computed(() => (props.thumbnails || []).slice(0, 3))
         </div>
       </div>
     </div>
+    <div
+      v-else
+      class="og-home__mark"
+    >
+      <img
+        :src="avatar"
+        class="og-home__mark-image"
+      />
+    </div>
   </div>
 </template>
 
@@ -99,6 +119,7 @@ const covers = computed(() => (props.thumbnails || []).slice(0, 3))
   width: 100%;
   height: 100%;
   display: flex;
+  overflow: hidden;
   background: #f5f3ee;
   color: #242c29;
   font-family: 'Rubik', 'Noto Sans SC', sans-serif;
@@ -131,22 +152,29 @@ const covers = computed(() => (props.thumbnails || []).slice(0, 3))
 .og-home__heading {
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 20px;
+}
+.og-home__avatar {
+  width: 96px;
+  height: 96px;
+  border-radius: 48px;
+  object-fit: cover;
+  background: #d8dfd3;
 }
 .og-home__title {
   margin: 0;
-  font-size: 64px;
+  font-size: 56px;
   font-weight: 700;
   line-height: 1.12;
   letter-spacing: -2px;
-  line-clamp: 3;
+  line-clamp: 2;
 }
 .og-home__slogan {
   margin: 0;
   font-size: 26px;
   line-height: 1.5;
   color: #6b746d;
-  line-clamp: 3;
+  line-clamp: 2;
 }
 .og-home__footer {
   display: flex;
@@ -185,6 +213,21 @@ const covers = computed(() => (props.thumbnails || []).slice(0, 3))
   width: 100%;
   height: 100%;
   object-fit: cover;
+}
+.og-home__mark {
+  width: 560px;
+  height: 480px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.og-home__mark-image {
+  width: 360px;
+  height: 360px;
+  border-radius: 180px;
+  object-fit: cover;
+  background: #d8dfd3;
 }
 .og-home__placeholder {
   position: relative;

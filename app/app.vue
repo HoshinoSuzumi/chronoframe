@@ -55,6 +55,7 @@ const { data, refresh, status } = await useFetch(() => apiEndpoint.value, {
 })
 
 const photos = computed(() => (data.value as Photo[]) || [])
+await useInstanceOpenGraph(photos)
 
 const { switchToIndex, closeViewer, clearReturnRoute } = useViewerState()
 const {
