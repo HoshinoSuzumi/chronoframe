@@ -131,7 +131,10 @@ async function start() {
         popover: {
           title: $t(`tours.${key}.title`),
           description: $t(`tours.${key}.description`),
-          popoverClass: key === 'home' ? 'chronoframe-tour-welcome' : undefined,
+          popoverClass:
+            key === 'home'
+              ? 'chronoframe-tour chronoframe-tour-welcome'
+              : 'chronoframe-tour',
         },
       },
     ]
@@ -150,6 +153,10 @@ async function start() {
     showProgress: true,
     showButtons: ['next', 'previous', 'close'],
     allowClose: true,
+    overlayOpacity: 0.45,
+    stagePadding: 6,
+    stageRadius: 10,
+    popoverOffset: 12,
     overlayClickBehavior: 'none',
     closeBtnLabel: $t('tours.skip'),
     onCloseClick: () => {
@@ -233,12 +240,130 @@ onUnmounted(() => {
 .driver-overlay {
   z-index: 10050 !important;
 }
-.driver-popover {
+.driver-popover.chronoframe-tour {
+  --tour-surface: var(--ui-bg);
   z-index: 10051 !important;
+  min-width: min(300px, calc(100vw - 32px));
+  max-width: min(360px, calc(100vw - 32px));
+  padding: 16px;
+  border: 1px solid var(--ui-border);
+  border-radius: 16px;
+  background: var(--tour-surface);
+  color: var(--ui-text);
+  font-family: var(--font-sans);
+  box-shadow:
+    0 16px 48px rgb(0 0 0 / 16%),
+    0 2px 8px rgb(0 0 0 / 6%);
+}
+.chronoframe-tour .driver-popover-title {
+  color: var(--ui-text-highlighted);
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.5;
+  letter-spacing: -0.015em;
+}
+.chronoframe-tour
+  .driver-popover-title[style*='block']
+  + .driver-popover-description {
+  margin-top: 8px;
+}
+.chronoframe-tour .driver-popover-description {
+  color: var(--ui-text-toned);
+  font-size: 13px;
+  line-height: 1.75;
+  overflow-wrap: anywhere;
+}
+.chronoframe-tour .driver-popover-footer {
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid var(--ui-border);
+}
+.chronoframe-tour .driver-popover-progress-text {
+  flex-shrink: 0;
+  padding: 4px 8px;
+  border-radius: 6px;
+  background: var(--ui-bg-muted);
+  color: var(--ui-text-muted);
+  font-size: 11px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+.chronoframe-tour .driver-popover-navigation-btns {
+  gap: 6px;
+}
+.chronoframe-tour .driver-popover-navigation-btns button + button {
+  margin-left: 0;
+}
+.chronoframe-tour .driver-popover-footer-btn,
+.chronoframe-tour .driver-popover-close-btn.chronoframe-tour-skip {
+  box-sizing: border-box;
+  position: static;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: auto;
+  height: auto;
+  min-height: 32px;
+  padding: 6px 10px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  color: var(--ui-text);
+  background: var(--ui-bg-elevated);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.4;
+  cursor: pointer;
+  transition:
+    background-color 150ms,
+    box-shadow 150ms;
+}
+.chronoframe-tour .driver-popover-close-btn.chronoframe-tour-skip {
+  color: var(--ui-text-muted);
+  background: transparent;
+}
+.chronoframe-tour .driver-popover-footer-btn:hover,
+.chronoframe-tour .driver-popover-close-btn.chronoframe-tour-skip:hover {
+  color: var(--ui-text-highlighted);
+  background: var(--ui-bg-accented);
+}
+.chronoframe-tour .driver-popover-next-btn {
+  color: var(--ui-text-inverted);
+  background: var(--ui-primary);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 8%);
+}
+.chronoframe-tour .driver-popover-next-btn:hover {
+  color: var(--ui-text-inverted);
+  background: color-mix(
+    in srgb,
+    var(--ui-primary) 88%,
+    var(--ui-text-highlighted)
+  );
+}
+.chronoframe-tour button:focus-visible {
+  outline: 2px solid var(--ui-primary);
+  outline-offset: 3px;
+}
+.chronoframe-tour .driver-popover-footer .driver-popover-btn-disabled {
+  opacity: 0.4;
+}
+.chronoframe-tour .driver-popover-arrow-side-left {
+  border-left-color: var(--tour-surface);
+}
+.chronoframe-tour .driver-popover-arrow-side-right {
+  border-right-color: var(--tour-surface);
+}
+.chronoframe-tour .driver-popover-arrow-side-top {
+  border-top-color: var(--tour-surface);
+}
+.chronoframe-tour .driver-popover-arrow-side-bottom {
+  border-bottom-color: var(--tour-surface);
 }
 .driver-popover.chronoframe-tour-welcome {
   max-width: min(480px, calc(100vw - 32px));
-  padding: 24px;
+  padding: 20px;
 }
 .chronoframe-tour-welcome .driver-popover-title {
   font-size: 22px;
@@ -247,18 +372,9 @@ onUnmounted(() => {
   font-size: 14px;
   line-height: 1.8;
 }
-
-.driver-popover .driver-popover-close-btn.chronoframe-tour-skip {
-  position: static;
-  display: inline-block;
-  width: auto;
-  height: auto;
-  border: 1px solid #ccc;
-  background: #fff;
-  color: #2d2d2d;
-  border-radius: 3px;
-  padding: 3px 7px;
-  font-size: 12px;
-  cursor: pointer;
+@media (prefers-reduced-motion: reduce) {
+  .chronoframe-tour button {
+    transition: none;
+  }
 }
 </style>
