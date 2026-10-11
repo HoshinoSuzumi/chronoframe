@@ -87,11 +87,15 @@
         "actions": {
           "nativeShare": "Use System Share",
           "copyLink": "Copy Link",
+          "copied": "Copied",
+          "close": "Close",
+          "otherPlatforms": "Other sharing options",
+          "retry": "Retry",
           "copyImage": "Copy Image",
           "downloadImage": "Download Original",
           "generateShareImage": "Generate Share Image",
           "shareUrl": "Share URL",
-          "downloadOgImage": "Download Preview",
+          "downloadOgImage": "Download Share Card",
           "downloadOriginal": "Download Original",
           "downloadOriginalImage": "Download Original Image"
         },
