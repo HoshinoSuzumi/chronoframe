@@ -131,7 +131,10 @@ export class Heatmap {
   }
 
   get weekCount(): number {
-    return Math.ceil(this.getDaysCount() / Heatmap.DAYS_IN_WEEK)
+    return Math.ceil(
+      (this.getCountEmptyDaysAtStart() + this.getDaysCount()) /
+        Heatmap.DAYS_IN_WEEK,
+    )
   }
 
   get calendar(): Calendar {
@@ -269,17 +272,22 @@ export class Heatmap {
   }
 
   getCountEmptyDaysAtEnd(): number {
-    const remainingDays = this.getDaysCount() % Heatmap.DAYS_IN_WEEK
-    return remainingDays === 0 ? 0 : Heatmap.DAYS_IN_WEEK - remainingDays
+    return Heatmap.DAYS_IN_WEEK - 1 - this.endDate.getDay()
   }
 
   getDaysCount(): number {
-    return (
-      Math.ceil(
-        (this.endDate.getTime() - this.startDate.getTime()) /
-          (1000 * 60 * 60 * 24),
-      ) + 1
+    // Count calendar dates, independent of time of day and daylight saving time.
+    const start = Date.UTC(
+      this.startDate.getFullYear(),
+      this.startDate.getMonth(),
+      this.startDate.getDate(),
     )
+    const end = Date.UTC(
+      this.endDate.getFullYear(),
+      this.endDate.getMonth(),
+      this.endDate.getDate(),
+    )
+    return (end - start) / (1000 * 60 * 60 * 24) + 1
   }
 
   isExactYearRange(): boolean {
@@ -303,10 +311,20 @@ export class Heatmap {
   }
 
   private parseDate(date: Date | string): Date {
-    if (typeof date === 'string') {
-      return new Date(date)
+    // Date-only strings represent local calendar dates, not UTC instants.
+    let parsed: Date
+    if (typeof date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(date)) {
+      const [year, month, day] = date.split('-').map(Number) as [
+        number,
+        number,
+        number,
+      ]
+      parsed = new Date(year, month - 1, day)
+    } else {
+      parsed = new Date(date)
     }
-    return new Date(date)
+    parsed.setHours(0, 0, 0, 0)
+    return parsed
   }
 
   private keyDayParser(date: Date): string {
