@@ -80,7 +80,7 @@ const handleAppearanceSettingsSubmit = async () => {
 </script>
 
 <template>
-  <UDashboardPanel>
+  <UDashboardPanel data-tour="page">
     <template #header>
       <UDashboardNavbar :title="$t('title.generalSettings')" />
     </template>

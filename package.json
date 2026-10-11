@@ -53,6 +53,7 @@
     "@yeger/vue-masonry-wall": "^6.1.1",
     "better-sqlite3": "^12.10.0",
     "dayjs-nuxt": "2.1.11",
+    "driver.js": "^1.9.0",
     "drizzle-orm": "^0.45.2",
     "es-toolkit": "^1.47.0",
     "exiftool-vendored": "^35.21.0",

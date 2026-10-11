@@ -307,7 +307,7 @@ const onShareSite = () => {
 </script>
 
 <template>
-  <UDashboardPanel>
+  <UDashboardPanel data-tour="page">
     <template #header>
       <UDashboardNavbar :title="$t('dashboard.overview.title')" />
     </template>
@@ -316,6 +316,7 @@ const onShareSite = () => {
       <div class="flex flex-col gap-6">
         <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
           <DashboardIndicator
+            data-tour="dashboard-photos"
             :title="$t('dashboard.overview.indicator.totalPhotos')"
             icon="tabler:photo"
             color="blue"
@@ -330,6 +331,7 @@ const onShareSite = () => {
             :value="dashboardStats?.photos?.thisMonth || 0"
           />
           <DashboardIndicator
+            data-tour="dashboard-queue"
             :title="$t('dashboard.overview.indicator.queueStatus.title')"
             icon="tabler:loader"
             color="purple"
@@ -425,6 +427,7 @@ const onShareSite = () => {
                   size="xs"
                   color="info"
                   trailing-icon="tabler:external-link"
+                  data-tour="dashboard-share"
                   @click="onShareSite"
                 >
                   {{ $t('dashboard.overview.shareSite.button') }}

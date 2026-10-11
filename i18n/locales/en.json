@@ -1726,5 +1726,145 @@
     "ogImage": "Page OG image",
     "openOgImage": "Open OG image",
     "ogImageError": "Could not load the OG image."
+  },
+  "tours": {
+    "controlsTitle": "Getting started tours",
+    "reset": "Reset all tours",
+    "resetHelp": "After resetting, tours appear the next time you visit each page.",
+    "saveError": "Could not save tour state. Please retry.",
+    "next": "Next",
+    "previous": "Previous",
+    "done": "Finish",
+    "skip": "Skip tour",
+    "status": {
+      "pending": "Pending",
+      "completed": "Completed",
+      "skipped": "Skipped"
+    },
+    "dashboard": {
+      "title": "Photo statistics",
+      "description": "This card shows the total number of photos. Click it to open photo management. Nearby cards show new photos this month and storage usage."
+    },
+    "photos": {
+      "title": "Manage photos",
+      "description": "Upload photos, edit details and change visibility. Track upload processing in the task queue."
+    },
+    "albums": {
+      "title": "Manage albums",
+      "description": "Create an album here, add its name and description, and choose a cover and access protection. Then add photos."
+    },
+    "general": {
+      "title": "Site appearance",
+      "description": "Set the site title shown in the gallery header and browser tabs, then save this section."
+    },
+    "storage": {
+      "title": "Photo storage",
+      "description": "Choose the default storage provider for new uploads here, then save your changes."
+    },
+    "map": {
+      "title": "Configure maps",
+      "description": "Choose Mapbox or MapLibre here. Its style and token fields appear below."
+    },
+    "location": {
+      "title": "Location lookup",
+      "description": "Choose the language used for photo location names. Map rendering and location lookup are configured separately."
+    },
+    "privacy": {
+      "title": "Location privacy",
+      "description": "Choose whether uploads automatically remove location information to protect where photos were taken."
+    },
+    "system": {
+      "title": "System settings",
+      "description": "Configure uploads, duplicate checks and third-party sign-in. Use Reset all tours on this page to restart the guides."
+    },
+    "home": {
+      "title": "Your gallery homepage",
+      "description": "Visitors can browse, filter and sort photos, open photo details, and explore albums and maps."
+    },
+    "login": {
+      "title": "How to sign in later",
+      "description": "After signing out, use the sign-in button in the homepage header, or visit /signin directly. Sign in with your administrator account to manage the site."
+    },
+    "adminEntry": {
+      "title": "Open administration",
+      "description": "Once signed in, use the dashboard button in the homepage header or visit /dashboard. The dashboard account menu lets you return to the gallery."
+    },
+    "queueDetails": {
+      "title": "Track processing",
+      "description": "Open the task queue to track uploads, inspect failures and retry tasks."
+    },
+    "shareSite": {
+      "title": "Share your gallery",
+      "description": "Share your newly set up ChronoFrame instance with the community and help others discover your site."
+    },
+    "photoFilter": {
+      "title": "Filter photo types",
+      "description": "Switch between all photos, Live Photos and still images."
+    },
+    "albumActions": {
+      "title": "Manage existing albums",
+      "description": "Reorder, edit or delete albums using these buttons. Album editing includes covers and access protection."
+    },
+    "avatar": {
+      "title": "Site avatar",
+      "description": "Upload or replace the avatar shown in the gallery header."
+    },
+    "appearance": {
+      "title": "Choose appearance",
+      "description": "Choose a light, dark or system theme here."
+    },
+    "saveSettings": {
+      "title": "Save settings",
+      "description": "Save changes using the button for this section. It stays disabled until settings change."
+    },
+    "storageAdd": {
+      "title": "Add storage",
+      "description": "Add a local, S3 or OpenList provider and save its paths and credentials."
+    },
+    "mapStyle": {
+      "title": "Map style",
+      "description": "Set the style URL for the selected map provider."
+    },
+    "mapToken": {
+      "title": "Map access token",
+      "description": "Enter the access token for the selected map provider. The style and token must match the provider."
+    },
+    "locationService": {
+      "title": "Location lookup service",
+      "description": "Set a Nominatim URL here, or configure the Mapbox token above to use Mapbox lookup."
+    },
+    "githubLogin": {
+      "title": "GitHub sign-in",
+      "description": "Enable GitHub sign-in here, then configure its OAuth Client ID and Client Secret."
+    },
+    "uploadLimit": {
+      "title": "Upload size limit",
+      "description": "Set the maximum upload size per file in MB."
+    },
+    "duplicateCheck": {
+      "title": "Duplicate checks",
+      "description": "Enable duplicate checks and choose the handling mode below."
+    },
+    "resetTours": {
+      "title": "Restart the tours",
+      "description": "Reset all tour records here. Each page will show its tour again when visited."
+    },
+    "photoUpload": {
+      "title": "Upload photos",
+      "description": "Click this button to open the upload panel, select your photos and start uploading."
+    },
+    "albumCreate": {
+      "title": "Create an album",
+      "description": "Click this button to open the album creation form. Enter a name and description, then save to create the album."
+    },
+    "homeAvatar": {
+      "title": "Site avatar and sign-in",
+      "description": "This is your site avatar. After signing out, click the avatar to open the sign-in page. You can also visit /signin directly."
+    },
+    "homeDashboard": {
+      "title": "Open the dashboard",
+      "description": "Once signed in as an administrator, click this button to open the dashboard and manage photos, albums and site settings."
+    },
+    "debugTitle": "Tour status"
   }
 }

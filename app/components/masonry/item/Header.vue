@@ -44,7 +44,10 @@ const isRepoLinkHovering = ref(false)
 </script>
 
 <template>
-  <div class="w-full relative overflow-hidden">
+  <div
+    class="w-full relative overflow-hidden"
+    data-tour="home-header"
+  >
     <div
       class="absolute inset-0 -z-10 blur-3xl scale-110 bg-cover bg-center opacity-35"
       :style="{
@@ -72,6 +75,7 @@ const isRepoLinkHovering = ref(false)
                 "
                 class="size-16 rounded-full object-cover"
                 :class="!loggedIn && 'cursor-pointer'"
+                data-tour="home-avatar"
                 :alt="$t('ui.photo.avatarAlt')"
                 @click="!loggedIn && handleOpenLogin()"
                 @error="handleAvatarError"
@@ -196,6 +200,7 @@ const isRepoLinkHovering = ref(false)
                 variant="soft"
                 class="bg-transparent rounded-full cursor-pointer"
                 icon="tabler:dashboard"
+                data-tour="home-dashboard"
                 to="/dashboard"
               />
             </UTooltip>

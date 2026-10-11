@@ -2045,7 +2045,7 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <UDashboardPanel>
+  <UDashboardPanel data-tour="page">
     <template #header>
       <UDashboardNavbar :title="$t('dashboard.photos.toolbar.title')">
         <template #right>
@@ -2054,6 +2054,7 @@ onUnmounted(() => {
               variant="soft"
               color="neutral"
               icon="tabler:list-check"
+              data-tour="photo-queue"
               @click="$router.push('/dashboard/queue')"
             >
               <span class="hidden sm:inline">{{
@@ -2062,6 +2063,7 @@ onUnmounted(() => {
             </UButton>
             <UButton
               icon="tabler:cloud-upload"
+              data-tour="photo-upload"
               @click="openUploadSlideover"
             >
               <span class="hidden sm:inline">{{
@@ -2306,6 +2308,7 @@ onUnmounted(() => {
             </UPopover>
             <!-- 过滤器 -->
             <USelectMenu
+              data-tour="photo-filter"
               v-model="photoFilter"
               class="w-full sm:w-48"
               :items="[

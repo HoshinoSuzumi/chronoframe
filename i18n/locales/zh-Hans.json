@@ -1726,5 +1726,145 @@
     "ogImage": "页面 OG 图",
     "openOgImage": "打开 OG 图",
     "ogImageError": "OG 图加载失败。"
+  },
+  "tours": {
+    "controlsTitle": "使用引导",
+    "reset": "重置所有引导",
+    "resetHelp": "重置后，再次进入相应页面时将重新展示管理员引导。",
+    "saveError": "引导状态保存失败，请重试",
+    "next": "下一步",
+    "previous": "上一步",
+    "done": "完成",
+    "skip": "跳过引导",
+    "status": {
+      "pending": "待引导",
+      "completed": "已完成",
+      "skipped": "已跳过"
+    },
+    "dashboard": {
+      "title": "照片统计",
+      "description": "这里显示照片总数，点击这张卡片可进入照片管理。旁边还可以查看本月新增照片和存储使用情况。"
+    },
+    "photos": {
+      "title": "照片管理",
+      "description": "上传照片、编辑信息和调整可见性。上传后可以在任务队列查看处理进度。"
+    },
+    "albums": {
+      "title": "相册管理",
+      "description": "点击这里创建相册，填写名称和说明，并选择封面及访问保护。创建后可以添加照片。"
+    },
+    "general": {
+      "title": "站点基本设置",
+      "description": "在这里修改站点标题，首页和浏览器标签页会使用这个名称。修改后点击本板块的保存设置。"
+    },
+    "storage": {
+      "title": "存储设置",
+      "description": "在这里选择默认存储方案，新上传的照片会使用该方案。修改后记得保存。"
+    },
+    "map": {
+      "title": "地图配置",
+      "description": "在这里选择 Mapbox 或 MapLibre。下方会显示所选服务商对应的地图样式和令牌设置。"
+    },
+    "location": {
+      "title": "地点解析",
+      "description": "在这里选择照片地点名称解析时使用的语言，地图显示和地点解析可以分别配置。"
+    },
+    "privacy": {
+      "title": "隐私设置",
+      "description": "检查上传时是否自动删除位置信息，按需要保护照片拍摄地点。"
+    },
+    "system": {
+      "title": "系统设置",
+      "description": "配置文件上传、重复检查和第三方登录。此页的“重置所有引导”可以重新开启各页面引导。"
+    },
+    "home": {
+      "title": "欢迎来到站点首页",
+      "description": "这是访客浏览照片的首页，可以筛选、排序和打开照片详情，也可以浏览相册和地图。"
+    },
+    "login": {
+      "title": "之后如何登录",
+      "description": "退出登录后，使用首页顶部的登录按钮进入登录页面，也可以直接访问 /signin。使用管理员账号登录后即可管理站点。"
+    },
+    "adminEntry": {
+      "title": "如何进入后台",
+      "description": "登录后，点击首页顶部的仪表盘按钮进入后台，也可以直接访问 /dashboard。后台账号菜单中的“查看图库”可返回首页。"
+    },
+    "queueDetails": {
+      "title": "查看处理进度",
+      "description": "点击这里进入任务队列，查看上传照片的处理进度和失败任务，并重试需要处理的任务。"
+    },
+    "shareSite": {
+      "title": "分享站点",
+      "description": "点击这里，向社区分享你刚搭建好的 ChronoFrame 实例，让更多人发现你的站点。"
+    },
+    "photoFilter": {
+      "title": "筛选照片类型",
+      "description": "在这里切换全部照片、实况照片和普通照片，快速找到需要管理的内容。"
+    },
+    "albumActions": {
+      "title": "管理已有相册",
+      "description": "使用这组按钮调整相册顺序、编辑相册信息或删除相册。编辑时可设置封面和访问保护。"
+    },
+    "avatar": {
+      "title": "设置站点头像",
+      "description": "在这里上传或更换站点头像，首页会使用该头像展示作者形象。"
+    },
+    "appearance": {
+      "title": "选择外观",
+      "description": "在这里选择浅色、深色或跟随系统主题。"
+    },
+    "saveSettings": {
+      "title": "保存设置",
+      "description": "修改设置后，点击对应板块的保存按钮使更改生效。没有修改时按钮会保持禁用。"
+    },
+    "storageAdd": {
+      "title": "添加存储方案",
+      "description": "点击这里添加本地、S3 或 OpenList 存储方案，填写对应路径和凭据后保存。"
+    },
+    "mapStyle": {
+      "title": "配置地图样式",
+      "description": "在这里填写当前地图服务商对应的样式地址，控制地图显示效果。"
+    },
+    "mapToken": {
+      "title": "配置地图令牌",
+      "description": "在这里填写所选地图服务商需要的访问令牌。令牌和样式需要与服务商匹配。"
+    },
+    "locationService": {
+      "title": "配置地点解析服务",
+      "description": "在这里设置 Nominatim 地址；也可在上方填写 Mapbox Token 使用 Mapbox 地点解析服务。"
+    },
+    "githubLogin": {
+      "title": "第三方登录",
+      "description": "在这里启用 GitHub 登录，启用后需要填写对应的 OAuth Client ID 和 Client Secret。"
+    },
+    "uploadLimit": {
+      "title": "上传大小限制",
+      "description": "在这里调整单个上传文件的大小上限，单位为 MB。"
+    },
+    "duplicateCheck": {
+      "title": "重复文件检查",
+      "description": "在这里开启上传重复检查，并在下方选择跳过、警告或阻止重复文件的处理方式。"
+    },
+    "resetTours": {
+      "title": "重新开启使用引导",
+      "description": "点击这里可以重置所有页面的引导记录；之后再次进入相应页面即可重新查看。"
+    },
+    "photoUpload": {
+      "title": "上传照片",
+      "description": "点击这个按钮打开上传面板，选择需要上传的照片并开始上传。"
+    },
+    "albumCreate": {
+      "title": "创建相簿",
+      "description": "点击这个按钮打开新建相簿表单，填写名称和说明，保存后即可创建相簿。"
+    },
+    "homeAvatar": {
+      "title": "站点头像与登录入口",
+      "description": "这是站点头像。退出登录后，点击头像即可进入登录页面，也可以直接访问 /signin。"
+    },
+    "homeDashboard": {
+      "title": "进入仪表盘",
+      "description": "使用管理员账号登录后，点击这个按钮进入仪表盘，管理照片、相簿和站点设置。"
+    },
+    "debugTitle": "使用引导状态"
   }
 }

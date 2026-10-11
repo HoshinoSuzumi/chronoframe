@@ -47,7 +47,7 @@ const handlePrivacySettingsSubmit = async () => {
 </script>
 
 <template>
-  <UDashboardPanel>
+  <UDashboardPanel data-tour="page">
     <template #header>
       <UDashboardNavbar :title="$t('title.privacySettings')" />
     </template>
