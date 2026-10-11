@@ -87,11 +87,15 @@
         "actions": {
           "nativeShare": "Поделиться через систему",
           "copyLink": "Копировать ссылку",
+          "copied": "Скопировано",
+          "close": "Закрыть",
+          "otherPlatforms": "Другие способы поделиться",
+          "retry": "Повторить",
           "copyImage": "Копировать изображение",
           "downloadImage": "Скачать оригинал",
           "generateShareImage": "Создать изображение для публикации",
           "shareUrl": "Поделиться ссылкой",
-          "downloadOgImage": "Скачать превью",
+          "downloadOgImage": "Скачать карточку",
           "downloadOriginal": "Скачать оригинал",
           "downloadOriginalImage": "Скачать исходное изображение"
         },

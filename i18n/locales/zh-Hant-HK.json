@@ -102,11 +102,15 @@
         "actions": {
           "nativeShare": "使用系統分享",
           "copyLink": "複製連結",
+          "copied": "已複製",
+          "close": "關閉",
+          "otherPlatforms": "分享到其他平台",
+          "retry": "重試",
           "copyImage": "複製圖片",
           "downloadImage": "下載原圖",
           "generateShareImage": "產生分享圖片",
           "shareUrl": "分享連結",
-          "downloadOgImage": "下載預覽圖",
+          "downloadOgImage": "下載分享卡片",
           "downloadOriginal": "下載原圖",
           "downloadOriginalImage": "下載原圖"
         },

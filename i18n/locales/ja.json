@@ -87,11 +87,15 @@
         "actions": {
           "nativeShare": "システム共有を使用",
           "copyLink": "リンクをコピー",
+          "copied": "コピー済み",
+          "close": "閉じる",
+          "otherPlatforms": "その他の共有先",
+          "retry": "再試行",
           "copyImage": "画像をコピー",
           "downloadImage": "オリジナルをダウンロード",
           "generateShareImage": "共有画像を生成",
           "shareUrl": "共有URL",
-          "downloadOgImage": "プレビューをダウンロード",
+          "downloadOgImage": "共有カードをダウンロード",
           "downloadOriginal": "オリジナルをダウンロード",
           "downloadOriginalImage": "オリジナル画像をダウンロード"
         },

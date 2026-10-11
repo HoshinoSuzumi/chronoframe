@@ -1,6 +1,4 @@
 <script lang="ts" setup>
-import { motion, AnimatePresence } from 'motion-v'
-
 interface Props {
   isOpen: boolean
   photo: Photo
@@ -10,6 +8,13 @@ const props = defineProps<Props>()
 const emit = defineEmits<{
   close: []
 }>()
+
+const linkCopied = ref(false)
+const copyingLink = ref(false)
+const downloadingOriginal = ref(false)
+const downloadingPreview = ref(false)
+let copiedTimer: ReturnType<typeof setTimeout> | undefined
+const previewVersion = ref(0)
 
 const toast = useToast()
 const { gtag } = useGtag()
@@ -43,6 +48,9 @@ const ogImageUrl = computed(() => `/_og/r/${props.photo.id}.png`)
 
 // Reset loading state when photo changes or modal opens
 const resetLoadingState = () => {
+  linkCopied.value = false
+  clearTimeout(copiedTimer)
+  previewVersion.value++
   ogImageLoading.value = true
   ogImageError.value = false
 
@@ -71,6 +79,7 @@ watch(
       resetLoadingState()
     }
   },
+  { immediate: true },
 )
 
 // Handle image load events
@@ -94,6 +103,7 @@ const handleOgImageError = () => {
 
 // Cleanup on unmount
 onUnmounted(() => {
+  clearTimeout(copiedTimer)
   if (loadingTimer.value) {
     clearTimeout(loadingTimer.value)
   }
@@ -188,8 +198,15 @@ const shareToLinkedIn = () => {
 
 // Copy functions
 const copyLink = async () => {
+  if (copyingLink.value) return
+  copyingLink.value = true
   try {
     await navigator.clipboard.writeText(shareTextAndUrl.value)
+    linkCopied.value = true
+    clearTimeout(copiedTimer)
+    copiedTimer = setTimeout(() => {
+      linkCopied.value = false
+    }, 2500)
     toast.add({
       title: $t('ui.action.share.success.linkCopied'),
       color: 'success',
@@ -204,6 +221,8 @@ const copyLink = async () => {
       icon: 'tabler:x',
       duration: 3000,
     })
+  } finally {
+    copyingLink.value = false
   }
 }
 
@@ -230,8 +249,11 @@ const nativeShare = async () => {
 
 // Download OG Image
 const downloadOgImage = async () => {
+  if (downloadingPreview.value) return
+  downloadingPreview.value = true
   try {
     const response = await fetch(ogImageUrl.value)
+    if (!response.ok) throw new Error(`HTTP ${response.status}`)
     const blob = await response.blob()
     const url = window.URL.createObjectURL(blob)
     const link = document.createElement('a')
@@ -256,12 +278,17 @@ const downloadOgImage = async () => {
       icon: 'tabler:x',
       duration: 3000,
     })
+  } finally {
+    downloadingPreview.value = false
   }
 }
 
 const downloadOriginalImage = async () => {
+  if (downloadingOriginal.value || !props.photo.originalUrl) return
+  downloadingOriginal.value = true
   try {
     const response = await fetch(props.photo.originalUrl!)
+    if (!response.ok) throw new Error(`HTTP ${response.status}`)
     const blob = await response.blob()
     const url = window.URL.createObjectURL(blob)
     const link = document.createElement('a')
@@ -278,7 +305,10 @@ const downloadOriginalImage = async () => {
       'image/bmp': 'bmp',
       'image/tiff': 'tiff',
     }
-    const extension = extensionByMime[mimeType] || props.photo.originalUrl!.split('.').pop() || 'jpg'
+    const extension =
+      extensionByMime[mimeType] ||
+      props.photo.originalUrl!.split('.').pop() ||
+      'jpg'
     link.download = `${props.photo.title || 'photo'}.${extension}`
     document.body.appendChild(link)
     link.click()
@@ -306,6 +336,8 @@ const downloadOriginalImage = async () => {
       icon: 'tabler:x',
       duration: 3000,
     })
+  } finally {
+    downloadingOriginal.value = false
   }
 }
 
@@ -353,83 +385,127 @@ const socialPlatforms = computed(() => [
     action: shareToLinkedIn,
   },
 ])
-
-// Close modal when clicking outside
-const handleBackdropClick = (event: MouseEvent) => {
-  if (event.target === event.currentTarget) {
-    emit('close')
-  }
-}
-
-// Keyboard shortcuts
-defineShortcuts({
-  escape: () => {
-    emit('close')
-  },
-})
 </script>
 
 <template>
-  <Teleport to="body">
-    <AnimatePresence>
-      <motion.div
-        v-if="isOpen"
-        :initial="{ opacity: 0 }"
-        :animate="{ opacity: 1 }"
-        :exit="{ opacity: 0 }"
-        :transition="{ duration: 0.2 }"
-        class="fixed inset-0 z-60 flex items-center justify-center bg-black/50 backdrop-blur-sm"
-        @click="handleBackdropClick"
-      >
-        <motion.div
-          :initial="{ opacity: 0, scale: 0.95, y: 20 }"
-          :animate="{ opacity: 1, scale: 1, y: 0 }"
-          :exit="{ opacity: 0, scale: 0.95, y: 20 }"
-          :transition="{
-            type: 'spring',
-            duration: 0.3,
-            bounce: 0.1,
-          }"
-          class="relative mx-4 w-full max-w-md overflow-hidden rounded-2xl border border-white/10 bg-white/90 shadow-2xl backdrop-blur-2xl dark:bg-neutral-900/90"
-          @click.stop
-        >
-          <!-- Header -->
+  <UModal
+    :open="isOpen"
+    :content="{
+      onEscapeKeyDown: (event: KeyboardEvent) => event.stopPropagation(),
+    }"
+    :title="$t('ui.action.share.title')"
+    :close="{ 'aria-label': $t('ui.action.share.actions.close') }"
+    :description="photo.title || $t('ui.action.share.fallback.photoTitle')"
+    :ui="{
+      overlay: 'z-[60] bg-black/50 backdrop-blur-sm',
+      content:
+        'z-[60] max-w-md divide-y-0 rounded-2xl bg-white/95 dark:bg-neutral-900/95 ring-black/10 dark:ring-white/10 shadow-xl',
+      header: 'min-h-0 px-4 pt-4 pb-2 sm:px-4 sm:pt-4 sm:pb-2 border-0',
+      body: 'px-4 pt-2 pb-4 sm:px-4 sm:pt-2 sm:pb-4 overflow-y-auto',
+      wrapper: 'min-w-0 flex-1',
+      close: 'static shrink-0',
+      description: 'sr-only',
+    }"
+    @update:open="
+      (open) => {
+        if (!open) emit('close')
+      }
+    "
+  >
+    <template #body>
+      <div class="space-y-4">
+        <section :aria-label="$t('ui.action.share.ogImage.title')">
           <div
-            class="flex items-center justify-between border-b border-white/10 p-4"
+            class="relative aspect-2/1 overflow-hidden rounded-xl bg-neutral-100 dark:bg-neutral-800"
           >
-            <div class="flex items-center gap-2">
-              <Icon
-                name="tabler:share-3"
-                class="size-5 text-neutral-700 dark:text-neutral-300"
-              />
-              <h3
-                class="text-lg font-semibold text-neutral-900 dark:text-white"
-              >
-                {{ $t('ui.action.share.title') }}
-              </h3>
-            </div>
-            <UButton
-              size="sm"
-              variant="ghost"
-              color="neutral"
-              icon="tabler:x"
-              @click="emit('close')"
+            <img
+              :key="`${photo.id}-${previewVersion}`"
+              :src="ogImageUrl"
+              :alt="$t('ui.action.share.ogImage.alt')"
+              class="size-full object-cover"
+              :class="{ 'opacity-0': ogImageLoading || ogImageError }"
+              @load="handleOgImageLoad"
+              @error="handleOgImageError"
             />
+            <div
+              v-if="ogImageLoading || ogImageError"
+              class="absolute inset-0 flex flex-col items-center justify-center gap-2 text-neutral-500 dark:text-neutral-400"
+              role="status"
+            >
+              <Icon
+                :name="ogImageError ? 'tabler:photo-off' : 'tabler:loader-2'"
+                class="size-6"
+                :class="{ 'animate-spin': !ogImageError }"
+              />
+              <span class="text-sm">{{
+                $t(
+                  ogImageError
+                    ? 'ui.action.share.ogImage.loadError'
+                    : 'ui.action.share.ogImage.loading',
+                )
+              }}</span>
+              <UButton
+                v-if="ogImageError"
+                size="sm"
+                color="neutral"
+                variant="ghost"
+                icon="tabler:refresh"
+                @click="resetLoadingState"
+              >
+                {{ $t('ui.action.share.actions.retry') }}
+              </UButton>
+            </div>
           </div>
+        </section>
 
-          <!-- Content -->
-          <div
-            v-if="photo"
-            class="p-4"
+        <section class="space-y-3">
+          <label
+            for="photo-share-url"
+            class="block text-xs font-medium text-neutral-500 dark:text-neutral-400"
+            >{{ $t('ui.action.share.actions.shareUrl') }}</label
           >
-            <!-- Native Share and Original Image Download -->
-            <div class="mb-4 flex items-center gap-2">
+          <div
+            class="overflow-hidden rounded-xl border border-black/10 bg-neutral-100/70 dark:border-white/10 dark:bg-neutral-800/50"
+          >
+            <div
+              class="flex items-center gap-2 border-b border-black/5 bg-white/80 p-2 dark:border-white/10 dark:bg-neutral-800"
+            >
+              <input
+                id="photo-share-url"
+                :value="shareUrl"
+                readonly
+                class="min-w-0 flex-1 rounded px-1 py-1 text-sm text-neutral-600 outline-none focus-visible:ring-2 focus-visible:ring-primary dark:text-neutral-300"
+              />
+              <UButton
+                size="sm"
+                color="neutral"
+                variant="soft"
+                class="shrink-0"
+                :icon="linkCopied ? 'tabler:check' : 'tabler:copy'"
+                :loading="copyingLink"
+                @click="copyLink"
+              >
+                {{
+                  $t(
+                    linkCopied
+                      ? 'ui.action.share.actions.copied'
+                      : 'ui.action.share.actions.copyLink',
+                  )
+                }}
+              </UButton>
+            </div>
+            <div
+              class="grid p-1.5 [&>button+button]:relative [&>button+button]:before:absolute [&>button+button]:before:inset-y-2 [&>button+button]:before:left-0 [&>button+button]:before:w-px [&>button+button]:before:bg-black/8 dark:[&>button+button]:before:bg-white/10"
+              :class="canNativeShare ? 'grid-cols-3' : 'grid-cols-2'"
+            >
               <UButton
                 v-if="canNativeShare"
                 block
-                size="lg"
-                color="info"
-                variant="soft"
+                size="sm"
+                class="min-w-0 justify-center gap-1 px-0 py-2 text-[11px] [&>span]:whitespace-normal [&>span]:text-center"
+                :ui="{ leadingIcon: 'size-3.5' }"
+                color="neutral"
+                variant="ghost"
                 icon="tabler:share-2"
                 @click="nativeShare"
               >
@@ -437,142 +513,66 @@ defineShortcuts({
               </UButton>
               <UButton
                 block
-                size="lg"
-                color="info"
-                variant="soft"
+                size="sm"
+                class="min-w-0 justify-center gap-1 px-0 py-2 text-[11px] [&>span]:whitespace-normal [&>span]:text-center"
+                :ui="{ leadingIcon: 'size-3.5' }"
+                color="neutral"
+                variant="ghost"
                 icon="tabler:download"
+                :loading="downloadingOriginal"
+                :disabled="!photo.originalUrl"
                 @click="downloadOriginalImage"
               >
                 {{ $t('ui.action.share.actions.downloadOriginalImage') }}
               </UButton>
-            </div>
-
-            <div class="space-y-4">
-              <!-- Share URL Display -->
-              <div
-                class="rounded-lg border border-neutral-200/50 bg-neutral-50/50 p-3 dark:border-neutral-700/50 dark:bg-neutral-800/50"
+              <UButton
+                block
+                size="sm"
+                class="min-w-0 justify-center gap-1 px-0 py-2 text-[11px] [&>span]:whitespace-normal [&>span]:text-center"
+                :ui="{ leadingIcon: 'size-3.5' }"
+                color="neutral"
+                variant="ghost"
+                icon="tabler:photo-down"
+                :loading="downloadingPreview"
+                :disabled="ogImageLoading || ogImageError"
+                @click="downloadOgImage"
               >
-                <label
-                  class="mb-1 block text-xs font-medium text-neutral-600 dark:text-neutral-400"
-                >
-                  {{ $t('ui.action.share.actions.shareUrl') }}
-                </label>
-                <div class="flex items-center gap-2">
-                  <input
-                    :value="shareUrl"
-                    readonly
-                    class="flex-1 truncate bg-transparent text-sm text-neutral-800 dark:text-neutral-200 resize-none"
-                  />
-                  <UButton
-                    size="xs"
-                    variant="ghost"
-                    color="neutral"
-                    icon="tabler:copy"
-                    @click="copyLink"
-                  />
-                </div>
-              </div>
-
-              <!-- OG Image Preview -->
-              <div
-                class="rounded-lg border border-neutral-200/50 bg-neutral-50/50 p-3 dark:border-neutral-700/50 dark:bg-neutral-800/50"
-              >
-                <div class="flex items-center justify-between mb-2">
-                  <label
-                    class="block text-xs font-medium text-neutral-600 dark:text-neutral-400"
-                  >
-                    {{ $t('ui.action.share.ogImage.title') }}
-                  </label>
-                  <UButton
-                    size="xs"
-                    variant="ghost"
-                    color="neutral"
-                    icon="tabler:download"
-                    @click="downloadOgImage"
-                  >
-                    {{ $t('ui.action.share.actions.downloadOgImage') }}
-                  </UButton>
-                </div>
-                <div
-                  class="relative rounded-md bg-neutral-100/50 dark:bg-neutral-700/50 overflow-hidden"
-                >
-                  <!-- Loading indicator -->
-                  <div
-                    v-if="ogImageLoading"
-                    class="flex items-center justify-center bg-neutral-100/50 dark:bg-neutral-700/50 aspect-2/1"
-                  >
-                    <div class="flex flex-col items-center gap-2">
-                      <Icon
-                        name="tabler:loader-2"
-                        class="size-6 text-neutral-500 animate-spin"
-                      />
-                      <span
-                        class="text-xs text-neutral-500 dark:text-neutral-400"
-                      >
-                        {{ $t('ui.action.share.ogImage.loading') }}
-                      </span>
-                    </div>
-                  </div>
-
-                  <!-- Error state -->
-                  <div
-                    v-else-if="ogImageError"
-                    class="flex items-center justify-center bg-neutral-100/50 dark:bg-neutral-700/50 aspect-2/1"
-                  >
-                    <div class="flex flex-col items-center gap-2">
-                      <Icon
-                        name="tabler:photo-off"
-                        class="size-6 text-neutral-400"
-                      />
-                      <span
-                        class="text-xs text-neutral-500 dark:text-neutral-400"
-                      >
-                        {{ $t('ui.action.share.ogImage.loadError') }}
-                      </span>
-                    </div>
-                  </div>
-
-                  <!-- OG Image -->
-                  <img
-                    v-show="!ogImageLoading && !ogImageError"
-                    :key="`og-image-${props.photo.id}-${Date.now()}`"
-                    :src="ogImageUrl"
-                    :alt="$t('ui.action.share.ogImage.alt')"
-                    class="w-full h-auto aspect-2/1 object-cover rounded"
-                    loading="eager"
-                    @load="handleOgImageLoad"
-                    @error="handleOgImageError"
-                  />
-                </div>
-              </div>
-
-              <!-- Social Platforms Grid -->
-              <div class="grid grid-cols-3 gap-3">
-                <button
-                  v-for="platform in socialPlatforms"
-                  :key="platform.name"
-                  type="button"
-                  class="cursor-pointer flex flex-col items-center justify-center gap-2 rounded-xl border border-neutral-200/50 bg-white/50 p-4 transition-all hover:scale-105 hover:border-neutral-300/50 hover:bg-white/70 dark:border-neutral-700/50 dark:bg-neutral-800/50 dark:hover:border-neutral-600/50 dark:hover:bg-neutral-700/50"
-                  @click="platform.action"
-                >
-                  <Icon
-                    :name="platform.icon"
-                    class="size-6"
-                    :class="platform.color"
-                  />
-                  <span
-                    class="text-xs font-medium text-neutral-700 dark:text-neutral-300"
-                  >
-                    {{ platform.name }}
-                  </span>
-                </button>
-              </div>
+                {{ $t('ui.action.share.actions.downloadOgImage') }}
+              </UButton>
             </div>
           </div>
-        </motion.div>
-      </motion.div>
-    </AnimatePresence>
-  </Teleport>
-</template>
+        </section>
 
-<style scoped></style>
+        <section
+          class="border-t border-black/5 pt-4 dark:border-white/10"
+          :aria-label="$t('ui.action.share.actions.otherPlatforms')"
+        >
+          <p
+            class="mb-3 text-xs font-medium text-neutral-500 dark:text-neutral-400"
+          >
+            {{ $t('ui.action.share.actions.otherPlatforms') }}
+          </p>
+          <div class="grid grid-cols-3 gap-2.5">
+            <button
+              v-for="platform in socialPlatforms"
+              :key="platform.name"
+              type="button"
+              class="flex min-h-18 cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border border-neutral-200/70 bg-white px-2 py-3 transition-colors hover:border-neutral-300 hover:bg-neutral-50 focus-visible:outline-2 focus-visible:outline-primary dark:border-neutral-700/70 dark:bg-neutral-800/70 dark:hover:border-neutral-600 dark:hover:bg-neutral-800"
+              @click="platform.action"
+            >
+              <Icon
+                :name="platform.icon"
+                class="size-5"
+                :class="platform.color"
+              />
+              <span
+                class="text-xs font-medium text-neutral-600 dark:text-neutral-300"
+                >{{ platform.name }}</span
+              >
+            </button>
+          </div>
+        </section>
+      </div>
+    </template>
+  </UModal>
+</template>
