@@ -144,9 +144,13 @@ async function start() {
   async function finish(status: 'completed' | 'skipped') {
     if (saving) return
     saving = true
+    const tour = active
     const saved = await update(id as TourId, status)
     saving = false
-    if (saved && token === generation) stop()
+    if (!saved) {
+      tour?.destroy()
+      if (active === tour) active = undefined
+    } else if (token === generation) stop()
   }
   active = driver({
     steps,
@@ -221,10 +225,12 @@ watch(
 const removePageFinish = useNuxtApp().hook('page:finish', () => {
   void start()
 })
+let revisionBeforeUpdate = revision.value
 watch(
   busy,
   (value) => {
-    if (!value) void start()
+    if (value) revisionBeforeUpdate = revision.value
+    else if (revision.value !== revisionBeforeUpdate) void start()
   },
   { flush: 'post' },
 )
