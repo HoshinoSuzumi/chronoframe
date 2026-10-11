@@ -422,12 +422,10 @@ defineShortcuts({
             v-if="photo"
             class="p-4"
           >
-            <!-- Native Share (Mobile) -->
-            <div
-              v-if="canNativeShare"
-              class="mb-4 flex items-center gap-2"
-            >
+            <!-- Native Share and Original Image Download -->
+            <div class="mb-4 flex items-center gap-2">
               <UButton
+                v-if="canNativeShare"
                 block
                 size="lg"
                 color="info"
