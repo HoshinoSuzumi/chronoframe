@@ -1253,7 +1253,14 @@
           }
         }
       },
-      "sectionDescription": "Configure system-level behavior parameters. Changes here will affect global upload and service behavior."
+      "sectionDescription": "Configure system-level behavior parameters. Changes here will affect global upload and service behavior.",
+      "queue": {
+        "workerCount": {
+          "label": "Queue concurrency",
+          "description": "Number of queue tasks processed simultaneously.",
+          "help": "1–8, default 5. Changes apply immediately. Lower values use fewer resources; running tasks finish when concurrency is reduced."
+        }
+      }
     },
     "map": {
       "provider": {

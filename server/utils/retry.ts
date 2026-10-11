@@ -38,7 +38,7 @@ export interface RetryOptions {
  * ```
  */
 export async function withRetry<T>(
-  operation: () => Promise<T>,
+  operation: (signal: AbortSignal) => Promise<T>,
   options: RetryOptions = {},
   logger?: Logger[keyof Logger],
 ): Promise<T> {
@@ -54,26 +54,30 @@ export async function withRetry<T>(
   let lastError: Error
 
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    const controller = new AbortController()
+    let timer: ReturnType<typeof setTimeout> | undefined
     try {
       logger?.info(`Operation attempt ${attempt}/${maxAttempts}`)
 
       // 应用超时机制
-      const result = await Promise.race([
-        operation(),
-        new Promise<never>((_, reject) =>
-          setTimeout(
-            () => reject(new Error(`Operation timeout after ${timeout}ms`)),
-            timeout,
-          ),
-        ),
-      ])
+      const timeoutError = new Error(`Operation timeout after ${timeout}ms`)
+      timer = setTimeout(() => controller.abort(timeoutError), timeout)
+      // Keep the resource slot until non-cancellable operations settle. Racing
+      // them against a timer would allow retries to overlap the original work.
+      const result = await operation(controller.signal)
+      if (controller.signal.aborted) throw timeoutError
 
       if (attempt > 1) {
         logger?.success(`Operation succeeded on attempt ${attempt}`)
       }
       return result
     } catch (error) {
-      lastError = error as Error
+      if (timer) clearTimeout(timer)
+      lastError = controller.signal.aborted
+        ? controller.signal.reason
+        : error instanceof Error
+          ? error
+          : new Error(String(error))
       logger?.warn(`Attempt ${attempt} failed:`, error)
 
       const shouldRetry = attempt < maxAttempts && retryCondition(lastError)
@@ -87,6 +91,8 @@ export async function withRetry<T>(
         logger?.info(`Retrying in ${delay}ms...`)
         await new Promise((resolve) => setTimeout(resolve, delay))
       }
+    } finally {
+      if (timer) clearTimeout(timer)
     }
   }
 

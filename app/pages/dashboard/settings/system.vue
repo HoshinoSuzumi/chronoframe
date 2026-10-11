@@ -45,6 +45,7 @@ const SYSTEM_SECTION_ORDER: SystemSection[] = [
     titleKey: 'settings.system.sections.fileProcessing',
     keys: [
       'upload.maxFileSize',
+      'queue.workerCount',
       'upload.duplicateCheck.enabled',
       'upload.duplicateCheck.mode',
     ],

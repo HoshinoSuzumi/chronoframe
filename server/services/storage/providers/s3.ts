@@ -423,13 +423,9 @@ export class S3StorageProvider implements StorageProvider {
 
       const resp = await this.client.send(cmd)
 
-      if (!resp.ETag) {
-        return null
-      }
-
       return {
         key,
-        size: resp.ContentLength || 0,
+        size: resp.ContentLength,
         lastModified: resp.LastModified,
         etag: resp.ETag,
       }
