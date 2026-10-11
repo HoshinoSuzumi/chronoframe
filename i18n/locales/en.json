@@ -85,6 +85,9 @@
           "linkedin": "LinkedIn"
         },
         "actions": {
+          "nativeShareShort": "Share",
+          "originalShort": "Original",
+          "shareCardShort": "Share Card",
           "nativeShare": "Use System Share",
           "copyLink": "Copy Link",
           "copied": "Copied",

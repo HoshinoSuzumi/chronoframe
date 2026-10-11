@@ -85,6 +85,9 @@
           "linkedin": "LinkedIn"
         },
         "actions": {
+          "nativeShareShort": "Поделиться",
+          "originalShort": "Оригинал",
+          "shareCardShort": "Карточка",
           "nativeShare": "Поделиться через систему",
           "copyLink": "Копировать ссылку",
           "copied": "Скопировано",

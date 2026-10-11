@@ -100,6 +100,9 @@
           "linkedin": "LinkedIn"
         },
         "actions": {
+          "nativeShareShort": "系統分享",
+          "originalShort": "原圖",
+          "shareCardShort": "分享卡片",
           "nativeShare": "使用系統分享",
           "copyLink": "複製連結",
           "copied": "已複製",

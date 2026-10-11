@@ -394,7 +394,6 @@ const socialPlatforms = computed(() => [
       onEscapeKeyDown: (event: KeyboardEvent) => event.stopPropagation(),
     }"
     :title="$t('ui.action.share.title')"
-    :close="{ 'aria-label': $t('ui.action.share.actions.close') }"
     :description="photo.title || $t('ui.action.share.fallback.photoTitle')"
     :ui="{
       overlay: 'z-[60] bg-black/50 backdrop-blur-sm',
@@ -412,6 +411,15 @@ const socialPlatforms = computed(() => [
       }
     "
   >
+    <template #close>
+      <UButton
+        icon="tabler:x"
+        color="neutral"
+        variant="ghost"
+        class="shrink-0"
+        :aria-label="$t('ui.action.share.actions.close')"
+      />
+    </template>
     <template #body>
       <div class="space-y-4">
         <section :aria-label="$t('ui.action.share.ogImage.title')">
@@ -495,50 +503,78 @@ const socialPlatforms = computed(() => [
               </UButton>
             </div>
             <div
-              class="grid p-1.5 [&>button+button]:relative [&>button+button]:before:absolute [&>button+button]:before:inset-y-2 [&>button+button]:before:left-0 [&>button+button]:before:w-px [&>button+button]:before:bg-black/8 dark:[&>button+button]:before:bg-white/10"
+              class="grid p-1.5 [&>div+div]:relative [&>div+div]:before:absolute [&>div+div]:before:inset-y-2 [&>div+div]:before:left-0 [&>div+div]:before:w-px [&>div+div]:before:bg-black/8 dark:[&>div+div]:before:bg-white/10"
               :class="canNativeShare ? 'grid-cols-3' : 'grid-cols-2'"
             >
-              <UButton
+              <div
                 v-if="canNativeShare"
-                block
-                size="sm"
-                class="min-w-0 justify-center gap-1 px-0 py-2 text-[11px] [&>span]:whitespace-normal [&>span]:text-center"
-                :ui="{ leadingIcon: 'size-3.5' }"
-                color="neutral"
-                variant="ghost"
-                icon="tabler:share-2"
-                @click="nativeShare"
+                class="min-w-0"
               >
-                {{ $t('ui.action.share.actions.nativeShare') }}
-              </UButton>
-              <UButton
-                block
-                size="sm"
-                class="min-w-0 justify-center gap-1 px-0 py-2 text-[11px] [&>span]:whitespace-normal [&>span]:text-center"
-                :ui="{ leadingIcon: 'size-3.5' }"
-                color="neutral"
-                variant="ghost"
-                icon="tabler:download"
-                :loading="downloadingOriginal"
-                :disabled="!photo.originalUrl"
-                @click="downloadOriginalImage"
-              >
-                {{ $t('ui.action.share.actions.downloadOriginalImage') }}
-              </UButton>
-              <UButton
-                block
-                size="sm"
-                class="min-w-0 justify-center gap-1 px-0 py-2 text-[11px] [&>span]:whitespace-normal [&>span]:text-center"
-                :ui="{ leadingIcon: 'size-3.5' }"
-                color="neutral"
-                variant="ghost"
-                icon="tabler:photo-down"
-                :loading="downloadingPreview"
-                :disabled="ogImageLoading || ogImageError"
-                @click="downloadOgImage"
-              >
-                {{ $t('ui.action.share.actions.downloadOgImage') }}
-              </UButton>
+                <UTooltip
+                  :text="$t('ui.action.share.actions.nativeShare')"
+                  :ui="{ content: 'z-[80]' }"
+                >
+                  <UButton
+                    :aria-label="$t('ui.action.share.actions.nativeShare')"
+                    block
+                    size="sm"
+                    class="min-w-0 justify-center gap-1 px-1 py-2 text-xs"
+                    :ui="{ leadingIcon: 'size-3.5' }"
+                    color="neutral"
+                    variant="ghost"
+                    icon="tabler:share-2"
+                    @click="nativeShare"
+                  >
+                    {{ $t('ui.action.share.actions.nativeShareShort') }}
+                  </UButton>
+                </UTooltip>
+              </div>
+              <div class="min-w-0">
+                <UTooltip
+                  :text="$t('ui.action.share.actions.downloadOriginalImage')"
+                  :ui="{ content: 'z-[80]' }"
+                >
+                  <UButton
+                    :aria-label="
+                      $t('ui.action.share.actions.downloadOriginalImage')
+                    "
+                    block
+                    size="sm"
+                    class="min-w-0 justify-center gap-1 px-1 py-2 text-xs"
+                    :ui="{ leadingIcon: 'size-3.5' }"
+                    color="neutral"
+                    variant="ghost"
+                    icon="tabler:download"
+                    :loading="downloadingOriginal"
+                    :disabled="!photo.originalUrl"
+                    @click="downloadOriginalImage"
+                  >
+                    {{ $t('ui.action.share.actions.originalShort') }}
+                  </UButton>
+                </UTooltip>
+              </div>
+              <div class="min-w-0">
+                <UTooltip
+                  :text="$t('ui.action.share.actions.downloadOgImage')"
+                  :ui="{ content: 'z-[80]' }"
+                >
+                  <UButton
+                    :aria-label="$t('ui.action.share.actions.downloadOgImage')"
+                    block
+                    size="sm"
+                    class="min-w-0 justify-center gap-1 px-1 py-2 text-xs"
+                    :ui="{ leadingIcon: 'size-3.5' }"
+                    color="neutral"
+                    variant="ghost"
+                    icon="tabler:photo-down"
+                    :loading="downloadingPreview"
+                    :disabled="ogImageLoading || ogImageError"
+                    @click="downloadOgImage"
+                  >
+                    {{ $t('ui.action.share.actions.shareCardShort') }}
+                  </UButton>
+                </UTooltip>
+              </div>
             </div>
           </div>
         </section>
