@@ -22,7 +22,9 @@ FROM node:22.23.3-alpine AS runtime_deps
 RUN apk add --no-cache ca-certificates perl exiftool \
 	&& install -Dm755 "$(readlink -f /usr/bin/perl)" /opt/runtime-bin/perl \
 	&& install -Dm755 "$(readlink -f /usr/bin/env)" /opt/runtime-bin/env \
-	&& install -Dm755 "$(readlink -f /usr/bin/exiftool)" /opt/runtime-bin/exiftool
+	&& install -Dm755 "$(readlink -f /usr/bin/exiftool)" /opt/runtime-bin/exiftool \
+	&& mkdir -p /opt/runtime-tmp \
+	&& chmod 1777 /opt/runtime-tmp
 
 FROM scratch AS runtime
 WORKDIR /app
@@ -35,6 +37,8 @@ COPY --from=runtime_deps /usr/lib /usr/lib
 COPY --from=runtime_deps /usr/share /usr/share
 COPY --from=runtime_deps /lib /lib
 COPY --from=runtime_deps /etc/ssl /etc/ssl
+# scratch has no temporary directory; uploads and image processing need one.
+COPY --from=runtime_deps --chmod=1777 /opt/runtime-tmp /tmp
 
 COPY --from=build /usr/src/app/.output ./.output
 COPY --from=build /usr/src/app/server/database/migrations ./server/database/migrations
