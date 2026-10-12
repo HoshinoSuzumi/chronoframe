@@ -15,14 +15,6 @@ const { photos } = usePhotos()
 
 const slug = computed(() => (route.params.slug as string[]) || [])
 const photoId = computed(() => slug.value[0] || null)
-const currentPhoto = computed(() =>
-  photos.value.find((photo) => photo.id === photoId.value),
-)
-
-defineOgImage('Photo', {
-  photo: currentPhoto.value || undefined,
-  appTitle: (getSetting('app:title') as string) || 'ChronoFrame',
-})
 
 // 处理标签查询参数
 const { clearAllFilters, toggleFilter } = usePhotoFilters()

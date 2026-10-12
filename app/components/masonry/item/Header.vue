@@ -72,8 +72,10 @@ const isRepoLinkHovering = ref(false)
                 "
                 class="size-16 rounded-full object-cover"
                 :class="!loggedIn && 'cursor-pointer'"
+                data-tour="home-avatar"
                 :alt="$t('ui.photo.avatarAlt')"
                 @click="!loggedIn && handleOpenLogin()"
+                @error="handleAvatarError"
               />
             </div>
             <h1
@@ -195,6 +197,7 @@ const isRepoLinkHovering = ref(false)
                 variant="soft"
                 class="bg-transparent rounded-full cursor-pointer"
                 icon="tabler:dashboard"
+                data-tour="home-dashboard"
                 to="/dashboard"
               />
             </UTooltip>

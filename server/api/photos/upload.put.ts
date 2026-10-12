@@ -1,3 +1,6 @@
+import { mkdtemp, open, rm } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import path from 'node:path'
 import { useStorageProvider } from '~~/server/utils/useStorageProvider'
 import { logger } from '~~/server/utils/logger'
 import { settingsManager } from '~~/server/services/settings/settingsManager'
@@ -51,51 +54,64 @@ export default eventHandler(async (event) => {
     }
   }
 
-  // 使用流式处理而不是一次性读取整个文件到内存
-  const raw = await readRawBody(event, false)
-  if (!raw || !(raw instanceof Buffer)) {
-    throw createError({
-      statusCode: 400,
-      statusMessage: t('upload.error.uploadFailed.title'),
-      data: {
-        title: t('upload.error.uploadFailed.title'),
-        message: t('upload.error.uploadFailed.message'),
-      },
-    })
-  }
-
-  // 简单大小限制（从设置中读取，默认 256MB）
   const maxFileSizeMB =
     (await settingsManager.get<number>('system', 'upload.maxFileSize')) ?? 256
   const maxBytes = maxFileSizeMB * 1024 * 1024
-  if (raw.byteLength > maxBytes) {
-    const sizeInMB = (raw.byteLength / 1024 / 1024).toFixed(2)
+  const stream = getRequestWebStream(event)
+  if (!stream)
     throw createError({
-      statusCode: 413,
-      statusMessage: t('upload.error.tooLarge.title'),
-      data: {
-        title: t('upload.error.tooLarge.title'),
-        message: t('upload.error.tooLarge.message', { size: sizeInMB }),
-        suggestion: t('upload.error.tooLarge.suggestion', {
-          maxSize: maxFileSizeMB,
-        }),
-      },
+      statusCode: 400,
+      statusMessage: t('upload.error.uploadFailed.title'),
     })
-  }
-
+  const directory = await mkdtemp(path.join(tmpdir(), 'chronoframe-upload-'))
+  const filePath = path.join(directory, 'file')
+  const reader = stream.getReader()
+  let size = 0
   try {
-    await storageProvider.create(key.replace(/^\/+/, ''), raw, contentType)
+    const file = await open(filePath, 'w')
+    try {
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+        size += value.byteLength
+        if (size > maxBytes) {
+          await reader.cancel()
+          throw createError({
+            statusCode: 413,
+            statusMessage: t('upload.error.tooLarge.title'),
+          })
+        }
+        let written = 0
+        while (written < value.byteLength) {
+          const result = await file.write(
+            value,
+            written,
+            value.byteLength - written,
+          )
+          if (!result.bytesWritten)
+            throw new Error('Failed to write upload data')
+          written += result.bytesWritten
+        }
+      }
+    } finally {
+      await file.close()
+    }
+    if (!size)
+      throw createError({
+        statusCode: 400,
+        statusMessage: t('upload.error.uploadFailed.title'),
+      })
+    await storageProvider.createFromFile(key, filePath, contentType)
   } catch (error) {
+    if ((error as { statusCode?: number }).statusCode) throw error
     logger.chrono.error('Storage provider create error:', error)
     throw createError({
       statusCode: 500,
       statusMessage: t('upload.error.uploadFailed.title'),
-      data: {
-        title: t('upload.error.uploadFailed.title'),
-        message: t('upload.error.uploadFailed.message'),
-      },
     })
+  } finally {
+    reader.releaseLock()
+    await rm(directory, { recursive: true, force: true })
   }
-
   return { ok: true, key }
 })

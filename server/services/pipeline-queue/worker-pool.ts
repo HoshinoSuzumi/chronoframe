@@ -3,6 +3,10 @@ import { consola } from 'consola'
 import { eq } from 'drizzle-orm'
 import { useDB, tables } from '~~/server/utils/db'
 import { QueueManager } from './manager'
+import {
+  DEFAULT_QUEUE_WORKER_COUNT,
+  validateQueueWorkerCount,
+} from '~~/shared/utils/queue-config'
 
 export interface WorkerPoolConfig {
   /** 工作器数量 */
@@ -44,17 +48,19 @@ export class WorkerPool {
   private config: WorkerPoolConfig
   private statsInterval: NodeJS.Timeout | null = null
   private isRunning: boolean = false
+  private resizing: Promise<void> = Promise.resolve()
 
   constructor(config: Partial<WorkerPoolConfig>, logger?: ConsolaInstance) {
     this.config = {
-      workerCount: 3,
+      workerCount: DEFAULT_QUEUE_WORKER_COUNT,
       intervalMs: 2000,
       intervalOffset: 300,
-      enableLoadBalancing: true,
+      enableLoadBalancing: false,
       statsReportInterval: 30000,
       ...config,
     }
     this.logger = logger || consola.withTag('worker-pool')
+    validateQueueWorkerCount(this.config.workerCount)
   }
 
   /**
@@ -108,6 +114,7 @@ export class WorkerPool {
     }
 
     this.logger.info('Stopping WorkerPool...')
+    this.isRunning = false
 
     // 停止统计报告
     if (this.statsInterval) {
@@ -118,7 +125,7 @@ export class WorkerPool {
     // 停止所有工作器
     const stopPromises = this.workers.map(async (worker, _index) => {
       try {
-        worker.stopProcessing()
+        await worker.stopProcessing()
         this.logger.info(`worker [${worker.getWorkerId()}] stopped`)
       } catch (error) {
         this.logger.error(
@@ -129,6 +136,7 @@ export class WorkerPool {
     })
 
     await Promise.allSettled(stopPromises)
+    await this.resizing
 
     this.workers = []
     this.isRunning = false
@@ -154,17 +162,9 @@ export class WorkerPool {
       (stats) => stats.isProcessing,
     ).length
 
-    // 只计算已执行过操作的worker的平均成功率
-    const workersWithActivity = workerStats.filter(
-      (stats) => stats.processedCount > 0,
-    )
+    const totalAttempts = totalProcessed + totalErrors
     const averageSuccessRate =
-      workersWithActivity.length > 0
-        ? workersWithActivity.reduce(
-            (sum, stats) => sum + stats.successRate,
-            0,
-          ) / workersWithActivity.length
-        : 0
+      totalAttempts > 0 ? (totalProcessed / totalAttempts) * 100 : 0
 
     return {
       totalWorkers: this.workers.length,
@@ -225,12 +225,8 @@ export class WorkerPool {
         (w) => w.getWorkerId() === workerStat.workerId,
       )
       if (worker) {
-        worker.stopProcessing()
-
-        setTimeout(() => {
-          worker.startProcessing(this.config.intervalMs)
-          this.logger.info(`Worker ${workerStat.workerId} has been restarted`)
-        }, 5000)
+        await worker.stopProcessing()
+        if (this.isRunning) worker.startProcessing(this.config.intervalMs)
       }
     }
   }
@@ -243,7 +239,7 @@ export class WorkerPool {
       return {}
     }
 
-    return await this.workers[0].getQueueStats()
+    return await this.workers[0]!.getQueueStats()
   }
 
   /**
@@ -300,11 +296,38 @@ export class WorkerPool {
     return this.workers.length
   }
 
+  /** Apply settings changes serially; draining workers cannot be restarted early. */
+  setWorkerCount(workerCount: number): Promise<void> {
+    validateQueueWorkerCount(workerCount)
+    const resize = this.resizing.then(async () => {
+      this.config.workerCount = workerCount
+      if (!this.isRunning) return
+      if (workerCount < this.workers.length) {
+        const removed = this.workers.splice(workerCount)
+        await Promise.all(removed.map((worker) => worker.stopProcessing()))
+      }
+      while (this.isRunning && this.workers.length < workerCount) {
+        const index = this.workers.length
+        const worker = QueueManager.getInstance(
+          `worker-${index + 1}`,
+          this.logger,
+        )
+        this.workers.push(worker)
+        worker.startProcessing(
+          this.config.intervalMs + index * this.config.intervalOffset,
+        )
+      }
+      this.logger.info(`Queue concurrency updated to ${workerCount}`)
+    })
+    this.resizing = resize.catch(() => {})
+    return resize
+  }
+
   /**
    * 获取第一个工作器（用于添加任务）
    */
   getFirstWorker(): QueueManager | null {
-    return this.workers.length > 0 ? this.workers[0] : null
+    return this.workers[0] ?? null
   }
 
   /**

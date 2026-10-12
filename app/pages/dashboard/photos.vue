@@ -1,6 +1,14 @@
 <script lang="ts" setup>
 import type { FormSubmitEvent, TableColumn } from '@nuxt/ui'
-import type { Photo, PipelineQueueItem } from '~~/server/utils/db'
+import type { Photo } from '~~/server/utils/db'
+import type { UploadingFile } from '~~/shared/types/uploading-file'
+import {
+  UploadQueueStatus,
+  UploadTransportStatus,
+  isAbortableUploadStatus,
+  isClearableUploadStatus,
+  isInFlightTransportStatus,
+} from '~~/shared/utils/upload-status'
 import { h, resolveComponent } from 'vue'
 import { Icon, UBadge } from '#components'
 import ThumbImage from '~/components/ui/ThumbImage.vue'
@@ -102,38 +110,6 @@ const fetchReactions = async (photoIds: string[]) => {
   } finally {
     reactionsLoading.value = false
   }
-}
-
-interface UploadingFile {
-  file: File
-  fileName: string
-  fileId: string
-  status:
-    | 'waiting'
-    | 'preparing'
-    | 'uploading'
-    | 'processing'
-    | 'completed'
-    | 'error'
-    | 'skipped'
-    | 'blocked'
-  stage?: PipelineQueueItem['statusStage'] | null
-  progress?: number
-  error?: string
-  warning?: string
-  taskId?: number
-  signedUrlResponse?: { signedUrl: string; fileKey: string; expiresIn: number }
-  uploadProgress?: {
-    loaded: number
-    total: number
-    percentage: number
-    speed?: number
-    timeRemaining?: number
-    speedText?: string
-    timeRemainingText?: string
-  }
-  canAbort?: boolean
-  abortUpload?: () => void
 }
 
 const uploadingFiles = ref<Map<string, UploadingFile>>(new Map())
@@ -272,7 +248,7 @@ const uploadImage = async (
   const fileId = existingFileId || `${Date.now()}-${fileName}`
 
   const uploadManager = useUpload({
-    timeout: 10 * 60 * 1000, // 10分钟超时
+    timeout: 60 * 1000, // 单个分片一分钟超时，避免请求长时间卡住
   })
 
   // 获取或创建 uploadingFile
@@ -282,14 +258,14 @@ const uploadImage = async (
       file,
       fileName,
       fileId,
-      status: 'preparing',
+      status: UploadQueueStatus.Preparing,
       canAbort: false,
       abortUpload: () => uploadManager.abortUpload(),
     }
     uploadingFiles.value.set(fileId, uploadingFile)
   } else {
     // 更新现有条目的状态和回调
-    uploadingFile.status = 'preparing'
+    uploadingFile.status = UploadQueueStatus.Preparing
     uploadingFile.canAbort = false
     uploadingFile.warning = undefined
     uploadingFile.abortUpload = () => uploadManager.abortUpload()
@@ -298,12 +274,14 @@ const uploadImage = async (
 
   try {
     // 第一步：获取预签名 URL
-    uploadingFile.status = 'preparing'
+    uploadingFile.status = UploadQueueStatus.Preparing
     const signedUrlResponse = await $fetch('/api/photos', {
       method: 'POST',
       body: {
         fileName: file.name,
         contentType: file.type,
+        fileSize: file.size,
+        chunked: true,
       },
     })
 
@@ -311,7 +289,7 @@ const uploadImage = async (
 
     // 检查是否为跳过模式（重复文件）
     if (signedUrlResponse.skipped) {
-      uploadingFile.status = 'skipped'
+      uploadingFile.status = UploadQueueStatus.Skipped
       uploadingFile.progress = 100
       uploadingFile.canAbort = false
       uploadingFile.error =
@@ -339,13 +317,13 @@ const uploadImage = async (
       uploadingFiles.value = new Map(uploadingFiles.value)
     }
 
-    uploadingFile.status = 'uploading'
+    uploadingFile.status = UploadQueueStatus.Uploading
     uploadingFile.canAbort = true
     uploadingFile.progress = 0
     uploadingFiles.value = new Map(uploadingFiles.value)
 
     // 第二步：使用 composable 上传文件到存储
-    await uploadManager.uploadFile(file, signedUrlResponse.signedUrl, {
+    await uploadManager.uploadFile(file, signedUrlResponse.upload || signedUrlResponse.signedUrl, {
       onProgress: (progress: UploadProgress) => {
         uploadingFile.progress = progress.percentage
         uploadingFile.uploadProgress = {
@@ -355,19 +333,21 @@ const uploadImage = async (
           speed: progress.speed,
           timeRemaining: progress.timeRemaining,
           speedText: progress.speed ? `${formatBytes(progress.speed)}/s` : '',
-          timeRemainingText: progress.timeRemaining
-            ? dayjs.duration(progress.timeRemaining, 'seconds').humanize()
+          timeRemainingText: progress.timeRemaining !== undefined
+            ? uploadManager.formatTime(progress.timeRemaining)
             : '',
         }
         uploadingFiles.value = new Map(uploadingFiles.value)
       },
-      onStatusChange: (status: string) => {
-        uploadingFile.canAbort = status === 'uploading'
+      onStatusChange: (status: UploadTransportStatus) => {
+        uploadingFile.canAbort = isInFlightTransportStatus(status)
+        if (status === UploadTransportStatus.Finalizing)
+          uploadingFile.status = UploadQueueStatus.Finalizing
         uploadingFiles.value = new Map(uploadingFiles.value)
       },
       onSuccess: async (_xhr: XMLHttpRequest) => {
         // 第三步：上传完成，提交到队列任务
-        uploadingFile.status = 'processing'
+        uploadingFile.status = UploadQueueStatus.Processing
         uploadingFile.progress = 100
         uploadingFile.canAbort = false
         uploadingFile.stage = null // 重置 stage，准备显示任务状态
@@ -401,20 +381,20 @@ const uploadImage = async (
 
           if (resp.success) {
             uploadingFile.taskId = resp.taskId
-            uploadingFile.status = 'processing'
+            uploadingFile.status = UploadQueueStatus.Processing
             uploadingFiles.value = new Map(uploadingFiles.value)
 
             // 开始任务状态检查
             startTaskStatusCheck(resp.taskId, fileId)
           } else {
-            uploadingFile.status = 'error'
+            uploadingFile.status = UploadQueueStatus.Error
             uploadingFile.error = $t(
               'dashboard.photos.messages.taskSubmitFailed',
             )
             uploadingFiles.value = new Map(uploadingFiles.value)
           }
         } catch (processError: any) {
-          uploadingFile.status = 'error'
+          uploadingFile.status = UploadQueueStatus.Error
           uploadingFile.error = `${$t('dashboard.photos.messages.taskSubmitFailed')}: ${processError.message}`
           uploadingFile.canAbort = false
           uploadingFiles.value = new Map(uploadingFiles.value)
@@ -424,12 +404,12 @@ const uploadImage = async (
         const isConflict = /\b409\b|Conflict/i.test(error)
 
         if (isConflict) {
-          uploadingFile.status = 'blocked'
+          uploadingFile.status = UploadQueueStatus.Blocked
           uploadingFile.error = $t('upload.duplicate.block.message', {
             fileName,
           })
         } else {
-          uploadingFile.status = 'error'
+          uploadingFile.status = UploadQueueStatus.Error
           uploadingFile.error = error
         }
 
@@ -438,7 +418,7 @@ const uploadImage = async (
       },
     })
   } catch (error: any) {
-    uploadingFile.status = 'error'
+    uploadingFile.status = UploadQueueStatus.Error
     uploadingFile.canAbort = false
 
     // 处理重复文件阻止模式的错误
@@ -449,7 +429,7 @@ const uploadImage = async (
       (error.data?.duplicate || /Conflict|409/i.test(error.message || ''))
 
     if (isDuplicateConflict) {
-      uploadingFile.status = 'blocked'
+      uploadingFile.status = UploadQueueStatus.Blocked
       uploadingFile.error =
         error.data.message || $t('upload.duplicate.block.message', { fileName })
 
@@ -635,7 +615,7 @@ const startTaskStatusCheck = (taskId: number, fileId: string) => {
 
       if (response.status === 'completed') {
         // 任务完成
-        uploadingFile.status = 'completed'
+        uploadingFile.status = UploadQueueStatus.Completed
         uploadingFile.stage = null
         uploadingFiles.value = new Map(uploadingFiles.value)
 
@@ -655,7 +635,7 @@ const startTaskStatusCheck = (taskId: number, fileId: string) => {
         // }, 2000)
       } else if (response.status === 'failed') {
         // 任务失败
-        uploadingFile.status = 'error'
+        uploadingFile.status = UploadQueueStatus.Error
         uploadingFile.error = `${$t('dashboard.photos.messages.error')}: ${response.errorMessage || $t('dashboard.photos.table.cells.unknown')}`
         uploadingFile.stage = null
         uploadingFiles.value = new Map(uploadingFiles.value)
@@ -676,7 +656,7 @@ const startTaskStatusCheck = (taskId: number, fileId: string) => {
 
       const uploadingFile = uploadingFiles.value.get(fileId)
       if (uploadingFile) {
-        uploadingFile.status = 'error'
+        uploadingFile.status = UploadQueueStatus.Error
         uploadingFile.error = $t(
           'dashboard.photos.messages.taskStatusCheckFailed',
         )
@@ -711,10 +691,7 @@ const clearCompletedTasks = () => {
   const toRemove: string[] = []
 
   for (const [fileId, uploadingFile] of uploadingFiles.value) {
-    if (
-      uploadingFile.status === 'completed' ||
-      uploadingFile.status === 'error'
-    ) {
+    if (isClearableUploadStatus(uploadingFile.status)) {
       toRemove.push(fileId)
 
       // 清理可能存在的定时器
@@ -758,7 +735,10 @@ const clearAllUploads = () => {
     toRemove.push(fileId)
 
     // 如果是正在上传的任务，先中止
-    if (uploadingFile.status === 'uploading' && uploadingFile.abortUpload) {
+    if (
+      isAbortableUploadStatus(uploadingFile.status) &&
+      uploadingFile.abortUpload
+    ) {
       uploadingFile.abortUpload()
     }
 
@@ -1114,7 +1094,8 @@ const validateFile = (
 }
 
 const handleUpload = async () => {
-  const fileList = selectedFiles.value
+  const fileList = [...selectedFiles.value]
+  const eraseLocation = uploadEraseLocationEnabled.value
 
   if (fileList.length === 0) {
     return
@@ -1186,20 +1167,28 @@ const handleUpload = async () => {
   }
 
   // 立即为所有有效文件创建队列条目，状态为 waiting
+  const nextUploadingFiles = new Map(uploadingFiles.value)
   for (const file of validFiles) {
     const fileId = fileIdMapping.get(file)!
     const uploadingFile: UploadingFile = {
       file,
       fileName: file.name,
       fileId,
-      status: 'waiting',
+      status: UploadQueueStatus.Waiting,
       canAbort: false,
     }
-    uploadingFiles.value.set(fileId, uploadingFile)
+    nextUploadingFiles.set(fileId, uploadingFile)
   }
 
   // 触发队列更新
-  uploadingFiles.value = new Map(uploadingFiles.value)
+  uploadingFiles.value = nextUploadingFiles
+
+  // 本批次已经交给队列，立即释放选择器并关闭抽屉。
+  selectedFiles.value = []
+  isUploadSlideoverOpen.value = false
+  await nextTick()
+  // 让浏览器先处理界面更新，再启动文件上传。
+  await new Promise<void>((resolve) => setTimeout(resolve, 0))
 
   // 动态并发上传，始终保持 CONCURRENT_LIMIT 个文件在上传
   const CONCURRENT_LIMIT = 3 // 限制同时上传的文件数量
@@ -1212,7 +1201,7 @@ const handleUpload = async () => {
   const startUpload = async (file: File): Promise<void> => {
     const fileId = fileIdMapping.get(file)!
     try {
-      await uploadImage(file, fileId, uploadEraseLocationEnabled.value)
+      await uploadImage(file, fileId, eraseLocation)
     } catch (error: any) {
       errors.push(`${file.name}: ${error.message || '上传失败'}`)
       console.error('上传错误:', error)
@@ -1248,10 +1237,6 @@ const handleUpload = async () => {
   if (errors.length > 0) {
     console.error('批量上传错误详情:', errors)
   }
-
-  // 清空选中的文件
-  selectedFiles.value = []
-  isUploadSlideoverOpen.value = false
 }
 
 const openMetadataEditor = (photo: Photo) => {
@@ -2069,6 +2054,7 @@ onUnmounted(() => {
               variant="soft"
               color="neutral"
               icon="tabler:list-check"
+              data-tour="photo-queue"
               @click="$router.push('/dashboard/queue')"
             >
               <span class="hidden sm:inline">{{
@@ -2077,6 +2063,7 @@ onUnmounted(() => {
             </UButton>
             <UButton
               icon="tabler:cloud-upload"
+              data-tour="photo-upload"
               @click="openUploadSlideover"
             >
               <span class="hidden sm:inline">{{
@@ -2321,6 +2308,7 @@ onUnmounted(() => {
             </UPopover>
             <!-- 过滤器 -->
             <USelectMenu
+              data-tour="photo-filter"
               v-model="photoFilter"
               class="w-full sm:w-48"
               :items="[

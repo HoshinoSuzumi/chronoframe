@@ -564,10 +564,10 @@ onBeforeUnmount(() => {
             :animate="{ opacity: 1, y: 0, scale: 1 }"
             :exit="{ opacity: 0, y: -8, scale: 0.96 }"
             :transition="{ duration: 0.2, ease: 'easeOut' }"
-            class="absolute right-0 top-full mt-2 z-40 w-64 origin-top-right overflow-hidden rounded-xl border border-neutral-100 bg-white/30 text-neutral-700 shadow-md shadow-neutral-300/20 backdrop-blur-md dark:border-white/10 dark:bg-neutral-700/30 dark:text-white/80 dark:shadow-black/20"
+            class="absolute right-0 top-full mt-2 z-40 w-64 origin-top-right overflow-hidden rounded-xl border border-black/10 bg-white/30 text-neutral-700 shadow-sm shadow-black/5 dark:shadow-md backdrop-blur-md dark:border-white/10 dark:bg-neutral-700/30 dark:text-white/80 dark:shadow-black/20"
           >
             <div
-              class="px-3 py-2 border-b border-neutral-100/80 dark:border-white/10"
+              class="px-3 py-2 border-b border-black/10 dark:border-white/10"
             >
               <div class="flex items-center gap-2 text-sm font-semibold">
                 <Icon
@@ -692,7 +692,7 @@ onBeforeUnmount(() => {
       class="absolute bottom-4 left-1/2 -translate-x-1/2 z-10 w-[min(92vw,54rem)] max-sm:left-3 max-sm:right-3 max-sm:translate-x-0 max-sm:w-auto max-sm:pl-16"
     >
       <div
-        class="rounded-xl border border-neutral-100 bg-white/30 text-neutral-700 shadow-md shadow-neutral-300/20 backdrop-blur-md dark:border-white/10 dark:bg-neutral-700/30 dark:text-white/80 dark:shadow-black/20 px-3 py-2"
+        class="rounded-xl border border-black/10 bg-white/30 text-neutral-700 shadow-sm shadow-black/5 dark:shadow-md backdrop-blur-md dark:border-white/10 dark:bg-neutral-700/30 dark:text-white/80 dark:shadow-black/20 px-3 py-2"
       >
         <div class="flex items-center gap-2">
           <UTooltip

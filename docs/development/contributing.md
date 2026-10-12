@@ -1,6 +1,6 @@
 # Contributing
 
-Use Node.js 22, matching the Docker build, and the project's pinned pnpm 10.34.1. This repository contains workspace packages; install dependencies with pnpm.
+Use Node.js 22, matching the Docker build, and the project's pinned pnpm 10.34.6. This repository contains workspace packages; install dependencies with pnpm.
 
 ## Run locally
 

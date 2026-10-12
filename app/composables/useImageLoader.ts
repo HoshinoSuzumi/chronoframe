@@ -14,6 +14,7 @@ export const useImageLoader = (
   updateError?: (error: boolean) => void,
   updateHighResImageRendered?: (isRendered: boolean) => void,
   onImageLoaded?: () => void,
+  shouldApply: () => boolean = () => true,
 ) => {
   // useImageLoader() is invoked from loadImage(), which also runs inside watch
   // callbacks (outside the synchronous setup context) — useI18n() would throw
@@ -36,17 +37,24 @@ export const useImageLoader = (
   const loadImage = async () => {
     try {
       const loadResult = await loaderManager.loadImage(src, {
-        onProgress,
-        onError,
+        onProgress: (progress) => {
+          if (shouldApply()) onProgress?.(progress)
+        },
+        onError: () => {
+          if (shouldApply()) onError?.()
+        },
         onUpdateLoadingState: (state) => {
+          if (!shouldApply()) return
           loadingIndicatorRef?.updateLoadingState(state)
         },
       })
 
+      if (!shouldApply()) return
       updateBlobSrc?.(loadResult.blobSrc)
       updateHighResLoaded?.(true)
       onImageLoaded?.() // 通知图片加载完成
     } catch {
+      if (!shouldApply()) return
       updateError?.(true)
       loadingIndicatorRef?.updateLoadingState({
         isVisible: true,

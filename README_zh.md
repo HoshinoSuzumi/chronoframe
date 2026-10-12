@@ -21,6 +21,7 @@
 </p>
 
 <p align="center">
+  <a href="https://trendshift.io/repositories/19368?utm_source=trendshift-badge&amp;utm_medium=badge&amp;utm_campaign=badge-trendshift-19368" target="_blank" rel="noopener noreferrer"><img src="https://trendshift.io/api/badge/trendshift/repositories/19368/daily?language=Vue" alt="HoshinoSuzumi%2Fchronoframe | Trendshift" width="250" height="55"/></a>
   <a href="https://hellogithub.com/repository/HoshinoSuzumi/chronoframe" target="_blank"><img src="https://api.hellogithub.com/v1/widgets/recommend.svg?rid=947d47ffe8404985908b266e187dec99&claim_uid=kLVoiAFPJaBtr1D&theme=neutral" alt="Featured｜HelloGitHub" style="width: 250px; height: 54px;" width="250" height="54" /></a>
   <a href="https://www.producthunt.com/products/chronoframe?embed=true&utm_source=badge-featured&utm_medium=badge&utm_source=badge-chronoframe" target="_blank"><img src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1029556&theme=neutral&t=1761159404569" alt="ChronoFrame - Self&#0045;hosted&#0032;photo&#0032;gallery&#0032;for&#0032;photographers&#0046; | Product Hunt" style="width: 250px; height: 54px;" width="250" height="54" /></a>
 </p>
@@ -95,7 +96,7 @@ Apple Live Photo 的图片和 MOV 文件需要相同文件名，例如 `IMG_1234
 
 ## 🛠️ 开发
 
-使用 Node.js 22 和项目指定的 pnpm 10.34.1：
+使用 Node.js 22 和项目指定的 pnpm 10.34.6：
 
 ```bash
 corepack enable

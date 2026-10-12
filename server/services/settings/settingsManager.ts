@@ -6,6 +6,7 @@ import type {
   SettingValue,
 } from '~~/shared/types/settings'
 import type { SettingKey, SettingNamespace } from './contants'
+import { validateQueueWorkerCount } from '~~/shared/utils/queue-config'
 
 export class SettingsManager {
   private static instance: SettingsManager
@@ -282,6 +283,9 @@ export class SettingsManager {
     }
 
     const serializedValue = this.serialize(value)
+    if (namespace === 'system' && key === 'queue.workerCount') {
+      validateQueueWorkerCount(value)
+    }
 
     db.update(tables.settings)
       .set({
@@ -299,6 +303,20 @@ export class SettingsManager {
 
     this._logger.info(`Setting ${namespace}:${key} updated`)
     this.settingsCache.set(cacheKey, value)
+    if (
+      namespace === 'system' &&
+      key === 'queue.workerCount' &&
+      !this.isInitializing
+    ) {
+      void globalThis.__workerPool
+        ?.setWorkerCount(value as number)
+        .catch((error) => {
+          this._logger.error(
+            'Failed to apply queue concurrency setting:',
+            error,
+          )
+        })
+    }
 
     // Trigger storage provider switch if storage:provider is being changed
     // Skip during initialization as storage manager is not yet initialized

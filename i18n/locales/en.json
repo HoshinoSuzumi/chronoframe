@@ -85,13 +85,20 @@
           "linkedin": "LinkedIn"
         },
         "actions": {
+          "nativeShareShort": "Share",
+          "originalShort": "Original",
+          "shareCardShort": "Share Card",
           "nativeShare": "Use System Share",
           "copyLink": "Copy Link",
+          "copied": "Copied",
+          "close": "Close",
+          "otherPlatforms": "Other sharing options",
+          "retry": "Retry",
           "copyImage": "Copy Image",
           "downloadImage": "Download Original",
           "generateShareImage": "Generate Share Image",
           "shareUrl": "Share URL",
-          "downloadOgImage": "Download Preview",
+          "downloadOgImage": "Download Share Card",
           "downloadOriginal": "Download Original",
           "downloadOriginalImage": "Download Original Image"
         },
@@ -496,7 +503,8 @@
       "reset": "Reset",
       "cancel": "Cancel",
       "continue": "Continue",
-      "delete": "Delete"
+      "delete": "Delete",
+      "edit": "Edit"
     },
     "unknownError": "Unknown error"
   },
@@ -550,6 +558,7 @@
       }
     },
     "runtimeError": {
+      "missingEtag": "The storage response does not expose ETag. Add ETag to the bucket CORS ExposeHeaders setting.",
       "networkFailed": "Network connection failed",
       "clientError": "Client error ({status})",
       "serverError": "Server error ({status})",
@@ -809,6 +818,7 @@
           "waiting": "Waiting",
           "preparing": "Preparing",
           "uploading": "Uploading {0}%",
+          "finalizing": "Saving to storage",
           "pendingProcessing": "Waiting to process",
           "completed": "Completed",
           "error": "Error",
@@ -996,7 +1006,30 @@
           "totalWorkers": "Total Workers",
           "totalProcessed": "Processed",
           "totalFailed": "Failure count",
-          "avgSuccessRate": "Success rate"
+          "avgSuccessRate": "Success rate",
+          "pending": "Pending",
+          "workers": "Workers",
+          "states": {
+            "unknown": "Unknown",
+            "stopped": "Stopped",
+            "processing": "Processing",
+            "attention": "Needs attention",
+            "idle": "Idle"
+          },
+          "stoppedNotice": "{count} tasks are waiting while workers are stopped.",
+          "waitNotice": "Oldest task has waited {minutes} minutes.",
+          "failedNotice": "{count} failed tasks need review.",
+          "debug": {
+            "label": "Mock preview",
+            "scenarios": {
+              "empty": "No tasks",
+              "processing": "Processing",
+              "backlog": "Backlog",
+              "stopped": "Stopped",
+              "failures": "Failures",
+              "allFailed": "All failed"
+            }
+          }
         },
         "recentActivity": {
           "title": "Recent Activity",
@@ -1143,9 +1176,18 @@
         "description": "The owner name of the instance"
       },
       "avatarUrl": {
-        "label": "Avatar URL",
-        "description": "Link to the owner's avatar image",
-        "help": "The avatar is displayed on the loading page and homepage"
+        "label": "Avatar",
+        "description": "Upload an image or link to the owner's avatar",
+        "help": "The avatar is displayed on the loading page and homepage",
+        "upload": "Upload",
+        "replace": "Replace",
+        "remove": "Remove",
+        "uploadSuccess": "Avatar updated",
+        "uploadFailed": "Failed to upload avatar",
+        "removeSuccess": "Avatar removed",
+        "removeFailed": "Failed to remove avatar",
+        "invalidType": "Please choose a PNG, JPEG, WebP, or GIF image",
+        "tooLarge": "Image must be smaller than {size}MB"
       },
       "appearance": {
         "theme": {
@@ -1211,7 +1253,14 @@
           }
         }
       },
-      "sectionDescription": "Configure system-level behavior parameters. Changes here will affect global upload and service behavior."
+      "sectionDescription": "Configure system-level behavior parameters. Changes here will affect global upload and service behavior.",
+      "queue": {
+        "workerCount": {
+          "label": "Queue concurrency",
+          "description": "Number of queue tasks processed simultaneously.",
+          "help": "1–8, default 5. Changes apply immediately. Lower values use fewer resources; running tasks finish when concurrency is reduced."
+        }
+      }
     },
     "map": {
       "provider": {
@@ -1404,7 +1453,9 @@
         "created": "Storage scheme created",
         "createError": "Error creating storage scheme",
         "deleted": "Storage scheme deleted",
-        "deleteError": "Failed to delete storage scheme"
+        "deleteError": "Failed to delete storage scheme",
+        "updated": "Storage scheme updated",
+        "updateError": "Failed to update storage scheme"
       },
       "providers": {
         "s3": "AWS S3 Compatible Storage",
@@ -1416,6 +1467,7 @@
         "management": "Storage Scheme Management"
       },
       "form": {
+        "isrequired": "This field is required",
         "schemeLabel": "Storage Scheme",
         "schemePlaceholder": "Select a storage scheme",
         "typeLabel": "Storage Type",
@@ -1432,11 +1484,13 @@
         "message": "Are you sure you want to delete \"{name}\"? This removes the scheme from ChronoFrame. Files already stored with it are not deleted."
       },
       "slideover": {
-        "title": "Create Storage Scheme"
+        "title": "Create Storage Scheme",
+        "editTitle": "Edit Storage Scheme"
       },
       "actions": {
         "add": "Add Storage",
-        "create": "Create Storage"
+        "create": "Create Storage",
+        "edit": "Edit"
       }
     },
     "analytics": {
@@ -1476,6 +1530,11 @@
         "label": "Confirm Password"
       }
     },
+    "site": {
+      "avatarUrl": {
+        "help": "The avatar is displayed on the loading page and homepage. You'll be able to upload an image as well after setting up a storage."
+      }
+    },
     "map": {
       "provider": {
         "mapbox": {
@@ -1502,12 +1561,14 @@
         "map": "Map Service",
         "complete": "Complete"
       },
+      "tips": "Don't worry about mistakes, you can modify them later in the admin dashboard",
       "current": "In Progress",
       "stepCounter": "Step {0} / {1}",
       "logoAlt": "ChronoFrame Logo"
     },
     "actions": {
       "next": "Next",
+      "previous": "Previous",
       "completeSetup": "Complete Setup"
     },
     "welcome": {
@@ -1537,15 +1598,24 @@
     },
     "admin": {
       "title": "Admin Account",
-      "description": "Create an administrator account"
+      "description": "Create an administrator account",
+      "invalidUsername": "Username must be at least 2 characters",
+      "invalidEmail": "Invalid email address",
+      "invalidPassword": "Password must be at least 6 characters",
+      "invalidConfirmPassword": "Confirm password must be at least 6 characters",
+      "passwordMismatch": "Passwords and confirm password don't match"
     },
     "site": {
       "title": "Site Info",
-      "description": "Configure basic site information"
+      "description": "Configure basic site information",
+      "invalidTitle": "Site title is required",
+      "invalidAvatarUrl": "Invalid avatar URL format"
     },
     "storage": {
       "title": "Storage",
-      "description": "Choose where your photos are stored"
+      "description": "Choose where your photos are stored",
+      "isrequired": "This field is required",
+      "invalidUrl": "Invalid URL format"
     },
     "map": {
       "title": "Map Service",
@@ -1614,5 +1684,190 @@
     "image": {
       "loadError": "Failed to load image"
     }
+  },
+  "debug": {
+    "title": "Debug tools",
+    "open": "Open debug tools",
+    "info": "Basic information",
+    "route": "Route",
+    "version": "Version",
+    "viewport": "Viewport",
+    "locale": "Language",
+    "theme": "Theme",
+    "general": "General tools",
+    "outline": "Show element outlines",
+    "refresh": "Refresh data",
+    "reload": "Reload page",
+    "reset": "Reset debug settings",
+    "page": "Current page",
+    "empty": "No debug options on this page.",
+    "scenario": "Scenario",
+    "window": {
+      "maximize": "Maximize",
+      "restore": "Restore",
+      "close": "Close"
+    },
+    "viewer": {
+      "title": "Image viewer",
+      "visibility": "WebGL diagnostics",
+      "system": "Follow system setting",
+      "show": "Force show",
+      "hide": "Force hide",
+      "delay": "Load delay (ms)",
+      "failure": "Simulate load failure",
+      "reload": "Reload current image",
+      "systemValue": "System setting",
+      "effective": "Effective visibility",
+      "stage": "Load stage",
+      "waiting": "Simulated loading delay",
+      "stages": {
+        "idle": "Idle",
+        "delay": "Simulated delay",
+        "image": "Loading image",
+        "texture": "Loading texture",
+        "ready": "Ready",
+        "error": "Failed",
+        "tile": "Loading tiles"
+      }
+    },
+    "ogImage": "Page OG image",
+    "openOgImage": "Open OG image",
+    "ogImageError": "Could not load the OG image."
+  },
+  "tours": {
+    "controlsTitle": "Getting started tours",
+    "reset": "Reset all tours",
+    "resetHelp": "After resetting, tours appear the next time you visit each page.",
+    "saveError": "Could not save tour state. Please retry.",
+    "next": "Next",
+    "previous": "Previous",
+    "done": "Finish",
+    "skip": "Skip tour",
+    "status": {
+      "pending": "Pending",
+      "completed": "Completed",
+      "skipped": "Skipped"
+    },
+    "dashboard": {
+      "title": "Photo statistics",
+      "description": "This card shows the total number of photos. Click it to open photo management. Nearby cards show new photos this month and storage usage."
+    },
+    "photos": {
+      "title": "Manage photos",
+      "description": "Upload photos, edit details and change visibility. Track upload processing in the task queue."
+    },
+    "albums": {
+      "title": "Manage albums",
+      "description": "Create an album here, add its name and description, and choose a cover and access protection. Then add photos."
+    },
+    "general": {
+      "title": "Site appearance",
+      "description": "Set the site title shown in the gallery header and browser tabs, then save this section."
+    },
+    "storage": {
+      "title": "Photo storage",
+      "description": "Choose the default storage provider for new uploads here, then save your changes."
+    },
+    "map": {
+      "title": "Configure maps",
+      "description": "Choose Mapbox or MapLibre here. Its style and token fields appear below."
+    },
+    "location": {
+      "title": "Location lookup",
+      "description": "Choose the language used for photo location names. Map rendering and location lookup are configured separately."
+    },
+    "privacy": {
+      "title": "Location privacy",
+      "description": "Choose whether uploads automatically remove location information to protect where photos were taken."
+    },
+    "system": {
+      "title": "System settings",
+      "description": "Configure uploads, duplicate checks and third-party sign-in. Use Reset all tours on this page to restart the guides."
+    },
+    "home": {
+      "title": "Your gallery homepage",
+      "description": "Visitors can browse, filter and sort photos, open photo details, and explore albums and maps."
+    },
+    "queueDetails": {
+      "title": "Track processing",
+      "description": "Open the task queue to track uploads, inspect failures and retry tasks."
+    },
+    "shareSite": {
+      "title": "Share your gallery",
+      "description": "Share your newly set up ChronoFrame instance with the community and help others discover your site."
+    },
+    "photoFilter": {
+      "title": "Filter photo types",
+      "description": "Switch between all photos, Live Photos and still images."
+    },
+    "albumActions": {
+      "title": "Manage existing albums",
+      "description": "Reorder, edit or delete albums using these buttons. Album editing includes covers and access protection."
+    },
+    "avatar": {
+      "title": "Site avatar",
+      "description": "Upload or replace the avatar shown in the gallery header."
+    },
+    "appearance": {
+      "title": "Choose appearance",
+      "description": "Choose a light, dark or system theme here."
+    },
+    "saveSettings": {
+      "title": "Save settings",
+      "description": "Save changes using the button for this section. It stays disabled until settings change."
+    },
+    "storageAdd": {
+      "title": "Add storage",
+      "description": "Add a local, S3 or OpenList provider and save its paths and credentials."
+    },
+    "mapStyle": {
+      "title": "Map style",
+      "description": "Set the style URL for the selected map provider."
+    },
+    "mapToken": {
+      "title": "Map access token",
+      "description": "Enter the access token for the selected map provider. The style and token must match the provider."
+    },
+    "locationService": {
+      "title": "Location lookup service",
+      "description": "Set a Nominatim URL here, or configure the Mapbox token above to use Mapbox lookup."
+    },
+    "githubLogin": {
+      "title": "GitHub sign-in",
+      "description": "Enable GitHub sign-in here, then configure its OAuth Client ID and Client Secret."
+    },
+    "uploadLimit": {
+      "title": "Upload size limit",
+      "description": "Set the maximum upload size per file in MB."
+    },
+    "queueConcurrency": {
+      "title": "Queue concurrency",
+      "description": "Set the number of queue tasks that process images simultaneously here. Choose a suitable value based on your server’s performance."
+    },
+    "duplicateCheck": {
+      "title": "Duplicate checks",
+      "description": "Enable duplicate checks and choose the handling mode below."
+    },
+    "resetTours": {
+      "title": "Restart the tours",
+      "description": "Reset all tour records here. Each page will show its tour again when visited."
+    },
+    "photoUpload": {
+      "title": "Upload photos",
+      "description": "Click this button to open the upload panel, select your photos and start uploading."
+    },
+    "albumCreate": {
+      "title": "Create an album",
+      "description": "Click this button to open the album creation form. Enter a name and description, then save to create the album."
+    },
+    "homeAvatar": {
+      "title": "Site avatar and sign-in",
+      "description": "This is your site avatar. After signing out, click the avatar to open the sign-in page. You can also visit /signin directly."
+    },
+    "homeDashboard": {
+      "title": "Open the dashboard",
+      "description": "Once signed in as an administrator, click this button to open the dashboard and manage photos, albums and site settings."
+    },
+    "debugTitle": "Tour status"
   }
 }

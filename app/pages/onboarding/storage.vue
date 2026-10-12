@@ -1,12 +1,17 @@
 <script setup lang="ts">
 import { z } from 'zod'
 import type { ProviderOption } from '~/components/Wizard/ProviderSelector.vue'
+import { useWizardStore } from '~/stores/wizard'
 
 definePageMeta({
   layout: 'onboarding',
 })
 
 const router = useRouter()
+const wizardStore = useWizardStore()
+
+// Mark this step as accessible when entering the page
+wizardStore.markStepAccessible(3)
 
 const {
   fields,
@@ -31,7 +36,7 @@ const schema = computed(() => {
       if (field.ui.required) {
         validator = (validator as z.ZodString).min(
           1,
-          `${field.label} is required`,
+          `${$t('onboarding.storage.isrequired')}`,
         )
       } else {
         validator = (validator as z.ZodString).optional()
@@ -41,7 +46,7 @@ const schema = computed(() => {
       if (field.ui.required) {
         validator = (validator as z.ZodString).min(
           1,
-          `${field.label} is required`,
+          `${$t('onboarding.storage.isrequired')}`,
         )
       } else {
         validator = (validator as z.ZodString).optional()
@@ -51,6 +56,18 @@ const schema = computed(() => {
     if (field.ui.type === 'number') {
       // If we had number types, we'd handle them here
       // validator = z.number()
+    }
+
+    if (field.ui.type === 'url') {
+      if (field.ui.required) {
+        validator = z.string().url($t('onboarding.storage.invalidUrl'))
+      } else {
+        validator = z
+          .string()
+          .url($t('onboarding.storage.invalidUrl'))
+          .optional()
+          .or(z.literal(''))
+      }
     }
 
     s[field.key] = validator
@@ -69,6 +86,7 @@ function onSubmit() {
   <WizardStep
     :title="$t('onboarding.storage.title')"
     :description="$t('onboarding.storage.description')"
+    :tips="$t('onboarding.layout.tips')"
   >
     <div
       v-if="fetchingSchema"
@@ -138,6 +156,15 @@ function onSubmit() {
     </div>
 
     <template #actions>
+      <WizardButton
+        to="/onboarding/site"
+        variant="outline"
+        color="primary"
+        size="lg"
+        leading-icon="tabler:arrow-left"
+      >
+        {{ $t('onboarding.actions.previous') }}
+      </WizardButton>
       <WizardButton
         type="submit"
         form="storage-form"

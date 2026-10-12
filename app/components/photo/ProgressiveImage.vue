@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { WebGLImageViewer } from '@chronoframe/webgl-image'
+import { LoadingState, WebGLImageViewer } from '@chronoframe/webgl-image'
 import type { LoadingIndicatorRef } from './LoadingIndicator.vue'
 import type { ImageLoaderManager } from '~/libs/image-loader-manager'
 
@@ -55,13 +55,106 @@ const currentSrc = ref<string | null>()
 const { loggedIn } = useUserSession()
 const webglImageViewerDebug = useSettingRef('system:webglImageViewerDebug')
 const isDev = computed(() => import.meta.env.DEV)
-const showDebugInfo = computed(() => {
+const configuredDebugInfo = computed(() => {
   if (webglImageViewerDebug.value === true) {
     return !!loggedIn.value
   }
 
   return isDev.value && import.meta.env.VITE_SHOW_DEBUG_INFO === 'true'
 })
+
+const debugOverride = useDebugValue<string>('viewer:webgl:visibility', 'system')
+const debugDelay = useDebugValue<number>('viewer:image:delay', 0)
+const debugFailure = useDebugValue<boolean>('viewer:image:failure', false)
+const showDebugInfo = computed(() => {
+  if (import.meta.dev && debugOverride.value === 'show') return true
+  if (import.meta.dev && debugOverride.value === 'hide') return false
+  return configuredDebugInfo.value
+})
+const loadStage = ref('idle')
+const debugSectionId = 'viewer:image:' + useId()
+const route = useRoute()
+useDebugSection(() => ({
+  id: debugSectionId,
+  route: route.path,
+  active: props.isCurrentImage,
+  title: $t('debug.viewer.title'),
+  controls: [
+    {
+      key: 'viewer:webgl:visibility',
+      label: $t('debug.viewer.visibility'),
+      type: 'select',
+      default: 'system',
+      options: ['system', 'show', 'hide'].map((value) => ({
+        value,
+        label: $t('debug.viewer.' + value),
+      })),
+    },
+    {
+      key: 'viewer:image:delay',
+      label: $t('debug.viewer.delay'),
+      type: 'number',
+      default: 0,
+      min: 0,
+      max: 30000,
+      step: 500,
+    },
+    {
+      key: 'viewer:image:failure',
+      label: $t('debug.viewer.failure'),
+      type: 'switch',
+      default: false,
+    },
+    {
+      key: 'viewer:image:reload',
+      label: $t('debug.viewer.reload'),
+      type: 'action',
+      action: reloadImage,
+    },
+    {
+      key: 'viewer:webgl:systemValue',
+      label: $t('debug.viewer.systemValue'),
+      type: 'status',
+      value: webglImageViewerDebug.value === true,
+    },
+    {
+      key: 'viewer:webgl:effective',
+      label: $t('debug.viewer.effective'),
+      type: 'status',
+      value: showDebugInfo.value,
+    },
+    {
+      key: 'viewer:image:stage',
+      label: $t('debug.viewer.stage'),
+      type: 'status',
+      value: $t('debug.viewer.stages.' + loadStage.value),
+    },
+  ],
+}))
+let loadGeneration = 0
+let debugTimer: ReturnType<typeof setTimeout> | undefined
+function cancelDebugTimer() {
+  loadGeneration++
+  clearTimeout(debugTimer)
+  debugTimer = undefined
+}
+function reloadImage() {
+  cancelDebugTimer()
+  loaderManagerRef.value?.cleanup()
+  loaderManagerRef.value = null
+  highResLoaded.value = false
+  highResRendered.value = false
+  hasError.value = false
+  currentSrc.value = null
+  props.onBlobSrcChange?.(null)
+  props.loadingIndicatorRef?.resetLoadingState()
+  loadStage.value = 'idle'
+  if (props.isCurrentImage) loadImage()
+}
+if (import.meta.dev)
+  watch([debugDelay, debugFailure], () => {
+    if (props.isCurrentImage) reloadImage()
+  })
 
 // 使用 WebGLImageViewer 的引用
 const webglViewerRef = ref()
@@ -80,7 +173,38 @@ const showWebGLViewer = computed(() => {
   )
 })
 
-const loadImage = () => {
+const loadImage = (afterDelay = false) => {
+  if (!props.isCurrentImage || highResLoaded.value || hasError.value) return
+  if (import.meta.dev) {
+    const delay = Math.min(30000, Math.max(0, debugDelay.value))
+    if (!afterDelay && delay > 0) {
+      cancelDebugTimer()
+      loadStage.value = 'delay'
+      props.loadingIndicatorRef?.updateLoadingState({
+        isVisible: true,
+        isError: false,
+        message: $t('debug.viewer.waiting'),
+      })
+      debugTimer = setTimeout(() => {
+        debugTimer = undefined
+        loadImage(true)
+      }, delay)
+      return
+    }
+    if (debugFailure.value) {
+      loadStage.value = 'error'
+      hasError.value = true
+      props.onError?.()
+      props.loadingIndicatorRef?.updateLoadingState({
+        isVisible: true,
+        isError: true,
+        message: $t('photo.image.loadError'),
+      })
+      return
+    }
+  }
+  loadStage.value = 'image'
+  const generation = loadGeneration
   loaderManagerRef.value = useImageLoader(
     props.src,
     props.isCurrentImage,
@@ -91,9 +215,13 @@ const loadImage = () => {
     props.onError,
     (src) => (currentSrc.value = src),
     (loaded) => (highResLoaded.value = loaded),
-    (error) => (hasError.value = error),
+    (error) => {
+      hasError.value = error
+      if (error) loadStage.value = 'error'
+    },
     (rendered) => (highResRendered.value = rendered),
     props.onImageLoaded,
+    () => generation === loadGeneration && props.isCurrentImage,
   )
 }
 
@@ -102,6 +230,7 @@ watch(
   () => props.isCurrentImage,
   (isCurrent, wasCurrent) => {
     if (!isCurrent && wasCurrent) {
+      cancelDebugTimer()
       // 当图片不再是当前图片时，中断加载
       loaderManagerRef.value?.cleanup()
       loaderManagerRef.value = null
@@ -123,6 +252,7 @@ watch(
   () => props.src,
   (newSrc, oldSrc) => {
     if (newSrc !== oldSrc) {
+      cancelDebugTimer()
       // 中断之前的加载
       loaderManagerRef.value?.cleanup()
       loaderManagerRef.value = null
@@ -145,7 +275,26 @@ watch(
 // 初始加载
 loadImage()
 
-const handleWebGLStateChange = useWebGLWorkState(props.loadingIndicatorRef)
+const updateWebGLState = useWebGLWorkState(props.loadingIndicatorRef)
+const handleWebGLStateChange = (
+  isLoading: boolean,
+  state?: LoadingState,
+  quality?: 'high' | 'medium' | 'low' | 'unknown',
+) => {
+  loadStage.value =
+    state === LoadingState.ERROR
+      ? 'error'
+      : state === LoadingState.IDLE
+        ? 'idle'
+        : !isLoading
+          ? 'ready'
+          : state === LoadingState.TEXTURE_LOADING
+            ? 'texture'
+            : state === LoadingState.TILE_LOADING
+              ? 'tile'
+              : 'image'
+  updateWebGLState(isLoading, state, quality)
+}
 
 // 处理缩放状态变化
 const handleZoomChange = (originalScale: number, relativeScale: number) => {
@@ -157,6 +306,7 @@ const handleZoomChange = (originalScale: number, relativeScale: number) => {
 
 // 组件卸载时清理
 onUnmounted(() => {
+  cancelDebugTimer()
   loaderManagerRef.value?.cleanup()
   loaderManagerRef.value = null
 })
