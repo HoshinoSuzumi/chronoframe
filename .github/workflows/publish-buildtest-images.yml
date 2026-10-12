@@ -33,7 +33,6 @@ jobs:
     runs-on: ubuntu-24.04
     outputs:
       commit: ${{ steps.source.outputs.commit }}
-      images: ${{ steps.images.outputs.images }}
     steps:
       - name: Validate inputs
         env:
@@ -66,30 +65,6 @@ jobs:
       - name: Resolve source commit
         id: source
         run: echo "commit=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
-
-      - name: Resolve image names
-        id: images
-        env:
-          PUBLISH_GHCR: ${{ inputs.publish_ghcr }}
-          PUBLISH_DOCKERHUB: ${{ inputs.publish_dockerhub }}
-          GHCR_IMAGE: ghcr.io/${{ github.repository }}
-          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
-          REPOSITORY_NAME: ${{ github.event.repository.name }}
-        run: |
-          set -euo pipefail
-          images=()
-          if [[ "$PUBLISH_GHCR" == true ]]; then
-            images+=("${GHCR_IMAGE,,}")
-          fi
-          if [[ "$PUBLISH_DOCKERHUB" == true ]]; then
-            if [[ -z "$DOCKERHUB_USERNAME" ]]; then
-              echo "::error::DOCKERHUB_USERNAME is required to publish to Docker Hub."
-              exit 1
-            fi
-            image="${DOCKERHUB_USERNAME}/${REPOSITORY_NAME}"
-            images+=("${image,,}")
-          fi
-          echo "images=${images[*]}" >> "$GITHUB_OUTPUT"
 
   build-and-push:
     needs: prepare
@@ -124,6 +99,33 @@ jobs:
           console.log(`Application version: ${pkg.version}`)
           NODE
 
+      - name: Resolve image names
+        env:
+          PUBLISH_GHCR: ${{ inputs.publish_ghcr }}
+          PUBLISH_DOCKERHUB: ${{ inputs.publish_dockerhub }}
+          GHCR_IMAGE: ghcr.io/${{ github.repository }}
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+          REPOSITORY_NAME: ${{ github.event.repository.name }}
+        run: |
+          set -euo pipefail
+          images=()
+          if [[ "$PUBLISH_GHCR" == true ]]; then
+            images+=("${GHCR_IMAGE,,}")
+          fi
+          if [[ "$PUBLISH_DOCKERHUB" == true ]]; then
+            if [[ -z "$DOCKERHUB_USERNAME" ]]; then
+              echo "::error::DOCKERHUB_USERNAME is required to publish to Docker Hub."
+              exit 1
+            fi
+            image="${DOCKERHUB_USERNAME}/${REPOSITORY_NAME}"
+            images+=("${image,,}")
+          fi
+          if (( ${#images[@]} == 0 )); then
+            echo "::error::No image registries selected."
+            exit 1
+          fi
+          echo "IMAGES=${images[*]}" >> "$GITHUB_ENV"
+
       - name: Log in to GitHub Container Registry
         if: inputs.publish_ghcr
         uses: docker/login-action@v3
@@ -141,11 +143,14 @@ jobs:
 
       - name: Build and push independent image
         env:
-          IMAGES: ${{ needs.prepare.outputs.images }}
           IMAGE_TAG: ${{ inputs.tag }}
           ARCH: ${{ matrix.arch }}
         run: |
           set -euo pipefail
+          if [[ -z "${IMAGES:-}" ]]; then
+            echo "::error::Image list is empty; refusing to skip publishing."
+            exit 1
+          fi
           read -r -a images <<< "$IMAGES"
           tags=()
           for image in "${images[@]}"; do
@@ -162,6 +167,33 @@ jobs:
     permissions:
       packages: write
     steps:
+      - name: Resolve image names
+        env:
+          PUBLISH_GHCR: ${{ inputs.publish_ghcr }}
+          PUBLISH_DOCKERHUB: ${{ inputs.publish_dockerhub }}
+          GHCR_IMAGE: ghcr.io/${{ github.repository }}
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+          REPOSITORY_NAME: ${{ github.event.repository.name }}
+        run: |
+          set -euo pipefail
+          images=()
+          if [[ "$PUBLISH_GHCR" == true ]]; then
+            images+=("${GHCR_IMAGE,,}")
+          fi
+          if [[ "$PUBLISH_DOCKERHUB" == true ]]; then
+            if [[ -z "$DOCKERHUB_USERNAME" ]]; then
+              echo "::error::DOCKERHUB_USERNAME is required to publish to Docker Hub."
+              exit 1
+            fi
+            image="${DOCKERHUB_USERNAME}/${REPOSITORY_NAME}"
+            images+=("${image,,}")
+          fi
+          if (( ${#images[@]} == 0 )); then
+            echo "::error::No image registries selected."
+            exit 1
+          fi
+          echo "IMAGES=${images[*]}" >> "$GITHUB_ENV"
+
       - name: Log in to GitHub Container Registry
         if: inputs.publish_ghcr
         uses: docker/login-action@v3
@@ -179,11 +211,14 @@ jobs:
 
       - name: Publish independent multi-architecture manifests
         env:
-          IMAGES: ${{ needs.prepare.outputs.images }}
           IMAGE_TAG: ${{ inputs.tag }}
           SOURCE_COMMIT: ${{ needs.prepare.outputs.commit }}
         run: |
           set -euo pipefail
+          if [[ -z "${IMAGES:-}" ]]; then
+            echo "::error::Image list is empty; refusing to skip publishing."
+            exit 1
+          fi
           read -r -a images <<< "$IMAGES"
           {
             echo "## Buildtest images"
