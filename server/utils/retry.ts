@@ -8,7 +8,7 @@ export interface RetryOptions {
   baseDelay?: number
   /** 最大延迟时间（毫秒），默认 30000ms */
   maxDelay?: number
-  /** 操作超时时间（毫秒），默认 30000ms */
+  /** 协作式操作超时（毫秒），默认 30000ms；操作需响应 AbortSignal，否则等待其结束 */
   timeout?: number
   /** 重试条件判断函数，返回 true 表示应该重试 */
   retryCondition?: (error: Error) => boolean
@@ -19,7 +19,7 @@ export interface RetryOptions {
 /**
  * 通用重试工具函数
  *
- * @param operation 要执行的异步操作
+ * @param operation 要执行的异步操作；应响应 AbortSignal 以支持取消。无法取消的操作会等待结束再重试，避免重叠执行。
  * @param options 重试配置选项
  * @param logger 可选的日志记录器
  * @returns 操作结果
@@ -61,7 +61,12 @@ export async function withRetry<T>(
 
       // 应用超时机制
       const timeoutError = new Error(`Operation timeout after ${timeout}ms`)
-      timer = setTimeout(() => controller.abort(timeoutError), timeout)
+      timer = setTimeout(() => {
+        controller.abort(timeoutError)
+        logger?.warn(
+          `Operation exceeded ${timeout}ms; cancellation requested. Waiting for it to settle before releasing the resource slot or retrying.`,
+        )
+      }, timeout)
       // Keep the resource slot until non-cancellable operations settle. Racing
       // them against a timer would allow retries to overlap the original work.
       const result = await operation(controller.signal)
@@ -81,16 +86,13 @@ export async function withRetry<T>(
       logger?.warn(`Attempt ${attempt} failed:`, error)
 
       const shouldRetry = attempt < maxAttempts && retryCondition(lastError)
-      if (shouldRetry) {
-        const delay = calculateDelay(
-          attempt,
-          baseDelay,
-          maxDelay,
-          delayStrategy,
-        )
-        logger?.info(`Retrying in ${delay}ms...`)
-        await new Promise((resolve) => setTimeout(resolve, delay))
+      if (!shouldRetry) {
+        logger?.error(`Operation failed after ${attempt} attempt(s)`)
+        throw lastError
       }
+      const delay = calculateDelay(attempt, baseDelay, maxDelay, delayStrategy)
+      logger?.info(`Retrying in ${delay}ms...`)
+      await new Promise((resolve) => setTimeout(resolve, delay))
     } finally {
       if (timer) clearTimeout(timer)
     }
