@@ -92,6 +92,7 @@ async function start() {
     system: [
       ['githubLogin', field('system:auth.github.enabled')],
       ['uploadLimit', field('system:upload.maxFileSize')],
+      ['queueConcurrency', field('system:queue.workerCount')],
       ['duplicateCheck', field('system:upload.duplicateCheck.enabled')],
       ['resetTours', '[data-tour="reset"]'],
     ],

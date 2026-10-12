@@ -19,6 +19,14 @@ export const DEFAULT_SETTINGS = [
   // NAMESPACE: system
   {
     namespace: 'system',
+    key: 'queue.workerCount',
+    type: 'number',
+    defaultValue: 5,
+    label: 'settings.system.queue.workerCount.label',
+    description: 'settings.system.queue.workerCount.description',
+  },
+  {
+    namespace: 'system',
     key: 'firstLaunch',
     type: 'boolean',
     value: true,

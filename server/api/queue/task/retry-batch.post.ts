@@ -63,7 +63,7 @@ export default defineEventHandler(async (event) => {
         statusStage: null,
         errorMessage: null,
         attempts: 0, // 重置尝试次数
-        createdAt: new Date(), // 更新创建时间以便重新调度
+        availableAt: new Date(),
       })
       .where(inArray(tables.pipelineQueue.id, failedTaskIds))
 

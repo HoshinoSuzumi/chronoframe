@@ -2,7 +2,7 @@ import type { ConsolaInstance } from 'consola'
 import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import path from 'path'
-import { asc, desc, eq, sql } from 'drizzle-orm'
+import { and, asc, desc, eq, lte, sql } from 'drizzle-orm'
 import { exiftool } from 'exiftool-vendored'
 import type {
   NewPipelineQueueItem,
@@ -41,6 +41,8 @@ const EXIF_LOCATION_KEYS = [
   'GPSDestBearingRef',
 ] as const
 
+class PermanentTaskError extends Error {}
+
 const stripLocationFromExif = <
   T extends Record<string, any> | null | undefined,
 >(
@@ -64,6 +66,7 @@ export class QueueManager {
   private logger: ConsolaInstance
   private isProcessing: boolean = false
   private processingInterval: NodeJS.Timeout | null = null
+  private activeTask: Promise<void> | null = null
   private processedCount: number = 0
   private errorCount: number = 0
   private startTime: Date
@@ -159,11 +162,17 @@ export class QueueManager {
       const highestPriorityPendingTask = tx
         .select()
         .from(tables.pipelineQueue)
-        .where(eq(tables.pipelineQueue.status, 'pending'))
+        .where(
+          and(
+            eq(tables.pipelineQueue.status, 'pending'),
+            lte(tables.pipelineQueue.availableAt, new Date()),
+          ),
+        )
         // 优先处理高优先级和较早创建的任务
         .orderBy(
           desc(tables.pipelineQueue.priority),
           asc(tables.pipelineQueue.createdAt),
+          asc(tables.pipelineQueue.id),
         )
         .limit(1)
         .get()
@@ -218,7 +227,11 @@ export class QueueManager {
    * @param taskId 任务ID
    * @param errorMessage 错误信息
    */
-  async markTaskFailed(taskId: number, errorMessage?: string): Promise<void> {
+  async markTaskFailed(
+    taskId: number,
+    errorMessage?: string,
+    retryable = true,
+  ): Promise<void> {
     const db = useDB()
     const task = await db
       .select()
@@ -229,7 +242,7 @@ export class QueueManager {
     if (!task) return
 
     const newAttempts = task.attempts + 1
-    const shouldRetry = newAttempts < task.maxAttempts
+    const shouldRetry = retryable && newAttempts < task.maxAttempts
 
     // 计算重试延迟（指数退避）
     const retryDelay = shouldRetry
@@ -243,9 +256,12 @@ export class QueueManager {
         attempts: newAttempts,
         errorMessage: errorMessage || 'Unknown error',
         // 如果重试，设置延迟重试时间
-        ...(shouldRetry && retryDelay > 0
+        statusStage: null,
+        ...(shouldRetry
           ? {
-              createdAt: new Date(Date.now() + retryDelay),
+              availableAt: new Date(
+                Date.now() + retryDelay + Math.floor(Math.random() * 500),
+              ),
             }
           : {}),
       })
@@ -292,7 +308,7 @@ export class QueueManager {
             }
           }
           if (!storageObject) {
-            throw new Error(`Storage object not found`)
+            throw new PermanentTaskError(`Storage object not found`)
           }
 
           // STEP 1: 预处理 - 转换 HEIC 到 JPEG 并上传
@@ -530,7 +546,7 @@ export class QueueManager {
             this.logger.warn(
               `[${taskId}:reverse-geocoding] photo ${photoId} not found`,
             )
-            throw new Error(`Photo ${photoId} not found`)
+            throw new PermanentTaskError(`Photo ${photoId} not found`)
           }
 
           let latitude = payload.latitude ?? photo.latitude ?? undefined
@@ -570,7 +586,9 @@ export class QueueManager {
                 locationName: null,
               })
               .where(eq(tables.photos.id, photoId))
-            throw new Error(`Missing coordinates for photo ${photoId}`)
+            throw new PermanentTaskError(
+              `Missing coordinates for photo ${photoId}`,
+            )
           }
 
           const locationInfo = await extractLocationFromGPS(
@@ -629,16 +647,20 @@ export class QueueManager {
           .get()
 
         if (!photo) {
-          throw new Error(`Photo ${payload.photoId} not found`)
+          throw new PermanentTaskError(`Photo ${payload.photoId} not found`)
         }
 
         if (!photo.storageKey) {
-          throw new Error(`Photo ${payload.photoId} has no storage key`)
+          throw new PermanentTaskError(
+            `Photo ${payload.photoId} has no storage key`,
+          )
         }
 
         const originalBuffer = await storageProvider.get(photo.storageKey)
         if (!originalBuffer) {
-          throw new Error(`Photo file ${photo.storageKey} not found in storage`)
+          throw new PermanentTaskError(
+            `Photo file ${photo.storageKey} not found in storage`,
+          )
         }
 
         const tempRoot = tmpdir()
@@ -728,7 +750,7 @@ export class QueueManager {
             }
           }
           if (!storageObject) {
-            throw new Error(`Storage object not found`)
+            throw new PermanentTaskError(`Storage object not found`)
           }
 
           // 寻找是否有同名的照片文件
@@ -830,7 +852,7 @@ export class QueueManager {
             await this.processors.eraseLocation(task)
             break
           default:
-            throw new Error(`Unknown task type: ${type}`)
+            throw new PermanentTaskError(`Unknown task type: ${type}`)
         }
 
         await this.markTaskCompleted(task.id)
@@ -853,7 +875,11 @@ export class QueueManager {
       } catch (error) {
         const errorMessage =
           error instanceof Error ? error.message : String(error)
-        await this.markTaskFailed(task.id, errorMessage)
+        await this.markTaskFailed(
+          task.id,
+          errorMessage,
+          !(error instanceof PermanentTaskError),
+        )
         this.errorCount++
         this.logger.error(
           `[${this.workerId}] Task ${task.id} processing failed (Error: ${this.errorCount}):`,
@@ -875,29 +901,35 @@ export class QueueManager {
     if (this.processingInterval) return
 
     this.processingInterval = setInterval(() => {
-      this.processNextTask().catch((error) => {
-        this.logger.error('Error occurred while processing the queue:', error)
-      })
+      this.runTask()
     }, intervalMs)
 
     this.logger.success(
       `Queue processing started with interval: ${intervalMs}ms`,
     )
 
-    this.processNextTask().catch((error) => {
-      this.logger.error('Error occurred while processing the queue:', error)
-    })
+    this.runTask()
+  }
+
+  private runTask(): void {
+    if (this.activeTask) return
+    this.activeTask = this.processNextTask()
+      .catch((error) => this.logger.error('Error processing queue:', error))
+      .finally(() => {
+        this.activeTask = null
+      })
   }
 
   /**
    * 停止处理队列
    */
-  stopProcessing(): void {
+  async stopProcessing(): Promise<void> {
     if (this.processingInterval) {
       clearInterval(this.processingInterval)
       this.processingInterval = null
       this.logger.warn('Queue processing stopped')
     }
+    await this.activeTask
   }
 
   /**

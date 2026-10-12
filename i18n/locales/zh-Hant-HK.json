@@ -1178,7 +1178,14 @@
           }
         }
       },
-      "sectionDescription": "設定系統級行為參數。這裡的修改會影響全域上傳和服務行為。"
+      "sectionDescription": "設定系統級行為參數。這裡的修改會影響全域上傳和服務行為。",
+      "queue": {
+        "workerCount": {
+          "label": "佇列並行數",
+          "description": "同時處理的佇列工作數量。",
+          "help": "範圍 1–8，預設 5。儲存後立即生效；較低值可降低資源使用，減少並行數時已開始的工作會繼續完成。"
+        }
+      }
     },
     "map": {
       "provider": {
@@ -1832,6 +1839,10 @@
     "uploadLimit": {
       "title": "上傳大小限制",
       "description": "在這裏調整單個上傳文件的大小上限，單位為 MB。"
+    },
+    "queueConcurrency": {
+      "title": "佇列並行數",
+      "description": "在這裡設定同時處理圖片的佇列工作數量。可以視伺服器效能調整至合適的值。"
     },
     "duplicateCheck": {
       "title": "重複文件檢查",

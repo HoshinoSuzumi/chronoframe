@@ -89,46 +89,57 @@ export const photoAccessKeys = sqliteTable(
   ],
 )
 
-export const pipelineQueue = sqliteTable('pipeline_queue', {
-  id: integer('id').primaryKey({ autoIncrement: true }),
-  payload: text('payload', { mode: 'json' })
-    .$type<PipelineQueuePayload>()
-    .notNull()
-    .default({
-      type: 'photo',
-      storageKey: '',
-    } satisfies PipelineQueuePayload),
-  priority: integer('priority').default(0).notNull(),
-  attempts: integer('attempts').default(0).notNull(),
-  maxAttempts: integer('max_attempts').default(3).notNull(),
-  status: text('status', {
-    enum: [
-      'pending', // Waiting to be processed
-      'in-stages', // Currently being processed
-      'completed', // Successfully processed
-      'failed', // Processing failed
-    ],
-  })
-    .notNull()
-    .default('pending'),
-  statusStage: text('status_stage', {
-    enum: [
-      'preprocessing',
-      'metadata',
-      'thumbnail',
-      'exif',
-      'motion-photo',
-      'reverse-geocoding',
-      'live-photo',
-      'location-erase',
-    ],
-  }),
-  errorMessage: text('error_message'),
-  createdAt: integer('created_at', { mode: 'timestamp' })
-    .notNull()
-    .default(sql`(unixepoch())`),
-  completedAt: integer('completed_at', { mode: 'timestamp' }),
-})
+export const pipelineQueue = sqliteTable(
+  'pipeline_queue',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    payload: text('payload', { mode: 'json' })
+      .$type<PipelineQueuePayload>()
+      .notNull()
+      .default({
+        type: 'photo',
+        storageKey: '',
+      } satisfies PipelineQueuePayload),
+    priority: integer('priority').default(0).notNull(),
+    availableAt: integer('available_at', { mode: 'timestamp_ms' })
+      .notNull()
+      .default(sql`0`),
+    attempts: integer('attempts').default(0).notNull(),
+    maxAttempts: integer('max_attempts').default(3).notNull(),
+    status: text('status', {
+      enum: [
+        'pending', // Waiting to be processed
+        'in-stages', // Currently being processed
+        'completed', // Successfully processed
+        'failed', // Processing failed
+      ],
+    })
+      .notNull()
+      .default('pending'),
+    statusStage: text('status_stage', {
+      enum: [
+        'preprocessing',
+        'metadata',
+        'thumbnail',
+        'exif',
+        'motion-photo',
+        'reverse-geocoding',
+        'live-photo',
+        'location-erase',
+      ],
+    }),
+    errorMessage: text('error_message'),
+    createdAt: integer('created_at', { mode: 'timestamp' })
+      .notNull()
+      .default(sql`(unixepoch())`),
+    completedAt: integer('completed_at', { mode: 'timestamp' }),
+  },
+  (t) => [
+    index('idx_pipeline_queue_pending')
+      .on(sql`${t.priority} DESC`, t.createdAt, t.id)
+      .where(sql`${t.status} = 'pending'`),
+  ],
+)
 
 // 照片表态表
 export const photoReactions = sqliteTable('photo_reactions', {

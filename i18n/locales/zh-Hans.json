@@ -1253,7 +1253,14 @@
           }
         }
       },
-      "sectionDescription": "配置系统级行为参数。这里的修改会影响全局上传和服务行为。"
+      "sectionDescription": "配置系统级行为参数。这里的修改会影响全局上传和服务行为。",
+      "queue": {
+        "workerCount": {
+          "label": "队列并发数",
+          "description": "同时处理的队列任务数量。",
+          "help": "范围 1–8，默认 5。保存后立即生效；较低值可降低资源占用，减少并发时已开始的任务会继续完成。"
+        }
+      }
     },
     "map": {
       "provider": {
@@ -1832,6 +1839,10 @@
     "uploadLimit": {
       "title": "上传大小限制",
       "description": "在这里调整单个上传文件的大小上限，单位为 MB。"
+    },
+    "queueConcurrency": {
+      "title": "队列并发数",
+      "description": "在这里设置同时处理图片的队列任务数量。可以视服务器性能调整一个合适的值。"
     },
     "duplicateCheck": {
       "title": "重复文件检查",

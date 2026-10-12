@@ -114,7 +114,10 @@ export class OpenListStorageProvider implements StorageProvider {
       rootPath: this.normalizedRoot(),
     })
 
-    const meta = await this.getFileMeta(rootedKey)
+    const meta = await this.getFileMeta(rootedKey).catch((error) => {
+      this.logger?.warn('Uploaded object metadata lookup failed:', error)
+      return null
+    })
     return (
       meta || {
         key: rootedKey,
@@ -315,11 +318,16 @@ export class OpenListStorageProvider implements StorageProvider {
         status: resp.status,
         body: text,
       })
-      return null
+      if (resp.status === 404) return null
+      throw new Error(`OpenList metadata request failed: ${resp.status}`)
     }
 
     const data = (await resp.json().catch(() => null)) as any
-    if (!data) return { key }
+    if (!data) throw new Error('Invalid OpenList metadata response')
+    if (typeof data.code === 'number' && data.code !== 200) {
+      if (data.code === 404) return null
+      throw new Error(`OpenList metadata error: ${data.code}`)
+    }
     const node = data?.data || {}
     const size = node?.size
     const modified = node?.modified || node?.lastModified
