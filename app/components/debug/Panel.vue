@@ -373,8 +373,9 @@ onBeforeUnmount(() => {
             </div>
           </div>
         </section>
-        <section class="border-t border-default pt-3">
+        <section class="space-y-2 border-t border-default pt-3">
           <h3 class="text-xs font-semibold">{{ $t('debug.general') }}</h3>
+          <TourControls debug />
           <DebugControl
             v-for="control in globalControls"
             :key="control.key"

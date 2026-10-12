@@ -143,6 +143,7 @@ provide(
         <NuxtPage />
       </NuxtLayout>
       <ClientOnly>
+        <AdminTours />
         <component
           :is="DebugPanel"
           v-if="DebugPanel"

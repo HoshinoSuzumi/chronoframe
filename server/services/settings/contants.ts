@@ -1,3 +1,4 @@
+import { tourIds } from '~~/shared/types/tours'
 import type { SettingConfig } from '~~/shared/types/settings'
 import i18nOptions from '~~/i18n/i18n.options'
 
@@ -6,6 +7,15 @@ export const STORAGE_PROVIDERS = ['local', 's3', 'openlist'] as const
 export type StorageProvider = (typeof STORAGE_PROVIDERS)[number]
 
 export const DEFAULT_SETTINGS = [
+  ...tourIds.map((id) => ({
+    namespace: 'system' as const,
+    key: `tour.${id}` as const,
+    type: 'string' as const,
+    defaultValue: 'pending',
+    enum: ['pending', 'completed', 'skipped'],
+    hidden: true,
+    isReadonly: true,
+  })),
   // NAMESPACE: system
   {
     namespace: 'system',

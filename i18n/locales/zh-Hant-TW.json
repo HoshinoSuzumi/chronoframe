@@ -1733,5 +1733,137 @@
     "ogImage": "頁面 OG 圖",
     "openOgImage": "開啟 OG 圖",
     "ogImageError": "OG 圖載入失敗。"
+  },
+  "tours": {
+    "controlsTitle": "使用引導",
+    "reset": "重置所有引導",
+    "resetHelp": "重置後，再次進入相應頁面時將重新展示管理員引導。",
+    "saveError": "引導狀態儲存失敗，請重試",
+    "next": "下一步",
+    "previous": "上一步",
+    "done": "完成",
+    "skip": "跳過引導",
+    "status": {
+      "pending": "待引導",
+      "completed": "已完成",
+      "skipped": "已跳過"
+    },
+    "dashboard": {
+      "title": "照片統計",
+      "description": "這裡顯示照片總數，點選這張卡片可進入照片管理。旁邊還可以檢視本月新增照片和儲存使用情況。"
+    },
+    "photos": {
+      "title": "照片管理",
+      "description": "上傳照片、編輯資訊和調整可見性。上傳後可以在任務佇列檢視處理進度。"
+    },
+    "albums": {
+      "title": "相簿管理",
+      "description": "點選這裡建立相簿，填寫名稱和說明，並選擇封面及訪問保護。建立後可以新增照片。"
+    },
+    "general": {
+      "title": "網站基本設定",
+      "description": "在這裡修改網站標題，首頁和瀏覽器標籤頁會使用這個名稱。修改後點選本板塊的儲存設定。"
+    },
+    "storage": {
+      "title": "儲存設定",
+      "description": "在這裡選擇預設儲存方案，新上傳的照片會使用該方案。修改後記得儲存。"
+    },
+    "map": {
+      "title": "地圖設定",
+      "description": "在這裡選擇 Mapbox 或 MapLibre。下方會顯示所選服務商對應的地圖樣式和權杖設定。"
+    },
+    "location": {
+      "title": "地點解析",
+      "description": "在這裡選擇照片地點名稱解析時使用的語言，地圖顯示和地點解析可以分別設定。"
+    },
+    "privacy": {
+      "title": "隱私設定",
+      "description": "檢查上傳時是否自動刪除位置資訊，按需要保護照片拍攝地點。"
+    },
+    "system": {
+      "title": "系統設定",
+      "description": "設定檔案上傳、重複檢查和第三方登入。此頁的“重置所有引導”可以重新開啟各頁面引導。"
+    },
+    "home": {
+      "title": "歡迎來到網站首頁",
+      "description": "這是訪客瀏覽照片的首頁，可以篩選、排序和開啟照片詳情，也可以瀏覽相簿和地圖。"
+    },
+    "queueDetails": {
+      "title": "檢視處理進度",
+      "description": "點選這裡進入任務佇列，檢視上傳照片的處理進度和失敗任務，並重試需要處理的任務。"
+    },
+    "shareSite": {
+      "title": "分享網站",
+      "description": "點選這裡，向社群分享你剛架設好的 ChronoFrame 例項，讓更多人發現你的網站。"
+    },
+    "photoFilter": {
+      "title": "篩選照片型別",
+      "description": "在這裡切換全部照片、實況照片和普通照片，快速找到需要管理的內容。"
+    },
+    "albumActions": {
+      "title": "管理已有相簿",
+      "description": "使用這組按鈕調整相簿順序、編輯相簿資訊或刪除相簿。編輯時可設定封面和訪問保護。"
+    },
+    "avatar": {
+      "title": "設定網站頭像",
+      "description": "在這裡上傳或更換網站頭像，首頁會使用該頭像展示作者形象。"
+    },
+    "appearance": {
+      "title": "選擇外觀",
+      "description": "在這裡選擇淺色、深色或跟隨系統主題。"
+    },
+    "saveSettings": {
+      "title": "儲存設定",
+      "description": "修改設定後，點選對應板塊的儲存按鈕使更改生效。沒有修改時按鈕會保持禁用。"
+    },
+    "storageAdd": {
+      "title": "新增儲存方案",
+      "description": "點選這裡新增本地、S3 或 OpenList 儲存方案，填寫對應路徑和憑據後儲存。"
+    },
+    "mapStyle": {
+      "title": "設定地圖樣式",
+      "description": "在這裡填寫當前地圖服務商對應的樣式地址，控制地圖顯示效果。"
+    },
+    "mapToken": {
+      "title": "設定地圖權杖",
+      "description": "在這裡填寫所選地圖服務商需要的訪問權杖。權杖和樣式需要與服務商匹配。"
+    },
+    "locationService": {
+      "title": "設定地點解析服務",
+      "description": "在這裡設定 Nominatim 地址；也可在上方填寫 Mapbox Token 使用 Mapbox 地點解析服務。"
+    },
+    "githubLogin": {
+      "title": "第三方登入",
+      "description": "在這裡啟用 GitHub 登入，啟用後需要填寫對應的 OAuth Client ID 和 Client Secret。"
+    },
+    "uploadLimit": {
+      "title": "上傳大小限制",
+      "description": "在這裡調整單個上傳檔案的大小上限，單位為 MB。"
+    },
+    "duplicateCheck": {
+      "title": "重複檔案檢查",
+      "description": "在這裡開啟上傳重複檢查，並在下方選擇跳過、警告或阻止重複檔案的處理方式。"
+    },
+    "resetTours": {
+      "title": "重新開啟使用引導",
+      "description": "點選這裡可以重置所有頁面的引導記錄；之後再次進入相應頁面即可重新檢視。"
+    },
+    "photoUpload": {
+      "title": "上傳照片",
+      "description": "點選這個按鈕開啟上傳面板，選擇需要上傳的照片並開始上傳。"
+    },
+    "albumCreate": {
+      "title": "建立相簿",
+      "description": "點選這個按鈕開啟新增相簿表單，填寫名稱和說明，儲存後即可建立相簿。"
+    },
+    "homeAvatar": {
+      "title": "網站頭像與登入入口",
+      "description": "這是網站頭像。登出後，點選頭像即可進入登入頁面，也可以直接前往 /signin。"
+    },
+    "homeDashboard": {
+      "title": "進入儀錶板",
+      "description": "使用管理員帳號登入後，點選這個按鈕進入儀錶板，管理照片、相簿和網站設定。"
+    },
+    "debugTitle": "使用引導狀態"
   }
 }

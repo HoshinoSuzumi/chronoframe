@@ -549,6 +549,7 @@ const columns = computed<any[]>(() => [
           <UButton
             icon="tabler:plus"
             variant="soft"
+            data-tour="album-create"
             @click="openCreateSlideover"
           >
             {{ $t('dashboard.albums.createButton') }}
@@ -647,7 +648,10 @@ const columns = computed<any[]>(() => [
             </template>
 
             <template #actions-cell="{ row }">
-              <div class="flex gap-1">
+              <div
+                class="flex gap-1"
+                data-tour="album-actions"
+              >
                 <UButton
                   variant="ghost"
                   color="neutral"

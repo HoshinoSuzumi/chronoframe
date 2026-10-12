@@ -148,6 +148,7 @@ const isToggleField = computed(() => props.field.ui.type === 'toggle')
 <template>
   <div
     v-if="isToggleField"
+    :data-tour-setting="`${field.namespace}:${field.key}`"
     class="rounded-md border border-neutral-200 bg-neutral-50/50 px-4 py-3 dark:border-neutral-800 dark:bg-neutral-900/40"
   >
     <div class="flex items-start justify-between gap-6">
@@ -177,6 +178,7 @@ const isToggleField = computed(() => props.field.ui.type === 'toggle')
 
   <component
     :is="UFormField"
+    :data-tour-setting="`${field.namespace}:${field.key}`"
     v-else
     :name="field.key"
     :label="$t(labelKey)"

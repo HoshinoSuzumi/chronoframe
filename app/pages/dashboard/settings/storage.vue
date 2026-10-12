@@ -579,6 +579,7 @@ const resetStorageConfigForm = () => {
               }"
             >
               <USelectMenu
+                data-tour="storage-default"
                 v-model="storageSettingsState.storageConfigId"
                 :icon="
                   PROVIDER_ICON[
@@ -684,6 +685,7 @@ const resetStorageConfigForm = () => {
                 <UButton
                   size="sm"
                   variant="soft"
+                  data-tour="storage-add"
                   icon="tabler:plus"
                 >
                   {{ $t('settings.storage.actions.add') }}
