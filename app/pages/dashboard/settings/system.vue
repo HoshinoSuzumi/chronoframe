@@ -125,6 +125,7 @@ const handleSectionSettingsSubmit = async (
           </p>
         </section>
 
+        <TourControls />
         <template v-if="systemLoading && systemFieldSections.length === 0">
           <section
             v-for="index in 3"
