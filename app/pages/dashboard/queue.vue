@@ -269,10 +269,7 @@ const columns = computed<TableColumn<any>[]>(() => [
 ])
 
 // 自动刷新
-const refreshInterval = setInterval(refreshData, 10000) // 每10秒刷新一次
-onBeforeUnmount(() => {
-  clearInterval(refreshInterval)
-})
+useIntervalFn(refreshData, 10000) // 每10秒刷新一次
 </script>
 
 <template>

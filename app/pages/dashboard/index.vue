@@ -32,11 +32,7 @@ const refreshData = async () => {
   }
 }
 
-const refreshInterval = setInterval(refreshData, 5000)
-
-onBeforeUnmount(() => {
-  clearInterval(refreshInterval)
-})
+useIntervalFn(refreshData, 5000)
 
 const systemStatus = computed(() => {
   if (!dashboardStats.value) return 'unknown'
