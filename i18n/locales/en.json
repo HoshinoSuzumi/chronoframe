@@ -1840,6 +1840,10 @@
       "title": "Upload size limit",
       "description": "Set the maximum upload size per file in MB."
     },
+    "queueConcurrency": {
+      "title": "Queue concurrency",
+      "description": "Set the number of queue tasks that process images simultaneously here. Choose a suitable value based on your server’s performance."
+    },
     "duplicateCheck": {
       "title": "Duplicate checks",
       "description": "Enable duplicate checks and choose the handling mode below."

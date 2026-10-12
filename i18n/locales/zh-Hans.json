@@ -1840,6 +1840,10 @@
       "title": "上传大小限制",
       "description": "在这里调整单个上传文件的大小上限，单位为 MB。"
     },
+    "queueConcurrency": {
+      "title": "队列并发数",
+      "description": "在这里设置同时处理图片的队列任务数量。可以视服务器性能调整一个合适的值。"
+    },
     "duplicateCheck": {
       "title": "重复文件检查",
       "description": "在这里开启上传重复检查，并在下方选择跳过、警告或阻止重复文件的处理方式。"

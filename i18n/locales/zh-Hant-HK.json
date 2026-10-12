@@ -1840,6 +1840,10 @@
       "title": "上傳大小限制",
       "description": "在這裏調整單個上傳文件的大小上限，單位為 MB。"
     },
+    "queueConcurrency": {
+      "title": "佇列並行數",
+      "description": "在這裡設定同時處理圖片的佇列工作數量。可以視伺服器效能調整至合適的值。"
+    },
     "duplicateCheck": {
       "title": "重複文件檢查",
       "description": "在這裏開啓上傳重複檢查，並在下方選擇跳過、警告或阻止重複文件的處理方式。"
