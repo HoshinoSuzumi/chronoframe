@@ -1,0 +1,203 @@
+name: Publish Buildtest Images
+
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: Branch to build (defaults to the selected workflow branch)
+        type: string
+        required: false
+      tag:
+        description: Independent image tag (latest and nightly are reserved)
+        type: string
+        required: true
+        default: buildtest
+      publish_ghcr:
+        description: Publish to GitHub Container Registry
+        type: boolean
+        default: true
+      publish_dockerhub:
+        description: Publish to Docker Hub
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: buildtest-images-${{ inputs.tag }}
+  cancel-in-progress: false
+
+jobs:
+  prepare:
+    runs-on: ubuntu-24.04
+    outputs:
+      commit: ${{ steps.source.outputs.commit }}
+      images: ${{ steps.images.outputs.images }}
+    steps:
+      - name: Validate inputs
+        env:
+          IMAGE_TAG: ${{ inputs.tag }}
+          PUBLISH_GHCR: ${{ inputs.publish_ghcr }}
+          PUBLISH_DOCKERHUB: ${{ inputs.publish_dockerhub }}
+        run: |
+          set -euo pipefail
+          if [[ ! "$IMAGE_TAG" =~ ^[a-zA-Z0-9_][a-zA-Z0-9_.-]{0,121}$ ]]; then
+            echo "::error::Tag must be a valid Docker tag of at most 122 characters (leaving room for architecture suffixes)."
+            exit 1
+          fi
+          case "${IMAGE_TAG,,}" in
+            latest|nightly|latest-amd64|latest-arm64|nightly-amd64|nightly-arm64)
+              echo "::error::The latest and nightly tags and their architecture variants are reserved."
+              exit 1
+              ;;
+          esac
+          if [[ "$PUBLISH_GHCR" != true && "$PUBLISH_DOCKERHUB" != true ]]; then
+            echo "::error::Select at least one registry."
+            exit 1
+          fi
+
+      - name: Checkout requested branch
+        uses: actions/checkout@v7
+        with:
+          ref: refs/heads/${{ inputs.branch || github.ref_name }}
+          persist-credentials: false
+
+      - name: Resolve source commit
+        id: source
+        run: echo "commit=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: Resolve image names
+        id: images
+        env:
+          PUBLISH_GHCR: ${{ inputs.publish_ghcr }}
+          PUBLISH_DOCKERHUB: ${{ inputs.publish_dockerhub }}
+          GHCR_IMAGE: ghcr.io/${{ github.repository }}
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+          REPOSITORY_NAME: ${{ github.event.repository.name }}
+        run: |
+          set -euo pipefail
+          images=()
+          if [[ "$PUBLISH_GHCR" == true ]]; then
+            images+=("${GHCR_IMAGE,,}")
+          fi
+          if [[ "$PUBLISH_DOCKERHUB" == true ]]; then
+            if [[ -z "$DOCKERHUB_USERNAME" ]]; then
+              echo "::error::DOCKERHUB_USERNAME is required to publish to Docker Hub."
+              exit 1
+            fi
+            image="${DOCKERHUB_USERNAME}/${REPOSITORY_NAME}"
+            images+=("${image,,}")
+          fi
+          echo "images=${images[*]}" >> "$GITHUB_OUTPUT"
+
+  build-and-push:
+    needs: prepare
+    strategy:
+      matrix:
+        include:
+          - runner: ubuntu-24.04
+            arch: amd64
+          - runner: ubuntu-24.04-arm
+            arch: arm64
+    runs-on: ${{ matrix.runner }}
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout resolved commit
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.prepare.outputs.commit }}
+          persist-credentials: false
+
+      - name: Inject commit version into application
+        env:
+          SOURCE_COMMIT: ${{ needs.prepare.outputs.commit }}
+        run: |
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs'
+          const packagePath = 'package.json'
+          const pkg = JSON.parse(fs.readFileSync(packagePath, 'utf8'))
+          pkg.version = process.env.SOURCE_COMMIT.slice(-7)
+          fs.writeFileSync(packagePath, JSON.stringify(pkg, null, 2) + '\n')
+          console.log(`Application version: ${pkg.version}`)
+          NODE
+
+      - name: Log in to GitHub Container Registry
+        if: inputs.publish_ghcr
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Log in to Docker Hub
+        if: inputs.publish_dockerhub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and push independent image
+        env:
+          IMAGES: ${{ needs.prepare.outputs.images }}
+          IMAGE_TAG: ${{ inputs.tag }}
+          ARCH: ${{ matrix.arch }}
+        run: |
+          set -euo pipefail
+          read -r -a images <<< "$IMAGES"
+          tags=()
+          for image in "${images[@]}"; do
+            tags+=(--tag "${image}:${IMAGE_TAG}-${ARCH}")
+          done
+          docker build "${tags[@]}" .
+          for image in "${images[@]}"; do
+            docker push "${image}:${IMAGE_TAG}-${ARCH}"
+          done
+
+  manifest:
+    needs: [prepare, build-and-push]
+    runs-on: ubuntu-24.04
+    permissions:
+      packages: write
+    steps:
+      - name: Log in to GitHub Container Registry
+        if: inputs.publish_ghcr
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Log in to Docker Hub
+        if: inputs.publish_dockerhub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Publish independent multi-architecture manifests
+        env:
+          IMAGES: ${{ needs.prepare.outputs.images }}
+          IMAGE_TAG: ${{ inputs.tag }}
+          SOURCE_COMMIT: ${{ needs.prepare.outputs.commit }}
+        run: |
+          set -euo pipefail
+          read -r -a images <<< "$IMAGES"
+          {
+            echo "## Buildtest images"
+            echo ""
+            echo "Source commit: \`${SOURCE_COMMIT}\`"
+            echo "Application version: \`${SOURCE_COMMIT: -7}\`"
+            echo ""
+            echo "Platforms: \`linux/amd64\`, \`linux/arm64\`"
+            echo ""
+          } >> "$GITHUB_STEP_SUMMARY"
+          for image in "${images[@]}"; do
+            docker manifest create "${image}:${IMAGE_TAG}" \
+              "${image}:${IMAGE_TAG}-amd64" \
+              "${image}:${IMAGE_TAG}-arm64"
+            docker manifest push "${image}:${IMAGE_TAG}"
+            echo "- \`${image}:${IMAGE_TAG}\`" >> "$GITHUB_STEP_SUMMARY"
+          done
