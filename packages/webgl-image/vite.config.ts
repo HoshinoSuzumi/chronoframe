@@ -23,9 +23,9 @@ export default defineConfig({
   build: {
     lib: {
       entry: {
-        index: resolve(__dirname, 'src/index.ts'),
-        components: resolve(__dirname, 'src/components/index.ts'),
-        types: resolve(__dirname, 'src/types/index.ts'),
+        index: resolve(import.meta.dirname, 'src/index.ts'),
+        components: resolve(import.meta.dirname, 'src/components/index.ts'),
+        types: resolve(import.meta.dirname, 'src/types/index.ts'),
       },
       name: 'WebGLImageViewer',
       formats: ['es', 'cjs'],
@@ -35,15 +35,13 @@ export default defineConfig({
       },
     },
 
-    rollupOptions: {
+    rolldownOptions: {
       external: ['vue', '@vue/runtime-core', '@vue/shared'],
       output: {
         globals: {
           vue: 'Vue',
         },
         exports: 'named',
-        inlineDynamicImports: false,
-        manualChunks: undefined,
       },
     },
 
@@ -56,7 +54,7 @@ export default defineConfig({
 
   resolve: {
     alias: {
-      '@': resolve(__dirname, 'src'),
+      '@': resolve(import.meta.dirname, 'src'),
     },
   },
 
