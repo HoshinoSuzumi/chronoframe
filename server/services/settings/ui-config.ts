@@ -30,6 +30,21 @@ export const APP_SETTINGS_UI: Record<string, FieldUIConfig> = {
     placeholder: 'https://example.com/avatar.jpg',
     help: 'settings.app.avatarUrl.help',
   },
+  homeView: {
+    type: 'tabs',
+    options: [
+      {
+        label: 'settings.app.homeView.photos',
+        value: 'photos',
+        icon: 'tabler:photo',
+      },
+      {
+        label: 'settings.app.homeView.albums',
+        value: 'albums',
+        icon: 'tabler:folders',
+      },
+    ],
+  },
   'appearance.theme': {
     type: 'tabs',
     options: [

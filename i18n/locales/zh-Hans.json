@@ -179,6 +179,14 @@
     }
   },
   "album": {
+    "list": {
+      "loading": "正在加载相簿…",
+      "emptyTitle": "暂无可显示的相簿",
+      "emptyDescription": "请稍后再来查看。",
+      "errorTitle": "无法加载相簿",
+      "errorDescription": "出现问题，请重试。",
+      "retry": "重试"
+    },
     "passwordRequired": "此相簿需要密码",
     "passwordPlaceholder": "输入相簿密码",
     "incorrectPassword": "密码错误",
@@ -1187,6 +1195,12 @@
         "removeFailed": "头像移除失败",
         "invalidType": "请选择 PNG、JPEG、WebP 或 GIF 图片",
         "tooLarge": "图片大小必须小于 {size}MB"
+      },
+      "homeView": {
+        "label": "首页内容",
+        "description": "选择访客打开网站首页时看到的内容",
+        "photos": "照片墙",
+        "albums": "相册"
       },
       "appearance": {
         "theme": {

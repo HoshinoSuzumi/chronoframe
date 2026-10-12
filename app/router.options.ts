@@ -6,7 +6,11 @@ export default <RouterConfig>{
       return savedPosition
     }
 
-    if (from.path === '/' || to.name === 'slug') {
+    if (to.name === 'slug') {
+      return false
+    }
+
+    if (from.name === 'slug' && (to.path === '/photos' || to.path === '/')) {
       return false
     }
 

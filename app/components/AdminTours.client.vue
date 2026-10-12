@@ -5,11 +5,12 @@ const route = useRoute()
 const { user } = useUserSession()
 const { records, ready, busy, revision, load, update } = useTours()
 const settings = useSettingsStore()
+const { photoWallPath } = useHomeView()
 const { locale } = useI18n()
 let active: Driver | undefined
 let generation = 0
 const current = computed<TourId | undefined>(() => {
-  if (route.path === '/') return 'home'
+  if (route.path === photoWallPath.value) return 'home'
   if (route.path === '/dashboard') return 'dashboard'
   const name = route.path
     .replace('/dashboard/settings/', '')

@@ -4,6 +4,7 @@ import { motion } from 'motion-v'
 const route = useRoute()
 const router = useRouter()
 const dayjs = useDayjs()
+const { albumListPath } = useHomeView()
 
 const albumId = computed(() => {
   const id = route.params.albumId as string
@@ -184,7 +185,7 @@ const handleScroll = () => {
 }
 
 const goBackToAlbums = () => {
-  router.push('/albums')
+  router.push(albumListPath.value)
 }
 
 onMounted(() => {
@@ -202,7 +203,7 @@ useHead({
 </script>
 
 <template>
-  <div class="relative w-full">
+  <div class="relative min-h-screen w-full">
     <div
       v-if="pending && !isUnlocking"
       class="flex flex-col items-center justify-center min-h-[50vh] gap-4"

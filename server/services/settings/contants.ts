@@ -81,6 +81,16 @@ export const DEFAULT_SETTINGS = [
   },
   {
     namespace: 'app',
+    key: 'homeView',
+    type: 'string',
+    defaultValue: 'photos',
+    enum: ['photos', 'albums'],
+    label: 'settings.app.homeView.label',
+    description: 'settings.app.homeView.description',
+    isPublic: true,
+  },
+  {
+    namespace: 'app',
     key: 'appearance.theme',
     type: 'string',
     defaultValue: 'system',

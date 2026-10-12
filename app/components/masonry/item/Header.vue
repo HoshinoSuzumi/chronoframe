@@ -13,7 +13,6 @@ defineProps<{
 }>()
 
 const router = useRouter()
-// const config = useRuntimeConfig()
 const colorMode = useColorMode()
 
 const isDark = computed({
@@ -32,6 +31,7 @@ const handleOpenLogin = () => {
 const { hasActiveFilters, selectedCounts } = usePhotoFilters()
 
 const { currentSortIcon, currentSortOption } = usePhotoSort()
+const { albumListPath } = useHomeView()
 
 const totalSelectedFilters = computed(() => {
   return Object.values(selectedCounts.value).reduce(
@@ -131,7 +131,7 @@ const isRepoLinkHovering = ref(false)
                 class="bg-transparent rounded-full cursor-pointer"
                 icon="tabler:photo"
                 size="sm"
-                to="/albums"
+                :to="albumListPath"
               />
             </UTooltip>
             <UPopover>

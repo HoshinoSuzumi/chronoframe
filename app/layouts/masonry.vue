@@ -4,6 +4,25 @@ useHead({
 })
 
 const { photos } = usePhotos()
+const route = useRoute()
+const router = useRouter()
+const { clearAllFilters, toggleFilter } = usePhotoFilters()
+
+watch(
+  () => route.query.tag,
+  (tag) => {
+    if (typeof tag !== 'string' || !['/', '/photos'].includes(route.path))
+      return
+
+    clearAllFilters()
+    toggleFilter('tags', tag)
+    router.replace({
+      path: route.path,
+      query: { ...route.query, tag: undefined },
+    })
+  },
+  { immediate: true },
+)
 </script>
 
 <template>
