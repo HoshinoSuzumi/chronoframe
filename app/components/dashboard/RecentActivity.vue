@@ -27,13 +27,7 @@ const {
   refresh,
 } = await useFetch('/api/queue/recent')
 
-const refreshInterval = setInterval(() => {
-  refresh()
-}, 5000)
-
-onBeforeUnmount(() => {
-  clearInterval(refreshInterval)
-})
+useIntervalFn(refresh, 5000)
 
 const items = computed<ActivityItem[]>(
   () => (activityData.value?.tasks as ActivityItem[] | undefined) || [],
