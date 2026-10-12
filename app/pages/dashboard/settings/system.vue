@@ -105,7 +105,7 @@ const handleSectionSettingsSubmit = async (
 </script>
 
 <template>
-  <UDashboardPanel data-tour="page">
+  <UDashboardPanel>
     <template #header>
       <UDashboardNavbar :title="$t('title.systemSettings')" />
     </template>

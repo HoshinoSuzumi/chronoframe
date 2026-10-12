@@ -44,10 +44,7 @@ const isRepoLinkHovering = ref(false)
 </script>
 
 <template>
-  <div
-    class="w-full relative overflow-hidden"
-    data-tour="home-header"
-  >
+  <div class="w-full relative overflow-hidden">
     <div
       class="absolute inset-0 -z-10 blur-3xl scale-110 bg-cover bg-center opacity-35"
       :style="{

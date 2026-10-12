@@ -1781,14 +1781,6 @@
       "title": "Your gallery homepage",
       "description": "Visitors can browse, filter and sort photos, open photo details, and explore albums and maps."
     },
-    "login": {
-      "title": "How to sign in later",
-      "description": "After signing out, use the sign-in button in the homepage header, or visit /signin directly. Sign in with your administrator account to manage the site."
-    },
-    "adminEntry": {
-      "title": "Open administration",
-      "description": "Once signed in, use the dashboard button in the homepage header or visit /dashboard. The dashboard account menu lets you return to the gallery."
-    },
     "queueDetails": {
       "title": "Track processing",
       "description": "Open the task queue to track uploads, inspect failures and retry tasks."

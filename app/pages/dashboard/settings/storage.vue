@@ -525,7 +525,7 @@ const resetStorageConfigForm = () => {
 </script>
 
 <template>
-  <UDashboardPanel data-tour="page">
+  <UDashboardPanel>
     <template #header>
       <UDashboardNavbar :title="$t('title.storageSettings')" />
     </template>

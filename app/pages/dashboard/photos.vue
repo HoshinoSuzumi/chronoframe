@@ -2045,7 +2045,7 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <UDashboardPanel data-tour="page">
+  <UDashboardPanel>
     <template #header>
       <UDashboardNavbar :title="$t('dashboard.photos.toolbar.title')">
         <template #right>

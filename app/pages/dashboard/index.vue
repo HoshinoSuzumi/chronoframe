@@ -307,7 +307,7 @@ const onShareSite = () => {
 </script>
 
 <template>
-  <UDashboardPanel data-tour="page">
+  <UDashboardPanel>
     <template #header>
       <UDashboardNavbar :title="$t('dashboard.overview.title')" />
     </template>
