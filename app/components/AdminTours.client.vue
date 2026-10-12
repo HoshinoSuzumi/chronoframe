@@ -1,6 +1,5 @@
 <script setup lang="ts">
-import { driver, type Driver, type DriveStep } from 'driver.js'
-import 'driver.js/dist/driver.css'
+import type { Driver, DriveStep } from 'driver.js'
 import { tourIds, type TourId } from '~~/shared/types/tours'
 const route = useRoute()
 const { user } = useUserSession()
@@ -140,17 +139,18 @@ async function start() {
     ]
   })
   if (!steps.length) return
+  const [{ driver }] = await Promise.all([
+    import('driver.js'),
+    import('driver.js/dist/driver.css'),
+  ])
+  if (token !== generation) return
   let saving = false
   async function finish(status: 'completed' | 'skipped') {
     if (saving) return
     saving = true
-    const tour = active
-    const saved = await update(id as TourId, status)
-    saving = false
-    if (!saved) {
-      tour?.destroy()
-      if (active === tour) active = undefined
-    } else if (token === generation) stop()
+    // Dismiss immediately so a slow status request cannot block the page.
+    stop()
+    await update(id as TourId, status)
   }
   active = driver({
     steps,
