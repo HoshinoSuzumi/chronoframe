@@ -1200,7 +1200,7 @@
         "label": "首页内容",
         "description": "选择访客打开网站首页时看到的内容",
         "photos": "照片墙",
-        "albums": "相册"
+        "albums": "相簿"
       },
       "appearance": {
         "theme": {
