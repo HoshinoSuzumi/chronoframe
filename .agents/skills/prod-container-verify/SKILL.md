@@ -1,19 +1,26 @@
 ---
 name: prod-container-verify
-description: Reproduce, fix, and validate feature requests or bugs in a production-like Docker flow for ChronoFrame. Use when the agent should iterate via built images, run a minimal local container, complete onboarding/login in the browser, and verify behavior end-to-end before reporting results.
-argument-hint: Requirement or bug to verify in production-like container
+description: Build and run ChronoFrame in Docker for verification only when the user explicitly requests both building and runtime testing in a Docker environment. Do not use for routine development, debugging, or bug fixes; use the local development server, checking port 3000 first and starting pnpm run dev if it is not running.
 ---
 
 # Production-Like Container Verification (ChronoFrame)
 
-Use this skill when the user asks the agent to simulate production testing and validation, then iterate fixes end-to-end in Docker.
+Use this skill only when the user explicitly requests building and running tests in a Docker environment.
 
 ## When To Use
 
-- User asks to "simulate production" or "validate in a real container"
-- Bug is hard to trust via local dev server only
-- Feature acceptance requires onboarding, login, and browser validation
-- User explicitly wants all verification done from built images, not direct local run
+- The request must explicitly require both a Docker image build and runtime testing in Docker, such as "build and run in Docker to verify this fix".
+- A request to "simulate production", perform end-to-end/browser validation, develop a feature, debug, or fix a bug does not activate this skill unless it also explicitly requires Docker building and runtime testing.
+- Do not choose Docker verification solely because an issue is difficult to reproduce or requires onboarding/login.
+
+## Default For Routine Development
+
+For everyday development, debugging, bug fixes, and verification without the explicit Docker requirement, use the local development server:
+
+1. Check whether the development server is already listening on port `3000` (for example, `lsof -nP -iTCP:3000 -sTCP:LISTEN`).
+2. If it is running, reuse it at `http://localhost:3000`.
+3. If it is not running, start `pnpm run dev` from the repository root and wait until it is ready before browser verification.
+4. If another process occupies port `3000`, identify it before proceeding; do not stop it automatically or mistake it for the development server.
 
 ## Outcome
 
