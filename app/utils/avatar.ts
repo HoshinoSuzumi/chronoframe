@@ -1,6 +1,11 @@
 export const DEFAULT_AVATAR_URL = '/web-app-manifest-192x192.png'
 
-/** Uploaded avatars use a relative route, which HTML URL inputs reject. */
+/**
+ * Uploaded avatars use a relative route, which HTML URL inputs reject.
+ * Keep this pattern in sync with processAvatar() and getAvatarPublicUrl() in
+ * server/utils/avatar-store.ts. The upload endpoint in
+ * server/api/system/settings/avatar.post.ts saves that URL as app:avatarUrl.
+ */
 export function getAvatarInputType(
   value: string | null | undefined,
 ): 'text' | 'url' {
