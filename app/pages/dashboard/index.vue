@@ -34,16 +34,16 @@ const refreshData = async () => {
 
 useIntervalFn(refreshData, 5000)
 
+const memoryUsage = computed(() => {
+  const memory = dashboardStats.value?.memory
+  if (!memory || memory.total <= 0) return null
+  return Math.min(100, Math.max(0, (memory.used / memory.total) * 100))
+})
+
 const systemStatus = computed(() => {
-  if (!dashboardStats.value) return 'unknown'
-
-  const memoryUsage = dashboardStats.value.memory
-    ? (dashboardStats.value.memory.used / dashboardStats.value.memory.total) *
-      100
-    : 0
-
-  if (memoryUsage > 90) return 'critical'
-  if (memoryUsage > 70) return 'warning'
+  if (memoryUsage.value === null) return 'unknown'
+  if (memoryUsage.value > 90) return 'critical'
+  if (memoryUsage.value > 70) return 'warning'
   return 'healthy'
 })
 
@@ -309,13 +309,13 @@ const onShareSite = () => {
     </template>
 
     <template #body>
-      <div class="flex flex-col gap-6">
+      <div class="flex flex-col gap-4">
         <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
           <DashboardIndicator
             data-tour="dashboard-photos"
             :title="$t('dashboard.overview.indicator.totalPhotos')"
             icon="tabler:photo"
-            color="blue"
+            variant="subtle"
             :value="dashboardStats?.photos?.total || 0"
             clickable
             @click="$router.push('/dashboard/photos')"
@@ -323,14 +323,14 @@ const onShareSite = () => {
           <DashboardIndicator
             :title="$t('dashboard.overview.indicator.thisMonth')"
             icon="tabler:photo-plus"
-            color="green"
+            variant="subtle"
             :value="dashboardStats?.photos?.thisMonth || 0"
           />
           <DashboardIndicator
             data-tour="dashboard-queue"
             :title="$t('dashboard.overview.indicator.queueStatus.title')"
             icon="tabler:loader"
-            color="purple"
+            variant="subtle"
             :value="
               (dashboardStats?.workerPool?.activeWorkers || 0) > 0
                 ? $t('dashboard.overview.indicator.queueStatus.processing')
@@ -342,96 +342,10 @@ const onShareSite = () => {
           <DashboardIndicator
             :title="$t('dashboard.overview.indicator.storageUsage')"
             icon="tabler:database"
-            color="blue"
+            variant="subtle"
             :value="formatBytes(dashboardStats?.storage?.totalSize || 0)"
           />
         </div>
-
-        <!-- 运行信息 -->
-        <UCard>
-          <template #header>
-            <DashboardSectionHeader
-              :title="$t('dashboard.overview.section.runtimeInfo.title')"
-              icon="tabler:server"
-            />
-          </template>
-
-          <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div>
-              <p class="text-sm text-neutral-500 dark:text-neutral-400">
-                {{ $t('dashboard.overview.section.runtimeInfo.version') }}
-              </p>
-              <NuxtLink
-                class="text-lg font-bold hover:text-primary"
-                target="_blank"
-                external
-                :to="`https://github.com/HoshinoSuzumi/chronoframe/releases/tag/v${$config.public.VERSION}`"
-              >
-                v{{ $config.public.VERSION }}
-              </NuxtLink>
-            </div>
-            <div>
-              <p class="text-sm text-neutral-500 dark:text-neutral-400">
-                {{ $t('dashboard.overview.section.runtimeInfo.uptime') }}
-              </p>
-              <p class="text-lg font-bold">
-                {{
-                  dashboardStats?.uptime
-                    ? $dayjs
-                        .duration(dashboardStats.uptime, 'seconds')
-                        .humanize()
-                    : '-'
-                }}
-              </p>
-            </div>
-            <div>
-              <p class="text-sm text-neutral-500 dark:text-neutral-400">
-                {{ $t('dashboard.overview.section.runtimeInfo.environment') }}
-              </p>
-              <UBadge
-                :color="
-                  dashboardStats?.runningOn === 'docker' ? 'info' : 'success'
-                "
-                variant="soft"
-              >
-                {{
-                  $t(
-                    `dashboard.overview.section.runtimeInfo.systems.${dashboardStats?.runningOn || 'unknown'}`,
-                  )
-                }}
-              </UBadge>
-            </div>
-            <!-- <div>
-          <p class="text-sm text-neutral-500 dark:text-neutral-400">
-            {{ $t('dashboard.overview.section.runtimeInfo.lastUpdate') }}
-          </p>
-          <p class="text-lg font-bold">
-            <ClientOnly>
-              {{ $dayjs().fromNow() }}
-              <template #placeholder>--</template>
-            </ClientOnly>
-          </p>
-        </div> -->
-            <div>
-              <p class="text-sm text-neutral-500 dark:text-neutral-400">
-                {{ $t('dashboard.overview.shareSite.label') }}
-              </p>
-              <p class="text-lg font-bold">
-                <UButton
-                  external
-                  variant="subtle"
-                  size="xs"
-                  color="info"
-                  trailing-icon="tabler:external-link"
-                  data-tour="dashboard-share"
-                  @click="onShareSite"
-                >
-                  {{ $t('dashboard.overview.shareSite.button') }}
-                </UButton>
-              </p>
-            </div>
-          </div>
-        </UCard>
 
         <!-- 详细统计区域 -->
         <div class="grid grid-cols-1 items-start lg:grid-cols-5 gap-4">
@@ -519,66 +433,12 @@ const onShareSite = () => {
 
           <!-- 右侧：系统资源监控 -->
           <div class="min-w-0 lg:col-span-2 w-full space-y-4">
-            <!-- 内存使用 -->
-            <UCard>
-              <template #header>
-                <DashboardSectionHeader
-                  :title="$t('dashboard.overview.section.memory.title')"
-                  icon="tabler:cpu"
-                />
-              </template>
-
-              <div class="space-y-2">
-                <UProgress
-                  :model-value="
-                    dashboardStats?.memory
-                      ? Math.round(
-                          (dashboardStats.memory.used /
-                            dashboardStats.memory.total) *
-                            100,
-                        )
-                      : 0
-                  "
-                  :color="
-                    systemStatus === 'healthy'
-                      ? 'success'
-                      : systemStatus === 'warning'
-                        ? 'warning'
-                        : systemStatus === 'critical'
-                          ? 'error'
-                          : 'neutral'
-                  "
-                  class="w-full"
-                />
-                <div class="flex justify-between text-sm">
-                  <div class="text-xs text-neutral-500 dark:text-neutral-400">
-                    {{
-                      dashboardStats?.memory
-                        ? `${Math.round((dashboardStats.memory.used / 1024 / 1024 / 1024) * 100) / 100}GB / ${Math.round((dashboardStats.memory.total / 1024 / 1024 / 1024) * 100) / 100}GB`
-                        : $t('dashboard.overview.memoryUnavailable')
-                    }}
-                  </div>
-                  <span>
-                    {{
-                      dashboardStats?.memory
-                        ? Math.round(
-                            (dashboardStats.memory.used /
-                              dashboardStats.memory.total) *
-                              100,
-                          )
-                        : 0
-                    }}%
-                  </span>
-                </div>
-              </div>
-            </UCard>
-
-            <!-- 队列详情 -->
-            <UCard>
+            <!-- 系统状态 -->
+            <UCard class="@container">
               <template #header>
                 <DashboardSectionHeader
                   :title="$t('dashboard.overview.section.queue.title')"
-                  icon="tabler:list-check"
+                  icon="tabler:server"
                 >
                   <span class="flex items-center gap-1.5 text-xs text-muted">
                     <span
@@ -601,10 +461,10 @@ const onShareSite = () => {
               </template>
 
               <div
-                class="grid grid-cols-[100px_minmax(0,1fr)] overflow-hidden rounded-lg border border-default"
+                class="grid grid-cols-1 @min-[440px]:grid-cols-[100px_minmax(0,1fr)] overflow-hidden rounded-lg border border-default"
               >
                 <div
-                  class="flex flex-col items-center justify-center gap-1 border-r border-default bg-elevated/50 px-2 py-3"
+                  class="flex items-center justify-center gap-3 border-b border-default bg-elevated/50 px-3 py-3 @min-[440px]:flex-col @min-[440px]:gap-1 @min-[440px]:border-b-0 @min-[440px]:border-r"
                 >
                   <div class="relative h-12 w-20">
                     <svg
@@ -652,61 +512,68 @@ const onShareSite = () => {
                 </div>
                 <div class="grid min-w-0 grid-cols-2 gap-px bg-border">
                   <div
-                    class="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5 bg-default px-3 py-2.5"
+                    class="grid min-w-0 grid-cols-[auto_minmax(0,1fr)] items-center gap-x-2 gap-y-1 bg-default px-3 py-2.5 @min-[440px]:grid-cols-[auto_minmax(0,1fr)_auto]"
                   >
                     <UIcon
                       name="tabler:activity"
                       class="size-4 shrink-0 text-muted"
                     />
-                    <span class="min-w-0 flex-1 text-xs text-muted">{{
+                    <span class="min-w-0 break-words text-xs text-muted">{{
                       $t('dashboard.overview.section.queue.workers')
                     }}</span>
-                    <span class="text-base font-semibold tabular-nums">{{
-                      (queueDisplayStats?.workerPool?.activeWorkers || 0) +
-                      '/' +
-                      (queueDisplayStats?.workerPool?.totalWorkers || 0)
-                    }}</span>
+                    <span
+                      class="col-span-2 min-w-0 break-all text-base font-semibold tabular-nums @min-[440px]:col-span-1 @min-[440px]:text-right"
+                      >{{
+                        (queueDisplayStats?.workerPool?.activeWorkers || 0) +
+                        '/' +
+                        (queueDisplayStats?.workerPool?.totalWorkers || 0)
+                      }}</span
+                    >
                   </div>
                   <div
-                    class="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5 bg-default px-3 py-2.5"
+                    class="grid min-w-0 grid-cols-[auto_minmax(0,1fr)] items-center gap-x-2 gap-y-1 bg-default px-3 py-2.5 @min-[440px]:grid-cols-[auto_minmax(0,1fr)_auto]"
                   >
                     <UIcon
                       name="tabler:hourglass"
                       class="size-4 shrink-0 text-muted"
                     />
-                    <span class="min-w-0 flex-1 text-xs text-muted">{{
+                    <span class="min-w-0 break-words text-xs text-muted">{{
                       $t('dashboard.overview.section.queue.pending')
                     }}</span>
-                    <span class="text-base font-semibold tabular-nums">{{
-                      queueDisplayStats?.queue?.pending || 0
-                    }}</span>
+                    <span
+                      class="col-span-2 min-w-0 break-all text-base font-semibold tabular-nums @min-[440px]:col-span-1 @min-[440px]:text-right"
+                      >{{ queueDisplayStats?.queue?.pending || 0 }}</span
+                    >
                   </div>
                   <div
-                    class="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5 bg-default px-3 py-2.5"
+                    class="grid min-w-0 grid-cols-[auto_minmax(0,1fr)] items-center gap-x-2 gap-y-1 bg-default px-3 py-2.5 @min-[440px]:grid-cols-[auto_minmax(0,1fr)_auto]"
                   >
                     <UIcon
                       name="tabler:circle-check"
                       class="size-4 shrink-0 text-muted"
                     />
-                    <span class="min-w-0 flex-1 text-xs text-muted">{{
+                    <span class="min-w-0 break-words text-xs text-muted">{{
                       $t('dashboard.overview.section.queue.totalProcessed')
                     }}</span>
-                    <span class="text-base font-semibold tabular-nums">{{
-                      queueDisplayStats?.workerPool?.totalProcessed || 0
-                    }}</span>
+                    <span
+                      class="col-span-2 min-w-0 break-all text-base font-semibold tabular-nums @min-[440px]:col-span-1 @min-[440px]:text-right"
+                      >{{
+                        queueDisplayStats?.workerPool?.totalProcessed || 0
+                      }}</span
+                    >
                   </div>
                   <div
-                    class="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5 bg-default px-3 py-2.5"
+                    class="grid min-w-0 grid-cols-[auto_minmax(0,1fr)] items-center gap-x-2 gap-y-1 bg-default px-3 py-2.5 @min-[440px]:grid-cols-[auto_minmax(0,1fr)_auto]"
                   >
                     <UIcon
                       name="tabler:circle-x"
                       class="size-4 shrink-0 text-muted"
                     />
-                    <span class="min-w-0 flex-1 text-xs text-muted">{{
+                    <span class="min-w-0 break-words text-xs text-muted">{{
                       $t('dashboard.overview.section.queue.totalFailed')
                     }}</span>
                     <span
-                      class="text-base font-semibold tabular-nums"
+                      class="col-span-2 min-w-0 break-all text-base font-semibold tabular-nums @min-[440px]:col-span-1 @min-[440px]:text-right"
                       :class="{
                         'text-error':
                           (queueDisplayStats?.workerPool?.totalErrors || 0) > 0,
@@ -733,6 +600,139 @@ const onShareSite = () => {
                   class="ml-auto size-4 shrink-0"
                 />
               </NuxtLink>
+
+              <div
+                class="mt-4 space-y-2 rounded-lg border border-default bg-elevated/50 p-3"
+              >
+                <div class="flex items-center justify-between gap-3">
+                  <span class="flex items-center gap-2 text-xs text-muted">
+                    <UIcon
+                      name="tabler:cpu"
+                      class="size-4 shrink-0"
+                    />
+                    {{ $t('dashboard.overview.section.memory.title') }}
+                  </span>
+                  <span class="text-sm font-semibold tabular-nums">
+                    {{
+                      memoryUsage === null ? '—' : `${Math.round(memoryUsage)}%`
+                    }}
+                  </span>
+                </div>
+                <UProgress
+                  :model-value="memoryUsage ?? 0"
+                  :color="
+                    systemStatus === 'healthy'
+                      ? 'success'
+                      : systemStatus === 'warning'
+                        ? 'warning'
+                        : systemStatus === 'critical'
+                          ? 'error'
+                          : 'neutral'
+                  "
+                  class="w-full"
+                />
+                <p class="text-xs text-muted tabular-nums">
+                  {{
+                    memoryUsage === null
+                      ? $t('dashboard.overview.memoryUnavailable')
+                      : `${formatBytes(dashboardStats?.memory?.used || 0)} / ${formatBytes(dashboardStats?.memory?.total || 0)}`
+                  }}
+                </p>
+              </div>
+
+              <dl
+                class="mt-4 divide-y divide-default rounded-lg border border-default px-3"
+              >
+                <div class="flex items-center justify-between gap-3 py-3">
+                  <dt class="flex items-center gap-2 text-xs text-muted">
+                    <UIcon
+                      name="tabler:tag"
+                      class="size-4 shrink-0"
+                    />
+                    {{ $t('dashboard.overview.section.runtimeInfo.version') }}
+                  </dt>
+                  <dd class="min-w-0 text-xs">
+                    <NuxtLink
+                      class="flex items-center gap-1 hover:text-primary"
+                      target="_blank"
+                      external
+                      :to="`https://github.com/HoshinoSuzumi/chronoframe/releases/tag/v${$config.public.VERSION}`"
+                    >
+                      v{{ $config.public.VERSION }}
+                      <UIcon
+                        name="tabler:external-link"
+                        class="size-3.5 shrink-0 text-muted"
+                      />
+                    </NuxtLink>
+                  </dd>
+                </div>
+                <div class="flex items-center justify-between gap-3 py-3">
+                  <dt class="flex items-center gap-2 text-xs text-muted">
+                    <UIcon
+                      name="tabler:clock"
+                      class="size-4 shrink-0"
+                    />
+                    {{ $t('dashboard.overview.section.runtimeInfo.uptime') }}
+                  </dt>
+                  <dd class="text-right text-xs tabular-nums">
+                    {{
+                      dashboardStats?.uptime != null
+                        ? $dayjs
+                            .duration(dashboardStats.uptime, 'seconds')
+                            .humanize()
+                        : '—'
+                    }}
+                  </dd>
+                </div>
+                <div class="flex items-center justify-between gap-3 py-3">
+                  <dt class="flex items-center gap-2 text-xs text-muted">
+                    <UIcon
+                      name="tabler:server"
+                      class="size-4 shrink-0"
+                    />
+                    {{
+                      $t('dashboard.overview.section.runtimeInfo.environment')
+                    }}
+                  </dt>
+                  <dd class="text-right text-xs">
+                    {{
+                      $t(
+                        `dashboard.overview.section.runtimeInfo.systems.${dashboardStats?.runningOn || 'unknown'}`,
+                      )
+                    }}
+                  </dd>
+                </div>
+                <div class="flex items-start justify-between gap-3 py-3">
+                  <dt
+                    class="flex shrink-0 items-center gap-2 text-xs leading-5 text-muted"
+                  >
+                    <UIcon
+                      name="tabler:database"
+                      class="size-4 shrink-0"
+                    />
+                    {{ $t('settings.storage.form.typeLabel') }}
+                  </dt>
+                  <dd class="min-w-0 break-words text-right text-xs">
+                    {{
+                      dashboardStats?.storage?.activeProvider
+                        ? `${$t(`settings.storage.providers.${dashboardStats.storage.activeProvider.provider}`)}(${dashboardStats.storage.activeProvider.name})`
+                        : '—'
+                    }}
+                  </dd>
+                </div>
+              </dl>
+              <div class="mt-4 flex flex-wrap items-center justify-end gap-2">
+                <UButton
+                  variant="subtle"
+                  size="xs"
+                  color="neutral"
+                  trailing-icon="tabler:external-link"
+                  data-tour="dashboard-share"
+                  @click="onShareSite"
+                >
+                  {{ $t('dashboard.overview.shareSite.button') }}
+                </UButton>
+              </div>
             </UCard>
           </div>
         </div>

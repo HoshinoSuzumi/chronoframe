@@ -926,7 +926,7 @@
           "title": "メモリの使用"
         },
         "queue": {
-          "title": "キューステータス",
+          "title": "システム状態",
           "activeWorkers": "アクティブワーカー",
           "totalWorkers": "総 Workers",
           "totalProcessed": "処理",
@@ -963,7 +963,6 @@
         }
       },
       "shareSite": {
-        "label": "サイトを共有",
         "button": "サイトを共有"
       },
       "memoryUnavailable": "メモリ情報を取得できません"

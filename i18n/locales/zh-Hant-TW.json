@@ -926,7 +926,7 @@
           "title": "內存使用率"
         },
         "queue": {
-          "title": "隊列狀態",
+          "title": "系統狀態",
           "activeWorkers": "活躍 Workers",
           "totalWorkers": "總 Workers",
           "totalProcessed": "已處理",
@@ -963,7 +963,6 @@
         }
       },
       "shareSite": {
-        "label": "分享你的網站",
         "button": "分享你的網站"
       },
       "memoryUnavailable": "無法取得記憶體資訊"

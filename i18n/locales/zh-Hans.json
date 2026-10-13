@@ -1001,7 +1001,7 @@
           "title": "内存使用率"
         },
         "queue": {
-          "title": "队列状态",
+          "title": "系统状态",
           "activeWorkers": "活跃 Workers",
           "totalWorkers": "总 Workers",
           "totalProcessed": "已处理",
@@ -1038,7 +1038,6 @@
         }
       },
       "shareSite": {
-        "label": "分享你的站点",
         "button": "分享你的站点"
       },
       "memoryUnavailable": "无法获取内存信息"
