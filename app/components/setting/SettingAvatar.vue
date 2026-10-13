@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { settingsFieldCommitKey } from '~/composables/useSettingsForm'
+import { getAvatarInputType } from '~/utils/avatar'
 import {
   AVATAR_ALLOWED_MIME_TYPES,
   AVATAR_MAX_INPUT_BYTES,
@@ -186,7 +187,7 @@ const removeAvatar = async () => {
 
     <UInput
       v-model="urlValue"
-      type="url"
+      :type="getAvatarInputType(urlValue)"
       icon="tabler:link"
       class="w-full"
       :placeholder="placeholder"
