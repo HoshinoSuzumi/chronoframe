@@ -618,7 +618,7 @@ const onShareSite = () => {
                         stroke="currentColor"
                         stroke-width="7"
                         stroke-linecap="round"
-                        class="text-border"
+                        class="text-(--ui-border-accented)"
                       />
                       <path
                         v-if="hasQueueActivity && queueSuccessRate > 0"
