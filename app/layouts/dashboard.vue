@@ -166,7 +166,10 @@ const handleLogin = () => {
     </p>
     <UButton @click="handleLogin">{{ $t('auth.form.signin.title') }}</UButton>
   </div>
-  <UDashboardGroup v-else>
+  <UDashboardGroup
+    v-else
+    class="bg-default dark:bg-neutral-950"
+  >
     <UDashboardSidebar
       id="cframe-dashboard-sidebar"
       resizable
