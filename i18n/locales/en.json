@@ -1001,7 +1001,7 @@
           "title": "Memory Usage"
         },
         "queue": {
-          "title": "Queue Status",
+          "title": "System Status",
           "activeWorkers": "Active Workers",
           "totalWorkers": "Total Workers",
           "totalProcessed": "Processed",
@@ -1038,7 +1038,6 @@
         }
       },
       "shareSite": {
-        "label": "Share Your Site",
         "button": "Share Your Site"
       },
       "memoryUnavailable": "memory info not available"
