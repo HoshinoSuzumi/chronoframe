@@ -1363,7 +1363,20 @@
           "description": "用於訪問圖像嘅自訂 CDN URL"
         }
       },
-      "sectionDescription": "管理預設儲存方案與可用儲存提供者。此頁面的設定僅影響後續上傳檔案。",
+      "sectionDescription": "管理檔案的儲存位置。目前啟用方案的設定變更會在儲存後立即生效。",
+      "listDescription": "直接編輯方案，或將其他方案設為預設儲存。",
+      "active": "使用中",
+      "editActiveHint": "此方案使用中，設定變更會在儲存後立即生效。",
+      "advancedSettings": "進階設定",
+      "moreActions": "「{name}」的更多操作",
+      "empty": {
+        "title": "尚未設定儲存",
+        "description": "新增儲存方案以開始上傳照片。第一個方案會自動設為預設儲存。"
+      },
+      "discard": {
+        "title": "捨棄未儲存的變更？",
+        "description": "目前的變更尚未儲存，離開編輯器將捨棄這些變更。"
+      },
       "table": {
         "columns": {
           "name": "儲存名稱",
@@ -1391,6 +1404,7 @@
         "management": "儲存方案管理"
       },
       "form": {
+        "namePlaceholder": "例如：照片儲存",
         "isrequired": "此項為必填項",
         "schemeLabel": "儲存方案",
         "schemePlaceholder": "選擇儲存方案",
@@ -1399,6 +1413,7 @@
         "nameLabel": "儲存名稱"
       },
       "changeModal": {
+        "target": "將「{name}」設為預設儲存？",
         "title": "變更儲存方案",
         "alertTitle": "注意",
         "alertDescription": "變更儲存方案之後上傳的檔案將會儲存到新的儲存方案中，原方案中已有檔案不會被遷移。"
@@ -1412,6 +1427,10 @@
         "editTitle": "編輯儲存方案"
       },
       "actions": {
+        "discard": "捨棄變更",
+        "keepEditing": "繼續編輯",
+        "retry": "重試",
+        "activate": "設為預設",
         "add": "新增儲存",
         "create": "建立儲存",
         "edit": "編輯"

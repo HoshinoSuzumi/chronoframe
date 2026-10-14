@@ -1438,7 +1438,20 @@
           "description": "用于访问图像的自定义 CDN URL"
         }
       },
-      "sectionDescription": "管理默认存储方案与可用存储提供者。此页面的设置仅影响后续上传文件。",
+      "sectionDescription": "管理文件的存储位置。当前启用方案的配置修改会在保存后立即生效。",
+      "listDescription": "直接编辑方案，或将其他方案设为默认存储。",
+      "active": "正在使用",
+      "editActiveHint": "此方案正在使用，配置修改会在保存后立即生效。",
+      "advancedSettings": "高级设置",
+      "moreActions": "“{name}”的更多操作",
+      "empty": {
+        "title": "尚未配置存储",
+        "description": "添加存储方案以开始上传照片。首个方案会自动设为默认存储。"
+      },
+      "discard": {
+        "title": "放弃未保存的修改？",
+        "description": "当前修改尚未保存，离开编辑器将丢弃这些修改。"
+      },
       "table": {
         "columns": {
           "name": "存储名称",
@@ -1466,6 +1479,7 @@
         "management": "存储方案管理"
       },
       "form": {
+        "namePlaceholder": "例如：照片存储",
         "isrequired": "此项为必填项",
         "schemeLabel": "存储方案",
         "schemePlaceholder": "选择存储方案",
@@ -1474,6 +1488,7 @@
         "nameLabel": "存储名称"
       },
       "changeModal": {
+        "target": "将“{name}”设为默认存储？",
         "title": "变更存储方案",
         "alertTitle": "注意",
         "alertDescription": "变更存储方案之后上传的文件将会存储到新的存储方案中，原方案中已有文件不会被迁移。"
@@ -1487,6 +1502,10 @@
         "editTitle": "编辑存储方案"
       },
       "actions": {
+        "discard": "放弃修改",
+        "keepEditing": "继续编辑",
+        "retry": "重试",
+        "activate": "设为默认",
         "add": "添加存储",
         "create": "创建存储",
         "edit": "编辑"

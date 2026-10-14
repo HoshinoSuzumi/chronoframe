@@ -1438,7 +1438,20 @@
           "description": "Custom CDN URL for accessing images"
         }
       },
-      "sectionDescription": "Manage the default storage scheme and available storage providers. Settings on this page only affect subsequent file uploads.",
+      "sectionDescription": "Manage storage destinations. Saved changes to the active configuration take effect immediately.",
+      "listDescription": "Edit a configuration or set it as the default directly from this list.",
+      "active": "Active",
+      "editActiveHint": "Changes to this active configuration take effect when saved.",
+      "advancedSettings": "Advanced settings",
+      "moreActions": "More actions for {name}",
+      "empty": {
+        "title": "No storage configured",
+        "description": "Add a storage configuration to start uploading photos. The first configuration becomes the default automatically."
+      },
+      "discard": {
+        "title": "Discard unsaved changes?",
+        "description": "Your changes have not been saved. Discard them to leave this editor."
+      },
       "table": {
         "columns": {
           "name": "Storage Name",
@@ -1466,6 +1479,7 @@
         "management": "Storage Scheme Management"
       },
       "form": {
+        "namePlaceholder": "For example, Photo storage",
         "isrequired": "This field is required",
         "schemeLabel": "Storage Scheme",
         "schemePlaceholder": "Select a storage scheme",
@@ -1474,6 +1488,7 @@
         "nameLabel": "Storage Name"
       },
       "changeModal": {
+        "target": "Set “{name}” as the default storage?",
         "title": "Change Storage Scheme",
         "alertTitle": "Note",
         "alertDescription": "Files uploaded after changing the storage scheme will be stored in the new scheme. Files already in the original scheme will not be migrated."
@@ -1487,6 +1502,10 @@
         "editTitle": "Edit Storage Scheme"
       },
       "actions": {
+        "discard": "Discard changes",
+        "keepEditing": "Keep editing",
+        "retry": "Retry",
+        "activate": "Set as default",
         "add": "Add Storage",
         "create": "Create Storage",
         "edit": "Edit"
