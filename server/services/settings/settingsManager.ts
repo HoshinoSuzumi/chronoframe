@@ -362,13 +362,12 @@ export class SettingsManager {
             newProvider.config,
             loggerModule.logger.dynamic('storage'),
           )
-          setGlobalStorageManager(storageManager)
-
           if (newProvider.config.provider === 'local') {
             const fs = await import('node:fs/promises')
             await fs.mkdir(newProvider.config.basePath, { recursive: true })
           }
 
+          setGlobalStorageManager(storageManager)
           this._logger.info('Storage manager bootstrap completed')
           return
         } catch (bootstrapError) {
@@ -498,6 +497,17 @@ export class SettingsManager {
       providerConfig: Partial<NewSettingStorageProvider>,
     ): Promise<void> {
       const db = useDB()
+      const reloadActiveProvider =
+        !settingsManager.isInitializing_() &&
+        (await settingsManager.get<number>('storage', 'provider')) === id
+      const previousProvider = reloadActiveProvider
+        ? await this.getProviderById(id)
+        : null
+
+      if (reloadActiveProvider && !previousProvider) {
+        throw new Error(`Provider with ID ${id} not found`)
+      }
+
       db.update(tables.settings_storage_providers)
         .set({
           ...providerConfig,
@@ -507,11 +517,22 @@ export class SettingsManager {
 
       // Rebuild the active instance before saving completes so subsequent
       // requests use the updated configuration, including client credentials.
-      if (
-        !settingsManager.isInitializing_() &&
-        (await settingsManager.get<number>('storage', 'provider')) === id
-      ) {
-        await settingsManager.triggerStorageProviderSwitch(id)
+      if (previousProvider) {
+        try {
+          await settingsManager.triggerStorageProviderSwitch(id)
+        } catch (error) {
+          // Provider construction leaves the existing instance untouched on
+          // failure; restore its persisted configuration to match.
+          db.update(tables.settings_storage_providers)
+            .set({
+              name: previousProvider.name,
+              provider: previousProvider.provider,
+              config: previousProvider.config,
+            })
+            .where(eq(tables.settings_storage_providers.id, id))
+            .run()
+          throw error
+        }
       }
     },
 
