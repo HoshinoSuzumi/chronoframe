@@ -37,13 +37,23 @@ Open `http://localhost:3000`. A fresh installation opens the setup wizard; you d
 
 ## Complete the setup wizard
 
-1. **Administrator**: choose your email, username and password. Use these credentials to sign in later. Avoid the default password from older tutorials.
+1. **Administrator**: choose your email, username and password. Use these credentials to sign in later.
 2. **Site**: enter the gallery title, description, author and avatar.
 3. **Storage**: choose local storage, S3 or OpenList. For local storage, use `/app/data/storage` so photos are saved in the mounted data directory.
 4. **Map**: choose MapLibre or Mapbox and enter the service token and style. You can leave the token empty and add it in the dashboard later. Map views need a working map service.
 5. Review your choices and finish setup to enter the dashboard.
 
-For S3, prepare an endpoint, bucket, region, access key ID and secret access key, plus an optional CDN URL. For OpenList, prepare the service URL, root path and access token. Enter these in the wizard or dashboard, rather than environment variables.
+## Enter the dashboard
+
+After setup, open `/dashboard`. On your first visit to the dashboard, photo library and settings pages, a step-by-step tour points out uploads, queues and common settings. You can skip it and reset the tours later in **Site settings → System settings**.
+
+![Dashboard overview showing the photo library, queue and settings navigation alongside photo statistics and task status](/images/dashboard-overview.jpg)
+
+### Upload your first photo
+
+Open **Photos**, select files or drag them into the upload area. Background tasks continue extracting EXIF, creating thumbnails and identifying places after transfer finishes. Check completion in **Queue management**, then open the gallery. Failed tasks show an error and can be retried.
+
+Local storage is ready to use. The service guides explain S3 credentials and CORS, OpenList URLs and tokens, and map API keys. Enter these in the dashboard, without converting them into environment variables.
 
 ## Keep your data
 

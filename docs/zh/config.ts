@@ -25,6 +25,13 @@ export default defineConfig({
         ],
       },
       {
+        text: '服务接入',
+        items: [
+          { text: '存储方案', link: '/zh/configuration/storage-providers' },
+          { text: '地图和位置', link: '/zh/configuration/map-providers' },
+        ],
+      },
+      {
         text: '开发',
         items: [
           { text: '贡献指南', link: '/zh/development/contributing' },

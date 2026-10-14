@@ -36,6 +36,8 @@ Site details, maps, location services, storage and upload limits can be edited i
 | Privacy   | Automatically remove location data from new uploads                  |
 | Analytics | Custom tracking scripts inserted into the page head or body          |
 
+For provider selection, credentials and CORS, see [Storage schemes](/configuration/storage-providers). For tokens and styles, see [Maps and locations](/configuration/map-providers).
+
 Map settings control display; location settings convert GPS coordinates into place names. After changing the place-name language, reindex existing locations to update names already saved in the database.
 
 Before switching storage schemes, make sure existing photos remain accessible. Selecting a scheme does not automatically move originals to the new storage. Local paths must be inside a mounted directory to survive container replacement.

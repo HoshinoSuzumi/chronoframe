@@ -1,5 +1,3 @@
-# 旧配置文档
+# 位置服务
 
-此页已归档。新部署请使用[设置向导](/zh/guide/getting-started)，已有实例的设置可在后台修改。
-
-[查看历史文档](/zh/legacy/configuration/location-providers)
+位置服务与地图配置在同一个后台页面管理。请查看[地图和位置](/zh/configuration/map-providers#地点识别)，了解地名语言、Mapbox 反向地理编码和 Nominatim 的设置。

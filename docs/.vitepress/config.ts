@@ -54,6 +54,13 @@ export default defineConfig({
         ],
       },
       {
+        text: 'Services',
+        items: [
+          { text: 'Storage schemes', link: '/configuration/storage-providers' },
+          { text: 'Maps and locations', link: '/configuration/map-providers' },
+        ],
+      },
+      {
         text: 'Development',
         items: [
           { text: 'Contributing', link: '/development/contributing' },
