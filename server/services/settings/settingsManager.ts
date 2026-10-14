@@ -349,8 +349,7 @@ export class SettingsManager {
 
       const newProvider = await this.storage.getProviderById(providerId)
       if (!newProvider) {
-        this._logger.error(`Provider with ID ${providerId} not found`)
-        return
+        throw new Error(`Provider with ID ${providerId} not found`)
       }
 
       let storageManager = getGlobalStorageManager()
@@ -363,13 +362,12 @@ export class SettingsManager {
             newProvider.config,
             loggerModule.logger.dynamic('storage'),
           )
-          setGlobalStorageManager(storageManager)
-
           if (newProvider.config.provider === 'local') {
             const fs = await import('node:fs/promises')
             await fs.mkdir(newProvider.config.basePath, { recursive: true })
           }
 
+          setGlobalStorageManager(storageManager)
           this._logger.info('Storage manager bootstrap completed')
           return
         } catch (bootstrapError) {
@@ -377,7 +375,7 @@ export class SettingsManager {
             'Failed to bootstrap storage manager with new provider:',
             bootstrapError,
           )
-          return
+          throw bootstrapError
         }
       }
 
@@ -391,6 +389,7 @@ export class SettingsManager {
       )
     } catch (error) {
       this._logger.error('Failed to switch storage provider:', error)
+      throw error
     }
   }
 
@@ -495,15 +494,53 @@ export class SettingsManager {
 
     async updateProvider(
       id: number,
-      providerConfig: Partial<NewSettingStorageProvider['config']>,
+      providerConfig: Partial<NewSettingStorageProvider>,
     ): Promise<void> {
       const db = useDB()
+      const reloadActiveProvider =
+        !settingsManager.isInitializing_() &&
+        (await settingsManager.get<number>('storage', 'provider')) === id
+      const previousProvider = reloadActiveProvider
+        ? await this.getProviderById(id)
+        : null
+
+      if (reloadActiveProvider && !previousProvider) {
+        throw new Error(`Provider with ID ${id} not found`)
+      }
+
       db.update(tables.settings_storage_providers)
         .set({
           ...providerConfig,
         })
         .where(eq(tables.settings_storage_providers.id, id))
         .run()
+
+      // Rebuild the active instance before saving completes so subsequent
+      // requests use the updated configuration, including client credentials.
+      if (previousProvider) {
+        try {
+          await settingsManager.triggerStorageProviderSwitch(id)
+        } catch (error) {
+          // Provider construction leaves the existing instance untouched on
+          // failure; restore its persisted configuration to match.
+          try {
+            db.update(tables.settings_storage_providers)
+              .set({
+                name: previousProvider.name,
+                provider: previousProvider.provider,
+                config: previousProvider.config,
+              })
+              .where(eq(tables.settings_storage_providers.id, id))
+              .run()
+          } catch (rollbackError) {
+            settingsManager._logger.error(
+              'Failed to roll back storage provider record:',
+              rollbackError,
+            )
+          }
+          throw error
+        }
+      }
     },
 
     async deleteProvider(id: number): Promise<void> {
