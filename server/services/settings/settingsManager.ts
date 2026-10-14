@@ -349,8 +349,7 @@ export class SettingsManager {
 
       const newProvider = await this.storage.getProviderById(providerId)
       if (!newProvider) {
-        this._logger.error(`Provider with ID ${providerId} not found`)
-        return
+        throw new Error(`Provider with ID ${providerId} not found`)
       }
 
       let storageManager = getGlobalStorageManager()
@@ -377,7 +376,7 @@ export class SettingsManager {
             'Failed to bootstrap storage manager with new provider:',
             bootstrapError,
           )
-          return
+          throw bootstrapError
         }
       }
 
@@ -391,6 +390,7 @@ export class SettingsManager {
       )
     } catch (error) {
       this._logger.error('Failed to switch storage provider:', error)
+      throw error
     }
   }
 
@@ -495,7 +495,7 @@ export class SettingsManager {
 
     async updateProvider(
       id: number,
-      providerConfig: Partial<NewSettingStorageProvider['config']>,
+      providerConfig: Partial<NewSettingStorageProvider>,
     ): Promise<void> {
       const db = useDB()
       db.update(tables.settings_storage_providers)
@@ -504,6 +504,15 @@ export class SettingsManager {
         })
         .where(eq(tables.settings_storage_providers.id, id))
         .run()
+
+      // Rebuild the active instance before saving completes so subsequent
+      // requests use the updated configuration, including client credentials.
+      if (
+        !settingsManager.isInitializing_() &&
+        (await settingsManager.get<number>('storage', 'provider')) === id
+      ) {
+        await settingsManager.triggerStorageProviderSwitch(id)
+      }
     },
 
     async deleteProvider(id: number): Promise<void> {
