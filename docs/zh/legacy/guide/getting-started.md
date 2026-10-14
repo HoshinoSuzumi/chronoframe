@@ -56,7 +56,7 @@ docker pull hoshinosuzumi/chronoframe:latest
 CFRAME_ADMIN_EMAIL=
 # 管理员用户名（可选，默认 ChronoFrame）
 CFRAME_ADMIN_NAME=
-# 管理员密码（可选，默认 CF1234@!）
+# 管理员密码（创建首个管理员前必须设置独有密码）
 CFRAME_ADMIN_PASSWORD=
 
 # 站点信息（均可选）
@@ -79,6 +79,8 @@ NUXT_PROVIDER_LOCAL_PATH=/app/data/storage
 # 会话密码（必须，32 位随机字符串）
 NUXT_SESSION_PASSWORD=
 ```
+
+如果已有账号使用旧版内置密码，请立即在后台修改密码；仅修改 `CFRAME_ADMIN_PASSWORD` 不会更新已有账号。
 
 若选择使用 S3，请将存储部分替换为：
 

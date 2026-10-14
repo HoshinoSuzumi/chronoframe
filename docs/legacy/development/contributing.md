@@ -23,12 +23,14 @@ This document will guide you through setting up the ChronoFrame development envi
 
 ### 1. Clone Repository
 
+Fork the repository on GitHub, then replace `YOUR_USERNAME` below with your username.
+
 ```bash
 # Using HTTPS
-git clone https://github.com/HoshinoSuzumi/chronoframe.git
+git clone https://github.com/YOUR_USERNAME/chronoframe.git
 
 # Or using SSH
-git clone git@github.com:HoshinoSuzumi/chronoframe.git
+git clone git@github.com:YOUR_USERNAME/chronoframe.git
 
 # Enter project directory
 cd chronoframe

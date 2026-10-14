@@ -204,5 +204,5 @@ NUXT_PROVIDER_OPENLIST_TOKEN=your-static-token
 :::
 
 :::details 可以上传但无法访问图片，控制台提示 `Access to fetch at '...' from origin '...' has been blocked by CORS policy`
-存储桶 CORS 配置错误，参考 [CORS 设置](#CORS-设置) 进行配置。
+存储桶 CORS 配置错误，参考 [CORS 设置](#cors-设置) 进行配置。
 :::

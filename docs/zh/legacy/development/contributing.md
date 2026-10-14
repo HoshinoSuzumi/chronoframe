@@ -23,12 +23,14 @@ search: false
 
 ### 1. 克隆代码库
 
+先在 GitHub 上 Fork 仓库，将下方的 `YOUR_USERNAME` 替换为您的用户名。
+
 ```bash
 # 使用 HTTPS
-git clone https://github.com/HoshinoSuzumi/chronoframe.git
+git clone https://github.com/YOUR_USERNAME/chronoframe.git
 
 # 或使用 SSH
-git clone git@github.com:HoshinoSuzumi/chronoframe.git
+git clone git@github.com:YOUR_USERNAME/chronoframe.git
 
 # 进入项目目录
 cd chronoframe

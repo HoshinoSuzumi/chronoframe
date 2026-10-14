@@ -13,13 +13,17 @@ export default defineTask({
     if (users.length > 0) {
       log.info('User already exists, skipping seeding.')
     } else {
+      const password = process.env.CFRAME_ADMIN_PASSWORD
+      if (!password?.trim() || password === 'CF1234@!') {
+        throw new Error(
+          'Set CFRAME_ADMIN_PASSWORD to a unique password before creating the first administrator.',
+        )
+      }
       log.info('No users found, creating default admin user...')
       await db.insert(tables.users).values({
         username: process.env.CFRAME_ADMIN_NAME || 'chronoframe',
         email: process.env.CFRAME_ADMIN_EMAIL || 'admin@chronoframe.com',
-        password: await hashPassword(
-          process.env.CFRAME_ADMIN_PASSWORD || 'CF1234@!',
-        ),
+        password: await hashPassword(password),
         createdAt: new Date(),
         isAdmin: 1,
       })

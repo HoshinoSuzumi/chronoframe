@@ -2,7 +2,7 @@
 
 Contributions to code, documentation and translations are welcome. The detailed guide is available in [English](https://chronoframe.bh8.ga/development/contributing) and [简体中文](https://chronoframe.bh8.ga/zh/development/contributing).
 
-Use Node.js 22, matching the Docker build, and the project's pinned pnpm 10.34.1. This repository contains workspace packages; install dependencies with pnpm.
+Use Node.js 22, matching the Docker build, and the project's pinned pnpm 10.34.6. This repository contains workspace packages; install dependencies with pnpm.
 
 ## Run locally
 

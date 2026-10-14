@@ -17,11 +17,11 @@ ChronoFrame 支持两种地图提供器，您可以根据需求选择合适的�
 
 ## MapLibre
 
-要使用 MapLibre 作为地图提供器，您需要一个 [MapTiler 访问令牌](https://cloud.maptiler.com/account/keys/)。
+使用 MapLibre 的内置 MapTiler 样式时，您需要一个 [MapTiler 访问令牌](https://cloud.maptiler.com/account/keys/)。
 
 ```bash
 NUXT_PUBLIC_MAP_PROVIDER=maplibre
-NUXT_PUBLIC_MAP_MAPLIBRE_TOKEN=your_maplibre_access_token
+NUXT_PUBLIC_MAP_MAPLIBRE_TOKEN=your_maptiler_api_key
 ```
 
 ### 自定义样式

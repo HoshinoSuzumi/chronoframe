@@ -16,13 +16,14 @@ search: false
 | ---------------------------------------- | ------------------------------------------------------------------------------ | ------------------------------------- | --------------------------------------------------------------------- |
 | CFRAME_ADMIN_EMAIL                       | 初始管理员用户的邮箱                                                           | `admin@chronoframe.com`               | 是                                                                    |
 | CFRAME_ADMIN_NAME                        | 初始管理员用户的用户名                                                         | `Chronoframe`                         | 否                                                                    |
-| CFRAME_ADMIN_PASSWORD                    | 初始管理员用户的密码                                                           | `CF1234@!`                            | 否                                                                    |
+| CFRAME_ADMIN_PASSWORD                    | 初始管理员用户的密码，必须设置独有密码                                         | 无                                    | 创建首个管理员时必需                                                  |
 | NUXT_PUBLIC_APP_TITLE                    | 应用标题                                                                       | `ChronoFrame`                         | 否                                                                    |
 | NUXT_PUBLIC_APP_SLOGAN                   | 应用口号                                                                       | 无                                    | 否                                                                    |
 | NUXT_PUBLIC_APP_AUTHOR                   | 应用作者                                                                       | 无                                    | 否                                                                    |
 | NUXT_PUBLIC_APP_AVATAR_URL               | 外部应用头像 URL（也可在后台上传头像，存储在已配置的存储提供商中）             | 无                                    | 否                                                                    |
 | NUXT_PUBLIC_COLOR_MODE_PREFERENCE        | 颜色模式偏好，可选 `light`、`dark`、`system`                                   | system                                | 否                                                                    |
 | NUXT_PUBLIC_MAP_PROVIDER                 | 地图提供者，可选 `mapbox`、`maplibre`                                          | `maplibre`                            | 否                                                                    |
+| NUXT_PUBLIC_MAP_MAPLIBRE_TOKEN           | MapLibre 内置 MapTiler 样式使用的 MapTiler API 令牌                            | 无                                    | 使用 `maplibre` 且未配置自定义样式时必需                              |
 | NUXT_PUBLIC_MAPBOX_ACCESS_TOKEN          | Mapbox 访问令牌(可限制 URL)，用于地图服务                                      | 无                                    | 当 `NUXT_PUBLIC_MAP_PROVIDER` 为 `mapbox` 时必需                      |
 | NUXT_NOMINATIM_BASE_URL                  | Nominatim 反向地理编码服务的基础 URL                                           | `https://nominatim.openstreetmap.org` | 否                                                                    |
 | NUXT_MAPBOX_ACCESS_TOKEN                 | Mapbox 访问令牌(无 URL 限制)，用于位置信息服务                                 | 无                                    | 否                                                                    |
@@ -58,6 +59,8 @@ search: false
 | NUXT_UPLOAD_MIME_WHITELIST_ENABLED       | 是否启用上传文件 MIME 类型白名单验证                                           | `true`                                | 否                                                                    |
 | NUXT_UPLOAD_MIME_WHITELIST               | 上传文件允许的 MIME 类型列表（逗号分隔）                                       | 见下方说明                            | 否                                                                    |
 | ALLOW_INSECURE_COOKIE                    | 是否允许非安全 Cookie（仅在开发环境使用）                                      | `false`                               | 否                                                                    |
+
+创建首个管理员前，必须设置独有的 `CFRAME_ADMIN_PASSWORD`。如果已有账号使用旧版内置密码，请立即在后台修改密码；仅修改环境变量不会更新已有账号。
 
 ## 上传文件类型白名单
 

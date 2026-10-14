@@ -4,7 +4,7 @@
 
 ## v1.0.0
 
-[升级指南](/zh/guide/updates) · [自 v0.14.1 起的代码变更](https://github.com/HoshinoSuzumi/chronoframe/compare/v0.14.1...main)
+[升级指南](/zh/guide/updates) · [自 v0.14.1 起的代码变更](https://github.com/HoshinoSuzumi/chronoframe/compare/v0.14.1...v1.0.0)
 
 ### 新功能
 

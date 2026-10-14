@@ -4,7 +4,7 @@ Changes grouped by stable version. 1.0.0 includes all changes since v0.14.1, wit
 
 ## v1.0.0
 
-[Upgrade guide](/guide/updates) · [Changes since v0.14.1](https://github.com/HoshinoSuzumi/chronoframe/compare/v0.14.1...main)
+[Upgrade guide](/guide/updates) · [Changes since v0.14.1](https://github.com/HoshinoSuzumi/chronoframe/compare/v0.14.1...v1.0.0)
 
 ### Features
 

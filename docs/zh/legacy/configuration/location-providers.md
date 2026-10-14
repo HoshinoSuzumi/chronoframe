@@ -8,7 +8,7 @@ search: false
 
 # 位置提供器
 
-位置提供器在处理照片的过程中，将照片的经纬度信息转换为人类可读的城市或国家名称，这一过程成为逆向地理编码（Reverse Geocoding）。
+位置提供器在处理照片的过程中，将照片的经纬度信息转换为人类可读的城市或国家名称，这一过程称为逆向地理编码（Reverse Geocoding）。
 
 默认情况下，您不需要进行任何配置，ChronoFrame 会使用 OpenStreetMap Nominatim 作为默认的位置提供器。
 

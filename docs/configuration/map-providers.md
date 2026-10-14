@@ -4,10 +4,10 @@ Open **Site settings → Maps and locations**. Map display and place-name lookup
 
 ## Choose a map service
 
-| Option   | Renderer                   | Default map data | Required credential        |
-| -------- | -------------------------- | ---------------- | -------------------------- |
-| MapLibre | Open-source MapLibre GL JS | MapTiler         | MapTiler API key           |
-| Mapbox   | Mapbox GL JS               | Mapbox           | Mapbox public access token |
+| Option   | Renderer                   | Default map data | Required credential                     |
+| -------- | -------------------------- | ---------------- | --------------------------------------- |
+| MapLibre | Open-source MapLibre GL JS | MapTiler         | MapTiler API key for the built-in style |
+| Mapbox   | Mapbox GL JS               | Mapbox           | Mapbox public access token              |
 
 MapLibre is the renderer; MapTiler supplies map data. The built-in MapLibre style follows the site's light/dark theme. A custom style overrides it. Check each provider's current terms, allowances and pricing.
 
@@ -63,6 +63,6 @@ MapLibre can display maps while Mapbox or Nominatim identifies places. Troublesh
 
 ## Configure later and troubleshoot
 
-You can skip the token during setup and add it here later. Uploads and photo management still work; map views indicate that setup is missing.
+You can skip the token during setup and add it here later. Uploads and photo management still work. MapLibre views indicate that setup is missing only when neither a token nor a custom style is configured; the built-in MapTiler style requires a key.
 
 For blank maps or 401 / 403 responses, check the provider, token, current URL restrictions and access to styles, tiles and fonts. Update origin restrictions when moving from localhost to a public domain.

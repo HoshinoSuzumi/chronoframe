@@ -56,7 +56,7 @@ Below is the minimal configuration for running with local storage. For the compl
 CFRAME_ADMIN_EMAIL=
 # Admin username (optional, default Chronoframe)
 CFRAME_ADMIN_NAME=
-# Admin password (optional, default CF1234@!)
+# Admin password (required: set a unique password before creating the first administrator)
 CFRAME_ADMIN_PASSWORD=
 
 # Site metadata (all optional)
@@ -79,6 +79,8 @@ NUXT_PROVIDER_LOCAL_PATH=/app/data/storage
 # Session password (32‑char random string, required)
 NUXT_SESSION_PASSWORD=
 ```
+
+If an existing account uses the former built-in password, rotate it immediately in the dashboard; changing `CFRAME_ADMIN_PASSWORD` alone does not update existing accounts.
 
 If you want to use S3 instead of local storage, replace the storage section with:
 
