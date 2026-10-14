@@ -493,6 +493,7 @@ const confirmStorageDelete = async () => {
   if (
     storageId == null ||
     isDeletingStorage.value ||
+    currentStorageProvider.value == null ||
     storageId === activeStorage.value?.id
   )
     return
