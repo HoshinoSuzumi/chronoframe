@@ -523,14 +523,21 @@ export class SettingsManager {
         } catch (error) {
           // Provider construction leaves the existing instance untouched on
           // failure; restore its persisted configuration to match.
-          db.update(tables.settings_storage_providers)
-            .set({
-              name: previousProvider.name,
-              provider: previousProvider.provider,
-              config: previousProvider.config,
-            })
-            .where(eq(tables.settings_storage_providers.id, id))
-            .run()
+          try {
+            db.update(tables.settings_storage_providers)
+              .set({
+                name: previousProvider.name,
+                provider: previousProvider.provider,
+                config: previousProvider.config,
+              })
+              .where(eq(tables.settings_storage_providers.id, id))
+              .run()
+          } catch (rollbackError) {
+            settingsManager._logger.error(
+              'Failed to roll back storage provider record:',
+              rollbackError,
+            )
+          }
           throw error
         }
       }
