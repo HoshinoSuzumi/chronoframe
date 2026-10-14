@@ -1363,7 +1363,20 @@
           "description": "画像にアクセスするためのカスタム CDN URL"
         }
       },
-      "sectionDescription": "デフォルトのストレージ構成と利用可能なストレージプロバイダーを管理します。このページの設定は以降のファイルアップロードにのみ影響します。",
+      "sectionDescription": "ファイルの保存先を管理します。使用中の構成への変更は保存後すぐに反映されます。",
+      "listDescription": "構成を直接編集するか、別の構成をデフォルトに設定できます。",
+      "active": "使用中",
+      "editActiveHint": "この構成は使用中です。変更は保存後すぐに反映されます。",
+      "advancedSettings": "詳細設定",
+      "moreActions": "「{name}」のその他の操作",
+      "empty": {
+        "title": "ストレージが未設定です",
+        "description": "写真のアップロードを始めるにはストレージ構成を追加してください。最初の構成は自動的にデフォルトになります。"
+      },
+      "discard": {
+        "title": "未保存の変更を破棄しますか？",
+        "description": "変更はまだ保存されていません。編集画面を閉じると変更が失われます。"
+      },
       "table": {
         "columns": {
           "name": "ストレージ名",
@@ -1391,6 +1404,7 @@
         "management": "ストレージ構成管理"
       },
       "form": {
+        "namePlaceholder": "例：写真ストレージ",
         "isrequired": "この項目は必須です",
         "schemeLabel": "ストレージ構成",
         "schemePlaceholder": "ストレージ構成を選択",
@@ -1399,6 +1413,7 @@
         "nameLabel": "ストレージ名"
       },
       "changeModal": {
+        "target": "「{name}」をデフォルトのストレージに設定しますか？",
         "title": "ストレージ構成を変更",
         "alertTitle": "注意",
         "alertDescription": "ストレージ構成を変更した後にアップロードされたファイルは新しいストレージ構成に保存されます。元の構成にある既存のファイルは移行されません。"
@@ -1412,6 +1427,10 @@
         "editTitle": "ストレージ構成を編集"
       },
       "actions": {
+        "discard": "変更を破棄",
+        "keepEditing": "編集を続ける",
+        "retry": "再試行",
+        "activate": "デフォルトに設定",
         "add": "ストレージを追加",
         "create": "ストレージを作成",
         "edit": "編集"
