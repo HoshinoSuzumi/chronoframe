@@ -78,7 +78,7 @@ const getItemMeta = (item: ActivityItem) => {
 </script>
 
 <template>
-  <UCard>
+  <UCard :ui="{ body: 'px-4 py-4 sm:px-6 sm:py-4' }">
     <template #header>
       <DashboardSectionHeader
         :title="$t('dashboard.overview.section.recentActivity.title')"
@@ -98,36 +98,36 @@ const getItemMeta = (item: ActivityItem) => {
 
     <div
       v-if="pending && items.length === 0"
-      class="flex items-center justify-center py-10"
+      class="flex items-center justify-center py-6"
     >
       <Icon
         name="svg-spinners:180-ring-with-bg"
-        class="size-8 opacity-50"
+        class="size-6 text-dimmed"
         mode="svg"
       />
     </div>
 
     <div
       v-else-if="items.length === 0"
-      class="flex flex-col items-center justify-center gap-2 py-10 text-center"
+      class="flex flex-col items-center justify-center gap-2 py-6 text-center"
     >
       <UIcon
         name="tabler:inbox"
-        class="size-8 text-neutral-400"
+        class="size-6 text-dimmed"
       />
-      <p class="text-sm text-neutral-500 dark:text-neutral-400">
+      <p class="text-xs text-muted">
         {{ $t('dashboard.overview.section.recentActivity.empty') }}
       </p>
     </div>
 
     <ul
       v-else
-      class="divide-y divide-neutral-100 dark:divide-neutral-800"
+      class="divide-y divide-default"
     >
       <li
         v-for="item in items"
         :key="item.id"
-        class="flex items-center gap-3 py-3 first:pt-0 last:pb-0"
+        class="flex items-center gap-3 py-2.5 first:pt-0 last:pb-0"
       >
         <NuxtLink
           :to="item.photo ? '/dashboard/photos' : '/dashboard/queue'"
@@ -138,16 +138,16 @@ const getItemMeta = (item: ActivityItem) => {
             :src="item.photo.thumbnailUrl || item.photo.originalUrl || ''"
             :alt="getItemTitle(item)"
             :thumbhash="item.photo.thumbnailHash || ''"
-            class="size-12 rounded-md shadow-sm bg-neutral-100 dark:bg-neutral-800"
+            class="size-9 rounded-md bg-elevated"
             :lazy="false"
           />
           <div
             v-else
-            class="size-12 rounded-md bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center"
+            class="size-9 rounded-md bg-elevated flex items-center justify-center"
           >
             <UIcon
               name="tabler:list-check"
-              class="size-5 text-neutral-400"
+              class="size-4 text-dimmed"
             />
           </div>
         </NuxtLink>
@@ -155,13 +155,11 @@ const getItemMeta = (item: ActivityItem) => {
         <div class="min-w-0 flex-1">
           <NuxtLink
             to="/dashboard/queue"
-            class="block truncate text-sm font-medium hover:text-primary transition-colors"
+            class="block truncate text-sm leading-5 hover:text-primary transition-colors"
           >
             {{ getItemTitle(item) }}
           </NuxtLink>
-          <p
-            class="truncate text-xs text-neutral-500 dark:text-neutral-400 mt-0.5"
-          >
+          <p class="truncate text-xs leading-4 text-muted mt-0.5">
             {{ getItemMeta(item) }}
           </p>
           <p
@@ -176,8 +174,8 @@ const getItemMeta = (item: ActivityItem) => {
           :label="$t(`dashboard.queue.status.${item.status}`)"
           variant="soft"
           :color="getStatusColor(item.status)"
-          size="sm"
-          class="shrink-0"
+          size="xs"
+          class="shrink-0 font-normal"
         />
       </li>
     </ul>

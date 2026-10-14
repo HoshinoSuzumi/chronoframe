@@ -51,7 +51,7 @@ const thumbnailUrl = computed(() =>
       class="og-photo__gradient absolute inset-y-0 right-0 w-[60%]"
     />
     <div
-      class="h-full flex flex-col justify-between pl-24 py-16 bg-neutral-950/10"
+      class="relative h-full flex flex-col justify-between pl-24 py-16 bg-neutral-950/10"
     >
       <div class="flex flex-col">
         <p

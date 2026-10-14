@@ -231,6 +231,7 @@ defineExpose({
     @submit="handleSubmit"
     @error="handleError"
   >
+    <slot name="before" />
     <div class="space-y-4">
       <template
         v-for="field of fields"

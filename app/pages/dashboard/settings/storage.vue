@@ -1,7 +1,5 @@
 <script lang="ts" setup>
 import { z } from 'zod'
-import { UChip, UButton } from '#components'
-import type { TableColumn } from '@nuxt/ui'
 import type { StorageConfig } from '~~/shared/types/storage'
 
 definePageMeta({
@@ -15,12 +13,15 @@ useHead({
 const toast = useToast()
 const { t } = useI18n()
 
-const { data: currentStorageProvider, refresh: refreshCurrentStorageProvider } =
-  await useFetch<{
-    namespace: string
-    key: string
-    value: SettingValue
-  }>('/api/system/settings/storage/provider')
+const {
+  data: currentStorageProvider,
+  refresh: refreshCurrentStorageProvider,
+  status: currentStorageStatus,
+} = await useFetch<{
+  namespace: string
+  key: string
+  value: SettingValue
+}>('/api/system/settings/storage/provider')
 
 const {
   data: availableStorage,
@@ -36,100 +37,38 @@ const PROVIDER_ICON = {
   openlist: 'tabler:cloud',
 }
 
-const availableStorageColumns = computed<TableColumn<SettingStorageProvider>[]>(
-  () => [
-    {
-      accessorKey: 'status',
-      header: '',
-      meta: {
-        class: {
-          th: 'w-10',
-        },
-      },
-      cell: (cell) => {
-        const isActive =
-          currentStorageProvider.value?.value === cell.row.original.id
-        return h(UChip, {
-          size: 'md',
-          inset: true,
-          standalone: true,
-          color: isActive ? 'success' : undefined,
-          ui: {
-            base: !isActive ? 'bg-neutral-200 dark:bg-neutral-700' : '',
-          },
-        })
-      },
-    },
-    { accessorKey: 'name', header: $t('settings.storage.table.columns.name') },
-    {
-      accessorKey: 'provider',
-      header: $t('settings.storage.table.columns.type'),
-    },
-    {
-      accessorKey: 'actions',
-      header: $t('settings.storage.table.columns.actions'),
-      cell: (cell) => {
-        return h('div', { class: 'flex items-center gap-2' }, [
-          h(
-            UButton,
-            {
-              size: 'sm',
-              variant: 'soft',
-              color: 'info',
-              icon: 'tabler:pencil',
-              onClick: () => onStorageEdit(cell.row.original),
-            },
-            { default: () => $t('common.actions.edit') },
-          ),
-          h(
-            UButton,
-            {
-              size: 'sm',
-              variant: 'soft',
-              color: 'error',
-              icon: 'tabler:trash',
-              disabled:
-                currentStorageProvider.value?.value === cell.row.original.id,
-              onClick: () => openStorageDeleteConfirm(cell.row.original),
-            },
-            { default: () => $t('common.actions.delete') },
-          ),
-        ])
-      },
-    },
-  ],
+const activeStorage = computed(() =>
+  availableStorage.value?.find(
+    (storage) => storage.id === currentStorageProvider.value?.value,
+  ),
 )
+const sortedStorage = computed(() =>
+  [...(availableStorage.value || [])].sort(
+    (a, b) =>
+      Number(b.id === activeStorage.value?.id) -
+      Number(a.id === activeStorage.value?.id),
+  ),
+)
+const storagePendingActivation = ref<SettingStorageProvider | null>(null)
+const isSwitchConfirmOpen = ref(false)
+const isSwitchingStorage = ref(false)
 
-const storageSettingsState = reactive<{
-  storageConfigId?: number
-}>({
-  storageConfigId: currentStorageProvider.value
-    ? (currentStorageProvider.value.value as number)
-    : undefined,
-})
-
-const isStorageDefaultDirty = computed(() => {
-  return (
-    storageSettingsState.storageConfigId !== currentStorageProvider.value?.value
-  )
-})
-
-const resetStorageDefault = () => {
-  storageSettingsState.storageConfigId = currentStorageProvider.value
-    ? (currentStorageProvider.value.value as number)
-    : undefined
+const requestStorageActivation = (storage: SettingStorageProvider) => {
+  if (isSwitchingStorage.value || storage.id === activeStorage.value?.id) return
+  storagePendingActivation.value = storage
+  isSwitchConfirmOpen.value = true
 }
 
-const handleStorageSettingsSubmit = async (close?: () => void) => {
+const confirmStorageActivation = async () => {
+  if (!storagePendingActivation.value || isSwitchingStorage.value) return
+  isSwitchingStorage.value = true
   try {
     await $fetch('/api/system/settings/storage/provider', {
       method: 'PUT',
-      body: {
-        value: storageSettingsState.storageConfigId,
-      },
+      body: { value: storagePendingActivation.value.id },
     })
-    refreshCurrentStorageProvider()
-    close?.()
+    await refreshCurrentStorageProvider()
+    isSwitchConfirmOpen.value = false
     toast.add({
       title: $t('settings.storage.messages.saved'),
       color: 'success',
@@ -140,6 +79,21 @@ const handleStorageSettingsSubmit = async (close?: () => void) => {
       description: (error as Error).message,
       color: 'error',
     })
+  } finally {
+    isSwitchingStorage.value = false
+  }
+}
+
+// Identify the destination without displaying credentials or tokens.
+const getStorageDestination = (storage: SettingStorageProvider) => {
+  const config = storage.config
+  switch (config.provider) {
+    case 'local':
+      return config.basePath
+    case 's3':
+      return config.bucket
+    case 'openlist':
+      return config.rootPath
   }
 }
 
@@ -175,32 +129,54 @@ const storageConfigState = reactive<{
   } as any,
 })
 
-// 编辑状态
 const editingStorage = ref<SettingStorageProvider | null>(null)
-const editSlideoverOpen = ref(false)
-const nameError = ref('')
+const editorOpen = ref(false)
+const isSavingStorage = ref(false)
+const showAdvanced = ref(false)
+const initialEditorState = ref('')
+const isEditorDirty = computed(
+  () => JSON.stringify(storageConfigState) !== initialEditorState.value,
+)
+const isDiscardConfirmOpen = ref(false)
+let resolveDiscard: ((discard: boolean) => void) | undefined
+let pendingDiscard: Promise<boolean> | undefined
 
-const openEditSlideover = (storage: SettingStorageProvider) => {
-  editingStorage.value = storage
-  storageConfigState.name = storage.name
-  storageConfigState.provider = storage.provider
-  storageConfigState.config = { ...(storage.config as Partial<StorageConfig>) }
-  nameError.value = ''
-  editSlideoverOpen.value = true
+const openStorageEditor = (storage?: SettingStorageProvider) => {
+  editingStorage.value = storage || null
+  storageConfigState.name = storage?.name || ''
+  storageConfigState.provider = storage?.provider || 's3'
+  storageConfigState.config = storage
+    ? { ...storage.config }
+    : getStorageConfigDefaults('s3')
+  showAdvanced.value = false
+  initialEditorState.value = JSON.stringify(storageConfigState)
+  editorOpen.value = true
 }
 
-const closeEditSlideover = () => {
-  editSlideoverOpen.value = false
-  editingStorage.value = null
-  resetStorageConfigForm()
+const confirmDiscard = (discard: boolean) => {
+  isDiscardConfirmOpen.value = false
+  resolveDiscard?.(discard)
+  resolveDiscard = undefined
+  pendingDiscard = undefined
+}
+const canDiscardEditor = () => {
+  if (!isEditorDirty.value) return Promise.resolve(true)
+  if (pendingDiscard) return pendingDiscard
+  isDiscardConfirmOpen.value = true
+  pendingDiscard = new Promise<boolean>((resolve) => {
+    resolveDiscard = resolve
+  })
+  return pendingDiscard
+}
+const requestEditorClose = async () => {
+  if (isSavingStorage.value || isDiscardConfirmOpen.value) return
+  if (await canDiscardEditor()) editorOpen.value = false
 }
 
-// 编辑 slideover 关闭时（无论通过何种方式）重置表单
-watch(editSlideoverOpen, (open) => {
-  if (!open) {
-    editingStorage.value = null
-    resetStorageConfigForm()
-  }
+onBeforeRouteLeave(async () => {
+  if (isSavingStorage.value) return false
+  if (!editorOpen.value) return true
+  return canDiscardEditor()
 })
 
 // 根据 provider 值动态选择对应的 schema（使用翻译后的错误消息）
@@ -236,10 +212,10 @@ const currentStorageSchema = computed(() => {
         bucket: z.string().min(1, requiredMsg),
         region: z.string().min(1, requiredMsg),
         endpoint: z.string().min(1, requiredMsg),
-        prefix: z.string().default('/photos').optional(),
-        cdnUrl: z.string().optional(),
         accessKeyId: z.string().min(1, requiredMsg),
         secretAccessKey: z.string().min(1, requiredMsg),
+        prefix: z.string().default('/photos').optional(),
+        cdnUrl: z.string().optional(),
         forcePathStyle: z.boolean().optional(),
         maxKeys: z.number().optional(),
       })
@@ -396,41 +372,110 @@ const storageFieldsConfig = computed<Record<string, any>>(() => {
   }
 })
 
-const onStorageConfigSubmit = async (
-  event: { data: Partial<StorageConfig> },
-  close?: () => void,
-) => {
+const advancedFields = computed(() => {
+  switch (storageConfigState.provider) {
+    case 'local':
+      return ['baseUrl', 'prefix']
+    case 'openlist':
+      return [
+        'uploadEndpoint',
+        'downloadEndpoint',
+        'listEndpoint',
+        'deleteEndpoint',
+        'metaEndpoint',
+        'pathField',
+        'cdnUrl',
+      ]
+    default:
+      return ['prefix', 'cdnUrl', 'forcePathStyle', 'maxKeys']
+  }
+})
+const editorFieldsConfig = computed(() => {
+  const config = { ...storageFieldsConfig.value }
+  for (const key of Object.keys(config)) {
+    config[key] = { ...config[key], disabled: isSavingStorage.value }
+  }
+  for (const key of advancedFields.value) {
+    config[key] = { ...config[key], hidden: !showAdvanced.value }
+  }
+  for (const key of ['secretAccessKey', 'token']) {
+    if (config[key])
+      config[key] = {
+        ...config[key],
+        inputProps: { type: 'password', autocomplete: 'off' },
+      }
+  }
+  return config
+})
+
+const validateStorageName = () =>
+  storageConfigState.name.trim()
+    ? []
+    : [{ name: 'storageName', message: t('settings.storage.form.isrequired') }]
+
+const handleStorageFormError = (event: { errors: { name?: string }[] }) => {
+  if (
+    event.errors.some((error) =>
+      advancedFields.value.includes(error.name || ''),
+    )
+  ) {
+    showAdvanced.value = true
+  }
+}
+
+const saveStorageConfig = async (event: { data: Partial<StorageConfig> }) => {
+  if (isSavingStorage.value) return
   if (!storageConfigState.name.trim()) {
-    nameError.value = t('settings.storage.form.isrequired', {
-      field: t('settings.storage.form.nameLabel'),
-    })
     return
   }
-  nameError.value = ''
+  isSavingStorage.value = true
+  const isEditing = !!editingStorage.value
   try {
     const payload = {
-      name: storageConfigState.name,
+      name: storageConfigState.name.trim(),
       provider: storageConfigState.provider,
       config: event.data,
     }
-
-    await $fetch('/api/system/settings/storage-config', {
-      method: 'POST',
-      body: payload,
-    })
-    refreshAvailableStorage()
+    if (editingStorage.value) {
+      await $fetch(
+        `/api/system/settings/storage-config/${editingStorage.value.id}`,
+        {
+          method: 'PUT',
+          body: payload,
+        },
+      )
+    } else {
+      await $fetch('/api/system/settings/storage-config', {
+        method: 'POST',
+        body: payload,
+      })
+    }
+    await Promise.all([
+      refreshAvailableStorage(),
+      refreshCurrentStorageProvider(),
+    ])
+    initialEditorState.value = JSON.stringify(storageConfigState)
+    editorOpen.value = false
     toast.add({
-      title: $t('settings.storage.messages.created'),
+      title: $t(
+        isEditing
+          ? 'settings.storage.messages.updated'
+          : 'settings.storage.messages.created',
+      ),
       color: 'success',
     })
-    resetStorageConfigForm()
-    close?.()
   } catch (error) {
     toast.add({
-      title: $t('settings.storage.messages.createError'),
+      title: $t(
+        isEditing
+          ? 'settings.storage.messages.updateError'
+          : 'settings.storage.messages.createError',
+      ),
       description: (error as Error).message,
       color: 'error',
     })
+  } finally {
+    isSavingStorage.value = false
   }
 }
 
@@ -445,7 +490,13 @@ const openStorageDeleteConfirm = (storage: SettingStorageProvider) => {
 
 const confirmStorageDelete = async () => {
   const storageId = storagePendingDelete.value?.id
-  if (storageId == null || isDeletingStorage.value) return
+  if (
+    storageId == null ||
+    isDeletingStorage.value ||
+    currentStorageProvider.value == null ||
+    storageId === activeStorage.value?.id
+  )
+    return
 
   isDeletingStorage.value = true
   try {
@@ -468,59 +519,6 @@ const confirmStorageDelete = async () => {
   } finally {
     isDeletingStorage.value = false
   }
-}
-
-const onStorageEdit = (storage: SettingStorageProvider) => {
-  openEditSlideover(storage)
-}
-
-const onStorageConfigUpdate = async (
-  event: { data: Partial<StorageConfig> },
-  close?: () => void,
-) => {
-  if (!editingStorage.value) return
-  if (!storageConfigState.name.trim()) {
-    nameError.value = t('settings.storage.form.isrequired', {
-      field: t('settings.storage.form.nameLabel'),
-    })
-    return
-  }
-  nameError.value = ''
-  try {
-    const payload = {
-      name: storageConfigState.name,
-      provider: storageConfigState.provider,
-      config: event.data,
-    }
-
-    await $fetch(
-      `/api/system/settings/storage-config/${editingStorage.value.id}`,
-      {
-        method: 'PUT',
-        body: payload,
-      },
-    )
-    refreshAvailableStorage()
-    refreshCurrentStorageProvider()
-    toast.add({
-      title: $t('settings.storage.messages.updated'),
-      color: 'success',
-    })
-    closeEditSlideover()
-    close?.()
-  } catch (error) {
-    toast.add({
-      title: $t('settings.storage.messages.updateError'),
-      description: (error as Error).message,
-      color: 'error',
-    })
-  }
-}
-
-const resetStorageConfigForm = () => {
-  storageConfigState.name = ''
-  storageConfigState.provider = 's3'
-  storageConfigState.config = getStorageConfigDefaults('s3')
 }
 </script>
 
@@ -549,374 +547,443 @@ const resetStorageConfigForm = () => {
           class="rounded-md border border-neutral-200 bg-white dark:border-neutral-800 dark:bg-neutral-950"
         >
           <header
-            class="border-b border-neutral-200 px-5 py-4 dark:border-neutral-800"
-          >
-            <h3
-              class="text-base font-semibold text-neutral-900 dark:text-neutral-100"
-            >
-              {{ $t('settings.storage.sections.currentDefault') }}
-            </h3>
-          </header>
-
-          <div
-            v-if="availableStorageStatus !== 'success' && !availableStorage"
-            class="space-y-4 px-5 py-5"
-          >
-            <USkeleton class="h-4 w-32" />
-            <USkeleton class="h-10 w-72" />
-          </div>
-
-          <div
-            v-else
-            class="space-y-4 px-5 py-5"
-          >
-            <UFormField
-              name="storageConfigId"
-              :label="$t('settings.storage.form.schemeLabel')"
-              required
-              :ui="{
-                container: 'w-full sm:max-w-sm *:w-full',
-              }"
-            >
-              <USelectMenu
-                data-tour="storage-default"
-                v-model="storageSettingsState.storageConfigId"
-                :icon="
-                  PROVIDER_ICON[
-                    availableStorage?.find(
-                      (item) =>
-                        item.id === storageSettingsState.storageConfigId,
-                    )?.provider || 'local'
-                  ] || 'tabler:database'
-                "
-                :items="
-                  availableStorage?.map((item) => ({
-                    icon: PROVIDER_ICON[item.provider] || 'tabler:database',
-                    label: item.name,
-                    value: item.id,
-                  }))
-                "
-                label-key="label"
-                value-key="value"
-                :placeholder="$t('settings.storage.form.schemePlaceholder')"
-              />
-            </UFormField>
-          </div>
-
-          <footer
-            class="border-t border-neutral-200 px-5 py-4 dark:border-neutral-800"
-          >
-            <div
-              v-if="isStorageDefaultDirty"
-              class="mb-3 rounded-md border border-warning-200 bg-warning-50 px-3 py-2 text-sm text-warning-800 dark:border-warning-900/60 dark:bg-warning-950/30 dark:text-warning-200"
-            >
-              {{ $t('common.unsavedChanges') }}
-            </div>
-
-            <div class="flex items-center justify-end gap-2">
-              <UButton
-                color="neutral"
-                variant="outline"
-                :disabled="!isStorageDefaultDirty"
-                @click="resetStorageDefault"
-              >
-                {{ $t('common.actions.reset') }}
-              </UButton>
-              <UModal
-                :title="$t('settings.storage.changeModal.title')"
-                :ui="{ footer: 'justify-end' }"
-              >
-                <UButton
-                  :disabled="!isStorageDefaultDirty"
-                  icon="tabler:device-floppy"
-                >
-                  {{ $t('common.actions.saveSettings') }}
-                </UButton>
-
-                <template #body>
-                  <UAlert
-                    color="neutral"
-                    variant="subtle"
-                    :title="$t('settings.storage.changeModal.alertTitle')"
-                    :description="
-                      $t('settings.storage.changeModal.alertDescription')
-                    "
-                    icon="tabler:arrows-exchange"
-                  />
-                </template>
-
-                <template #footer="{ close }">
-                  <UButton
-                    :label="$t('common.actions.cancel')"
-                    color="neutral"
-                    variant="outline"
-                    @click="close"
-                  />
-                  <UButton
-                    :label="$t('common.actions.continue')"
-                    variant="soft"
-                    icon="tabler:arrows-exchange"
-                    type="submit"
-                    form="storageSettingsForm"
-                    @click="handleStorageSettingsSubmit(close)"
-                  />
-                </template>
-              </UModal>
-            </div>
-          </footer>
-        </section>
-
-        <section
-          class="rounded-md border border-neutral-200 bg-white dark:border-neutral-800 dark:bg-neutral-950"
-        >
-          <header
-            class="flex w-full items-center justify-between border-b border-neutral-200 px-5 py-4 dark:border-neutral-800"
+            class="flex flex-wrap items-center justify-between gap-3 border-b border-neutral-200 px-5 py-4 dark:border-neutral-800"
           >
             <h3
               class="text-base font-semibold text-neutral-900 dark:text-neutral-100"
             >
               {{ $t('settings.storage.sections.management') }}
             </h3>
-            <div>
-              <USlideover
-                :title="$t('settings.storage.slideover.title')"
-                :ui="{ footer: 'justify-end' }"
+            <UButton
+              data-tour="storage-add"
+              icon="tabler:plus"
+              :disabled="isSwitchingStorage || isDeletingStorage"
+              @click="openStorageEditor()"
+            >
+              {{ $t('settings.storage.actions.add') }}
+            </UButton>
+          </header>
+
+          <div
+            v-if="
+              (availableStorageStatus === 'pending' && !availableStorage) ||
+              (currentStorageStatus === 'pending' && !currentStorageProvider)
+            "
+            class="space-y-3 px-5 py-5"
+          >
+            <USkeleton
+              v-for="index in 3"
+              :key="index"
+              class="h-24 w-full"
+            />
+          </div>
+          <div
+            v-else-if="
+              availableStorageStatus === 'error' ||
+              currentStorageStatus === 'error'
+            "
+            class="space-y-4 px-5 py-5"
+          >
+            <UAlert
+              color="error"
+              variant="subtle"
+              icon="tabler:alert-circle"
+              :title="$t('settings.form.loadFailed')"
+            />
+            <UButton
+              color="neutral"
+              variant="outline"
+              icon="tabler:refresh"
+              @click="
+                Promise.all([
+                  refreshAvailableStorage(),
+                  refreshCurrentStorageProvider(),
+                ])
+              "
+            >
+              {{ $t('settings.storage.actions.retry') }}
+            </UButton>
+          </div>
+          <div
+            v-else-if="!sortedStorage.length"
+            class="flex flex-col items-center gap-3 px-5 py-12 text-center"
+          >
+            <Icon
+              name="tabler:database"
+              class="size-10 text-neutral-400"
+            />
+            <h4 class="font-medium">
+              {{ $t('settings.storage.empty.title') }}
+            </h4>
+            <p class="max-w-sm text-sm text-neutral-500 dark:text-neutral-400">
+              {{ $t('settings.storage.empty.description') }}
+            </p>
+            <UButton
+              icon="tabler:plus"
+              @click="openStorageEditor()"
+              >{{ $t('settings.storage.actions.add') }}</UButton
+            >
+          </div>
+          <div
+            v-else
+            data-tour="storage-default"
+            class="divide-y divide-neutral-200 dark:divide-neutral-800"
+          >
+            <article
+              v-for="storage in sortedStorage"
+              :key="storage.id"
+              class="flex flex-col gap-4 px-5 py-5 sm:flex-row sm:items-center sm:justify-between"
+            >
+              <div class="flex min-w-0 items-center gap-3">
+                <div
+                  class="flex size-10 shrink-0 items-center justify-center rounded-md bg-neutral-100 dark:bg-neutral-900"
+                >
+                  <Icon
+                    :name="PROVIDER_ICON[storage.provider]"
+                    class="size-5 text-neutral-600 dark:text-neutral-400"
+                  />
+                </div>
+                <div class="min-w-0 space-y-0.5">
+                  <div class="flex flex-wrap items-center gap-2">
+                    <h4
+                      class="break-all font-medium text-neutral-900 dark:text-neutral-100"
+                    >
+                      {{ storage.name }}
+                    </h4>
+                    <UBadge
+                      v-if="storage.id === activeStorage?.id"
+                      color="success"
+                      variant="subtle"
+                      size="sm"
+                    >
+                      {{ $t('settings.storage.active') }}
+                    </UBadge>
+                  </div>
+                  <div
+                    class="flex min-w-0 items-center gap-2 text-xs leading-5 text-neutral-500 dark:text-neutral-400"
+                  >
+                    <span class="shrink-0">{{
+                      $t(`settings.storage.providers.${storage.provider}`)
+                    }}</span>
+                    <template v-if="getStorageDestination(storage)">
+                      <span
+                        aria-hidden="true"
+                        class="text-neutral-300 dark:text-neutral-700"
+                        >·</span
+                      >
+                      <span
+                        class="truncate"
+                        :title="getStorageDestination(storage)"
+                        >{{ getStorageDestination(storage) }}</span
+                      >
+                    </template>
+                  </div>
+                </div>
+              </div>
+              <div
+                class="flex shrink-0 flex-wrap items-center gap-2 sm:justify-end"
               >
                 <UButton
-                  size="sm"
-                  variant="soft"
-                  data-tour="storage-add"
-                  icon="tabler:plus"
+                  color="neutral"
+                  variant="outline"
+                  icon="tabler:pencil"
+                  :disabled="isSwitchingStorage || isDeletingStorage"
+                  @click="openStorageEditor(storage)"
                 >
-                  {{ $t('settings.storage.actions.add') }}
+                  {{ $t('common.actions.edit') }}
                 </UButton>
+                <UButton
+                  v-if="storage.id !== activeStorage?.id"
+                  color="neutral"
+                  variant="soft"
+                  icon="tabler:arrows-exchange"
+                  :disabled="isSwitchingStorage || isDeletingStorage"
+                  @click="requestStorageActivation(storage)"
+                >
+                  {{ $t('settings.storage.actions.activate') }}
+                </UButton>
+                <UDropdownMenu
+                  :items="[
+                    {
+                      label: $t('common.actions.delete'),
+                      icon: 'tabler:trash',
+                      color: 'error',
+                      disabled: storage.id === activeStorage?.id,
+                      onSelect: () => openStorageDeleteConfirm(storage),
+                    },
+                  ]"
+                >
+                  <UButton
+                    color="neutral"
+                    variant="ghost"
+                    icon="tabler:dots"
+                    :aria-label="
+                      $t('settings.storage.moreActions', { name: storage.name })
+                    "
+                    :disabled="isSwitchingStorage || isDeletingStorage"
+                  />
+                </UDropdownMenu>
+              </div>
+            </article>
+          </div>
+          <footer
+            v-if="sortedStorage.length"
+            class="border-t border-neutral-200 px-5 py-4 text-sm text-neutral-500 dark:border-neutral-800 dark:text-neutral-400"
+          >
+            {{ $t('settings.storage.changeModal.alertDescription') }}
+          </footer>
+        </section>
 
-                <template #body="{ close }">
-                  <div class="space-y-4">
-                    <!-- Provider 选择 -->
+        <USlideover
+          :open="editorOpen"
+          :dismissible="!isSavingStorage"
+          :close="!isSavingStorage"
+          :title="
+            $t(
+              editingStorage
+                ? 'settings.storage.slideover.editTitle'
+                : 'settings.storage.slideover.title',
+            )
+          "
+          :ui="{
+            content: 'sm:max-w-xl',
+            footer: 'flex-col items-stretch gap-3',
+          }"
+          @update:open="
+            (open) => {
+              if (!open) requestEditorClose()
+            }
+          "
+        >
+          <template #body>
+            <div class="space-y-5">
+              <UAlert
+                v-if="
+                  editingStorage?.id === activeStorage?.id && editingStorage
+                "
+                color="info"
+                variant="subtle"
+                icon="tabler:info-circle"
+                :title="$t('settings.storage.editActiveHint')"
+              />
+              <AutoForm
+                :key="storageConfigState.provider"
+                id="storageConfigForm"
+                :schema="currentStorageSchema"
+                :state="storageConfigState.config"
+                :fields-config="editorFieldsConfig"
+                :disabled="isSavingStorage"
+                :validate="validateStorageName"
+                @submit="saveStorageConfig"
+                @error="handleStorageFormError"
+              >
+                <template #before>
+                  <div class="mb-5 space-y-5">
+                    <UFormField
+                      :label="$t('settings.storage.form.nameLabel')"
+                      required
+                      name="storageName"
+                    >
+                      <UInput
+                        v-model="storageConfigState.name"
+                        class="w-full"
+                        :disabled="isSavingStorage"
+                        :placeholder="
+                          $t('settings.storage.form.namePlaceholder')
+                        "
+                        autofocus
+                      />
+                    </UFormField>
                     <UFormField
                       :label="$t('settings.storage.form.typeLabel')"
-                      class="w-full"
                       required
-                      :ui="{
-                        container: 'sm:max-w-full',
-                      }"
                     >
-                      <USelectMenu
+                      <USelect
                         v-model="storageConfigState.provider"
+                        class="w-full"
                         :icon="
                           PROVIDER_ICON[
                             storageConfigState.provider as keyof typeof PROVIDER_ICON
-                          ] || 'tabler:database'
+                          ]
                         "
                         :items="providerOptions"
-                        label-key="label"
                         value-key="value"
-                        :placeholder="
-                          $t('settings.storage.form.typePlaceholder')
-                        "
+                        :disabled="!!editingStorage || isSavingStorage"
                         @update:model-value="
-                          (val: string) => {
-                            storageConfigState.provider = val
+                          (value) => {
                             storageConfigState.config =
-                              getStorageConfigDefaults(val)
+                              getStorageConfigDefaults(value)
+                            showAdvanced = false
                           }
                         "
                       />
                     </UFormField>
-
-                    <UFormField
-                      :label="$t('settings.storage.form.nameLabel')"
-                      required
-                      :error="nameError"
-                      :ui="{
-                        container: 'sm:max-w-full',
-                      }"
-                    >
-                      <UInput
-                        v-model="storageConfigState.name"
-                        @update:model-value="nameError = ''"
-                      />
-                    </UFormField>
-
                     <AlbumProtectionWarning
                       v-if="storageConfigState.provider !== 'local'"
                     />
-
                     <USeparator />
-
-                    <AutoForm
-                      id="createStorageForm"
-                      :schema="currentStorageSchema"
-                      :state="storageConfigState.config"
-                      :fields-config="storageFieldsConfig"
-                      @submit="onStorageConfigSubmit($event, close)"
-                    />
                   </div>
                 </template>
-
-                <template #footer="{ close }">
-                  <UButton
-                    :label="$t('common.actions.cancel')"
-                    color="neutral"
-                    variant="outline"
-                    @click="close"
-                  />
-                  <UButton
-                    :label="$t('settings.storage.actions.create')"
-                    variant="soft"
-                    icon="tabler:check"
-                    type="submit"
-                    form="createStorageForm"
-                  />
-                </template>
-              </USlideover>
+                <UButton
+                  class="mt-5"
+                  color="neutral"
+                  variant="link"
+                  :icon="
+                    showAdvanced ? 'tabler:chevron-up' : 'tabler:chevron-down'
+                  "
+                  :aria-expanded="showAdvanced"
+                  :disabled="isSavingStorage"
+                  @click="showAdvanced = !showAdvanced"
+                >
+                  {{ $t('settings.storage.advancedSettings') }}
+                </UButton>
+              </AutoForm>
             </div>
-          </header>
+          </template>
+          <template #footer>
+            <p
+              v-if="isEditorDirty"
+              class="text-sm text-warning"
+            >
+              {{ $t('common.unsavedChanges') }}
+            </p>
+            <div class="flex items-center justify-end gap-2">
+              <UButton
+                color="neutral"
+                variant="outline"
+                :disabled="isSavingStorage"
+                @click="requestEditorClose"
+                >{{ $t('common.actions.cancel') }}</UButton
+              >
+              <UButton
+                icon="tabler:device-floppy"
+                type="submit"
+                form="storageConfigForm"
+                :loading="isSavingStorage"
+                :disabled="!isEditorDirty"
+              >
+                {{
+                  $t(
+                    editingStorage
+                      ? 'common.actions.save'
+                      : 'settings.storage.actions.create',
+                  )
+                }}
+              </UButton>
+            </div>
+          </template>
+        </USlideover>
 
-          <div
-            v-if="availableStorageStatus !== 'success' && !availableStorage"
-            class="space-y-3 px-5 py-5"
+        <UModal
+          :open="isDiscardConfirmOpen"
+          :title="$t('settings.storage.discard.title')"
+          :ui="{ footer: 'justify-end' }"
+          @update:open="
+            (open) => {
+              if (!open) confirmDiscard(false)
+            }
+          "
+        >
+          <template #body
+            ><p class="text-sm text-neutral-500 dark:text-neutral-400">
+              {{ $t('settings.storage.discard.description') }}
+            </p></template
           >
-            <USkeleton class="h-10 w-full" />
-            <USkeleton class="h-10 w-full" />
-            <USkeleton class="h-10 w-full" />
-          </div>
+          <template #footer>
+            <UButton
+              color="neutral"
+              variant="outline"
+              @click="confirmDiscard(false)"
+              >{{ $t('settings.storage.actions.keepEditing') }}</UButton
+            >
+            <UButton
+              color="warning"
+              @click="confirmDiscard(true)"
+              >{{ $t('settings.storage.actions.discard') }}</UButton
+            >
+          </template>
+        </UModal>
 
-          <div
-            v-else
-            class="px-0 py-0"
-          >
-            <UTable
-              :columns="availableStorageColumns"
-              :data="availableStorage"
-            />
-          </div>
-        </section>
-
-        <!-- Edit Storage Slideover -->
-        <USlideover
-          v-model:open="editSlideoverOpen"
-          :title="$t('settings.storage.slideover.editTitle')"
+        <UModal
+          v-model:open="isSwitchConfirmOpen"
+          :dismissible="!isSwitchingStorage"
+          :close="!isSwitchingStorage"
+          :title="$t('settings.storage.changeModal.title')"
           :ui="{ footer: 'justify-end' }"
         >
-          <template #body="{ close }">
+          <template #body>
             <div class="space-y-4">
-              <UFormField
-                :label="$t('settings.storage.form.typeLabel')"
-                class="w-full"
-                required
-                :ui="{
-                  container: 'sm:max-w-full',
-                }"
-              >
-                <USelectMenu
-                  v-model="storageConfigState.provider"
-                  :icon="
-                    PROVIDER_ICON[
-                      storageConfigState.provider as keyof typeof PROVIDER_ICON
-                    ] || 'tabler:database'
-                  "
-                  :items="providerOptions"
-                  label-key="label"
-                  value-key="value"
-                  disabled
-                />
-              </UFormField>
-
-              <UFormField
-                :label="$t('settings.storage.form.nameLabel')"
-                required
-                :error="nameError"
-                :ui="{
-                  container: 'sm:max-w-full',
-                }"
-              >
-                <UInput
-                  v-model="storageConfigState.name"
-                  @update:model-value="nameError = ''"
-                />
-              </UFormField>
-
-              <USeparator />
-
-              <AutoForm
-                id="editStorageForm"
-                :schema="currentStorageSchema"
-                :state="storageConfigState.config"
-                :fields-config="storageFieldsConfig"
-                @submit="onStorageConfigUpdate($event, close)"
+              <p class="text-sm">
+                {{
+                  $t('settings.storage.changeModal.target', {
+                    name: storagePendingActivation?.name,
+                  })
+                }}
+              </p>
+              <UAlert
+                color="warning"
+                variant="subtle"
+                icon="tabler:arrows-exchange"
+                :title="$t('settings.storage.changeModal.alertTitle')"
+                :description="
+                  $t('settings.storage.changeModal.alertDescription')
+                "
               />
             </div>
           </template>
-
-          <template #footer="{ close }">
+          <template #footer>
             <UButton
-              :label="$t('common.actions.cancel')"
               color="neutral"
               variant="outline"
-              @click="closeEditSlideover"
-            />
+              :disabled="isSwitchingStorage"
+              @click="isSwitchConfirmOpen = false"
+              >{{ $t('common.actions.cancel') }}</UButton
+            >
             <UButton
-              :label="$t('common.actions.save')"
-              variant="soft"
-              icon="tabler:check"
-              type="submit"
-              form="editStorageForm"
-            />
+              icon="tabler:arrows-exchange"
+              :loading="isSwitchingStorage"
+              @click="confirmStorageActivation"
+              >{{ $t('settings.storage.actions.activate') }}</UButton
+            >
           </template>
-        </USlideover>
-      </div>
+        </UModal>
 
-      <UModal
-        v-model:open="isDeleteConfirmOpen"
-        :title="$t('settings.storage.deleteModal.title')"
-        :ui="{
-          title: 'flex items-center gap-2',
-          footer: 'justify-end',
-        }"
-      >
-        <template #title>
-          <Icon
-            name="tabler:trash"
-            class="size-5 shrink-0 text-error"
-          />
-          <span>{{ $t('settings.storage.deleteModal.title') }}</span>
-        </template>
-        <template #body>
-          <p
-            class="text-sm leading-relaxed text-neutral-500 dark:text-neutral-400"
-          >
-            {{
-              $t('settings.storage.deleteModal.message', {
-                name: storagePendingDelete?.name,
-              })
-            }}
-          </p>
-        </template>
-        <template #footer>
-          <div class="flex w-full justify-end gap-3">
+        <UModal
+          v-model:open="isDeleteConfirmOpen"
+          :dismissible="!isDeletingStorage"
+          :close="!isDeletingStorage"
+          :title="$t('settings.storage.deleteModal.title')"
+          :ui="{ footer: 'justify-end' }"
+        >
+          <template #body>
+            <p
+              class="text-sm leading-relaxed text-neutral-500 dark:text-neutral-400"
+            >
+              {{
+                $t('settings.storage.deleteModal.message', {
+                  name: storagePendingDelete?.name,
+                })
+              }}
+            </p>
+          </template>
+          <template #footer>
             <UButton
-              variant="ghost"
               color="neutral"
+              variant="outline"
               :disabled="isDeletingStorage"
               @click="isDeleteConfirmOpen = false"
+              >{{ $t('common.actions.cancel') }}</UButton
             >
-              {{ $t('common.actions.cancel') }}
-            </UButton>
             <UButton
               color="error"
               icon="tabler:trash"
               :loading="isDeletingStorage"
               @click="confirmStorageDelete"
+              >{{ $t('common.actions.delete') }}</UButton
             >
-              {{ $t('common.actions.delete') }}
-            </UButton>
-          </div>
-        </template>
-      </UModal>
+          </template>
+        </UModal>
+      </div>
     </template>
   </UDashboardPanel>
 </template>
-
-<style scoped></style>

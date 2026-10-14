@@ -1,3 +1,4 @@
+import { settingsManager } from '~~/server/services/settings/settingsManager'
 import { sql, gte } from 'drizzle-orm'
 import * as si from 'systeminformation'
 import { readFileSync } from 'node:fs'
@@ -230,6 +231,8 @@ export default eventHandler(async (event) => {
     }
   }
 
+  const activeStorage = await settingsManager.storage.getActiveProvider()
+
   return {
     uptime: process.uptime() || 0,
     runningOn: systemInfo,
@@ -250,6 +253,9 @@ export default eventHandler(async (event) => {
           : 0,
     },
     storage: {
+      activeProvider: activeStorage
+        ? { provider: activeStorage.provider, name: activeStorage.name }
+        : null,
       totalSize: storageStats?.totalSize || 0,
       averageSize: storageStats?.avgSize || 0,
       maxSize: storageStats?.maxSize || 0,

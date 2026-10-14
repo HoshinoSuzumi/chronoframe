@@ -8,6 +8,7 @@ const props = withDefaults(
     icon?: string
     color?: keyof typeof colorSchemes
     clickable?: boolean
+    variant?: 'soft' | 'subtle'
   }>(),
   {
     title: undefined,
@@ -15,6 +16,7 @@ const props = withDefaults(
     icon: undefined,
     color: 'blue',
     clickable: false,
+    variant: 'soft',
   },
 )
 
@@ -77,29 +79,40 @@ const currentScheme = computed(() => colorSchemes[props.color])
 </script>
 
 <template>
-  <div
+  <component
+    :is="clickable ? 'button' : 'div'"
+    :type="clickable ? 'button' : undefined"
     :class="[
-      'flex justify-center border rounded-lg p-4',
-      currentScheme.background,
-      currentScheme.border,
-      currentScheme.text,
+      'min-w-0 rounded-lg border p-4 text-left',
+      variant === 'subtle'
+        ? 'border-default bg-default text-default'
+        : [currentScheme.background, currentScheme.border, currentScheme.text],
       clickable
-        ? 'cursor-pointer hover:scale-[1.01] transition-transform duration-200'
+        ? 'cursor-pointer transition-colors duration-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary'
         : '',
+      clickable && variant === 'subtle' ? 'hover:bg-elevated/50' : '',
     ]"
     @click="clickable ? emit('click') : undefined"
   >
-    <div class="flex-1 flex items-center justify-between gap-4 overflow-hidden">
+    <div class="flex min-w-0 items-center justify-between gap-3">
       <div class="flex-1 overflow-hidden">
         <p
           v-if="title"
-          class="text-lg opacity-90 font-medium max-w-48 truncate"
+          :class="
+            variant === 'subtle'
+              ? 'text-xs font-medium text-muted'
+              : 'text-lg opacity-90 font-medium max-w-48 truncate'
+          "
         >
           {{ title }}
         </p>
         <p
           v-if="!isNil(value)"
-          class="text-2xl font-bold max-w-full sm:max-w-1/2 truncate"
+          :class="
+            variant === 'subtle'
+              ? 'mt-1.5 break-words text-xl font-semibold tracking-tight tabular-nums'
+              : 'text-2xl font-bold max-w-full sm:max-w-1/2 truncate'
+          "
         >
           {{ value }}
         </p>
@@ -107,10 +120,14 @@ const currentScheme = computed(() => colorSchemes[props.color])
       <UIcon
         v-if="icon"
         :name="icon"
-        class="size-8 opacity-80"
+        :class="
+          variant === 'subtle'
+            ? 'size-5 shrink-0 text-dimmed'
+            : 'size-8 shrink-0 opacity-80'
+        "
       />
     </div>
-  </div>
+  </component>
 </template>
 
 <style scoped></style>
