@@ -220,6 +220,19 @@ jobs:
             exit 1
           fi
           read -r -a images <<< "$IMAGES"
+          # Match the release summary: split public usernames with invisible HTML
+          # so GitHub's secret masking does not redact the image namespace.
+          insert_wbr() {
+            local input="$1"
+            local length=${#input}
+            if (( length <= 1 )); then
+              printf '%s' "$input"
+              return
+            fi
+            local midpoint=$(( (length + 1) / 2 ))
+            printf '%s<wbr>%s' "${input:0:midpoint}" "${input:midpoint}"
+          }
+
           {
             echo "## Buildtest images"
             echo ""
@@ -234,5 +247,13 @@ jobs:
               "${image}:${IMAGE_TAG}-amd64" \
               "${image}:${IMAGE_TAG}-arm64"
             docker manifest push "${image}:${IMAGE_TAG}"
-            echo "- \`${image}:${IMAGE_TAG}\`" >> "$GITHUB_STEP_SUMMARY"
+            if [[ "$image" == ghcr.io/* ]]; then
+              namespace="${image#ghcr.io/}"
+              owner="${namespace%%/*}"
+              display_image="ghcr.io/$(insert_wbr "$owner")/${namespace#*/}"
+            else
+              owner="${image%%/*}"
+              display_image="$(insert_wbr "$owner")/${image#*/}"
+            fi
+            echo "- <code>${display_image}:${IMAGE_TAG}</code>" >> "$GITHUB_STEP_SUMMARY"
           done
