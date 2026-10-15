@@ -79,16 +79,32 @@ const cards = computed(() =>
             >{{ site.description }}</span
           >
         </span>
-        <span class="demo-host">
+        <span
+          class="demo-host"
+          :title="site.author ? `${site.author} · ${site.host}` : site.host"
+        >
           <template v-if="site.author">{{ site.author }} · </template
           >{{ site.host }}
         </span>
       </span>
       <span class="demo-visit">
-        {{ isChinese ? '访问站点' : 'Visit gallery' }}
-        <span aria-hidden="true">↗</span>
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.5"
+          aria-hidden="true"
+        >
+          <path
+            d="M7 17 17 7M7 7h10v10"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
+        </svg>
         <span class="sr-only">{{
-          isChinese ? '（在新窗口打开）' : ' (opens in a new window)'
+          isChinese
+            ? '访问站点（在新窗口打开）'
+            : 'Visit gallery (opens in a new window)'
         }}</span>
       </span>
     </a>
@@ -99,20 +115,20 @@ const cards = computed(() =>
 .demo-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 16px;
-  margin: 24px 0 32px;
+  gap: 10px;
+  margin: 16px 0 28px;
 }
 
 .demo-card {
   display: flex;
-  flex-direction: column;
   align-items: flex-start;
-  gap: 10px;
+  justify-content: space-between;
+  gap: 12px;
   min-width: 0;
-  padding: 12px 16px;
+  padding: 16px;
   border: 1px solid var(--vp-c-divider);
-  border-radius: 12px;
-  background: var(--vp-c-bg-soft);
+  border-radius: 10px;
+  background: var(--vp-c-bg);
   color: var(--vp-c-text-1);
   text-decoration: none;
   transition:
@@ -123,12 +139,17 @@ const cards = computed(() =>
 .demo-card:hover,
 .demo-card:focus-visible {
   border-color: var(--vp-c-brand-1);
-  background: var(--vp-c-bg-alt);
+  background: var(--vp-c-bg-soft);
 }
 
 .demo-card:focus-visible {
   outline: 2px solid var(--vp-c-brand-1);
   outline-offset: 3px;
+}
+
+.demo-content {
+  min-width: 0;
+  flex: 1;
 }
 
 .demo-content,
@@ -139,6 +160,9 @@ const cards = computed(() =>
 }
 
 .demo-host {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   color: var(--vp-c-text-3);
   font-size: 12px;
   overflow-wrap: anywhere;
@@ -146,24 +170,41 @@ const cards = computed(() =>
 
 .demo-detail {
   color: var(--vp-c-text-2);
-  font-size: 14px;
+  font-size: 13px;
+  line-height: 1.5;
   overflow-wrap: anywhere;
 }
 
 .demo-name {
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 600;
   line-height: 1.5;
   overflow-wrap: anywhere;
 }
 
 .demo-visit {
-  display: flex;
+  display: inline-flex;
+  flex: 0 0 auto;
   align-items: center;
-  gap: 8px;
-  margin-top: auto;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  color: var(--vp-c-text-3);
+  transition:
+    color 0.2s,
+    background-color 0.2s;
+}
+
+.demo-visit svg {
+  width: 18px;
+  height: 18px;
+}
+
+.demo-card:hover .demo-visit,
+.demo-card:focus-visible .demo-visit {
   color: var(--vp-c-brand-1);
-  font-size: 14px;
+  background: var(--vp-c-brand-soft);
 }
 
 .sr-only {
@@ -176,7 +217,7 @@ const cards = computed(() =>
   white-space: nowrap;
 }
 
-@media (max-width: 640px) {
+@media (max-width: 560px) {
   .demo-grid {
     grid-template-columns: minmax(0, 1fr);
   }
