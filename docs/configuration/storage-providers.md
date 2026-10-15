@@ -10,6 +10,10 @@ Add, edit or select a default scheme in **Site settings → Storage settings**. 
 | S3-compatible storage | Cloud object storage or an existing MinIO service     | Bucket, endpoint, region and access keys | Direct browser uploads need CORS; images need a working read URL |
 | OpenList              | Existing cloud drives or NAS managed through OpenList | Service URL, root path and token         | Check write permissions, backend limits and download URL expiry  |
 
+::: tip
+Files copied or uploaded directly to any storage backend will not automatically appear in the gallery. Use the ChronoFrame dashboard to upload new media so it can be indexed and processed. Support for scanning and importing media already in storage is planned for a future release.
+:::
+
 ## Local filesystem
 
 Choose local storage and enter `/app/data/storage` as the base path, matching the `./data:/app/data` mount in Getting Started. The base URL can normally remain `/storage`.
