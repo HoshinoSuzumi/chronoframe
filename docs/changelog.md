@@ -8,6 +8,7 @@ Changes grouped by stable version. 1.0.0 includes all changes since v0.14.1, wit
 
 ### Features
 
+- Upload, preview, replace or remove the site avatar in the dashboard, while retaining support for external image URLs.
 - Add a first-run wizard for the administrator, site, storage and map, with the option to add a map token later.
 - Store settings in the database and manage storage schemes, site details, upload limits, duplicate handling and privacy in the dashboard.
 - Add hidden and password-protected albums, album and photo ordering, and shares scoped to protected albums.
