@@ -1,6 +1,6 @@
 # Adding a Setting
 
-Settings live in the database and are described by `DEFAULT_SETTINGS` in `server/services/settings/contants.ts`. Dashboard forms combine these definitions with UI configuration and translations.
+To add a dashboard setting, define its default value, configure its form field and add translations. Settings are saved in the database.
 
 ## Define the setting
 

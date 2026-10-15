@@ -1,6 +1,6 @@
 # Changelog
 
-Changes grouped by stable version. 1.0.0 includes all changes since v0.14.1, without separate beta or release-candidate entries. Historical entries are checked against adjacent stable Git tags; early prerelease tags are omitted.
+New features, improvements and fixes in each release.
 
 ## v1.0.0
 

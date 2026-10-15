@@ -4,7 +4,7 @@ search: false
 
 # Legacy
 
-These pages archive documentation for versions before v1.0.0. They can help with older installations and migration checks; their default accounts, environment variables and container commands may no longer apply.
+Documentation for versions before v1.0.0. The default accounts, environment variables and container commands on these pages may not apply to current versions.
 
 - [Environment variables](/legacy/guide/configuration)
 - [Storage](/legacy/configuration/storage-providers)

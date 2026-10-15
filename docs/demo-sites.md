@@ -1,6 +1,6 @@
 # Demo Sites
 
-Explore galleries shared by ChronoFrame developers and community members. Select a card to visit a gallery.
+Photo galleries shared by ChronoFrame developers and community members. Select a card to visit the site.
 
 ## Developers
 

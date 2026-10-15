@@ -5,7 +5,7 @@ layout: home
 hero:
   name: 'ChronoFrame'
   text: '自部署个人画廊'
-  tagline: '上传、整理和分享照片，在网页中完成站点设置'
+  tagline: '把日常与旅途，留在自己的相框中。'
   image:
     src: /logo.png
     alt: ChronoFrame
@@ -22,24 +22,24 @@ hero:
       link: /zh/demo-sites
 
 features:
-  - title: 强大的照片管理
+  - title: 照片管理
     icon: 🖼️
-    details: 通过网页界面轻松管理和浏览照片，并在地图上查看照片拍摄地点。
+    details: 批量上传、编辑照片信息，用筛选和排序找到想看的照片。
   - title: 简单部署
     icon: 🚀
-    details: 使用 Docker 启动后，通过设置向导创建管理员和选择存储。SQLite 数据库随应用运行，无需单独部署。
-  - title: 灵活的存储方案
+    details: 使用 Docker 启动，跟随向导完成设置，无需单独安装数据库。
+  - title: 多种存储
     icon: 💾
     details: 支持本地文件系统、S3 兼容存储和 OpenList，在后台管理存储方案。
-  - title: 智能地理位置
+  - title: 地图与地点
     icon: 🌍
-    details: 提取照片 GPS，通过反向地理编码识别地点，使用 MapLibre 或 Mapbox 浏览地图。
+    details: 根据照片的 GPS 识别拍摄地点，在地图上回顾去过的地方。
   - title: 相册与隐私
-    icon: 📱
-    details: 整理相册和照片顺序，设置隐藏相册或密码相册，控制画廊中的访问。
-  - title: Live/Motion Photo 支持
+    icon: 🔒
+    details: 按主题整理相册、调整照片顺序，也可以隐藏相册或设置访问密码。
+  - title: 实况照片
     icon: 🎬
-    details: 完整支持 Apple LivePhoto 格式和 Google 标准的 Motion Photo，自动检测和处理 MOV 视频文件，保留动态照片效果。
+    details: 支持 Apple Live Photo 和 Motion Photo，在浏览照片时播放其中的动态片段。
 ---
 
 ## 🌍 演示站点
@@ -54,4 +54,4 @@ features:
 
 ## 📄 开源协议
 
-ChronoFrame 基于 [MIT 协议](https://github.com/HoshinoSuzumi/chronoframe/blob/main/LICENSE) 开源，欢迎自由使用和贡献。
+ChronoFrame 基于 [MIT 协议](https://github.com/HoshinoSuzumi/chronoframe/blob/main/LICENSE) 开源。

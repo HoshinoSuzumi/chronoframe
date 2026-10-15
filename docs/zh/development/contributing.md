@@ -1,6 +1,6 @@
 # 开始贡献
 
-使用 Node.js 22（与 Docker 构建环境一致）和项目指定的 pnpm 10.34.6。仓库包含 workspace 包，请使用 pnpm 安装依赖。
+准备 Node.js 22 和 pnpm 10.34.6。请使用 pnpm 安装依赖，以正确关联仓库内的 workspace 包。
 
 ## 本地运行
 

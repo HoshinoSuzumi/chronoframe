@@ -3,7 +3,7 @@
 The API uses the same session authentication as the web app. Authenticated requests carry the cookie obtained at sign-in; dashboard settings and management operations also check administrator privileges.
 
 ::: info API scope
-Common routes are listed below. For full parameters, responses and access rules, consult the routes and Zod validation in `server/api/`. These routes are not a versioned external API contract.
+Endpoints may change between releases. Check `server/api/` for request parameters, responses and permission checks before integrating.
 :::
 
 | Method | Path                                        | Purpose                                                                |

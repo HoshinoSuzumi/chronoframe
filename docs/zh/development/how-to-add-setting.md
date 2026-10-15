@@ -1,6 +1,6 @@
 # 如何添加一个新的设置项
 
-以在 `app` 命名空间中添加 `foo` 字段为例。
+新增后台设置需要定义默认值、配置表单字段并添加翻译。下面以 `app` 命名空间中的 `foo` 字段为例。
 
 ## 步骤 1：在 DEFAULT_SETTINGS 中添加字段定义
 
@@ -94,7 +94,7 @@ export const APP_SETTINGS_UI: Record<string, FieldUIConfig> = {
 </template>
 ```
 
-✅ 完成！`foo` 字段会自动被 `useSettingsForm('app')` 获取并渲染。
+`useSettingsForm('app')` 会读取并渲染新增的 `foo` 字段。
 
 ## 条件字段示例
 
