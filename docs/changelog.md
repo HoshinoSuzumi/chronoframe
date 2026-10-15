@@ -45,12 +45,14 @@ Changes grouped by stable version. 1.0.0 includes all changes since v0.14.1, wit
 - Rebuild the Docker runtime with TLS certificates, Perl and ExifTool dependencies; the runtime has no shell or package manager.
 - Archive environment-based instructions under Legacy and use the wizard for new installations.
 
-### Upgrade notes
+::: warning Upgrade notes
 
 - Keep old environment variables for the initial migration and verify settings and storage paths in the dashboard.
 - Album passwords cannot block direct access through public S3, OpenList or CDN URLs; manage external storage access too.
 - Photos in hidden albums are excluded from anonymous access, which can affect their display in public albums.
 - Back up all data before upgrading and restore the pre-migration database when rolling back.
+
+:::
 
 ## v0.14.1
 

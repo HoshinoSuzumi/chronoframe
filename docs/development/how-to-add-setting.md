@@ -16,7 +16,9 @@ Add a definition under the appropriate namespace:
 },
 ```
 
+::: warning Keep credentials out of public settings
 Use `isPublic` only for values visitors may read. Use `isSecret` for credentials and `isReadonly` for values that normal setting updates must not change. An `enum` limits available string values.
+:::
 
 ## Describe the form field
 
@@ -40,4 +42,7 @@ Add `settings.app.foo.label`, `settings.app.foo.description` and any help text t
 
 Existing forms use `useSettingsForm('app')` and render their descriptors through `SettingField`. For another namespace, use its corresponding UI configuration and form namespace. Server code reads and writes values through `settingsManager`.
 
+::: tip Verify persistence and visibility
 Check that the field renders, saves and survives a restart. If it is private or secret, also check that it is absent from public settings responses. Database-backed settings do not normally require a new environment variable.
+
+:::

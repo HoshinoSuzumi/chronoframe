@@ -4,7 +4,14 @@
 
 ## 备份
 
-停止容器后备份整个数据目录和 Compose 文件。如果旧部署仍使用 `.env`，也要保存它；本地存储不在 `data` 中时，需要额外备份对应目录。S3 和 OpenList 的文件应在外部服务中单独备份。
+::: warning 先停止服务并备份
+停止容器后，备份以下内容：
+
+- 整个数据目录和 Compose 文件。
+- 旧部署仍在使用的 `.env`。
+- `data` 目录之外的本地照片，以及 S3 / OpenList 中的外部文件。
+
+:::
 
 ```bash
 docker compose stop chronoframe
@@ -23,7 +30,9 @@ docker compose up -d chronoframe
 docker compose logs -f chronoframe
 ```
 
+::: info 启动时自动迁移
 容器启动时会自动执行数据库迁移，正常情况下无需手动运行迁移命令。当前运行镜像不包含 shell 和包管理器，旧文档中的 `docker exec ... sh` 或容器内 `npx drizzle-kit migrate` 不适用。
+:::
 
 直接使用 `docker run` 的部署，先停止并移除旧容器，再用新标签和相同的数据挂载重建。保留原有的端口、网络和仍有用途的部署环境变量。
 
@@ -41,4 +50,7 @@ docker compose logs -f chronoframe
 
 ## 回退
 
+::: danger 回退时同时恢复数据库
 数据库迁移可能改变结构。需要回退时，停止新容器，恢复升级前的完整数据备份，再使用原版本标签启动。不要只降级镜像并继续使用已经迁移的数据库。
+
+:::

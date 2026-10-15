@@ -1,6 +1,10 @@
 # Storage Schemes
 
-Add, edit or select a default scheme in **Site settings → Storage settings**. Enter connection details directly in the form. Switching the default affects future uploads; existing files are not moved. Keep the original scheme and a backup when planning a migration.
+Add, edit or select a default scheme in **Site settings → Storage settings**. Enter connection details directly in the form.
+
+::: warning Switching does not move files
+Switching the default affects future uploads; existing files are not moved. Keep the original scheme and a backup when planning a migration.
+:::
 
 ## Choose storage
 
@@ -18,7 +22,9 @@ Files copied or uploaded directly to any storage backend will not automatically 
 
 Choose local storage and enter `/app/data/storage` as the base path, matching the `./data:/app/data` mount in Getting Started. The base URL can normally remain `/storage`.
 
+::: tip Use a container path
 This is a **container path**, not a host path. To use another disk, add a mount such as `./photos:/app/photos`, then enter `/app/photos` as the base path. Ensure the application user has read/write access and back up that directory separately.
+:::
 
 ## S3-compatible storage
 
@@ -50,7 +56,17 @@ Replace account and region placeholders with your own values.
 | Tencent COS       | `https://cos.ap-beijing.myqcloud.com`           | `ap-beijing`                                        | Use API credentials and the full bucket name including `-APPID`                                   |
 | MinIO             | `https://minio.example.com`                     | Service-configured region                           | Use the S3 API address, not the management console; enable Force Path Style for path-based access |
 
-R2's S3 endpoint is for signed uploads, not a public image domain. Put an object-serving domain in CDN URL; use a custom domain for a production gallery. See [R2 credentials](https://developers.cloudflare.com/r2/api/tokens/) and [public access](https://developers.cloudflare.com/r2/buckets/public-buckets/). For OSS, consult [regions and endpoints](https://www.alibabacloud.com/help/en/oss/user-guide/regions-and-endpoints); for COS, see its [official API notes](https://cloud.tencent.com/document/faq/436/50743).
+::: info R2 upload and read URLs differ
+R2's S3 endpoint is for signed uploads, not a public image domain. Put an object-serving domain in CDN URL; use a custom domain for a production gallery.
+:::
+
+::: details Provider reference documentation
+
+- Cloudflare R2: [credentials](https://developers.cloudflare.com/r2/api/tokens/) and [public access](https://developers.cloudflare.com/r2/buckets/public-buckets/).
+- Alibaba Cloud OSS: [regions and endpoints](https://www.alibabacloud.com/help/en/oss/user-guide/regions-and-endpoints).
+- Tencent COS: [API compatibility notes](https://cloud.tencent.com/document/faq/436/50743).
+
+:::
 
 ### Bucket CORS
 
@@ -75,13 +91,17 @@ In AWS S3, open the bucket's **Permissions → Cross-origin resource sharing (CO
 - For providers with form-based CORS settings, enter the same origins, methods, allowed headers and exposed headers.
 - Check CDN response headers too. Existing cached responses may need refreshing after a policy change.
 
+::: info CORS is not access control
 See [AWS CORS documentation](https://docs.aws.amazon.com/AmazonS3/latest/userguide/ManageCorsUsing.html) and [R2 CORS documentation](https://developers.cloudflare.com/r2/buckets/cors/). CORS does not grant credential permissions or replace file access control.
+:::
 
 ### Image reads and protected albums
 
 After uploading, open an image as a visitor to check the read URL, object path and HTTPS. Do not make the whole bucket public merely to troubleshoot CORS.
 
+::: warning Use local storage for protected albums
 Remote media links currently cannot guarantee that every request passes through ChronoFrame album authorization. Use local storage for files that need password-album protection. Public S3, OpenList or CDN links and caches are not revoked when an album password changes.
+:::
 
 ## OpenList
 
@@ -90,7 +110,9 @@ Remote media links currently cannot guarantee that every request passes through 
 3. Add an OpenList scheme in ChronoFrame. Enter a service URL such as `https://openlist.example.com`, an actual OpenList root path such as `/115pan/chronoframe`, and the token.
 4. Upload a photo and open its original. Directory permissions, network access and download URL expiry can affect the result.
 
+::: details Advanced OpenList endpoints
 Keep the standard advanced endpoints unless your service or proxy changes them: upload `/api/fs/put`, delete `/api/fs/remove`, metadata `/api/fs/get`, path field `path`. If using a CDN URL, check that it matches real object paths. See the [OpenList documentation](https://doc.oplist.org/) for service setup.
+:::
 
 ## Troubleshooting
 

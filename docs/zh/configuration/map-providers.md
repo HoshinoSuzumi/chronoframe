@@ -9,7 +9,9 @@
 | MapLibre | 开源 MapLibre GL JS | MapTiler     | 使用内置样式时需要 MapTiler API Key |
 | Mapbox   | Mapbox GL JS        | Mapbox       | Mapbox 公共访问令牌                 |
 
+::: info 渲染器与地图数据服务
 MapLibre 是渲染器，MapTiler 是提供地图数据的服务，两者不是同一个产品。默认 MapLibre 样式随站点明暗主题切换；自定义样式会覆盖内置样式。服务的免费额度、商用要求和计费以各自官网为准。
+:::
 
 ## MapLibre + MapTiler
 
@@ -19,7 +21,9 @@ MapLibre 是渲染器，MapTiler 是提供地图数据的服务，两者不是�
 4. 在 MapTiler 的 Key 设置中配置 **Allowed HTTP origins**，填写画廊的来源地址，例如 `https://gallery.example.com`；本地调试另加 `http://localhost:3000`。
 5. 保存设置并打开地球仪或带 GPS 的照片详情，检查地图是否正常加载。
 
+::: warning 限制 Key 的使用来源
 Key 会被浏览器用于请求地图，所以不要把它当作只存在服务器上的秘密。来源限制的说明见 [MapTiler API Key 指南](https://docs.maptiler.com/guides/credentials/api-key/)。
+:::
 
 ### 自定义样式
 
@@ -29,7 +33,13 @@ Key 会被浏览器用于请求地图，所以不要把它当作只存在服务�
 https://api.maptiler.com/maps/streets-v2/style.json?key=YOUR_MAPTILER_KEY
 ```
 
-这是样式地址，不能填预览页面或嵌入 HTML。若地址中包含 Key，请使用自己创建的 Key；更换令牌时也要检查样式地址。自托管样式需保证瓦片、字体和图标地址可由访客浏览器访问，并允许跨域请求。
+::: tip 填写 Style JSON 地址
+
+- 填写样式地址，不要填预览页或嵌入 HTML。
+- 地址中的 Key 使用自己的；更换令牌时也检查样式地址。
+- 自托管样式的瓦片、字体和图标必须可由访客浏览器访问，并允许跨域请求。
+
+:::
 
 ## Mapbox
 
@@ -63,6 +73,8 @@ mapbox://styles/YOUR_USERNAME/YOUR_STYLE_ID
 
 ## 暂不配置及排查
 
+::: tip 地图可以稍后设置
 设置向导允许先跳过令牌，之后在本页补齐。仍可上传和管理照片。MapLibre 仅在令牌和自定义样式均未配置时提示尚未设置；使用内置 MapTiler 样式需要 API Key。
+:::
 
 地图空白或请求出现 401 / 403 时，核对选择的提供器、令牌、当前域名限制，以及样式、瓦片和字体的访问权限。站点从 localhost 换成正式域名后，要同步修改服务商的来源限制。

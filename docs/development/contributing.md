@@ -12,7 +12,9 @@ pnpm install --frozen-lockfile
 pnpm dev
 ```
 
+::: tip Local setup
 Open `http://localhost:3000` and use the wizard to create an administrator and choose local storage. `./data/storage` works for development. Database migrations run at startup; you do not need to generate migrations or fill out a minimal environment configuration just to run the app.
+:::
 
 ## Commands
 
@@ -28,7 +30,9 @@ pnpm docs:build
 
 `pnpm dev` runs the WebGL package development build alongside Nuxt. Once the dependency package is built, use `pnpm dev:only` to start Nuxt alone. Code checks use Oxlint; formatting uses Oxfmt.
 
+::: warning Review migrations and committed files
 After changing the database schema, run `pnpm db:generate` and review the generated SQL. `pnpm db:migrate` applies migrations manually. Keep local databases, photos and credentials out of Git.
+:::
 
 ## Where code lives
 

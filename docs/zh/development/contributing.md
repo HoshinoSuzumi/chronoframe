@@ -12,7 +12,9 @@ pnpm install --frozen-lockfile
 pnpm dev
 ```
 
+::: tip 本地初始化
 打开 `http://localhost:3000`，按设置向导创建管理员并选择本地存储。开发时可以使用 `./data/storage`。数据库在启动时自动迁移，无需为启动项目生成新的迁移文件，也无需填写最小环境变量配置。
+:::
 
 ## 常用命令
 
@@ -28,7 +30,9 @@ pnpm docs:build
 
 `pnpm dev` 同时启动 WebGL 包的开发构建和 Nuxt。已有依赖构建时，可使用 `pnpm dev:only` 单独启动 Nuxt。代码检查使用 Oxlint，格式化使用 Oxfmt。
 
+::: warning 检查迁移和提交内容
 修改数据库 schema 后使用 `pnpm db:generate` 生成迁移，并检查生成的 SQL；`pnpm db:migrate` 可手动应用迁移。提交前不要把本地数据库、照片或访问密钥放进 Git。
+:::
 
 ## 代码位置
 

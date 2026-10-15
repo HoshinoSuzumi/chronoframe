@@ -9,7 +9,9 @@ Open **Site settings → Maps and locations**. Map display and place-name lookup
 | MapLibre | Open-source MapLibre GL JS | MapTiler         | MapTiler API key for the built-in style |
 | Mapbox   | Mapbox GL JS               | Mapbox           | Mapbox public access token              |
 
+::: info Renderer and map data service
 MapLibre is the renderer; MapTiler supplies map data. The built-in MapLibre style follows the site's light/dark theme. A custom style overrides it. Check each provider's current terms, allowances and pricing.
+:::
 
 ## MapLibre + MapTiler
 
@@ -19,7 +21,9 @@ MapLibre is the renderer; MapTiler supplies map data. The built-in MapLibre styl
 4. Set **Allowed HTTP origins** for the key to your gallery origin, such as `https://gallery.example.com`. Add `http://localhost:3000` for local testing.
 5. Save and open the globe or a GPS-tagged photo to check the map.
 
+::: warning Restrict where the key can be used
 The browser uses this key, so it is not a server-only secret. See the [MapTiler API key guide](https://docs.maptiler.com/guides/credentials/api-key/) for origin restrictions.
+:::
 
 ### Custom styles
 
@@ -29,7 +33,13 @@ Copy a MapLibre-compatible **Style JSON URL** from the MapTiler map page and ent
 https://api.maptiler.com/maps/streets-v2/style.json?key=YOUR_MAPTILER_KEY
 ```
 
-Use the style URL, not a preview page or embedded HTML. Use your own key in the URL and check it when rotating keys. For self-hosted styles, visitors' browsers must be able to fetch tiles, fonts and sprites with appropriate CORS headers.
+::: tip Use the Style JSON URL
+
+- Enter a style URL, not a preview page or embedded HTML.
+- Use your own key in the URL and check it when rotating keys.
+- Self-hosted tiles, fonts and sprites must be accessible to visitors' browsers with appropriate CORS headers.
+
+:::
 
 ## Mapbox
 
@@ -63,6 +73,8 @@ MapLibre can display maps while Mapbox or Nominatim identifies places. Troublesh
 
 ## Configure later and troubleshoot
 
+::: tip Configure maps later
 You can skip the token during setup and add it here later. Uploads and photo management still work. MapLibre views indicate that setup is missing only when neither a token nor a custom style is configured; the built-in MapTiler style requires a key.
+:::
 
 For blank maps or 401 / 403 responses, check the provider, token, current URL restrictions and access to styles, tiles and fonts. Update origin restrictions when moving from localhost to a public domain.

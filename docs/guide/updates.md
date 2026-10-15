@@ -4,7 +4,14 @@ Read the [changelog](/changelog) before choosing a target version and review its
 
 ## Back up
 
-Stop the container before copying the complete data directory and Compose file. If your older deployment uses `.env`, save it too. Back up local storage separately if it is outside `data`, and back up S3 or OpenList files in their storage service.
+::: warning Stop and back up first
+Stop the container, then back up:
+
+- The complete data directory and Compose file.
+- `.env`, if your older deployment still uses it.
+- Local photos outside `data`, plus files in S3 or OpenList.
+
+:::
 
 ```bash
 docker compose stop chronoframe
@@ -23,7 +30,9 @@ docker compose up -d chronoframe
 docker compose logs -f chronoframe
 ```
 
+::: info Migrations run at startup
 Database migrations run automatically at startup. Manual migration commands are normally unnecessary. The current runtime image has no shell or package manager, so older instructions using `docker exec ... sh` or `npx drizzle-kit migrate` inside the container do not apply.
+:::
 
 For a `docker run` deployment, stop and remove the old container, then recreate it with the new tag and the same data mount. Preserve your ports, networks and any deployment environment variables you still need.
 
@@ -41,4 +50,7 @@ Sign in, open several existing photos, upload a photo and check albums, maps and
 
 ## Roll back
 
+::: danger Restore the database when rolling back
 Migrations may change the database schema. To roll back, stop the new container, restore the complete backup from before the upgrade and start the original image tag. Downgrading only the image while retaining a migrated database is not a reliable rollback.
+
+:::

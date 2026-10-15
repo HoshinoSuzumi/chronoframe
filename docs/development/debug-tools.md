@@ -1,14 +1,16 @@
 # Development debug tools
 
+::: info Development only
 The floating debug entry appears globally under `pnpm dev`. Production builds
 remove the panel import and disable debug reads, writes, and registrations.
 `?debug=1` opens the panel; the previous `?queueDebug=1` link also enables the
 queue preview in development. Neither parameter activates production debugging.
+:::
 
-Drag the entry to dock it against the nearest edge; near a corner it docks to
-both edges. Drag a window header to move it, and its edges/corners to resize it.
-The header buttons maximize/restore and close the window. Double-clicking the
-header also maximizes/restores. Escape closes the window.
+- Drag the entry to dock it against the nearest edge or corner.
+- Drag a window header to move it; drag its edges or corners to resize it.
+- Use the header buttons to maximize, restore or close the window. Double-clicking the header also toggles maximization.
+- Press Escape to close the window.
 
 ## Register page controls
 
@@ -50,8 +52,10 @@ Supported controls: `switch`, `select` (with `options`), `number`, `text`,
 Use `useDebugValue` for reactive reads/writes, or `useDebugStore().get/set`
 for imperative access. Configuration persists in local storage. Route controls
 are scoped to their page lifecycle and filtered by exact route path.
-In production reads return the supplied defaults and writes are ignored.
-Wrap expensive mock generation in `if (import.meta.dev)` for build removal.
+
+::: warning Guard expensive fixtures
+In production, reads return defaults and writes are ignored. Wrap expensive mock generation in `if (import.meta.dev)` so it can be removed from the build.
+:::
 
 ## Reuse the floating window
 

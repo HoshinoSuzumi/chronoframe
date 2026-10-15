@@ -31,7 +31,13 @@
 - `isSecret`: 是否为机密字段（如密码）
 - `enum`: 枚举值数组
 
-> 💡 **注意**：不需要在 DEFAULT_SETTINGS 中添加 `label` 和 `description`。SettingField 组件会自动生成翻译键 `settings.${namespace}.${key}.label` 和 `settings.${namespace}.${key}.description`
+::: tip 翻译键自动生成
+不需要在 `DEFAULT_SETTINGS` 中添加 `label` 和 `description`。`SettingField` 会自动生成翻译键 `settings.${namespace}.${key}.label` 和 `settings.${namespace}.${key}.description`。
+:::
+
+::: warning 不要公开凭据
+`isPublic` 仅用于访客可以读取的值；访问密钥等凭据应标为 `isSecret`，并检查公开设置响应中没有这些内容。
+:::
 
 ## 步骤 2：添加 UI 配置
 

@@ -45,13 +45,17 @@ Open `http://localhost:3000`. A fresh installation opens the setup wizard; you d
 
 ## Enter the dashboard
 
+::: tip First-visit tours
 After setup, open `/dashboard`. On your first visit to the dashboard, photo library and settings pages, a step-by-step tour points out uploads, queues and common settings. You can skip it and reset the tours later in **Site settings → System settings**.
+:::
 
 ![Dashboard overview showing the photo library, queue and settings navigation alongside photo statistics and task status](/images/dashboard-overview.jpg)
 
 ### Upload your first photo
 
-Open **Photos**, select files or drag them into the upload area. Background tasks continue extracting EXIF, creating thumbnails and identifying places after transfer finishes. Check completion in **Queue management**, then open the gallery. Failed tasks show an error and can be retried.
+1. Open **Photos** and select or drag in your files.
+2. Check **Queue management** while EXIF, thumbnails and location lookup finish.
+3. Open the gallery to check the result; inspect and retry failed tasks.
 
 Local storage is ready to use. The service guides explain S3 credentials and CORS, OpenList URLs and tokens, and map API keys. Enter these in the dashboard, without converting them into environment variables.
 
@@ -59,13 +63,17 @@ Local storage is ready to use. The service guides explain S3 credentials and COR
 
 Keep the `./data:/app/data` mount. The default database is `/app/data/app.sqlite3`; a session secret is generated automatically and saved to `/app/data/.session-password`. With the local path above, originals and derived files also live under this directory.
 
+::: warning Preserve data when updating
 Keep the data directory when replacing a container. Files stored in S3 or OpenList need their own backup; a database backup alone cannot restore missing originals.
+:::
 
 ## Use a domain and HTTPS
 
 You can place Caddy, Nginx or Traefik in front of the container. Match the proxy upload limit to your dashboard setting and allow streaming responses for live logs.
 
+::: warning Trust only your own proxy
 Enable `NUXT_TRUST_PROXY=true` only if port 3000 is reachable exclusively through a trusted proxy that replaces client-supplied `X-Forwarded-For` headers. This deployment option still uses an environment variable, for example in Compose:
+:::
 
 ```yaml
 environment:

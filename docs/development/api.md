@@ -2,7 +2,9 @@
 
 The API uses the same session authentication as the web app. Authenticated requests carry the cookie obtained at sign-in; dashboard settings and management operations also check administrator privileges.
 
+::: info API scope
 Common routes are listed below. For full parameters, responses and access rules, consult the routes and Zod validation in `server/api/`. These routes are not a versioned external API contract.
+:::
 
 | Method | Path                                        | Purpose                                                                |
 | ------ | ------------------------------------------- | ---------------------------------------------------------------------- |
@@ -30,4 +32,8 @@ With an administrator session, send a PUT request to `/api/system/settings/batch
 }
 ```
 
-For new settings or form changes, read [Adding a setting](/development/how-to-add-setting). Photo access follows album visibility and password rules; do not use the authenticated dashboard photo list as a public API.
+For new settings or form changes, read [Adding a setting](/development/how-to-add-setting).
+
+::: warning Dashboard endpoints are not public photo feeds
+Photo access follows album visibility and password rules. Do not expose the authenticated dashboard photo list as a public API.
+:::

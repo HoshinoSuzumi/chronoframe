@@ -1,6 +1,10 @@
 # 存储方案
 
-在 **站点设置 → 存储设置** 中添加、编辑或设为默认方案，连接信息直接填写到表单。更换默认方案只影响后续上传，已有文件不会自动迁移；迁移前请保留原方案和备份。
+在 **站点设置 → 存储设置** 中添加、编辑或设为默认方案，连接信息直接填写到表单。
+
+::: warning 切换方案不会迁移文件
+更换默认方案只影响后续上传，已有文件不会自动迁移；迁移前请保留原方案和备份。
+:::
 
 ## 选择哪种存储
 
@@ -18,7 +22,9 @@
 
 添加方案时选择“本地存储”，基础路径填写容器内的 `/app/data/storage`，与快速开始中的 `./data:/app/data` 挂载配合使用。访问地址通常保留 `/storage`。
 
+::: tip 填写容器内路径
 这里填的是**容器内路径**，不是宿主机路径。想使用另一块磁盘，可先增加 `./photos:/app/photos` 挂载，再把基础路径填写为 `/app/photos`。确认运行应用的用户有读写权限，并单独备份该目录。
+:::
 
 ## S3 兼容存储
 
@@ -50,7 +56,17 @@
 | 腾讯云 COS    | `https://cos.ap-beijing.myqcloud.com`           | `ap-beijing`             | 使用 API 密钥，Bucket 包含 `-APPID` 后缀                                            |
 | MinIO         | `https://minio.example.com`                     | 服务配置的区域           | 使用 S3 API 端口对应的地址，而不是管理控制台；按路径访问时开启 Force Path Style     |
 
-R2 的 S3 Endpoint 用于签名上传，不能当成公开图片域名。将可访问对象的域名填写为 CDN URL；正式站点可使用自定义域名。参见 [R2 凭据获取](https://developers.cloudflare.com/r2/api/tokens/)和[公开访问说明](https://developers.cloudflare.com/r2/buckets/public-buckets/)。OSS 地址可查阅[地域和 Endpoint](https://www.alibabacloud.com/help/en/oss/user-guide/regions-and-endpoints)；COS 的兼容行为请参阅[官方 API 说明](https://cloud.tencent.com/document/faq/436/50743)。
+::: info R2 的上传和读取地址不同
+R2 的 S3 Endpoint 用于签名上传，不能当成公开图片域名。将可访问对象的域名填写为 CDN URL；正式站点可使用自定义域名。
+:::
+
+::: details 服务商参考文档
+
+- Cloudflare R2：[凭据获取](https://developers.cloudflare.com/r2/api/tokens/)、[公开访问](https://developers.cloudflare.com/r2/buckets/public-buckets/)。
+- 阿里云 OSS：[地域和 Endpoint](https://www.alibabacloud.com/help/en/oss/user-guide/regions-and-endpoints)。
+- 腾讯云 COS：[API 兼容说明](https://cloud.tencent.com/document/faq/436/50743)。
+
+:::
 
 ### 存储桶的 CORS
 
@@ -75,13 +91,17 @@ R2 的 S3 Endpoint 用于签名上传，不能当成公开图片域名。将可�
 - OSS / COS 等控制台若使用逐项表单，按同样的来源、方法、请求头和暴露头填写。
 - 使用 CDN 时也要检查图片响应中的跨域头。修改规则后，旧缓存可能需要刷新。
 
+::: info CORS 不等于访问权限
 详细字段见 [AWS CORS 文档](https://docs.aws.amazon.com/AmazonS3/latest/userguide/ManageCorsUsing.html)和 [R2 CORS 文档](https://developers.cloudflare.com/r2/buckets/cors/)。CORS 解决浏览器跨域请求，不会授予密钥权限，也不能代替文件访问控制。
+:::
 
 ### 图片读取与密码相册
 
 验证上传成功后，还要从访客视角打开图片，确认读取地址、对象路径和 HTTPS 都正确。不要为了排查 CORS 就开放整个桶。
 
+::: warning 密码相册请使用本地存储
 当前远端存储的媒体直链不能保证经过 ChronoFrame 的相册授权。需要保护密码相册中的文件时，使用本地存储；公开 S3、OpenList 或 CDN 的直链和缓存不会因修改相册密码而撤销。
+:::
 
 ## OpenList
 
@@ -90,7 +110,9 @@ R2 的 S3 Endpoint 用于签名上传，不能当成公开图片域名。将可�
 3. 在 ChronoFrame 添加 OpenList 方案：服务地址填写 `https://openlist.example.com`，根路径填写 `/115pan/chronoframe` 等 OpenList 中的实际路径，再填入令牌。
 4. 先上传一张照片并检查能否打开原图。目录权限、服务网络和下载地址有效期都可能影响结果。
 
+::: details OpenList 高级接口设置
 标准服务通常保留高级接口默认值：上传 `/api/fs/put`、删除 `/api/fs/remove`、元数据 `/api/fs/get`，路径字段为 `path`。只有反向代理或服务接口有改动时才调整。可另填 CDN URL，但要确认它与真实对象路径一致。服务相关说明见 [OpenList 文档](https://doc.oplist.org/)。
+:::
 
 ## 常见问题
 

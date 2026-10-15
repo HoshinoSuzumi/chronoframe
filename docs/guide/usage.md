@@ -7,14 +7,19 @@ Sign in and open `/dashboard`. Select files or drag them onto the Photos page to
 - Sort and filter the photo table and choose which columns to show. ChronoFrame remembers column visibility and supports sorting by upload date.
 - Select photos to delete, download, reindex or add them to albums in batches. You can also use Shift + click range selection.
 - Edit photo metadata such as title, description and rating.
-- For Apple Live Photos, use matching image and MOV filenames, such as `IMG_1234.heic` and `IMG_1234.mov`. Either file can be uploaded first; pairing can be retried in the dashboard.
 - Motion Photos with embedded video are also supported. The WebGL viewer provides zoom, pan and tiled rendering for large images.
+
+::: tip Pairing Live Photos
+For Apple Live Photos, use matching image and MOV filenames, such as `IMG_1234.heic` and `IMG_1234.mov`. Either file can be uploaded first; pairing can be retried in the dashboard.
+:::
 
 ## Albums and visibility
 
 Albums group photos by subject. ChronoFrame supports ordering for both albums and the photos within them.
 
+::: warning Hidden albums also affect shared photos
 Hidden albums restrict public visibility. ChronoFrame also restricts anonymous access to their photos, even when a photo belongs to a public album as well. Check the public gallery after changing visibility.
+:::
 
 ChronoFrame supports album passwords with a minimum of six characters. Visitors must unlock the album to browse it in ChronoFrame, and photo shares retain the album access scope.
 
@@ -38,18 +43,33 @@ Site details, maps, location services, storage and upload limits can be edited i
 
 For provider selection, credentials and CORS, see [Storage schemes](/configuration/storage-providers). For tokens and styles, see [Maps and locations](/configuration/map-providers).
 
-Map settings control display; location settings convert GPS coordinates into place names. After changing the place-name language, reindex existing locations to update names already saved in the database.
+::: tip After changing settings
 
-Before switching storage schemes, make sure existing photos remain accessible. Selecting a scheme does not automatically move originals to the new storage. Local paths must be inside a mounted directory to survive container replacement.
+- **Place-name language**: reindex existing locations to update saved names.
+- **Storage scheme**: confirm existing photos still open. Switching does not move originals; local paths must remain inside a mounted directory.
 
-The upload privacy option applies to future uploads; it does not automatically clean previously uploaded files. For existing photos, use the individual or batch location-removal action and confirm completion in the task queue. Check descriptions and tags for information you do not want to publish as well.
+:::
+
+::: warning Privacy settings do not clean older files
+Location removal on upload applies to future uploads. For existing photos, run the individual or batch removal action and confirm completion in the queue. Check descriptions and tags before publishing too.
+:::
 
 ## GitHub login
 
 Sign in with the email and password created during setup, then enable GitHub OAuth in system settings and enter the Client ID and Client Secret. Set the OAuth application's callback URL to `https://your-domain/api/auth/github`.
 
+::: info GitHub login does not grant admin access
 The email returned by GitHub must match an existing administrator. Enabling OAuth does not grant administrator access to every GitHub user; unauthorized accounts are rejected.
+:::
 
 ## Troubleshoot uploads
 
-Use the task queue for processing errors and the log page for live and historical logs. For rejected uploads, check both the application and proxy size limits. For storage failures, check directory permissions or remote credentials. Include your version, storage type and relevant logs when reporting a problem, removing tokens and secrets first.
+| Symptom            | Where to check                              |
+| ------------------ | ------------------------------------------- |
+| Upload rejected    | Application and proxy size limits           |
+| Storage failure    | Directory permissions or remote credentials |
+| Processing failure | Task errors, retry results and the log page |
+
+::: tip Reporting a problem
+Include your version, storage type and relevant logs. Remove tokens, credentials and private information first.
+:::
