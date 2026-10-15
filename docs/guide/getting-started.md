@@ -72,13 +72,21 @@ Keep the data directory when replacing a container. Files stored in S3 or OpenLi
 You can place Caddy, Nginx or Traefik in front of the container. Match the proxy upload limit to your dashboard setting and allow streaming responses for live logs.
 
 ::: warning Trust only your own proxy
-Enable `NUXT_TRUST_PROXY=true` only if port 3000 is reachable exclusively through a trusted proxy that replaces client-supplied `X-Forwarded-For` headers. This deployment option still uses an environment variable, for example in Compose:
+Enable `NUXT_TRUST_PROXY=true` only if port 3000 is reachable exclusively through a trusted proxy that replaces client-supplied `X-Forwarded-For` headers. This deployment option still uses an environment variable.
 :::
 
+For a proxy running on the host, replace the existing `chronoframe` service's `ports` and `environment` fields with the following. Replace `3000:3000`; do not retain a publicly bound port mapping:
+
 ```yaml
-environment:
-  NUXT_TRUST_PROXY: 'true'
+services:
+  chronoframe:
+    ports:
+      - '127.0.0.1:3000:3000'
+    environment:
+      NUXT_TRUST_PROXY: 'true'
 ```
+
+Keep the existing image, volumes and other service configuration. If the proxy also runs in a container, put both services on a private Docker network, proxy to `http://chronoframe:3000`, and remove the application service's `ports` mapping.
 
 An Nginx application proxy block can look like this:
 

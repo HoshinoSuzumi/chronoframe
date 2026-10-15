@@ -72,13 +72,21 @@ docker run -d --name chronoframe --restart unless-stopped \
 可以在容器前使用 Caddy、Nginx 或 Traefik。反向代理的上传大小上限应与后台设置匹配，并保留流式响应，供实时日志使用。
 
 ::: warning 仅信任受控代理
-只有在 3000 端口只能被可信代理访问、且代理会覆盖用户传入的 `X-Forwarded-For` 时，才启用 `NUXT_TRUST_PROXY=true`。这项部署设置仍使用环境变量，例如在 Compose 中加入：
+只有在 3000 端口只能被可信代理访问、且代理会覆盖用户传入的 `X-Forwarded-For` 时，才启用 `NUXT_TRUST_PROXY=true`。这项部署设置仍使用环境变量。
 :::
 
+如果代理运行在宿主机上，将现有 `chronoframe` 服务的 `ports` 和 `environment` 改为下面的配置；替换原有的 `3000:3000`，不要保留对外开放的映射：
+
 ```yaml
-environment:
-  NUXT_TRUST_PROXY: 'true'
+services:
+  chronoframe:
+    ports:
+      - '127.0.0.1:3000:3000'
+    environment:
+      NUXT_TRUST_PROXY: 'true'
 ```
+
+保留服务中原有的镜像、数据卷等其他配置。若代理也运行在容器中，让两个服务使用专用 Docker 网络，代理通过 `http://chronoframe:3000` 访问应用，并移除应用服务的 `ports` 映射。
 
 Nginx 的应用代理段可参考：
 
