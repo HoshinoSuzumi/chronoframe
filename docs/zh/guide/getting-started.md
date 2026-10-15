@@ -4,6 +4,10 @@ ChronoFrame 使用 SQLite 保存照片信息和设置，无需单独部署数据
 
 ## 启动容器
 
+<DocTabs label="部署方式" :tabs="[{ id: 'compose', label: 'Docker Compose' }, { id: 'run', label: 'Docker Run' }]">
+
+<template #compose>
+
 创建 `docker-compose.yml`：
 
 ```yaml
@@ -18,20 +22,28 @@ services:
       - ./data:/app/data
 ```
 
-也可以将镜像名换成 `hoshinosuzumi/chronoframe:latest`，从 Docker Hub 拉取。
-
 ```bash
 docker compose up -d
 docker compose logs -f chronoframe
 ```
 
-习惯直接使用 Docker 的话：
+</template>
+
+<template #run>
+
+直接启动容器：
 
 ```bash
 docker run -d --name chronoframe --restart unless-stopped \
   -p 3000:3000 -v "$(pwd)/data:/app/data" \
   ghcr.io/hoshinosuzumi/chronoframe:latest
 ```
+
+</template>
+
+</DocTabs>
+
+也可以将镜像名换成 `hoshinosuzumi/chronoframe:latest`，从 Docker Hub 拉取。
 
 打开 `http://localhost:3000`，首次访问会进入设置向导。新部署不需要先填写 `.env`。
 

@@ -13,6 +13,10 @@
 MapLibre 是渲染器，MapTiler 是提供地图数据的服务，两者不是同一个产品。默认 MapLibre 样式随站点明暗主题切换；自定义样式会覆盖内置样式。服务的免费额度、商用要求和计费以各自官网为准。
 :::
 
+<DocTabs label="地图服务" :tabs="[{ id: 'maplibre', label: 'MapLibre + MapTiler' }, { id: 'mapbox', label: 'Mapbox' }]">
+
+<template #maplibre>
+
 ## MapLibre + MapTiler
 
 1. 注册或登录 [MapTiler Cloud](https://cloud.maptiler.com/)。
@@ -41,6 +45,10 @@ https://api.maptiler.com/maps/streets-v2/style.json?key=YOUR_MAPTILER_KEY
 
 :::
 
+</template>
+
+<template #mapbox>
+
 ## Mapbox
 
 1. 注册或登录 [Mapbox](https://console.mapbox.com/)。
@@ -60,6 +68,10 @@ mapbox://styles/YOUR_USERNAME/YOUR_STYLE_ID
 ```
 
 该样式必须对当前令牌可读，不能填 Studio 编辑页的地址。
+
+</template>
+
+</DocTabs>
 
 ## 地点识别
 

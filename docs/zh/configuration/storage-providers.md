@@ -8,11 +8,7 @@
 
 ## 选择哪种存储
 
-| 提供器       | 适合的情况                                   | 需要准备                         | 需要留意                                        |
-| ------------ | -------------------------------------------- | -------------------------------- | ----------------------------------------------- |
-| 本地文件系统 | 想先开始使用，或把照片放在自己的服务器 / NAS | 已挂载、可写的目录               | 磁盘容量和备份由自己管理                        |
-| S3 兼容存储  | 使用云对象存储，或已有 MinIO 等服务          | 存储桶、Endpoint、区域、访问密钥 | 浏览器直传需要 CORS，图片访问需要可用的读取地址 |
-| OpenList     | 已经用 OpenList 管理网盘或 NAS               | 服务地址、根路径、令牌           | 上传权限、后端限速和下载地址有效期              |
+<StorageChoices />
 
 ::: tip
 直接复制或上传到存储中的文件不会自动出现在画廊中。请通过 ChronoFrame 仪表盘上传新媒体，以便应用完成索引和处理。后续版本计划支持扫描并导入存储中已有的媒体文件。
@@ -48,17 +44,68 @@
 
 以下地址是示例，请换成自己账号和区域的信息。
 
-| 服务          | Endpoint 示例                                   | Region                   | 凭据与特别说明                                                                      |
-| ------------- | ----------------------------------------------- | ------------------------ | ----------------------------------------------------------------------------------- |
-| AWS S3        | `https://s3.us-east-1.amazonaws.com`            | `us-east-1`              | 创建桶后使用 IAM 身份的访问密钥，并限制到目标桶                                     |
-| Cloudflare R2 | `https://<ACCOUNT_ID>.r2.cloudflarestorage.com` | `auto`                   | 创建 R2 API Token 后获得 Access Key ID 和 Secret Access Key；图片读取另配自定义域名 |
-| 阿里云 OSS    | `https://oss-cn-hangzhou.aliyuncs.com`          | 按服务的 S3 兼容配置填写 | 从 RAM 身份获取 AccessKey，Endpoint 使用桶所在地域的地址                            |
-| 腾讯云 COS    | `https://cos.ap-beijing.myqcloud.com`           | `ap-beijing`             | 使用 API 密钥，Bucket 包含 `-APPID` 后缀                                            |
-| MinIO         | `https://minio.example.com`                     | 服务配置的区域           | 使用 S3 API 端口对应的地址，而不是管理控制台；按路径访问时开启 Force Path Style     |
+<DocTabs label="S3 服务商" :tabs="[{ id: 'aws', label: 'AWS S3' }, { id: 'r2', label: 'Cloudflare R2' }, { id: 'oss', label: '阿里云 OSS' }, { id: 'cos', label: '腾讯云 COS' }, { id: 'minio', label: 'MinIO' }]">
+
+<template #aws>
+
+| 字段     | 填写值                               |
+| -------- | ------------------------------------ |
+| Endpoint | `https://s3.us-east-1.amazonaws.com` |
+| Region   | `us-east-1`                          |
+
+创建桶后使用 IAM 身份的访问密钥，并限制到目标桶
+
+</template>
+
+<template #r2>
+
+| 字段     | 填写值                                          |
+| -------- | ----------------------------------------------- |
+| Endpoint | `https://<ACCOUNT_ID>.r2.cloudflarestorage.com` |
+| Region   | `auto`                                          |
+
+创建 R2 API Token 后获得 Access Key ID 和 Secret Access Key；图片读取另配自定义域名
 
 ::: info R2 的上传和读取地址不同
 R2 的 S3 Endpoint 用于签名上传，不能当成公开图片域名。将可访问对象的域名填写为 CDN URL；正式站点可使用自定义域名。
 :::
+
+</template>
+
+<template #oss>
+
+| 字段     | 填写值                                 |
+| -------- | -------------------------------------- |
+| Endpoint | `https://oss-cn-hangzhou.aliyuncs.com` |
+| Region   | 按服务的 S3 兼容配置填写               |
+
+从 RAM 身份获取 AccessKey，Endpoint 使用桶所在地域的地址
+
+</template>
+
+<template #cos>
+
+| 字段     | 填写值                                |
+| -------- | ------------------------------------- |
+| Endpoint | `https://cos.ap-beijing.myqcloud.com` |
+| Region   | `ap-beijing`                          |
+
+使用 API 密钥，Bucket 包含 `-APPID` 后缀
+
+</template>
+
+<template #minio>
+
+| 字段     | 填写值                      |
+| -------- | --------------------------- |
+| Endpoint | `https://minio.example.com` |
+| Region   | 服务配置的区域              |
+
+使用 S3 API 端口对应的地址，而不是管理控制台；按路径访问时开启 Force Path Style
+
+</template>
+
+</DocTabs>
 
 ::: details 服务商参考文档
 

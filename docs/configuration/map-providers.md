@@ -13,6 +13,10 @@ Open **Site settings → Maps and locations**. Map display and place-name lookup
 MapLibre is the renderer; MapTiler supplies map data. The built-in MapLibre style follows the site's light/dark theme. A custom style overrides it. Check each provider's current terms, allowances and pricing.
 :::
 
+<DocTabs label="Map service" :tabs="[{ id: 'maplibre', label: 'MapLibre + MapTiler' }, { id: 'mapbox', label: 'Mapbox' }]">
+
+<template #maplibre>
+
 ## MapLibre + MapTiler
 
 1. Sign in to [MapTiler Cloud](https://cloud.maptiler.com/).
@@ -41,6 +45,10 @@ https://api.maptiler.com/maps/streets-v2/style.json?key=YOUR_MAPTILER_KEY
 
 :::
 
+</template>
+
+<template #mapbox>
+
 ## Mapbox
 
 1. Sign in to [Mapbox](https://console.mapbox.com/).
@@ -60,6 +68,10 @@ mapbox://styles/YOUR_USERNAME/YOUR_STYLE_ID
 ```
 
 The token must be able to read the style. Do not use the Studio editor URL.
+
+</template>
+
+</DocTabs>
 
 ## Place-name lookup
 

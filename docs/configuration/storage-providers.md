@@ -8,11 +8,7 @@ Switching the default affects future uploads; existing files are not moved. Keep
 
 ## Choose storage
 
-| Provider              | Best fit                                              | What you need                            | Considerations                                                   |
-| --------------------- | ----------------------------------------------------- | ---------------------------------------- | ---------------------------------------------------------------- |
-| Local filesystem      | Getting started, your own server or NAS               | A mounted, writable directory            | Manage disk capacity and backups yourself                        |
-| S3-compatible storage | Cloud object storage or an existing MinIO service     | Bucket, endpoint, region and access keys | Direct browser uploads need CORS; images need a working read URL |
-| OpenList              | Existing cloud drives or NAS managed through OpenList | Service URL, root path and token         | Check write permissions, backend limits and download URL expiry  |
+<StorageChoices />
 
 ::: tip
 Files copied or uploaded directly to any storage backend will not automatically appear in the gallery. Use the ChronoFrame dashboard to upload new media so it can be indexed and processed. Support for scanning and importing media already in storage is planned for a future release.
@@ -48,17 +44,68 @@ This is a **container path**, not a host path. To use another disk, add a mount 
 
 Replace account and region placeholders with your own values.
 
-| Service           | Example endpoint                                | Region                                              | Credentials and notes                                                                             |
-| ----------------- | ----------------------------------------------- | --------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
-| AWS S3            | `https://s3.us-east-1.amazonaws.com`            | `us-east-1`                                         | Use IAM access keys scoped to the bucket                                                          |
-| Cloudflare R2     | `https://<ACCOUNT_ID>.r2.cloudflarestorage.com` | `auto`                                              | An R2 API token provides S3 credentials; configure a separate domain for image reads              |
-| Alibaba Cloud OSS | `https://oss-cn-hangzhou.aliyuncs.com`          | Follow the service's S3 compatibility configuration | Use RAM AccessKeys and the bucket's regional endpoint                                             |
-| Tencent COS       | `https://cos.ap-beijing.myqcloud.com`           | `ap-beijing`                                        | Use API credentials and the full bucket name including `-APPID`                                   |
-| MinIO             | `https://minio.example.com`                     | Service-configured region                           | Use the S3 API address, not the management console; enable Force Path Style for path-based access |
+<DocTabs label="S3 provider" :tabs="[{ id: 'aws', label: 'AWS S3' }, { id: 'r2', label: 'Cloudflare R2' }, { id: 'oss', label: 'Alibaba Cloud OSS' }, { id: 'cos', label: 'Tencent COS' }, { id: 'minio', label: 'MinIO' }]">
+
+<template #aws>
+
+| Field    | Value                                |
+| -------- | ------------------------------------ |
+| Endpoint | `https://s3.us-east-1.amazonaws.com` |
+| Region   | `us-east-1`                          |
+
+Use IAM access keys scoped to the bucket
+
+</template>
+
+<template #r2>
+
+| Field    | Value                                           |
+| -------- | ----------------------------------------------- |
+| Endpoint | `https://<ACCOUNT_ID>.r2.cloudflarestorage.com` |
+| Region   | `auto`                                          |
+
+An R2 API token provides S3 credentials; configure a separate domain for image reads
 
 ::: info R2 upload and read URLs differ
 R2's S3 endpoint is for signed uploads, not a public image domain. Put an object-serving domain in CDN URL; use a custom domain for a production gallery.
 :::
+
+</template>
+
+<template #oss>
+
+| Field    | Value                                               |
+| -------- | --------------------------------------------------- |
+| Endpoint | `https://oss-cn-hangzhou.aliyuncs.com`              |
+| Region   | Follow the service's S3 compatibility configuration |
+
+Use RAM AccessKeys and the bucket's regional endpoint
+
+</template>
+
+<template #cos>
+
+| Field    | Value                                 |
+| -------- | ------------------------------------- |
+| Endpoint | `https://cos.ap-beijing.myqcloud.com` |
+| Region   | `ap-beijing`                          |
+
+Use API credentials and the full bucket name including `-APPID`
+
+</template>
+
+<template #minio>
+
+| Field    | Value                       |
+| -------- | --------------------------- |
+| Endpoint | `https://minio.example.com` |
+| Region   | Service-configured region   |
+
+Use the S3 API address, not the management console; enable Force Path Style for path-based access
+
+</template>
+
+</DocTabs>
 
 ::: details Provider reference documentation
 

@@ -2,6 +2,8 @@
 
 Read the [changelog](/changelog) before choosing a target version and review its migration notes. The dashboard overview shows your running version.
 
+<DocStep number="1" label="Back up">
+
 ## Back up
 
 ::: warning Stop and back up first
@@ -19,6 +21,10 @@ mkdir -p backups
 cp -a data "backups/data-$(date +%Y%m%d-%H%M%S)"
 cp docker-compose.yml backups/docker-compose.yml
 ```
+
+</DocStep>
+
+<DocStep number="2" label="Update and rollback">
 
 ## Replace the image
 
@@ -44,13 +50,19 @@ For a `docker run` deployment, stop and remove the old container, then recreate 
 - If setup appears after upgrading, use the existing administrator email and confirm the original storage path. Check the data mount and startup logs before proceeding; do not create an empty replacement data directory.
 - Preserve the session secret, database and storage paths. Deployment options such as proxy trust still belong in the runtime environment.
 
-## Check the result
-
-Sign in, open several existing photos, upload a photo and check albums, maps and the task queue. 1.0.0 adds access restrictions for photos in hidden albums; check your public gallery after upgrading.
-
 ## Roll back
 
 ::: danger Restore the database when rolling back
 Migrations may change the database schema. To roll back, stop the new container, restore the complete backup from before the upgrade and start the original image tag. Downgrading only the image while retaining a migrated database is not a reliable rollback.
 
 :::
+
+</DocStep>
+
+<DocStep number="3" label="Check">
+
+## Check the result
+
+Sign in, open several existing photos, upload a photo and check albums, maps and the task queue. 1.0.0 adds access restrictions for photos in hidden albums; check your public gallery after upgrading.
+
+</DocStep>

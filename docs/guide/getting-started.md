@@ -4,6 +4,10 @@ ChronoFrame stores photo metadata and settings in SQLite. You only need Docker a
 
 ## Start the container
 
+<DocTabs label="Deployment method" :tabs="[{ id: 'compose', label: 'Docker Compose' }, { id: 'run', label: 'Docker Run' }]">
+
+<template #compose>
+
 Create `docker-compose.yml`:
 
 ```yaml
@@ -18,20 +22,28 @@ services:
       - ./data:/app/data
 ```
 
-For Docker Hub, replace the image with `hoshinosuzumi/chronoframe:latest`.
-
 ```bash
 docker compose up -d
 docker compose logs -f chronoframe
 ```
 
-Or use Docker directly:
+</template>
+
+<template #run>
+
+Start the container directly:
 
 ```bash
 docker run -d --name chronoframe --restart unless-stopped \
   -p 3000:3000 -v "$(pwd)/data:/app/data" \
   ghcr.io/hoshinosuzumi/chronoframe:latest
 ```
+
+</template>
+
+</DocTabs>
+
+For Docker Hub, replace the image with `hoshinosuzumi/chronoframe:latest`.
 
 Open `http://localhost:3000`. A fresh installation opens the setup wizard; you do not need to create an `.env` file first.
 
