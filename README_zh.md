@@ -114,7 +114,7 @@ pnpm build         # 构建应用
 pnpm docs:build    # 构建文档
 ```
 
-修改数据库 schema 后，使用 `pnpm db:generate` 生成迁移并检查 SQL。仅启动项目时无需生成迁移。更多说明见[贡献指南](https://chronoframe.bh8.ga/zh/development/contributing)。
+修改数据库 schema 后，使用 `pnpm db:generate` 生成迁移并检查 SQL。仅启动项目时无需生成迁移。更多说明见[贡献指南](https://chronoframe.bh8.ga/zh/development/contributing.html)。
 
 ## 🤝 贡献与交流
 
