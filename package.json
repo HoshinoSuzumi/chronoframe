@@ -9,6 +9,7 @@
   "type": "module",
   "private": true,
   "scripts": {
+    "test": "vitest run",
     "db": "drizzle-kit",
     "db:push": "drizzle-kit push",
     "db:pull": "drizzle-kit pull",
@@ -107,7 +108,8 @@
     "oxlint": "^1.87.0",
     "sass-embedded": "^1.105.1",
     "typescript": "^5.9.3",
-    "vitepress": "2.0.0-alpha.20"
+    "vitepress": "2.0.0-alpha.20",
+    "vitest": "^5.0.5"
   },
   "pnpm": {
     "peerDependencyRules": {
