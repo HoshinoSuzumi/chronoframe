@@ -1,9 +1,6 @@
----
 name: Bug report
-about: Create a report to help us improve
+description: Create a report to help us improve
 title: "[Bug]: "
-labels: ''
-assignees: ''
 type: Bug
 projects: ["HoshinoSuzumi/6"]
 body:
@@ -13,12 +10,9 @@ body:
       description: Please select the channel where you encountered the bug.
       multiple: false
       options:
-        - label: Release(Stable)
-          value: release
-        - label: Nightly(Beta/RC)
-          value: nightly
-        - label: Buildtest(Non-public build)
-          value: buildtest
+        - Release(Stable)
+        - Nightly (Beta/RC)
+        - Buildtest (Non-public build)
       default: 0
     validations:
       required: true
@@ -26,7 +20,7 @@ body:
     attributes:
       label: Version
       description: Please enter the version of ChronoFrame where you encountered this issue.
-      placeholder: e.g. 1.0.0
+      placeholder: e.g. 1.0.0 or 1.1.0-rc.1 etc.
     validations:
       required: true
   - type: textarea
@@ -67,4 +61,3 @@ body:
       description: Add any other context about the problem here.
     validations:
       required: false
----

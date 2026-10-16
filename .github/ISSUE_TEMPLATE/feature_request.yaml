@@ -1,9 +1,6 @@
----
 name: Feature request
-about: Suggest an idea for this project
+description: Suggest an idea for this project
 title: "[Feature]: "
-labels: ''
-assignees: ''
 type: Feature
 projects: ["HoshinoSuzumi/6"]
 body:
@@ -38,4 +35,3 @@ body:
       description: Add any other context or references about the feature request here.
     validations:
       required: false
----
