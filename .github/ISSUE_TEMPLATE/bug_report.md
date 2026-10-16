@@ -1,39 +1,70 @@
 ---
 name: Bug report
 about: Create a report to help us improve
-title: "[BUG] "
+title: "[Bug]: "
 labels: ''
 assignees: ''
 type: Bug
-
+projects: ["HoshinoSuzumi/6"]
+body:
+  - type: dropdown
+    attributes:
+      label: Channel
+      description: Please select the channel where you encountered the bug.
+      multiple: false
+      options:
+        - label: Release(Stable)
+          value: release
+        - label: Nightly(Beta/RC)
+          value: nightly
+        - label: Buildtest(Non-public build)
+          value: buildtest
+      default: 0
+    validations:
+      required: true
+  - type: input
+    attributes:
+      label: Version
+      description: Please enter the version of ChronoFrame where you encountered this issue.
+      placeholder: e.g. 1.0.0
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Describe the bug
+      description: A clear and concise description of what the bug is.
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Steps to Reproduce
+      description: Please provide the steps to reproduce the bug.
+      placeholder: e.g. 1. Go to '...'\n2. Click on '....'\n3. Scroll down to '....'\n4. See error
+    validations:
+      required: false
+  - type: textarea
+    attributes:
+      label: Expected behavior
+      description: A clear and concise description of what you expected to happen.
+    validations:
+      required: false
+  - type: upload
+    attributes:
+      label: Screenshots
+      description: If applicable, add screenshots to help explain your problem.
+    validations:
+      required: false
+  - type: input
+    attributes:
+      label: OS & Browser
+      description: Please enter the operating system and browser where you encountered this issue.
+      placeholder: e.g. Windows 10, Chrome 90
+    validations:
+      required: false
+  - type: textarea
+    attributes:
+      label: Additional context
+      description: Add any other context about the problem here.
+    validations:
+      required: false
 ---
-
-**Describe the bug**
-A clear and concise description of what the bug is.
-
-**To Reproduce**
-Steps to reproduce the behavior:
-1. Go to '...'
-2. Click on '....'
-3. Scroll down to '....'
-4. See error
-
-**Expected behavior**
-A clear and concise description of what you expected to happen.
-
-**Screenshots**
-If applicable, add screenshots to help explain your problem.
-
-**Desktop (please complete the following information):**
- - OS: [e.g. iOS]
- - Browser [e.g. chrome, safari]
- - Version [e.g. 22]
-
-**Smartphone (please complete the following information):**
- - Device: [e.g. iPhone6]
- - OS: [e.g. iOS8.1]
- - Browser [e.g. stock browser, safari]
- - Version [e.g. 22]
-
-**Additional context**
-Add any other context about the problem here.

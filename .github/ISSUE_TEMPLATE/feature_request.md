@@ -1,21 +1,41 @@
 ---
 name: Feature request
 about: Suggest an idea for this project
-title: "[FEAT] "
+title: "[Feature]: "
 labels: ''
 assignees: ''
 type: Feature
-
+projects: ["HoshinoSuzumi/6"]
+body:
+  - type: textarea
+    attributes:
+      label: Describe the problem or use case
+      description: A clear and concise description of the problem you want to solve or the use case this feature would support.
+      placeholder: e.g. I'm always frustrated when [...]
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Describe the solution you'd like
+      description: A clear and concise description of what you want to happen and how it would help.
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Describe alternatives you've considered
+      description: Describe any alternative solutions, features, or workarounds you've considered.
+    validations:
+      required: false
+  - type: upload
+    attributes:
+      label: Screenshots or mockups
+      description: If applicable, add screenshots or mockups to help explain your feature request.
+    validations:
+      required: false
+  - type: textarea
+    attributes:
+      label: Additional context
+      description: Add any other context or references about the feature request here.
+    validations:
+      required: false
 ---
-
-**Is your feature request related to a problem? Please describe.**
-A clear and concise description of what the problem is. Ex. I'm always frustrated when [...]
-
-**Describe the solution you'd like**
-A clear and concise description of what you want to happen.
-
-**Describe alternatives you've considered**
-A clear and concise description of any alternative solutions or features you've considered.
-
-**Additional context**
-Add any other context or screenshots about the feature request here.
