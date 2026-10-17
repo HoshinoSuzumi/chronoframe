@@ -592,7 +592,7 @@ onUnmounted(() => {
                   class="w-4 h-4 text-blue-500"
                 />
                 <h2
-                  class="text-sm sm:text-base font-semibold text-blue-600 tracking-wide"
+                  class="text-sm sm:text-base font-semibold text-blue-600 dark:text-blue-400 tracking-wide"
                 >
                   app.log
                 </h2>
@@ -767,7 +767,7 @@ onUnmounted(() => {
               >
                 <!-- 时间戳 -->
                 <span
-                  class="log-time log-fixed-cell text-neutral-400 dark:text-neutral-500 text-xs whitespace-nowrap"
+                  class="log-time log-fixed-cell text-neutral-400 dark:text-neutral-400 text-xs whitespace-nowrap"
                 >
                   {{ $dayjs(log.date).format('HH:mm:ss.SSS') }}
                 </span>
