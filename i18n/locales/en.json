@@ -1056,6 +1056,7 @@
         "clearFailed": "Clear Failed",
         "clearAll": "Clear All",
         "retrySelected": "Retry Selected",
+        "moreActions": "More actions",
         "retryAll": "Retry All Failed",
         "clearNonActive": "Clear Non-Active"
       },

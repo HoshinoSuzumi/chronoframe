@@ -982,7 +982,8 @@
         "clearAll": "すべてクリア",
         "retrySelected": "選択した項目を再試行",
         "retryAll": "すべての失敗を再試行",
-        "clearNonActive": "非アクティブタスクをクリア"
+        "clearNonActive": "非アクティブタスクをクリア",
+        "moreActions": "その他の操作"
       },
       "table": {
         "id": "タスクID",

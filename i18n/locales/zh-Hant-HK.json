@@ -981,6 +981,7 @@
         "clearFailed": "清理失敗任務",
         "clearAll": "清理全部",
         "retrySelected": "重試選中",
+        "moreActions": "更多操作",
         "retryAll": "重試全部失敗",
         "clearNonActive": "清理非活躍任務"
       },

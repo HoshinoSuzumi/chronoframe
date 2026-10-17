@@ -1056,6 +1056,7 @@
         "clearFailed": "清理失败任务",
         "clearAll": "清理全部",
         "retrySelected": "重试选中",
+        "moreActions": "更多操作",
         "retryAll": "重试全部失败",
         "clearNonActive": "清理非活跃任务"
       },
