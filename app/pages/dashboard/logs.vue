@@ -262,7 +262,7 @@ const getBadgeColor = (
 
 // 获取日志行样式
 const getLogLineStyle = (log: LogEntry) => {
-  const baseStyle = 'hover:bg-neutral-200 dark:hover:bg-neutral-800'
+  const baseStyle = 'hover:bg-elevated'
   const logType = log.type || getLevelType(log.level)
   const levelStyles = {
     error: 'text-red-500 dark:text-red-400 border-l-2 border-red-500 font-bold',
@@ -581,11 +581,9 @@ onUnmounted(() => {
 
     <template #body>
       <div
-        class="flex flex-col flex-1 overflow-hidden bg-neutral-100 dark:bg-neutral-950 rounded-md relative"
+        class="flex flex-col flex-1 overflow-hidden bg-default border border-default rounded-md relative"
       >
-        <div
-          class="px-4 py-3 border-b border-neutral-300/80 dark:border-neutral-900 bg-linear-to-r from-neutral-50 to-neutral-100/60 dark:from-neutral-900 dark:to-neutral-950/80"
-        >
+        <div class="px-4 py-3 border-b border-default bg-muted">
           <div class="flex items-start justify-between gap-3">
             <div class="min-w-0">
               <div class="flex items-center gap-2">
@@ -594,7 +592,7 @@ onUnmounted(() => {
                   class="w-4 h-4 text-blue-500"
                 />
                 <h2
-                  class="text-sm sm:text-base font-semibold text-blue-600 tracking-wide"
+                  class="text-sm sm:text-base font-semibold text-blue-600 dark:text-blue-400 tracking-wide"
                 >
                   app.log
                 </h2>
@@ -769,7 +767,7 @@ onUnmounted(() => {
               >
                 <!-- 时间戳 -->
                 <span
-                  class="log-time log-fixed-cell text-neutral-400 dark:text-neutral-500 text-xs whitespace-nowrap"
+                  class="log-time log-fixed-cell text-neutral-400 dark:text-neutral-400 text-xs whitespace-nowrap"
                 >
                   {{ $dayjs(log.date).format('HH:mm:ss.SSS') }}
                 </span>
@@ -847,19 +845,11 @@ onUnmounted(() => {
   height: 100%;
   align-content: center;
   padding-inline: 0.5rem;
-  background: var(--color-neutral-100);
-}
-
-:global(.dark) .log-fixed-cell {
-  background: var(--color-neutral-950);
+  background: var(--ui-bg);
 }
 
 .log-row:hover .log-fixed-cell {
-  background: var(--color-neutral-200);
-}
-
-:global(.dark) .log-row:hover .log-fixed-cell {
-  background: var(--color-neutral-800);
+  background: var(--ui-bg-elevated);
 }
 
 .log-time {
