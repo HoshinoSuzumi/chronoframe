@@ -16,6 +16,7 @@ const toast = useToast()
 
 // 状态管理
 const isLoading = ref(false)
+const deletingTaskIds = ref(new Set<number>())
 const selectedTasks = ref<number[]>([])
 const statusFilter = ref<string>('all')
 const typeFilter = ref<string>('all')
@@ -142,6 +143,9 @@ const retryAllFailedTasks = async () => {
 
 // 删除单个已完成或失败任务
 const deleteTask = async (taskId: number) => {
+  if (deletingTaskIds.value.has(taskId)) return
+  deletingTaskIds.value.add(taskId)
+
   try {
     await $fetch(`/api/queue/task/${taskId}`, {
       method: 'DELETE',
@@ -160,6 +164,8 @@ const deleteTask = async (taskId: number) => {
       description: error?.message || $t('dashboard.queue.messages.deleteFailed'),
       color: 'error',
     })
+  } finally {
+    deletingTaskIds.value.delete(taskId)
   }
 }
 
@@ -466,6 +472,8 @@ useIntervalFn(refreshData, 10000) // 每10秒刷新一次
                     size="xs"
                     variant="soft"
                     color="error"
+                    :loading="deletingTaskIds.has(row.original.id)"
+                    :disabled="deletingTaskIds.has(row.original.id)"
                     @click="deleteTask(row.original.id)"
                   >
                     {{ $t('dashboard.queue.buttons.delete') }}
