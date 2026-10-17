@@ -165,6 +165,14 @@
     }
   },
   "album": {
+    "list": {
+      "loading": "Загрузка альбомов…",
+      "emptyTitle": "Нет доступных альбомов",
+      "emptyDescription": "Загляните позже.",
+      "errorTitle": "Не удалось загрузить альбомы",
+      "errorDescription": "Произошла ошибка. Попробуйте ещё раз.",
+      "retry": "Повторить"
+    },
     "passwordRequired": "Требуется пароль",
     "passwordPlaceholder": "Введите пароль альбома",
     "incorrectPassword": "Неверный пароль",
@@ -1187,6 +1195,12 @@
         "removeFailed": "Не удалось удалить аватар",
         "invalidType": "Выберите изображение PNG, JPEG, WebP или GIF",
         "tooLarge": "Размер изображения должен быть меньше {size}МБ"
+      },
+      "homeView": {
+        "label": "Главная страница",
+        "description": "Выберите, что посетители увидят на главной странице",
+        "photos": "Стена фотографий",
+        "albums": "Альбомы"
       },
       "appearance": {
         "theme": {

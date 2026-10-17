@@ -165,6 +165,14 @@
     }
   },
   "album": {
+    "list": {
+      "loading": "アルバムを読み込み中…",
+      "emptyTitle": "表示できるアルバムがありません",
+      "emptyDescription": "また後でご確認ください。",
+      "errorTitle": "アルバムを読み込めませんでした",
+      "errorDescription": "問題が発生しました。もう一度お試しください。",
+      "retry": "再試行"
+    },
     "passwordRequired": "パスワードが必要です",
     "passwordPlaceholder": "アルバムのパスワードを入力",
     "incorrectPassword": "パスワードが正しくありません",
@@ -1112,6 +1120,12 @@
         "removeFailed": "アバターの削除に失敗しました",
         "invalidType": "PNG、JPEG、WebP、または GIF 画像を選択してください",
         "tooLarge": "画像は {size}MB 未満である必要があります"
+      },
+      "homeView": {
+        "label": "ホームページ",
+        "description": "サイトのトップページに表示する内容を選択",
+        "photos": "写真一覧",
+        "albums": "アルバム"
       },
       "appearance": {
         "theme": {

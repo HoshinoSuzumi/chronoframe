@@ -179,6 +179,14 @@
     }
   },
   "album": {
+    "list": {
+      "loading": "正在載入相簿…",
+      "emptyTitle": "目前沒有可顯示的相簿",
+      "emptyDescription": "請稍後再回來看看。",
+      "errorTitle": "無法載入相簿",
+      "errorDescription": "發生問題，請再試一次。",
+      "retry": "重試"
+    },
     "passwordRequired": "此相簿需要密碼",
     "passwordPlaceholder": "輸入相簿密碼",
     "incorrectPassword": "密碼錯誤",
@@ -1112,6 +1120,12 @@
         "removeFailed": "頭像移除失敗",
         "invalidType": "請選擇 PNG、JPEG、WebP 或 GIF 圖片",
         "tooLarge": "圖片大小必須小於 {size}MB"
+      },
+      "homeView": {
+        "label": "首頁內容",
+        "description": "選擇訪客開啟網站首頁時看到的內容",
+        "photos": "照片牆",
+        "albums": "相簿"
       },
       "appearance": {
         "theme": {

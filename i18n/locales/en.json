@@ -165,6 +165,14 @@
     }
   },
   "album": {
+    "list": {
+      "loading": "Loading albums…",
+      "emptyTitle": "No albums to show",
+      "emptyDescription": "Please check back later.",
+      "errorTitle": "Unable to load albums",
+      "errorDescription": "Something went wrong. Please try again.",
+      "retry": "Retry"
+    },
     "passwordRequired": "Password required",
     "passwordPlaceholder": "Enter album password",
     "incorrectPassword": "Incorrect password",
@@ -1187,6 +1195,12 @@
         "removeFailed": "Failed to remove avatar",
         "invalidType": "Please choose a PNG, JPEG, WebP, or GIF image",
         "tooLarge": "Image must be smaller than {size}MB"
+      },
+      "homeView": {
+        "label": "Home page",
+        "description": "Choose what visitors see at the site root",
+        "photos": "Photo wall",
+        "albums": "Albums"
       },
       "appearance": {
         "theme": {

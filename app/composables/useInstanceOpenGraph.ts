@@ -18,6 +18,7 @@ export async function useInstanceOpenGraph(photos: ComputedRef<Photo[]>) {
   const appSlogan = useSettingRef('app:slogan')
   const appAuthor = useSettingRef('app:author')
   const appAvatar = useSettingRef('app:avatarUrl')
+  const { homeView } = useHomeView()
 
   const siteName = computed(
     () => cleanShareText(appTitle.value, 80) || 'ChronoFrame',
@@ -37,7 +38,7 @@ export async function useInstanceOpenGraph(photos: ComputedRef<Photo[]>) {
       ? photos.value.find((photo) => photo.id === photoId.value)
       : undefined,
   )
-  const isHome = computed(() => route.path === '/')
+  const isHome = computed(() => route.path === '/' || route.path === '/photos')
 
   // Logged-in visitors load every photo, including hidden ones. The public
   // preview must keep using the anonymous collection.
@@ -69,9 +70,16 @@ export async function useInstanceOpenGraph(photos: ComputedRef<Photo[]>) {
       undefined
     )
   })
-  const canonicalUrl = computed(
-    () => new URL(route.path, requestURL.origin).href,
-  )
+  const canonicalUrl = computed(() => {
+    const path =
+      (homeView.value === 'albums' && route.path === '/albums') ||
+      (homeView.value === 'photos' && route.path === '/photos')
+        ? '/'
+        : route.path
+    return new URL(path, requestURL.origin).href
+  })
+
+  useHead({ link: [{ rel: 'canonical', href: canonicalUrl }] })
 
   useSeoMeta({
     description: shareDescription,

@@ -11,6 +11,7 @@ const props = withDefaults(defineProps<Props>(), {
 
 const dayjs = useDayjs()
 const router = useRouter()
+const route = useRoute()
 
 const { filteredPhotos, hasActiveFilters } = usePhotoFilters()
 const { sortedPhotos } = usePhotoSort()
@@ -19,7 +20,8 @@ const displayPhotos = computed(() => {
   return hasActiveFilters.value ? filteredPhotos.value : sortedPhotos.value
 })
 
-const { currentPhotoIndex, isViewerOpen } = storeToRefs(useViewerState())
+const viewer = useViewerState()
+const { currentPhotoIndex, isViewerOpen } = storeToRefs(viewer)
 
 const FIRST_SCREEN_ITEMS_COUNT = 50
 const MASONRY_GAP = 4
@@ -327,7 +329,11 @@ onUnmounted(() => {
 })
 
 const handleOpenViewer = (index: number) => {
-  router.push(`/${displayPhotos.value[index]?.id}`)
+  const photo = displayPhotos.value[index]
+  if (!photo) return
+
+  viewer.openViewer(index, route.path, displayPhotos.value)
+  router.push(`/${photo.id}`)
 }
 
 const scrollToPhoto = (photoIndex: number) => {
