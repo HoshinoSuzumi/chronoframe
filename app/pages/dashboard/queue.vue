@@ -16,6 +16,7 @@ const toast = useToast()
 
 // 状态管理
 const isLoading = ref(false)
+const deletingTaskIds = ref(new Set<number>())
 const selectedTasks = ref<number[]>([])
 const statusFilter = ref<string>('all')
 const typeFilter = ref<string>('all')
@@ -140,10 +141,13 @@ const retryAllFailedTasks = async () => {
   }
 }
 
-// 删除单个任务（仅适用于失败任务）
+// 删除单个已完成或失败任务
 const deleteTask = async (taskId: number) => {
+  if (deletingTaskIds.value.has(taskId)) return
+  deletingTaskIds.value.add(taskId)
+
   try {
-    await $fetch(`/api/queue/failed/${taskId}`, {
+    await $fetch(`/api/queue/task/${taskId}`, {
       method: 'DELETE',
     })
 
@@ -160,6 +164,8 @@ const deleteTask = async (taskId: number) => {
       description: error?.message || $t('dashboard.queue.messages.deleteFailed'),
       color: 'error',
     })
+  } finally {
+    deletingTaskIds.value.delete(taskId)
   }
 }
 
@@ -279,30 +285,43 @@ useIntervalFn(refreshData, 10000) // 每10秒刷新一次
         <template #right>
           <UButton
             icon="tabler:refresh"
-            variant="soft"
+            color="neutral"
+            variant="ghost"
+            size="sm"
+            :aria-label="$t('dashboard.queue.actions.refresh')"
+            :title="$t('dashboard.queue.actions.refresh')"
             :loading="isLoading"
+            :disabled="isLoading"
             @click="refreshData"
+          />
+          <UDropdownMenu
+            :content="{ align: 'end' }"
+            :items="[
+              [{
+                label: $t('dashboard.queue.actions.retryAll'),
+                icon: 'tabler:refresh',
+                disabled: isLoading,
+                onSelect: () => retryAllFailedTasks(),
+              }],
+              [{
+                label: $t('dashboard.queue.actions.clearNonActive'),
+                icon: 'tabler:trash',
+                color: 'error',
+                disabled: isLoading,
+                onSelect: () => clearNonActiveTasks(),
+              }],
+            ]"
           >
-            {{ $t('dashboard.queue.actions.refresh') }}
-          </UButton>
-          <UButton
-            icon="tabler:refresh"
-            color="warning"
-            variant="soft"
-            :loading="isLoading"
-            @click="retryAllFailedTasks"
-          >
-            {{ $t('dashboard.queue.actions.retryAll') }}
-          </UButton>
-          <UButton
-            icon="tabler:trash"
-            color="error"
-            variant="soft"
-            :loading="isLoading"
-            @click="clearNonActiveTasks"
-          >
-            {{ $t('dashboard.queue.actions.clearNonActive') }}
-          </UButton>
+            <UButton
+              icon="tabler:dots-vertical"
+              color="neutral"
+              variant="ghost"
+              size="sm"
+              :aria-label="$t('dashboard.queue.actions.moreActions')"
+              :title="$t('dashboard.queue.actions.moreActions')"
+              :disabled="isLoading"
+            />
+          </UDropdownMenu>
         </template>
       </UDashboardNavbar>
     </template>
@@ -314,25 +333,25 @@ useIntervalFn(refreshData, 10000) // 每10秒刷新一次
           <DashboardIndicator
             :title="$t('dashboard.queue.indicator.pending')"
             icon="tabler:clock"
-            color="orange"
+            variant="subtle"
             :value="queueStats.pending"
           />
           <DashboardIndicator
             :title="$t('dashboard.queue.indicator.processing')"
             icon="tabler:loader"
-            color="blue"
+            variant="subtle"
             :value="queueStats.processing"
           />
           <DashboardIndicator
             :title="$t('dashboard.queue.indicator.completed')"
             icon="tabler:check"
-            color="green"
+            variant="subtle"
             :value="queueStats.completed"
           />
           <DashboardIndicator
             :title="$t('dashboard.queue.indicator.failed')"
             icon="tabler:alert-triangle"
-            color="red"
+            variant="subtle"
             :value="queueStats.failed"
           />
         </div>
@@ -445,11 +464,16 @@ useIntervalFn(refreshData, 10000) // 每10秒刷新一次
                     {{ $t('dashboard.queue.buttons.retry') }}
                   </UButton>
                   <UButton
-                    v-if="row.original.status !== 'in-stage'"
+                    v-if="
+                      row.original.status === 'completed' ||
+                      row.original.status === 'failed'
+                    "
                     icon="tabler:trash"
                     size="xs"
                     variant="soft"
                     color="error"
+                    :loading="deletingTaskIds.has(row.original.id)"
+                    :disabled="deletingTaskIds.has(row.original.id)"
                     @click="deleteTask(row.original.id)"
                   >
                     {{ $t('dashboard.queue.buttons.delete') }}
