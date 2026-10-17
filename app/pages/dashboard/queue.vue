@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { h, resolveComponent } from 'vue'
 import type { TableColumn } from '@nuxt/ui'
+import { QueueWarningCode } from '~~/shared/utils/queue-warning'
 
 const UButton = resolveComponent('UButton')
 
@@ -394,12 +395,27 @@ useIntervalFn(refreshData, 10000) // 每10秒刷新一次
 
               <!-- 状态 -->
               <template #status-cell="{ row }">
-                <UBadge
-                  :label="$t(`dashboard.queue.status.${row.original.status}`)"
-                  variant="soft"
-                  :color="getStatusColor(row.original.status)"
-                  size="sm"
-                />
+                <div class="flex flex-wrap items-center gap-1">
+                  <UBadge
+                    :label="$t(`dashboard.queue.status.${row.original.status}`)"
+                    variant="soft"
+                    :color="getStatusColor(row.original.status)"
+                    size="sm"
+                  />
+                  <UBadge
+                    v-if="
+                      row.original.status === 'completed' &&
+                      row.original.warningCode === QueueWarningCode.AlbumMissing
+                    "
+                    :label="$t('common.albumAssignment.warning')"
+                    :aria-label="$t('common.albumAssignment.missing')"
+                    :title="$t('common.albumAssignment.missing')"
+                    icon="tabler:alert-triangle"
+                    color="warning"
+                    variant="soft"
+                    size="sm"
+                  />
+                </div>
               </template>
 
               <!-- 尝试次数 -->
@@ -493,6 +509,19 @@ useIntervalFn(refreshData, 10000) // 每10秒刷新一次
                         </p>
                       </div>
                     </div>
+
+                    <UAlert
+                      v-if="
+                        row.original.status === 'completed' &&
+                        row.original.warningCode ===
+                          QueueWarningCode.AlbumMissing
+                      "
+                      class="mt-3"
+                      color="warning"
+                      variant="soft"
+                      icon="tabler:alert-triangle"
+                      :description="$t('common.albumAssignment.missing')"
+                    />
 
                     <!-- 错误信息（仅在失败状态显示） -->
                     <div

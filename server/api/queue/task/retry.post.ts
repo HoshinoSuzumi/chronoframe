@@ -45,6 +45,7 @@ export default defineEventHandler(async (event) => {
         status: 'pending',
         statusStage: null,
         errorMessage: null,
+        warningCode: null,
         attempts: 0, // 重置尝试次数
         availableAt: new Date(),
       })

@@ -8,6 +8,7 @@ import {
   text,
   uniqueIndex,
 } from 'drizzle-orm/sqlite-core'
+import { QUEUE_WARNING_CODES } from '../../shared/utils/queue-warning.ts'
 import type { NeededExif } from '~~/shared/types/photo'
 import type { StorageConfig } from '../services/storage'
 
@@ -16,6 +17,7 @@ type PipelineQueuePayload =
       type: 'photo'
       storageKey: string
       eraseLocation?: boolean
+      albumId?: number
     }
   | {
       type: 'live-photo-video'
@@ -129,6 +131,7 @@ export const pipelineQueue = sqliteTable(
       ],
     }),
     errorMessage: text('error_message'),
+    warningCode: text('warning_code', { enum: QUEUE_WARNING_CODES }),
     createdAt: integer('created_at', { mode: 'timestamp' })
       .notNull()
       .default(sql`(unixepoch())`),
@@ -183,19 +186,25 @@ export const albums = sqliteTable('albums', {
 })
 
 // 相簿-照片 多对多关系表
-export const albumPhotos = sqliteTable('album_photos', {
-  id: integer('id').primaryKey({ autoIncrement: true }),
-  albumId: integer('album_id')
-    .notNull()
-    .references(() => albums.id, { onDelete: 'cascade' }),
-  photoId: text('photo_id')
-    .notNull()
-    .references(() => photos.id, { onDelete: 'cascade' }),
-  position: real('position').notNull().default(1000000),
-  addedAt: integer('added_at', { mode: 'timestamp' })
-    .notNull()
-    .default(sql`(unixepoch())`),
-})
+export const albumPhotos = sqliteTable(
+  'album_photos',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    albumId: integer('album_id')
+      .notNull()
+      .references(() => albums.id, { onDelete: 'cascade' }),
+    photoId: text('photo_id')
+      .notNull()
+      .references(() => photos.id, { onDelete: 'cascade' }),
+    position: real('position').notNull().default(1000000),
+    addedAt: integer('added_at', { mode: 'timestamp' })
+      .notNull()
+      .default(sql`(unixepoch())`),
+  },
+  (t) => [
+    uniqueIndex('album_photos_album_photo_unique').on(t.albumId, t.photoId),
+  ],
+)
 
 export const settings = sqliteTable(
   'settings',

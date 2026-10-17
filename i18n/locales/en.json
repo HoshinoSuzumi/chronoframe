@@ -514,6 +514,10 @@
       "delete": "Delete",
       "edit": "Edit"
     },
+    "albumAssignment": {
+      "warning": "Album not added",
+      "missing": "The photo was uploaded, but the selected album was deleted before it could be added."
+    },
     "unknownError": "Unknown error"
   },
   "upload": {
@@ -672,6 +676,16 @@
       "slideover": {
         "title": "Upload Photos",
         "description": "Drag and drop or select files. Photos will be automatically processed and added to the library.",
+        "album": {
+          "label": "Add to album (optional)",
+          "description": "Every successfully uploaded photo in this batch will be added to the selected album.",
+          "none": "No album",
+          "empty": "No albums available yet.",
+          "hidden": "Hidden",
+          "passwordProtected": "Password protected",
+          "loadFailed": "Could not load albums. You can retry or upload without an album.",
+          "retry": "Retry"
+        },
         "options": {
           "eraseLocation": {
             "label": "Erase location info on upload",

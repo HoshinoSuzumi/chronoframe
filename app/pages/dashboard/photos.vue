@@ -1,7 +1,8 @@
 <script lang="ts" setup>
 import type { FormSubmitEvent, TableColumn } from '@nuxt/ui'
-import type { Photo } from '~~/server/utils/db'
+import type { Album, Photo } from '~~/server/utils/db'
 import type { UploadingFile } from '~~/shared/types/uploading-file'
+import { QueueWarningCode } from '~~/shared/utils/queue-warning'
 import {
   UploadQueueStatus,
   UploadTransportStatus,
@@ -243,6 +244,7 @@ const uploadImage = async (
   file: File,
   existingFileId?: string,
   eraseLocationOnUpload?: boolean,
+  albumId?: number,
 ) => {
   const fileName = file.name
   const fileId = existingFileId || `${Date.now()}-${fileName}`
@@ -323,100 +325,130 @@ const uploadImage = async (
     uploadingFiles.value = new Map(uploadingFiles.value)
 
     // 第二步：使用 composable 上传文件到存储
-    await uploadManager.uploadFile(file, signedUrlResponse.upload || signedUrlResponse.signedUrl, {
-      onProgress: (progress: UploadProgress) => {
-        uploadingFile.progress = progress.percentage
-        uploadingFile.uploadProgress = {
-          loaded: progress.loaded,
-          total: progress.total,
-          percentage: progress.percentage,
-          speed: progress.speed,
-          timeRemaining: progress.timeRemaining,
-          speedText: progress.speed ? `${formatBytes(progress.speed)}/s` : '',
-          timeRemainingText: progress.timeRemaining !== undefined
-            ? uploadManager.formatTime(progress.timeRemaining)
-            : '',
-        }
-        uploadingFiles.value = new Map(uploadingFiles.value)
-      },
-      onStatusChange: (status: UploadTransportStatus) => {
-        uploadingFile.canAbort = isInFlightTransportStatus(status)
-        if (status === UploadTransportStatus.Finalizing)
-          uploadingFile.status = UploadQueueStatus.Finalizing
-        uploadingFiles.value = new Map(uploadingFiles.value)
-      },
-      onSuccess: async (_xhr: XMLHttpRequest) => {
-        // 第三步：上传完成，提交到队列任务
-        uploadingFile.status = UploadQueueStatus.Processing
-        uploadingFile.progress = 100
-        uploadingFile.canAbort = false
-        uploadingFile.stage = null // 重置 stage，准备显示任务状态
-        uploadingFiles.value = new Map(uploadingFiles.value)
+    await uploadManager.uploadFile(
+      file,
+      signedUrlResponse.upload || signedUrlResponse.signedUrl,
+      {
+        onProgress: (progress: UploadProgress) => {
+          uploadingFile.progress = progress.percentage
+          uploadingFile.uploadProgress = {
+            loaded: progress.loaded,
+            total: progress.total,
+            percentage: progress.percentage,
+            speed: progress.speed,
+            timeRemaining: progress.timeRemaining,
+            speedText: progress.speed ? `${formatBytes(progress.speed)}/s` : '',
+            timeRemainingText:
+              progress.timeRemaining !== undefined
+                ? uploadManager.formatTime(progress.timeRemaining)
+                : '',
+          }
+          uploadingFiles.value = new Map(uploadingFiles.value)
+        },
+        onStatusChange: (status: UploadTransportStatus) => {
+          uploadingFile.canAbort = isInFlightTransportStatus(status)
+          if (status === UploadTransportStatus.Finalizing)
+            uploadingFile.status = UploadQueueStatus.Finalizing
+          uploadingFiles.value = new Map(uploadingFiles.value)
+        },
+        onSuccess: async (_xhr: XMLHttpRequest) => {
+          // 第三步：上传完成，提交到队列任务
+          uploadingFile.status = UploadQueueStatus.Processing
+          uploadingFile.progress = 100
+          uploadingFile.canAbort = false
+          uploadingFile.stage = null // 重置 stage，准备显示任务状态
+          uploadingFiles.value = new Map(uploadingFiles.value)
 
-        try {
-          // 检查是否为MOV视频文件（通过MIME类型或文件扩展名）
-          const isMovFile =
-            file.type === 'video/quicktime' ||
-            file.type === 'video/mp4' ||
-            file.name.toLowerCase().endsWith('.mov')
+          try {
+            // 检查是否为MOV视频文件（通过MIME类型或文件扩展名）
+            const isMovFile =
+              file.type === 'video/quicktime' ||
+              file.type === 'video/mp4' ||
+              file.name.toLowerCase().endsWith('.mov')
 
-          const resp = await $fetch('/api/queue/add-task', {
-            method: 'POST',
-            body: {
-              payload: {
-                type: isMovFile ? 'live-photo-video' : 'photo',
-                storageKey: signedUrlResponse.fileKey,
-                ...(isMovFile
-                  ? {}
-                  : {
-                      eraseLocation:
-                        eraseLocationOnUpload ??
-                        systemUploadEraseLocationDefault.value,
-                    }),
-              },
-              priority: isMovFile ? 0 : 1, // Live Photo 视频优先级更低，确保图片优先处理
-              maxAttempts: 3,
-            },
-          })
+            const enqueueTask = (targetAlbumId?: number) =>
+              $fetch('/api/queue/add-task', {
+                method: 'POST',
+                body: {
+                  payload: {
+                    type: isMovFile ? 'live-photo-video' : 'photo',
+                    storageKey: signedUrlResponse.fileKey,
+                    ...(isMovFile
+                      ? {}
+                      : {
+                          eraseLocation:
+                            eraseLocationOnUpload ??
+                            systemUploadEraseLocationDefault.value,
+                          ...(targetAlbumId !== undefined
+                            ? { albumId: targetAlbumId }
+                            : {}),
+                        }),
+                  },
+                  priority: isMovFile ? 0 : 1, // Live Photo 视频优先级更低，确保图片优先处理
+                  maxAttempts: 3,
+                },
+              })
 
-          if (resp.success) {
-            uploadingFile.taskId = resp.taskId
-            uploadingFile.status = UploadQueueStatus.Processing
-            uploadingFiles.value = new Map(uploadingFiles.value)
+            let resp
+            let albumAssignmentUnavailable = false
+            try {
+              resp = await enqueueTask(albumId)
+            } catch (error: any) {
+              const statusCode = error.statusCode ?? error.response?.status
+              if (isMovFile || albumId === undefined || statusCode !== 404) {
+                throw error
+              }
 
-            // 开始任务状态检查
-            startTaskStatusCheck(resp.taskId, fileId)
-          } else {
+              // The image is already stored, so still process it if its album was deleted.
+              resp = await enqueueTask()
+              albumAssignmentUnavailable = true
+            }
+
+            if (resp.success) {
+              if (albumAssignmentUnavailable) {
+                const warning = $t('common.albumAssignment.missing')
+                uploadingFile.warning = uploadingFile.warning
+                  ? `${uploadingFile.warning} ${warning}`
+                  : warning
+              }
+              uploadingFile.taskId = resp.taskId
+              uploadingFile.status = UploadQueueStatus.Processing
+              uploadingFiles.value = new Map(uploadingFiles.value)
+
+              // 开始任务状态检查
+              startTaskStatusCheck(resp.taskId, fileId)
+            } else {
+              uploadingFile.status = UploadQueueStatus.Error
+              uploadingFile.error = $t(
+                'dashboard.photos.messages.taskSubmitFailed',
+              )
+              uploadingFiles.value = new Map(uploadingFiles.value)
+            }
+          } catch (processError: any) {
             uploadingFile.status = UploadQueueStatus.Error
-            uploadingFile.error = $t(
-              'dashboard.photos.messages.taskSubmitFailed',
-            )
+            uploadingFile.error = `${$t('dashboard.photos.messages.taskSubmitFailed')}: ${processError.message}`
+            uploadingFile.canAbort = false
             uploadingFiles.value = new Map(uploadingFiles.value)
           }
-        } catch (processError: any) {
-          uploadingFile.status = UploadQueueStatus.Error
-          uploadingFile.error = `${$t('dashboard.photos.messages.taskSubmitFailed')}: ${processError.message}`
+        },
+        onError: (error: string) => {
+          const isConflict = /\b409\b|Conflict/i.test(error)
+
+          if (isConflict) {
+            uploadingFile.status = UploadQueueStatus.Blocked
+            uploadingFile.error = $t('upload.duplicate.block.message', {
+              fileName,
+            })
+          } else {
+            uploadingFile.status = UploadQueueStatus.Error
+            uploadingFile.error = error
+          }
+
           uploadingFile.canAbort = false
           uploadingFiles.value = new Map(uploadingFiles.value)
-        }
+        },
       },
-      onError: (error: string) => {
-        const isConflict = /\b409\b|Conflict/i.test(error)
-
-        if (isConflict) {
-          uploadingFile.status = UploadQueueStatus.Blocked
-          uploadingFile.error = $t('upload.duplicate.block.message', {
-            fileName,
-          })
-        } else {
-          uploadingFile.status = UploadQueueStatus.Error
-          uploadingFile.error = error
-        }
-
-        uploadingFile.canAbort = false
-        uploadingFiles.value = new Map(uploadingFiles.value)
-      },
-    })
+    )
   } catch (error: any) {
     uploadingFile.status = UploadQueueStatus.Error
     uploadingFile.canAbort = false
@@ -470,6 +502,63 @@ const toast = useToast()
 const selectedFiles = ref<File[]>([])
 const isUploadSlideoverOpen = ref(false)
 const uploadEraseLocationEnabled = ref(systemUploadEraseLocationDefault.value)
+type UploadAlbumOption = Pick<Album, 'id' | 'title' | 'isHidden'> & {
+  photoCount: number
+  hasPassword: boolean
+}
+
+const uploadAlbums = ref<UploadAlbumOption[]>([])
+const selectedUploadAlbumId = ref(0)
+const isLoadingUploadAlbums = ref(false)
+const uploadAlbumsLoadFailed = ref(false)
+let uploadAlbumsRequestId = 0
+
+const uploadAlbumItems = computed(() => [
+  {
+    label: $t('dashboard.photos.slideover.album.none'),
+    icon: 'tabler:album-off',
+    value: 0,
+  },
+  ...uploadAlbums.value.map((album) => ({
+    label: album.title,
+    description: [
+      $t('plural.photo', { count: album.photoCount }, album.photoCount),
+      album.isHidden
+        ? $t('dashboard.photos.slideover.album.hidden')
+        : undefined,
+      album.hasPassword
+        ? $t('dashboard.photos.slideover.album.passwordProtected')
+        : undefined,
+    ]
+      .filter(Boolean)
+      .join(' · '),
+    icon: album.hasPassword
+      ? 'tabler:lock'
+      : album.isHidden
+        ? 'tabler:eye-off'
+        : 'tabler:album',
+    value: album.id,
+  })),
+])
+
+const loadUploadAlbums = async () => {
+  const requestId = ++uploadAlbumsRequestId
+  isLoadingUploadAlbums.value = true
+  uploadAlbumsLoadFailed.value = false
+  try {
+    const albums = await $fetch('/api/albums/upload-options')
+    if (requestId === uploadAlbumsRequestId) uploadAlbums.value = albums
+  } catch (error) {
+    if (requestId !== uploadAlbumsRequestId) return
+    console.error('Failed to load upload albums:', error)
+    uploadAlbums.value = []
+    uploadAlbumsLoadFailed.value = true
+  } finally {
+    if (requestId === uploadAlbumsRequestId) {
+      isLoadingUploadAlbums.value = false
+    }
+  }
+}
 
 const hasSelectedFiles = computed(() => selectedFiles.value.length > 0)
 
@@ -500,14 +589,18 @@ const clearSelectedFiles = () => {
 
 watch(isUploadSlideoverOpen, (open) => {
   if (!open) {
+    uploadAlbumsRequestId++
+    isLoadingUploadAlbums.value = false
     clearSelectedFiles()
     uploadEraseLocationEnabled.value = systemUploadEraseLocationDefault.value
+    selectedUploadAlbumId.value = 0
   }
 })
 
 const openUploadSlideover = () => {
   uploadEraseLocationEnabled.value = systemUploadEraseLocationDefault.value
   isUploadSlideoverOpen.value = true
+  void loadUploadAlbums()
 }
 
 watch(isEditModalOpen, (open) => {
@@ -617,6 +710,12 @@ const startTaskStatusCheck = (taskId: number, fileId: string) => {
         // 任务完成
         uploadingFile.status = UploadQueueStatus.Completed
         uploadingFile.stage = null
+        if (response.warningCode === QueueWarningCode.AlbumMissing) {
+          const warning = $t('common.albumAssignment.missing')
+          uploadingFile.warning = uploadingFile.warning
+            ? `${uploadingFile.warning} ${warning}`
+            : warning
+        }
         uploadingFiles.value = new Map(uploadingFiles.value)
 
         // 停止状态检查
@@ -1096,6 +1195,7 @@ const validateFile = (
 const handleUpload = async () => {
   const fileList = [...selectedFiles.value]
   const eraseLocation = uploadEraseLocationEnabled.value
+  const albumId = selectedUploadAlbumId.value || undefined
 
   if (fileList.length === 0) {
     return
@@ -1201,7 +1301,7 @@ const handleUpload = async () => {
   const startUpload = async (file: File): Promise<void> => {
     const fileId = fileIdMapping.get(file)!
     try {
-      await uploadImage(file, fileId, eraseLocation)
+      await uploadImage(file, fileId, eraseLocation, albumId)
     } catch (error: any) {
       errors.push(`${file.name}: ${error.message || '上传失败'}`)
       console.error('上传错误:', error)
@@ -2136,6 +2236,55 @@ onUnmounted(() => {
                   fileTrailingButton: 'text-neutral-400 hover:text-error-500',
                 }"
               />
+
+              <UCard
+                variant="soft"
+                class="border border-neutral-200/80 dark:border-neutral-800/80"
+              >
+                <UFormField
+                  :label="$t('dashboard.photos.slideover.album.label')"
+                  :description="
+                    $t('dashboard.photos.slideover.album.description')
+                  "
+                >
+                  <USelectMenu
+                    v-model="selectedUploadAlbumId"
+                    :items="uploadAlbumItems"
+                    value-key="value"
+                    label-key="label"
+                    :loading="isLoadingUploadAlbums"
+                    :disabled="isLoadingUploadAlbums || uploadAlbumsLoadFailed"
+                    :aria-label="$t('dashboard.photos.slideover.album.label')"
+                    class="w-full"
+                  />
+                </UFormField>
+                <p
+                  v-if="
+                    !isLoadingUploadAlbums &&
+                    !uploadAlbumsLoadFailed &&
+                    uploadAlbums.length === 0
+                  "
+                  class="mt-2 text-xs text-neutral-500 dark:text-neutral-400"
+                >
+                  {{ $t('dashboard.photos.slideover.album.empty') }}
+                </p>
+                <div
+                  v-if="uploadAlbumsLoadFailed"
+                  role="alert"
+                  class="mt-2 flex items-center justify-between gap-2 text-sm text-error-600 dark:text-error-400"
+                >
+                  <span>{{
+                    $t('dashboard.photos.slideover.album.loadFailed')
+                  }}</span>
+                  <UButton
+                    size="xs"
+                    variant="soft"
+                    @click="loadUploadAlbums"
+                  >
+                    {{ $t('dashboard.photos.slideover.album.retry') }}
+                  </UButton>
+                </div>
+              </UCard>
 
               <UCard
                 variant="soft"
