@@ -1,31 +1,13 @@
 import { z } from 'zod'
+import {
+  createPhotoTaskAlbumChecker,
+  queuePayloadSchema,
+} from '../../utils/queue-payload'
 
 export default defineEventHandler(async (event) => {
   await requireUserSession(event)
 
   try {
-    const payloadSchema = z.discriminatedUnion('type', [
-      z.object({
-        type: z.literal('photo'),
-        storageKey: z.string().nonempty(),
-        eraseLocation: z.boolean().optional(),
-      }),
-      z.object({
-        type: z.literal('live-photo-video'),
-        storageKey: z.string().nonempty(),
-      }),
-      z.object({
-        type: z.literal('photo-reverse-geocoding'),
-        photoId: z.string().min(1),
-        latitude: z.number().min(-90).max(90).optional(),
-        longitude: z.number().min(-180).max(180).optional(),
-      }),
-      z.object({
-        type: z.literal('photo-erase-location'),
-        photoId: z.string().min(1),
-      }),
-    ])
-
     const { tasks, defaultPriority, defaultMaxAttempts } =
       await readValidatedBody(
         event,
@@ -33,7 +15,7 @@ export default defineEventHandler(async (event) => {
           tasks: z
             .array(
               z.object({
-                payload: payloadSchema,
+                payload: queuePayloadSchema,
                 priority: z.number().min(0).max(9).optional(),
                 maxAttempts: z.number().min(1).max(5).optional(),
               }),
@@ -56,11 +38,16 @@ export default defineEventHandler(async (event) => {
 
     const results = []
     const errors = []
+    const albumExists = createPhotoTaskAlbumChecker()
 
-    for (let i = 0; i < tasks.length; i++) {
-      const task = tasks[i]
-
+    for (const [i, task] of tasks.entries()) {
       try {
+        if (!albumExists(task.payload)) {
+          throw createError({
+            statusCode: 404,
+            statusMessage: 'Album not found',
+          })
+        }
         const taskId = await workerPool.addTask(task.payload, {
           priority: task.priority ?? defaultPriority,
           maxAttempts: task.maxAttempts ?? defaultMaxAttempts,

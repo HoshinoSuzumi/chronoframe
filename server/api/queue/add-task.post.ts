@@ -1,39 +1,25 @@
 import { z } from 'zod'
+import {
+  photoTaskAlbumExists,
+  queuePayloadSchema,
+} from '../../utils/queue-payload'
 
 export default defineEventHandler(async (event) => {
   await requireUserSession(event)
 
   try {
-    const payloadSchema = z.discriminatedUnion('type', [
-      z.object({
-        type: z.literal('photo'),
-        storageKey: z.string().nonempty(),
-        eraseLocation: z.boolean().optional(),
-      }),
-      z.object({
-        type: z.literal('live-photo-video'),
-        storageKey: z.string().nonempty(),
-      }),
-      z.object({
-        type: z.literal('photo-reverse-geocoding'),
-        photoId: z.string().min(1),
-        latitude: z.number().min(-90).max(90).optional(),
-        longitude: z.number().min(-180).max(180).optional(),
-      }),
-      z.object({
-        type: z.literal('photo-erase-location'),
-        photoId: z.string().min(1),
-      }),
-    ])
-
     const { payload, priority, maxAttempts } = await readValidatedBody(
       event,
       z.object({
-        payload: payloadSchema,
+        payload: queuePayloadSchema,
         priority: z.number().min(0).max(9).optional().default(0),
         maxAttempts: z.number().min(1).max(5).optional().default(3),
       }).parse,
     )
+
+    if (!photoTaskAlbumExists(payload)) {
+      throw createError({ statusCode: 404, statusMessage: 'Album not found' })
+    }
 
     const workerPool = globalThis.__workerPool
 

@@ -514,6 +514,10 @@
       "delete": "删除",
       "edit": "编辑"
     },
+    "albumAssignment": {
+      "warning": "未添加到相簿",
+      "missing": "照片已上传，但所选相簿在添加照片前已被删除。"
+    },
     "unknownError": "未知错误"
   },
   "upload": {
@@ -672,6 +676,16 @@
       "slideover": {
         "title": "上传照片",
         "description": "拖拽或选择文件。上传后照片会自动处理并添加到库中。",
+        "album": {
+          "label": "添加到相簿（可选）",
+          "description": "此批次中成功处理的照片都会添加到所选相簿。",
+          "none": "不添加到相簿",
+          "empty": "暂无可用相簿。",
+          "hidden": "已隐藏",
+          "passwordProtected": "密码保护",
+          "loadFailed": "无法加载相簿。你可以重试，或不选择相簿直接上传。",
+          "retry": "重试"
+        },
         "options": {
           "eraseLocation": {
             "label": "上传时抹除位置信息",

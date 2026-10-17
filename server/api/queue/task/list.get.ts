@@ -54,6 +54,7 @@ export default defineEventHandler(async (event) => {
         status: tables.pipelineQueue.status,
         statusStage: tables.pipelineQueue.statusStage,
         errorMessage: tables.pipelineQueue.errorMessage,
+        warningCode: tables.pipelineQueue.warningCode,
         createdAt: tables.pipelineQueue.createdAt,
         completedAt: tables.pipelineQueue.completedAt,
       })

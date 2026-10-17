@@ -42,6 +42,7 @@ export default defineEventHandler(async (event) => {
       status: pipelineQueue.status,
       statusStage: pipelineQueue.statusStage,
       errorMessage: pipelineQueue.errorMessage,
+      warningCode: pipelineQueue.warningCode,
       createdAt: pipelineQueue.createdAt,
       completedAt: pipelineQueue.completedAt,
     })
@@ -109,6 +110,7 @@ export default defineEventHandler(async (event) => {
       status: task.status,
       statusStage: task.statusStage,
       errorMessage: task.errorMessage,
+      warningCode: task.warningCode,
       createdAt: task.createdAt,
       completedAt: task.completedAt,
       fileName: getFileName(storageKey),

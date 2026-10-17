@@ -1,7 +1,7 @@
 import { drizzle } from 'drizzle-orm/better-sqlite3'
 import Database from 'better-sqlite3'
 
-import * as schema from '../database/schema'
+import * as schema from '../database/schema.ts'
 
 export const tables = schema
 export { eq, and, or, inArray } from 'drizzle-orm'
