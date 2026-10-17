@@ -114,7 +114,7 @@ pnpm build         # Build the application
 pnpm docs:build    # Build documentation
 ```
 
-After changing the database schema, run `pnpm db:generate` and review the SQL. Generating migrations is unnecessary just to start the app. See the [contributing guide](https://chronoframe.bh8.ga/development/contributing) for more.
+After changing the database schema, run `pnpm db:generate` and review the SQL. Generating migrations is unnecessary just to start the app. See the [contributing guide](https://chronoframe.bh8.ga/development/contributing.html) for more.
 
 ## 🤝 Contributing and community
 
