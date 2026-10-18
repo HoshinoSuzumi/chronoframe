@@ -24,6 +24,7 @@ const emit = defineEmits<{
 }>()
 
 const dayjs = useDayjs()
+const locationLabel = useLocationLabel()
 const marker = computed(() => props.clusterPoint.properties.marker!)
 const hoverOpen = ref(false)
 
@@ -414,15 +415,15 @@ const onClick = () => {
                   <!-- Metadata -->
                   <div class="space-y-1">
                     <div
-                      v-if="marker.city || marker.exif?.DateTimeOriginal"
+                      v-if="locationLabel(marker) || marker.exif?.DateTimeOriginal"
                       class="flex items-center gap-1 text-xs text-neutral-600 dark:text-muted font-medium mb-2"
                     >
-                      <div v-if="marker.city">
+                      <div v-if="locationLabel(marker)">
                         <span class="truncate">
-                          {{ marker.city }}
+                          {{ locationLabel(marker) }}
                         </span>
                       </div>
-                      <span v-if="marker.city">·</span>
+                      <span v-if="locationLabel(marker)">·</span>
                       <div v-if="marker.exif?.DateTimeOriginal">
                         <span class="truncate">
                           {{ dayjs(marker.exif.DateTimeOriginal).format('ll') }}

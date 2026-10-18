@@ -1,3 +1,4 @@
+import type { NormalizedLocation } from './location'
 import type { Map as _MaplibreMap } from 'maplibre-gl'
 import type { Map as _MapboxMap } from 'mapbox-gl'
 
@@ -28,6 +29,7 @@ export interface PhotoMarker {
   thumbnailUrl?: string
   thumbnailHash?: string
   dateTaken?: string
+  geocoding?: NormalizedLocation | null
   city?: string
   exif?: any
 }

@@ -100,7 +100,10 @@ const formatGPSCoordinatesMultiLine = (
 
 const gpsCoordinates = computed(() => {
   // 优先使用数据库中存储的坐标
-  if (props.currentPhoto.latitude && props.currentPhoto.longitude) {
+  if (
+    props.currentPhoto.latitude != null &&
+    props.currentPhoto.longitude != null
+  ) {
     return {
       latitude: props.currentPhoto.latitude,
       longitude: props.currentPhoto.longitude,
@@ -207,7 +210,28 @@ const formatedExifData = computed<Record<string, KVData[]>>(() => {
               icon: 'tabler:building',
             }
           : null,
-        props.currentPhoto.latitude && props.currentPhoto.longitude
+        ...(
+          [
+            'region',
+            'subregion',
+            'district',
+            'locality',
+            'neighborhood',
+          ] as const
+        ).flatMap((level) => {
+          const component = props.currentPhoto.geocoding?.components[level]
+          return component
+            ? [
+                {
+                  label: $t('settings.location.levels.' + level),
+                  value: component.name,
+                  icon: 'tabler:map-pin',
+                },
+              ]
+            : []
+        }),
+        props.currentPhoto.latitude != null &&
+        props.currentPhoto.longitude != null
           ? {
               label: $t('exif.gps.title'),
               value: formatGPSCoordinatesMultiLine(

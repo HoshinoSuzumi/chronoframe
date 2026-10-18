@@ -1,3 +1,4 @@
+import type { NormalizedLocation } from '../../shared/types/location'
 import { sql } from 'drizzle-orm'
 import {
   index,
@@ -13,6 +14,7 @@ import type { NeededExif } from '~~/shared/types/photo'
 import type { StorageConfig } from '../services/storage'
 
 type PipelineQueuePayload =
+  | { type: 'location-migration' }
   | {
       type: 'photo'
       storageKey: string
@@ -25,6 +27,7 @@ type PipelineQueuePayload =
     }
   | {
       type: 'photo-reverse-geocoding'
+      migrationOnly?: boolean
       photoId: string
       latitude?: number | null
       longitude?: number | null
@@ -67,6 +70,7 @@ export const photos = sqliteTable('photos', {
   country: text('country'),
   city: text('city'),
   locationName: text('location_name'),
+  geocoding: text('geocoding', { mode: 'json' }).$type<NormalizedLocation>(),
   // LivePhoto 相关字段
   isLivePhoto: integer('is_live_photo').default(0).notNull(),
   livePhotoVideoUrl: text('live_photo_video_url'),

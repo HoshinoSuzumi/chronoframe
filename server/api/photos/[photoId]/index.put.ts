@@ -204,6 +204,7 @@ export default eventHandler(async (event) => {
         updateData.country = null
         updateData.city = null
         updateData.locationName = null
+        updateData.geocoding = null
         pendingReverseGeocode = {
           latitude: payload.location.latitude,
           longitude: payload.location.longitude,
@@ -214,6 +215,7 @@ export default eventHandler(async (event) => {
         updateData.country = null
         updateData.city = null
         updateData.locationName = null
+        updateData.geocoding = null
       }
     }
 

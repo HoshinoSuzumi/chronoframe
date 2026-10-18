@@ -13,6 +13,7 @@ interface PhotoProps {
 const { photo, appTitle: appTitleProp } = defineProps<PhotoProps>()
 
 const { $i18n } = useNuxtApp()
+const locationLabel = useLocationLabel()
 
 const resolvedAppTitle = computed(() => {
   if (typeof appTitleProp === 'string' && appTitleProp.length > 0) {
@@ -77,7 +78,7 @@ const thumbnailUrl = computed(() =>
           class="flex flex-row items-center gap-3 text-neutral-300 text-3xl font-bold mt-6"
         >
           <div
-            v-if="photo.city"
+            v-if="locationLabel(photo)"
             class="flex flex-row items-center gap-1"
           >
             <span
@@ -93,7 +94,7 @@ const thumbnailUrl = computed(() =>
               />
             </span>
             <span class="truncate">
-              {{ photo.city }}
+              {{ locationLabel(photo) }}
             </span>
           </div>
           <div

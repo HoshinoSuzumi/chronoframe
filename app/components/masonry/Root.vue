@@ -12,6 +12,7 @@ const props = withDefaults(defineProps<Props>(), {
 const dayjs = useDayjs()
 const router = useRouter()
 const route = useRoute()
+const locationLabel = useLocationLabel()
 
 const { filteredPhotos, hasActiveFilters } = usePhotoFilters()
 const { sortedPhotos } = usePhotoSort()
@@ -252,7 +253,11 @@ const updateDateRange = () => {
 
   // Calculate visible cities
   const cities = visiblePhotosArray
-    .map((index) => displayPhotos.value[index]?.city)
+    .map((index) =>
+      displayPhotos.value[index]
+        ? locationLabel(displayPhotos.value[index]!)
+        : undefined,
+    )
     .filter((city): city is string => Boolean(city))
 
   const uniqueCities = [...new Set(cities)]

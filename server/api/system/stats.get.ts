@@ -1,3 +1,4 @@
+import { getLocationMigrationStatus } from '../../services/pipeline-queue/location-migration'
 import { settingsManager } from '~~/server/services/settings/settingsManager'
 import { sql, gte } from 'drizzle-orm'
 import * as si from 'systeminformation'
@@ -121,7 +122,7 @@ function mapSystemInfo(distribution: string): string {
 }
 
 export default eventHandler(async (event) => {
-  await requireUserSession(event)
+  const session = await requireUserSession(event)
 
   const queue = await useDB()
     .select({
@@ -234,6 +235,9 @@ export default eventHandler(async (event) => {
   const activeStorage = await settingsManager.storage.getActiveProvider()
 
   return {
+    locationMigration: session.user.isAdmin
+      ? getLocationMigrationStatus(useDB())
+      : { count: 0 },
     uptime: process.uptime() || 0,
     runningOn: systemInfo,
     memory: (await getMemoryStats()) || { used: 0, total: 0 },

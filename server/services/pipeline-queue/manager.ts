@@ -1,3 +1,8 @@
+import {
+  enqueueLocationMigration,
+  enqueueLocationMigrationRequest,
+} from './location-migration'
+import { hasValidCoordinates } from '../../../shared/utils/location'
 import type { ConsolaInstance } from 'consola'
 import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
@@ -126,6 +131,8 @@ export class QueueManager {
     options?: Partial<NewPipelineQueueItem>,
   ): Promise<number> {
     const db = useDB()
+    if (payload.type === 'location-migration')
+      return enqueueLocationMigrationRequest(db, options)
     const result = db
       .insert(tables.pipelineQueue)
       .values({
@@ -396,7 +403,7 @@ export class QueueManager {
             const { latitude, longitude } =
               parseGPSCoordinates(normalizedExifData)
             coordinates = { latitude, longitude }
-            if (latitude && longitude) {
+            if (hasValidCoordinates(latitude, longitude)) {
               locationInfo = await extractLocationFromGPS(latitude, longitude)
             }
           }
@@ -477,6 +484,7 @@ export class QueueManager {
             country: locationInfo?.country || null,
             city: locationInfo?.city || null,
             locationName: locationInfo?.locationName || null,
+            geocoding: locationInfo?.geocoding || null,
             // LivePhoto 相关字段
             isLivePhoto:
               motionPhotoInfo?.isMotionPhoto || livePhotoInfo?.isLivePhoto
@@ -563,6 +571,13 @@ export class QueueManager {
             throw new PermanentTaskError(`Photo ${photoId} not found`)
           }
 
+          if (
+            payload.migrationOnly &&
+            (photo.geocoding ||
+              !hasValidCoordinates(photo.latitude, photo.longitude))
+          )
+            return
+
           let latitude = payload.latitude ?? photo.latitude ?? undefined
           let longitude = payload.longitude ?? photo.longitude ?? undefined
 
@@ -598,6 +613,7 @@ export class QueueManager {
                 country: null,
                 city: null,
                 locationName: null,
+                geocoding: null,
               })
               .where(eq(tables.photos.id, photoId))
             throw new PermanentTaskError(
@@ -624,8 +640,18 @@ export class QueueManager {
               country: locationInfo.country ?? null,
               city: locationInfo.city ?? null,
               locationName: locationInfo.locationName ?? null,
+              geocoding: locationInfo.geocoding,
             })
-            .where(eq(tables.photos.id, photoId))
+            .where(
+              payload.migrationOnly
+                ? and(
+                    eq(tables.photos.id, photoId),
+                    sql`${tables.photos.geocoding} IS NULL`,
+                    eq(tables.photos.latitude, photo.latitude!),
+                    eq(tables.photos.longitude, photo.longitude!),
+                  )
+                : eq(tables.photos.id, photoId),
+            )
 
           this.logger.success(
             `[${taskId}:reverse-geocoding] updated location for photo ${photoId}`,
@@ -725,6 +751,7 @@ export class QueueManager {
               country: null,
               city: null,
               locationName: null,
+              geocoding: null,
             })
             .where(eq(tables.photos.id, payload.photoId))
 
@@ -854,6 +881,9 @@ export class QueueManager {
 
         let warningCode: PipelineQueueItem['warningCode'] = null
         switch (type) {
+          case 'location-migration':
+            enqueueLocationMigration(useDB())
+            break
           case 'live-photo-video':
             await this.processors.livePhotoDetect(task)
             break

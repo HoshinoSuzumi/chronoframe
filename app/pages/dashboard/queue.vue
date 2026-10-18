@@ -194,6 +194,7 @@ const statusOptions = computed(() => [
 // 类型选项
 const typeOptions = computed(() => [
   { label: $t('dashboard.queue.filters.all'), value: 'all' },
+  { label: $t('dashboard.queue.types.location-migration'), value: 'location-migration' },
   { label: $t('dashboard.queue.types.photo'), value: 'photo' },
   {
     label: $t('dashboard.queue.types.live-photo-video'),

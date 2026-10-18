@@ -1109,7 +1109,8 @@
         "photo": "Photo Processing",
         "live-photo-video": "LivePhoto Video",
         "photo-reverse-geocoding": "Photo Reverse Geocoding",
-        "photo-erase-location": "Photo Location Erasure"
+        "photo-erase-location": "Photo Location Erasure",
+        "location-migration": "Location format migration"
       },
       "stages": {
         "preprocessing": "Preprocessing",
@@ -1179,6 +1180,14 @@
     "nav": {
       "documentation": "Documentation",
       "viewGallery": "View Gallery"
+    },
+    "locationMigration": {
+      "title": "Update stored location information",
+      "description": "The storage format for photo locations has changed. Administrative area details need to be fetched again for {count} photos. Migrate now? You can track progress in Queue Management after confirming.",
+      "confirm": "Confirm migration",
+      "cancel": "Cancel",
+      "error": "Could not queue migration. Please try again.",
+      "queued": "Migration task queued. Track its progress in the task queue."
     }
   },
   "settings": {
@@ -1337,6 +1346,24 @@
           "description": "Base URL for Nominatim reverse geocoding API",
           "help": "Leave empty to use the public Nominatim service by default"
         }
+      },
+      "levels": {
+        "country": "Country / territory",
+        "region": "Province / state",
+        "subregion": "Intermediate administrative area",
+        "city": "City / settlement",
+        "district": "City district",
+        "locality": "Local area",
+        "neighborhood": "Neighborhood"
+      },
+      "preferredLevel": {
+        "label": "Preferred location level",
+        "description": "Choose the location shown on photos and maps. City filters continue to use cities."
+      },
+      "fallbackOrder": {
+        "label": "Location fallback order",
+        "description": "If the preferred level is missing, try these fields in order.",
+        "help": "Comma-separated fields: city, subregion, region, country, district, locality, neighborhood. Example: city,subregion,region,country"
       }
     },
     "privacy": {

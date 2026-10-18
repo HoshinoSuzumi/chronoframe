@@ -136,6 +136,9 @@ export function usePhotoFilters() {
           photo.description || '',
           photo.storageKey || '',
           photo.locationName || '',
+          ...Object.values(photo.geocoding?.components || {}).map(
+            (component) => component.name,
+          ),
         ]
           .join(' ')
           .toLowerCase()

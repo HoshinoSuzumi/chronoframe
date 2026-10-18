@@ -55,10 +55,7 @@ export default defineEventHandler(async (event) => {
       success: true,
       message: `Task ${taskId} has been reset and will be retried`,
       taskId,
-      payload: {
-        type: task.payload.type,
-        storageKey: task.payload.storageKey,
-      },
+      payload: task.payload,
     }
   } catch (error) {
     if (error && typeof error === 'object' && 'statusCode' in error) {

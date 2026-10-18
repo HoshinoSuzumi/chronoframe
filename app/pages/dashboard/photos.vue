@@ -53,6 +53,7 @@ const systemUploadEraseLocationDefault = computed(() => {
 })
 
 const dayjs = useDayjs()
+const locationLabel = useLocationLabel()
 
 const { status, refresh } = usePhotos()
 const { filteredPhotos, selectedCounts, hasActiveFilters } = usePhotoFilters()
@@ -1008,7 +1009,7 @@ const columns = computed<TableColumn<Photo>[]>(() => [
     accessorKey: 'location',
     header: $t('dashboard.photos.table.columns.location'),
     cell: ({ row }) => {
-      const { exif, city, country } = row.original
+      const { exif, country } = row.original
 
       if (!exif?.GPSLongitude && !exif?.GPSLatitude) {
         return h(
@@ -1018,7 +1019,7 @@ const columns = computed<TableColumn<Photo>[]>(() => [
         )
       }
 
-      const location = [city, country].filter(Boolean).join(', ')
+      const location = [locationLabel(row.original), country].filter(Boolean).join(', ')
       return h(
         'span',
         {

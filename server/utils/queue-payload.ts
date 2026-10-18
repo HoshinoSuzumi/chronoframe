@@ -4,6 +4,7 @@ import * as tables from '../database/schema.ts'
 import { useDB } from './db.ts'
 
 export const queuePayloadSchema = z.discriminatedUnion('type', [
+  z.object({ type: z.literal('location-migration') }),
   z.object({
     type: z.literal('photo'),
     storageKey: z.string().nonempty(),
@@ -30,11 +31,11 @@ export const queuePayloadSchema = z.discriminatedUnion('type', [
 
 export const photoTaskAlbumExists = (
   payload: z.infer<typeof queuePayloadSchema>,
-  db: ReturnType<typeof useDB> = useDB(),
+  db?: ReturnType<typeof useDB>,
 ): boolean => {
   if (payload.type !== 'photo' || payload.albumId === undefined) return true
 
-  const album = db
+  const album = (db ?? useDB())
     .select({ id: tables.albums.id })
     .from(tables.albums)
     .where(eq(tables.albums.id, payload.albumId))
@@ -44,7 +45,7 @@ export const photoTaskAlbumExists = (
 }
 
 export const createPhotoTaskAlbumChecker = (
-  db: ReturnType<typeof useDB> = useDB(),
+  db?: ReturnType<typeof useDB>,
 ) => {
   const cache = new Map<number, boolean>()
 

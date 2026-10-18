@@ -1034,7 +1034,8 @@
         "photo": "写真処理",
         "live-photo-video": "LivePhoto動画",
         "photo-reverse-geocoding": "写真の逆ジオコーディング",
-        "photo-erase-location": "写真位置情報の抹消"
+        "photo-erase-location": "写真位置情報の抹消",
+        "location-migration": "位置情報の形式移行"
       },
       "stages": {
         "preprocessing": "前処理",
@@ -1104,6 +1105,14 @@
     "nav": {
       "documentation": "ドキュメント",
       "viewGallery": "ギャラリーを表示"
+    },
+    "locationMigration": {
+      "title": "位置情報の更新",
+      "description": "写真の位置情報の保存形式が更新されました。{count} 枚の写真の行政区画情報を再取得する必要があります。今すぐ移行しますか？確認後、「キュー管理」で進捗を確認できます。",
+      "confirm": "移行する",
+      "cancel": "キャンセル",
+      "error": "移行タスクをキューに追加できませんでした。もう一度お試しください。",
+      "queued": "移行タスクをキューに追加しました。「キュー管理」で進捗を確認できます。"
     }
   },
   "settings": {
@@ -1262,6 +1271,24 @@
           "description": "Nominatim リバースジオコーディング API のベース URL",
           "help": "空のままにすると、デフォルトで公開 Nominatim サービスを使用します"
         }
+      },
+      "levels": {
+        "country": "国 / 地域",
+        "region": "都道府県 / 州",
+        "subregion": "中間行政区画",
+        "city": "市町村 / 集落",
+        "district": "市内の行政区",
+        "locality": "地区 / 郊外",
+        "neighborhood": "近隣地区"
+      },
+      "preferredLevel": {
+        "label": "優先する位置情報の階層",
+        "description": "写真と地図に表示する位置情報の階層を選択します。都市フィルターは引き続き都市単位で集計します。"
+      },
+      "fallbackOrder": {
+        "label": "位置情報の代替順序",
+        "description": "優先する階層がない場合、この順序で利用可能な項目を選択します。",
+        "help": "項目名を半角カンマで区切ります：city、subregion、region、country、district、locality、neighborhood。例：city,subregion,region,country"
       }
     },
     "privacy": {
