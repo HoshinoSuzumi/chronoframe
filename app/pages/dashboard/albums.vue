@@ -611,7 +611,8 @@ const columns = computed<any[]>(() => [
             <template #description-cell="{ row }">
               <div
                 v-if="(row.original as unknown as AlbumItem).description"
-                class="text-sm text-gray-600 dark:text-gray-400 line-clamp-1"
+                class="max-w-xs truncate text-sm text-gray-600 dark:text-gray-400"
+                :title="(row.original as unknown as AlbumItem).description"
               >
                 {{ (row.original as unknown as AlbumItem).description }}
               </div>
