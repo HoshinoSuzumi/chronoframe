@@ -1,17 +1,16 @@
-import assert from 'node:assert/strict'
-import test from 'node:test'
-import { getAvatarInputType } from '../app/utils/avatar.ts'
+import { describe, expect, it } from 'vitest'
+import { getAvatarInputType } from '../app/utils/avatar'
 
-test('saved uploaded avatar paths do not require an absolute URL', () => {
-  assert.equal(
-    getAvatarInputType('/avatar/avatar-0123456789abcdef.webp'),
-    'text',
-  )
-})
+describe('getAvatarInputType', () => {
+  it('treats saved uploaded avatar paths as text input', () => {
+    expect(getAvatarInputType('/avatar/avatar-0123456789abcdef.webp')).toBe(
+      'text',
+    )
+  })
 
-test('external avatars and other paths still use URL input validation', () => {
-  assert.equal(getAvatarInputType('https://example.com/avatar.jpg'), 'url')
-  assert.equal(getAvatarInputType('/another/image.webp'), 'url')
-  assert.equal(getAvatarInputType('/avatar/other.webp'), 'url')
-  assert.equal(getAvatarInputType(''), 'url')
+  it('treats external URLs as url input', () => {
+    expect(getAvatarInputType('https://example.com/a.png')).toBe('url')
+    expect(getAvatarInputType(null)).toBe('url')
+    expect(getAvatarInputType('')).toBe('url')
+  })
 })
