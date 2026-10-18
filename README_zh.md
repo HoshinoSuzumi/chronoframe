@@ -79,6 +79,10 @@ docker run -d --name chronoframe --restart unless-stopped \
 
 部署到公网时使用 HTTPS。反向代理、数据备份和旧版迁移见[快速开始](https://chronoframe.bh8.ga/zh/guide/getting-started)和[升级指南](https://chronoframe.bh8.ga/zh/guide/updates)。
 
+## 🚀 一键部署
+
+[![Deploy on RepoCloud](https://d16t0pc4846x52.cloudfront.net/deploylobe.svg)](https://repocloud.io/details/ChronoFrame/)
+
 ## 📖 使用
 
 登录后进入 `/dashboard` 上传和整理照片。上传完成后，任务队列会继续处理 EXIF、缩略图、地点和实况照片，失败任务可以查看原因并重试。

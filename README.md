@@ -79,6 +79,10 @@ Keep the `./data` mount: it holds the database, settings, session secret and loc
 
 Use HTTPS for a public deployment. See [Getting Started](https://chronoframe.bh8.ga/guide/getting-started) and the [update guide](https://chronoframe.bh8.ga/guide/updates) for proxies, backups and migration from older versions.
 
+## 🚀 One-Click Deploy
+
+[![Deploy on RepoCloud](https://d16t0pc4846x52.cloudfront.net/deploylobe.svg)](https://repocloud.io/details/ChronoFrame/)
+
 ## 📖 Usage
 
 Sign in and open `/dashboard` to upload and organize photos. After upload, the task queue processes EXIF, thumbnails, locations and Live Photos. Failed tasks show an error and can be retried.
