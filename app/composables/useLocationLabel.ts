@@ -1,10 +1,16 @@
+import { toValue, type MaybeRefOrGetter } from 'vue'
 import {
   resolveLocationLabel,
   defaultLocationFallback,
-} from '~~/shared/utils/location'
+} from '../../shared/utils/location.ts'
 import type { NormalizedLocation } from '~~/shared/types/location'
 
-export function useLocationLabel() {
+export function useLocationLabel(
+  overrides: MaybeRefOrGetter<{
+    preferredLevel?: string
+    fallbackOrder?: string
+  }> = {},
+) {
   const settings = useSettingsStore()
   return (photo: {
     geocoding?: NormalizedLocation | null
@@ -12,10 +18,12 @@ export function useLocationLabel() {
   }) =>
     resolveLocationLabel(
       photo,
-      String(settings.getSetting('location:preferredLevel') || 'city'),
-      String(
-        settings.getSetting('location:fallbackOrder') ||
-          defaultLocationFallback,
-      ),
+      toValue(overrides).preferredLevel ??
+        String(settings.getSetting('location:preferredLevel') || 'city'),
+      toValue(overrides).fallbackOrder ??
+        String(
+          settings.getSetting('location:fallbackOrder') ||
+            defaultLocationFallback,
+        ),
     ).label
 }

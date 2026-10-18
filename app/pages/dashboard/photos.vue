@@ -1019,7 +1019,7 @@ const columns = computed<TableColumn<Photo>[]>(() => [
         )
       }
 
-      const location = [locationLabel(row.original), country].filter(Boolean).join(', ')
+      const location = [...new Set([locationLabel(row.original), country].filter(Boolean))].join(', ')
       return h(
         'span',
         {

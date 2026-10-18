@@ -1,4 +1,5 @@
 import type { ComputedRef } from 'vue'
+import { defaultLocationFallback } from '~~/shared/utils/location'
 
 /**
  * Share metadata for this ChronoFrame instance.
@@ -18,6 +19,8 @@ export async function useInstanceOpenGraph(photos: ComputedRef<Photo[]>) {
   const appSlogan = useSettingRef('app:slogan')
   const appAuthor = useSettingRef('app:author')
   const appAvatar = useSettingRef('app:avatarUrl')
+  const locationPreferredLevel = useSettingRef('location:preferredLevel')
+  const locationFallbackOrder = useSettingRef('location:fallbackOrder')
   const { homeView } = useHomeView()
 
   const siteName = computed(
@@ -107,6 +110,8 @@ export async function useInstanceOpenGraph(photos: ComputedRef<Photo[]>) {
             photo:
               currentPhoto.value?.id === id ? currentPhoto.value : undefined,
             appTitle: siteName.value,
+            locationPreferredLevel: String(locationPreferredLevel.value || 'city'),
+            locationFallbackOrder: String(locationFallbackOrder.value || defaultLocationFallback),
           },
           { alt: shareTitle.value },
         )
@@ -153,6 +158,8 @@ export async function useInstanceOpenGraph(photos: ComputedRef<Photo[]>) {
       slogan,
       author,
       avatarUrl,
+      locationPreferredLevel,
+      locationFallbackOrder,
       shareTitle,
       () => i18n?.locale.value,
     ],

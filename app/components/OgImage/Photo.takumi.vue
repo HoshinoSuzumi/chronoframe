@@ -8,12 +8,17 @@ initIconBundle(addIcon)
 interface PhotoProps {
   photo?: Photo
   appTitle?: string
+  locationPreferredLevel?: string
+  locationFallbackOrder?: string
 }
 
-const { photo, appTitle: appTitleProp } = defineProps<PhotoProps>()
+const { photo, appTitle: appTitleProp, locationPreferredLevel, locationFallbackOrder } = defineProps<PhotoProps>()
 
 const { $i18n } = useNuxtApp()
-const locationLabel = useLocationLabel()
+const locationLabel = useLocationLabel(() => ({
+  preferredLevel: locationPreferredLevel,
+  fallbackOrder: locationFallbackOrder,
+}))
 
 const resolvedAppTitle = computed(() => {
   if (typeof appTitleProp === 'string' && appTitleProp.length > 0) {

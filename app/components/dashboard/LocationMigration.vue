@@ -6,11 +6,13 @@ const migrationCount = ref(0)
 const migrationLoading = ref(false)
 const migrationError = ref(false)
 const toast = useToast()
+const migrationHandled = useState('location-migration-handled', () => false)
 
 async function checkLocationMigration() {
-  if (!user.value?.isAdmin) return
+  if (!user.value?.isAdmin || migrationHandled.value) return
   try {
     const stats = await $fetch('/api/system/stats')
+    if (migrationHandled.value) return
     migrationCount.value = stats.locationMigration.count
     migrationOpen.value = migrationCount.value > 0
   } catch (error) {
@@ -35,6 +37,7 @@ async function confirmLocationMigration() {
       method: 'POST',
       body: { payload: { type: 'location-migration' } },
     })
+    migrationHandled.value = true
     toast.add({
       title: $t('dashboard.locationMigration.queued'),
       color: 'success',
