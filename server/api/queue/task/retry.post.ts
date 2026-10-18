@@ -5,7 +5,7 @@ import { eq } from 'drizzle-orm'
  * 重试指定的失败任务
  */
 export default defineEventHandler(async (event) => {
-  await requireUserSession(event)
+  const session = await requireUserSession(event)
 
   try {
     const { taskId } = await readValidatedBody(
@@ -28,6 +28,13 @@ export default defineEventHandler(async (event) => {
       throw createError({
         statusCode: 404,
         statusMessage: 'Task not found',
+      })
+    }
+
+    if (task.payload.type === 'location-migration' && !session.user.isAdmin) {
+      throw createError({
+        statusCode: 403,
+        statusMessage: 'Admin privileges required',
       })
     }
 

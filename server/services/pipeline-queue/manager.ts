@@ -479,8 +479,8 @@ export class QueueManager {
               : null,
             exif: normalizedExifData,
             // 地理位置信息
-            latitude: coordinates?.latitude || null,
-            longitude: coordinates?.longitude || null,
+            latitude: coordinates?.latitude ?? null,
+            longitude: coordinates?.longitude ?? null,
             country: locationInfo?.country || null,
             city: locationInfo?.city || null,
             locationName: locationInfo?.locationName || null,
@@ -650,7 +650,11 @@ export class QueueManager {
                     eq(tables.photos.latitude, photo.latitude!),
                     eq(tables.photos.longitude, photo.longitude!),
                   )
-                : eq(tables.photos.id, photoId),
+                : and(
+                    eq(tables.photos.id, photoId),
+                    eq(tables.photos.latitude, latitude!),
+                    eq(tables.photos.longitude, longitude!),
+                  ),
             )
 
           this.logger.success(
