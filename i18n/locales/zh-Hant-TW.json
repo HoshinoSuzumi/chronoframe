@@ -514,6 +514,10 @@
       "delete": "刪除",
       "edit": "編輯"
     },
+    "albumAssignment": {
+      "warning": "未加入相簿",
+      "missing": "照片已上傳，但所選相簿在加入照片前已被刪除。"
+    },
     "unknownError": "未知錯誤"
   },
   "dashboard": {
@@ -597,6 +601,16 @@
       "slideover": {
         "title": "上傳照片",
         "description": "拖曳或選擇檔案。照片會自動處理並新增到圖庫。",
+        "album": {
+          "label": "加入相簿（可選）",
+          "description": "此批次中成功處理的照片都會加入所選相簿。",
+          "none": "不加入相簿",
+          "empty": "目前沒有可用相簿。",
+          "hidden": "已隱藏",
+          "passwordProtected": "密碼保護",
+          "loadFailed": "無法載入相簿。你可以重試，或不選相簿直接上傳。",
+          "retry": "重試"
+        },
         "options": {
           "eraseLocation": {
             "label": "上傳時抹除位置資訊",

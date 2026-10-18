@@ -9,6 +9,7 @@ import type {
   PipelineQueueItem,
   Photo,
 } from '~~/server/utils/db'
+import { QueueWarningCode } from '~~/shared/utils/queue-warning'
 import { compressUint8Array } from '~~/shared/utils/u8array'
 import {
   preprocessImageWithJpegUpload,
@@ -24,6 +25,7 @@ import { settingsManager } from '../settings/settingsManager'
 import { findLivePhotoVideoForImage } from '../video/livephoto'
 import { processMotionPhotoFromXmp } from '../video/motion-photo'
 import { getStorageManager } from '~~/server/plugins/3.storage'
+import { persistPhotoWithAlbum } from '~~/server/utils/photo-album'
 
 const EXIF_LOCATION_KEYS = [
   'GPSAltitude',
@@ -211,13 +213,17 @@ export class QueueManager {
    * 标记任务为已完成
    * @param taskId 任务ID
    */
-  async markTaskCompleted(taskId: number): Promise<void> {
+  async markTaskCompleted(
+    taskId: number,
+    warningCode: PipelineQueueItem['warningCode'] = null,
+  ): Promise<void> {
     const db = useDB()
     await db
       .update(tables.pipelineQueue)
       .set({
         status: 'completed',
         completedAt: sql`(unixepoch())`,
+        warningCode,
       })
       .where(eq(tables.pipelineQueue.id, taskId))
   }
@@ -255,6 +261,7 @@ export class QueueManager {
         status: shouldRetry ? 'pending' : 'failed',
         attempts: newAttempts,
         errorMessage: errorMessage || 'Unknown error',
+        warningCode: null,
         // 如果重试，设置延迟重试时间
         statusStage: null,
         ...(shouldRetry
@@ -485,11 +492,16 @@ export class QueueManager {
               null,
           }
 
-          const db = useDB()
-          await db.insert(tables.photos).values(result).onConflictDoUpdate({
-            target: tables.photos.id,
-            set: result,
-          })
+          const assignment = persistPhotoWithAlbum(
+            useDB(),
+            result,
+            payload.albumId,
+          )
+          if (assignment === QueueWarningCode.AlbumMissing) {
+            this.logger.warn(
+              `Task ${taskId}: album ${payload.albumId} was deleted before photo ${photoId} could be added`,
+            )
+          }
 
           if (shouldAutoEraseLocationOnUpload) {
             try {
@@ -512,7 +524,9 @@ export class QueueManager {
           }
 
           this.logger.success(`Task ${taskId} processed successfully`)
-          return result
+          return assignment === QueueWarningCode.AlbumMissing
+            ? QueueWarningCode.AlbumMissing
+            : null
         } catch (error) {
           this.logger.error(`Task ${taskId} processing failed`, error)
           throw error
@@ -838,12 +852,13 @@ export class QueueManager {
       try {
         const { type } = task.payload
 
+        let warningCode: PipelineQueueItem['warningCode'] = null
         switch (type) {
           case 'live-photo-video':
             await this.processors.livePhotoDetect(task)
             break
           case 'photo':
-            await this.processors.photo(task)
+            warningCode = await this.processors.photo(task)
             break
           case 'photo-reverse-geocoding':
             await this.processors.reverseGeocoding(task)
@@ -855,23 +870,11 @@ export class QueueManager {
             throw new PermanentTaskError(`Unknown task type: ${type}`)
         }
 
-        await this.markTaskCompleted(task.id)
+        await this.markTaskCompleted(task.id, warningCode)
         this.processedCount++
         this.logger.success(
           `[${this.workerId}] Task ${task.id} processed successfully (Total: ${this.processedCount})`,
         )
-
-        // const result = await this.processTask(task)
-        // if (result) {
-        //   await this.markTaskCompleted(task.id)
-        //   this.processedCount++
-        //   this.logger.success(
-        //     `[${this.workerId}] Task ${task.id} processed successfully (Total: ${this.processedCount})`,
-        //   )
-        // } else {
-        //   await this.markTaskFailed(task.id, 'Processing result is empty')
-        //   this.errorCount++
-        // }
       } catch (error) {
         const errorMessage =
           error instanceof Error ? error.message : String(error)
