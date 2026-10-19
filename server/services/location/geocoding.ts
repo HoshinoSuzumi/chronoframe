@@ -1,3 +1,7 @@
+import { waitForGeocodingSlot } from './rate-limit'
+import type { NormalizedLocation } from '../../../shared/types/location'
+import { hasValidCoordinates } from '../../../shared/utils/location'
+import { normalizeMapbox, normalizeNominatim } from './normalize'
 import { withRetry, RetryPresets } from '../../utils/retry'
 import { settingsManager } from '../settings/settingsManager'
 
@@ -6,6 +10,7 @@ export interface LocationInfo {
   longitude: number
   country?: string
   city?: string
+  geocoding: NormalizedLocation
   locationName?: string
 }
 
@@ -20,7 +25,6 @@ export interface GeocodingProvider {
 export class MapboxGeocodingProvider implements GeocodingProvider {
   private accessToken: string
   private readonly baseUrl = 'https://api.mapbox.com'
-  private lastRequestTime = 0
   private readonly rateLimitMs = 100 // Mapbox 默认速率限制为 1000/分钟，约60ms间隔
 
   constructor(accessToken: string) {
@@ -32,7 +36,7 @@ export class MapboxGeocodingProvider implements GeocodingProvider {
       return await withRetry(
         async (signal) => {
           // 应用速率限制
-          await this.applyRateLimit()
+          await waitForGeocodingSlot(this.baseUrl, this.rateLimitMs, signal)
 
           // 获取设置的地理编码语言，默认 'en'
           const language =
@@ -42,7 +46,10 @@ export class MapboxGeocodingProvider implements GeocodingProvider {
           url.searchParams.set('access_token', this.accessToken)
           url.searchParams.set('longitude', lon.toString())
           url.searchParams.set('latitude', lat.toString())
-          url.searchParams.set('types', 'address,place,district,region,country')
+          url.searchParams.set(
+            'types',
+            'address,place,locality,neighborhood,district,region,country',
+          )
 
           // 映射 Mapbox 首选语言格式
           let mapboxLang = language
@@ -53,7 +60,7 @@ export class MapboxGeocodingProvider implements GeocodingProvider {
           }
           url.searchParams.set('language', mapboxLang)
 
-          logger.location.info(`Mapbox API URL: ${url.toString()}`)
+          logger.location.info('Requesting Mapbox reverse geocoding')
 
           const response = await fetch(url.toString(), { signal })
 
@@ -70,34 +77,15 @@ export class MapboxGeocodingProvider implements GeocodingProvider {
             return null
           }
 
-          // 取第一个最相关的结果
-          const feature = data.features[0]
-          const properties = feature.properties || {}
-          const context = properties.context || {}
-
-          // 提取国家信息
-          const country = context.country?.name
-
-          // 提取城市信息（优先级：locality > place > locality > district > region）
-          const city =
-            context.locality?.name ||
-            context.place?.name ||
-            context.locality?.name ||
-            context.district?.name ||
-            context.region?.name
-
-          // 构建位置名称
-          const locationName = properties.place_formatted || properties.name
-
-          logger.location.success(
-            `Successfully geocoded location: ${city}, ${country}`,
-          )
+          const geocoding = normalizeMapbox(data, language)
+          if (!geocoding) return null
           return {
             latitude: lat,
             longitude: lon,
-            country,
-            city,
-            locationName,
+            geocoding,
+            country: geocoding.components.country?.name,
+            city: geocoding.components.city?.name,
+            locationName: geocoding.formattedAddress,
           }
         },
         {
@@ -115,18 +103,6 @@ export class MapboxGeocodingProvider implements GeocodingProvider {
       return null
     }
   }
-
-  private async applyRateLimit(): Promise<void> {
-    const now = Date.now()
-    const timeSinceLastRequest = now - this.lastRequestTime
-
-    if (timeSinceLastRequest < this.rateLimitMs) {
-      const delay = this.rateLimitMs - timeSinceLastRequest
-      await new Promise((resolve) => setTimeout(resolve, delay))
-    }
-
-    this.lastRequestTime = Date.now()
-  }
 }
 
 /**
@@ -136,7 +112,6 @@ export class MapboxGeocodingProvider implements GeocodingProvider {
 export class NominatimGeocodingProvider implements GeocodingProvider {
   private readonly baseUrl: string
   private readonly userAgent = 'chronoframe/1.0'
-  private lastRequestTime = 0
   private readonly rateLimitMs = 1000 // Nominatim 要求至少1秒间隔
 
   constructor(baseUrl?: string) {
@@ -148,7 +123,7 @@ export class NominatimGeocodingProvider implements GeocodingProvider {
       return await withRetry(
         async (signal) => {
           // 应用速率限制
-          await this.applyRateLimit()
+          await waitForGeocodingSlot(this.baseUrl, this.rateLimitMs, signal)
 
           // 获取设置的地理编码语言，默认 'en'
           const language =
@@ -180,31 +155,15 @@ export class NominatimGeocodingProvider implements GeocodingProvider {
             throw new Error(`Nominatim API returned error: ${data?.error}`)
           }
 
-          const address = data.address || {}
-
-          // 提取国家信息
-          const country = address.country || address.country_code?.toUpperCase()
-
-          // 提取城市信息（优先级：district > city > town > county > state > village > hamlet）
-          // 适配中国行政区划
-          const city =
-            address.district ||
-            address.city ||
-            address.town ||
-            address.county ||
-            address.state ||
-            address.village ||
-            address.hamlet
-
-          // 构建位置名称
-          const locationName = data.display_name
-
+          const geocoding = normalizeNominatim(data, language)
+          if (!geocoding) return null
           return {
             latitude: lat,
             longitude: lon,
-            country,
-            city,
-            locationName,
+            geocoding,
+            country: geocoding.components.country?.name,
+            city: geocoding.components.city?.name,
+            locationName: geocoding.formattedAddress,
           }
         },
         {
@@ -221,18 +180,6 @@ export class NominatimGeocodingProvider implements GeocodingProvider {
       )
       return null
     }
-  }
-
-  private async applyRateLimit(): Promise<void> {
-    const now = Date.now()
-    const timeSinceLastRequest = now - this.lastRequestTime
-
-    if (timeSinceLastRequest < this.rateLimitMs) {
-      const delay = this.rateLimitMs - timeSinceLastRequest
-      await new Promise((resolve) => setTimeout(resolve, delay))
-    }
-
-    this.lastRequestTime = Date.now()
   }
 }
 
@@ -263,12 +210,12 @@ export async function extractLocationFromGPS(
   gpsLongitude?: number,
   provider?: GeocodingProvider,
 ): Promise<LocationInfo | null> {
-  if (!gpsLatitude || !gpsLongitude) {
+  if (gpsLatitude == null || gpsLongitude == null) {
     return null
   }
 
   // 验证坐标范围
-  if (Math.abs(gpsLatitude) > 90 || Math.abs(gpsLongitude) > 180) {
+  if (!hasValidCoordinates(gpsLatitude, gpsLongitude)) {
     logger.location.warn(
       `Invalid GPS coordinates: ${gpsLatitude}, ${gpsLongitude}`,
     )
@@ -315,13 +262,13 @@ export function parseGPSCoordinates(exifData: any): {
     let longitude: number | undefined
 
     // 尝试从GPSLatitude和GPSLongitude获取
-    if (exifData.GPSLatitude && exifData.GPSLongitude) {
+    if (exifData.GPSLatitude != null && exifData.GPSLongitude != null) {
       latitude = parseFloat(exifData.GPSLatitude.toString())
       longitude = parseFloat(exifData.GPSLongitude.toString())
     }
 
     // 如果上面的方法失败，尝试从GPSCoordinates获取
-    if ((!latitude || !longitude) && exifData.GPSCoordinates) {
+    if (!hasValidCoordinates(latitude, longitude) && exifData.GPSCoordinates) {
       const coords = exifData.GPSCoordinates.toString()
       const match = coords.match(/([-+]?\d+\.?\d*)[°,\s]+([-+]?\d+\.?\d*)/)
       if (match) {
@@ -338,6 +285,7 @@ export function parseGPSCoordinates(exifData: any): {
       longitude = -Math.abs(longitude)
     }
 
+    if (!hasValidCoordinates(latitude, longitude)) return {}
     return { latitude, longitude }
   } catch (error) {
     logger.location.error('Failed to parse GPS coordinates:', error)

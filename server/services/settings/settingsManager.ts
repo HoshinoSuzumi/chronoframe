@@ -282,6 +282,23 @@ export class SettingsManager {
       )
     }
 
+    if (namespace === 'location' && key === 'fallbackOrder') {
+      const levels = [
+        'country',
+        'region',
+        'subregion',
+        'city',
+        'district',
+        'locality',
+        'neighborhood',
+      ]
+      if (
+        typeof value !== 'string' ||
+        value.split(',').some((level) => !levels.includes(level.trim()))
+      ) {
+        throw new Error('Invalid location fallback order')
+      }
+    }
     const serializedValue = this.serialize(value)
     if (namespace === 'system' && key === 'queue.workerCount') {
       validateQueueWorkerCount(value)

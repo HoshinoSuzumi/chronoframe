@@ -1109,7 +1109,8 @@
         "photo": "照片处理",
         "live-photo-video": "LivePhoto视频",
         "photo-reverse-geocoding": "照片逆地理编码",
-        "photo-erase-location": "照片位置信息抹除"
+        "photo-erase-location": "照片位置信息抹除",
+        "location-migration": "位置区划格式迁移"
       },
       "stages": {
         "preprocessing": "预处理",
@@ -1179,6 +1180,14 @@
     "nav": {
       "documentation": "文档",
       "viewGallery": "查看画廊"
+    },
+    "locationMigration": {
+      "title": "更新地理位置信息",
+      "description": "照片位置信息存储格式已更新，{count} 张照片需要重新获取区划信息。是否现在迁移？确认后可在“队列管理”中查看进度",
+      "confirm": "确认迁移",
+      "cancel": "取消",
+      "error": "迁移任务入队失败，请重试。",
+      "queued": "迁移任务已加入队列，可在任务队列中查看处理进度。"
     }
   },
   "settings": {
@@ -1337,6 +1346,24 @@
           "description": "Nominatim 反向地理编码 API 的基础 URL",
           "help": "留空则默认使用公共 Nominatim 服务"
         }
+      },
+      "levels": {
+        "country": "国家 / 地区",
+        "region": "省 / 州",
+        "subregion": "中间行政区划",
+        "city": "城市 / 居民点",
+        "district": "城市区县",
+        "locality": "地方 / 郊区",
+        "neighborhood": "社区 / 街区"
+      },
+      "preferredLevel": {
+        "label": "首选位置层级",
+        "description": "选择照片和地图显示的位置层级，城市筛选仍按城市统计。"
+      },
+      "fallbackOrder": {
+        "label": "位置字段回退顺序",
+        "description": "首选层级缺失时，按此顺序选择可用字段。",
+        "help": "使用英文逗号分隔：city（城市）、subregion（中间区划）、region（省州）、country（国家地区）、district（区县）、locality（地方）、neighborhood（社区）。示例：city,subregion,region,country"
       }
     },
     "privacy": {

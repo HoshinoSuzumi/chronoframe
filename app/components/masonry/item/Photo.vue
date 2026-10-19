@@ -16,6 +16,7 @@ const emit = defineEmits<{
 }>()
 
 const { gtag } = useGtag()
+const locationLabel = useLocationLabel()
 
 const isLoading = ref(true)
 const photoRef = ref<HTMLElement>()
@@ -589,14 +590,15 @@ onUnmounted(() => {
               {{ photo.description }}
             </p>
             <p
-              v-if="photo.dateTaken || photo.city"
+              v-if="photo.dateTaken || locationLabel(photo)"
               class="text-xs font-medium opacity-80"
             >
               <span v-if="photo.dateTaken">
                 {{ $dayjs(photo.dateTaken).format('YYYY-MM-DD') }}
               </span>
-              <span v-if="photo.city">
-                <span v-if="photo.dateTaken"> · </span>{{ photo.city }}
+              <span v-if="locationLabel(photo)">
+                <span v-if="photo.dateTaken"> · </span
+                >{{ locationLabel(photo) }}
               </span>
             </p>
           </div>

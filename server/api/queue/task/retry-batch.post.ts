@@ -5,7 +5,7 @@ import { eq, inArray } from 'drizzle-orm'
  * 批量重试失败的任务
  */
 export default defineEventHandler(async (event) => {
-  await requireUserSession(event)
+  const session = await requireUserSession(event)
 
   try {
     const { taskIds, retryAll = false } = await readValidatedBody(
@@ -37,6 +37,16 @@ export default defineEventHandler(async (event) => {
       .select()
       .from(tables.pipelineQueue)
       .where(whereCondition)
+
+    if (
+      !session.user.isAdmin &&
+      tasksToRetry.some((task) => task.payload.type === 'location-migration')
+    ) {
+      throw createError({
+        statusCode: 403,
+        statusMessage: 'Admin privileges required',
+      })
+    }
 
     const failedTasks = tasksToRetry.filter((task) => task.status === 'failed')
 
@@ -76,7 +86,9 @@ export default defineEventHandler(async (event) => {
       retriedTasks: failedTasks.map((task) => ({
         id: task.id,
         type: task.payload.type,
-        storageKey: task.payload.storageKey,
+        payload: task.payload,
+        storageKey:
+          'storageKey' in task.payload ? task.payload.storageKey : undefined,
       })),
       skippedTasks: nonFailedTasks.map((task) => ({
         id: task.id,

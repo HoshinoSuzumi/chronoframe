@@ -259,6 +259,8 @@ const handleLogin = () => {
       </template>
     </UDashboardSidebar>
 
+
+    <DashboardLocationMigration />
     <NuxtPage />
   </UDashboardGroup>
 </template>

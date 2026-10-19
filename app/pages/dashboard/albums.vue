@@ -30,6 +30,8 @@ interface AlbumFormState {
   passwordEnabled: boolean
 }
 
+const locationLabel = useLocationLabel()
+
 const { data: currentStorageProvider } = await useFetch<{
   namespace: string
   key: string
@@ -1270,8 +1272,8 @@ const columns = computed<any[]>(() => [
                           </p>
                           <p class="truncate text-[9px] text-white/72">
                             {{
-                              photo.city
-                                ? `${photo.city} · ${dayjs(photo.createdAt).format('MM-DD')}`
+                              locationLabel(photo)
+                                ? `${locationLabel(photo)} · ${dayjs(photo.createdAt).format('MM-DD')}`
                                 : dayjs(photo.createdAt).format('YYYY-MM-DD')
                             }}
                           </p>

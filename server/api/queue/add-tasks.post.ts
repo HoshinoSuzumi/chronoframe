@@ -2,10 +2,10 @@ import { z } from 'zod'
 import {
   createPhotoTaskAlbumChecker,
   queuePayloadSchema,
-} from '../../utils/queue-payload'
+} from '../../utils/queue-payload.ts'
 
 export default defineEventHandler(async (event) => {
-  await requireUserSession(event)
+  const session = await requireUserSession(event)
 
   try {
     const { tasks, defaultPriority, defaultMaxAttempts } =
@@ -26,6 +26,15 @@ export default defineEventHandler(async (event) => {
           defaultMaxAttempts: z.number().min(1).max(5).optional().default(3),
         }).parse,
       )
+
+    if (
+      tasks.some((task) => task.payload.type === 'location-migration') &&
+      !session.user.isAdmin
+    )
+      throw createError({
+        statusCode: 403,
+        statusMessage: 'Admin privileges required',
+      })
 
     const workerPool = globalThis.__workerPool
 

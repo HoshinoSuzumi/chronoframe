@@ -103,6 +103,23 @@ export const MAP_SETTINGS_UI: Record<string, FieldUIConfig> = {
 }
 
 export const LOCATION_SETTINGS_UI: Record<string, FieldUIConfig> = {
+  preferredLevel: {
+    type: 'select',
+    options: [
+      'country',
+      'region',
+      'subregion',
+      'city',
+      'district',
+      'locality',
+      'neighborhood',
+    ].map((value) => ({ value, label: 'settings.location.levels.' + value })),
+  },
+  fallbackOrder: {
+    type: 'input',
+    placeholder: 'city,subregion,region,country',
+    help: 'settings.location.fallbackOrder.help',
+  },
   language: {
     type: 'select',
     options: i18nOptions.locales.map((locale) => ({

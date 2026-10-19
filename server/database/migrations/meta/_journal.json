@@ -120,6 +120,13 @@
       "when": 1792244529968,
       "tag": "0016_upload_album_membership",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "6",
+      "when": 1792307735436,
+      "tag": "0017_location_components",
+      "breakpoints": true
     }
   ]
 }

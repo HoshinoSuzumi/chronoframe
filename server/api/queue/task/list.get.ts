@@ -16,6 +16,7 @@ export default defineEventHandler(async (event) => {
           .optional(),
         type: z
           .enum([
+            'location-migration',
             'photo',
             'live-photo-video',
             'photo-reverse-geocoding',

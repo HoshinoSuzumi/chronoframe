@@ -222,6 +222,33 @@ export const DEFAULT_SETTINGS = [
   // NAMESPACE: location
   {
     namespace: 'location',
+    key: 'preferredLevel',
+    type: 'string',
+    defaultValue: 'city',
+    enum: [
+      'country',
+      'region',
+      'subregion',
+      'city',
+      'district',
+      'locality',
+      'neighborhood',
+    ],
+    label: 'settings.location.preferredLevel.label',
+    description: 'settings.location.preferredLevel.description',
+    isPublic: true,
+  },
+  {
+    namespace: 'location',
+    key: 'fallbackOrder',
+    type: 'string',
+    defaultValue: 'city,subregion,region,country',
+    label: 'settings.location.fallbackOrder.label',
+    description: 'settings.location.fallbackOrder.description',
+    isPublic: true,
+  },
+  {
+    namespace: 'location',
     key: 'language',
     type: 'string',
     defaultValue: 'en',

@@ -4,6 +4,7 @@ import path from 'node:path'
 import { z } from 'zod'
 import { exiftool } from 'exiftool-vendored'
 import { eq } from 'drizzle-orm'
+import { hasValidCoordinates } from '../../../../shared/utils/location'
 
 import { extractExifData } from '~~/server/services/image/exif'
 import { tables, useDB } from '~~/server/utils/db'
@@ -19,10 +20,17 @@ const bodySchema = z.object({
   tags: z.array(z.string().trim().max(128)).max(64).optional(),
   location: z
     .union([
-      z.object({
-        latitude: z.number().min(-90).max(90),
-        longitude: z.number().min(-180).max(180),
-      }),
+      z
+        .object({
+          latitude: z.number().min(-90).max(90),
+          longitude: z.number().min(-180).max(180),
+        })
+        .refine(
+          ({ latitude, longitude }) => hasValidCoordinates(latitude, longitude),
+          {
+            message: 'Coordinates (0, 0) are a missing-GPS placeholder',
+          },
+        ),
       z.null(),
     ])
     .optional(),
@@ -204,6 +212,7 @@ export default eventHandler(async (event) => {
         updateData.country = null
         updateData.city = null
         updateData.locationName = null
+        updateData.geocoding = null
         pendingReverseGeocode = {
           latitude: payload.location.latitude,
           longitude: payload.location.longitude,
@@ -214,6 +223,7 @@ export default eventHandler(async (event) => {
         updateData.country = null
         updateData.city = null
         updateData.locationName = null
+        updateData.geocoding = null
       }
     }
 

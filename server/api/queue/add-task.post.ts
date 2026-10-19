@@ -2,10 +2,10 @@ import { z } from 'zod'
 import {
   photoTaskAlbumExists,
   queuePayloadSchema,
-} from '../../utils/queue-payload'
+} from '../../utils/queue-payload.ts'
 
 export default defineEventHandler(async (event) => {
-  await requireUserSession(event)
+  const session = await requireUserSession(event)
 
   try {
     const { payload, priority, maxAttempts } = await readValidatedBody(
@@ -20,6 +20,11 @@ export default defineEventHandler(async (event) => {
     if (!photoTaskAlbumExists(payload)) {
       throw createError({ statusCode: 404, statusMessage: 'Album not found' })
     }
+    if (payload.type === 'location-migration' && !session.user.isAdmin)
+      throw createError({
+        statusCode: 403,
+        statusMessage: 'Admin privileges required',
+      })
 
     const workerPool = globalThis.__workerPool
 
