@@ -1,4 +1,5 @@
 <script lang="ts" setup>
+import { hasValidCoordinates } from '~~/shared/utils/location'
 import { motion } from 'motion-v'
 import { clusterMarkers, photosToMarkers } from '~/utils/clustering'
 
@@ -14,11 +15,7 @@ const { photos } = usePhotos()
 
 const photosWithLocation = computed(() => {
   return photos.value.filter(
-    (photo) =>
-      photo.latitude !== null &&
-      photo.longitude !== null &&
-      photo.latitude !== undefined &&
-      photo.longitude !== undefined,
+    (photo) => hasValidCoordinates(photo.latitude, photo.longitude),
   )
 })
 

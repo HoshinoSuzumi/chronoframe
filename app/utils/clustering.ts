@@ -1,3 +1,4 @@
+import { hasValidCoordinates } from '../../shared/utils/location.ts'
 import type { PhotoMarker, ClusterPoint } from '~~/shared/types/map'
 
 /**
@@ -89,13 +90,7 @@ export function clusterMarkers(
 
 export function photosToMarkers(photos: Photo[]): PhotoMarker[] {
   return photos
-    .filter(
-      (photo) =>
-        photo.latitude !== null &&
-        photo.longitude !== null &&
-        photo.latitude !== undefined &&
-        photo.longitude !== undefined,
-    )
+    .filter((photo) => hasValidCoordinates(photo.latitude, photo.longitude))
     .map((photo) => ({
       id: photo.id,
       latitude: photo.latitude!,

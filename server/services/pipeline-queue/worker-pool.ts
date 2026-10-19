@@ -1,6 +1,6 @@
 import type { ConsolaInstance } from 'consola'
 import { consola } from 'consola'
-import { eq } from 'drizzle-orm'
+import { eq, sql } from 'drizzle-orm'
 import { useDB, tables } from '~~/server/utils/db'
 import { QueueManager } from './manager'
 import {
@@ -243,7 +243,7 @@ export class WorkerPool {
   }
 
   /**
-   * 清理死任务 - 将 in-stages 状态的任务重置为 pending，并设置高优先级
+   * 清理死任务 - 重置为 pending，迁移任务保留后台优先级
    */
   private async cleanupDeadTasks(): Promise<void> {
     try {
@@ -257,21 +257,24 @@ export class WorkerPool {
 
       if (deadTasks.length > 0) {
         this.logger.warn(
-          `Found ${deadTasks.length} dead tasks in 'in-stages' status, resetting to pending with priority 1`,
+          `Found ${deadTasks.length} dead tasks in 'in-stages' status, resetting to pending with migration priorities preserved`,
         )
 
-        // 将这些任务重置为 pending 状态，设置优先级为 1，清除状态阶段
+        // 重置为 pending，清除状态阶段；迁移任务保持低优先级
         await db
           .update(tables.pipelineQueue)
           .set({
             status: 'pending',
-            priority: 1,
+            priority: sql`CASE
+              WHEN json_extract(${tables.pipelineQueue.payload}, '$.migrationOnly') = 1
+                AND json_extract(${tables.pipelineQueue.payload}, '$.type') = 'photo-reverse-geocoding'
+              THEN -1 ELSE 1 END`,
             statusStage: null,
           })
           .where(eq(tables.pipelineQueue.status, 'in-stages'))
 
         this.logger.success(
-          `Successfully reset ${deadTasks.length} dead tasks to pending status with priority 1`,
+          `Successfully reset ${deadTasks.length} dead tasks to pending status with migration priorities preserved`,
         )
       } else {
         this.logger.info('No dead tasks found in queue')

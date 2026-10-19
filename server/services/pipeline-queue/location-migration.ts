@@ -32,6 +32,7 @@ export const legacyLocationCondition = and(
   isNull(photos.geocoding),
   sql`${photos.latitude} BETWEEN -90 AND 90`,
   sql`${photos.longitude} BETWEEN -180 AND 180`,
+  sql`NOT (${photos.latitude} = 0 AND ${photos.longitude} = 0)`,
   or(
     sql`length(trim(coalesce(${photos.city}, ''))) > 0`,
     sql`length(trim(coalesce(${photos.country}, ''))) > 0`,
@@ -45,7 +46,23 @@ export function getLocationMigrationStatus(db: ReturnType<typeof useDB>) {
     .from(photos)
     .where(legacyLocationCondition)
     .get()!
-  return { count }
+  const active = db
+    .select({ id: pipelineQueue.id })
+    .from(pipelineQueue)
+    .where(
+      and(
+        sql`${pipelineQueue.status} IN ('pending', 'in-stages')`,
+        or(
+          sql`json_extract(${pipelineQueue.payload}, '$.type') = 'location-migration'`,
+          and(
+            sql`json_extract(${pipelineQueue.payload}, '$.type') = 'photo-reverse-geocoding'`,
+            sql`json_extract(${pipelineQueue.payload}, '$.migrationOnly') = 1`,
+          ),
+        ),
+      ),
+    )
+    .get()
+  return { count, requestActive: Boolean(active) }
 }
 
 export function enqueueLocationMigration(db: ReturnType<typeof useDB>) {
@@ -86,6 +103,7 @@ export function enqueueLocationMigration(db: ReturnType<typeof useDB>) {
         continue
       tx.insert(pipelineQueue)
         .values({
+          priority: -1,
           payload: {
             type: 'photo-reverse-geocoding',
             photoId: photo.id,

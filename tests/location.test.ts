@@ -124,8 +124,12 @@ test('county, settlements, and neighborhood aliases preserve distinct roles', ()
   assert.equal(normalizeNominatim({ address: {} }, 'en'), null)
 })
 
-test('coordinates include the equator and prime meridian but reject nonfinite values', () => {
-  assert.equal(hasValidCoordinates(0, 0), true)
+test('coordinates preserve either zero axis but reject Null Island and invalid values', () => {
+  assert.equal(hasValidCoordinates(0, 0), false)
+  assert.equal(hasValidCoordinates(-0, 0), false)
+  assert.equal(hasValidCoordinates(0, 121), true)
+  assert.equal(hasValidCoordinates(31, 0), true)
+  assert.equal(hasValidCoordinates(0, 0.000001), true)
   assert.equal(hasValidCoordinates(-90, 180), true)
   for (const [lat, lon] of [
     [NaN, 1],

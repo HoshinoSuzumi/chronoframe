@@ -285,6 +285,7 @@ export function parseGPSCoordinates(exifData: any): {
       longitude = -Math.abs(longitude)
     }
 
+    if (!hasValidCoordinates(latitude, longitude)) return {}
     return { latitude, longitude }
   } catch (error) {
     logger.location.error('Failed to parse GPS coordinates:', error)

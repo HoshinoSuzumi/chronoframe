@@ -2,6 +2,7 @@ import {
   enqueueLocationMigration,
   enqueueLocationMigrationRequest,
 } from './location-migration'
+import { matchesLocationRequest, updateGeocodedPhoto } from './location-update'
 import { hasValidCoordinates } from '../../../shared/utils/location'
 import type { ConsolaInstance } from 'consola'
 import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
@@ -402,8 +403,8 @@ export class QueueManager {
           if (!shouldAutoEraseLocationOnUpload && normalizedExifData) {
             const { latitude, longitude } =
               parseGPSCoordinates(normalizedExifData)
-            coordinates = { latitude, longitude }
             if (hasValidCoordinates(latitude, longitude)) {
+              coordinates = { latitude, longitude }
               locationInfo = await extractLocationFromGPS(latitude, longitude)
             }
           }
@@ -578,6 +579,14 @@ export class QueueManager {
           )
             return
 
+          // An explicit queued coordinate must still belong to this photo. In
+          // particular, a refresh queued before erasure must not restore it.
+          if (!matchesLocationRequest(photo, payload)) {
+            throw new PermanentTaskError(
+              `Location changed for photo ${photoId}`,
+            )
+          }
+
           let latitude = payload.latitude ?? photo.latitude ?? undefined
           let longitude = payload.longitude ?? photo.longitude ?? undefined
 
@@ -621,6 +630,12 @@ export class QueueManager {
             )
           }
 
+          if (!hasValidCoordinates(latitude, longitude)) {
+            throw new PermanentTaskError(
+              `Invalid coordinates for photo ${photoId}`,
+            )
+          }
+
           const locationInfo = await extractLocationFromGPS(
             latitude!,
             longitude!,
@@ -632,30 +647,17 @@ export class QueueManager {
             )
           }
 
-          await db
-            .update(tables.photos)
-            .set({
-              latitude: latitude!,
-              longitude: longitude!,
-              country: locationInfo.country ?? null,
-              city: locationInfo.city ?? null,
-              locationName: locationInfo.locationName ?? null,
-              geocoding: locationInfo.geocoding,
-            })
-            .where(
-              payload.migrationOnly
-                ? and(
-                    eq(tables.photos.id, photoId),
-                    sql`${tables.photos.geocoding} IS NULL`,
-                    eq(tables.photos.latitude, photo.latitude!),
-                    eq(tables.photos.longitude, photo.longitude!),
-                  )
-                : and(
-                    eq(tables.photos.id, photoId),
-                    eq(tables.photos.latitude, latitude!),
-                    eq(tables.photos.longitude, longitude!),
-                  ),
+          const changes = updateGeocodedPhoto(
+            db,
+            photo,
+            locationInfo,
+            Boolean(payload.migrationOnly),
+          )
+          if (changes === 0) {
+            throw new PermanentTaskError(
+              `Location changed for photo ${photoId}; result discarded`,
             )
+          }
 
           this.logger.success(
             `[${taskId}:reverse-geocoding] updated location for photo ${photoId}`,

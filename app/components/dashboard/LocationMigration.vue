@@ -1,6 +1,5 @@
 <script setup lang="ts">
 const { user } = useUserSession()
-const router = useRouter()
 const migrationOpen = ref(false)
 const migrationCount = ref(0)
 const migrationLoading = ref(false)
@@ -11,23 +10,20 @@ const migrationHandled = useState('location-migration-handled', () => false)
 async function checkLocationMigration() {
   if (!user.value?.isAdmin || migrationHandled.value) return
   try {
-    const stats = await $fetch('/api/system/stats')
+    const status = await $fetch('/api/location/migration-status')
     if (migrationHandled.value) return
-    migrationCount.value = stats.locationMigration.count
-    migrationOpen.value = migrationCount.value > 0
+    migrationCount.value = status.count
+    migrationOpen.value = migrationCount.value > 0 && !status.requestActive
   } catch (error) {
     console.error('Failed to check location migration', error)
   }
 }
 
-let removeNavigationHook: (() => void) | undefined
+// The dashboard layout stays mounted during navigation. Check once per visit;
+// cancelling allows another prompt after leaving and returning to the dashboard.
 onMounted(() => {
   void checkLocationMigration()
-  removeNavigationHook = router.afterEach(() => {
-    void checkLocationMigration()
-  })
 })
-onUnmounted(() => removeNavigationHook?.())
 
 async function confirmLocationMigration() {
   migrationLoading.value = true

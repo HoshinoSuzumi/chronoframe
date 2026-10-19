@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import { hasValidCoordinates } from '~~/shared/utils/location'
 import { motion } from 'motion-v'
 import type { NeededExif } from '../../../shared/types/photo'
 import type { KVData } from './KVRenderer.vue'
@@ -101,23 +102,24 @@ const formatGPSCoordinatesMultiLine = (
 const gpsCoordinates = computed(() => {
   // 优先使用数据库中存储的坐标
   if (
-    props.currentPhoto.latitude != null &&
-    props.currentPhoto.longitude != null
+    hasValidCoordinates(
+      props.currentPhoto.latitude,
+      props.currentPhoto.longitude,
+    )
   ) {
     return {
-      latitude: props.currentPhoto.latitude,
-      longitude: props.currentPhoto.longitude,
+      latitude: props.currentPhoto.latitude!,
+      longitude: props.currentPhoto.longitude!,
     }
   }
 
   // 如果数据库中没有，尝试从EXIF数据中获取
   if (!props.exifData) return null
   const { GPSLatitude, GPSLongitude } = props.exifData
-  if (GPSLatitude && GPSLongitude) {
-    return {
-      latitude: parseFloat(`${GPSLatitude}`),
-      longitude: parseFloat(`${GPSLongitude}`),
-    }
+  if (GPSLatitude != null && GPSLongitude != null) {
+    const latitude = parseFloat(`${GPSLatitude}`)
+    const longitude = parseFloat(`${GPSLongitude}`)
+    if (hasValidCoordinates(latitude, longitude)) return { latitude, longitude }
   }
   return null
 })
@@ -230,13 +232,15 @@ const formatedExifData = computed<Record<string, KVData[]>>(() => {
               ]
             : []
         }),
-        props.currentPhoto.latitude != null &&
-        props.currentPhoto.longitude != null
+        hasValidCoordinates(
+          props.currentPhoto.latitude,
+          props.currentPhoto.longitude,
+        )
           ? {
               label: $t('exif.gps.title'),
               value: formatGPSCoordinatesMultiLine(
-                props.currentPhoto.latitude,
-                props.currentPhoto.longitude,
+                props.currentPhoto.latitude!,
+                props.currentPhoto.longitude!,
               ),
               icon: 'tabler:gps',
             }

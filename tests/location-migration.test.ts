@@ -37,12 +37,13 @@ test('migration selects only old geocoded photos and deduplicates queue entries'
     'legacy',
     '/legacy.jpg',
     0,
-    0,
+    121,
     'Country',
     'Old district',
     null,
     null,
   )
+  insert.run('null-island', '/null.jpg', 0, 0, 'Country', 'Old', null, null)
   insert.run('gps-only', '/gps.jpg', 1, 1, null, null, null, null)
   insert.run('erased', '/erased.jpg', null, null, null, null, null, null)
   insert.run('invalid', '/invalid.jpg', 91, 0, null, 'Old', null, null)
@@ -62,7 +63,10 @@ test('migration selects only old geocoded photos and deduplicates queue entries'
     .prepare('INSERT INTO pipeline_queue (payload) VALUES (?)')
     .run(JSON.stringify({ type: 'photo-erase-location', photoId: 'busy' }))
   try {
-    assert.deepEqual(getLocationMigrationStatus(db), { count: 2 })
+    assert.deepEqual(getLocationMigrationStatus(db), {
+      count: 2,
+      requestActive: false,
+    })
     assert.deepEqual(enqueueLocationMigration(db), {
       count: 2,
       queued: 1,
@@ -74,8 +78,15 @@ test('migration selects only old geocoded photos and deduplicates queue entries'
       alreadyQueued: 2,
     })
     const task = sqlite
-      .prepare('SELECT payload FROM pipeline_queue ORDER BY id DESC LIMIT 1')
-      .get() as { payload: string }
+      .prepare(
+        'SELECT payload, priority FROM pipeline_queue ORDER BY id DESC LIMIT 1',
+      )
+      .get() as { payload: string; priority: number }
+    assert.equal(task.priority, -1)
+    assert.deepEqual(getLocationMigrationStatus(db), {
+      count: 2,
+      requestActive: true,
+    })
     assert.deepEqual(JSON.parse(task.payload), {
       type: 'photo-reverse-geocoding',
       photoId: 'legacy',
@@ -83,14 +94,20 @@ test('migration selects only old geocoded photos and deduplicates queue entries'
     })
     // Failed tasks can be retried on the next confirmed visit; checking alone never queues.
     sqlite.exec("UPDATE pipeline_queue SET status = 'failed' WHERE id = 2")
-    assert.deepEqual(getLocationMigrationStatus(db), { count: 2 })
+    assert.deepEqual(getLocationMigrationStatus(db), {
+      count: 2,
+      requestActive: false,
+    })
     assert.deepEqual(enqueueLocationMigration(db), {
       count: 2,
       queued: 1,
       alreadyQueued: 1,
     })
     sqlite.exec("UPDATE photos SET geocoding = '{}' WHERE id = 'legacy'")
-    assert.deepEqual(getLocationMigrationStatus(db), { count: 1 })
+    assert.deepEqual(getLocationMigrationStatus(db), {
+      count: 1,
+      requestActive: true,
+    })
     const requestId = enqueueLocationMigrationRequest(db)
     assert.equal(enqueueLocationMigrationRequest(db), requestId)
     sqlite
