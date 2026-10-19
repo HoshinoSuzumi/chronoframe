@@ -1,6 +1,6 @@
 import { eq } from 'drizzle-orm'
 import { z } from 'zod'
-import { ALBUM_PASSWORD_MAX_LENGTH } from '~~/shared/utils/album-password'
+import { ALBUM_PASSWORD_MAX_LENGTH } from '~~/shared/utils/album'
 import {
   grantAlbumAccess,
   verifyAlbumPassword,

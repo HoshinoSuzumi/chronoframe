@@ -1,8 +1,9 @@
 import { z } from 'zod'
 import { and } from 'drizzle-orm'
+import { requireAdminSession } from '../../../../utils/require-admin.ts'
 
 export default eventHandler(async (event) => {
-  await requireUserSession(event)
+  await requireAdminSession(event)
 
   const { albumId } = await getValidatedRouterParams(
     event,

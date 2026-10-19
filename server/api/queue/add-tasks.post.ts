@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import {
   createPhotoTaskAlbumChecker,
+  queuePayloadRequiresAdmin,
   queuePayloadSchema,
 } from '../../utils/queue-payload.ts'
 
@@ -28,7 +29,7 @@ export default defineEventHandler(async (event) => {
       )
 
     if (
-      tasks.some((task) => task.payload.type === 'location-migration') &&
+      tasks.some((task) => queuePayloadRequiresAdmin(task.payload)) &&
       !session.user.isAdmin
     )
       throw createError({

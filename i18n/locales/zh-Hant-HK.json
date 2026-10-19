@@ -209,7 +209,8 @@
       "dateRange": "日期範圍",
       "created": "建立"
     },
-    "createdTooltip": "建立於：{date}"
+    "createdTooltip": "建立於：{date}",
+    "uploadToThisAlbum": "上傳至此相簿"
   },
   "minimap": {
     "loading": "載入小地圖..."
@@ -417,7 +418,8 @@
     "iso": "ISO"
   },
   "plural": {
-    "photo": "沒有相片 | 一張相片 | {count} 張相片"
+    "photo": "沒有相片 | 一張相片 | {count} 張相片",
+    "selectedPhoto": "{count} 張選取的相片"
   },
   "title": {
     "dashboard": "控制台",
@@ -596,7 +598,8 @@
         "batchReprocess": "批量重新處理",
         "batchEraseLocation": "抹除位置資訊",
         "batchDownload": "批量下載",
-        "batchDelete": "批量刪除"
+        "batchDelete": "批量刪除",
+        "addToAlbum": "加入相簿"
       },
       "slideover": {
         "title": "上傳相片",
@@ -608,8 +611,11 @@
           "empty": "暫無可用相簿。",
           "hidden": "已隱藏",
           "passwordProtected": "密碼保護",
-          "loadFailed": "無法載入相簿。你可以重試，或不選相簿直接上傳。",
-          "retry": "重試"
+          "loadFailed": "無法載入相簿，請重試。",
+          "loadFailedUpload": "無法載入相簿，請重試，或選擇「不選擇相簿」後直接上傳。",
+          "retry": "重試",
+          "unavailable": "所選相簿無法使用，請選擇其他相簿後再上傳。",
+          "requestedUnavailable": "此相簿已不存在，請選擇其他相簿後再上傳。"
         },
         "options": {
           "eraseLocation": {
@@ -811,7 +817,21 @@
           "goToQueue": "佇列"
         }
       },
-      "previewTitle": "相片預覽"
+      "previewTitle": "相片預覽",
+      "addToAlbum": {
+        "title": "將相片加入相簿",
+        "description": "將{photos}加入現有相簿。",
+        "albumLabel": "相簿",
+        "cancel": "取消",
+        "confirm": "加入相片",
+        "success": "相簿已更新",
+        "noChanges": "沒有變更",
+        "result": "已加入 {added} 張 · {alreadyPresent} 張已在相簿中",
+        "missing": "{count} 張無法使用",
+        "allAlreadyPresent": "所選相片均已在相簿中。",
+        "error": "無法將相片加入相簿",
+        "partialError": "請求在 {processed} 後失敗。可以安全重試，重複相片會被略過。"
+      }
     },
     "albums": {
       "title": "相簿管理",
@@ -905,7 +925,8 @@
       "photoCount": "{count} 張",
       "actions": {
         "moveUp": "上移",
-        "moveDown": "下移"
+        "moveDown": "下移",
+        "uploadToAlbum": "上傳至\"{title}\""
       }
     },
     "overview": {
@@ -1689,7 +1710,10 @@
       "skip": {
         "title": "已跳過重複檔案",
         "message": "相片「{fileName}」已存在，已自動跳過上傳",
-        "info": "現有相片拍攝於 {dateTaken}"
+        "info": "現有相片拍攝於 {dateTaken}",
+        "addedToAlbum": "已將現有相片加入所選相簿，重複檔案沒有重新上傳。",
+        "alreadyInAlbum": "現有相片已在所選相簿中，重複檔案沒有重新上傳。",
+        "albumAddFailed": "重複檔案沒有上傳，現有相片亦未能加入所選相簿。請在相片圖庫使用「加入相簿」。"
       },
       "warn": {
         "title": "偵測到重複檔案",

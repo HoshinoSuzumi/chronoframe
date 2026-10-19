@@ -157,6 +157,27 @@ test('existing queue APIs accept migration tasks only for administrators', async
       batch({ admin: false, body: { tasks: [{ payload }] } } as never),
       { statusCode: 403 },
     )
+    const albumPayload = {
+      type: 'photo',
+      storageKey: 'image.jpg',
+      albumId: 7,
+    }
+    await assert.rejects(
+      single({ admin: false, body: { payload: albumPayload } } as never),
+      { statusCode: 403 },
+    )
+    await assert.rejects(
+      batch({
+        admin: false,
+        body: {
+          tasks: [
+            { payload: { type: 'photo', storageKey: 'plain.jpg' } },
+            { payload: albumPayload },
+          ],
+        },
+      } as never),
+      { statusCode: 403 },
+    )
     assert.equal(submitted.length, 0)
     assert.equal(
       (await single({ admin: true, body: { payload } } as never)).taskId,

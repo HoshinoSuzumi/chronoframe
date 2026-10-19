@@ -4,7 +4,8 @@
     "description": "アルバムのパスワードでは、S3、OpenList、CDN の公開写真 URL を保護できません。直接リンクを持つ人は、パスワードなしでファイルにアクセスできます。保護するアルバムにはローカルストレージを使用してください。パスワードやデフォルトのストレージを変更しても、既存のリンクやキャッシュは無効になりません。すでに公開した写真は、ストレージ/CDN 側で公開アクセスを無効にし、キャッシュを削除してオブジェクト URL を変更する必要があります。"
   },
   "plural": {
-    "photo": "写真がありません | 写真 {count} 枚"
+    "photo": "写真がありません | 写真 {count} 枚",
+    "selectedPhoto": "選択した写真 {count} 枚"
   },
   "ui": {
     "locale": {
@@ -195,7 +196,8 @@
       "dateRange": "日付範囲",
       "created": "作成"
     },
-    "createdTooltip": "作成日：{date}"
+    "createdTooltip": "作成日：{date}",
+    "uploadToThisAlbum": "このアルバムにアップロード"
   },
   "map": {
     "setupNotice": {
@@ -596,7 +598,8 @@
         "batchReprocess": "一括再処理",
         "batchEraseLocation": "位置情報を抹消",
         "batchDownload": "一括ダウンロード",
-        "batchDelete": "一括削除"
+        "batchDelete": "一括削除",
+        "addToAlbum": "アルバムに追加"
       },
       "slideover": {
         "title": "写真をアップロード",
@@ -608,8 +611,11 @@
           "empty": "利用できるアルバムがまだありません。",
           "hidden": "非表示",
           "passwordProtected": "パスワード保護",
-          "loadFailed": "アルバムを読み込めませんでした。再試行するか、アルバムなしでアップロードできます。",
-          "retry": "再試行"
+          "loadFailed": "アルバムを読み込めませんでした。再試行してください。",
+          "loadFailedUpload": "アルバムを読み込めませんでした。再試行するか、アルバムなしでアップロードしてください。",
+          "retry": "再試行",
+          "unavailable": "選択したアルバムを利用できません。別のアルバムを選択してください。",
+          "requestedUnavailable": "このアルバムは存在しません。別のアルバムを選択してください。"
         },
         "options": {
           "eraseLocation": {
@@ -811,7 +817,21 @@
           "goToQueue": "キュー"
         }
       },
-      "previewTitle": "写真プレビュー"
+      "previewTitle": "写真プレビュー",
+      "addToAlbum": {
+        "title": "写真をアルバムに追加",
+        "description": "{photos}を既存のアルバムに追加します。",
+        "albumLabel": "アルバム",
+        "cancel": "キャンセル",
+        "confirm": "写真を追加",
+        "success": "アルバムを更新しました",
+        "noChanges": "変更はありません",
+        "result": "{added} 枚追加 · {alreadyPresent} 枚は追加済み",
+        "missing": "{count} 枚は利用できません",
+        "allAlreadyPresent": "選択した写真はすべてこのアルバムに追加されています。",
+        "error": "写真をアルバムに追加できませんでした",
+        "partialError": "{processed} を処理した後にリクエストが失敗しました。再試行しても重複は追加されません。"
+      }
     },
     "albums": {
       "title": "アルバム管理",
@@ -905,7 +925,8 @@
       "photoCount": "{count} 枚",
       "actions": {
         "moveUp": "上へ移動",
-        "moveDown": "下へ移動"
+        "moveDown": "下へ移動",
+        "uploadToAlbum": "\"{title}\" にアップロード"
       }
     },
     "overview": {
@@ -1698,7 +1719,10 @@
       "skip": {
         "title": "重複ファイルをスキップしました",
         "message": "写真「{fileName}」は既に存在するため、自動的にスキップされました",
-        "info": "既存の写真の撮影日：{dateTaken}"
+        "info": "既存の写真の撮影日：{dateTaken}",
+        "addedToAlbum": "既存の写真を選択したアルバムに追加しました。重複ファイルはアップロードしていません。",
+        "alreadyInAlbum": "既存の写真はすでに選択したアルバムにあります。重複ファイルはアップロードしていません。",
+        "albumAddFailed": "重複ファイルはアップロードされず、既存の写真も選択したアルバムに追加できませんでした。写真ライブラリの「アルバムに追加」を使用してください。"
       },
       "warn": {
         "title": "重複ファイルを検出しました",

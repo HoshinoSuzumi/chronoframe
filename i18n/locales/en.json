@@ -4,7 +4,8 @@
     "description": "Album passwords cannot protect public S3, OpenList or CDN photo URLs: anyone with a direct link can still access the file without the password. Use local storage for protected albums. Changing the password or default storage does not revoke existing links or cached copies. If photos were already public, disable public access at the storage/CDN, clear caches and change object URLs."
   },
   "plural": {
-    "photo": "no photos | one photo | {count} photos"
+    "photo": "no photos | one photo | {count} photos",
+    "selectedPhoto": "no selected photos | one selected photo | {count} selected photos"
   },
   "ui": {
     "locale": {
@@ -195,7 +196,8 @@
       "dateRange": "Date Range",
       "created": "Created"
     },
-    "createdTooltip": "Created: {date}"
+    "createdTooltip": "Created: {date}",
+    "uploadToThisAlbum": "Upload to this album"
   },
   "map": {
     "setupNotice": {
@@ -530,7 +532,10 @@
       "skip": {
         "title": "Duplicate File Skipped",
         "message": "Photo \"{fileName}\" already exists and has been automatically skipped",
-        "info": "Existing photo taken on {dateTaken}"
+        "info": "Existing photo taken on {dateTaken}",
+        "addedToAlbum": "Existing photo added to the selected album. The duplicate file was not uploaded.",
+        "alreadyInAlbum": "Existing photo is already in the selected album. The duplicate file was not uploaded.",
+        "albumAddFailed": "The duplicate file was not uploaded, and the existing photo could not be added to the selected album. Use Add to album in the photo library."
       },
       "warn": {
         "title": "Duplicate File Detected",
@@ -671,7 +676,8 @@
         "batchReprocess": "Reprocess",
         "batchEraseLocation": "Erase location info",
         "batchDownload": "Download",
-        "batchDelete": "Batch Delete"
+        "batchDelete": "Batch Delete",
+        "addToAlbum": "Add to album"
       },
       "slideover": {
         "title": "Upload Photos",
@@ -683,8 +689,11 @@
           "empty": "No albums available yet.",
           "hidden": "Hidden",
           "passwordProtected": "Password protected",
-          "loadFailed": "Could not load albums. You can retry or upload without an album.",
-          "retry": "Retry"
+          "loadFailed": "Could not load albums. Try again.",
+          "loadFailedUpload": "Could not load albums. Retry, or choose no album to upload without one.",
+          "retry": "Retry",
+          "unavailable": "The selected album is unavailable. Choose another album before uploading.",
+          "requestedUnavailable": "This album no longer exists. Choose another album before uploading."
         },
         "options": {
           "eraseLocation": {
@@ -886,7 +895,21 @@
           "goToQueue": "Queue"
         }
       },
-      "previewTitle": "Photo Preview"
+      "previewTitle": "Photo Preview",
+      "addToAlbum": {
+        "title": "Add photos to album",
+        "description": "Add {photos} to an existing album.",
+        "albumLabel": "Album",
+        "cancel": "Cancel",
+        "confirm": "Add photos",
+        "success": "Album updated",
+        "noChanges": "No changes",
+        "result": "{added} added · {alreadyPresent} already in album",
+        "missing": "{count} unavailable",
+        "allAlreadyPresent": "All selected photos are already in this album.",
+        "error": "Could not add photos to the album",
+        "partialError": "The request failed after {processed}. Retry safely; duplicates will be skipped."
+      }
     },
     "albums": {
       "title": "Album Management",
@@ -980,7 +1003,8 @@
       "photoCount": "{count} photos",
       "actions": {
         "moveUp": "Move up",
-        "moveDown": "Move down"
+        "moveDown": "Move down",
+        "uploadToAlbum": "Upload to \"{title}\""
       }
     },
     "overview": {

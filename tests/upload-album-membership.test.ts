@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 import { readFileSync } from 'node:fs'
 import Database from 'better-sqlite3'
+import { eq } from 'drizzle-orm'
 import { drizzle } from 'drizzle-orm/better-sqlite3'
 import { migrate } from 'drizzle-orm/better-sqlite3/migrator'
 import * as schema from '../server/database/schema.ts'
@@ -17,9 +18,10 @@ const setup = () => {
 test('successful photo processing appends once and preserves album order', () => {
   const { sqlite, db } = setup()
   try {
+    const originalUpdatedAt = new Date('2020-01-01T00:00:00Z')
     const album = db
       .insert(schema.albums)
-      .values({ title: 'Trip' })
+      .values({ title: 'Trip', updatedAt: originalUpdatedAt })
       .returning()
       .get()
     db.insert(schema.photos).values({ id: 'existing' }).run()
@@ -28,6 +30,15 @@ test('successful photo processing appends once and preserves album order', () =>
       .run()
     assert.equal(persistPhotoWithAlbum(db, { id: 'first' }, album.id), 'added')
     assert.equal(persistPhotoWithAlbum(db, { id: 'second' }, album.id), 'added')
+
+    assert.ok(
+      db
+        .select()
+        .from(schema.albums)
+        .where(eq(schema.albums.id, album.id))
+        .get()!
+        .updatedAt.getTime() > originalUpdatedAt.getTime(),
+    )
 
     const beforeRetry = db
       .select()
@@ -42,9 +53,24 @@ test('successful photo processing appends once and preserves album order', () =>
     assert.ok(beforeRetry[1]!.position > beforeRetry[0]!.position)
     assert.ok(beforeRetry[2]!.position > beforeRetry[1]!.position)
 
+    const sentinelUpdatedAt = new Date('2020-01-02T00:00:00Z')
+    db.update(schema.albums)
+      .set({ updatedAt: sentinelUpdatedAt })
+      .where(eq(schema.albums.id, album.id))
+      .run()
+
     assert.equal(
       persistPhotoWithAlbum(db, { id: 'first', title: 'Updated' }, album.id),
       'already-added',
+    )
+    assert.equal(
+      db
+        .select()
+        .from(schema.albums)
+        .where(eq(schema.albums.id, album.id))
+        .get()!
+        .updatedAt.getTime(),
+      sentinelUpdatedAt.getTime(),
     )
     const afterRetry = db
       .select()
