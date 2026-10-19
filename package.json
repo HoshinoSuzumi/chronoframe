@@ -94,7 +94,7 @@
     "@iconify-json/svg-spinners": "^1.2.4",
     "@iconify-json/tabler": "^1.2.42",
     "@nuxt/test-utils": "4.3.3",
-    "@types/better-sqlite3": "^7.6.13",
+    "@types/better-sqlite3": "^9.6.0",
     "@types/heic-convert": "^2.1.1",
     "@vueuse/core": "^14.4.0",
     "baseline-browser-mapping": "^2.11.28",
