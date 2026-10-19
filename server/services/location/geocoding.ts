@@ -268,7 +268,7 @@ export function parseGPSCoordinates(exifData: any): {
     }
 
     // 如果上面的方法失败，尝试从GPSCoordinates获取
-    if ((latitude == null || longitude == null) && exifData.GPSCoordinates) {
+    if (!hasValidCoordinates(latitude, longitude) && exifData.GPSCoordinates) {
       const coords = exifData.GPSCoordinates.toString()
       const match = coords.match(/([-+]?\d+\.?\d*)[°,\s]+([-+]?\d+\.?\d*)/)
       if (match) {
