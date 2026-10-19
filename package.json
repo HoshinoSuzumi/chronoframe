@@ -102,7 +102,7 @@
     "dayjs": "^1.11.23",
     "drizzle-kit": "^0.31.11",
     "mapbox-gl": "^3.32.0",
-    "npm-run-all2": "^8.0.4",
+    "npm-run-all2": "^9.0.3",
     "oxfmt": "^0.72.0",
     "oxlint": "^1.87.0",
     "sass-embedded": "^1.105.1",
