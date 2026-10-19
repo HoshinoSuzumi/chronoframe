@@ -1,7 +1,7 @@
 # ChronoFrame
 
 <p align="center">
-  <img src="https://socialify.git.ci/HoshinoSuzumi/chronoframe/image?custom_description=Self-hosted+personal+gallery+application.&description=1&font=KoHo&forks=0&issues=0&logo=https%3A%2F%2Fraw.githubusercontent.com%2FHoshinoSuzumi%2Fchronoframe%2Frefs%2Fheads%2Fmain%2Fpublic%2Ffavicon-96x96.png&name=1&owner=1&pattern=Plus&pulls=0&stargazers=0&theme=Auto" alt="Chronoframe">
+  <img src="./public/chronoframe-banner.png" alt="ChronoFrame">
 </p>
 
 <p align="center">
@@ -114,7 +114,7 @@ pnpm build         # 构建应用
 pnpm docs:build    # 构建文档
 ```
 
-修改数据库 schema 后，使用 `pnpm db:generate` 生成迁移并检查 SQL。仅启动项目时无需生成迁移。更多说明见[贡献指南](https://chronoframe.bh8.ga/zh/development/contributing)。
+修改数据库 schema 后，使用 `pnpm db:generate` 生成迁移并检查 SQL。仅启动项目时无需生成迁移。更多说明见[贡献指南](https://chronoframe.bh8.ga/zh/development/contributing.html)。
 
 ## 🤝 贡献与交流
 

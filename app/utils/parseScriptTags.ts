@@ -1,4 +1,6 @@
 export interface ParsedScriptTag {
+  /** 第三方脚本的自定义配置属性 */
+  [key: `data-${string}`]: string | undefined
   /** 外链脚本 URL */
   src?: string
   /** 内联脚本内容 */
@@ -68,6 +70,10 @@ function applyAttribute(
   out: ParsedScriptTag,
 ): void {
   const lower = name.toLowerCase()
+  if (lower.startsWith('data-') && lower.length > 5) {
+    out[lower as `data-${string}`] = value === true ? '' : value
+    return
+  }
   if (!KNOWN_ATTRS.has(lower)) return
 
   if (BOOLEAN_ATTRS.has(lower)) {
@@ -76,7 +82,11 @@ function applyAttribute(
   }
 
   if (lower === 'crossorigin') {
-    if (value === true || value === 'anonymous' || value === 'use-credentials') {
+    if (
+      value === true ||
+      value === 'anonymous' ||
+      value === 'use-credentials'
+    ) {
       out.crossorigin = value
     }
     return
@@ -93,9 +103,14 @@ function parseAttributes(attrs: string, out: ParsedScriptTag): void {
   let match: RegExpExecArray | null
   while ((match = ATTR_RE.exec(attrs)) !== null) {
     const name = match[1]
-    if (!name) continue    // 类型守卫，同时避免无效匹配
+    if (!name) continue // 类型守卫，同时避免无效匹配
     const value = match[2] ?? match[3] ?? match[4]
-    const attrValue = value === undefined ? 'true' : value  // 统一为 string
+    const attrValue =
+      value === undefined
+        ? name.toLowerCase().startsWith('data-')
+          ? ''
+          : 'true'
+        : value
     applyAttribute(name, attrValue, out)
   }
 }
@@ -107,6 +122,7 @@ function parseAttributes(attrs: string, out: ParsedScriptTag): void {
  *  - 先剥离 HTML 注释
  *  - 同时匹配含内容与自闭合两种 <script> 形式
  *  - 解析 src/async/defer/type/crossorigin/integrity/nomodule/referrerpolicy/nonce
+ *  - 保留 data-* 自定义属性，属性名转为小写，属性值保持字符串
  *  - 跳过既无 src 又无 innerHTML 的空脚本
  *  - 不过滤 type（application/ld+json、module 等原样保留）
  *  - 永不抛错，输入非法或为空时返回 []
