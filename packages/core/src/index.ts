@@ -15,7 +15,10 @@ export interface PhotoMembership {
 
 /** Async boundary allows both embedded SQLite and future asynchronous adapters. */
 export interface ResourceReadRepository {
-  listPhotos(excludedIds?: string[]): Promise<Photo[]>
+  listPhotos(
+    excludedIds?: string[],
+    page?: { limit: number; offset: number },
+  ): Promise<Photo[]>
   listAlbums(): Promise<AlbumReadRecord[]>
   getAlbum(id: number): Promise<AlbumReadRecord | null>
   listAlbumPhotos(id: number): Promise<Photo[]>

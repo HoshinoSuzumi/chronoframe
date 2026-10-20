@@ -51,12 +51,8 @@
           "name": "album_photos_album_id_albums_id_fk",
           "tableFrom": "album_photos",
           "tableTo": "albums",
-          "columnsFrom": [
-            "album_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["album_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -64,12 +60,8 @@
           "name": "album_photos_photo_id_photos_id_fk",
           "tableFrom": "album_photos",
           "tableTo": "photos",
-          "columnsFrom": [
-            "photo_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["photo_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -155,12 +147,8 @@
           "name": "albums_cover_photo_id_photos_id_fk",
           "tableFrom": "albums",
           "tableTo": "photos",
-          "columnsFrom": [
-            "cover_photo_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["cover_photo_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -190,9 +178,7 @@
       "indexes": {
         "idx_photo_access_keys_photo_id": {
           "name": "idx_photo_access_keys_photo_id",
-          "columns": [
-            "photo_id"
-          ],
+          "columns": ["photo_id"],
           "isUnique": false
         }
       },
@@ -201,22 +187,15 @@
           "name": "photo_access_keys_photo_id_photos_id_fk",
           "tableFrom": "photo_access_keys",
           "tableTo": "photos",
-          "columnsFrom": [
-            "photo_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["photo_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {
         "photo_access_keys_access_key_photo_id_pk": {
-          "columns": [
-            "access_key",
-            "photo_id"
-          ],
+          "columns": ["access_key", "photo_id"],
           "name": "photo_access_keys_access_key_photo_id_pk"
         }
       },
@@ -291,12 +270,8 @@
           "name": "photo_reactions_photo_id_photos_id_fk",
           "tableFrom": "photo_reactions",
           "tableTo": "photos",
-          "columnsFrom": [
-            "photo_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["photo_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -481,9 +456,7 @@
       "indexes": {
         "photos_id_unique": {
           "name": "photos_id_unique",
-          "columns": [
-            "id"
-          ],
+          "columns": ["id"],
           "isUnique": true
         }
       },
@@ -583,11 +556,7 @@
       "indexes": {
         "idx_pipeline_queue_pending": {
           "name": "idx_pipeline_queue_pending",
-          "columns": [
-            "\"priority\" DESC",
-            "created_at",
-            "id"
-          ],
+          "columns": ["\"priority\" DESC", "created_at", "id"],
           "isUnique": false,
           "where": "\"pipeline_queue\".\"status\" = 'pending'"
         }
@@ -707,10 +676,7 @@
       "indexes": {
         "idx_namespace_key": {
           "name": "idx_namespace_key",
-          "columns": [
-            "namespace",
-            "key"
-          ],
+          "columns": ["namespace", "key"],
           "isUnique": true
         }
       },
@@ -719,12 +685,8 @@
           "name": "settings_updated_by_users_id_fk",
           "tableFrom": "settings",
           "tableTo": "users",
-          "columnsFrom": [
-            "updated_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["updated_by"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -844,16 +806,12 @@
       "indexes": {
         "users_name_unique": {
           "name": "users_name_unique",
-          "columns": [
-            "name"
-          ],
+          "columns": ["name"],
           "isUnique": true
         },
         "users_email_unique": {
           "name": "users_email_unique",
-          "columns": [
-            "email"
-          ],
+          "columns": ["email"],
           "isUnique": true
         }
       },

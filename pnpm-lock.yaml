@@ -23,6 +23,9 @@ importers:
       '@chronoframe/core':
         specifier: workspace:*
         version: link:packages/core
+      '@chronoframe/database':
+        specifier: workspace:*
+        version: link:packages/database
       '@chronoframe/geocoding':
         specifier: workspace:*
         version: link:packages/geocoding
@@ -257,6 +260,31 @@ importers:
         specifier: workspace:*
         version: link:../contracts
     devDependencies:
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
+
+  packages/database:
+    dependencies:
+      '@chronoframe/contracts':
+        specifier: workspace:*
+        version: link:../contracts
+      '@chronoframe/core':
+        specifier: workspace:*
+        version: link:../core
+      better-sqlite3:
+        specifier: ^12.11.1
+        version: 12.11.1
+      drizzle-orm:
+        specifier: ^0.45.4
+        version: 0.45.4(@cloudflare/workers-types@4.20260402.1)(@opentelemetry/api@1.9.0)(@types/better-sqlite3@9.6.0)(better-sqlite3@12.11.1)
+    devDependencies:
+      '@types/node':
+        specifier: ^22.20.5
+        version: 22.20.5
+      '@types/better-sqlite3':
+        specifier: ^9.6.0
+        version: 9.6.0
       typescript:
         specifier: ^5.9.3
         version: 5.9.3

@@ -1,0 +1,26 @@
+{
+  "name": "@chronoframe/database",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./schema": "./src/schema.ts",
+    "./repositories": "./src/repositories.ts",
+    "./dto": "./src/dto.ts"
+  },
+  "scripts": {
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@chronoframe/contracts": "workspace:*",
+    "@chronoframe/core": "workspace:*",
+    "better-sqlite3": "^12.11.1",
+    "drizzle-orm": "^0.45.4"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^9.6.0",
+    "typescript": "^5.9.3",
+    "@types/node": "^22.20.5"
+  }
+}

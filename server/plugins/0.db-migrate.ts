@@ -1,38 +1,20 @@
-import { mkdirSync } from 'node:fs'
-import { dirname, resolve } from 'node:path'
-
-import Database from 'better-sqlite3'
-import { drizzle } from 'drizzle-orm/better-sqlite3'
+import { resolve } from 'node:path'
 import { migrate } from 'drizzle-orm/better-sqlite3/migrator'
+import { useDB, closeDB } from '../utils/db'
 
-let migrationPromise: Promise<void> | null = null
-const migrationLogger = logger.dynamic('db-migrate')
-
-async function runMigrations() {
-  const dbPath = resolve(process.env.DATABASE_URL || './data/app.sqlite3')
-
-  mkdirSync(dirname(dbPath), { recursive: true })
-
-  const sqlite = new Database(dbPath)
-
+export default defineNitroPlugin((nitroApp) => {
   try {
-    const db = drizzle(sqlite)
-    await migrate(db, {
-      migrationsFolder: resolve('./server/database/migrations'),
+    migrate(useDB(), {
+      migrationsFolder: resolve(
+        process.env.DATABASE_MIGRATIONS || './server/database/migrations',
+      ),
     })
-    migrationLogger.info('Database migration finished successfully')
-  } finally {
-    sqlite.close()
+    logger
+      .dynamic('db-migrate')
+      .info('Database migration finished successfully')
+  } catch (error) {
+    closeDB()
+    throw error
   }
-}
-
-export default defineNitroPlugin(async () => {
-  if (!migrationPromise) {
-    migrationPromise = runMigrations().catch((error) => {
-      migrationLogger.error('Database migration failed', error)
-      throw error
-    })
-  }
-
-  await migrationPromise
+  nitroApp.hooks.hook('close', closeDB)
 })

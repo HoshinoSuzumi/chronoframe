@@ -10,7 +10,8 @@
     "./photo": "./src/photo.ts",
     "./location": "./src/location.ts",
     "./resources": "./src/resources.ts",
-    "./settings": "./src/settings.ts"
+    "./settings": "./src/settings.ts",
+    "./queue": "./src/queue.ts"
   },
   "scripts": {
     "type-check": "tsc --noEmit"

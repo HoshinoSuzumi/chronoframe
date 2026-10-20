@@ -3,7 +3,14 @@ import path from 'node:path'
 import { builtinModules } from 'node:module'
 import ts from 'typescript'
 
-const packageNames = ['contracts', 'core', 'storage', 'media', 'geocoding']
+const packageNames = [
+  'contracts',
+  'core',
+  'database',
+  'storage',
+  'media',
+  'geocoding',
+]
 const builtins = new Set(
   builtinModules.map((name) => name.replace(/^node:/, '')),
 )
