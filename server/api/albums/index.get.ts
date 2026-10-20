@@ -1,3 +1,4 @@
+import { toAlbumDto } from '../../utils/dto'
 import { asc, desc, or, isNotNull, eq } from 'drizzle-orm'
 import { albumAccess } from '../../utils/album-access'
 
@@ -47,9 +48,7 @@ export default eventHandler(async (event) => {
         .orderBy(tables.albumPhotos.position)
 
       return {
-        ...album,
-        passwordHash: undefined,
-        hasPassword: Boolean(album.passwordHash),
+        ...toAlbumDto(album),
         coverPhotoId:
           admin ||
           (accessible && !restrictedPhotoIds.has(album.coverPhotoId || ''))

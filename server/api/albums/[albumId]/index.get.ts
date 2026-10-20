@@ -1,3 +1,4 @@
+import { toAlbumDto, toPhotoDto } from '../../../utils/dto'
 import { eq } from 'drizzle-orm'
 import z from 'zod'
 
@@ -57,8 +58,9 @@ export default eventHandler(async (event) => {
     isLoggedIn,
     isLoggedIn || Boolean(album.passwordHash),
   )
+  const photoDtos = rows.map(toPhotoDto)
   const photos = album.passwordHash
-    ? rows.map((photo) => {
+    ? photoDtos.map((photo) => {
         const fileName = photo.storageKey?.split(/[\\/]/).pop() || null
         const {
           storageKey: _storageKey,
@@ -76,12 +78,10 @@ export default eventHandler(async (event) => {
             : null,
         }
       })
-    : rows
+    : photoDtos
 
   return {
-    ...album,
-    passwordHash: undefined,
-    hasPassword: Boolean(album.passwordHash),
+    ...toAlbumDto(album),
     photos,
   }
 })

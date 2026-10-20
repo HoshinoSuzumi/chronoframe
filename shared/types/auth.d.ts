@@ -1,7 +1,5 @@
-import type { User as DBUser } from '../../server/utils/db'
-
+import type { UserSummary } from '@chronoframe/contracts/resources'
 declare module '#auth-utils' {
-  interface User extends DBUser {}
+  interface User extends UserSummary {}
 }
-
 export {}

@@ -1,3 +1,4 @@
+import type {} from '../../../types/worker'
 export default defineEventHandler(async (event) => {
   await requireUserSession(event)
 

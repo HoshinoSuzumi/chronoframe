@@ -1,3 +1,4 @@
+import { toAlbumDto } from '../../utils/dto'
 import { min } from 'drizzle-orm'
 import z from 'zod'
 import {
@@ -74,11 +75,7 @@ export default eventHandler(async (event) => {
       }
     }
 
-    return {
-      ...newAlbum,
-      passwordHash: undefined,
-      hasPassword: Boolean(newAlbum.passwordHash),
-    }
+    return toAlbumDto(newAlbum)
   })
 
   return album

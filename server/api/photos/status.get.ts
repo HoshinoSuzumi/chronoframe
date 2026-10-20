@@ -1,3 +1,4 @@
+import { toPhotoDto } from '../../utils/dto'
 import { photos } from '~~/server/database/schema'
 
 export default eventHandler(async (event) => {
@@ -15,7 +16,7 @@ export default eventHandler(async (event) => {
       .all()
 
     return {
-      recentPhotos,
+      recentPhotos: recentPhotos.map(toPhotoDto),
       timestamp: new Date().toISOString(),
     }
   } else {

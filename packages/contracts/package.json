@@ -1,0 +1,24 @@
+{
+  "name": "@chronoframe/contracts",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./storage": "./src/storage.ts",
+    "./upload": "./src/upload.ts",
+    "./photo": "./src/photo.ts",
+    "./location": "./src/location.ts",
+    "./resources": "./src/resources.ts",
+    "./settings": "./src/settings.ts"
+  },
+  "scripts": {
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "zod": "^4.6.6"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3"
+  }
+}

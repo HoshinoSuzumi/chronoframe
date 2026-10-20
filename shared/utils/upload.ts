@@ -1,1 +1,1 @@
-export const UPLOAD_CHUNK_SIZE = 8 * 1024 * 1024
+export { UPLOAD_CHUNK_SIZE } from '@chronoframe/contracts/upload'
