@@ -247,9 +247,19 @@ export function createGeocodingServices({
         // Bound metadata input and validate whole tokens without overlapping
         // numeric quantifiers that can cause polynomial regex backtracking.
         if (coords.length <= 256) {
-          const [lat, lon] = coords.trim().split(/[°,\s]+/)
+          const tokens = coords
+            .trim()
+            .split(/[°,\s]+/)
+            .filter(Boolean)
+          const [lat, lon] = tokens
           const decimal = /^[-+]?\d+(?:\.\d*)?$/
-          if (lat && lon && decimal.test(lat) && decimal.test(lon)) {
+          if (
+            tokens.length === 2 &&
+            lat &&
+            lon &&
+            decimal.test(lat) &&
+            decimal.test(lon)
+          ) {
             latitude = Number(lat)
             longitude = Number(lon)
           }

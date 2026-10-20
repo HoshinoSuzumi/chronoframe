@@ -78,6 +78,9 @@ test('GPS text parsing accepts decimal pairs and rejects hostile metadata', () =
     '9'.repeat(100_000),
     '9'.repeat(100_000) + ', 2',
     '1.2.3, 4',
+    '48.85, 2.35 W',
+    '48.85, 2.35, 100',
+    '48.85, 2.35 garbage',
     '999, 2',
   ]) {
     assert.deepEqual(parseGPSCoordinates({ GPSCoordinates: text }), {})
