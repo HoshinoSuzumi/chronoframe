@@ -121,6 +121,7 @@ const validateMp4Buffer = (buffer: Buffer): boolean => {
   return searchWindow.indexOf(MP4_FTYP) !== -1
 }
 
+/** Extract a validated MP4 companion from Motion Photo metadata and persist it through the supplied storage provider. */
 export const processMotionPhotoFromXmp = async ({
   photoId,
   storageKey,

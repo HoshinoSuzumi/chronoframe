@@ -1,4 +1,5 @@
 import path from 'node:path'
+/** Identify potential Live Photo companions by MOV extension and the 12 MiB size limit. */
 export const isLivePhotoVideo = (
   fileName: string,
   fileSize: number,

@@ -3,6 +3,7 @@ import sharp from 'sharp'
 import { generateBlurHash } from './blurhash.ts'
 import { withRetry, RetryPresets } from './retry.ts'
 
+/** Create an orientation-corrected WebP thumbnail and its ThumbHash with retries. */
 export const generateThumbnailAndHash = async (
   buffer: Buffer,
   logger?: MediaLogger,
