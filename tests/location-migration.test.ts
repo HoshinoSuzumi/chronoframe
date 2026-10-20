@@ -29,9 +29,12 @@ test('migration selects only old geocoded photos and deduplicates queue entries'
       'utf8',
     ),
   )
+  sqlite.exec(
+    'ALTER TABLE photos ADD COLUMN site_id INTEGER NOT NULL DEFAULT 1; ALTER TABLE pipeline_queue ADD COLUMN site_id INTEGER NOT NULL DEFAULT 1; ALTER TABLE pipeline_queue ADD COLUMN storage_connection_id INTEGER; ALTER TABLE pipeline_queue ADD COLUMN storage_revision INTEGER NOT NULL DEFAULT 1; ALTER TABLE pipeline_queue ADD COLUMN source_version INTEGER NOT NULL DEFAULT 1;',
+  )
   const db = drizzle(sqlite) as Parameters<typeof enqueueLocationMigration>[0]
   const insert = sqlite.prepare(
-    'INSERT INTO photos VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+    'INSERT INTO photos(id,storage_key,latitude,longitude,country,city,location_name,geocoding) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
   )
   insert.run(
     'legacy',

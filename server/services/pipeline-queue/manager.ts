@@ -1,3 +1,6 @@
+import { storageForReference } from '../../utils/object-storage'
+import { and as siteAnd, eq as siteEq } from 'drizzle-orm'
+import { DEFAULT_SITE } from '@chronoframe/core'
 import {
   enqueueLocationMigration,
   enqueueLocationMigrationRequest,
@@ -134,11 +137,30 @@ export class QueueManager {
     const db = useDB()
     if (payload.type === 'location-migration')
       return enqueueLocationMigrationRequest(db, options)
+    const active = await settingsManager.storage.getActiveProvider()
+    const photoId = 'photoId' in payload ? payload.photoId : undefined
+    const photo = photoId
+      ? db
+          .select()
+          .from(tables.photos)
+          .where(
+            and(
+              eq(tables.photos.id, photoId),
+              eq(tables.photos.siteId, DEFAULT_SITE.id),
+            ),
+          )
+          .get()
+      : undefined
+    if (photoId && !photo) throw new PermanentTaskError('Photo not found')
     const result = db
       .insert(tables.pipelineQueue)
       .values({
         payload,
         ...options,
+        siteId: DEFAULT_SITE.id,
+        storageConnectionId: photo?.storageConnectionId ?? active?.id ?? null,
+        storageRevision: photo?.storageRevision ?? active?.revision ?? 1,
+        sourceVersion: photo?.sourceVersion ?? 1,
       })
       .returning({ id: tables.pipelineQueue.id })
       .get()
@@ -155,7 +177,12 @@ export class QueueManager {
     const task = await db
       .select()
       .from(tables.pipelineQueue)
-      .where(eq(tables.pipelineQueue.id, taskId))
+      .where(
+        siteAnd(
+          eq(tables.pipelineQueue.id, taskId),
+          siteEq(tables.pipelineQueue.siteId, DEFAULT_SITE.id),
+        ),
+      )
       .get()
     return task
   }
@@ -173,9 +200,12 @@ export class QueueManager {
         .select()
         .from(tables.pipelineQueue)
         .where(
-          and(
-            eq(tables.pipelineQueue.status, 'pending'),
-            lte(tables.pipelineQueue.availableAt, new Date()),
+          siteAnd(
+            and(
+              eq(tables.pipelineQueue.status, 'pending'),
+              lte(tables.pipelineQueue.availableAt, new Date()),
+            ),
+            siteEq(tables.pipelineQueue.siteId, DEFAULT_SITE.id),
           ),
         )
         // 优先处理高优先级和较早创建的任务
@@ -192,7 +222,12 @@ export class QueueManager {
       const task = highestPriorityPendingTask
       tx.update(tables.pipelineQueue)
         .set({ status: 'in-stages' })
-        .where(eq(tables.pipelineQueue.id, task.id))
+        .where(
+          siteAnd(
+            eq(tables.pipelineQueue.id, task.id),
+            siteEq(tables.pipelineQueue.siteId, DEFAULT_SITE.id),
+          ),
+        )
         .run()
 
       return { ...task, status: 'in-stages' as const }
@@ -214,7 +249,12 @@ export class QueueManager {
     await db
       .update(tables.pipelineQueue)
       .set({ statusStage: stage })
-      .where(eq(tables.pipelineQueue.id, taskId))
+      .where(
+        siteAnd(
+          eq(tables.pipelineQueue.id, taskId),
+          siteEq(tables.pipelineQueue.siteId, DEFAULT_SITE.id),
+        ),
+      )
   }
 
   /**
@@ -233,7 +273,12 @@ export class QueueManager {
         completedAt: sql`(unixepoch())`,
         warningCode,
       })
-      .where(eq(tables.pipelineQueue.id, taskId))
+      .where(
+        siteAnd(
+          eq(tables.pipelineQueue.id, taskId),
+          siteEq(tables.pipelineQueue.siteId, DEFAULT_SITE.id),
+        ),
+      )
   }
 
   /**
@@ -250,7 +295,12 @@ export class QueueManager {
     const task = await db
       .select()
       .from(tables.pipelineQueue)
-      .where(eq(tables.pipelineQueue.id, taskId))
+      .where(
+        siteAnd(
+          eq(tables.pipelineQueue.id, taskId),
+          siteEq(tables.pipelineQueue.siteId, DEFAULT_SITE.id),
+        ),
+      )
       .get()
 
     if (!task) return
@@ -280,7 +330,12 @@ export class QueueManager {
             }
           : {}),
       })
-      .where(eq(tables.pipelineQueue.id, taskId))
+      .where(
+        siteAnd(
+          eq(tables.pipelineQueue.id, taskId),
+          siteEq(tables.pipelineQueue.siteId, DEFAULT_SITE.id),
+        ),
+      )
 
     if (shouldRetry) {
       this.logger.warn(
@@ -304,7 +359,10 @@ export class QueueManager {
           )
         }
         const { storageKey } = payload
-        const storageProvider = getStorageManager().getProvider()
+        const storageProvider = await storageForReference(
+          task,
+          getStorageManager().getProvider(),
+        )
         const photoId = generateSafePhotoId(storageKey)
 
         try {
@@ -329,7 +387,10 @@ export class QueueManager {
           // STEP 1: 预处理 - 转换 HEIC 到 JPEG 并上传
           await this.updateTaskStage(taskId, 'preprocessing')
           this.logger.info(`[${taskId}:in-stage] preprocessing`)
-          const imageBuffers = await preprocessImageWithJpegUpload(storageKey)
+          const imageBuffers = await preprocessImageWithJpegUpload(
+            storageKey,
+            storageProvider,
+          )
           if (!imageBuffers) {
             throw new Error('Preprocessing failed')
           }
@@ -434,7 +495,10 @@ export class QueueManager {
           this.logger.info(`[${taskId}:in-stage] live photo detection`)
           let livePhotoInfo = null
           if (!motionPhotoInfo?.isMotionPhoto) {
-            const livePhotoVideo = await findLivePhotoVideoForImage(storageKey)
+            const livePhotoVideo = await findLivePhotoVideoForImage(
+              storageKey,
+              storageProvider,
+            )
             if (livePhotoVideo) {
               livePhotoInfo = {
                 isLivePhoto: 1,
@@ -456,7 +520,11 @@ export class QueueManager {
           }
 
           // 构建最终的 Photo 对象
-          const result: Photo = {
+          const result: typeof tables.photos.$inferInsert = {
+            siteId: task.siteId,
+            storageConnectionId: task.storageConnectionId,
+            storageRevision: task.storageRevision,
+            sourceVersion: task.sourceVersion,
             id: photoId,
             title: photoInfo.title,
             description: photoInfo.description,
@@ -562,7 +630,12 @@ export class QueueManager {
           const photo = await db
             .select()
             .from(tables.photos)
-            .where(eq(tables.photos.id, photoId))
+            .where(
+              siteAnd(
+                eq(tables.photos.id, photoId),
+                siteEq(tables.photos.siteId, DEFAULT_SITE.id),
+              ),
+            )
             .get()
 
           if (!photo) {
@@ -624,7 +697,12 @@ export class QueueManager {
                 locationName: null,
                 geocoding: null,
               })
-              .where(eq(tables.photos.id, photoId))
+              .where(
+                siteAnd(
+                  eq(tables.photos.id, photoId),
+                  siteEq(tables.photos.siteId, DEFAULT_SITE.id),
+                ),
+              )
             throw new PermanentTaskError(
               `Missing coordinates for photo ${photoId}`,
             )
@@ -672,8 +750,11 @@ export class QueueManager {
       },
       eraseLocation: async (task: PipelineQueueItem) => {
         const db = useDB()
-        const storageProvider = getStorageManager().getProvider()
         const { id: taskId, payload } = task
+        const storageProvider = await storageForReference(
+          task,
+          getStorageManager().getProvider(),
+        )
 
         if (payload.type !== 'photo-erase-location') {
           throw new Error(
@@ -689,7 +770,12 @@ export class QueueManager {
         const photo = await db
           .select()
           .from(tables.photos)
-          .where(eq(tables.photos.id, payload.photoId))
+          .where(
+            siteAnd(
+              eq(tables.photos.id, payload.photoId),
+              siteEq(tables.photos.siteId, DEFAULT_SITE.id),
+            ),
+          )
           .get()
 
         if (!photo) {
@@ -732,15 +818,7 @@ export class QueueManager {
 
           const updatedBuffer = await readFile(tempFile)
 
-          const prefix =
-            storageProvider.config && 'prefix' in storageProvider.config
-              ? storageProvider.config.prefix
-              : ''
-
-          await storageProvider.create(
-            photo.storageKey.replace(prefix || '', ''),
-            updatedBuffer,
-          )
+          await storageProvider.create(photo.storageKey, updatedBuffer)
 
           const exifData = stripLocationFromExif(
             await extractExifData(updatedBuffer),
@@ -759,7 +837,12 @@ export class QueueManager {
               locationName: null,
               geocoding: null,
             })
-            .where(eq(tables.photos.id, payload.photoId))
+            .where(
+              siteAnd(
+                eq(tables.photos.id, payload.photoId),
+                siteEq(tables.photos.siteId, DEFAULT_SITE.id),
+              ),
+            )
 
           this.logger.success(
             `[${taskId}:location-erase] erased location info for photo ${payload.photoId}`,
@@ -770,7 +853,10 @@ export class QueueManager {
       },
       livePhotoDetect: async (task: PipelineQueueItem) => {
         const db = useDB()
-        const storageProvider = getStorageManager().getProvider()
+        const storageProvider = await storageForReference(
+          task,
+          getStorageManager().getProvider(),
+        )
 
         const { id: taskId, payload } = task
         if (payload.type !== 'live-photo-video') {
@@ -818,7 +904,12 @@ export class QueueManager {
             const photos = await db
               .select()
               .from(tables.photos)
-              .where(eq(tables.photos.storageKey, photoKey))
+              .where(
+                siteAnd(
+                  eq(tables.photos.storageKey, photoKey),
+                  siteEq(tables.photos.siteId, DEFAULT_SITE.id),
+                ),
+              )
               .limit(1)
 
             const matched = photos[0]
@@ -848,7 +939,12 @@ export class QueueManager {
               livePhotoVideoUrl,
               livePhotoVideoKey: videoKey,
             })
-            .where(eq(tables.photos.id, matchedPhoto.id))
+            .where(
+              siteAnd(
+                eq(tables.photos.id, matchedPhoto.id),
+                siteEq(tables.photos.siteId, DEFAULT_SITE.id),
+              ),
+            )
 
           this.logger.success(
             `LivePhoto detection task ${taskId} processed successfully, updated photo ${matchedPhoto.id}`,
@@ -983,6 +1079,7 @@ export class QueueManager {
         count: sql<number>`COUNT(*)`,
       })
       .from(tables.pipelineQueue)
+      .where(siteEq(tables.pipelineQueue.siteId, DEFAULT_SITE.id))
       .groupBy(tables.pipelineQueue.status)
 
     return stats.reduce(

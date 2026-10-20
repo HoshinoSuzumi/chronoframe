@@ -1,14 +1,8 @@
-import { resolve } from 'node:path'
-import { migrate } from 'drizzle-orm/better-sqlite3/migrator'
+import type {} from '../types/worker'
 import { useDB, closeDB } from '../utils/db'
-
 export default defineNitroPlugin((nitroApp) => {
   try {
-    migrate(useDB(), {
-      migrationsFolder: resolve(
-        process.env.DATABASE_MIGRATIONS || './server/database/migrations',
-      ),
-    })
+    useDB()
     logger
       .dynamic('db-migrate')
       .info('Database migration finished successfully')
@@ -16,5 +10,8 @@ export default defineNitroPlugin((nitroApp) => {
     closeDB()
     throw error
   }
-  nitroApp.hooks.hook('close', closeDB)
+  nitroApp.hooks.hook('close', async () => {
+    await globalThis.__workerPool?.stop()
+    closeDB()
+  })
 })

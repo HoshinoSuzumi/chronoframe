@@ -1,8 +1,10 @@
 import { mkdirSync } from 'node:fs'
+import { randomUUID } from 'node:crypto'
+import { sql } from 'drizzle-orm'
+import { readMigrationFiles } from 'drizzle-orm/migrator'
 import { dirname } from 'node:path'
 import Database from 'better-sqlite3'
 import { drizzle } from 'drizzle-orm/better-sqlite3'
-import { migrate } from 'drizzle-orm/better-sqlite3/migrator'
 import * as schema from './schema.ts'
 
 export const tables = schema
@@ -42,7 +44,7 @@ export function openDatabase(options: DatabaseOptions) {
     sqlite.pragma('temp_store = MEMORY')
     const db = drizzle(sqlite, { schema })
     if (options.migrationsFolder)
-      migrate(db, { migrationsFolder: options.migrationsFolder })
+      migrateDatabase(db, options.migrationsFolder, options.filename)
     return {
       db,
       /** SQLite backup includes committed WAL data and does not mutate the source. */
@@ -69,4 +71,53 @@ export function persistenceErrorCode(error: unknown) {
   if (code.startsWith('SQLITE_BUSY') || code.startsWith('SQLITE_LOCKED'))
     return 'retryable'
   return 'internal'
+}
+
+/** Back up existing files before an unapplied migration; validate relations before committing. */
+export function migrateDatabase(
+  db: AppDatabase,
+  migrationsFolder: string,
+  filename?: string,
+) {
+  const journal = db.get<{ present: number }>(
+    sql`SELECT 1 AS present FROM sqlite_master WHERE type='table' AND name='__drizzle_migrations'`,
+  )
+  const applied = journal
+    ? (db.get<{ timestamp: number }>(
+        sql`SELECT max(created_at) AS timestamp FROM __drizzle_migrations`,
+      )?.timestamp ?? 0)
+    : 0
+  const pending = readMigrationFiles({ migrationsFolder }).some(
+    (m) => m.folderMillis > applied,
+  )
+  const existing = db.get<{ present: number }>(
+    sql`SELECT 1 AS present FROM sqlite_master WHERE type='table' AND name='photos'`,
+  )
+  if (pending && existing && filename && filename !== ':memory:') {
+    const backup = `${filename}.pre-migration-${Date.now()}-${randomUUID()}.sqlite3`
+    db.run(sql`VACUUM INTO ${backup}`)
+  }
+  if (!pending) return
+  db.run(sql`PRAGMA foreign_keys = OFF`)
+  try {
+    db.transaction(() => {
+      db.run(
+        sql`CREATE TABLE IF NOT EXISTS __drizzle_migrations (id SERIAL PRIMARY KEY, hash TEXT NOT NULL, created_at NUMERIC)`,
+      )
+      for (const migration of readMigrationFiles({ migrationsFolder })) {
+        if (migration.folderMillis <= applied) continue
+        for (const statement of migration.sql)
+          if (statement.trim()) db.run(sql.raw(statement))
+        db.run(
+          sql`INSERT INTO __drizzle_migrations(hash,created_at) VALUES (${migration.hash},${migration.folderMillis})`,
+        )
+      }
+      if (db.all(sql`PRAGMA foreign_key_check`).length)
+        throw new Error(
+          'Migration violates database relations; restore the pre-migration backup',
+        )
+    })
+  } finally {
+    db.run(sql`PRAGMA foreign_keys = ON`)
+  }
 }

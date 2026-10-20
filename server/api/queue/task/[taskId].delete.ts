@@ -1,3 +1,5 @@
+import { and as siteAnd, eq as siteEq } from 'drizzle-orm'
+import { DEFAULT_SITE } from '@chronoframe/core'
 import { and, eq, inArray } from 'drizzle-orm'
 
 /** 删除指定的已完成或失败任务。 */
@@ -17,9 +19,12 @@ export default defineEventHandler(async (event) => {
   const deletedTask = db
     .delete(tables.pipelineQueue)
     .where(
-      and(
-        eq(tables.pipelineQueue.id, taskId),
-        inArray(tables.pipelineQueue.status, ['completed', 'failed']),
+      siteAnd(
+        and(
+          eq(tables.pipelineQueue.id, taskId),
+          inArray(tables.pipelineQueue.status, ['completed', 'failed']),
+        ),
+        siteEq(tables.pipelineQueue.siteId, DEFAULT_SITE.id),
       ),
     )
     .returning({ id: tables.pipelineQueue.id })
@@ -29,7 +34,12 @@ export default defineEventHandler(async (event) => {
     const task = db
       .select({ id: tables.pipelineQueue.id })
       .from(tables.pipelineQueue)
-      .where(eq(tables.pipelineQueue.id, taskId))
+      .where(
+        siteAnd(
+          eq(tables.pipelineQueue.id, taskId),
+          siteEq(tables.pipelineQueue.siteId, DEFAULT_SITE.id),
+        ),
+      )
       .get()
 
     throw createError({

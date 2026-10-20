@@ -1,10 +1,17 @@
+import { requireSite } from './site-repository.ts'
+import { type SiteContext } from '@chronoframe/core'
+import { and as siteAnd, eq as siteEq } from 'drizzle-orm'
 import { eq } from 'drizzle-orm'
 import type { DuplicatePhoto } from '@chronoframe/core'
 import type { Photo } from '@chronoframe/contracts/resources'
 import { tables, type AppDatabase } from './connection.ts'
 
 /** Project only fields used by authenticated duplicate checks. */
-export function createSqliteUploadRepository(db: AppDatabase) {
+export function createSqliteUploadRepository(
+  db: AppDatabase,
+  site: SiteContext,
+) {
+  requireSite(db, site)
   const summary = {
     id: tables.photos.id,
     title: tables.photos.title,
@@ -19,7 +26,12 @@ export function createSqliteUploadRepository(db: AppDatabase) {
         db
           .select(summary)
           .from(tables.photos)
-          .where(eq(tables.photos.id, id))
+          .where(
+            siteAnd(
+              eq(tables.photos.id, id),
+              siteEq(tables.photos.siteId, site.id),
+            ),
+          )
           .get() || null
       )
     },
@@ -37,7 +49,12 @@ export function createSqliteUploadRepository(db: AppDatabase) {
             height: tables.photos.height,
           })
           .from(tables.photos)
-          .where(eq(tables.photos.id, id))
+          .where(
+            siteAnd(
+              eq(tables.photos.id, id),
+              siteEq(tables.photos.siteId, site.id),
+            ),
+          )
           .get() || null
       )
     },

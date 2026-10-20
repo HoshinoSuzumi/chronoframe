@@ -127,6 +127,13 @@
       "when": 1792307735436,
       "tag": "0017_location_components",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "6",
+      "when": 1792307736436,
+      "tag": "0018_site_ownership",
+      "breakpoints": true
     }
   ]
 }

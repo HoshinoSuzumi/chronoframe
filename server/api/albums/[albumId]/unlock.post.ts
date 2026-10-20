@@ -1,3 +1,5 @@
+import { and as siteAnd, eq as siteEq } from 'drizzle-orm'
+import { DEFAULT_SITE } from '@chronoframe/core'
 import { eq } from 'drizzle-orm'
 import { z } from 'zod'
 import { ALBUM_PASSWORD_MAX_LENGTH } from '~~/shared/utils/album'
@@ -28,7 +30,12 @@ export default eventHandler(async (event) => {
   const album = useDB()
     .select()
     .from(tables.albums)
-    .where(eq(tables.albums.id, albumId))
+    .where(
+      siteAnd(
+        eq(tables.albums.id, albumId),
+        siteEq(tables.albums.siteId, DEFAULT_SITE.id),
+      ),
+    )
     .get()
   if (!album || album.isHidden || !album.passwordHash) {
     throw createError({ statusCode: 404, statusMessage: 'Album not found' })

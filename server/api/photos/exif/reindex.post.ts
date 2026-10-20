@@ -1,3 +1,5 @@
+import { and as siteAnd, eq as siteEq } from 'drizzle-orm'
+import { DEFAULT_SITE } from '@chronoframe/core'
 import { eq, isNotNull, inArray, and } from 'drizzle-orm'
 import {
   extractExifData,
@@ -16,7 +18,12 @@ export default eventHandler(async (event) => {
       const photo = await useDB()
         .select()
         .from(tables.photos)
-        .where(eq(tables.photos.id, photoId))
+        .where(
+          siteAnd(
+            eq(tables.photos.id, photoId),
+            siteEq(tables.photos.siteId, DEFAULT_SITE.id),
+          ),
+        )
         .limit(1)
         .then((rows) => rows[0])
 
@@ -59,7 +66,12 @@ export default eventHandler(async (event) => {
           lastModified: new Date().toISOString(),
           thumbnailKey: `${storageProvider.config?.prefix?.replace(/\/$/, '')}/thumbnails/${photoId}.webp`,
         })
-        .where(eq(tables.photos.id, photoId))
+        .where(
+          siteAnd(
+            eq(tables.photos.id, photoId),
+            siteEq(tables.photos.siteId, DEFAULT_SITE.id),
+          ),
+        )
 
       logger.chrono.success(`Successfully reindexed EXIF for photo ${photoId}`)
 
@@ -82,9 +94,12 @@ export default eventHandler(async (event) => {
           })
           .from(tables.photos)
           .where(
-            and(
-              isNotNull(tables.photos.storageKey),
-              inArray(tables.photos.id, photoIds),
+            siteAnd(
+              and(
+                isNotNull(tables.photos.storageKey),
+                inArray(tables.photos.id, photoIds),
+              ),
+              siteEq(tables.photos.siteId, DEFAULT_SITE.id),
             ),
           )
       } else {
@@ -95,7 +110,12 @@ export default eventHandler(async (event) => {
             storageKey: tables.photos.storageKey,
           })
           .from(tables.photos)
-          .where(isNotNull(tables.photos.storageKey))
+          .where(
+            siteAnd(
+              isNotNull(tables.photos.storageKey),
+              siteEq(tables.photos.siteId, DEFAULT_SITE.id),
+            ),
+          )
       }
 
       if (photos.length === 0) {
@@ -157,7 +177,12 @@ export default eventHandler(async (event) => {
               lastModified: new Date().toISOString(),
               thumbnailKey: `${storageProvider.config?.prefix?.replace(/\/$/, '')}/thumbnails/${photo.id}.webp`,
             })
-            .where(eq(tables.photos.id, photo.id))
+            .where(
+              siteAnd(
+                eq(tables.photos.id, photo.id),
+                siteEq(tables.photos.siteId, DEFAULT_SITE.id),
+              ),
+            )
 
           updated++
 

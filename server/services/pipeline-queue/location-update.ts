@@ -1,3 +1,5 @@
+import { and as siteAnd, eq as siteEq } from 'drizzle-orm'
+import { DEFAULT_SITE } from '@chronoframe/core'
 import { and, eq, isNull } from 'drizzle-orm'
 import { photos } from '../../database/schema.ts'
 import type { Photo, useDB } from '../../utils/db.ts'
@@ -34,15 +36,18 @@ export function updateGeocodedPhoto(
       geocoding: location.geocoding,
     })
     .where(
-      and(
-        eq(photos.id, photo.id),
-        photo.latitude == null
-          ? isNull(photos.latitude)
-          : eq(photos.latitude, photo.latitude),
-        photo.longitude == null
-          ? isNull(photos.longitude)
-          : eq(photos.longitude, photo.longitude),
-        migrationOnly ? isNull(photos.geocoding) : undefined,
+      siteAnd(
+        and(
+          eq(photos.id, photo.id),
+          photo.latitude == null
+            ? isNull(photos.latitude)
+            : eq(photos.latitude, photo.latitude),
+          photo.longitude == null
+            ? isNull(photos.longitude)
+            : eq(photos.longitude, photo.longitude),
+          migrationOnly ? isNull(photos.geocoding) : undefined,
+        ),
+        siteEq(photos.siteId, DEFAULT_SITE.id),
       ),
     )
     .run().changes

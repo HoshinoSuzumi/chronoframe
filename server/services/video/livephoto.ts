@@ -1,3 +1,6 @@
+import type { StorageProvider } from '@chronoframe/storage'
+import { and as siteAnd, eq as siteEq } from 'drizzle-orm'
+import { DEFAULT_SITE } from '@chronoframe/core'
 import { isLivePhotoVideo } from '@chronoframe/media/livephoto'
 import path from 'path'
 import { eq } from 'drizzle-orm'
@@ -39,7 +42,12 @@ export const processLivePhotoVideo = async (
       const photos = await db
         .select()
         .from(tables.photos)
-        .where(eq(tables.photos.storageKey, photoKey))
+        .where(
+          siteAnd(
+            eq(tables.photos.storageKey, photoKey),
+            siteEq(tables.photos.siteId, DEFAULT_SITE.id),
+          ),
+        )
         .limit(1)
 
       if (photos.length > 0) {
@@ -67,7 +75,12 @@ export const processLivePhotoVideo = async (
         livePhotoVideoUrl: videoUrl,
         livePhotoVideoKey: videoKey,
       })
-      .where(eq(tables.photos.id, matchedPhoto.id))
+      .where(
+        siteAnd(
+          eq(tables.photos.id, matchedPhoto.id),
+          siteEq(tables.photos.siteId, DEFAULT_SITE.id),
+        ),
+      )
 
     logger.chrono.success(
       `Successfully processed LivePhoto: ${matchedPhoto.id}, video: ${videoKey}`,
@@ -84,9 +97,8 @@ export const processLivePhotoVideo = async (
  */
 export const findLivePhotoVideoForImage = async (
   imageKey: string,
+  storageProvider: StorageProvider = getStorageManager().getProvider(),
 ): Promise<{ videoKey: string; videoSize: number } | null> => {
-  const storageProvider = getStorageManager().getProvider()
-
   try {
     // 从图片文件名提取基础名称（去除扩展名）
     const imageBaseName = path.basename(imageKey, path.extname(imageKey))

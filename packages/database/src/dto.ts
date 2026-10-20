@@ -23,8 +23,14 @@ export function toPhotoDto(photo: PhotoRow): Photo {
     thumbnailKey: photo.thumbnailKey,
     fileSize: photo.fileSize,
     lastModified: photo.lastModified,
-    originalUrl: photo.originalUrl,
-    thumbnailUrl: photo.thumbnailUrl,
+    originalUrl:
+      photo.storageConnectionId != null && photo.originalUrl
+        ? `/image/__photo__/${encodeURIComponent(photo.id)}/original`
+        : photo.originalUrl,
+    thumbnailUrl:
+      photo.storageConnectionId != null && photo.thumbnailUrl
+        ? `/image/__photo__/${encodeURIComponent(photo.id)}/thumbnail`
+        : photo.thumbnailUrl,
     thumbnailHash: photo.thumbnailHash,
     tags: photo.tags,
     exif: photo.exif,
@@ -35,7 +41,10 @@ export function toPhotoDto(photo: PhotoRow): Photo {
     locationName: photo.locationName,
     geocoding: photo.geocoding,
     isLivePhoto: photo.isLivePhoto,
-    livePhotoVideoUrl: photo.livePhotoVideoUrl,
+    livePhotoVideoUrl:
+      photo.storageConnectionId != null && photo.livePhotoVideoUrl
+        ? `/image/__photo__/${encodeURIComponent(photo.id)}/live`
+        : photo.livePhotoVideoUrl,
     livePhotoVideoKey: photo.livePhotoVideoKey,
   }
 }

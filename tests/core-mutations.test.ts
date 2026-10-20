@@ -1,3 +1,4 @@
+import { DEFAULT_SITE } from '@chronoframe/core'
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import Database from 'better-sqlite3'
@@ -31,7 +32,7 @@ test('album mutations preserve ordering, password semantics, cover membership an
       .values([{ id: 'a' }, { id: 'b' }])
       .run()
     const writer = createAlbumWriter({
-      repository: createSqliteAlbumWriteRepository(db),
+      repository: createSqliteAlbumWriteRepository(db, DEFAULT_SITE),
       clock: { now: () => now },
       hashPassword: async (value) => `hash:${value}`,
     })
@@ -147,7 +148,7 @@ test('photo mutations keep normalized EXIF and database edits aligned and tolera
       })
       .run()
     const writer = createPhotoWriter({
-      repository: createSqlitePhotoWriteRepository(db),
+      repository: createSqlitePhotoWriteRepository(db, DEFAULT_SITE),
       clock: { now: () => now },
       storage: {
         forPhoto: async () => ({

@@ -1,3 +1,4 @@
+import { DEFAULT_SITE } from '@chronoframe/core'
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import Database from 'better-sqlite3'
@@ -38,7 +39,9 @@ test('SQLite reader preserves migrated data, ordering and legacy album visibilit
         { albumId: 3, photoId: 'locked', position: 0 },
       ])
       .run()
-    const reader = createResourceReader(createSqliteResourceRepository(db))
+    const reader = createResourceReader(
+      createSqliteResourceRepository(db, DEFAULT_SITE),
+    )
     const anonymous = {
       admin: false,
       canAccess: (album: { isHidden: boolean; passwordHash: string | null }) =>

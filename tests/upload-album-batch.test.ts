@@ -11,7 +11,9 @@ test('batch album checker queries once per distinct album ID', () => {
     verbose: (query) => queries.push(query),
   })
   try {
-    sqlite.exec('CREATE TABLE albums (id INTEGER PRIMARY KEY)')
+    sqlite.exec(
+      'CREATE TABLE albums (id INTEGER PRIMARY KEY, site_id INTEGER NOT NULL DEFAULT 1)',
+    )
     sqlite.exec('INSERT INTO albums (id) VALUES (7)')
     const db = drizzle(sqlite, { schema })
     const albumExists = createPhotoTaskAlbumChecker(db)

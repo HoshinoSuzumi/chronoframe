@@ -1,3 +1,6 @@
+import { persistenceErrorCode } from '@chronoframe/database'
+import { storageForPhoto } from './object-storage'
+import { DEFAULT_SITE } from '@chronoframe/core'
 import type {} from '../types/worker'
 import { createError, type H3Event } from 'h3'
 import {
@@ -18,7 +21,7 @@ import { logger } from './logger'
 /** Assemble album persistence, clock and hashing in the self-hosted application. */
 export function useAlbumWriter() {
   return createAlbumWriter({
-    repository: createSqliteAlbumWriteRepository(useDB()),
+    repository: createSqliteAlbumWriteRepository(useDB(), DEFAULT_SITE),
     clock: { now: () => new Date() },
     hashPassword: hashAlbumPassword,
   })
@@ -28,16 +31,18 @@ export function useAlbumWriter() {
 export function usePhotoWriter(event: H3Event) {
   const { storageProvider } = useStorageProvider(event)
   return createPhotoWriter({
-    repository: createSqlitePhotoWriteRepository(useDB()),
+    repository: createSqlitePhotoWriteRepository(useDB(), DEFAULT_SITE),
     clock: { now: () => new Date() },
-    storage: { forPhoto: async () => storageProvider },
-    editMetadata: (photo, input) => {
+    storage: {
+      forPhoto: (photo) => storageForPhoto(photo.id, storageProvider),
+    },
+    editMetadata: async (photo, input) => {
       if (!photo.storageKey)
         throw new CoreError(400, 'Photo has no storage key')
       return editPhotoMetadata(
         { ...photo, storageKey: photo.storageKey },
         input,
-        storageProvider,
+        await storageForPhoto(photo.id, storageProvider),
       )
     },
     tasks: {
@@ -68,6 +73,11 @@ export async function mutationResponse<T>(
   try {
     return await operation()
   } catch (error) {
+    if (persistenceErrorCode(error) === 'invalid-relation')
+      throw createError({
+        statusCode: 400,
+        statusMessage: 'Invalid resource reference',
+      })
     if (error instanceof CoreError)
       throw createError({
         statusCode: error.statusCode,

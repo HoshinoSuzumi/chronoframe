@@ -1,3 +1,6 @@
+import { requireSite } from './site-repository.ts'
+import { type SiteContext } from '@chronoframe/core'
+import { and as siteAnd, eq as siteEq } from 'drizzle-orm'
 import { and, eq, min } from 'drizzle-orm'
 import type {
   AlbumWriteRepository,
@@ -9,14 +12,21 @@ import { toAlbumDto, toPhotoDto } from './dto.ts'
 /** Keep album row and membership changes inside synchronous SQLite transactions. */
 export function createSqliteAlbumWriteRepository(
   db: AppDatabase,
+  site: SiteContext,
 ): AlbumWriteRepository {
+  requireSite(db, site)
   return {
     async exists(id) {
       return Boolean(
         db
           .select({ id: tables.albums.id })
           .from(tables.albums)
-          .where(eq(tables.albums.id, id))
+          .where(
+            siteAnd(
+              eq(tables.albums.id, id),
+              siteEq(tables.albums.siteId, site.id),
+            ),
+          )
           .get(),
       )
     },
@@ -25,16 +35,22 @@ export function createSqliteAlbumWriteRepository(
         const row = tx
           .select({ min: min(tables.albums.position) })
           .from(tables.albums)
+          .where(siteEq(tables.albums.siteId, site.id))
           .get()
         const album = tx
           .insert(tables.albums)
-          .values({ ...data, position: (row?.min ?? 1000) - 1000 })
+          .values({
+            ...data,
+            siteId: site.id,
+            position: (row?.min ?? 1000) - 1000,
+          })
           .returning()
           .get()
         photoIds.forEach((photoId, index) =>
           tx
             .insert(tables.albumPhotos)
             .values({
+              siteId: site.id,
               albumId: album.id,
               photoId,
               position: 1000000 + (index + 1) * 10,
@@ -50,18 +66,37 @@ export function createSqliteAlbumWriteRepository(
         const exists = tx
           .select({ id: tables.albums.id })
           .from(tables.albums)
-          .where(eq(tables.albums.id, id))
+          .where(
+            siteAnd(
+              eq(tables.albums.id, id),
+              siteEq(tables.albums.siteId, site.id),
+            ),
+          )
           .get()
         if (!exists) return null
-        tx.update(tables.albums).set(data).where(eq(tables.albums.id, id)).run()
+        tx.update(tables.albums)
+          .set(data)
+          .where(
+            siteAnd(
+              eq(tables.albums.id, id),
+              siteEq(tables.albums.siteId, site.id),
+            ),
+          )
+          .run()
         if (photoIds !== undefined) {
           tx.delete(tables.albumPhotos)
-            .where(eq(tables.albumPhotos.albumId, id))
+            .where(
+              siteAnd(
+                eq(tables.albumPhotos.albumId, id),
+                siteEq(tables.albumPhotos.siteId, site.id),
+              ),
+            )
             .run()
           photoIds.forEach((photoId, index) =>
             tx
               .insert(tables.albumPhotos)
               .values({
+                siteId: site.id,
                 albumId: id,
                 photoId,
                 position: 1000000 + (index + 1) * 10,
@@ -74,7 +109,12 @@ export function createSqliteAlbumWriteRepository(
           tx
             .select()
             .from(tables.albums)
-            .where(eq(tables.albums.id, id))
+            .where(
+              siteAnd(
+                eq(tables.albums.id, id),
+                siteEq(tables.albums.siteId, site.id),
+              ),
+            )
             .get()!,
         )
       })
@@ -85,14 +125,31 @@ export function createSqliteAlbumWriteRepository(
           !tx
             .select({ id: tables.albums.id })
             .from(tables.albums)
-            .where(eq(tables.albums.id, id))
+            .where(
+              siteAnd(
+                eq(tables.albums.id, id),
+                siteEq(tables.albums.siteId, site.id),
+              ),
+            )
             .get()
         )
           return false
         tx.delete(tables.albumPhotos)
-          .where(eq(tables.albumPhotos.albumId, id))
+          .where(
+            siteAnd(
+              eq(tables.albumPhotos.albumId, id),
+              siteEq(tables.albumPhotos.siteId, site.id),
+            ),
+          )
           .run()
-        tx.delete(tables.albums).where(eq(tables.albums.id, id)).run()
+        tx.delete(tables.albums)
+          .where(
+            siteAnd(
+              eq(tables.albums.id, id),
+              siteEq(tables.albums.siteId, site.id),
+            ),
+          )
+          .run()
         return true
       })
     },
@@ -102,7 +159,12 @@ export function createSqliteAlbumWriteRepository(
           tx
             .update(tables.albums)
             .set({ position: index * 1000 })
-            .where(eq(tables.albums.id, id))
+            .where(
+              siteAnd(
+                eq(tables.albums.id, id),
+                siteEq(tables.albums.siteId, site.id),
+              ),
+            )
             .run(),
         )
       })
@@ -117,17 +179,24 @@ export function createSqliteAlbumWriteRepository(
           !tx
             .select({ id: tables.albumPhotos.id })
             .from(tables.albumPhotos)
-            .where(predicate)
+            .where(
+              siteAnd(predicate, siteEq(tables.albumPhotos.siteId, site.id)),
+            )
             .get()
         )
           return false
-        tx.delete(tables.albumPhotos).where(predicate).run()
+        tx.delete(tables.albumPhotos)
+          .where(siteAnd(predicate, siteEq(tables.albumPhotos.siteId, site.id)))
+          .run()
         tx.update(tables.albums)
           .set({ coverPhotoId: null, updatedAt })
           .where(
-            and(
-              eq(tables.albums.id, id),
-              eq(tables.albums.coverPhotoId, photoId),
+            siteAnd(
+              and(
+                eq(tables.albums.id, id),
+                eq(tables.albums.coverPhotoId, photoId),
+              ),
+              siteEq(tables.albums.siteId, site.id),
             ),
           )
           .run()
@@ -140,27 +209,54 @@ export function createSqliteAlbumWriteRepository(
 /** Map photo writes at the existing connection boundary without changing its lifecycle. */
 export function createSqlitePhotoWriteRepository(
   db: AppDatabase,
+  site: SiteContext,
 ): PhotoWriteRepository {
+  requireSite(db, site)
   return {
     async get(id) {
       const photo = db
         .select()
         .from(tables.photos)
-        .where(eq(tables.photos.id, id))
+        .where(
+          siteAnd(
+            eq(tables.photos.id, id),
+            siteEq(tables.photos.siteId, site.id),
+          ),
+        )
         .get()
       return photo ? toPhotoDto(photo) : null
     },
     async update(id, update) {
-      db.update(tables.photos).set(update).where(eq(tables.photos.id, id)).run()
+      db.update(tables.photos)
+        .set(update)
+        .where(
+          siteAnd(
+            eq(tables.photos.id, id),
+            siteEq(tables.photos.siteId, site.id),
+          ),
+        )
+        .run()
       const photo = db
         .select()
         .from(tables.photos)
-        .where(eq(tables.photos.id, id))
+        .where(
+          siteAnd(
+            eq(tables.photos.id, id),
+            siteEq(tables.photos.siteId, site.id),
+          ),
+        )
         .get()
       return photo ? toPhotoDto(photo) : null
     },
     async delete(id) {
-      db.delete(tables.photos).where(eq(tables.photos.id, id)).run()
+      db.delete(tables.photos)
+        .where(
+          siteAnd(
+            eq(tables.photos.id, id),
+            siteEq(tables.photos.siteId, site.id),
+          ),
+        )
+        .run()
     },
   }
 }

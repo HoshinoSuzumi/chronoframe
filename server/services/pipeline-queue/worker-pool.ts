@@ -1,3 +1,5 @@
+import { and as siteAnd, eq as siteEq } from 'drizzle-orm'
+import { DEFAULT_SITE } from '@chronoframe/core'
 import type { ConsolaInstance } from 'consola'
 import { consola } from 'consola'
 import { eq, sql } from 'drizzle-orm'
@@ -49,6 +51,7 @@ export class WorkerPool {
   private statsInterval: NodeJS.Timeout | null = null
   private isRunning: boolean = false
   private resizing: Promise<void> = Promise.resolve()
+  private stopping: Promise<void> | null = null
 
   constructor(config: Partial<WorkerPoolConfig>, logger?: ConsolaInstance) {
     this.config = {
@@ -76,6 +79,7 @@ export class WorkerPool {
       `Starting WorkerPool with ${this.config.workerCount} workers`,
     )
 
+    this.stopping = null
     // 在启动工作器之前，清理死任务
     await this.cleanupDeadTasks()
 
@@ -107,7 +111,12 @@ export class WorkerPool {
   /**
    * 停止工作器池
    */
-  async stop(): Promise<void> {
+  stop(): Promise<void> {
+    this.stopping ??= this.stopWorkers()
+    return this.stopping
+  }
+
+  private async stopWorkers(): Promise<void> {
     if (!this.isRunning) {
       this.logger.warn('WorkerPool is not running')
       return
@@ -253,7 +262,12 @@ export class WorkerPool {
       const deadTasks = await db
         .select()
         .from(tables.pipelineQueue)
-        .where(eq(tables.pipelineQueue.status, 'in-stages'))
+        .where(
+          siteAnd(
+            eq(tables.pipelineQueue.status, 'in-stages'),
+            siteEq(tables.pipelineQueue.siteId, DEFAULT_SITE.id),
+          ),
+        )
 
       if (deadTasks.length > 0) {
         this.logger.warn(
@@ -271,7 +285,12 @@ export class WorkerPool {
               THEN -1 ELSE 1 END`,
             statusStage: null,
           })
-          .where(eq(tables.pipelineQueue.status, 'in-stages'))
+          .where(
+            siteAnd(
+              eq(tables.pipelineQueue.status, 'in-stages'),
+              siteEq(tables.pipelineQueue.siteId, DEFAULT_SITE.id),
+            ),
+          )
 
         this.logger.success(
           `Successfully reset ${deadTasks.length} dead tasks to pending status with migration priorities preserved`,

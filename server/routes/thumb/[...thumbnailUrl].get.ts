@@ -1,3 +1,6 @@
+import { storageForPhoto } from '../../utils/object-storage'
+import { and as siteAnd, eq as siteEq } from 'drizzle-orm'
+import { DEFAULT_SITE } from '@chronoframe/core'
 import { readFile } from 'node:fs/promises'
 import { resolveLocalMediaPath } from '../../utils/local-media'
 import { eq } from 'drizzle-orm'
@@ -6,7 +9,7 @@ import sharp from 'sharp'
 import { assertPhotoAccess } from '../../utils/album-access'
 
 export default eventHandler(async (event) => {
-  const { storageProvider } = useStorageProvider(event)
+  let { storageProvider } = useStorageProvider(event)
 
   let url = getRouterParam(event, 'thumbnailUrl')
 
@@ -18,7 +21,7 @@ export default eventHandler(async (event) => {
   }
 
   url = decodeURIComponent(url)
-  const isAppPath = url.startsWith('/storage/') || url.startsWith('/image/')
+  let isAppPath = url.startsWith('/storage/') || url.startsWith('/image/')
   let absoluteUrl: URL | undefined
   if (!isAppPath) {
     try {
@@ -40,26 +43,34 @@ export default eventHandler(async (event) => {
   const restricted = await assertPhotoAccess(event, accessKey, !isAppPath)
   if (restricted) setHeader(event, 'Cache-Control', 'private, no-store')
 
+  if (protectedPhotoMatch) {
+    const row = useDB()
+      .select()
+      .from(tables.photos)
+      .where(
+        siteAnd(
+          eq(tables.photos.id, accessKey),
+          siteEq(tables.photos.siteId, DEFAULT_SITE.id),
+        ),
+      )
+      .get()
+    const kind = url.split('/').pop()
+    const resourceUrl =
+      kind === 'original'
+        ? row?.originalUrl
+        : kind === 'live'
+          ? row?.livePhotoVideoUrl
+          : row?.thumbnailUrl
+    if (!resourceUrl)
+      throw createError({ statusCode: 404, statusMessage: 'Photo not found' })
+    storageProvider = await storageForPhoto(accessKey, storageProvider)
+    url = resourceUrl
+    isAppPath = url.startsWith('/storage/') || url.startsWith('/image/')
+  }
+
   let photo: Buffer
   if (storageProvider.config?.provider === 'local' && isAppPath) {
     let target = url
-    if (protectedPhotoMatch) {
-      const row = useDB()
-        .select()
-        .from(tables.photos)
-        .where(eq(tables.photos.id, accessKey))
-        .get()
-      const kind = url.split('/').pop()
-      const resourceUrl =
-        kind === 'original'
-          ? row?.originalUrl
-          : kind === 'live'
-            ? row?.livePhotoVideoUrl
-            : row?.thumbnailUrl
-      if (!resourceUrl)
-        throw createError({ statusCode: 404, statusMessage: 'Photo not found' })
-      target = resourceUrl
-    }
     if (!/^\/(?:storage|image)\//.test(target))
       throw createError({ statusCode: 404, statusMessage: 'Photo not found' })
     const localKey = decodeURIComponent(

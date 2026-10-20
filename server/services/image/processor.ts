@@ -1,3 +1,4 @@
+import type { StorageProvider } from '@chronoframe/storage'
 import path from 'node:path'
 import { getStorageManager } from '../../plugins/3.storage'
 import { logger } from '../../utils/logger'
@@ -14,12 +15,12 @@ export const {
 } = createImageProcessor(logger.image)
 export const preprocessImageWithJpegUpload = async (
   s3key: string,
+  storageProvider: StorageProvider = getStorageManager().getProvider(),
 ): Promise<{
   raw: Buffer
   processed: Buffer
   jpegKey?: string // HEIC 转换后上传的 JPEG 文件的 key
 } | null> => {
-  const storageProvider = getStorageManager().getProvider()
   if (!storageProvider) return null
 
   try {

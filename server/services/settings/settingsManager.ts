@@ -1,3 +1,5 @@
+import { and as siteAnd, eq as siteEq } from 'drizzle-orm'
+import { DEFAULT_SITE } from '@chronoframe/core'
 import type {
   NewStorageProviderRow as NewSettingStorageProvider,
   StorageProviderRow as SettingStorageProvider,
@@ -70,7 +72,7 @@ export class SettingsManager {
     namespace: SettingNamespace,
     key: SettingKey<typeof namespace>,
   ): string {
-    return `${namespace}:${key}`
+    return `site:${DEFAULT_SITE.id}:${namespace}:${key}`
   }
 
   /**
@@ -138,9 +140,12 @@ export class SettingsManager {
         .select()
         .from(tables.settings)
         .where(
-          and(
-            eq(tables.settings.namespace, config.namespace),
-            eq(tables.settings.key, config.key),
+          siteAnd(
+            and(
+              eq(tables.settings.namespace, config.namespace),
+              eq(tables.settings.key, config.key),
+            ),
+            siteEq(tables.settings.siteId, DEFAULT_SITE.id),
           ),
         )
         .get()
@@ -185,9 +190,12 @@ export class SettingsManager {
       .select()
       .from(tables.settings)
       .where(
-        and(
-          eq(tables.settings.namespace, namespace),
-          eq(tables.settings.key, key),
+        siteAnd(
+          and(
+            eq(tables.settings.namespace, namespace),
+            eq(tables.settings.key, key),
+          ),
+          siteEq(tables.settings.siteId, DEFAULT_SITE.id),
         ),
       )
       .get()
@@ -226,9 +234,12 @@ export class SettingsManager {
       })
       .from(tables.settings)
       .where(
-        and(
-          eq(tables.settings.namespace, namespace),
-          eq(tables.settings.key, key),
+        siteAnd(
+          and(
+            eq(tables.settings.namespace, namespace),
+            eq(tables.settings.key, key),
+          ),
+          siteEq(tables.settings.siteId, DEFAULT_SITE.id),
         ),
       )
       .get()
@@ -251,9 +262,12 @@ export class SettingsManager {
       .select()
       .from(tables.settings)
       .where(
-        and(
-          eq(tables.settings.namespace, namespace),
-          eq(tables.settings.key, key),
+        siteAnd(
+          and(
+            eq(tables.settings.namespace, namespace),
+            eq(tables.settings.key, key),
+          ),
+          siteEq(tables.settings.siteId, DEFAULT_SITE.id),
         ),
       )
       .get()
@@ -280,9 +294,12 @@ export class SettingsManager {
         updatedBy: updatedBy ?? null,
       })
       .where(
-        and(
-          eq(tables.settings.namespace, namespace),
-          eq(tables.settings.key, key),
+        siteAnd(
+          and(
+            eq(tables.settings.namespace, namespace),
+            eq(tables.settings.key, key),
+          ),
+          siteEq(tables.settings.siteId, DEFAULT_SITE.id),
         ),
       )
       .run()
@@ -300,7 +317,12 @@ export class SettingsManager {
     const settings = db
       .select()
       .from(tables.settings)
-      .where(eq(tables.settings.namespace, namespace))
+      .where(
+        siteAnd(
+          eq(tables.settings.namespace, namespace),
+          siteEq(tables.settings.siteId, DEFAULT_SITE.id),
+        ),
+      )
       .all()
 
     const result: Record<string, SettingValue> = {}
@@ -313,7 +335,11 @@ export class SettingsManager {
 
   async getSchema(): Promise<SettingConfig[]> {
     const db = useDB()
-    const settings = db.select().from(tables.settings).all()
+    const settings = db
+      .select()
+      .from(tables.settings)
+      .where(siteEq(tables.settings.siteId, DEFAULT_SITE.id))
+      .all()
 
     return settings.map((setting) => ({
       namespace: setting.namespace,
@@ -339,6 +365,9 @@ export class SettingsManager {
       const providers = db
         .select()
         .from(tables.settings_storage_providers)
+        .where(
+          siteEq(tables.settings_storage_providers.siteId, DEFAULT_SITE.id),
+        )
         .all()
       return providers
     },
@@ -348,7 +377,12 @@ export class SettingsManager {
       const provider = db
         .select()
         .from(tables.settings_storage_providers)
-        .where(eq(tables.settings_storage_providers.id, id))
+        .where(
+          siteAnd(
+            eq(tables.settings_storage_providers.id, id),
+            siteEq(tables.settings_storage_providers.siteId, DEFAULT_SITE.id),
+          ),
+        )
         .get()
       return provider || null
     },
@@ -408,7 +442,12 @@ export class SettingsManager {
         .set({
           ...providerConfig,
         })
-        .where(eq(tables.settings_storage_providers.id, id))
+        .where(
+          siteAnd(
+            eq(tables.settings_storage_providers.id, id),
+            siteEq(tables.settings_storage_providers.siteId, DEFAULT_SITE.id),
+          ),
+        )
         .run()
 
       // Rebuild the active instance before saving completes so subsequent
@@ -426,7 +465,15 @@ export class SettingsManager {
                 provider: previousProvider.provider,
                 config: previousProvider.config,
               })
-              .where(eq(tables.settings_storage_providers.id, id))
+              .where(
+                siteAnd(
+                  eq(tables.settings_storage_providers.id, id),
+                  siteEq(
+                    tables.settings_storage_providers.siteId,
+                    DEFAULT_SITE.id,
+                  ),
+                ),
+              )
               .run()
           } catch (rollbackError) {
             settingsManager._logger.error(
@@ -442,7 +489,12 @@ export class SettingsManager {
     async deleteProvider(id: number): Promise<void> {
       const db = useDB()
       db.delete(tables.settings_storage_providers)
-        .where(eq(tables.settings_storage_providers.id, id))
+        .where(
+          siteAnd(
+            eq(tables.settings_storage_providers.id, id),
+            siteEq(tables.settings_storage_providers.siteId, DEFAULT_SITE.id),
+          ),
+        )
         .run()
     },
   }

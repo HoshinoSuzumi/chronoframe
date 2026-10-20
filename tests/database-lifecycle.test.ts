@@ -1,3 +1,4 @@
+import { DEFAULT_SITE } from '@chronoframe/core'
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { mkdtemp, rm } from 'node:fs/promises'
@@ -29,7 +30,7 @@ test('database connection, repositories, rollback, backup, restart and reentrant
         { id: 'c', dateTaken: null },
       ])
       .run()
-    const reader = createSqliteResourceRepository(db)
+    const reader = createSqliteResourceRepository(db, DEFAULT_SITE)
     assert.deepEqual(
       (await reader.listPhotos()).map((p) => p.id),
       ['b', 'a', 'c'],
@@ -46,7 +47,7 @@ test('database connection, repositories, rollback, backup, restart and reentrant
       reader.listPhotos([], { limit: 0, offset: 0 }),
       RangeError,
     )
-    const writer = createSqliteAlbumWriteRepository(db)
+    const writer = createSqliteAlbumWriteRepository(db, DEFAULT_SITE)
     const createdAt = new Date('2025-01-01T00:00:00Z')
     const album = await writer.createFirst(
       { title: 'fixture', createdAt, updatedAt: createdAt },

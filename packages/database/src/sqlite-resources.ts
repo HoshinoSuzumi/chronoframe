@@ -1,3 +1,6 @@
+import { requireSite } from './site-repository.ts'
+import { type SiteContext } from '@chronoframe/core'
+import { and as siteAnd, eq as siteEq } from 'drizzle-orm'
 import { asc, desc, eq, getTableColumns, notInArray } from 'drizzle-orm'
 import type { ResourceReadRepository } from '@chronoframe/core'
 import { tables, type AppDatabase } from './connection.ts'
@@ -6,7 +9,9 @@ import { toAlbumDto, toPhotoDto } from './dto.ts'
 /** Adapt existing SQLite queries without changing connections, schema or lifecycle. */
 export function createSqliteResourceRepository(
   db: AppDatabase,
+  site: SiteContext,
 ): ResourceReadRepository {
+  requireSite(db, site)
   const albumRecord = (row: typeof tables.albums.$inferSelect) => ({
     resource: toAlbumDto(row),
     passwordHash: row.passwordHash,
@@ -25,9 +30,12 @@ export function createSqliteResourceRepository(
         .select()
         .from(tables.photos)
         .where(
-          excludedIds.length
-            ? notInArray(tables.photos.id, excludedIds)
-            : undefined,
+          siteAnd(
+            excludedIds.length
+              ? notInArray(tables.photos.id, excludedIds)
+              : undefined,
+            siteEq(tables.photos.siteId, site.id),
+          ),
         )
         .orderBy(desc(tables.photos.dateTaken), asc(tables.photos.id))
         .limit(page?.limit ?? -1)
@@ -39,6 +47,7 @@ export function createSqliteResourceRepository(
       return db
         .select()
         .from(tables.albums)
+        .where(siteEq(tables.albums.siteId, site.id))
         .orderBy(asc(tables.albums.position), desc(tables.albums.createdAt))
         .all()
         .map(albumRecord)
@@ -47,7 +56,12 @@ export function createSqliteResourceRepository(
       const row = db
         .select()
         .from(tables.albums)
-        .where(eq(tables.albums.id, id))
+        .where(
+          siteAnd(
+            eq(tables.albums.id, id),
+            siteEq(tables.albums.siteId, site.id),
+          ),
+        )
         .get()
       return row ? albumRecord(row) : null
     },
@@ -55,7 +69,12 @@ export function createSqliteResourceRepository(
       return db
         .select({ id: tables.albumPhotos.photoId })
         .from(tables.albumPhotos)
-        .where(eq(tables.albumPhotos.albumId, id))
+        .where(
+          siteAnd(
+            eq(tables.albumPhotos.albumId, id),
+            siteEq(tables.albumPhotos.siteId, site.id),
+          ),
+        )
         .orderBy(asc(tables.albumPhotos.position))
         .all()
         .map((row) => row.id)
@@ -68,7 +87,12 @@ export function createSqliteResourceRepository(
           tables.albumPhotos,
           eq(tables.photos.id, tables.albumPhotos.photoId),
         )
-        .where(eq(tables.albumPhotos.albumId, id))
+        .where(
+          siteAnd(
+            eq(tables.albumPhotos.albumId, id),
+            siteEq(tables.photos.siteId, site.id),
+          ),
+        )
         .orderBy(asc(tables.albumPhotos.position))
         .all()
         .map(toPhotoDto)
@@ -82,6 +106,7 @@ export function createSqliteResourceRepository(
           passwordHash: tables.albums.passwordHash,
         })
         .from(tables.albumPhotos)
+        .where(siteEq(tables.albumPhotos.siteId, site.id))
         .innerJoin(
           tables.albums,
           eq(tables.albumPhotos.albumId, tables.albums.id),

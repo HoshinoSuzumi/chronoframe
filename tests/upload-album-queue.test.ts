@@ -54,7 +54,9 @@ test('photo queue payload rejects invalid albums and video album IDs', () => {
 test('photo tasks only target existing albums', () => {
   const sqlite = new Database(':memory:')
   try {
-    sqlite.exec('CREATE TABLE albums (id INTEGER PRIMARY KEY)')
+    sqlite.exec(
+      'CREATE TABLE albums (id INTEGER PRIMARY KEY, site_id INTEGER NOT NULL DEFAULT 1)',
+    )
     sqlite.exec('INSERT INTO albums (id) VALUES (7)')
     const db = drizzle(sqlite, { schema })
     assert.equal(

@@ -1,3 +1,5 @@
+import { eq as siteEq } from 'drizzle-orm'
+import { DEFAULT_SITE } from '@chronoframe/core'
 import { asc, count, desc, eq } from 'drizzle-orm'
 import type { drizzle } from 'drizzle-orm/better-sqlite3'
 import * as tables from '../database/schema.ts'
@@ -12,6 +14,7 @@ export const listUploadAlbumOptions = (db: ReturnType<typeof drizzle>) => {
       photoCount: count(tables.albumPhotos.id),
     })
     .from(tables.albums)
+    .where(siteEq(tables.albums.siteId, DEFAULT_SITE.id))
     .leftJoin(
       tables.albumPhotos,
       eq(tables.albumPhotos.albumId, tables.albums.id),

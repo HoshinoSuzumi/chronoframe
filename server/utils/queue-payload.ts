@@ -1,3 +1,5 @@
+import { and as siteAnd, eq as siteEq } from 'drizzle-orm'
+import { DEFAULT_SITE } from '@chronoframe/core'
 import { z } from 'zod'
 import { eq } from 'drizzle-orm'
 import * as tables from '../database/schema.ts'
@@ -44,7 +46,12 @@ export const photoTaskAlbumExists = (
   const album = (db ?? useDB())
     .select({ id: tables.albums.id })
     .from(tables.albums)
-    .where(eq(tables.albums.id, payload.albumId))
+    .where(
+      siteAnd(
+        eq(tables.albums.id, payload.albumId),
+        siteEq(tables.albums.siteId, DEFAULT_SITE.id),
+      ),
+    )
     .get()
 
   return Boolean(album)

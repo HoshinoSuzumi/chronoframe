@@ -1,3 +1,4 @@
+import { closeDB } from '../utils/db'
 import type {} from '../types/worker'
 import { WorkerPool } from '../services/pipeline-queue'
 import { settingsManager } from '../services/settings/settingsManager'
@@ -22,7 +23,7 @@ export default defineNitroPlugin(async (nitroApp) => {
   globalThis.__workerPool = workerPool
 
   let shutdown: Promise<void> | undefined
-  const stop = () => (shutdown ||= workerPool.stop())
+  const stop = () => (shutdown ||= workerPool.stop().finally(closeDB))
   nitroApp.hooks.hook('close', stop)
 
   const exitHandler = () => {

@@ -1,3 +1,4 @@
+import { DEFAULT_SITE } from '@chronoframe/core'
 import { z } from 'zod'
 import { createDuplicateChecker } from '@chronoframe/core'
 import { createSqliteUploadRepository } from '../../repositories/sqlite-uploads'
@@ -40,7 +41,7 @@ export default defineEventHandler(async (event) => {
     const config = storageProvider.config
     const check = createDuplicateChecker({
       identifiers: { fromStorageKey: generateSafePhotoId },
-      find: createSqliteUploadRepository(useDB()).findDetails,
+      find: createSqliteUploadRepository(useDB(), DEFAULT_SITE).findDetails,
     })
     const results = await check(
       { fileNames, storageKeys },

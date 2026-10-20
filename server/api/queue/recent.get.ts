@@ -1,3 +1,5 @@
+import { and as siteAnd, eq as siteEq } from 'drizzle-orm'
+import { DEFAULT_SITE } from '@chronoframe/core'
 import { desc, inArray, or } from 'drizzle-orm'
 import { photos, pipelineQueue } from '~~/server/database/schema'
 import type { PipelineQueueItem } from '~~/server/utils/db'
@@ -47,6 +49,7 @@ export default defineEventHandler(async (event) => {
       completedAt: pipelineQueue.completedAt,
     })
     .from(pipelineQueue)
+    .where(siteEq(pipelineQueue.siteId, DEFAULT_SITE.id))
     .orderBy(desc(pipelineQueue.createdAt))
     .limit(RECENT_TASK_LIMIT)
     .all()
@@ -81,7 +84,12 @@ export default defineEventHandler(async (event) => {
             storageKey: photos.storageKey,
           })
           .from(photos)
-          .where(or(...photoFilters))
+          .where(
+            siteAnd(
+              or(...photoFilters),
+              siteEq(photos.siteId, DEFAULT_SITE.id),
+            ),
+          )
           .all()
       : []
 

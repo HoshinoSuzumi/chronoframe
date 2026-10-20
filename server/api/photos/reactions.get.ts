@@ -1,3 +1,5 @@
+import { and as siteAnd, eq as siteEq } from 'drizzle-orm'
+import { DEFAULT_SITE } from '@chronoframe/core'
 import { sql, inArray } from 'drizzle-orm'
 import { filterAccessiblePhotoIds } from '../../utils/album-access'
 
@@ -34,7 +36,12 @@ export default defineEventHandler(async (event) => {
       count: sql<number>`count(*)`,
     })
     .from(tables.photoReactions)
-    .where(inArray(tables.photoReactions.photoId, accessibleIds))
+    .where(
+      siteAnd(
+        inArray(tables.photoReactions.photoId, accessibleIds),
+        siteEq(tables.photoReactions.siteId, DEFAULT_SITE.id),
+      ),
+    )
     .groupBy(tables.photoReactions.photoId, tables.photoReactions.reactionType)
     .all()
 

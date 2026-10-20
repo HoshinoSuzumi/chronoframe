@@ -1,3 +1,4 @@
+import { DEFAULT_SITE } from '@chronoframe/core'
 import type {
   UploadPreparationResponse,
   PreparedUploadResponse,
@@ -23,7 +24,7 @@ export default eventHandler(
     const providerConfig = storageProvider.config
     const mime = useRuntimeConfig(event).upload.mime
     const preparer = createUploadPreparer({
-      repository: createSqliteUploadRepository(useDB()),
+      repository: createSqliteUploadRepository(useDB(), DEFAULT_SITE),
       identifiers: { fromStorageKey: generateSafePhotoId },
       // Self-hosted has no account-wide quota; the per-file policy still applies.
       quota: { assertAllowed: async () => {} },

@@ -1,3 +1,5 @@
+import { and as siteAnd, eq as siteEq } from 'drizzle-orm'
+import { DEFAULT_SITE } from '@chronoframe/core'
 import { createSettingsRuntimeEffects } from '../runtime/settings-effects'
 import type { SettingValue } from '~~/shared/types/settings'
 import { DEFAULT_SETTINGS } from '../services/settings/contants'
@@ -237,9 +239,12 @@ async function removeDeprecatedSettings() {
 
   db.delete(tables.settings)
     .where(
-      and(
-        eq(tables.settings.namespace, 'app'),
-        eq(tables.settings.key, 'upload.maxFileSize'),
+      siteAnd(
+        and(
+          eq(tables.settings.namespace, 'app'),
+          eq(tables.settings.key, 'upload.maxFileSize'),
+        ),
+        siteEq(tables.settings.siteId, DEFAULT_SITE.id),
       ),
     )
     .run()

@@ -1,3 +1,5 @@
+import { and as siteAnd, eq as siteEq } from 'drizzle-orm'
+import { DEFAULT_SITE } from '@chronoframe/core'
 import { and, eq, isNull, or, sql } from 'drizzle-orm'
 import type { useDB } from '../../utils/db'
 import { photos, pipelineQueue } from '../../database/schema.ts'
@@ -11,9 +13,12 @@ export function enqueueLocationMigrationRequest(
       .select({ id: pipelineQueue.id })
       .from(pipelineQueue)
       .where(
-        and(
-          sql`json_extract(${pipelineQueue.payload}, '$.type') = 'location-migration'`,
-          sql`${pipelineQueue.status} IN ('pending', 'in-stages')`,
+        siteAnd(
+          and(
+            sql`json_extract(${pipelineQueue.payload}, '$.type') = 'location-migration'`,
+            sql`${pipelineQueue.status} IN ('pending', 'in-stages')`,
+          ),
+          siteEq(pipelineQueue.siteId, DEFAULT_SITE.id),
         ),
       )
       .get()
@@ -44,21 +49,26 @@ export function getLocationMigrationStatus(db: ReturnType<typeof useDB>) {
   const { count } = db
     .select({ count: sql<number>`count(*)` })
     .from(photos)
-    .where(legacyLocationCondition)
+    .where(
+      siteAnd(legacyLocationCondition, siteEq(photos.siteId, DEFAULT_SITE.id)),
+    )
     .get()!
   const active = db
     .select({ id: pipelineQueue.id })
     .from(pipelineQueue)
     .where(
-      and(
-        sql`${pipelineQueue.status} IN ('pending', 'in-stages')`,
-        or(
-          sql`json_extract(${pipelineQueue.payload}, '$.type') = 'location-migration'`,
-          and(
-            sql`json_extract(${pipelineQueue.payload}, '$.type') = 'photo-reverse-geocoding'`,
-            sql`json_extract(${pipelineQueue.payload}, '$.migrationOnly') = 1`,
+      siteAnd(
+        and(
+          sql`${pipelineQueue.status} IN ('pending', 'in-stages')`,
+          or(
+            sql`json_extract(${pipelineQueue.payload}, '$.type') = 'location-migration'`,
+            and(
+              sql`json_extract(${pipelineQueue.payload}, '$.type') = 'photo-reverse-geocoding'`,
+              sql`json_extract(${pipelineQueue.payload}, '$.migrationOnly') = 1`,
+            ),
           ),
         ),
+        siteEq(pipelineQueue.siteId, DEFAULT_SITE.id),
       ),
     )
     .get()
@@ -72,15 +82,23 @@ export function enqueueLocationMigration(db: ReturnType<typeof useDB>) {
     const candidates = tx
       .select({ id: photos.id, storageKey: photos.storageKey })
       .from(photos)
-      .where(legacyLocationCondition)
+      .where(
+        siteAnd(
+          legacyLocationCondition,
+          siteEq(photos.siteId, DEFAULT_SITE.id),
+        ),
+      )
       .all()
     const active = tx
       .select({ payload: pipelineQueue.payload })
       .from(pipelineQueue)
       .where(
-        or(
-          eq(pipelineQueue.status, 'pending'),
-          eq(pipelineQueue.status, 'in-stages'),
+        siteAnd(
+          or(
+            eq(pipelineQueue.status, 'pending'),
+            eq(pipelineQueue.status, 'in-stages'),
+          ),
+          siteEq(pipelineQueue.siteId, DEFAULT_SITE.id),
         ),
       )
       .all()

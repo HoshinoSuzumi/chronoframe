@@ -16,7 +16,7 @@
     "db:check": "drizzle-kit check",
     "db:up": "drizzle-kit up",
     "db:generate": "drizzle-kit generate",
-    "db:migrate": "drizzle-kit migrate",
+    "db:migrate": "node --experimental-strip-types scripts/migrate-database.ts",
     "build": "NODE_OPTIONS=\"--max-old-space-size=8192\" nuxt build",
     "build:deps": "pnpm --filter @chronoframe/webgl-image build",
     "dev": "run-p dev:dep dev:wait-only",

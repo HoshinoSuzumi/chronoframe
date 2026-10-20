@@ -21,6 +21,9 @@ let connection: ReturnType<typeof openDatabase> | null = null
 export function useDB() {
   connection ??= openDatabase({
     filename: resolve(process.env.DATABASE_URL || './data/app.sqlite3'),
+    migrationsFolder: resolve(
+      process.env.DATABASE_MIGRATIONS || './server/database/migrations',
+    ),
     verbose:
       process.env.NODE_ENV === 'development'
         ? logger.dynamic('db').verbose
