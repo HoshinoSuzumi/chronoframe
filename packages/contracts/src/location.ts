@@ -24,6 +24,7 @@ export interface NormalizedLocation {
   formattedAddress?: string
 }
 
+/** Accept finite, in-range coordinates while excluding the legacy Null Island placeholder. */
 export function hasValidCoordinates(lat: unknown, lon: unknown): boolean {
   return (
     typeof lat === 'number' &&

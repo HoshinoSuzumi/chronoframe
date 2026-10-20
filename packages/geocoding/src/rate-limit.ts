@@ -6,6 +6,7 @@ export function createGeocodingRateLimiter() {
 
   // Reserve synchronously before waiting so separate providers/workers cannot
   // start together after the same delay. Providers are recreated for each photo.
+  /** Reserve the next endpoint slot before waiting; abort signals cancel the wait. */
   async function waitForGeocodingSlot(
     key: string,
     intervalMs: number,

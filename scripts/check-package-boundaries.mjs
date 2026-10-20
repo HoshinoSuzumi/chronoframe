@@ -9,6 +9,7 @@ const builtins = new Set(
 )
 const failures = []
 
+/** Recursively collect TypeScript source paths for static package dependency checks. */
 async function files(directory) {
   const entries = await readdir(directory, { withFileTypes: true })
   return (

@@ -9,6 +9,7 @@ const name = (value: unknown): string | undefined =>
 
 const municipalityCodes = new Set(['CN-BJ', 'CN-TJ', 'CN-SH', 'CN-CQ'])
 
+/** Reuse the regional component as the city for explicitly identified Chinese municipalities. */
 function applyMunicipality(result: NormalizedLocation, code: unknown) {
   // A direct-administered municipality also acts as the city. Use the explicit
   // ISO subdivision code, rather than guessing from translated name suffixes.
@@ -22,6 +23,7 @@ function applyMunicipality(result: NormalizedLocation, code: unknown) {
   }
 }
 
+/** Keep the first nonempty name for a location level and record its provider source field. */
 function put(
   result: NormalizedLocation,
   level: LocationLevel,
