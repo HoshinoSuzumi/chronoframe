@@ -17,6 +17,9 @@ importers:
       '@aws-sdk/s3-request-presigner':
         specifier: ^3.1149.0
         version: 3.1149.0
+      '@chronoframe/contracts':
+        specifier: workspace:*
+        version: link:packages/contracts
       '@chronoframe/webgl-image':
         specifier: workspace:*
         version: link:packages/webgl-image
@@ -222,6 +225,16 @@ importers:
       vitepress:
         specifier: 2.0.0-alpha.20
         version: 2.0.0-alpha.20(@types/node@24.9.0)(axios@1.20.0)(change-case@5.4.4)(esbuild@0.28.0)(fuse.js@7.5.0)(jiti@2.7.0)(postcss@8.5.29)(sass-embedded@1.105.1)(sass@1.105.1)(terser@5.44.0)(tsx@4.21.0)(typescript@5.9.3)(yaml@2.9.0)
+
+  packages/contracts:
+    dependencies:
+      zod:
+        specifier: ^4.6.6
+        version: 4.6.6
+    devDependencies:
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
 
   packages/webgl-image:
     dependencies:

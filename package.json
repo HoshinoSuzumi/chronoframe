@@ -37,6 +37,7 @@
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1149.0",
     "@aws-sdk/s3-request-presigner": "^3.1149.0",
+    "@chronoframe/contracts": "workspace:*",
     "@chronoframe/webgl-image": "workspace:*",
     "@iconify/vue": "5.0.3",
     "@indoorequal/vue-maplibre-gl": "^8.4.2",

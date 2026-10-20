@@ -7,12 +7,14 @@ FROM base AS deps
 WORKDIR /usr/src/app
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY packages/webgl-image/package.json ./packages/webgl-image/
+COPY packages/contracts/package.json ./packages/contracts/
 RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile
 
 FROM base AS build
 WORKDIR /usr/src/app
 COPY --from=deps /usr/src/app/node_modules ./node_modules
 COPY --from=deps /usr/src/app/packages/webgl-image/node_modules ./packages/webgl-image/node_modules
+COPY --from=deps /usr/src/app/packages/contracts/node_modules ./packages/contracts/node_modules
 COPY . .
 RUN pnpm exec nuxt prepare
 RUN NODE_OPTIONS="--max-old-space-size=4096" pnpm run build:deps

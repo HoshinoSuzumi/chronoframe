@@ -1,5 +1,5 @@
 import type { StorageConfig } from '.'
-import type { UploadPart, UploadPlan } from '../../../shared/types/upload'
+import type { UploadPart, UploadPlan } from '@chronoframe/contracts/upload'
 
 export type DirectUploadSetup =
   | Extract<UploadPlan, { mode: 'single' | 'range' }>
