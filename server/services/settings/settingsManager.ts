@@ -1,4 +1,3 @@
-import type {} from '../../types/worker'
 import type {
   NewStorageProviderRow as NewSettingStorageProvider,
   StorageProviderRow as SettingStorageProvider,
@@ -9,9 +8,25 @@ import type {
   SettingValue,
 } from '~~/shared/types/settings'
 import type { SettingKey, SettingNamespace } from './contants'
-import { validateQueueWorkerCount } from '~~/shared/utils/queue-config'
+import { validateSettingWrite, createStorageResolver } from '@chronoframe/core'
+
+export interface SettingsRuntimeEffects {
+  settingChanged(change: {
+    namespace: string
+    key: string
+    value: SettingValue
+  }): void
+  reloadStorageProvider(id: number): Promise<void>
+}
 
 export class SettingsManager {
+  private runtimeEffects?: SettingsRuntimeEffects
+
+  /** Attach application-owned effects; persistence itself does not own workers or storage instances. */
+  setRuntimeEffects(effects: SettingsRuntimeEffects): void {
+    this.runtimeEffects = effects
+  }
+
   private static instance: SettingsManager
   protected settingsCache: Map<string, SettingValue> = new Map()
   protected _logger = logger.dynamic('settings-mgr')
@@ -41,27 +56,6 @@ export class SettingsManager {
    */
   isInitializing_(): boolean {
     return this.isInitializing
-  }
-
-  /**
-   * Validate setting value against enum if defined
-   * @param value Setting value
-   * @param enumValues Enum values if defined
-   * @returns true if valid, false if not valid
-   */
-  private validateEnum(
-    value: SettingValue,
-    enumValues: string[] | null,
-  ): boolean {
-    // Allow null values if no enum is defined
-    if (value === null) {
-      return !enumValues || enumValues.length === 0
-    }
-
-    if (!enumValues || enumValues.length === 0) {
-      return true
-    }
-    return enumValues.includes(String(value))
   }
 
   /**
@@ -269,43 +263,15 @@ export class SettingsManager {
       throw new Error(`Setting ${namespace}:${key} does not exist`)
     }
 
-    if (existing.isReadonly && !sudo) {
-      this._logger.warn(
-        `Attempt to modify readonly setting ${namespace}:${key}`,
-      )
-      throw new Error(`Setting ${namespace}:${key} is readonly`)
-    }
-
-    if (!this.validateEnum(value, existing.enum)) {
-      this._logger.warn(
-        `Invalid value for enum setting ${namespace}:${key}. Value: ${value}, allowed: ${existing.enum?.join(', ')}`,
-      )
-      throw new Error(
-        `Invalid value for setting ${namespace}:${key}. Allowed values: ${existing.enum?.join(', ')}`,
-      )
-    }
-
-    if (namespace === 'location' && key === 'fallbackOrder') {
-      const levels = [
-        'country',
-        'region',
-        'subregion',
-        'city',
-        'district',
-        'locality',
-        'neighborhood',
-      ]
-      if (
-        typeof value !== 'string' ||
-        value.split(',').some((level) => !levels.includes(level.trim()))
-      ) {
-        throw new Error('Invalid location fallback order')
-      }
-    }
+    validateSettingWrite({
+      namespace,
+      key,
+      value,
+      readonly: Boolean(existing.isReadonly),
+      enumValues: existing.enum,
+      sudo,
+    })
     const serializedValue = this.serialize(value)
-    if (namespace === 'system' && key === 'queue.workerCount') {
-      validateQueueWorkerCount(value)
-    }
 
     db.update(tables.settings)
       .set({
@@ -323,94 +289,8 @@ export class SettingsManager {
 
     this._logger.info(`Setting ${namespace}:${key} updated`)
     this.settingsCache.set(cacheKey, value)
-    if (
-      namespace === 'system' &&
-      key === 'queue.workerCount' &&
-      !this.isInitializing
-    ) {
-      void globalThis.__workerPool
-        ?.setWorkerCount(value as number)
-        .catch((error) => {
-          this._logger.error(
-            'Failed to apply queue concurrency setting:',
-            error,
-          )
-        })
-    }
-
-    // Trigger storage provider switch if storage:provider is being changed
-    // Skip during initialization as storage manager is not yet initialized
-    if (namespace === 'storage' && key === 'provider' && !this.isInitializing) {
-      // Use setImmediate to avoid blocking and handle async operation
-      setImmediate(() => {
-        this.triggerStorageProviderSwitch(value as number).catch((error) => {
-          this._logger.error(
-            'Failed to trigger storage provider switch:',
-            error,
-          )
-        })
-      })
-    }
-  }
-
-  /**
-   * Trigger storage provider switch
-   * @param providerId Provider ID to switch to
-   */
-  private async triggerStorageProviderSwitch(
-    providerId: number,
-  ): Promise<void> {
-    try {
-      // Dynamically import to avoid circular dependency issues
-      const { getGlobalStorageManager, setGlobalStorageManager } =
-        await import('~~/server/services/storage/events')
-      const { StorageManager } = await import('~~/server/services/storage')
-      const loggerModule = await import('~~/server/utils/logger')
-
-      const newProvider = await this.storage.getProviderById(providerId)
-      if (!newProvider) {
-        throw new Error(`Provider with ID ${providerId} not found`)
-      }
-
-      let storageManager = getGlobalStorageManager()
-      if (!storageManager) {
-        this._logger.info(
-          `Storage manager not initialized, bootstrapping with provider: ${newProvider.name} (ID: ${providerId})`,
-        )
-        try {
-          storageManager = new StorageManager(
-            newProvider.config,
-            loggerModule.logger.dynamic('storage'),
-          )
-          if (newProvider.config.provider === 'local') {
-            const fs = await import('node:fs/promises')
-            await fs.mkdir(newProvider.config.basePath, { recursive: true })
-          }
-
-          setGlobalStorageManager(storageManager)
-          this._logger.info('Storage manager bootstrap completed')
-          return
-        } catch (bootstrapError) {
-          this._logger.error(
-            'Failed to bootstrap storage manager with new provider:',
-            bootstrapError,
-          )
-          throw bootstrapError
-        }
-      }
-
-      this._logger.info(
-        `Triggering storage provider switch to: ${newProvider.name} (ID: ${providerId})`,
-      )
-
-      await storageManager.registerProvider(
-        newProvider.config,
-        loggerModule.logger.dynamic('storage'),
-      )
-    } catch (error) {
-      this._logger.error('Failed to switch storage provider:', error)
-      throw error
-    }
+    if (!this.isInitializing)
+      this.runtimeEffects?.settingChanged({ namespace, key, value })
   }
 
   async getNamespace(
@@ -474,14 +354,10 @@ export class SettingsManager {
     },
 
     async getActiveProvider(): Promise<SettingStorageProvider | null> {
-      const providerId = await settingsManager.get<number>(
-        'storage',
-        'provider',
-      )
-      if (!providerId) {
-        return null
-      }
-      return this.getProviderById(providerId)
+      return createStorageResolver({
+        getSelectedId: () => settingsManager.get<number>('storage', 'provider'),
+        find: (id) => this.getProviderById(id),
+      }).resolve()
     },
 
     async addProvider(
@@ -539,7 +415,7 @@ export class SettingsManager {
       // requests use the updated configuration, including client credentials.
       if (previousProvider) {
         try {
-          await settingsManager.triggerStorageProviderSwitch(id)
+          await settingsManager.runtimeEffects?.reloadStorageProvider(id)
         } catch (error) {
           // Provider construction leaves the existing instance untouched on
           // failure; restore its persisted configuration to match.

@@ -1,3 +1,8 @@
+import {
+  canReadAlbum,
+  photoAccessDenied,
+  type AlbumAccessTarget,
+} from '@chronoframe/core'
 import { createHmac, randomBytes, scrypt, timingSafeEqual } from 'node:crypto'
 import { promisify } from 'node:util'
 import { eq, inArray } from 'drizzle-orm'
@@ -108,27 +113,8 @@ export function grantAlbumAccess(
   })
 }
 
-type AlbumAccessTarget = {
-  id: number
-  isHidden: boolean
-  passwordHash: string | null
-}
-
 function photoNotFound() {
   return createError({ statusCode: 404, statusMessage: 'Photo not found' })
-}
-
-function photoAccessDenied(
-  admin: boolean,
-  memberships: { album: AlbumAccessTarget }[],
-  canAccess: (album: AlbumAccessTarget) => boolean,
-): boolean {
-  if (admin) return false
-  return (
-    memberships.some(({ album }) => album.isHidden) ||
-    (memberships.some(({ album }) => album.passwordHash) &&
-      !memberships.some(({ album }) => album.passwordHash && canAccess(album)))
-  )
 }
 
 export async function albumAccess(event: H3Event) {
@@ -136,14 +122,13 @@ export async function albumAccess(event: H3Event) {
   const admin = Boolean(session.user)
   const grants = readGrants(event)
   const canAccess = (album: AlbumAccessTarget) =>
-    admin ||
-    (!album.isHidden &&
-      (!album.passwordHash ||
-        grants.some(
-          (grant) =>
-            grant.id === album.id &&
-            grant.hash === passwordVersion(album.passwordHash!),
-        )))
+    canReadAlbum(album, admin, (target) =>
+      grants.some(
+        (grant) =>
+          grant.id === target.id &&
+          grant.hash === passwordVersion(target.passwordHash!),
+      ),
+    )
   return { admin, canAccess }
 }
 

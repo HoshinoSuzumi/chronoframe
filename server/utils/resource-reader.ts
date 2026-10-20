@@ -1,5 +1,5 @@
 import { createError } from 'h3'
-import { createResourceReader, ResourceReadError } from '@chronoframe/core'
+import { createResourceReader, CoreError } from '@chronoframe/core'
 import { createSqliteResourceRepository } from '../repositories/sqlite-resources'
 import { useDB } from './db'
 
@@ -15,7 +15,7 @@ export async function resourceReadResponse<T>(
   try {
     return await operation()
   } catch (error) {
-    if (error instanceof ResourceReadError)
+    if (error instanceof CoreError)
       throw createError({
         statusCode: error.statusCode,
         statusMessage: error.message,

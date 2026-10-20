@@ -32,15 +32,8 @@ export interface ReadAccess {
   }): boolean
 }
 
-/** Transport-neutral failure translated to HTTP by the application adapter. */
-export class ResourceReadError extends Error {
-  readonly statusCode: 401 | 403 | 404
-  constructor(statusCode: 401 | 403 | 404, message: string) {
-    super(message)
-    this.statusCode = statusCode
-    this.name = 'ResourceReadError'
-  }
-}
+export { CoreError, ResourceReadError } from './errors.ts'
+import { ResourceReadError } from './errors.ts'
 
 /** Read use cases own visibility rules; repositories own query and ordering details. */
 export function createResourceReader(repository: ResourceReadRepository) {
@@ -142,3 +135,9 @@ export function createResourceReader(repository: ResourceReadRepository) {
     },
   }
 }
+
+export * from './mutations.ts'
+export * from './settings.ts'
+export * from './uploads.ts'
+export * from './access.ts'
+export * from './upload-preparation.ts'
