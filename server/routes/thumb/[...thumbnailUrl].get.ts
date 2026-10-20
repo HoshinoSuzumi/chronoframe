@@ -1,3 +1,7 @@
+import { readFile } from 'node:fs/promises'
+import { resolveLocalMediaPath } from '../../utils/local-media'
+import { eq } from 'drizzle-orm'
+import { tables, useDB } from '../../utils/db'
 import sharp from 'sharp'
 import { assertPhotoAccess } from '../../utils/album-access'
 
@@ -36,32 +40,42 @@ export default eventHandler(async (event) => {
   const restricted = await assertPhotoAccess(event, accessKey, !isAppPath)
   if (restricted) setHeader(event, 'Cache-Control', 'private, no-store')
 
-  const shouldForwardCookieToStorage =
-    storageProvider.config?.provider === 'local' &&
-    (url.startsWith('/storage/') || url.startsWith('/image/'))
-
-  if (
-    storageProvider.config?.provider === 'local' &&
-    (url.startsWith('/storage/') || url.startsWith('/image/'))
-  ) {
-    const scheme = event.node.req.headers['x-forwarded-proto'] || 'http'
-    url = `${scheme}://${event.node.req.headers.host}${url}`
-  }
-
-  const cookie = getHeader(event, 'cookie')
-  const photo = await fetch(
-    url,
-    cookie && shouldForwardCookieToStorage
-      ? { headers: { cookie } }
-      : undefined,
-  )
-    .then((res) => {
-      if (!res.ok) {
+  let photo: Buffer
+  if (storageProvider.config?.provider === 'local' && isAppPath) {
+    let target = url
+    if (protectedPhotoMatch) {
+      const row = useDB()
+        .select()
+        .from(tables.photos)
+        .where(eq(tables.photos.id, accessKey))
+        .get()
+      const kind = url.split('/').pop()
+      const resourceUrl =
+        kind === 'original'
+          ? row?.originalUrl
+          : kind === 'live'
+            ? row?.livePhotoVideoUrl
+            : row?.thumbnailUrl
+      if (!resourceUrl)
         throw createError({ statusCode: 404, statusMessage: 'Photo not found' })
-      }
-      return res.arrayBuffer()
-    })
-    .then((buf) => Buffer.from(buf))
+      target = resourceUrl
+    }
+    if (!/^\/(?:storage|image)\//.test(target))
+      throw createError({ statusCode: 404, statusMessage: 'Photo not found' })
+    const localKey = decodeURIComponent(
+      target.replace(/^\/(?:storage|image)\//, ''),
+    )
+    const targetRestricted = await assertPhotoAccess(event, localKey)
+    if (targetRestricted) setHeader(event, 'Cache-Control', 'private, no-store')
+    photo = await readFile(
+      await resolveLocalMediaPath(storageProvider.config, localKey),
+    )
+  } else {
+    const response = await fetch(url)
+    if (!response.ok)
+      throw createError({ statusCode: 404, statusMessage: 'Photo not found' })
+    photo = Buffer.from(await response.arrayBuffer())
+  }
 
   const sharpInst = sharp(photo).rotate()
   return await sharpInst.jpeg({ quality: 85 }).toBuffer()

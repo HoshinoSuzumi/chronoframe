@@ -3,7 +3,7 @@ import path from 'node:path'
 import { builtinModules } from 'node:module'
 import ts from 'typescript'
 
-const packageNames = ['contracts', 'storage', 'media', 'geocoding']
+const packageNames = ['contracts', 'core', 'storage', 'media', 'geocoding']
 const builtins = new Set(
   builtinModules.map((name) => name.replace(/^node:/, '')),
 )
@@ -72,7 +72,8 @@ for (const name of packageNames) {
         ) {
           fail('application aliases and absolute imports are forbidden')
         } else if (builtins.has(value.replace(/^node:/, ''))) {
-          if (name === 'contracts') fail('contracts must be browser-compatible')
+          if (name === 'contracts' || name === 'core')
+            fail('contracts and core must be runtime-independent')
         } else {
           const dependency = value.startsWith('@')
             ? value.split('/').slice(0, 2).join('/')

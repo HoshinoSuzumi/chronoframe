@@ -8,6 +8,7 @@ WORKDIR /usr/src/app
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY packages/webgl-image/package.json ./packages/webgl-image/
 COPY packages/contracts/package.json ./packages/contracts/
+COPY packages/core/package.json ./packages/core/
 COPY packages/storage/package.json ./packages/storage/
 COPY packages/media/package.json ./packages/media/
 COPY packages/geocoding/package.json ./packages/geocoding/

@@ -20,6 +20,9 @@ importers:
       '@chronoframe/contracts':
         specifier: workspace:*
         version: link:packages/contracts
+      '@chronoframe/core':
+        specifier: workspace:*
+        version: link:packages/core
       '@chronoframe/geocoding':
         specifier: workspace:*
         version: link:packages/geocoding
@@ -92,6 +95,9 @@ importers:
       file-type:
         specifier: ^22.1.1
         version: 22.1.1
+      h3:
+        specifier: ^1.15.11
+        version: 1.15.11
       heic-convert:
         specifier: ^2.1.0
         version: 2.1.0
@@ -240,6 +246,16 @@ importers:
       zod:
         specifier: ^4.6.6
         version: 4.6.6
+    devDependencies:
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
+
+  packages/core:
+    dependencies:
+      '@chronoframe/contracts':
+        specifier: workspace:*
+        version: link:../contracts
     devDependencies:
       typescript:
         specifier: ^5.9.3

@@ -1,3 +1,4 @@
+import { serveLocalMedia } from '../../utils/local-media'
 import { eq } from 'drizzle-orm'
 import { Readable } from 'node:stream'
 import { assertPhotoAccess } from '../../utils/album-access'
@@ -45,6 +46,22 @@ export default eventHandler(async (event) => {
           : photo.livePhotoVideoUrl
     if (!targetUrl) {
       throw createError({ statusCode: 404, statusMessage: 'Photo not found' })
+    }
+
+    if (
+      storageProvider.config?.provider === 'local' &&
+      /^\/(?:storage|image)\//.test(targetUrl)
+    ) {
+      const localKey = decodeURIComponent(
+        targetUrl.replace(/^\/(?:storage|image)\//, ''),
+      )
+      const targetRestricted = await assertPhotoAccess(event, localKey)
+      return serveLocalMedia(
+        event,
+        storageProvider.config,
+        localKey,
+        restricted || targetRestricted,
+      )
     }
 
     const absoluteTarget = new URL(targetUrl, getRequestURL(event)).toString()
