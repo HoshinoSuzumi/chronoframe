@@ -26,15 +26,4 @@ export function resolveLocationLabel(
   return { label: '' }
 }
 
-export function hasValidCoordinates(lat: unknown, lon: unknown): boolean {
-  return (
-    typeof lat === 'number' &&
-    Number.isFinite(lat) &&
-    Math.abs(lat) <= 90 &&
-    typeof lon === 'number' &&
-    Number.isFinite(lon) &&
-    Math.abs(lon) <= 180 &&
-    // Exact (0, 0) is treated as a missing-GPS placeholder.
-    !(lat === 0 && lon === 0)
-  )
-}
+export { hasValidCoordinates } from '@chronoframe/contracts/location'

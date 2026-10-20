@@ -1,3 +1,4 @@
+import { toUserSummary } from '~~/server/utils/dto'
 import { z } from 'zod'
 
 const _invalidCredentialsError = createError({
@@ -31,7 +32,7 @@ export default eventHandler(async (event) => {
 
   await setUserSession(
     event,
-    { user },
+    { user: toUserSummary(user) },
     {
       cookie: {
         // secure: !useRuntimeConfig().allowInsecureCookie,

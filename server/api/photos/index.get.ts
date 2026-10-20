@@ -1,3 +1,4 @@
+import { toPhotoDto } from '../../utils/dto'
 import { desc } from 'drizzle-orm'
 
 export default eventHandler(async (_event) => {
@@ -7,4 +8,5 @@ export default eventHandler(async (_event) => {
     .from(tables.photos)
     .orderBy(desc(tables.photos.dateTaken))
     .all()
+    .map(toPhotoDto)
 })

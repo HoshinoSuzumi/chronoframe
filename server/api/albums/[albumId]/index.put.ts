@@ -1,3 +1,4 @@
+import { toAlbumDto } from '../../../utils/dto'
 import { z } from 'zod'
 import {
   ALBUM_PASSWORD_MAX_LENGTH,
@@ -120,9 +121,7 @@ export default eventHandler(async (event) => {
       .get()
   })
 
-  return {
-    ...updatedAlbum,
-    passwordHash: undefined,
-    hasPassword: Boolean(updatedAlbum?.passwordHash),
-  }
+  if (!updatedAlbum)
+    throw createError({ statusCode: 404, statusMessage: 'Album not found' })
+  return toAlbumDto(updatedAlbum)
 })

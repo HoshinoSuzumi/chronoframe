@@ -2,10 +2,9 @@
 import { motion } from 'motion-v'
 import { getAlbumListState } from '~/utils/albumListState'
 import { sampleWaterfallPhotos } from '~/utils/sampleWaterfallPhotos'
-import type { Album } from '~~/server/utils/db'
+import type { Album } from '@chronoframe/contracts/resources'
 interface AlbumWithPhotos extends Album {
   photoIds?: string[]
-  hasPassword?: boolean
 }
 const appSlogan = useSettingRef('app:slogan')
 const { homeView, photoWallPath } = useHomeView()

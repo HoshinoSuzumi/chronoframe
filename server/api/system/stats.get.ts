@@ -1,3 +1,4 @@
+import type {} from '../../types/worker'
 import { getLocationMigrationStatus } from '../../services/pipeline-queue/location-migration'
 import { settingsManager } from '~~/server/services/settings/settingsManager'
 import { sql, gte } from 'drizzle-orm'

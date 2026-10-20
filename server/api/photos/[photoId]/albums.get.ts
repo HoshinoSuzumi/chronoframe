@@ -34,6 +34,9 @@ export default eventHandler(async (event) => {
     .all()
 
   return albums.filter(canAccess).map(({ passwordHash, ...album }) => ({
-    ...album, hasPassword: Boolean(passwordHash),
+    ...album,
+    createdAt: album.createdAt.toISOString(),
+    updatedAt: album.updatedAt.toISOString(),
+    hasPassword: Boolean(passwordHash),
   }))
 })

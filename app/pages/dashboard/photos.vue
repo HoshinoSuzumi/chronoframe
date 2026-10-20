@@ -1,6 +1,6 @@
 <script lang="ts" setup>
 import type { FormSubmitEvent, TableColumn } from '@nuxt/ui'
-import type { Album, Photo } from '~~/server/utils/db'
+import type { Album, Photo } from '@chronoframe/contracts/resources'
 import type { UploadingFile } from '~~/shared/types/uploading-file'
 import {
   MAX_ALBUM_PHOTOS_PER_REQUEST,

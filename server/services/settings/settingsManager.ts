@@ -1,7 +1,10 @@
+import type {} from '../../types/worker'
 import type {
-  NewSettingStorageProvider,
+  NewStorageProviderRow as NewSettingStorageProvider,
+  StorageProviderRow as SettingStorageProvider,
+} from '../../types/settings'
+import type {
   SettingConfig,
-  SettingStorageProvider,
   SettingType,
   SettingValue,
 } from '~~/shared/types/settings'

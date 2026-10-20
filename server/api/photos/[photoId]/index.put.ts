@@ -1,3 +1,5 @@
+import type {} from '../../../types/worker'
+import { toPhotoDto } from '../../../utils/dto'
 import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
@@ -268,7 +270,7 @@ export default eventHandler(async (event) => {
 
     return {
       success: true,
-      photo: updatedPhoto,
+      photo: updatedPhoto ? toPhotoDto(updatedPhoto) : undefined,
     }
   } catch (error) {
     logger.image.error('Failed to update photo metadata', error)

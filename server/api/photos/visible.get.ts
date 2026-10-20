@@ -1,3 +1,4 @@
+import { toPhotoDto } from '../../utils/dto'
 import { desc, notInArray, or, isNotNull } from 'drizzle-orm'
 
 export default eventHandler(async (_event) => {
@@ -10,7 +11,12 @@ export default eventHandler(async (_event) => {
     })
     .from(tables.albumPhotos)
     .innerJoin(tables.albums, eq(tables.albumPhotos.albumId, tables.albums.id))
-    .where(or(eq(tables.albums.isHidden, true), isNotNull(tables.albums.passwordHash)))
+    .where(
+      or(
+        eq(tables.albums.isHidden, true),
+        isNotNull(tables.albums.passwordHash),
+      ),
+    )
     .all()
 
   const hiddenPhotoIds = hiddenAlbumPhotos.map((row) => row.photoId)
@@ -23,6 +29,7 @@ export default eventHandler(async (_event) => {
       .where(notInArray(tables.photos.id, hiddenPhotoIds))
       .orderBy(desc(tables.photos.dateTaken))
       .all()
+      .map(toPhotoDto)
   }
 
   // 如果没有隐藏的照片，直接返回所有照片
@@ -31,4 +38,5 @@ export default eventHandler(async (_event) => {
     .from(tables.photos)
     .orderBy(desc(tables.photos.dateTaken))
     .all()
+    .map(toPhotoDto)
 })

@@ -1,3 +1,4 @@
+import type { PublicSettingsResponse } from '@chronoframe/contracts/settings'
 import { useDB, tables, eq, or, and } from '~~/server/utils/db'
 
 /**
@@ -14,7 +15,10 @@ export default eventHandler(async () => {
     .from(tables.settings)
     .where(
       or(
-        eq(tables.settings.isPublic, true),
+        and(
+          eq(tables.settings.isPublic, true),
+          eq(tables.settings.isSecret, false),
+        ),
         and(
           eq(tables.settings.namespace, 'system'),
           eq(tables.settings.key, 'firstLaunch'),
@@ -51,5 +55,5 @@ export default eventHandler(async () => {
   return {
     timestamp: Date.now(),
     data: grouped,
-  }
+  } satisfies PublicSettingsResponse
 })
