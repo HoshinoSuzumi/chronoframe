@@ -1,3 +1,4 @@
+import { isLivePhotoVideo } from '@chronoframe/media/livephoto'
 import path from 'path'
 import { eq } from 'drizzle-orm'
 import { getStorageManager } from '~~/server/plugins/3.storage'
@@ -157,17 +158,4 @@ export const isVideoFile = (fileName: string): boolean => {
  * 检查文件是否可能是 LivePhoto 的 MOV 文件
  * LivePhoto 的 MOV 文件通常很小（几MB以内）
  */
-export const isLivePhotoVideo = (
-  fileName: string,
-  fileSize: number,
-): boolean => {
-  const extName = path.extname(fileName).toLowerCase()
-
-  // 检查是否为 MOV 格式
-  if (extName !== '.mov') {
-    return false
-  }
-
-  const maxLivePhotoSize = 12 * 1024 * 1024 // 12MB
-  return fileSize <= maxLivePhotoSize
-}
+export { isLivePhotoVideo }

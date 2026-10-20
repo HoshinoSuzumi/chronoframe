@@ -1,3 +1,4 @@
+import type {} from '../types/worker'
 import { WorkerPool } from '../services/pipeline-queue'
 import { settingsManager } from '../services/settings/settingsManager'
 import { DEFAULT_QUEUE_WORKER_COUNT } from '~~/shared/utils/queue-config'

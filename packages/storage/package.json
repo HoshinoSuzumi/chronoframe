@@ -1,0 +1,26 @@
+{
+  "name": "@chronoframe/storage",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./interfaces": "./src/interfaces.ts",
+    "./manager": "./src/manager.ts",
+    "./providers/local": "./src/providers/local.ts",
+    "./providers/s3": "./src/providers/s3.ts",
+    "./providers/openlist": "./src/providers/openlist.ts"
+  },
+  "scripts": {
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@chronoframe/contracts": "workspace:*",
+    "@aws-sdk/client-s3": "^3.1149.0",
+    "@aws-sdk/s3-request-presigner": "^3.1149.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.5",
+    "typescript": "^5.9.3"
+  }
+}

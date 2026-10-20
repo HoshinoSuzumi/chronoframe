@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import type { Album, Photo } from '~~/server/utils/db'
+import type { Album, Photo } from '@chronoframe/contracts/resources'
 import type { FormSubmitEvent, FormError } from '@nuxt/ui'
 import {
   ALBUM_PASSWORD_MAX_LENGTH,
@@ -16,7 +16,6 @@ useHead({
 })
 
 interface AlbumItem extends Album {
-  hasPassword?: boolean
   photoCount?: number
   photoIds?: string[]
   coverPhoto?: Photo | null

@@ -1,6 +1,9 @@
 import { defineStore } from 'pinia'
 
-type SettingValue = string | number | boolean | null | Record<string, any>
+import type {
+  SettingValue,
+  PublicSettingsResponse,
+} from '@chronoframe/contracts/settings'
 
 interface SettingsState {
   data: Record<string, Record<string, SettingValue>>
@@ -58,10 +61,9 @@ export const useSettingsStore = defineStore('settings', {
       this.error = null
 
       try {
-        const response = await $fetch<{
-          timestamp: number
-          data: Record<string, Record<string, SettingValue>>
-        }>('/api/system/settings/all')
+        const response = await $fetch<PublicSettingsResponse>(
+          '/api/system/settings/all',
+        )
 
         this.data = response.data
         this.isInitialized = true
@@ -113,10 +115,9 @@ export const useSettingsStore = defineStore('settings', {
       this.error = null
 
       try {
-        const response = await $fetch<{
-          timestamp: number
-          data: Record<string, Record<string, SettingValue>>
-        }>('/api/system/settings/all')
+        const response = await $fetch<PublicSettingsResponse>(
+          '/api/system/settings/all',
+        )
 
         this.data = response.data
         this.isInitialized = true

@@ -8,7 +8,8 @@
     "allowImportingTsExtensions": true,
     "types": [],
     "lib": ["ES2022", "DOM"],
-    "skipLibCheck": true
+    "skipLibCheck": true,
+    "noUncheckedIndexedAccess": true
   },
   "include": ["src/**/*.ts"]
 }

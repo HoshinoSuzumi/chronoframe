@@ -6,7 +6,11 @@
   "exports": {
     ".": "./src/index.ts",
     "./storage": "./src/storage.ts",
-    "./upload": "./src/upload.ts"
+    "./upload": "./src/upload.ts",
+    "./photo": "./src/photo.ts",
+    "./location": "./src/location.ts",
+    "./resources": "./src/resources.ts",
+    "./settings": "./src/settings.ts"
   },
   "scripts": {
     "type-check": "tsc --noEmit"

@@ -1,2 +1,2 @@
-// Compatibility entry point for the existing Self-hosted application.
-export * from '@chronoframe/contracts/upload'
+// Browser upload protocol; constants are exposed by shared/utils/upload.
+export type { UploadPart, UploadPlan } from '@chronoframe/contracts/upload'

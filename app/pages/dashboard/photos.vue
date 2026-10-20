@@ -1,6 +1,6 @@
 <script lang="ts" setup>
 import type { FormSubmitEvent, TableColumn } from '@nuxt/ui'
-import type { Album, Photo } from '~~/server/utils/db'
+import type { Album, Photo } from '@chronoframe/contracts/resources'
 import type { UploadingFile } from '~~/shared/types/uploading-file'
 import { QueueWarningCode } from '~~/shared/utils/queue-warning'
 import {

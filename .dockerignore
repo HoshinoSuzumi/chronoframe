@@ -23,6 +23,9 @@ pnpm-debug.log*
 .env.test
 .env.production
 
+# 构建产物
+.output
+
 # 缓存目录
 .cache
 .temp
