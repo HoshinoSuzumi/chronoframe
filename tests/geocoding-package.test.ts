@@ -58,3 +58,28 @@ test('geocoding injects transport, language, retry and rate limiting without app
     {},
   )
 })
+
+test('GPS text parsing accepts decimal pairs and rejects hostile metadata', () => {
+  const { parseGPSCoordinates } = createGeocodingServices({
+    getLanguage: async () => 'en',
+    request: fetch,
+    waitForGeocodingSlot: async () => {},
+    withRetry,
+    retryOptions: RetryPresets.network,
+    logger,
+  })
+  for (const text of ['48.85, 2.35', '48.85° 2.35°', '  +48.85 -2.35 ']) {
+    assert.deepEqual(parseGPSCoordinates({ GPSCoordinates: text }), {
+      latitude: 48.85,
+      longitude: text.includes('-') ? -2.35 : 2.35,
+    })
+  }
+  for (const text of [
+    '9'.repeat(100_000),
+    '9'.repeat(100_000) + ', 2',
+    '1.2.3, 4',
+    '999, 2',
+  ]) {
+    assert.deepEqual(parseGPSCoordinates({ GPSCoordinates: text }), {})
+  }
+})

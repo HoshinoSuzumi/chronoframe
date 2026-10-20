@@ -11,8 +11,17 @@ const ensureDir = async (dirPath: string) => {
 const sanitizeKey = (key: string) =>
   key.replace(/\\/g, '/').replace(/\/+/g, '/').replace(/^\/+/, '')
 
+/** Trim edge slashes in one pass, even for untrusted long keys or URLs. */
+const trimSlashes = (value: string, leading = true): string => {
+  let start = 0
+  let end = value.length
+  if (leading) while (start < end && value[start] === '/') start++
+  while (end > start && value[end - 1] === '/') end--
+  return value.slice(start, end)
+}
+
 const combinePrefixAndKey = (prefix: string | undefined, key: string) => {
-  const cleanPrefix = (prefix || '').replace(/^\/+|\/+$/g, '')
+  const cleanPrefix = trimSlashes(prefix || '')
   const cleanKey = key.replace(/^\/+/, '')
   if (!cleanPrefix) return cleanKey
   return cleanKey.startsWith(cleanPrefix + '/')
@@ -88,7 +97,7 @@ export class LocalStorageProvider implements StorageProvider {
 
   getPublicUrl(key: string): string {
     const relKey = sanitizeKey(combinePrefixAndKey(this.config.prefix, key))
-    const base = (this.config.baseUrl || '/storage').replace(/\/+$/, '')
+    const base = trimSlashes(this.config.baseUrl || '/storage', false)
     return `${base}/${relKey}`
   }
 

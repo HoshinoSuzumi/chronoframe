@@ -10,6 +10,7 @@ import type { ExifDateTime, Tags } from 'exiftool-vendored'
 import { noop } from 'es-toolkit'
 import { withRetry, RetryPresets, RetryConditions } from './retry.ts'
 
+/** Create EXIF helpers using a caller-owned ExifTool instance and temporary directory. */
 export function createExifService({
   exiftool,
   tempDir,

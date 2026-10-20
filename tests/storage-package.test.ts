@@ -223,9 +223,9 @@ test(
           res.statusCode = 404
           res.end('<Error><Code>NoSuchKey</Code></Error>')
         }
-      } catch (error) {
+      } catch {
         res.statusCode = 500
-        res.end(String(error))
+        res.end('Internal server error')
       }
     })
     server.listen(0, '127.0.0.1')
@@ -282,6 +282,16 @@ test(
         /ETag mismatch/,
       )
       assert.equal(await provider.getFileMeta('large.jpg'), null)
+      for (const invalidParts of [
+        [],
+        uploadedParts.slice(0, 1),
+        [uploadedParts[0]!, uploadedParts[0]!],
+        [...uploadedParts, uploadedParts[0]!],
+        uploadedParts.map((part) => ({ ...part, partNumber: 0 })),
+      ]) {
+        await assert.rejects(plan.complete(invalidParts), /ETag mismatch/)
+        assert.equal(await provider.getFileMeta('large.jpg'), null)
+      }
       await plan.complete(uploadedParts)
       assert.equal((await provider.getFileMeta('large.jpg'))?.size, size)
       await provider.delete('small.jpg')
@@ -292,3 +302,57 @@ test(
     }
   },
 )
+
+test('Local URL slash trimming handles long edge runs', () => {
+  const slashes = '/'.repeat(100_000)
+  const provider = new LocalStorageProvider({
+    provider: 'local',
+    basePath: '/tmp',
+    prefix: `${slashes}photos${slashes}`,
+    baseUrl: `https://media.example.com${slashes}`,
+  })
+  assert.equal(
+    provider.getPublicUrl('pic.jpg'),
+    'https://media.example.com/photos/pic.jpg',
+  )
+})
+
+test('S3 public URL routing matches endpoint hostnames rather than URL substrings', () => {
+  for (const [endpoint, expected] of [
+    [
+      'https://s3.us-east-1.amazonaws.com',
+      'https://photos.s3.us-east-1.amazonaws.com/pic.jpg',
+    ],
+    [
+      'https://oss-cn-hangzhou.aliyuncs.com',
+      'https://photos.oss-cn-hangzhou.aliyuncs.com/pic.jpg',
+    ],
+    [
+      'https://amazonaws.com.attacker.example',
+      'https://amazonaws.com.attacker.example/photos/pic.jpg',
+    ],
+    [
+      'https://aliyuncs.com.attacker.example',
+      'https://aliyuncs.com.attacker.example/photos/pic.jpg',
+    ],
+    ['https://notamazonaws.com', 'https://notamazonaws.com/photos/pic.jpg'],
+    [
+      'https://storage.example/amazonaws.com',
+      'https://storage.example/amazonaws.com/photos/pic.jpg',
+    ],
+    [
+      'https://storage.example/aliyuncs.com',
+      'https://storage.example/aliyuncs.com/photos/pic.jpg',
+    ],
+  ]) {
+    const provider = new S3StorageProvider({
+      provider: 's3',
+      bucket: 'photos',
+      region: 'us-east-1',
+      endpoint,
+      accessKeyId: 'fixture-key',
+      secretAccessKey: 'fixture-secret',
+    })
+    assert.equal(provider.getPublicUrl('pic.jpg'), expected)
+  }
+})

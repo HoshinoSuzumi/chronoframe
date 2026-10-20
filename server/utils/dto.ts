@@ -9,6 +9,7 @@ import type {
   User as UserRow,
 } from './db'
 
+/** Expose only the declared photo contract fields, excluding internal database columns. */
 export function toPhotoDto(photo: PhotoRow): Photo {
   return {
     id: photo.id,
@@ -39,6 +40,7 @@ export function toPhotoDto(photo: PhotoRow): Photo {
   }
 }
 
+/** Serialize album dates and expose password presence without its hash. */
 export function toAlbumDto(album: AlbumRow): Album {
   return {
     id: album.id,
@@ -53,6 +55,7 @@ export function toAlbumDto(album: AlbumRow): Album {
   }
 }
 
+/** Build a session-safe user summary without password material. */
 export function toUserSummary(user: UserRow): UserSummary {
   return {
     id: user.id,
@@ -64,6 +67,7 @@ export function toUserSummary(user: UserRow): UserSummary {
   }
 }
 
+/** Serialize an administrator-only provider response; configuration may contain secrets. */
 export function toStorageProviderDto(
   provider: import('../types/settings').StorageProviderRow,
 ): import('@chronoframe/contracts/settings').SettingStorageProvider {

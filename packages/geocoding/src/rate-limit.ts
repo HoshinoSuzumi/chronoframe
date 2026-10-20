@@ -1,5 +1,6 @@
 import { setTimeout } from 'node:timers/promises'
 
+/** Create an instance-owned limiter that reserves request slots synchronously per endpoint. */
 export function createGeocodingRateLimiter() {
   const nextRequestAt = new Map<string, number>()
 

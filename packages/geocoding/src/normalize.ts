@@ -33,6 +33,7 @@ function put(
     result.components[level] = { name: text, sourceField }
 }
 
+/** Normalize Mapbox features into location components while preserving source fields. */
 export function normalizeMapbox(
   data: ObjectValue,
   language: string,
@@ -78,6 +79,7 @@ export function normalizeMapbox(
   return Object.keys(result.components).length ? result : null
 }
 
+/** Normalize Nominatim address tags without treating counties as city districts. */
 export function normalizeNominatim(
   data: ObjectValue,
   language: string,

@@ -1270,11 +1270,14 @@ const columns = computed<any[]>(() => [
                               $t('ui.photo.untitled')
                             }}
                           </p>
-                          <p class="truncate text-[9px] text-white/72">
+                          <p
+                            v-if="photo.dateTaken"
+                            class="truncate text-[9px] text-white/72"
+                          >
                             {{
                               locationLabel(photo)
-                                ? `${locationLabel(photo)} · ${dayjs(photo.createdAt).format('MM-DD')}`
-                                : dayjs(photo.createdAt).format('YYYY-MM-DD')
+                                ? `${locationLabel(photo)} · ${dayjs(photo.dateTaken).format('MM-DD')}`
+                                : dayjs(photo.dateTaken).format('YYYY-MM-DD')
                             }}
                           </p>
                         </div>

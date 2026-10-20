@@ -25,6 +25,7 @@ export interface ImageProcessorOptions {
   signal?: AbortSignal
 }
 
+/** Create image decoding and conversion helpers with optional resource limits and cancellation. */
 export function createImageProcessor(
   logger: MediaLogger,
   options: ImageProcessorOptions = {},

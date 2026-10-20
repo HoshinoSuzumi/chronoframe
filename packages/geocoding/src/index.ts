@@ -45,6 +45,7 @@ export interface GeocodingDependencies {
   logger: GeocodingLogger
 }
 
+/** Create reverse-geocoding providers using caller-owned transport, retry, language and rate limits. */
 export function createGeocodingServices({
   getLanguage,
   request,
@@ -222,6 +223,7 @@ export function createGeocodingServices({
     }
   }
 
+  /** Parse bounded decimal GPS text or explicit EXIF coordinates, applying hemisphere references. */
   function parseGPSCoordinates(exifData: any): {
     latitude?: number
     longitude?: number
@@ -242,10 +244,15 @@ export function createGeocodingServices({
         exifData.GPSCoordinates
       ) {
         const coords = exifData.GPSCoordinates.toString()
-        const match = coords.match(/([-+]?\d+\.?\d*)[°,\s]+([-+]?\d+\.?\d*)/)
-        if (match) {
-          latitude = parseFloat(match[1])
-          longitude = parseFloat(match[2])
+        // Bound metadata input and validate whole tokens without overlapping
+        // numeric quantifiers that can cause polynomial regex backtracking.
+        if (coords.length <= 256) {
+          const [lat, lon] = coords.trim().split(/[°,\s]+/)
+          const decimal = /^[-+]?\d+(?:\.\d*)?$/
+          if (lat && lon && decimal.test(lat) && decimal.test(lon)) {
+            latitude = Number(lat)
+            longitude = Number(lon)
+          }
         }
       }
 

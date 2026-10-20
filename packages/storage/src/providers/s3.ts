@@ -192,12 +192,14 @@ export class S3StorageProvider implements StorageProvider {
     // Default AWS S3 endpoint
     if (!endpoint) {
       return `https://${bucket}.s3.${region}.amazonaws.com/${key}`
-    } else if (endpoint.includes('amazonaws.com')) {
+    }
+    const hostname = new URL(endpoint).hostname.toLowerCase()
+    if (hostname === 'amazonaws.com' || hostname.endsWith('.amazonaws.com')) {
       return `https://${bucket}.s3.${region}.amazonaws.com/${key}`
     }
 
     // Alibaba Cloud OSS
-    if (endpoint.includes('aliyuncs.com')) {
+    if (hostname === 'aliyuncs.com' || hostname.endsWith('.aliyuncs.com')) {
       const baseUrl = endpoint.replace(/\/$/, '')
       if (baseUrl.indexOf('//') === -1) {
         throw new Error('Invalid endpoint URL')
@@ -376,9 +378,14 @@ export class S3StorageProvider implements StorageProvider {
           } while (marker)
           if (
             remote.size !== count ||
+            parts.length !== count ||
+            new Set(parts.map((part) => part.partNumber)).size !== count ||
             parts.some((part) => {
               const uploaded = remote.get(part.partNumber)
               return (
+                !Number.isInteger(part.partNumber) ||
+                part.partNumber < 1 ||
+                part.partNumber > count ||
                 uploaded?.etag !== part.etag ||
                 uploaded?.size !==
                   Math.min(partSize, size - (part.partNumber - 1) * partSize)
