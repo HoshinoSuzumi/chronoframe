@@ -10,6 +10,8 @@ COPY packages/webgl-image/package.json ./packages/webgl-image/
 COPY packages/contracts/package.json ./packages/contracts/
 COPY packages/core/package.json ./packages/core/
 COPY packages/database/package.json ./packages/database/
+COPY packages/jobs/package.json ./packages/jobs/
+COPY packages/processing/package.json ./packages/processing/
 COPY packages/storage/package.json ./packages/storage/
 COPY packages/media/package.json ./packages/media/
 COPY packages/geocoding/package.json ./packages/geocoding/

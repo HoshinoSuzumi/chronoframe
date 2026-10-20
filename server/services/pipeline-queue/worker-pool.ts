@@ -1,9 +1,5 @@
-import { and as siteAnd, eq as siteEq } from 'drizzle-orm'
-import { DEFAULT_SITE } from '@chronoframe/core'
 import type { ConsolaInstance } from 'consola'
 import { consola } from 'consola'
-import { eq, sql } from 'drizzle-orm'
-import { useDB, tables } from '~~/server/utils/db'
 import { QueueManager } from './manager'
 import {
   DEFAULT_QUEUE_WORKER_COUNT,
@@ -81,7 +77,7 @@ export class WorkerPool {
 
     this.stopping = null
     // 在启动工作器之前，清理死任务
-    await this.cleanupDeadTasks()
+    // Expired leases are recovered by the jobs adapter during each claim.
 
     // 创建工作器
     for (let i = 1; i <= this.config.workerCount; i++) {
@@ -254,56 +250,6 @@ export class WorkerPool {
   /**
    * 清理死任务 - 重置为 pending，迁移任务保留后台优先级
    */
-  private async cleanupDeadTasks(): Promise<void> {
-    try {
-      const db = useDB()
-
-      // 查找所有 in-stages 状态的任务（这些可能是死任务）
-      const deadTasks = await db
-        .select()
-        .from(tables.pipelineQueue)
-        .where(
-          siteAnd(
-            eq(tables.pipelineQueue.status, 'in-stages'),
-            siteEq(tables.pipelineQueue.siteId, DEFAULT_SITE.id),
-          ),
-        )
-
-      if (deadTasks.length > 0) {
-        this.logger.warn(
-          `Found ${deadTasks.length} dead tasks in 'in-stages' status, resetting to pending with migration priorities preserved`,
-        )
-
-        // 重置为 pending，清除状态阶段；迁移任务保持低优先级
-        await db
-          .update(tables.pipelineQueue)
-          .set({
-            status: 'pending',
-            priority: sql`CASE
-              WHEN json_extract(${tables.pipelineQueue.payload}, '$.migrationOnly') = 1
-                AND json_extract(${tables.pipelineQueue.payload}, '$.type') = 'photo-reverse-geocoding'
-              THEN -1 ELSE 1 END`,
-            statusStage: null,
-          })
-          .where(
-            siteAnd(
-              eq(tables.pipelineQueue.status, 'in-stages'),
-              siteEq(tables.pipelineQueue.siteId, DEFAULT_SITE.id),
-            ),
-          )
-
-        this.logger.success(
-          `Successfully reset ${deadTasks.length} dead tasks to pending status with migration priorities preserved`,
-        )
-      } else {
-        this.logger.info('No dead tasks found in queue')
-      }
-    } catch (error) {
-      this.logger.error('Failed to cleanup dead tasks:', error)
-      // 不抛出错误，允许工作器池继续启动
-    }
-  }
-
   /**
    * 检查池是否正在运行
    */
@@ -355,7 +301,9 @@ export class WorkerPool {
   /**
    * 添加任务到队列（通过任意一个工作器）
    */
-  async addTask(payload: any, options?: any): Promise<number> {
+  async addTask(
+    ...[payload, options]: Parameters<QueueManager['addTask']>
+  ): Promise<number> {
     const worker = this.getFirstWorker()
     if (!worker) {
       throw new Error('No workers available')

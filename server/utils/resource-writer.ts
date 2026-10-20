@@ -1,5 +1,5 @@
 import { persistenceErrorCode } from '@chronoframe/database'
-import { storageForPhoto } from './object-storage'
+import { storageForPhoto, storageForReference } from './object-storage'
 import { DEFAULT_SITE } from '@chronoframe/core'
 import type {} from '../types/worker'
 import { createError, type H3Event } from 'h3'
@@ -34,7 +34,16 @@ export function usePhotoWriter(event: H3Event) {
     repository: createSqlitePhotoWriteRepository(useDB(), DEFAULT_SITE),
     clock: { now: () => new Date() },
     storage: {
-      forPhoto: (photo) => storageForPhoto(photo.id, storageProvider),
+      forPhoto: (photo) =>
+        photo.storageReference
+          ? storageForReference(
+              {
+                storageConnectionId: photo.storageReference.connectionId,
+                storageRevision: photo.storageReference.revision,
+              },
+              storageProvider,
+            )
+          : storageForPhoto(photo.id, storageProvider),
     },
     editMetadata: async (photo, input) => {
       if (!photo.storageKey)
@@ -44,20 +53,6 @@ export function usePhotoWriter(event: H3Event) {
         input,
         await storageForPhoto(photo.id, storageProvider),
       )
-    },
-    tasks: {
-      async reverseGeocode(photoId, coordinates) {
-        if (!globalThis.__workerPool) {
-          logger.location.warn(
-            `Worker pool not initialized, skipping reverse geocoding enqueue for photo ${photoId}`,
-          )
-          return
-        }
-        await globalThis.__workerPool.addTask(
-          { type: 'photo-reverse-geocoding', photoId, ...coordinates },
-          { priority: 1 },
-        )
-      },
     },
     warn(error, operation) {
       logger.image.warn(`Photo operation failed: ${operation}`, error)

@@ -1,3 +1,5 @@
+import { createSiteRepository } from '@chronoframe/database'
+import { storageForPhoto } from '../../utils/object-storage'
 import type { StorageProvider } from '@chronoframe/storage'
 import { and as siteAnd, eq as siteEq } from 'drizzle-orm'
 import { DEFAULT_SITE } from '@chronoframe/core'
@@ -13,7 +15,7 @@ export const processLivePhotoVideo = async (
   videoKey: string,
   _videoSize: number,
 ): Promise<boolean> => {
-  const storageProvider = getStorageManager().getProvider()
+  let storageProvider = getStorageManager().getProvider()
   const db = useDB()
 
   try {
@@ -64,23 +66,16 @@ export const processLivePhotoVideo = async (
       return false
     }
 
-    // 获取视频的公共 URL
-    const videoUrl = storageProvider.getPublicUrl(videoKey)
-
-    // 更新照片记录，设置 LivePhoto 信息
-    await db
-      .update(tables.photos)
-      .set({
-        isLivePhoto: 1,
-        livePhotoVideoUrl: videoUrl,
-        livePhotoVideoKey: videoKey,
-      })
-      .where(
-        siteAnd(
-          eq(tables.photos.id, matchedPhoto.id),
-          siteEq(tables.photos.siteId, DEFAULT_SITE.id),
-        ),
-      )
+    const repository = createSiteRepository(db, DEFAULT_SITE)
+    const snapshot = await repository.capturePhoto(matchedPhoto.id)
+    if (!snapshot) return false
+    storageProvider = await storageForPhoto(matchedPhoto.id, storageProvider)
+    if (!(await storageProvider.getFileMeta(videoKey))) return false
+    await repository.updatePhotoSnapshot(matchedPhoto.id, snapshot.version, {
+      isLivePhoto: 1,
+      livePhotoVideoUrl: storageProvider.getPublicUrl(videoKey),
+      livePhotoVideoKey: videoKey,
+    })
 
     logger.chrono.success(
       `Successfully processed LivePhoto: ${matchedPhoto.id}, video: ${videoKey}`,

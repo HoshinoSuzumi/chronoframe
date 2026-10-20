@@ -146,3 +146,4 @@ export * from './access.ts'
 export * from './upload-preparation.ts'
 
 export * from './site.ts'
+export * from './publication.ts'

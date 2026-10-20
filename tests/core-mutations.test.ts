@@ -130,7 +130,7 @@ test('album mutations preserve ordering, password semantics, cover membership an
   }
 })
 
-test('photo mutations keep normalized EXIF and database edits aligned and tolerate queue or cleanup failures', async () => {
+test('photo mutations keep normalized EXIF and database edits aligned and persist follow-up tasks atomically and tolerate cleanup failures', async () => {
   const { sqlite, db } = setup()
   const deleted: string[] = []
   const edits: unknown[] = []
@@ -162,11 +162,6 @@ test('photo mutations keep normalized EXIF and database edits aligned and tolera
         edits.push(input)
         return { exif: null, fileSize: 100 }
       },
-      tasks: {
-        reverseGeocode: async () => {
-          throw new Error('queue failure')
-        },
-      },
       warn: (_error, operation) => warnings.push(operation),
     })
     await assert.rejects(
@@ -192,7 +187,15 @@ test('photo mutations keep normalized EXIF and database edits aligned and tolera
       tags: ['Tag', 'Other'],
       location: { latitude: 32, longitude: 120 },
     })
-    assert.deepEqual(warnings, ['reverse-geocoding'])
+    assert.deepEqual(warnings, [])
+    const queued = db.select().from(schema.pipelineQueue).all()
+    assert.equal(queued.length, 1)
+    assert.deepEqual(queued[0]!.payload, {
+      type: 'photo-reverse-geocoding',
+      photoId: 'p',
+      latitude: 32,
+      longitude: 120,
+    })
     const erased = await writer.update(
       'p',
       { title: ' ', location: null },

@@ -251,6 +251,19 @@ test(
       assert.ok(
         (await provider.listAll()).some((object) => object.key === 'small.jpg'),
       )
+      const prefixed = new S3StorageProvider({
+        ...provider.config,
+        prefix: '/library/',
+      })
+      const first = await prefixed.create('edit.jpg', image, 'image/jpeg')
+      assert.equal(first.key, 'library/edit.jpg')
+      const replacement = Buffer.from('updated-exif-fixture')
+      assert.equal(
+        (await prefixed.create(first.key, replacement, 'image/jpeg')).key,
+        first.key,
+      )
+      assert.deepEqual(await prefixed.get(first.key), replacement)
+      assert.equal(objects.has('library/library/edit.jpg'), false)
       const size = 8 * 1024 * 1024 + 5
       const plan = await provider.prepareDirectUpload(
         'large.jpg',

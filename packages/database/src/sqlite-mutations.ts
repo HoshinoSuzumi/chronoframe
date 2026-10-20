@@ -1,3 +1,4 @@
+import { createSqliteJobRepository, reserveResource } from './sqlite-jobs.ts'
 import { requireSite } from './site-repository.ts'
 import { type SiteContext } from '@chronoframe/core'
 import { and as siteAnd, eq as siteEq } from 'drizzle-orm'
@@ -212,6 +213,14 @@ export function createSqlitePhotoWriteRepository(
   site: SiteContext,
 ): PhotoWriteRepository {
   requireSite(db, site)
+  const record = (photo: typeof tables.photos.$inferSelect) => ({
+    ...toPhotoDto(photo),
+    originalDerivedKey: photo.originalDerivedKey,
+    storageReference: {
+      connectionId: photo.storageConnectionId,
+      revision: photo.storageRevision,
+    },
+  })
   return {
     async get(id) {
       const photo = db
@@ -224,39 +233,72 @@ export function createSqlitePhotoWriteRepository(
           ),
         )
         .get()
-      return photo ? toPhotoDto(photo) : null
+      return photo ? record(photo) : null
     },
-    async update(id, update) {
-      db.update(tables.photos)
-        .set(update)
-        .where(
-          siteAnd(
-            eq(tables.photos.id, id),
-            siteEq(tables.photos.siteId, site.id),
-          ),
-        )
-        .run()
+    async beginMutation(id) {
       const photo = db
         .select()
         .from(tables.photos)
-        .where(
-          siteAnd(
-            eq(tables.photos.id, id),
-            siteEq(tables.photos.siteId, site.id),
-          ),
-        )
+        .where(and(eq(tables.photos.siteId, site.id), eq(tables.photos.id, id)))
         .get()
-      return photo ? toPhotoDto(photo) : null
+      if (photo)
+        reserveResource(db, site, id, {
+          storageConnectionId: photo.storageConnectionId,
+          storageRevision: photo.storageRevision,
+          storageKey: photo.storageKey,
+        })
+    },
+    async update(id, update, reverseGeocode) {
+      return db.transaction(() => {
+        db.update(tables.photos)
+          .set(update)
+          .where(
+            siteAnd(
+              eq(tables.photos.id, id),
+              siteEq(tables.photos.siteId, site.id),
+            ),
+          )
+          .run()
+        const photo = db
+          .select()
+          .from(tables.photos)
+          .where(
+            siteAnd(
+              eq(tables.photos.id, id),
+              siteEq(tables.photos.siteId, site.id),
+            ),
+          )
+          .get()
+        if (photo && reverseGeocode)
+          createSqliteJobRepository(db, site, (payload) =>
+            'photoId' in payload ? payload.photoId : null,
+          ).enqueue(
+            { type: 'photo-reverse-geocoding', photoId: id, ...reverseGeocode },
+            { priority: 1 },
+          )
+        return photo ? toPhotoDto(photo) : null
+      })
     },
     async delete(id) {
-      db.delete(tables.photos)
-        .where(
-          siteAnd(
-            eq(tables.photos.id, id),
-            siteEq(tables.photos.siteId, site.id),
-          ),
-        )
-        .run()
+      return db.transaction(
+        () => {
+          const photo = db
+            .select()
+            .from(tables.photos)
+            .where(
+              and(eq(tables.photos.siteId, site.id), eq(tables.photos.id, id)),
+            )
+            .get()
+          if (!photo) return null
+          db.delete(tables.photos)
+            .where(
+              and(eq(tables.photos.siteId, site.id), eq(tables.photos.id, id)),
+            )
+            .run()
+          return record(photo)
+        },
+        { behavior: 'immediate' },
+      )
     },
   }
 }

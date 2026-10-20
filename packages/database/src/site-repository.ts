@@ -1,5 +1,9 @@
 import { and, eq } from 'drizzle-orm'
-import { assertSiteContext, type SiteContext } from '@chronoframe/core'
+import {
+  CoreError,
+  assertSiteContext,
+  type SiteContext,
+} from '@chronoframe/core'
 import { tables, type AppDatabase } from './connection.ts'
 
 /** Fail closed when an entry supplies a missing or nonexistent Site. */
@@ -19,6 +23,84 @@ export function requireSite(db: AppDatabase, site: SiteContext) {
 export function createSiteRepository(db: AppDatabase, site: SiteContext) {
   requireSite(db, site)
   return {
+    async capturePhoto(id: string) {
+      return db.transaction(() => {
+        const photo = db
+          .select()
+          .from(tables.photos)
+          .where(
+            and(eq(tables.photos.siteId, site.id), eq(tables.photos.id, id)),
+          )
+          .get()
+        if (!photo) return null
+        const version = db
+          .select()
+          .from(tables.resourceVersions)
+          .where(
+            and(
+              eq(tables.resourceVersions.siteId, site.id),
+              eq(tables.resourceVersions.resourceId, id),
+            ),
+          )
+          .get()
+        if (
+          !version ||
+          version.deleted ||
+          version.storageConnectionId !== photo.storageConnectionId ||
+          version.storageRevision !== photo.storageRevision ||
+          version.storageKey !== photo.storageKey
+        )
+          throw new CoreError(409, 'Photo source changed; retry the operation')
+        return { photo, version: version.version }
+      })
+    },
+    async updatePhotoSnapshot(
+      id: string,
+      expectedVersion: number,
+      update: Partial<
+        Pick<
+          typeof tables.photos.$inferSelect,
+          | 'exif'
+          | 'title'
+          | 'dateTaken'
+          | 'tags'
+          | 'lastModified'
+          | 'isLivePhoto'
+          | 'livePhotoVideoKey'
+          | 'livePhotoVideoUrl'
+        >
+      >,
+    ) {
+      return db.transaction(
+        () => {
+          const version = db
+            .select()
+            .from(tables.resourceVersions)
+            .where(
+              and(
+                eq(tables.resourceVersions.siteId, site.id),
+                eq(tables.resourceVersions.resourceId, id),
+              ),
+            )
+            .get()
+          if (
+            !version ||
+            version.deleted ||
+            version.version !== expectedVersion
+          )
+            throw new CoreError(409, 'Photo changed; retry the operation')
+          const changed = db
+            .update(tables.photos)
+            .set(update)
+            .where(
+              and(eq(tables.photos.siteId, site.id), eq(tables.photos.id, id)),
+            )
+            .run().changes
+          if (changed !== 1) throw new CoreError(404, 'Photo not found')
+        },
+        { behavior: 'immediate' },
+      )
+    },
     async photoReference(id: string) {
       return (
         db

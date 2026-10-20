@@ -9,33 +9,12 @@ import {
   text,
   uniqueIndex,
 } from 'drizzle-orm/sqlite-core'
-import { QUEUE_WARNING_CODES } from '@chronoframe/contracts/queue'
+import {
+  QUEUE_WARNING_CODES,
+  type PipelineQueuePayload,
+} from '@chronoframe/contracts/queue'
 import type { NeededExif } from '@chronoframe/contracts/photo'
 import type { StorageConfig } from '@chronoframe/contracts/storage'
-
-type PipelineQueuePayload =
-  | { type: 'location-migration' }
-  | {
-      type: 'photo'
-      storageKey: string
-      eraseLocation?: boolean
-      albumId?: number
-    }
-  | {
-      type: 'live-photo-video'
-      storageKey: string
-    }
-  | {
-      type: 'photo-reverse-geocoding'
-      migrationOnly?: boolean
-      photoId: string
-      latitude?: number | null
-      longitude?: number | null
-    }
-  | {
-      type: 'photo-erase-location'
-      photoId: string
-    }
 
 export const users = sqliteTable('users', {
   id: integer('id').primaryKey({ autoIncrement: true }),
@@ -80,6 +59,7 @@ const siteColumn = () =>
 export const photos = sqliteTable(
   'photos',
   {
+    originalDerivedKey: text('original_derived_key'),
     storageConnectionId: integer('storage_connection_id'),
     storageRevision: integer('storage_revision').notNull().default(1),
     sourceVersion: integer('source_version').notNull().default(1),
@@ -138,6 +118,13 @@ export const photoAccessKeys = sqliteTable(
 export const pipelineQueue = sqliteTable(
   'pipeline_queue',
   {
+    resourceId: text('resource_id'),
+    sourceHash: text('source_hash'),
+    pipelineVersion: text('pipeline_version').notNull().default('1'),
+    attemptId: text('attempt_id'),
+    workerId: text('worker_id'),
+    leaseExpiresAt: integer('lease_expires_at', { mode: 'timestamp_ms' }),
+    heartbeatAt: integer('heartbeat_at', { mode: 'timestamp_ms' }),
     storageConnectionId: integer('storage_connection_id'),
     storageRevision: integer('storage_revision').notNull().default(1),
     sourceVersion: integer('source_version').notNull().default(1),
@@ -187,6 +174,12 @@ export const pipelineQueue = sqliteTable(
   },
   (t) => [
     index('idx_pipeline_queue_site').on(t.siteId),
+    index('idx_pipeline_queue_lease').on(t.siteId, t.status, t.leaseExpiresAt),
+    index('idx_pipeline_queue_resource').on(
+      t.siteId,
+      t.resourceId,
+      t.sourceVersion,
+    ),
     index('idx_pipeline_queue_pending')
       .on(sql`${t.priority} DESC`, t.createdAt, t.id)
       .where(sql`${t.status} = 'pending'`),
@@ -345,4 +338,27 @@ export const storageConnectionVersions = sqliteTable(
     config: text('config', { mode: 'json' }).$type<StorageConfig>().notNull(),
   },
   (t) => [primaryKey({ columns: [t.connectionId, t.revision] })],
+)
+
+export const resourceVersions = sqliteTable(
+  'resource_versions',
+  {
+    siteId: siteColumn(),
+    resourceId: text('resource_id').notNull(),
+    version: integer('version').notNull().default(1),
+    deleted: integer('deleted', { mode: 'boolean' }).notNull().default(false),
+    storageConnectionId: integer('storage_connection_id'),
+    storageRevision: integer('storage_revision').notNull().default(1),
+    storageKey: text('storage_key'),
+  },
+  (t) => [primaryKey({ columns: [t.siteId, t.resourceId] })],
+)
+export const jobCommitGuards = sqliteTable(
+  'job_commit_guards',
+  {
+    siteId: integer('site_id').notNull(),
+    resourceId: text('resource_id').notNull(),
+    attemptId: text('attempt_id').notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.siteId, t.resourceId] })],
 )

@@ -1,1 +1,4 @@
-export * from '@chronoframe/contracts/queue'
+export {
+  QueueWarningCode,
+  QUEUE_WARNING_CODES,
+} from '@chronoframe/contracts/queue'

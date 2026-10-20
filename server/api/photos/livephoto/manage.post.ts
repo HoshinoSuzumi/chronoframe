@@ -1,10 +1,10 @@
-import { and as siteAnd, eq as siteEq } from 'drizzle-orm'
+import { createSiteRepository } from '@chronoframe/database'
+import { storageForPhoto } from '../../../utils/object-storage'
 import { DEFAULT_SITE } from '@chronoframe/core'
 import {
   processSpecificLivePhotoVideo,
   scanAndProcessExistingLivePhotos,
 } from '~~/server/services/video/scanner'
-import { eq } from 'drizzle-orm'
 import { findLivePhotoVideoForImage } from '~~/server/services/video/livephoto'
 import { getStorageManager } from '~~/server/plugins/3.storage'
 import { batchTestLivePhotoDetection } from '~~/server/services/video/test-utils'
@@ -70,49 +70,27 @@ export default eventHandler(async (event) => {
           })
         }
 
-        const db = useDB()
-        const photos = await db
-          .select()
-          .from(tables.photos)
-          .where(
-            siteAnd(
-              eq(tables.photos.id, photoId),
-              siteEq(tables.photos.siteId, DEFAULT_SITE.id),
-            ),
-          )
-          .limit(1)
-
-        if (photos.length === 0) {
+        const repository = createSiteRepository(useDB(), DEFAULT_SITE)
+        const snapshot = await repository.capturePhoto(photoId)
+        if (!snapshot?.photo.storageKey)
           throw createError({
             statusCode: 404,
             statusMessage: 'Photo not found',
           })
-        }
-
-        const photo = photos[0]
-        const livePhotoVideo = await findLivePhotoVideoForImage(
-          photo.storageKey!,
+        const provider = await storageForPhoto(
+          photoId,
+          getStorageManager().getProvider(),
         )
-
+        const livePhotoVideo = await findLivePhotoVideoForImage(
+          snapshot.photo.storageKey,
+          provider,
+        )
         if (livePhotoVideo) {
-          const storageProvider = getStorageManager().getProvider()
-
-          await db
-            .update(tables.photos)
-            .set({
-              isLivePhoto: 1,
-              livePhotoVideoUrl: storageProvider.getPublicUrl(
-                livePhotoVideo.videoKey,
-              ),
-              livePhotoVideoKey: livePhotoVideo.videoKey,
-            })
-            .where(
-              siteAnd(
-                eq(tables.photos.id, photoId),
-                siteEq(tables.photos.siteId, DEFAULT_SITE.id),
-              ),
-            )
-
+          await repository.updatePhotoSnapshot(photoId, snapshot.version, {
+            isLivePhoto: 1,
+            livePhotoVideoUrl: provider.getPublicUrl(livePhotoVideo.videoKey),
+            livePhotoVideoKey: livePhotoVideo.videoKey,
+          })
           return {
             message: 'Photo updated to LivePhoto successfully',
             success: true,

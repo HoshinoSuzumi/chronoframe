@@ -145,16 +145,26 @@ export type PhotoUpdate = Partial<
     | 'geocoding'
   >
 >
+export type PhotoRecord = Photo & {
+  originalDerivedKey?: string | null
+  storageReference?: { connectionId: number | null; revision: number }
+}
 export interface PhotoWriteRepository {
-  get(id: string): Promise<Photo | null>
-  update(id: string, update: PhotoUpdate): Promise<Photo | null>
-  delete(id: string): Promise<void>
+  get(id: string): Promise<PhotoRecord | null>
+  beginMutation?(id: string): Promise<void>
+  /** Persist a requested follow-up task in the same transaction as the resource update. */
+  update(
+    id: string,
+    update: PhotoUpdate,
+    reverseGeocode?: { latitude: number; longitude: number },
+  ): Promise<Photo | null>
+  delete(id: string): Promise<PhotoRecord | null>
 }
 export interface PhotoObjectStorage {
   delete(key: string): Promise<void>
 }
 export interface StorageResolver {
-  forPhoto(photo: Photo): Promise<PhotoObjectStorage>
+  forPhoto(photo: PhotoRecord): Promise<PhotoObjectStorage>
 }
 export interface PhotoTaskDispatcher {
   reverseGeocode(
@@ -194,7 +204,6 @@ export function createPhotoWriter(deps: {
     photo: Photo,
     input: PhotoMetadataInput,
   ): Promise<Pick<Photo, 'exif' | 'fileSize'>>
-  tasks: PhotoTaskDispatcher
   warn(error: unknown, operation: string): void
 }) {
   return {
@@ -225,6 +234,7 @@ export function createPhotoWriter(deps: {
           'dashboard.photos.messages.noStorageKey',
         )
       const input = normalizePhotoMetadata(raw)
+      await deps.repository.beginMutation?.(id)
       const edited = await deps.editMetadata(photo, input)
       const update: PhotoUpdate = {
         exif: edited.exif,
@@ -247,7 +257,11 @@ export function createPhotoWriter(deps: {
       }
       let updated: Photo | null
       try {
-        updated = await deps.repository.update(id, update)
+        updated = await deps.repository.update(
+          id,
+          update,
+          input.location ?? undefined,
+        )
       } catch (error) {
         deps.warn(error, 'update-photo-record')
         throw new CoreError(
@@ -256,27 +270,21 @@ export function createPhotoWriter(deps: {
           'dashboard.photos.messages.metadataUpdateFailed',
         )
       }
-      if (input.location) {
-        try {
-          await deps.tasks.reverseGeocode(id, input.location)
-        } catch (error) {
-          deps.warn(error, 'reverse-geocoding')
-        }
-      }
       return { success: true, photo: updated || undefined }
     },
     async delete(id: string, access: MutationAccess) {
       authorize(access)
-      const photo = await deps.repository.get(id)
+      const photo = await deps.repository.delete(id)
       if (!photo) throw new CoreError(404, 'Photo not found')
       const keys = [
         photo.storageKey,
         photo.thumbnailKey,
         photo.livePhotoVideoKey,
+        photo.originalDerivedKey,
       ]
       const match =
         photo.storageKey && /\.(heic|heif|hif)$/i.exec(photo.storageKey)
-      if (match)
+      if (match && !photo.originalDerivedKey)
         keys.push(photo.storageKey!.slice(0, -match[0].length) + '.jpeg')
       const storage = await deps.storage.forPhoto(photo)
       for (const key of new Set(
@@ -288,7 +296,6 @@ export function createPhotoWriter(deps: {
           deps.warn(error, 'delete-photo-object')
         }
       }
-      await deps.repository.delete(id)
       return { statusCode: 200, statusMessage: 'Photo deleted successfully' }
     },
   }

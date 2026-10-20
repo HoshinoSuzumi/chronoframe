@@ -157,6 +157,7 @@ export default defineNuxtConfig({
         'dayjs/plugin/timezone', // CJS
         'dayjs/plugin/updateLocale', // CJS
         'dayjs/plugin/utc', // CJS
+        'driver.js',
         'es-toolkit',
         'file-type',
         'mapbox-gl', // CJS

@@ -1,1093 +1,555 @@
+import type { ConsolaInstance } from 'consola'
+import { createHash } from 'node:crypto'
+import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import path from 'node:path'
+import { and, eq, sql } from 'drizzle-orm'
+import { exiftool } from 'exiftool-vendored'
+import { DEFAULT_SITE, validatePhotoPublication } from '@chronoframe/core'
+import {
+  createSqliteJobRepository,
+  createPhotoPersistenceRepository,
+} from '@chronoframe/database'
+import {
+  runOneJob,
+  LostLeaseError,
+  PermanentJobError,
+  type JobLease,
+} from '@chronoframe/jobs'
+import {
+  createPhotoProcessor,
+  EXIF_LOCATION_KEYS,
+  stripLocationFromExif,
+} from '@chronoframe/processing'
+import { createExifService } from '@chronoframe/media'
+import type { PipelineQueuePayload } from '@chronoframe/contracts/queue'
+import { QueueWarningCode } from '@chronoframe/contracts/queue'
+import {
+  useDB,
+  tables,
+  type NewPipelineQueueItem,
+  type PipelineQueueItem,
+} from '../../utils/db'
+import { generateSafePhotoId } from '../../utils/file-utils'
+import { logger } from '../../utils/logger'
 import { storageForReference } from '../../utils/object-storage'
-import { and as siteAnd, eq as siteEq } from 'drizzle-orm'
-import { DEFAULT_SITE } from '@chronoframe/core'
+import { getStorageManager } from '../../plugins/3.storage'
+import { settingsManager } from '../settings/settingsManager'
+import {
+  extractLocationFromGPS,
+  parseGPSCoordinates,
+} from '../location/geocoding'
+import { hasValidCoordinates } from '../../../shared/utils/location'
 import {
   enqueueLocationMigration,
   enqueueLocationMigrationRequest,
 } from './location-migration'
 import { matchesLocationRequest, updateGeocodedPhoto } from './location-update'
-import { hasValidCoordinates } from '../../../shared/utils/location'
-import type { ConsolaInstance } from 'consola'
-import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
-import { tmpdir } from 'node:os'
-import path from 'path'
-import { and, asc, desc, eq, lte, sql } from 'drizzle-orm'
-import { exiftool } from 'exiftool-vendored'
-import type {
-  NewPipelineQueueItem,
-  PipelineQueueItem,
-  Photo,
-} from '~~/server/utils/db'
-import { QueueWarningCode } from '~~/shared/utils/queue-warning'
-import { compressUint8Array } from '~~/shared/utils/u8array'
-import {
-  preprocessImageWithJpegUpload,
-  processImageMetadataAndSharp,
-} from '../image/processor'
-import { generateThumbnailAndHash } from '../image/thumbnail'
-import { extractExifData, extractPhotoInfo } from '../image/exif'
-import {
-  extractLocationFromGPS,
-  parseGPSCoordinates,
-} from '../location/geocoding'
-import { settingsManager } from '../settings/settingsManager'
-import { findLivePhotoVideoForImage } from '../video/livephoto'
-import { processMotionPhotoFromXmp } from '../video/motion-photo'
-import { getStorageManager } from '~~/server/plugins/3.storage'
-import { persistPhotoWithAlbum } from '~~/server/utils/photo-album'
 
-const EXIF_LOCATION_KEYS = [
-  'GPSAltitude',
-  'GPSAltitudeRef',
-  'GPSLatitude',
-  'GPSLatitudeRef',
-  'GPSLongitude',
-  'GPSLongitudeRef',
-  'GPSPosition',
-  'GPSDateStamp',
-  'GPSTimeStamp',
-  'GPSImgDirection',
-  'GPSImgDirectionRef',
-  'GPSDestBearing',
-  'GPSDestBearingRef',
-] as const
+type Repository = ReturnType<typeof createSqliteJobRepository>
 
-class PermanentTaskError extends Error {}
-
-const stripLocationFromExif = <
-  T extends Record<string, any> | null | undefined,
->(
-  exif: T,
-): T => {
-  if (!exif || typeof exif !== 'object') {
-    return exif
-  }
-
-  const cloned = { ...exif }
-  for (const key of EXIF_LOCATION_KEYS) {
-    delete cloned[key]
-  }
-
-  return cloned as T
-}
-
+/** Embedded scheduling adapter. Packages own leases and processing; this class assembles application capabilities. */
 export class QueueManager {
-  private static instances: Map<string, QueueManager> = new Map()
-  private workerId: string
-  private logger: ConsolaInstance
-  private isProcessing: boolean = false
-  private processingInterval: NodeJS.Timeout | null = null
+  private static instances = new Map<string, QueueManager>()
+  private processingInterval: ReturnType<typeof setInterval> | null = null
   private activeTask: Promise<void> | null = null
-  private processedCount: number = 0
-  private errorCount: number = 0
-  private startTime: Date
-
-  static getInstance(
-    workerId: string = 'default',
-    logger?: ConsolaInstance,
-  ): QueueManager {
-    if (!QueueManager.instances.has(workerId)) {
-      QueueManager.instances.set(workerId, new QueueManager(workerId, logger))
-    }
-    return QueueManager.instances.get(workerId)!
-  }
-
-  static getAllInstances(): QueueManager[] {
-    return Array.from(QueueManager.instances.values())
-  }
-
-  private constructor(workerId: string, _logger?: ConsolaInstance) {
-    this.workerId = workerId
-    this.logger = _logger
-      ? _logger.withTag(`${workerId}`)
+  private isProcessing = false
+  private processedCount = 0
+  private errorCount = 0
+  private readonly startTime = new Date()
+  private logger: ConsolaInstance
+  private constructor(
+    private workerId: string,
+    serviceLogger?: ConsolaInstance,
+  ) {
+    this.logger = serviceLogger
+      ? serviceLogger.withTag(workerId)
       : logger.dynamic(`queue-${workerId}`)
-    this.startTime = new Date()
   }
-
-  getWorkerId(): string {
+  static getInstance(workerId = 'default', serviceLogger?: ConsolaInstance) {
+    let worker = this.instances.get(workerId)
+    if (!worker) {
+      worker = new QueueManager(workerId, serviceLogger)
+      this.instances.set(workerId, worker)
+    }
+    return worker
+  }
+  static getAllInstances() {
+    return Array.from(this.instances.values())
+  }
+  getWorkerId() {
     return this.workerId
   }
-
   getStats() {
-    const uptime = Date.now() - this.startTime.getTime()
+    const attempts = this.processedCount + this.errorCount
     return {
       workerId: this.workerId,
       isProcessing: this.isProcessing,
       processedCount: this.processedCount,
       errorCount: this.errorCount,
-      uptime: Math.floor(uptime / 1000), // seconds
-      successRate:
-        this.processedCount > 0
-          ? (this.processedCount / (this.processedCount + this.errorCount)) *
-            100
-          : 0,
+      uptime: Math.floor((Date.now() - this.startTime.getTime()) / 1000),
+      successRate: attempts ? (this.processedCount / attempts) * 100 : 0,
     }
   }
-
-  /**
-   * 插入新任务到队列
-   * @param payload 任务负荷
-   * @param options 可选的任务设置
-   * @returns 新创建任务的 ID
-   */
-  async addTask(
-    payload: any,
-    options?: Partial<NewPipelineQueueItem>,
-  ): Promise<number> {
+  private repository() {
     const db = useDB()
-    if (payload.type === 'location-migration')
-      return enqueueLocationMigrationRequest(db, options)
-    const active = await settingsManager.storage.getActiveProvider()
-    const photoId = 'photoId' in payload ? payload.photoId : undefined
-    const photo = photoId
-      ? db
-          .select()
+    return createSqliteJobRepository(db, DEFAULT_SITE, (payload) => {
+      if ('photoId' in payload) return payload.photoId
+      if ('storageKey' in payload) {
+        const existing = db
+          .select({ id: tables.photos.id })
           .from(tables.photos)
           .where(
             and(
-              eq(tables.photos.id, photoId),
               eq(tables.photos.siteId, DEFAULT_SITE.id),
+              eq(tables.photos.storageKey, payload.storageKey),
             ),
           )
           .get()
-      : undefined
-    if (photoId && !photo) throw new PermanentTaskError('Photo not found')
-    const result = db
-      .insert(tables.pipelineQueue)
-      .values({
-        payload,
-        ...options,
-        siteId: DEFAULT_SITE.id,
-        storageConnectionId: photo?.storageConnectionId ?? active?.id ?? null,
-        storageRevision: photo?.storageRevision ?? active?.revision ?? 1,
-        sourceVersion: photo?.sourceVersion ?? 1,
-      })
-      .returning({ id: tables.pipelineQueue.id })
-      .get()
-    return result.id
-  }
-
-  /**
-   * 获取任务状态
-   * @param taskId 任务ID
-   * @returns 任务状态信息
-   */
-  async getTaskStatus(taskId: number) {
-    const db = useDB()
-    const task = await db
-      .select()
-      .from(tables.pipelineQueue)
-      .where(
-        siteAnd(
-          eq(tables.pipelineQueue.id, taskId),
-          siteEq(tables.pipelineQueue.siteId, DEFAULT_SITE.id),
-        ),
-      )
-      .get()
-    return task
-  }
-
-  /**
-   * 获取并锁定下一个待处理任务
-   * @returns 下一个待处理任务
-   */
-  async getNextTask(): Promise<PipelineQueueItem | null> {
-    const db = useDB()
-
-    // 使用同步事务防止竞态条件
-    const task = db.transaction((tx) => {
-      const highestPriorityPendingTask = tx
-        .select()
-        .from(tables.pipelineQueue)
-        .where(
-          siteAnd(
-            and(
-              eq(tables.pipelineQueue.status, 'pending'),
-              lte(tables.pipelineQueue.availableAt, new Date()),
-            ),
-            siteEq(tables.pipelineQueue.siteId, DEFAULT_SITE.id),
-          ),
-        )
-        // 优先处理高优先级和较早创建的任务
-        .orderBy(
-          desc(tables.pipelineQueue.priority),
-          asc(tables.pipelineQueue.createdAt),
-          asc(tables.pipelineQueue.id),
-        )
-        .limit(1)
-        .get()
-
-      if (!highestPriorityPendingTask) return null
-
-      const task = highestPriorityPendingTask
-      tx.update(tables.pipelineQueue)
-        .set({ status: 'in-stages' })
-        .where(
-          siteAnd(
-            eq(tables.pipelineQueue.id, task.id),
-            siteEq(tables.pipelineQueue.siteId, DEFAULT_SITE.id),
-          ),
-        )
-        .run()
-
-      return { ...task, status: 'in-stages' as const }
+        return existing?.id ?? generateSafePhotoId(payload.storageKey)
+      }
+      return null
     })
-
-    return task
   }
-
-  /**
-   * 更新任务阶段
-   * @param taskId 任务ID
-   * @param stage 新的任务阶段
-   */
-  async updateTaskStage(
-    taskId: number,
-    stage: PipelineQueueItem['statusStage'],
-  ): Promise<void> {
-    const db = useDB()
-    await db
-      .update(tables.pipelineQueue)
-      .set({ statusStage: stage })
-      .where(
-        siteAnd(
-          eq(tables.pipelineQueue.id, taskId),
-          siteEq(tables.pipelineQueue.siteId, DEFAULT_SITE.id),
-        ),
-      )
-  }
-
-  /**
-   * 标记任务为已完成
-   * @param taskId 任务ID
-   */
-  async markTaskCompleted(
-    taskId: number,
-    warningCode: PipelineQueueItem['warningCode'] = null,
-  ): Promise<void> {
-    const db = useDB()
-    await db
-      .update(tables.pipelineQueue)
-      .set({
-        status: 'completed',
-        completedAt: sql`(unixepoch())`,
-        warningCode,
+  async addTask(
+    payload: PipelineQueuePayload,
+    options?: Partial<NewPipelineQueueItem>,
+  ) {
+    if (payload.type === 'location-migration')
+      return enqueueLocationMigrationRequest(useDB(), {
+        priority: options?.priority,
+        maxAttempts: options?.maxAttempts,
       })
-      .where(
-        siteAnd(
-          eq(tables.pipelineQueue.id, taskId),
-          siteEq(tables.pipelineQueue.siteId, DEFAULT_SITE.id),
-        ),
-      )
+    return this.repository().enqueue(payload, {
+      priority: options?.priority,
+      maxAttempts: options?.maxAttempts,
+    })
   }
-
-  /**
-   * 标记任务为失败
-   * @param taskId 任务ID
-   * @param errorMessage 错误信息
-   */
-  async markTaskFailed(
-    taskId: number,
-    errorMessage?: string,
-    retryable = true,
-  ): Promise<void> {
-    const db = useDB()
-    const task = await db
+  async getTaskStatus(id: number) {
+    return useDB()
       .select()
       .from(tables.pipelineQueue)
       .where(
-        siteAnd(
-          eq(tables.pipelineQueue.id, taskId),
-          siteEq(tables.pipelineQueue.siteId, DEFAULT_SITE.id),
+        and(
+          eq(tables.pipelineQueue.siteId, DEFAULT_SITE.id),
+          eq(tables.pipelineQueue.id, id),
         ),
       )
       .get()
-
-    if (!task) return
-
-    const newAttempts = task.attempts + 1
-    const shouldRetry = retryable && newAttempts < task.maxAttempts
-
-    // 计算重试延迟（指数退避）
-    const retryDelay = shouldRetry
-      ? Math.min(1000 * Math.pow(2, newAttempts - 1), 30000)
-      : 0
-
-    await db
-      .update(tables.pipelineQueue)
-      .set({
-        status: shouldRetry ? 'pending' : 'failed',
-        attempts: newAttempts,
-        errorMessage: errorMessage || 'Unknown error',
-        warningCode: null,
-        // 如果重试，设置延迟重试时间
-        statusStage: null,
-        ...(shouldRetry
-          ? {
-              availableAt: new Date(
-                Date.now() + retryDelay + Math.floor(Math.random() * 500),
-              ),
-            }
-          : {}),
-      })
-      .where(
-        siteAnd(
-          eq(tables.pipelineQueue.id, taskId),
-          siteEq(tables.pipelineQueue.siteId, DEFAULT_SITE.id),
-        ),
-      )
-
-    if (shouldRetry) {
-      this.logger.warn(
-        `Task ${taskId} failed (attempt ${newAttempts}/${task.maxAttempts}), will retry in ${retryDelay}ms: ${errorMessage}`,
-      )
-    } else {
-      this.logger.error(
-        `Task ${taskId} failed permanently after ${newAttempts} attempts: ${errorMessage}`,
-      )
-    }
   }
-
-  /** 任务处理器 */
-  private processors = (() => {
-    return {
-      photo: async (task: PipelineQueueItem) => {
-        const { id: taskId, payload } = task
-        if (payload.type !== 'photo') {
-          throw new Error(
-            `Invalid payload type for photo task: ${payload.type}`,
-          )
-        }
-        const { storageKey } = payload
-        const storageProvider = await storageForReference(
-          task,
-          getStorageManager().getProvider(),
-        )
-        const photoId = generateSafePhotoId(storageKey)
-
-        try {
-          this.logger.info(`Start processing task ${taskId}: ${storageKey}`)
-
-          let storageObject = await storageProvider.getFileMeta(storageKey)
-          if (!storageObject) {
-            // Fallback: try read the file directly to confirm existence (e.g., local provider)
-            const maybeBuffer = await storageProvider.get(storageKey)
-            if (maybeBuffer) {
-              storageObject = {
-                key: storageKey,
-                size: maybeBuffer.length,
-                lastModified: new Date(),
-              }
-            }
-          }
-          if (!storageObject) {
-            throw new PermanentTaskError(`Storage object not found`)
-          }
-
-          // STEP 1: 预处理 - 转换 HEIC 到 JPEG 并上传
-          await this.updateTaskStage(taskId, 'preprocessing')
-          this.logger.info(`[${taskId}:in-stage] preprocessing`)
-          const imageBuffers = await preprocessImageWithJpegUpload(
-            storageKey,
-            storageProvider,
-          )
-          if (!imageBuffers) {
-            throw new Error('Preprocessing failed')
-          }
-
-          // STEP 2: 元数据处理 - 使用 Sharp 处理图片元数据
-          await this.updateTaskStage(taskId, 'metadata')
-          this.logger.info(`[${taskId}:in-stage] metadata extraction`)
-          const processedData = await processImageMetadataAndSharp(
-            imageBuffers.processed,
-            storageKey,
-          )
-          if (!processedData) {
-            throw new Error('Metadata processing failed')
-          }
-
-          const { imageBuffer, metadata } = processedData
-
-          // STEP 3: 生成缩略图
-          await this.updateTaskStage(taskId, 'thumbnail')
-          this.logger.info(`[${taskId}:in-stage] thumbnail generation`)
-          const { thumbnailBuffer, thumbnailHash } =
-            await generateThumbnailAndHash(imageBuffer, this.logger)
-
-          // 上传缩略图到存储服务
-          const thumbnailObject = await new Promise<any>((resolve, reject) => {
-            setImmediate(async () => {
-              try {
-                const result = await storageProvider.create(
-                  `thumbnails/${photoId}.webp`,
-                  thumbnailBuffer,
-                  'image/webp',
-                )
-                resolve(result)
-              } catch (error) {
-                reject(error)
-              }
-            })
-          })
-
-          // STEP 4: 提取 EXIF 数据
-          await this.updateTaskStage(taskId, 'exif')
-          this.logger.info(`[${taskId}:in-stage] exif extraction`)
-          const exifData = await extractExifData(
-            imageBuffer,
-            imageBuffers.raw,
-            this.logger,
-          )
-          const systemAutoEraseLocationOnUpload =
-            (await settingsManager.get<boolean>(
-              'privacy',
-              'upload.autoEraseLocation',
-            )) ?? false
-          const shouldAutoEraseLocationOnUpload =
-            typeof payload.eraseLocation === 'boolean'
-              ? payload.eraseLocation
-              : systemAutoEraseLocationOnUpload
-          const normalizedExifData = shouldAutoEraseLocationOnUpload
-            ? stripLocationFromExif(exifData)
-            : exifData
-
-          // 提取照片基本信息
-          const photoInfo = extractPhotoInfo(storageKey, normalizedExifData)
-
-          // STEP 5: 地理位置反向解析
-          // 这里逆编码失败不报错，宽容处理
-          await this.updateTaskStage(taskId, 'reverse-geocoding')
-          this.logger.info(`[${taskId}:in-stage] reverse geocoding`)
-
-          let coordinates = null
-          let locationInfo = null
-          if (!shouldAutoEraseLocationOnUpload && normalizedExifData) {
-            const { latitude, longitude } =
-              parseGPSCoordinates(normalizedExifData)
-            if (hasValidCoordinates(latitude, longitude)) {
-              coordinates = { latitude, longitude }
-              locationInfo = await extractLocationFromGPS(latitude, longitude)
-            }
-          }
-
-          // STEP 6: Motion Photo (XMP) 支持
-          await this.updateTaskStage(taskId, 'motion-photo')
-          this.logger.info(`[${taskId}:in-stage] motion photo detection`)
-          const motionPhotoInfo = imageBuffers.raw
-            ? await processMotionPhotoFromXmp({
-                photoId,
-                storageKey,
-                rawImageBuffer: imageBuffers.raw,
-                exifData: normalizedExifData,
-                storageProvider,
-                logger: this.logger,
-              })
-            : null
-
-          if (!imageBuffers.raw) {
-            this.logger.warn(
-              `[${taskId}:in-stage] motion photo detection skipped: missing raw buffer for ${storageKey}`,
-            )
-          }
-
-          // STEP 7: LivePhoto 视频配对（独立 MOV 文件）
-          await this.updateTaskStage(taskId, 'live-photo')
-          this.logger.info(`[${taskId}:in-stage] live photo detection`)
-          let livePhotoInfo = null
-          if (!motionPhotoInfo?.isMotionPhoto) {
-            const livePhotoVideo = await findLivePhotoVideoForImage(
-              storageKey,
-              storageProvider,
-            )
-            if (livePhotoVideo) {
-              livePhotoInfo = {
-                isLivePhoto: 1,
-                livePhotoVideoUrl: storageProvider.getPublicUrl(
-                  livePhotoVideo.videoKey,
-                ),
-                livePhotoVideoKey: livePhotoVideo.videoKey,
-              }
-              this.logger.info(
-                `[${taskId}:in-stage] found LivePhoto video: ${livePhotoVideo.videoKey}`,
-              )
-            }
-          } else {
-            livePhotoInfo = {
-              isLivePhoto: 1,
-              livePhotoVideoUrl: motionPhotoInfo.livePhotoVideoUrl || null,
-              livePhotoVideoKey: motionPhotoInfo.livePhotoVideoKey || null,
-            }
-          }
-
-          // 构建最终的 Photo 对象
-          const result: typeof tables.photos.$inferInsert = {
-            siteId: task.siteId,
-            storageConnectionId: task.storageConnectionId,
-            storageRevision: task.storageRevision,
-            sourceVersion: task.sourceVersion,
-            id: photoId,
-            title: photoInfo.title,
-            description: photoInfo.description,
-            dateTaken: photoInfo.dateTaken,
-            tags: photoInfo.tags,
-            width: metadata.width,
-            height: metadata.height,
-            aspectRatio: metadata.width / metadata.height,
-            storageKey: storageKey,
-            thumbnailKey: thumbnailObject.key,
-            fileSize: storageObject.size || null,
-            lastModified:
-              storageObject.lastModified?.toISOString() ||
-              new Date().toISOString(),
-            originalUrl: imageBuffers.jpegKey
-              ? storageProvider.getPublicUrl(imageBuffers.jpegKey) // 使用 JPEG 版本作为 originalUrl
-              : storageProvider.getPublicUrl(storageKey),
-            thumbnailUrl: storageProvider.getPublicUrl(thumbnailObject.key),
-            thumbnailHash: thumbnailHash
-              ? compressUint8Array(thumbnailHash)
-              : null,
-            exif: normalizedExifData,
-            // 地理位置信息
-            latitude: coordinates?.latitude ?? null,
-            longitude: coordinates?.longitude ?? null,
-            country: locationInfo?.country || null,
-            city: locationInfo?.city || null,
-            locationName: locationInfo?.locationName || null,
-            geocoding: locationInfo?.geocoding || null,
-            // LivePhoto 相关字段
-            isLivePhoto:
-              motionPhotoInfo?.isMotionPhoto || livePhotoInfo?.isLivePhoto
-                ? 1
-                : 0,
-            livePhotoVideoUrl:
-              motionPhotoInfo?.livePhotoVideoUrl ||
-              livePhotoInfo?.livePhotoVideoUrl ||
-              null,
-            livePhotoVideoKey:
-              motionPhotoInfo?.livePhotoVideoKey ||
-              livePhotoInfo?.livePhotoVideoKey ||
-              null,
-          }
-
-          const assignment = persistPhotoWithAlbum(
-            useDB(),
-            result,
-            payload.albumId,
-          )
-          if (assignment === QueueWarningCode.AlbumMissing) {
-            this.logger.warn(
-              `Task ${taskId}: album ${payload.albumId} was deleted before photo ${photoId} could be added`,
-            )
-          }
-
-          if (shouldAutoEraseLocationOnUpload) {
-            try {
-              await this.addTask(
-                {
-                  type: 'photo-erase-location',
-                  photoId,
-                },
-                {
-                  priority: 2,
-                  maxAttempts: 3,
-                },
-              )
-            } catch (enqueueError) {
-              this.logger.warn(
-                `[${taskId}:location-erase] failed to enqueue location erase task for ${photoId}`,
-                enqueueError,
-              )
-            }
-          }
-
-          this.logger.success(`Task ${taskId} processed successfully`)
-          return assignment === QueueWarningCode.AlbumMissing
-            ? QueueWarningCode.AlbumMissing
-            : null
-        } catch (error) {
-          this.logger.error(`Task ${taskId} processing failed`, error)
-          throw error
-        }
-      },
-      reverseGeocoding: async (task: PipelineQueueItem) => {
-        const db = useDB()
-        const { id: taskId, payload } = task
-
-        if (payload.type !== 'photo-reverse-geocoding') {
-          throw new Error(
-            `Invalid payload type for reverse geocoding task: ${payload.type}`,
-          )
-        }
-
-        const { photoId } = payload
-
-        try {
-          await this.updateTaskStage(taskId, 'reverse-geocoding')
-          this.logger.info(
-            `[${taskId}:in-stage] reverse geocoding for photo ${photoId}`,
-          )
-
-          const photo = await db
-            .select()
-            .from(tables.photos)
-            .where(
-              siteAnd(
-                eq(tables.photos.id, photoId),
-                siteEq(tables.photos.siteId, DEFAULT_SITE.id),
-              ),
-            )
-            .get()
-
-          if (!photo) {
-            this.logger.warn(
-              `[${taskId}:reverse-geocoding] photo ${photoId} not found`,
-            )
-            throw new PermanentTaskError(`Photo ${photoId} not found`)
-          }
-
-          if (
-            payload.migrationOnly &&
-            (photo.geocoding ||
-              !hasValidCoordinates(photo.latitude, photo.longitude))
-          )
-            return
-
-          // An explicit queued coordinate must still belong to this photo. In
-          // particular, a refresh queued before erasure must not restore it.
-          if (!matchesLocationRequest(photo, payload)) {
-            throw new PermanentTaskError(
-              `Location changed for photo ${photoId}`,
-            )
-          }
-
-          let latitude = payload.latitude ?? photo.latitude ?? undefined
-          let longitude = payload.longitude ?? photo.longitude ?? undefined
-
-          if (
-            latitude === undefined ||
-            latitude === null ||
-            longitude === undefined ||
-            longitude === null
-          ) {
-            if (photo.exif) {
-              const coords = parseGPSCoordinates(photo.exif)
-              if (latitude === undefined || latitude === null) {
-                latitude = coords.latitude
-              }
-              if (longitude === undefined || longitude === null) {
-                longitude = coords.longitude
-              }
-            }
-          }
-
-          const hasLatitude = latitude !== undefined && latitude !== null
-          const hasLongitude = longitude !== undefined && longitude !== null
-
-          if (!hasLatitude || !hasLongitude) {
-            this.logger.warn(
-              `[${taskId}:reverse-geocoding] missing coordinates for photo ${photoId}`,
-            )
-            await db
-              .update(tables.photos)
-              .set({
-                latitude: null,
-                longitude: null,
-                country: null,
-                city: null,
-                locationName: null,
-                geocoding: null,
-              })
-              .where(
-                siteAnd(
-                  eq(tables.photos.id, photoId),
-                  siteEq(tables.photos.siteId, DEFAULT_SITE.id),
-                ),
-              )
-            throw new PermanentTaskError(
-              `Missing coordinates for photo ${photoId}`,
-            )
-          }
-
-          if (!hasValidCoordinates(latitude, longitude)) {
-            throw new PermanentTaskError(
-              `Invalid coordinates for photo ${photoId}`,
-            )
-          }
-
-          const locationInfo = await extractLocationFromGPS(
-            latitude!,
-            longitude!,
-          )
-
-          if (!locationInfo) {
-            throw new Error(
-              `Failed to extract location from GPS coordinates (${latitude}, ${longitude}), maybe network issue?`,
-            )
-          }
-
-          const changes = updateGeocodedPhoto(
-            db,
-            photo,
-            locationInfo,
-            Boolean(payload.migrationOnly),
-          )
-          if (changes === 0) {
-            throw new PermanentTaskError(
-              `Location changed for photo ${photoId}; result discarded`,
-            )
-          }
-
-          this.logger.success(
-            `[${taskId}:reverse-geocoding] updated location for photo ${photoId}`,
-          )
-        } catch (error) {
-          this.logger.error(
-            `[${taskId}:reverse-geocoding] failed for photo ${photoId}`,
-            error,
-          )
-          throw error
-        }
-      },
-      eraseLocation: async (task: PipelineQueueItem) => {
-        const db = useDB()
-        const { id: taskId, payload } = task
-        const storageProvider = await storageForReference(
-          task,
-          getStorageManager().getProvider(),
-        )
-
-        if (payload.type !== 'photo-erase-location') {
-          throw new Error(
-            `Invalid payload type for erase location task: ${payload.type}`,
-          )
-        }
-
-        await this.updateTaskStage(taskId, 'location-erase')
-        this.logger.info(
-          `[${taskId}:in-stage] erase location info for photo ${payload.photoId}`,
-        )
-
-        const photo = await db
-          .select()
-          .from(tables.photos)
-          .where(
-            siteAnd(
-              eq(tables.photos.id, payload.photoId),
-              siteEq(tables.photos.siteId, DEFAULT_SITE.id),
-            ),
-          )
-          .get()
-
-        if (!photo) {
-          throw new PermanentTaskError(`Photo ${payload.photoId} not found`)
-        }
-
-        if (!photo.storageKey) {
-          throw new PermanentTaskError(
-            `Photo ${payload.photoId} has no storage key`,
-          )
-        }
-
-        const originalBuffer = await storageProvider.get(photo.storageKey)
-        if (!originalBuffer) {
-          throw new PermanentTaskError(
-            `Photo file ${photo.storageKey} not found in storage`,
-          )
-        }
-
-        const tempRoot = tmpdir()
-        await mkdir(tempRoot, { recursive: true })
-        const tempDir = await mkdtemp(path.join(tempRoot, 'cframe-location-'))
-        const ext = path.extname(photo.storageKey) || '.jpg'
-        const tempFile = path.join(tempDir, `erase-location${ext}`)
-
-        try {
-          await writeFile(tempFile, originalBuffer)
-
-          const exifLocationNullMap = EXIF_LOCATION_KEYS.reduce(
-            (acc, key) => {
-              acc[key] = null
-              return acc
-            },
-            {} as Record<string, null>,
-          )
-
-          await exiftool.write(tempFile, exifLocationNullMap, [
-            '-overwrite_original',
-          ])
-
-          const updatedBuffer = await readFile(tempFile)
-
-          await storageProvider.create(photo.storageKey, updatedBuffer)
-
-          const exifData = stripLocationFromExif(
-            await extractExifData(updatedBuffer),
-          )
-
-          await db
-            .update(tables.photos)
-            .set({
-              exif: exifData,
-              fileSize: updatedBuffer.length,
-              lastModified: new Date().toISOString(),
-              latitude: null,
-              longitude: null,
-              country: null,
-              city: null,
-              locationName: null,
-              geocoding: null,
-            })
-            .where(
-              siteAnd(
-                eq(tables.photos.id, payload.photoId),
-                siteEq(tables.photos.siteId, DEFAULT_SITE.id),
-              ),
-            )
-
-          this.logger.success(
-            `[${taskId}:location-erase] erased location info for photo ${payload.photoId}`,
-          )
-        } finally {
-          await rm(tempDir, { recursive: true, force: true })
-        }
-      },
-      livePhotoDetect: async (task: PipelineQueueItem) => {
-        const db = useDB()
-        const storageProvider = await storageForReference(
-          task,
-          getStorageManager().getProvider(),
-        )
-
-        const { id: taskId, payload } = task
-        if (payload.type !== 'live-photo-video') {
-          throw new Error(
-            `Invalid payload type for live-photo task: ${payload.type}`,
-          )
-        }
-        const { storageKey: videoKey } = payload
-
-        try {
-          this.logger.info(
-            `Start processing LivePhoto detection task ${taskId}: ${videoKey}`,
-          )
-
-          let storageObject = await storageProvider.getFileMeta(videoKey)
-          if (!storageObject) {
-            const maybeBuffer = await storageProvider.get(videoKey)
-            if (maybeBuffer) {
-              storageObject = {
-                key: videoKey,
-                size: maybeBuffer.length,
-                lastModified: new Date(),
-              }
-            }
-          }
-          if (!storageObject) {
-            throw new PermanentTaskError(`Storage object not found`)
-          }
-
-          // 寻找是否有同名的照片文件
-          const videoDir = path.dirname(videoKey)
-          const videoBaseName = path.basename(videoKey, path.extname(videoKey))
-
-          const possiblePhotoKeys = [
-            path.join(videoDir, `${videoBaseName}.HEIC`).replace(/\\/g, '/'),
-            path.join(videoDir, `${videoBaseName}.heic`).replace(/\\/g, '/'),
-            path.join(videoDir, `${videoBaseName}.JPG`).replace(/\\/g, '/'),
-            path.join(videoDir, `${videoBaseName}.jpg`).replace(/\\/g, '/'),
-            path.join(videoDir, `${videoBaseName}.JPEG`).replace(/\\/g, '/'),
-            path.join(videoDir, `${videoBaseName}.jpeg`).replace(/\\/g, '/'),
-          ]
-
-          let matchedPhoto: Photo | null = null
-          for (const photoKey of possiblePhotoKeys) {
-            const photos = await db
-              .select()
-              .from(tables.photos)
-              .where(
-                siteAnd(
-                  eq(tables.photos.storageKey, photoKey),
-                  siteEq(tables.photos.siteId, DEFAULT_SITE.id),
-                ),
-              )
-              .limit(1)
-
-            const matched = photos[0]
-            if (matched) {
-              matchedPhoto = matched
-              this.logger.info(
-                `Found matching photo for LivePhoto video: ${photoKey}`,
-              )
-              break
-            }
-          }
-
-          if (!matchedPhoto) {
-            this.logger.warn(
-              `No matching photo found for LivePhoto video: ${videoKey}`,
-            )
-            throw new Error(
-              `No matching photo found for LivePhoto video: ${videoKey}`,
-            )
-          }
-
-          const livePhotoVideoUrl = storageProvider.getPublicUrl(videoKey)
-          await db
-            .update(tables.photos)
-            .set({
-              isLivePhoto: 1,
-              livePhotoVideoUrl,
-              livePhotoVideoKey: videoKey,
-            })
-            .where(
-              siteAnd(
-                eq(tables.photos.id, matchedPhoto.id),
-                siteEq(tables.photos.siteId, DEFAULT_SITE.id),
-              ),
-            )
-
-          this.logger.success(
-            `LivePhoto detection task ${taskId} processed successfully, updated photo ${matchedPhoto.id}`,
-          )
-        } catch (error) {
-          this.logger.error(
-            `LivePhoto detection task ${taskId} processing failed`,
-            error,
-          )
-          throw error
-        }
-      },
-    }
-  })()
-
-  /**
-   * 处理下一个待处理任务
-   */
-  private async processNextTask(): Promise<void> {
-    if (this.isProcessing) {
-      this.logger.debug('Task is already processing, skipping this poll')
-      return
-    }
-
-    this.isProcessing = true
-
-    try {
-      const task = await this.getNextTask()
-      if (!task) {
-        this.logger.debug('No tasks to process at the moment')
-        return
-      }
-
-      try {
-        const { type } = task.payload
-
-        let warningCode: PipelineQueueItem['warningCode'] = null
-        switch (type) {
-          case 'location-migration':
-            enqueueLocationMigration(useDB())
-            break
-          case 'live-photo-video':
-            await this.processors.livePhotoDetect(task)
-            break
-          case 'photo':
-            warningCode = await this.processors.photo(task)
-            break
-          case 'photo-reverse-geocoding':
-            await this.processors.reverseGeocoding(task)
-            break
-          case 'photo-erase-location':
-            await this.processors.eraseLocation(task)
-            break
-          default:
-            throw new PermanentTaskError(`Unknown task type: ${type}`)
-        }
-
-        await this.markTaskCompleted(task.id, warningCode)
-        this.processedCount++
-        this.logger.success(
-          `[${this.workerId}] Task ${task.id} processed successfully (Total: ${this.processedCount})`,
-        )
-      } catch (error) {
-        const errorMessage =
-          error instanceof Error ? error.message : String(error)
-        await this.markTaskFailed(
-          task.id,
-          errorMessage,
-          !(error instanceof PermanentTaskError),
-        )
-        this.errorCount++
-        this.logger.error(
-          `[${this.workerId}] Task ${task.id} processing failed (Error: ${this.errorCount}):`,
-          errorMessage,
-        )
-      }
-    } catch (error) {
-      this.logger.error('Error occurred while fetching the next task:', error)
-    } finally {
-      this.isProcessing = false
-    }
-  }
-
-  /**
-   * 开始处理队列
-   * @param intervalMs 轮询间隔
-   */
-  startProcessing(intervalMs: number = 3000): void {
-    if (this.processingInterval) return
-
-    this.processingInterval = setInterval(() => {
-      this.runTask()
-    }, intervalMs)
-
-    this.logger.success(
-      `Queue processing started with interval: ${intervalMs}ms`,
-    )
-
-    this.runTask()
-  }
-
-  private runTask(): void {
-    if (this.activeTask) return
-    this.activeTask = this.processNextTask()
-      .catch((error) => this.logger.error('Error processing queue:', error))
-      .finally(() => {
-        this.activeTask = null
-      })
-  }
-
-  /**
-   * 停止处理队列
-   */
-  async stopProcessing(): Promise<void> {
-    if (this.processingInterval) {
-      clearInterval(this.processingInterval)
-      this.processingInterval = null
-      this.logger.warn('Queue processing stopped')
-    }
-    await this.activeTask
-  }
-
-  /**
-   * 获取队列统计信息
-   * @returns 队列统计信息
-   */
   async getQueueStats() {
-    const db = useDB()
-    const stats = await db
+    const stats = useDB()
       .select({
         status: tables.pipelineQueue.status,
         count: sql<number>`COUNT(*)`,
       })
       .from(tables.pipelineQueue)
-      .where(siteEq(tables.pipelineQueue.siteId, DEFAULT_SITE.id))
+      .where(eq(tables.pipelineQueue.siteId, DEFAULT_SITE.id))
       .groupBy(tables.pipelineQueue.status)
-
-    return stats.reduce(
-      (acc, stat) => {
-        acc[stat.status] = stat.count
-        return acc
-      },
-      {} as Record<string, number>,
+      .all()
+    return Object.fromEntries(stats.map((row) => [row.status, row.count]))
+  }
+  private async process(
+    lease: JobLease,
+    signal: AbortSignal,
+    repository: Repository,
+  ) {
+    const db = useDB(),
+      payload = lease.payload
+    if (payload.type === 'location-migration') {
+      repository.commit(lease, () => enqueueLocationMigration(db))
+      return
+    }
+    const provider = await storageForReference(
+      lease,
+      getStorageManager().getProvider(),
     )
+    const generated = new Set<string>(),
+      linked = new Set<string>()
+    const namespace = `.generated/${lease.siteId}/${lease.id}/${lease.sourceVersion}/${lease.attemptId}/`
+    let published = false
+    const staged = new Proxy(provider, {
+      get(target, property) {
+        if (property === 'create')
+          return async (key: string, buffer: Buffer, contentType?: string) => {
+            repository.assertCurrent(lease)
+            signal.throwIfAborted()
+            const safe = key
+              .replace(/\\/g, '/')
+              .split('/')
+              .filter((part) => part && part !== '.' && part !== '..')
+              .join('/')
+            const object = await target.create(
+              namespace + safe,
+              buffer,
+              contentType,
+            )
+            generated.add(object.key)
+            return object
+          }
+        if (property === 'delete' || property === 'createFromFile')
+          return () =>
+            Promise.reject(
+              new Error('Processing must publish versioned objects'),
+            )
+        const value = Reflect.get(target, property, target)
+        return typeof value === 'function' ? value.bind(target) : value
+      },
+    })
+    const stage = async (value: PipelineQueueItem['statusStage']) => {
+      signal.throwIfAborted()
+      repository.stage(lease, value)
+    }
+    const verifySource = async (key: string, hash: string) => {
+      repository.assertCurrent(lease)
+      signal.throwIfAborted()
+      const fresh = await provider.get(key)
+      if (!fresh || createHash('sha256').update(fresh).digest('hex') !== hash)
+        throw new LostLeaseError('Source object changed during processing')
+    }
+    try {
+      if (payload.type === 'photo') {
+        if (!lease.resourceId)
+          throw new PermanentJobError('Missing resource identity')
+        const process = createPhotoProcessor({
+          logger: this.logger,
+          exif: createExifService({
+            exiftool,
+            tempDir: tmpdir(),
+            logger: this.logger,
+          }),
+          parseGPS: parseGPSCoordinates,
+          reverseGeocode: extractLocationFromGPS,
+        })
+        const erase =
+          payload.eraseLocation ??
+          (await settingsManager.get<boolean>(
+            'privacy',
+            'upload.autoEraseLocation',
+          )) ??
+          false
+        const { photo, sourceHash } = await process({
+          photoId: lease.resourceId,
+          storageKey: payload.storageKey,
+          eraseLocation: erase,
+          storage: staged,
+          sourceRead: (hash) => repository.bindSourceHash(lease, hash),
+          stage,
+          signal,
+        })
+        if (
+          photo.livePhotoVideoKey &&
+          !generated.has(photo.livePhotoVideoKey)
+        ) {
+          const base = payload.storageKey.slice(
+            0,
+            -path.extname(payload.storageKey).length,
+          )
+          if ([`${base}.MOV`, `${base}.mov`].includes(photo.livePhotoVideoKey))
+            linked.add(photo.livePhotoVideoKey)
+        }
+        validatePhotoPublication(photo, {
+          resourceId: lease.resourceId,
+          sourceKey: payload.storageKey,
+          generatedKeys: generated,
+          linkedVideoKeys: linked,
+          publicUrl: (key) => provider.getPublicUrl(key),
+        })
+        await verifySource(payload.storageKey, sourceHash)
+        let warning: QueueWarningCode | null = null
+        const publication = repository.commit(
+          lease,
+          () => {
+            const assignment = createPhotoPersistenceRepository(
+              db,
+              DEFAULT_SITE,
+            ).persist(
+              {
+                ...photo,
+                siteId: lease.siteId,
+                storageConnectionId: lease.storageConnectionId,
+                storageRevision: lease.storageRevision,
+                sourceVersion: lease.sourceVersion,
+              },
+              payload.albumId,
+            )
+            warning =
+              assignment === QueueWarningCode.AlbumMissing ? assignment : null
+          },
+          { resourceUpdated: true, warningCode: () => warning },
+        )
+        published = publication.published
+        return
+      }
+      if (payload.type === 'photo-reverse-geocoding') {
+        await stage('reverse-geocoding')
+        const photo = db
+          .select()
+          .from(tables.photos)
+          .where(
+            and(
+              eq(tables.photos.siteId, DEFAULT_SITE.id),
+              eq(tables.photos.id, payload.photoId),
+            ),
+          )
+          .get()
+        if (!photo) throw new PermanentJobError('Photo not found')
+        if (
+          payload.migrationOnly &&
+          (photo.geocoding ||
+            !hasValidCoordinates(photo.latitude, photo.longitude))
+        )
+          return
+        if (!matchesLocationRequest(photo, payload))
+          throw new PermanentJobError('Location changed')
+        const parsed = photo.exif ? parseGPSCoordinates(photo.exif) : {}
+        const latitude = payload.latitude ?? photo.latitude ?? parsed.latitude,
+          longitude = payload.longitude ?? photo.longitude ?? parsed.longitude
+        if (latitude == null || longitude == null) {
+          repository.commit(
+            lease,
+            () => {
+              db.update(tables.photos)
+                .set({
+                  latitude: null,
+                  longitude: null,
+                  country: null,
+                  city: null,
+                  locationName: null,
+                  geocoding: null,
+                })
+                .where(
+                  and(
+                    eq(tables.photos.siteId, DEFAULT_SITE.id),
+                    eq(tables.photos.id, photo.id),
+                  ),
+                )
+                .run()
+            },
+            { resourceUpdated: true, failure: 'Missing coordinates' },
+          )
+          throw new PermanentJobError('Missing coordinates')
+        }
+        if (!hasValidCoordinates(latitude, longitude))
+          throw new PermanentJobError('Invalid coordinates')
+        const location = await extractLocationFromGPS(latitude, longitude)
+        if (!location) throw new Error('Reverse geocoding unavailable')
+        repository.commit(
+          lease,
+          () => {
+            if (
+              !updateGeocodedPhoto(
+                db,
+                photo,
+                location,
+                Boolean(payload.migrationOnly),
+              )
+            )
+              throw new LostLeaseError('Location changed')
+          },
+          { resourceUpdated: true },
+        )
+        published = true
+        return
+      }
+      if (payload.type === 'photo-erase-location') {
+        await stage('location-erase')
+        const photo = db
+          .select()
+          .from(tables.photos)
+          .where(
+            and(
+              eq(tables.photos.siteId, DEFAULT_SITE.id),
+              eq(tables.photos.id, payload.photoId),
+            ),
+          )
+          .get()
+        if (!photo?.storageKey)
+          throw new PermanentJobError('Photo source not found')
+        const original = await provider.get(photo.storageKey)
+        if (!original) throw new PermanentJobError('Source object not found')
+        const hash = createHash('sha256').update(original).digest('hex')
+        const directory = await mkdtemp(path.join(tmpdir(), 'cframe-location-'))
+        try {
+          const file = path.join(
+            directory,
+            'source' + (path.extname(photo.storageKey) || '.jpg'),
+          )
+          await writeFile(file, original)
+          const tags = Object.fromEntries(
+            EXIF_LOCATION_KEYS.map((key) => [key, null]),
+          )
+          await exiftool.write(file, tags, ['-overwrite_original'])
+          const buffer = await readFile(file)
+          const object = await staged.create(
+            'source' + (path.extname(photo.storageKey) || '.jpg'),
+            buffer,
+          )
+          let derived = photo.originalDerivedKey
+          if (derived) {
+            const oldDerived = await provider.get(derived)
+            if (!oldDerived)
+              throw new PermanentJobError('Derived source not found')
+            const jpeg = path.join(directory, 'derived.jpeg')
+            await writeFile(jpeg, oldDerived)
+            await exiftool.write(jpeg, tags, ['-overwrite_original'])
+            derived = (
+              await staged.create(
+                'original.jpeg',
+                await readFile(jpeg),
+                'image/jpeg',
+              )
+            ).key
+          }
+          const exif = stripLocationFromExif(
+            await createExifService({
+              exiftool,
+              tempDir: tmpdir(),
+              logger: this.logger,
+            }).extractExifData(buffer),
+          )
+          await verifySource(photo.storageKey, hash)
+          published = repository.commit(
+            lease,
+            () => {
+              db.update(tables.photos)
+                .set({
+                  storageKey: object.key,
+                  originalDerivedKey: derived,
+                  originalUrl: provider.getPublicUrl(derived ?? object.key),
+                  exif,
+                  fileSize: buffer.length,
+                  lastModified: new Date().toISOString(),
+                  latitude: null,
+                  longitude: null,
+                  country: null,
+                  city: null,
+                  locationName: null,
+                  geocoding: null,
+                })
+                .where(
+                  and(
+                    eq(tables.photos.siteId, DEFAULT_SITE.id),
+                    eq(tables.photos.id, photo.id),
+                  ),
+                )
+                .run()
+            },
+            { resourceUpdated: true },
+          ).published
+          if (published)
+            for (const key of [photo.storageKey, photo.originalDerivedKey])
+              if (key && !generated.has(key))
+                await provider
+                  .delete(key)
+                  .catch((error) =>
+                    this.logger.warn(
+                      'Old source cleanup failed',
+                      error instanceof Error ? error.message : 'storage error',
+                    ),
+                  )
+        } finally {
+          await rm(directory, { recursive: true, force: true })
+        }
+        return
+      }
+      if (payload.type === 'live-photo-video') {
+        await stage('live-photo')
+        if (!lease.resourceId)
+          throw new PermanentJobError('Missing photo identity')
+        const photo = db
+          .select()
+          .from(tables.photos)
+          .where(
+            and(
+              eq(tables.photos.siteId, DEFAULT_SITE.id),
+              eq(tables.photos.id, lease.resourceId),
+            ),
+          )
+          .get()
+        if (!photo) throw new Error('Matching photo is not ready')
+        const video = await provider.get(payload.storageKey)
+        if (!video) throw new PermanentJobError('Video source not found')
+        await verifySource(
+          payload.storageKey,
+          createHash('sha256').update(video).digest('hex'),
+        )
+        repository.commit(
+          lease,
+          () => {
+            db.update(tables.photos)
+              .set({
+                isLivePhoto: 1,
+                livePhotoVideoKey: payload.storageKey,
+                livePhotoVideoUrl: provider.getPublicUrl(payload.storageKey),
+              })
+              .where(
+                and(
+                  eq(tables.photos.siteId, DEFAULT_SITE.id),
+                  eq(tables.photos.id, photo.id),
+                ),
+              )
+              .run()
+          },
+          { resourceUpdated: true },
+        )
+        published = true
+      }
+    } finally {
+      if (!published)
+        for (const key of generated)
+          await provider
+            .delete(key)
+            .catch((error) =>
+              this.logger.warn(
+                'Unpublished attempt cleanup failed',
+                error instanceof Error ? error.message : 'storage error',
+              ),
+            )
+    }
+  }
+  private async processNextTask() {
+    if (this.isProcessing) return
+    this.isProcessing = true
+    try {
+      const repository = this.repository()
+      const outcome = await runOneJob({
+        repository,
+        workerId: this.workerId,
+        site: DEFAULT_SITE,
+        process: (lease, signal) => this.process(lease, signal, repository),
+        onError: (error) =>
+          this.logger.warn(
+            error instanceof Error ? error.message : 'Queue operation failed',
+          ),
+      })
+      if (outcome === 'completed') this.processedCount++
+      if (outcome === 'failed') this.errorCount++
+    } catch (error) {
+      this.logger.error(
+        'Queue execution failed',
+        error instanceof Error ? error.message : 'unknown error',
+      )
+    } finally {
+      this.isProcessing = false
+    }
+  }
+  startProcessing(intervalMs = 3000) {
+    if (this.processingInterval) return
+    this.processingInterval = setInterval(() => this.runTask(), intervalMs)
+    this.runTask()
+  }
+  private runTask() {
+    if (this.activeTask) return
+    this.activeTask = this.processNextTask().finally(() => {
+      this.activeTask = null
+    })
+  }
+  async stopProcessing() {
+    if (this.processingInterval) {
+      clearInterval(this.processingInterval)
+      this.processingInterval = null
+    }
+    await this.activeTask
   }
 }

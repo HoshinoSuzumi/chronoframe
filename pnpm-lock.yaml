@@ -29,6 +29,12 @@ importers:
       '@chronoframe/geocoding':
         specifier: workspace:*
         version: link:packages/geocoding
+      '@chronoframe/jobs':
+        specifier: workspace:*
+        version: link:packages/jobs
+      '@chronoframe/processing':
+        specifier: workspace:*
+        version: link:packages/processing
       '@chronoframe/media':
         specifier: workspace:*
         version: link:packages/media
@@ -266,6 +272,9 @@ importers:
 
   packages/database:
     dependencies:
+      '@chronoframe/jobs':
+        specifier: workspace:*
+        version: link:../jobs
       '@chronoframe/contracts':
         specifier: workspace:*
         version: link:../contracts
@@ -357,6 +366,41 @@ importers:
       typescript:
         specifier: ^5.9.3
         version: 5.9.3
+
+  packages/jobs:
+    dependencies:
+      '@chronoframe/core':
+        specifier: workspace:*
+        version: link:../core
+      '@chronoframe/contracts':
+        specifier: workspace:*
+        version: link:../contracts
+    devDependencies:
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
+
+  packages/processing:
+    dependencies:
+      '@chronoframe/contracts':
+        specifier: workspace:*
+        version: link:../contracts
+      '@chronoframe/media':
+        specifier: workspace:*
+        version: link:../media
+      '@chronoframe/storage':
+        specifier: workspace:*
+        version: link:../storage
+      '@chronoframe/geocoding':
+        specifier: workspace:*
+        version: link:../geocoding
+    devDependencies:
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
+      '@types/node':
+        specifier: ^22.20.5
+        version: 22.20.5
 
   packages/webgl-image:
     dependencies:

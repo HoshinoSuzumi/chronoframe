@@ -7,6 +7,8 @@ const packageNames = [
   'contracts',
   'core',
   'database',
+  'jobs',
+  'processing',
   'storage',
   'media',
   'geocoding',

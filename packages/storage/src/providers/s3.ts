@@ -77,11 +77,19 @@ export class S3StorageProvider implements StorageProvider {
     contentType?: string,
   ): Promise<StorageObject> {
     try {
+      const configuredPrefix = this.config.prefix ?? ''
+      let start = 0,
+        end = configuredPrefix.length,
+        keyStart = 0
+      while (start < end && configuredPrefix[start] === '/') start++
+      while (end > start && configuredPrefix[end - 1] === '/') end--
+      while (keyStart < key.length && key[keyStart] === '/') keyStart++
+      const prefix = configuredPrefix.slice(start, end),
+        cleanKey = key.slice(keyStart)
       const absoluteKey =
-        `${(this.config.prefix || '').replace(/\/+$/, '')}/${key}`.replace(
-          /^\/+/,
-          '',
-        )
+        prefix && !cleanKey.startsWith(prefix + '/')
+          ? prefix + '/' + cleanKey
+          : cleanKey
       const cmd = new PutObjectCommand({
         Bucket: this.config.bucket,
         Key: absoluteKey,
