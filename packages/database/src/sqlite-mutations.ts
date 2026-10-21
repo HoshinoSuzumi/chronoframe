@@ -1,7 +1,7 @@
 import { appendAlbumPhotos } from './album-membership.ts'
-import { createSqliteJobRepository, reserveResource } from './sqlite-jobs.ts'
-import { requireSite } from './site-repository.ts'
-import { type SiteContext } from '@chronoframe/core'
+import { createSqliteJobRepository } from './sqlite-jobs.ts'
+import { createSiteRepository, requireSite } from './site-repository.ts'
+import { CoreError, type SiteContext } from '@chronoframe/core'
 import { and as siteAnd, eq as siteEq } from 'drizzle-orm'
 import { and, eq, min } from 'drizzle-orm'
 import type {
@@ -202,33 +202,31 @@ export function createSqlitePhotoWriteRepository(
   })
   return {
     async get(id) {
-      const photo = db
-        .select()
-        .from(tables.photos)
-        .where(
-          siteAnd(
-            eq(tables.photos.id, id),
-            siteEq(tables.photos.siteId, site.id),
-          ),
-        )
-        .get()
-      return photo ? record(photo) : null
+      const snapshot = await createSiteRepository(db, site).capturePhoto(id)
+      return snapshot
+        ? { ...record(snapshot.photo), mutationVersion: snapshot.version }
+        : null
     },
-    async beginMutation(id) {
-      const photo = db
-        .select()
-        .from(tables.photos)
-        .where(and(eq(tables.photos.siteId, site.id), eq(tables.photos.id, id)))
-        .get()
-      if (photo)
-        reserveResource(db, site, id, {
-          storageConnectionId: photo.storageConnectionId,
-          storageRevision: photo.storageRevision,
-          storageKey: photo.storageKey,
-        })
-    },
-    async update(id, update, reverseGeocode) {
+    async update(id, update, reverseGeocode, expectedVersion) {
       return db.transaction(() => {
+        if (expectedVersion !== undefined) {
+          const version = db
+            .select()
+            .from(tables.resourceVersions)
+            .where(
+              and(
+                eq(tables.resourceVersions.siteId, site.id),
+                eq(tables.resourceVersions.resourceId, id),
+              ),
+            )
+            .get()
+          if (
+            !version ||
+            version.deleted ||
+            version.version !== expectedVersion
+          )
+            throw new CoreError(409, 'Photo changed; retry the operation')
+        }
         db.update(tables.photos)
           .set(update)
           .where(

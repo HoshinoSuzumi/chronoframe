@@ -280,3 +280,48 @@ test('Live Photo management preserves missing photo and source conflict response
     await assert.rejects(route({}), { statusCode: status })
   }
 })
+
+test('native metadata editing stages a unique object and discard preserves original bytes', async () => {
+  const { mkdtemp, rm } = await import('node:fs/promises')
+  const { tmpdir } = await import('node:os')
+  const { join } = await import('node:path')
+  const { LocalStorageProvider } = await import('@chronoframe/storage')
+  const { exiftool } = await import('exiftool-vendored')
+  const root = await mkdtemp(join(tmpdir(), 'metadata-publication-'))
+  try {
+    const provider = new LocalStorageProvider({
+      provider: 'local',
+      basePath: root,
+      prefix: 'photos',
+    })
+    const original = await sharp({
+      create: { width: 2, height: 3, channels: 3, background: 'blue' },
+    })
+      .jpeg()
+      .toBuffer()
+    await provider.create('photo.jpg', original)
+    const adapter = load('server/services/resources/photo-metadata.ts', {
+      '../image/exif': { extractExifData: async () => null },
+      '../../utils/logger': {
+        logger: { image: { error: () => {}, warn: () => {} } },
+      },
+    }).editPhotoMetadata
+    const staged = await adapter(
+      { storageKey: 'photos/photo.jpg' },
+      { title: 'Staged title' },
+      provider,
+    )
+    assert.notEqual(staged.storageKey, 'photos/photo.jpg')
+    assert.ok(staged.storageKey.startsWith('photos/.generated/metadata/'))
+    assert.deepEqual(await provider.get('photos/photo.jpg'), original)
+    const bytes = (await provider.get(staged.storageKey))!
+    assert.ok(bytes.length > original.length)
+    assert.equal((await sharp(bytes).metadata()).width, 2)
+    await staged.discard()
+    assert.equal(await provider.get(staged.storageKey), null)
+    assert.deepEqual(await provider.get('photos/photo.jpg'), original)
+  } finally {
+    await exiftool.end()
+    await rm(root, { recursive: true, force: true })
+  }
+})

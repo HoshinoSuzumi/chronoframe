@@ -26,3 +26,9 @@ Photo object edits and database updates retain the existing cross-system
 consistency boundary; source-version fencing and durable task recovery belong
 to the later jobs batch. Self-hosted account-wide quota remains unlimited while
 per-file limits continue to apply.
+
+Photo metadata edits stage a unique source object before publication. The database
+checks the captured source version and atomically updates the photo reference,
+resource generation, and any follow-up task. Failed or stale publications discard
+only their own staged object; they never restore bytes over a newer edit. Prior
+source objects remain available rather than being deleted during publication.

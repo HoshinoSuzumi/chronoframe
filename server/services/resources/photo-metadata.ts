@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto'
 import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
@@ -76,6 +77,7 @@ export async function editPhotoMetadata(
   const tempRoot = tmpdir()
   await mkdir(tempRoot, { recursive: true })
   const tempDir = await mkdtemp(path.join(tempRoot, 'cframe-edit-'))
+  const stagedKey = `.generated/metadata/${randomUUID()}/${path.posix.basename(photo.storageKey)}`
   const ext = path.extname(photo.storageKey) || '.jpg'
   const tempFile = path.join(tempDir, `edited${ext}`)
 
@@ -87,14 +89,30 @@ export async function editPhotoMetadata(
     }
 
     const updatedBuffer = await readFile(tempFile)
-    // Stored keys already identify the full object; each provider handles its
-    // own prefix normalization. Removing a substring can overwrite another key.
-    await storageProvider.create(photo.storageKey, updatedBuffer)
-
+    // Publish to a unique object. The original stays untouched until the
+    // database atomically selects this revision and enqueues follow-up work.
     const exifData = await extractExifData(updatedBuffer)
+    const staged = await storageProvider.create(stagedKey, updatedBuffer)
 
-    return { exif: exifData, fileSize: updatedBuffer.length }
+    return {
+      exif: exifData,
+      fileSize: updatedBuffer.length,
+      storageKey: staged.key,
+      // HEIC originals retain their separately generated browser-readable JPEG.
+      originalUrl: /\.(?:heic|heif|hif)$/i.test(photo.storageKey)
+        ? photo.originalUrl
+        : storageProvider.getPublicUrl(staged.key),
+      discard: () => storageProvider.delete(stagedKey),
+    }
   } catch (error) {
+    try {
+      await storageProvider.delete(stagedKey)
+    } catch (cleanupError) {
+      logger.image.warn(
+        'Failed to discard staged metadata object',
+        cleanupError,
+      )
+    }
     logger.image.error('Failed to update photo metadata', error)
     throw new CoreError(
       500,

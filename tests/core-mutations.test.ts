@@ -211,3 +211,119 @@ test('photo mutations keep normalized EXIF and database edits aligned and persis
     sqlite.close()
   }
 })
+
+test('failed metadata publication preserves source bytes, photo, generation and queued work', async () => {
+  const { sqlite, db } = setup()
+  try {
+    db.insert(schema.photos)
+      .values({
+        id: 'p',
+        storageKey: 'p.jpg',
+        title: 'Original',
+        originalUrl: '/image/p.jpg',
+      })
+      .run()
+    const repository = createSqlitePhotoWriteRepository(db, DEFAULT_SITE)
+    const objects = new Map([['p.jpg', Buffer.from('original bytes')]])
+    const beforePhoto = db.select().from(schema.photos).get()
+    const beforeVersions = db.select().from(schema.resourceVersions).all()
+    sqlite.exec(
+      "CREATE TRIGGER fail_metadata_enqueue BEFORE INSERT ON pipeline_queue BEGIN SELECT RAISE(ABORT, 'enqueue failed'); END",
+    )
+    const writer = createPhotoWriter({
+      repository,
+      clock: { now: () => now },
+      storage: { forPhoto: async () => ({ delete: async () => {} }) },
+      editMetadata: async () => {
+        objects.set('staged.jpg', Buffer.from('edited bytes'))
+        return {
+          exif: null,
+          fileSize: 12,
+          storageKey: 'staged.jpg',
+          originalUrl: '/image/staged.jpg',
+          discard: async () => {
+            objects.delete('staged.jpg')
+          },
+        }
+      },
+      warn: () => {},
+    })
+    await assert.rejects(
+      writer.update(
+        'p',
+        { title: 'Edited', location: { latitude: 1, longitude: 2 } },
+        access,
+      ),
+      /Failed to update photo metadata/,
+    )
+    assert.deepEqual([...objects], [['p.jpg', Buffer.from('original bytes')]])
+    assert.deepEqual(db.select().from(schema.photos).get(), beforePhoto)
+    assert.deepEqual(
+      db.select().from(schema.resourceVersions).all(),
+      beforeVersions,
+    )
+    assert.equal(db.select().from(schema.pipelineQueue).all().length, 0)
+    sqlite.exec('DROP TRIGGER fail_metadata_enqueue')
+    await writer.update(
+      'p',
+      { title: 'Edited', location: { latitude: 1, longitude: 2 } },
+      access,
+    )
+    assert.equal(
+      db.select().from(schema.photos).get()!.storageKey,
+      'staged.jpg',
+    )
+    assert.equal(db.select().from(schema.pipelineQueue).all().length, 1)
+    assert.ok(
+      db.select().from(schema.resourceVersions).get()!.version >
+        beforeVersions[0]!.version,
+    )
+    assert.deepEqual(objects.get('p.jpg'), Buffer.from('original bytes'))
+  } finally {
+    sqlite.close()
+  }
+})
+
+test('concurrent metadata publication keeps the winner and discards only the losing staged object', async () => {
+  const { sqlite, db } = setup()
+  try {
+    db.insert(schema.photos).values({ id: 'p', storageKey: 'p.jpg' }).run()
+    const repository = createSqlitePhotoWriteRepository(db, DEFAULT_SITE)
+    const objects = new Set(['p.jpg'])
+    const writer = createPhotoWriter({
+      repository,
+      clock: { now: () => now },
+      storage: { forPhoto: async () => ({ delete: async () => {} }) },
+      editMetadata: async () => {
+        objects.add('loser.jpg')
+        await repository.update('p', {
+          title: 'Winner',
+          storageKey: 'winner.jpg',
+        })
+        objects.add('winner.jpg')
+        return {
+          exif: null,
+          fileSize: 1,
+          storageKey: 'loser.jpg',
+          discard: async () => {
+            objects.delete('loser.jpg')
+          },
+        }
+      },
+      warn: () => {},
+    })
+    await assert.rejects(
+      writer.update('p', { title: 'Loser' }, access),
+      (error: unknown) =>
+        error instanceof CoreError && error.statusCode === 409,
+    )
+    assert.equal(db.select().from(schema.photos).get()!.title, 'Winner')
+    assert.equal(
+      db.select().from(schema.photos).get()!.storageKey,
+      'winner.jpg',
+    )
+    assert.deepEqual([...objects].sort(), ['p.jpg', 'winner.jpg'])
+  } finally {
+    sqlite.close()
+  }
+})

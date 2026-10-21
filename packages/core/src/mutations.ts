@@ -137,6 +137,8 @@ export type PhotoUpdate = Partial<
     | 'exif'
     | 'fileSize'
     | 'lastModified'
+    | 'storageKey'
+    | 'originalUrl'
     | 'latitude'
     | 'longitude'
     | 'country'
@@ -146,17 +148,18 @@ export type PhotoUpdate = Partial<
   >
 >
 export type PhotoRecord = Photo & {
+  mutationVersion?: number
   originalDerivedKey?: string | null
   storageReference?: { connectionId: number | null; revision: number }
 }
 export interface PhotoWriteRepository {
   get(id: string): Promise<PhotoRecord | null>
-  beginMutation?(id: string): Promise<void>
   /** Persist a requested follow-up task in the same transaction as the resource update. */
   update(
     id: string,
     update: PhotoUpdate,
     reverseGeocode?: { latitude: number; longitude: number },
+    expectedVersion?: number,
   ): Promise<Photo | null>
   delete(id: string): Promise<PhotoRecord | null>
 }
@@ -201,9 +204,15 @@ export function createPhotoWriter(deps: {
   storage: StorageResolver
   clock: Clock
   editMetadata(
-    photo: Photo,
+    photo: PhotoRecord,
     input: PhotoMetadataInput,
-  ): Promise<Pick<Photo, 'exif' | 'fileSize'>>
+  ): Promise<
+    Pick<Photo, 'exif' | 'fileSize'> & {
+      storageKey?: string
+      originalUrl?: string | null
+      discard?(): Promise<void>
+    }
+  >
   warn(error: unknown, operation: string): void
 }) {
   return {
@@ -234,13 +243,15 @@ export function createPhotoWriter(deps: {
           'dashboard.photos.messages.noStorageKey',
         )
       const input = normalizePhotoMetadata(raw)
-      await deps.repository.beginMutation?.(id)
       const edited = await deps.editMetadata(photo, input)
       const update: PhotoUpdate = {
         exif: edited.exif,
         fileSize: edited.fileSize,
         lastModified: deps.clock.now().toISOString(),
       }
+      if (edited.storageKey !== undefined) update.storageKey = edited.storageKey
+      if (edited.originalUrl !== undefined)
+        update.originalUrl = edited.originalUrl
       if (input.title !== undefined) update.title = input.title || null
       if (input.description !== undefined)
         update.description = input.description || null
@@ -261,8 +272,16 @@ export function createPhotoWriter(deps: {
           id,
           update,
           input.location ?? undefined,
+          photo.mutationVersion,
         )
+        if (!updated) throw new CoreError(404, 'Photo not found')
       } catch (error) {
+        try {
+          await edited.discard?.()
+        } catch (cleanupError) {
+          deps.warn(cleanupError, 'discard-photo-metadata')
+        }
+        if (error instanceof CoreError) throw error
         deps.warn(error, 'update-photo-record')
         throw new CoreError(
           500,

@@ -51,7 +51,15 @@ export function usePhotoWriter(event: H3Event) {
       return editPhotoMetadata(
         { ...photo, storageKey: photo.storageKey },
         input,
-        await storageForPhoto(photo.id, storageProvider),
+        await (photo.storageReference
+          ? storageForReference(
+              {
+                storageConnectionId: photo.storageReference.connectionId,
+                storageRevision: photo.storageReference.revision,
+              },
+              storageProvider,
+            )
+          : storageForPhoto(photo.id, storageProvider)),
       )
     },
     warn(error, operation) {
