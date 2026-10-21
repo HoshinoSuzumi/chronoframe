@@ -10,7 +10,7 @@ import {
   updateGeocodedPhoto,
 } from '../server/services/pipeline-queue/location-update.ts'
 import type { LocationInfo } from '../server/services/location/geocoding.ts'
-import { photosToMarkers } from '../app/utils/clustering.ts'
+import { photosToMarkers } from '../packages/gallery/app/utils/clustering.ts'
 
 const location: LocationInfo = {
   latitude: 31,

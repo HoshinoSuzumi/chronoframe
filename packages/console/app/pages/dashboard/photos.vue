@@ -4,22 +4,22 @@ const consoleApi = useConsoleApi()
 import type { FormSubmitEvent, TableColumn } from '@nuxt/ui'
 import type { UploadPreparationResponse } from '@chronoframe/contracts/upload'
 import type { Album, Photo } from '@chronoframe/contracts/resources'
-import type { UploadingFile } from '~~/shared/types/uploading-file'
+import type { UploadingFile } from '@chronoframe/gallery/shared/types/uploading-file'
 import {
   MAX_ALBUM_PHOTOS_PER_REQUEST,
   type AddPhotosToAlbumResult,
-} from '~~/shared/utils/album'
-import { QueueWarningCode } from '~~/shared/utils/queue-warning'
+} from '@chronoframe/gallery/shared/utils/album'
+import { QueueWarningCode } from '@chronoframe/gallery/shared/utils/queue-warning'
 import {
   UploadQueueStatus,
   UploadTransportStatus,
   isAbortableUploadStatus,
   isClearableUploadStatus,
   isInFlightTransportStatus,
-} from '~~/shared/utils/upload-status'
+} from '@chronoframe/gallery/shared/utils/upload-status'
 import { h, resolveComponent } from 'vue'
 import { Icon, UBadge } from '#components'
-import ThumbImage from '~/components/ui/ThumbImage.vue'
+import ThumbImage from '#gallery/components/ui/ThumbImage.vue'
 
 const UCheckbox = resolveComponent('UCheckbox')
 const Rating = resolveComponent('Rating')

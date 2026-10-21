@@ -11,7 +11,10 @@ const steps = computed(() => [
   { label: $t('onboarding.layout.steps.site'), route: 'onboarding-site' },
   { label: $t('onboarding.layout.steps.storage'), route: 'onboarding-storage' },
   { label: $t('onboarding.layout.steps.map'), route: 'onboarding-map' },
-  { label: $t('onboarding.layout.steps.complete'), route: 'onboarding-complete' },
+  {
+    label: $t('onboarding.layout.steps.complete'),
+    route: 'onboarding-complete',
+  },
 ])
 
 const currentStepIndex = computed(() => {
@@ -31,7 +34,7 @@ function isStepAccessible(index: number) {
     <div class="absolute inset-0 pointer-events-none">
       <!-- Noise Texture -->
       <div
-        class="absolute inset-0 bg-[url('~/assets/images/noise.svg')] mix-blend-overlay"
+        class="absolute inset-0 bg-[url('#gallery/assets/images/noise.svg')] mix-blend-overlay"
       ></div>
 
       <!-- Spotlights -->
@@ -146,9 +149,17 @@ function isStepAccessible(index: number) {
             <NuxtLink
               v-for="(step, index) in steps"
               :key="step.route"
-              :to="isStepAccessible(index) ? (step.route === 'onboarding' ? '/onboarding' : `/onboarding/${step.route.replace('onboarding-', '')}`) : undefined"
+              :to="
+                isStepAccessible(index)
+                  ? step.route === 'onboarding'
+                    ? '/onboarding'
+                    : `/onboarding/${step.route.replace('onboarding-', '')}`
+                  : undefined
+              "
               class="relative flex items-center gap-4 py-3 pl-2 group"
-              :class="isStepAccessible(index) ? 'cursor-pointer' : 'cursor-default'"
+              :class="
+                isStepAccessible(index) ? 'cursor-pointer' : 'cursor-default'
+              "
             >
               <!-- Active Indicator Background -->
               <motion.div
@@ -182,9 +193,7 @@ function isStepAccessible(index: number) {
                 <span
                   class="text-sm font-medium transition-colors duration-300"
                   :class="[
-                    isStepAccessible(index)
-                      ? 'text-white'
-                      : 'text-neutral-500',
+                    isStepAccessible(index) ? 'text-white' : 'text-neutral-500',
                   ]"
                 >
                   {{ step.label }}
@@ -223,7 +232,12 @@ function isStepAccessible(index: number) {
             <span class="font-bold">ChronoFrame</span>
           </div>
           <div class="text-sm text-neutral-400">
-            {{ $t('onboarding.layout.stepCounter', [currentStepIndex + 1, steps.length]) }}
+            {{
+              $t('onboarding.layout.stepCounter', [
+                currentStepIndex + 1,
+                steps.length,
+              ])
+            }}
           </div>
         </div>
 

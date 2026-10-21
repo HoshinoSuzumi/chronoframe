@@ -1,13 +1,13 @@
 <script lang="ts" setup>
 import { motion, AnimatePresence } from 'motion-v'
-import type { UploadingFile } from '~~/shared/types/uploading-file'
+import type { UploadingFile } from '@chronoframe/gallery/shared/types/uploading-file'
 import {
   UploadQueueStatus,
   isAbortableUploadStatus,
   isActiveUploadStatus,
   isQueuedUploadStatus,
   isSkippedOrBlockedUploadStatus,
-} from '~~/shared/utils/upload-status'
+} from '@chronoframe/gallery/shared/utils/upload-status'
 
 const props = defineProps<{
   uploadingFiles: Map<string, UploadingFile>

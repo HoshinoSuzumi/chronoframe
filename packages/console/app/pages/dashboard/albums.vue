@@ -7,7 +7,7 @@ import {
   ALBUM_PASSWORD_MAX_LENGTH,
   ALBUM_PASSWORD_MIN_LENGTH,
   isValidAlbumPasswordLength,
-} from '~~/shared/utils/album'
+} from '@chronoframe/gallery/shared/utils/album'
 
 definePageMeta({
   layout: 'dashboard',

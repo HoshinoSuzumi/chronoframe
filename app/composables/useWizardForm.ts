@@ -1,7 +1,7 @@
 import type {
   FieldDescriptor,
   SettingsFieldsResponse,
-} from '~~/shared/types/settings'
+} from '@chronoframe/gallery/shared/types/settings'
 import { useWizardStore } from '~/stores/wizard'
 
 /**

@@ -3,7 +3,7 @@ const consoleApi = useConsoleApi()
 
 import { h, resolveComponent } from 'vue'
 import type { TableColumn } from '@nuxt/ui'
-import { QueueWarningCode } from '~~/shared/utils/queue-warning'
+import { QueueWarningCode } from '@chronoframe/gallery/shared/utils/queue-warning'
 
 const UButton = resolveComponent('UButton')
 

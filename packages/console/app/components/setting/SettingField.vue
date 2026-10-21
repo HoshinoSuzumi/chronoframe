@@ -1,6 +1,9 @@
 <script setup lang="ts">
 import { resolveComponent } from 'vue'
-import type { FieldDescriptor, FieldUIType } from '~~/shared/types/settings'
+import type {
+  FieldDescriptor,
+  FieldUIType,
+} from '@chronoframe/gallery/shared/types/settings'
 
 interface Props {
   field: FieldDescriptor

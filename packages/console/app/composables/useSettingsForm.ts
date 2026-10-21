@@ -2,7 +2,7 @@ import type { InjectionKey } from 'vue'
 import type {
   FieldDescriptor,
   SettingsFieldsResponse,
-} from '~~/shared/types/settings'
+} from '@chronoframe/gallery/shared/types/settings'
 
 export const settingsFieldCommitKey: InjectionKey<
   (fieldKey: string, value: any) => void

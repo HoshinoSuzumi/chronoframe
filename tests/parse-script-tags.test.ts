@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import { createHead, renderSSRHead } from '@unhead/vue/server'
-import { parseScriptTags } from '../app/utils/parseScriptTags.ts'
+import { parseScriptTags } from '../packages/gallery/app/utils/parseScriptTags.ts'
 
 test('preserves the Umami website ID alongside standard script attributes', () => {
   assert.deepEqual(

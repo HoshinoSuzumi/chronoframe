@@ -2,11 +2,11 @@
 const consoleApi = useConsoleApi()
 
 import { settingsFieldCommitKey } from '#console/composables/useSettingsForm'
-import { getAvatarInputType } from '~/utils/avatar'
+import { getAvatarInputType } from '#gallery/utils/avatar'
 import {
   AVATAR_ALLOWED_MIME_TYPES,
   AVATAR_MAX_INPUT_BYTES,
-} from '~~/shared/utils/avatar'
+} from '@chronoframe/gallery/shared/utils/avatar'
 
 interface Props {
   modelValue?: string | null

@@ -1,6 +1,6 @@
 import { tourIds } from '~~/shared/types/tours'
 import type { SettingConfig } from '~~/shared/types/settings'
-import i18nOptions from '~~/i18n/i18n.options'
+import i18nOptions from '@chronoframe/gallery/i18n/i18n.options'
 
 // 存储提供商的枚举值
 export const STORAGE_PROVIDERS = ['local', 's3', 'openlist'] as const

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { FieldDescriptor } from '~~/shared/types/settings'
+import type { FieldDescriptor } from '@chronoframe/gallery/shared/types/settings'
 
 interface Props {
   title: string

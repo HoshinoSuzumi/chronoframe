@@ -1,4 +1,4 @@
-import { useSettingsStore } from '~/stores/settings'
+import { useSettingsStore } from '#gallery/stores/settings'
 
 export default defineNuxtRouteMiddleware(async (to, _from) => {
   const settingsStore = useSettingsStore()

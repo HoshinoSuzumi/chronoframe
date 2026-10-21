@@ -1,4 +1,4 @@
-import { parseScriptTags } from '~/utils/parseScriptTags'
+import { parseScriptTags } from '#gallery/utils/parseScriptTags'
 
 /**
  * 将管理员配置的 <script> 标签注入到页面 <head> 和 <body> 中。

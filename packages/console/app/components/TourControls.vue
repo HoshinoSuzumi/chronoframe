@@ -1,5 +1,8 @@
 <script setup lang="ts">
-import { tourIds, type TourStatus } from '~~/shared/types/tours'
+import {
+  tourIds,
+  type TourStatus,
+} from '@chronoframe/gallery/shared/types/tours'
 
 defineProps<{ debug?: boolean }>()
 const { records, ready, busy, update } = useTours()

@@ -1,6 +1,6 @@
 <script lang="ts" setup>
-import '@/assets/css/heatmap.css'
-import type { CalendarItem } from '~/components/ui/CalendarHeatmap/Heatmap'
+import '#gallery/assets/css/heatmap.css'
+import type { CalendarItem } from '#gallery/components/ui/CalendarHeatmap/Heatmap'
 
 definePageMeta({
   layout: 'dashboard',

@@ -2,7 +2,7 @@
 const consoleApi = useConsoleApi()
 
 import { z } from 'zod'
-import type { StorageConfig } from '~~/shared/types/storage'
+import type { StorageConfig } from '@chronoframe/gallery/shared/types/storage'
 
 definePageMeta({
   layout: 'dashboard',

@@ -1,10 +1,11 @@
 import pkg from './package.json'
 import type { AnalyticsConfig } from './shared/types/config'
-import i18n, { dayjsLocales } from './i18n/i18n.options'
+import { dayjsLocales } from './packages/gallery/i18n/i18n.options'
 
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
-  extends: ['./packages/console'],
+  extends: ['./packages/console', './packages/gallery'],
+  dir: { shared: 'packages/gallery/shared' },
   compatibilityDate: '2025-07-15',
   devtools: { enabled: true },
 
@@ -25,8 +26,6 @@ export default defineNuxtConfig({
     'nuxt-og-image',
     'nuxt-gtag',
   ],
-
-  css: ['~/assets/css/tailwind.css'],
 
   components: [{ path: '~/components/ui', pathPrefix: false }, '~/components'],
 
@@ -273,6 +272,4 @@ export default defineNuxtConfig({
     ],
     defaultTimezone: 'Asia/Shanghai',
   },
-
-  i18n,
 })
