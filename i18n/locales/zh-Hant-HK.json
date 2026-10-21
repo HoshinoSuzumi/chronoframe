@@ -27,6 +27,7 @@
     },
     "livePhoto": "原況",
     "action": {
+      "more": { "tooltip": "更多選項" },
       "dashboard": {
         "tooltip": "控制台"
       },
@@ -1122,6 +1123,12 @@
           "light": "淺色",
           "dark": "深色",
           "system": "系統"
+        },
+        "homeHeaderLayout": {
+          "label": "首頁頁首版面",
+          "description": "選擇頁首喺首頁相片牆嘅顯示方式",
+          "embedded": "嵌入相片牆",
+          "fixed": "固定喺頂部"
         }
       },
       "upload": {

@@ -27,6 +27,7 @@
     },
     "livePhoto": "实况",
     "action": {
+      "more": { "tooltip": "更多选项" },
       "dashboard": {
         "tooltip": "控制台"
       },
@@ -1197,6 +1198,12 @@
           "light": "浅色",
           "dark": "深色",
           "system": "系统"
+        },
+        "homeHeaderLayout": {
+          "label": "首页页眉布局",
+          "description": "选择页眉在首页照片墙中的显示方式",
+          "embedded": "嵌入照片墙",
+          "fixed": "固定在顶部"
         }
       },
       "upload": {

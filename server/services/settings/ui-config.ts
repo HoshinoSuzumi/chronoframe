@@ -51,6 +51,21 @@ export const APP_SETTINGS_UI: Record<string, FieldUIConfig> = {
     ],
     help: 'settings.app.appearance.theme.help',
   },
+  'appearance.homeHeaderLayout': {
+    type: 'tabs',
+    options: [
+      {
+        label: 'settings.app.appearance.homeHeaderLayout.embedded',
+        value: 'embedded',
+        icon: 'tabler:layout-grid',
+      },
+      {
+        label: 'settings.app.appearance.homeHeaderLayout.fixed',
+        value: 'fixed',
+        icon: 'tabler:layout-navbar',
+      },
+    ],
+  },
 }
 
 export const MAP_SETTINGS_UI: Record<string, FieldUIConfig> = {

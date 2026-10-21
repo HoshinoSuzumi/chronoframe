@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { motion } from 'motion-v'
+import { FIXED_HEADER_HEIGHT_PX } from '~/utils'
 interface Props {
   photos: Photo[]
   columns?: number | 'auto'
@@ -14,6 +15,8 @@ const router = useRouter()
 
 const { filteredPhotos, hasActiveFilters } = usePhotoFilters()
 const { sortedPhotos } = usePhotoSort()
+const homeHeaderLayout = useSettingRef('app:appearance.homeHeaderLayout')
+const isFixedHeader = computed(() => homeHeaderLayout.value === 'fixed')
 
 const displayPhotos = computed(() => {
   return hasActiveFilters.value ? filteredPhotos.value : sortedPhotos.value
@@ -34,8 +37,10 @@ const isMobile = useMediaQuery('(max-width: 768px)')
 const { batchProcessLivePhotos } = useLivePhotoProcessor()
 
 const processedBatch = ref(new Set<string>())
-const headerRef = ref<HTMLElement>()
-const headerHeight = ref(0)
+const fixedHeaderRef = ref<HTMLElement>()
+const fixedHeaderHeight = ref(FIXED_HEADER_HEIGHT_PX)
+const embeddedHeaderRef = ref<HTMLElement>()
+const embeddedHeaderHeight = ref(0)
 const headerColumnWidth = ref(0)
 
 const columnWidth = computed(() => {
@@ -69,15 +74,22 @@ const masonryItems = computed(() => {
     })) ?? []
   )
 })
-useResizeObserver(headerRef, (entries) => {
-  const entry = entries[0]
-  if (entry) {
-    headerHeight.value = entry.contentRect.height
+const measureHeaderHeights = () => {
+  if (fixedHeaderRef.value) {
+    fixedHeaderHeight.value =
+      fixedHeaderRef.value.getBoundingClientRect().height
   }
-})
+  if (embeddedHeaderRef.value) {
+    embeddedHeaderHeight.value =
+      embeddedHeaderRef.value.getBoundingClientRect().height
+  }
+}
 
-const updateHeaderWidth = () => {
-  if (isMobile.value) {
+useResizeObserver(fixedHeaderRef, measureHeaderHeights)
+useResizeObserver(embeddedHeaderRef, measureHeaderHeights)
+
+const updateEmbeddedHeaderWidth = () => {
+  if (isMobile.value || isFixedHeader.value) {
     headerColumnWidth.value = 0
     return
   }
@@ -86,58 +98,28 @@ const updateHeaderWidth = () => {
     '.masonry-wall .masonry-column',
   )
 
-  if (columnElement) {
-    headerColumnWidth.value = columnElement.getBoundingClientRect().width
-    return
-  }
-
-  headerColumnWidth.value = columnWidth.value
+  headerColumnWidth.value =
+    columnElement?.getBoundingClientRect().width ?? columnWidth.value
 }
 
-useResizeObserver(masonryWrapper, () => {
-  updateHeaderWidth()
+useResizeObserver(masonryWrapper, updateEmbeddedHeaderWidth)
+
+const embeddedHeaderOffset = computed(() => {
+  return isMobile.value ? 0 : embeddedHeaderHeight.value + MASONRY_GAP
 })
 
-const headerOffset = computed(() => {
+const embeddedHeaderStyle = computed(() => {
   if (isMobile.value) {
-    return 0
+    return { width: '100%', marginBottom: `${MASONRY_GAP}px` }
   }
-  return headerHeight.value + MASONRY_GAP
+
+  return { width: `${headerColumnWidth.value || columnWidth.value}px` }
 })
 
-const headerStyle = computed(() => {
-  const styles: Record<string, string> = {}
-
-  if (isMobile.value) {
-    styles.width = '100%'
-    styles.marginBottom = `${MASONRY_GAP}px`
-    return styles
-  }
-
-  const width = headerColumnWidth.value || columnWidth.value
-  styles.width = `${width}px`
-
-  return styles
-})
-
-watch([columnWidth, maxColumns, minColumns], () => {
-  if (isMobile.value) {
-    return
-  }
-
+watch([isMobile, isFixedHeader, columnWidth, maxColumns, minColumns], () => {
   nextTick(() => {
-    updateHeaderWidth()
-  })
-})
-
-watch(isMobile, (mobile) => {
-  if (mobile) {
-    headerColumnWidth.value = 0
-    return
-  }
-
-  nextTick(() => {
-    updateHeaderWidth()
+    updateEmbeddedHeaderWidth()
+    measureHeaderHeights()
   })
 })
 
@@ -310,10 +292,10 @@ const scrollToTop = () => {
 
 onMounted(() => {
   window.addEventListener('scroll', handleScroll, { passive: true })
-  window.addEventListener('resize', updateHeaderWidth)
 
   nextTick(() => {
-    updateHeaderWidth()
+    updateEmbeddedHeaderWidth()
+    measureHeaderHeights()
 
     if (currentPhotoIndex.value) {
       scrollToPhoto(currentPhotoIndex.value)
@@ -323,7 +305,6 @@ onMounted(() => {
 
 onUnmounted(() => {
   window.removeEventListener('scroll', handleScroll)
-  window.removeEventListener('resize', updateHeaderWidth)
 })
 
 const handleOpenViewer = (index: number) => {
@@ -371,6 +352,24 @@ watch(currentPhotoIndex, (newIndex) => {
       :locations="visibleCities"
       :is-visible="!!dateRange && showFloatingActions"
       :is-mobile="isMobile"
+      :top-offset="isFixedHeader ? fixedHeaderHeight : undefined"
+    />
+
+    <div
+      v-if="isFixedHeader"
+      ref="fixedHeaderRef"
+      class="fixed inset-x-0 top-0 z-30"
+    >
+      <MasonryItemHeaderFixed
+        :stats="photoStats"
+        :date-range-text
+      />
+    </div>
+
+    <div
+      v-if="isFixedHeader"
+      aria-hidden="true"
+      :style="{ height: `${fixedHeaderHeight}px` }"
     />
 
     <!-- Back to Top Button -->
@@ -403,13 +402,14 @@ watch(currentPhotoIndex, (newIndex) => {
         ref="masonryWrapper"
         class="relative"
         :class="{ 'pt-2': isMobile }"
-        :style="{ '--masonry-header-offset': `${headerOffset}px` }"
+        :style="{ '--masonry-header-offset': `${embeddedHeaderOffset}px` }"
       >
         <div
-          ref="headerRef"
+          v-if="!isFixedHeader"
+          ref="embeddedHeaderRef"
           class="masonry-header-wrapper"
           :class="{ 'masonry-header-desktop': !isMobile }"
-          :style="headerStyle"
+          :style="embeddedHeaderStyle"
         >
           <MasonryItemHeader
             :stats="photoStats"
@@ -419,7 +419,7 @@ watch(currentPhotoIndex, (newIndex) => {
 
         <!-- Masonry Wall -->
         <MasonryWall
-          class="masonry-wall-with-header"
+          :class="{ 'masonry-wall-with-header': !isFixedHeader }"
           :items="masonryItems"
           :column-width="columnWidth"
           :gap="MASONRY_GAP"

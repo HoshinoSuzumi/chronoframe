@@ -12,6 +12,7 @@
       "auto": "Auto (browser language)"
     },
     "action": {
+      "more": { "tooltip": "More options" },
       "filter": {
         "tooltip": "Filter Photos",
         "title": "Filter Photos",
@@ -1197,6 +1198,12 @@
           "light": "Light",
           "dark": "Dark",
           "system": "System"
+        },
+        "homeHeaderLayout": {
+          "label": "Home header layout",
+          "description": "Choose how the header appears above the home photo wall",
+          "embedded": "Embedded in photo wall",
+          "fixed": "Fixed at top"
         }
       },
       "upload": {
