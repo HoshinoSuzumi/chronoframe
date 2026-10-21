@@ -29,6 +29,12 @@ export const queuePayloadSchema = z.discriminatedUnion('type', [
   }),
 ])
 
+export const queuePayloadRequiresAdmin = (
+  payload: z.infer<typeof queuePayloadSchema>,
+): boolean =>
+  payload.type === 'location-migration' ||
+  (payload.type === 'photo' && payload.albumId !== undefined)
+
 export const photoTaskAlbumExists = (
   payload: z.infer<typeof queuePayloadSchema>,
   db?: ReturnType<typeof useDB>,
@@ -44,9 +50,7 @@ export const photoTaskAlbumExists = (
   return Boolean(album)
 }
 
-export const createPhotoTaskAlbumChecker = (
-  db?: ReturnType<typeof useDB>,
-) => {
+export const createPhotoTaskAlbumChecker = (db?: ReturnType<typeof useDB>) => {
   const cache = new Map<number, boolean>()
 
   return (payload: z.infer<typeof queuePayloadSchema>): boolean => {

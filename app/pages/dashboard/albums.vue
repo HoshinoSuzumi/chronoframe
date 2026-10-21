@@ -5,7 +5,7 @@ import {
   ALBUM_PASSWORD_MAX_LENGTH,
   ALBUM_PASSWORD_MIN_LENGTH,
   isValidAlbumPasswordLength,
-} from '~~/shared/utils/album-password'
+} from '~~/shared/utils/album'
 
 definePageMeta({
   layout: 'dashboard',
@@ -509,6 +509,9 @@ const submitButtonLabel = computed(() => {
     : $t('dashboard.albums.slideover.submitCreate')
 })
 
+const albumUploadLabel = (album: AlbumItem) =>
+  $t('dashboard.albums.actions.uploadToAlbum', { title: album.title })
+
 const columns = computed<any[]>(() => [
   {
     id: 'coverPhoto',
@@ -654,6 +657,26 @@ const columns = computed<any[]>(() => [
                 class="flex gap-1"
                 data-tour="album-actions"
               >
+                <UButton
+                  variant="ghost"
+                  color="primary"
+                  size="xs"
+                  icon="tabler:cloud-upload"
+                  :aria-label="
+                    albumUploadLabel(row.original as unknown as AlbumItem)
+                  "
+                  :title="
+                    albumUploadLabel(row.original as unknown as AlbumItem)
+                  "
+                  :to="{
+                    path: '/dashboard/photos',
+                    query: {
+                      uploadAlbumId: String(
+                        (row.original as unknown as AlbumItem).id,
+                      ),
+                    },
+                  }"
+                />
                 <UButton
                   variant="ghost"
                   color="neutral"

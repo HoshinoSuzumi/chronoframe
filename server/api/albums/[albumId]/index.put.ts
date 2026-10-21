@@ -3,11 +3,13 @@ import { z } from 'zod'
 import {
   ALBUM_PASSWORD_MAX_LENGTH,
   ALBUM_PASSWORD_MIN_LENGTH,
-} from '~~/shared/utils/album-password'
+} from '~~/shared/utils/album'
 import { hashAlbumPassword } from '../../../utils/album-access'
+import { appendAlbumPhotos } from '../../../utils/album-membership.ts'
+import { requireAdminSession } from '../../../utils/require-admin.ts'
 
 export default eventHandler(async (event) => {
-  await requireUserSession(event)
+  await requireAdminSession(event)
 
   const { albumId } = await getValidatedRouterParams(
     event,
@@ -108,17 +110,7 @@ export default eventHandler(async (event) => {
       }
 
       if (photoIds.size > 0) {
-        let pos = 1000000
-        for (const photoId of photoIds) {
-          tx.insert(tables.albumPhotos)
-            .values({
-              albumId,
-              photoId,
-              position: (pos += 10),
-            })
-            .onConflictDoNothing()
-            .run()
-        }
+        appendAlbumPhotos(tx, albumId, [...photoIds])
       }
     }
 

@@ -209,7 +209,8 @@
       "dateRange": "日期范围",
       "created": "创建"
     },
-    "createdTooltip": "创建于：{date}"
+    "createdTooltip": "创建于：{date}",
+    "uploadToThisAlbum": "上传到此相册"
   },
   "minimap": {
     "loading": "加载小地图..."
@@ -417,7 +418,8 @@
     "iso": "ISO"
   },
   "plural": {
-    "photo": "没有照片 | 一张照片 | {count} 张照片"
+    "photo": "没有照片 | 一张照片 | {count} 张照片",
+    "selectedPhoto": "{count} 张选中的照片"
   },
   "title": {
     "dashboard": "仪表板",
@@ -530,7 +532,10 @@
       "skip": {
         "title": "跳过重复文件",
         "message": "照片 \"{fileName}\" 已存在，已自动跳过上传",
-        "info": "现有照片拍摄于 {dateTaken}"
+        "info": "现有照片拍摄于 {dateTaken}",
+        "addedToAlbum": "已将现有照片添加到所选相册，重复文件未重新上传。",
+        "alreadyInAlbum": "现有照片已在所选相册中，重复文件未重新上传。",
+        "albumAddFailed": "重复文件未上传，现有照片也未能添加到所选相册。请在照片图库中使用“添加到相册”。"
       },
       "warn": {
         "title": "检测到重复文件",
@@ -671,7 +676,8 @@
         "batchReprocess": "重新处理",
         "batchEraseLocation": "抹除位置信息",
         "batchDownload": "批量下载",
-        "batchDelete": "批量删除"
+        "batchDelete": "批量删除",
+        "addToAlbum": "添加到相册"
       },
       "slideover": {
         "title": "上传照片",
@@ -683,8 +689,11 @@
           "empty": "暂无可用相簿。",
           "hidden": "已隐藏",
           "passwordProtected": "密码保护",
-          "loadFailed": "无法加载相簿。你可以重试，或不选择相簿直接上传。",
-          "retry": "重试"
+          "loadFailed": "无法加载相册，请重试。",
+          "loadFailedUpload": "无法加载相册，请重试，或选择“不选择相册”后直接上传。",
+          "retry": "重试",
+          "unavailable": "所选相册不可用，请选择其他相册后再上传。",
+          "requestedUnavailable": "此相册已不存在，请选择其他相册后再上传。"
         },
         "options": {
           "eraseLocation": {
@@ -886,7 +895,21 @@
           "goToQueue": "队列"
         }
       },
-      "previewTitle": "照片预览"
+      "previewTitle": "照片预览",
+      "addToAlbum": {
+        "title": "将照片添加到相册",
+        "description": "将{photos}添加到现有相册。",
+        "albumLabel": "相册",
+        "cancel": "取消",
+        "confirm": "添加照片",
+        "success": "相册已更新",
+        "noChanges": "无更改",
+        "result": "已添加 {added} 张 · {alreadyPresent} 张已在相册中",
+        "missing": "{count} 张不可用",
+        "allAlreadyPresent": "所选照片均已在相册中。",
+        "error": "无法将照片添加到相册",
+        "partialError": "请求在 {processed} 后失败。可以安全重试，重复照片会被跳过。"
+      }
     },
     "albums": {
       "title": "相簿管理",
@@ -980,7 +1003,8 @@
       "photoCount": "{count} 张",
       "actions": {
         "moveUp": "上移",
-        "moveDown": "下移"
+        "moveDown": "下移",
+        "uploadToAlbum": "上传到\"{title}\""
       }
     },
     "overview": {

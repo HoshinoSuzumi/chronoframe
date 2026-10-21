@@ -1,7 +1,8 @@
-import { and, eq, max } from 'drizzle-orm'
+import { and, eq } from 'drizzle-orm'
 import type { drizzle } from 'drizzle-orm/better-sqlite3'
 import * as tables from '../database/schema.ts'
 import { QueueWarningCode } from '../../shared/utils/queue-warning.ts'
+import { appendAlbumPhotos, touchAlbum } from './album-membership.ts'
 
 export type AlbumAssignmentResult =
   | 'no-album'
@@ -41,21 +42,10 @@ export const persistPhotoWithAlbum = (
       .get()
     if (existing) return 'already-added'
 
-    const last = tx
-      .select({ position: max(tables.albumPhotos.position) })
-      .from(tables.albumPhotos)
-      .where(eq(tables.albumPhotos.albumId, albumId))
-      .get()
+    if (appendAlbumPhotos(tx, albumId, [photo.id]) === 0) {
+      return 'already-added'
+    }
 
-    const insertResult = tx
-      .insert(tables.albumPhotos)
-      .values({
-        albumId,
-        photoId: photo.id,
-        position: (last?.position ?? 1000000) + 10,
-      })
-      .onConflictDoNothing()
-      .run()
-
-    return insertResult.changes > 0 ? 'added' : 'already-added'
+    touchAlbum(tx, albumId)
+    return 'added'
   })

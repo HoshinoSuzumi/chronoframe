@@ -2,6 +2,7 @@ import type {} from '../../types/worker'
 import { z } from 'zod'
 import {
   photoTaskAlbumExists,
+  queuePayloadRequiresAdmin,
   queuePayloadSchema,
 } from '../../utils/queue-payload.ts'
 
@@ -18,14 +19,14 @@ export default defineEventHandler(async (event) => {
       }).parse,
     )
 
-    if (!photoTaskAlbumExists(payload)) {
-      throw createError({ statusCode: 404, statusMessage: 'Album not found' })
-    }
-    if (payload.type === 'location-migration' && !session.user.isAdmin)
+    if (queuePayloadRequiresAdmin(payload) && !session.user.isAdmin)
       throw createError({
         statusCode: 403,
         statusMessage: 'Admin privileges required',
       })
+    if (!photoTaskAlbumExists(payload)) {
+      throw createError({ statusCode: 404, statusMessage: 'Album not found' })
+    }
 
     const workerPool = globalThis.__workerPool
 
