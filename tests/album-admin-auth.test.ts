@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 
-test('album mutations reject non-admin sessions before reading input or accessing the database', async () => {
+test('album authorization rejects non-admin sessions before reading input or accessing the database', async () => {
   let bodyReads = 0
   let dbAccesses = 0
   const globals = {
@@ -30,13 +30,11 @@ test('album mutations reject non-admin sessions before reading input or accessin
   try {
     const { requireAdminSession } =
       await import('../server/utils/require-admin.ts')
-    const { default: reorderAlbums } =
-      await import('../server/api/albums/reorder.put.ts')
 
     await assert.rejects(requireAdminSession({ role: 'guest' } as never), {
       statusCode: 401,
     })
-    await assert.rejects(reorderAlbums({ role: 'user' } as never), {
+    await assert.rejects(requireAdminSession({ role: 'user' } as never), {
       statusCode: 403,
     })
     assert.equal(bodyReads, 0)
@@ -49,6 +47,33 @@ test('album mutations reject non-admin sessions before reading input or accessin
     for (const key of Object.keys(globals)) {
       if (previous[key]) Object.defineProperty(globalThis, key, previous[key])
       else Reflect.deleteProperty(globalThis, key)
+    }
+  }
+})
+
+test('all album mutation routes retain the administrator guard before input handling', async () => {
+  const { readFile } = await import('node:fs/promises')
+  for (const path of [
+    'albums/index.post.ts',
+    'albums/reorder.put.ts',
+    'albums/[albumId]/index.put.ts',
+    'albums/[albumId]/index.delete.ts',
+    'albums/[albumId]/photos/[photoId].delete.ts',
+    'albums/[albumId]/photos/index.post.ts',
+    'albums/upload-options.get.ts',
+  ]) {
+    const source = await readFile(
+      new URL('../server/api/' + path, import.meta.url),
+      'utf8',
+    )
+    assert.match(source, /await requireAdminSession\(event\)/, path)
+    const guard = source.indexOf('await requireAdminSession(event)')
+    for (const read of [
+      'await readValidatedBody(',
+      'await getValidatedRouterParams(',
+    ]) {
+      const index = source.indexOf(read)
+      if (index !== -1) assert.ok(guard < index, path)
     }
   }
 })

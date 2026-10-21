@@ -1,7 +1,8 @@
+import { appendAlbumPhotos, touchAlbum } from './album-membership.ts'
 import { and as siteAnd, eq as siteEq } from 'drizzle-orm'
 import { type SiteContext } from '@chronoframe/core'
 import { requireSite } from './site-repository.ts'
-import { and, eq, max } from 'drizzle-orm'
+import { and, eq } from 'drizzle-orm'
 import type { AppDatabase } from './connection.ts'
 import * as tables from './schema.ts'
 import { QueueWarningCode } from '@chronoframe/contracts/queue'
@@ -60,29 +61,10 @@ export function createPhotoPersistenceRepository(
           .get()
         if (existing) return 'already-added'
 
-        const last = tx
-          .select({ position: max(tables.albumPhotos.position) })
-          .from(tables.albumPhotos)
-          .where(
-            siteAnd(
-              eq(tables.albumPhotos.albumId, albumId),
-              siteEq(tables.albumPhotos.siteId, site.id),
-            ),
-          )
-          .get()
+        const added = appendAlbumPhotos(tx, albumId, [photo.id], site)
+        if (added > 0) touchAlbum(tx, albumId, site)
 
-        const insertResult = tx
-          .insert(tables.albumPhotos)
-          .values({
-            siteId: site.id,
-            albumId,
-            photoId: photo.id,
-            position: (last?.position ?? 1000000) + 10,
-          })
-          .onConflictDoNothing()
-          .run()
-
-        return insertResult.changes > 0 ? 'added' : 'already-added'
+        return added > 0 ? 'added' : 'already-added'
       }),
   }
 }

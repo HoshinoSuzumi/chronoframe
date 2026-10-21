@@ -1,3 +1,4 @@
+import { appendAlbumPhotos } from './album-membership.ts'
 import { createSqliteJobRepository, reserveResource } from './sqlite-jobs.ts'
 import { requireSite } from './site-repository.ts'
 import { type SiteContext } from '@chronoframe/core'
@@ -47,18 +48,7 @@ export function createSqliteAlbumWriteRepository(
           })
           .returning()
           .get()
-        photoIds.forEach((photoId, index) =>
-          tx
-            .insert(tables.albumPhotos)
-            .values({
-              siteId: site.id,
-              albumId: album.id,
-              photoId,
-              position: 1000000 + (index + 1) * 10,
-            })
-            .onConflictDoNothing()
-            .run(),
-        )
+        appendAlbumPhotos(tx, album.id, photoIds, site)
         return toAlbumDto(album)
       })
     },
@@ -93,18 +83,7 @@ export function createSqliteAlbumWriteRepository(
               ),
             )
             .run()
-          photoIds.forEach((photoId, index) =>
-            tx
-              .insert(tables.albumPhotos)
-              .values({
-                siteId: site.id,
-                albumId: id,
-                photoId,
-                position: 1000000 + (index + 1) * 10,
-              })
-              .onConflictDoNothing()
-              .run(),
-          )
+          appendAlbumPhotos(tx, id, photoIds, site)
         }
         return toAlbumDto(
           tx

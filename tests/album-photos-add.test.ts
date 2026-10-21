@@ -179,3 +179,50 @@ test('bulk add handles selections larger than one SQLite query chunk', () => {
     sqlite.close()
   }
 })
+
+test('bulk album assignment excludes foreign-site albums and photos', () => {
+  const { sqlite, db } = setup()
+  try {
+    db.insert(schema.sites)
+      .values({ id: 2, workspaceId: 1, name: 'Second' })
+      .run()
+    db.insert(schema.photos)
+      .values([
+        { id: 'local', siteId: 1 },
+        { id: 'foreign', siteId: 2 },
+      ])
+      .run()
+    const local = db
+      .insert(schema.albums)
+      .values({ title: 'Local', siteId: 1 })
+      .returning()
+      .get()
+    const foreign = db
+      .insert(schema.albums)
+      .values({ title: 'Foreign', siteId: 2 })
+      .returning()
+      .get()
+    assert.deepEqual(addExistingPhotosToAlbum(db, foreign.id, ['local']), {
+      error: 'album-not-found',
+    })
+    assert.deepEqual(
+      addExistingPhotosToAlbum(db, local.id, ['local', 'foreign']),
+      { added: 1, alreadyPresent: 0, missing: 1 },
+    )
+    assert.deepEqual(
+      addExistingPhotosToAlbum(db, foreign.id, ['foreign'], { id: 2 }),
+      { added: 1, alreadyPresent: 0, missing: 0 },
+    )
+    assert.deepEqual(
+      db
+        .select()
+        .from(schema.albumPhotos)
+        .all()
+        .map((row) => row.siteId)
+        .sort(),
+      [1, 2],
+    )
+  } finally {
+    sqlite.close()
+  }
+})

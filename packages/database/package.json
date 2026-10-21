@@ -7,7 +7,9 @@
     ".": "./src/index.ts",
     "./schema": "./src/schema.ts",
     "./repositories": "./src/repositories.ts",
-    "./dto": "./src/dto.ts"
+    "./dto": "./src/dto.ts",
+    "./album-membership": "./src/album-membership.ts",
+    "./album-photos-add": "./src/album-photos-add.ts"
   },
   "scripts": {
     "type-check": "tsc --noEmit"
