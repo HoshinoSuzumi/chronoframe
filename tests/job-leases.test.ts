@@ -344,7 +344,8 @@ test('heartbeat loss aborts cooperatively and keeps the native slot until proces
       complete: async () => {
         throw new Error('lost lease completed')
       },
-      fail: async () => {
+      fail: async (_lease, _error, retryable) => {
+        assert.equal(retryable, false)
         failed = true
         return true
       },
@@ -443,6 +444,43 @@ test('maintenance snapshots reject stale writes and preserve published derived o
     assert.equal(row.thumbnailKey, 'library/.generated/thumb.webp')
     assert.equal(row.originalDerivedKey, 'library/.generated/original.jpeg')
     assert.equal(await repository.capturePhoto('missing'), null)
+  } finally {
+    connection.close()
+  }
+})
+
+test('temporary heartbeat failures abort processing but remain retryable', async () => {
+  const connection = openDatabase({ filename: ':memory:', migrationsFolder })
+  try {
+    const repository = createSqliteJobRepository(
+      connection.db,
+      DEFAULT_SITE,
+      resolveId,
+    )
+    repository.enqueue({ type: 'photo', storageKey: 'source.jpg' })
+    const result = await runOneJob({
+      site: DEFAULT_SITE,
+      workerId: 'worker',
+      now: () => clock,
+      heartbeatMs: 10,
+      repository: {
+        ...repository,
+        heartbeat: async () => {
+          throw new Error('SQLITE_BUSY')
+        },
+      },
+      process: async (_lease, signal) => {
+        await new Promise<void>((resolve) =>
+          signal.addEventListener('abort', () => resolve(), { once: true }),
+        )
+        signal.throwIfAborted()
+      },
+    })
+    assert.equal(result, 'failed')
+    const row = connection.db.select().from(tables.pipelineQueue).get()!
+    assert.equal(row.status, 'pending')
+    assert.equal(row.errorMessage, 'SQLITE_BUSY')
+    assert.equal(row.attempts, 1)
   } finally {
     connection.close()
   }

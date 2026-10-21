@@ -81,6 +81,14 @@ export default eventHandler(async (event) => {
     photo = await readFile(
       await resolveLocalMediaPath(storageProvider.config, localKey),
     )
+  } else if (isAppPath) {
+    const key = decodeURIComponent(url.replace(/^\/(?:storage|image)\//, ''))
+    if (await assertPhotoAccess(event, key))
+      setHeader(event, 'Cache-Control', 'private, no-store')
+    const buffer = await storageProvider.get(key)
+    if (!buffer)
+      throw createError({ statusCode: 404, statusMessage: 'Photo not found' })
+    photo = buffer
   } else {
     const response = await fetch(url)
     if (!response.ok)

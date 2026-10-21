@@ -77,6 +77,11 @@ export default defineEventHandler(async (event) => {
       .update(tables.pipelineQueue)
       .set({
         status: 'pending',
+        resourceId: null,
+        sourceHash: null,
+        attemptId: null,
+        workerId: null,
+        leaseExpiresAt: null,
         statusStage: null,
         errorMessage: null,
         warningCode: null,

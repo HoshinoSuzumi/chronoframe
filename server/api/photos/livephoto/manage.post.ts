@@ -1,6 +1,6 @@
 import { createSiteRepository } from '@chronoframe/database'
 import { storageForPhoto } from '../../../utils/object-storage'
-import { DEFAULT_SITE } from '@chronoframe/core'
+import { CoreError, DEFAULT_SITE } from '@chronoframe/core'
 import {
   processSpecificLivePhotoVideo,
   scanAndProcessExistingLivePhotos,
@@ -114,6 +114,12 @@ export default eventHandler(async (event) => {
         })
     }
   } catch (error) {
+    if (error instanceof CoreError)
+      throw createError({
+        statusCode: error.statusCode,
+        statusMessage: error.message,
+      })
+    if (error && typeof error === 'object' && 'statusCode' in error) throw error
     logger.chrono.error('LivePhoto management error:', error)
     throw createError({
       statusCode: 500,

@@ -51,7 +51,8 @@ export async function runOneJob(deps: {
   if (lease.siteId !== deps.site.id)
     throw new PermanentJobError('Claimed job belongs to a different Site')
   const controller = new AbortController()
-  let heartbeatRunning = false
+  let heartbeatRunning = false,
+    leaseLost = false
   const timer = setInterval(
     () => {
       if (heartbeatRunning) return
@@ -59,8 +60,10 @@ export async function runOneJob(deps: {
       void deps.repository
         .heartbeat(lease, now(), leaseMs)
         .then((valid) => {
-          if (!valid)
+          if (!valid) {
+            leaseLost = true
             controller.abort(new LostLeaseError('Lease or source changed'))
+          }
         })
         .catch((error) => {
           controller.abort(error)
@@ -86,7 +89,7 @@ export async function runOneJob(deps: {
       !(
         error instanceof PermanentJobError ||
         error instanceof LostLeaseError ||
-        controller.signal.aborted
+        leaseLost
       ),
       now(),
     )

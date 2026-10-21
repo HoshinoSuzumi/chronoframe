@@ -32,15 +32,17 @@ export default eventHandler(
       identifiers: { fromStorageKey: generateSafePhotoId },
       // Self-hosted has no account-wide quota; the per-file policy still applies.
       quota: { assertAllowed: async () => {} },
-      prepare: (owner, key, size, contentType, chunked) =>
-        prepareUpload(
+      prepare: (owner, key, size, contentType, chunked) => {
+        reserveUploadSource(key, storageProvider)
+        return prepareUpload(
           owner,
           key,
           size,
           contentType,
           sourceAwareUploadStorage(storageProvider),
           chunked,
-        ),
+        )
+      },
     })
     try {
       const result = await preparer(String(session.user.id), body, {
@@ -71,7 +73,6 @@ export default eventHandler(
             'upload.duplicateCheck.mode',
           )) ?? 'skip',
       })
-      if (!result.skipped) reserveUploadSource(result.fileKey, storageProvider)
       const fileName = body.fileName
       if (result.skipped) {
         return {

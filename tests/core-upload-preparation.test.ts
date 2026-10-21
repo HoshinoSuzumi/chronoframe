@@ -38,9 +38,16 @@ test('upload preparation rejects invalid size, MIME, names and quota before crea
     },
   })
   for (const input of [
-    { fileName: 'p.jpg', fileSize: 0 },
-    { fileName: 'p.jpg', fileSize: 11 },
-    { fileName: 'p.jpg', fileSize: 2, contentType: 'text/plain' },
+    { fileName: '../escape.jpg' },
+    { fileName: 'p.jpg' },
+    { fileName: '..\\escape.jpg', fileSize: 2, contentType: 'image/jpeg' },
+    { contentType: 'image/jpeg', fileName: 'p.jpg', fileSize: 0 },
+    { contentType: 'image/jpeg', fileName: 'p.jpg', fileSize: 11 },
+    {
+      fileName: 'p.jpg',
+      fileSize: 2,
+      contentType: 'text/plain',
+    },
     { fileName: '../p.jpg', fileSize: 2, contentType: 'image/jpeg' },
   ]) {
     await assert.rejects(
@@ -62,7 +69,11 @@ test('upload preparation rejects invalid size, MIME, names and quota before crea
     },
   })
   await assert.rejects(
-    blocked('owner', { fileName: 'p.jpg' }, policy),
+    blocked(
+      'owner',
+      { fileSize: 2, contentType: 'image/jpeg', fileName: 'p.jpg' },
+      policy,
+    ),
     /Quota exhausted/,
   )
 })
@@ -78,14 +89,18 @@ test('duplicate skip, block and warning preserve keys and avoid unwanted provide
       return { mode: 'single', url: '/upload' }
     },
   })
-  const skipped = await prepare('owner', { fileName: 'p.jpg' }, policy)
+  const skipped = await prepare(
+    'owner',
+    { fileSize: 2, contentType: 'image/jpeg', fileName: 'p.jpg' },
+    policy,
+  )
   assert.equal(skipped.skipped, true)
   assert.equal(skipped.fileKey, 'photos/p.jpg')
   assert.deepEqual(prepared, [])
   await assert.rejects(
     prepare(
       'owner',
-      { fileName: 'p.jpg' },
+      { fileSize: 2, contentType: 'image/jpeg', fileName: 'p.jpg' },
       { ...policy, duplicateMode: 'block' },
     ),
     (error: unknown) =>
@@ -94,18 +109,27 @@ test('duplicate skip, block and warning preserve keys and avoid unwanted provide
   )
   const warning = await prepare(
     'owner',
-    { fileName: 'p.jpg' },
+    { fileSize: 2, contentType: 'image/jpeg', fileName: 'p.jpg' },
     { ...policy, duplicateMode: 'warn' },
   )
   assert.equal(warning.skipped, false)
   assert.equal(warning.existingPhoto!.id, 'photo')
   const ignored = await prepare(
     'owner',
-    { fileName: 'p.jpg', skipDuplicateCheck: true },
+    {
+      fileSize: 2,
+      contentType: 'image/jpeg',
+      fileName: 'p.jpg',
+      skipDuplicateCheck: true,
+    },
     policy,
   )
   assert.equal(ignored.existingPhoto, null)
-  const video = await prepare('owner', { fileName: 'p.mov' }, policy)
+  const video = await prepare(
+    'owner',
+    { fileName: 'p.mov', fileSize: 2, contentType: 'image/jpeg' },
+    policy,
+  )
   assert.equal(video.skipped, false)
   assert.equal(video.existingPhoto, null)
 })

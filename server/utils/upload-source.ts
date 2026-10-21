@@ -83,6 +83,8 @@ function idForKey(key: string) {
 }
 /** Invalidate the prior generation before a managed upload can replace its source. */
 export function reserveUploadSource(key: string, provider: StorageProvider) {
+  // Companion videos share the image identifier but must not replace its generation.
+  if (/\.(?:mov|mp4)$/i.test(key)) return
   return reserveResource(useDB(), DEFAULT_SITE, idForKey(key), {
     ...referenceForProvider(provider),
     storageKey: key,

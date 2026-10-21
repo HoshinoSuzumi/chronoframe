@@ -80,30 +80,26 @@ export function createUploadPreparer(deps: {
         'upload.error.required.title',
       )
     const { fileName, fileSize, chunked, contentType } = input
-    if (chunked || fileSize !== undefined) {
-      if (!Number.isSafeInteger(fileSize) || fileSize! <= 0)
-        throw new CoreError(400, 'Invalid file size')
-      if (fileSize! > policy.maxBytes)
-        throw new CoreError(
-          413,
-          'File is too large',
-          'upload.error.tooLarge.title',
-        )
-      if (
-        policy.mimeWhitelistEnabled &&
-        policy.mimeWhitelist.length &&
-        !policy.mimeWhitelist.includes(
-          contentType || 'application/octet-stream',
-        )
+    if (!Number.isSafeInteger(fileSize) || fileSize! <= 0)
+      throw new CoreError(400, 'Invalid file size')
+    if (fileSize! > policy.maxBytes)
+      throw new CoreError(
+        413,
+        'File is too large',
+        'upload.error.tooLarge.title',
       )
-        throw new CoreError(
-          415,
-          'Invalid content type',
-          'upload.error.invalidType.title',
-        )
-      if (/[\\/]/.test(fileName) || fileName === '.' || fileName === '..')
-        throw new CoreError(400, 'Invalid file name')
-    }
+    if (
+      policy.mimeWhitelistEnabled &&
+      policy.mimeWhitelist.length &&
+      !policy.mimeWhitelist.includes(contentType || 'application/octet-stream')
+    )
+      throw new CoreError(
+        415,
+        'Invalid content type',
+        'upload.error.invalidType.title',
+      )
+    if (/[\\/]/.test(fileName) || fileName === '.' || fileName === '..')
+      throw new CoreError(400, 'Invalid file name')
     await deps.quota.assertAllowed(owner, fileSize)
     const fileKey = buildUploadObjectKey(policy.prefix, fileName)
     let existingPhoto: DuplicatePhoto | null = null
