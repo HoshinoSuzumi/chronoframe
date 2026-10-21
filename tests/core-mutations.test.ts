@@ -10,18 +10,20 @@ import {
   createAlbumWriter,
   createPhotoWriter,
 } from '@chronoframe/core'
-import * as schema from '../server/database/schema.ts'
+import * as schema from '../apps/self-hosted/server/database/schema.ts'
 import {
   createSqliteAlbumWriteRepository,
   createSqlitePhotoWriteRepository,
-} from '../server/repositories/sqlite-mutations.ts'
+} from '../apps/self-hosted/server/repositories/sqlite-mutations.ts'
 
 const now = new Date('2026-10-20T08:00:00Z')
 const access = { authenticated: true }
 const setup = () => {
   const sqlite = new Database(':memory:')
   const db = drizzle(sqlite, { schema })
-  migrate(db, { migrationsFolder: './server/database/migrations' })
+  migrate(db, {
+    migrationsFolder: './apps/self-hosted/server/database/migrations',
+  })
   return { sqlite, db }
 }
 

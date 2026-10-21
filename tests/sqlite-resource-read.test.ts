@@ -5,14 +5,16 @@ import Database from 'better-sqlite3'
 import { drizzle } from 'drizzle-orm/better-sqlite3'
 import { migrate } from 'drizzle-orm/better-sqlite3/migrator'
 import { createResourceReader } from '@chronoframe/core'
-import * as schema from '../server/database/schema.ts'
-import { createSqliteResourceRepository } from '../server/repositories/sqlite-resources.ts'
-import { fetchAlbumPhotos } from '../server/utils/album-visibility.ts'
+import * as schema from '../apps/self-hosted/server/database/schema.ts'
+import { createSqliteResourceRepository } from '../apps/self-hosted/server/repositories/sqlite-resources.ts'
+import { fetchAlbumPhotos } from '../apps/self-hosted/server/utils/album-visibility.ts'
 
 test('SQLite reader preserves migrated data, ordering and legacy album visibility', async () => {
   const sqlite = new Database(':memory:')
   const db = drizzle(sqlite, { schema })
-  migrate(db, { migrationsFolder: './server/database/migrations' })
+  migrate(db, {
+    migrationsFolder: './apps/self-hosted/server/database/migrations',
+  })
   try {
     db.insert(schema.photos)
       .values([

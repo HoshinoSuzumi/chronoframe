@@ -2,8 +2,8 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 import Database from 'better-sqlite3'
 import { drizzle } from 'drizzle-orm/better-sqlite3'
-import * as schema from '../server/database/schema.ts'
-import { createPhotoTaskAlbumChecker } from '../server/utils/queue-payload.ts'
+import * as schema from '../apps/self-hosted/server/database/schema.ts'
+import { createPhotoTaskAlbumChecker } from '../apps/self-hosted/server/utils/queue-payload.ts'
 
 test('batch album checker queries once per distinct album ID', () => {
   const queries: string[] = []

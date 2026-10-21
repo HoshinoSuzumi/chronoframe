@@ -1,7 +1,11 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { toAlbumDto, toPhotoDto, toUserSummary } from '../server/utils/dto.ts'
-import type { Album, Photo, User } from '../server/utils/db.ts'
+import {
+  toAlbumDto,
+  toPhotoDto,
+  toUserSummary,
+} from '../apps/self-hosted/server/utils/dto.ts'
+import type { Album, Photo, User } from '../apps/self-hosted/server/utils/db.ts'
 
 test('user and album boundaries remove password material and serialize dates', () => {
   const date = new Date('2026-01-02T03:04:05Z')

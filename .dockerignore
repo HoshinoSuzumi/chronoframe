@@ -52,3 +52,13 @@ docker-compose.yaml
 
 # 编辑器配置
 .editorconfig
+
+# Generated and operational files under workspace applications
+**/.nuxt
+**/.output
+**/.data
+logs
+**/logs
+apps/self-hosted/data
+.env.*
+!.env.example

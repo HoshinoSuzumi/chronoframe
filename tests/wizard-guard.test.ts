@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { createWizardGuard } from '../server/services/wizard-guard.ts'
+import { createWizardGuard } from '../apps/self-hosted/server/services/wizard-guard.ts'
 
 test('wizard only runs with explicit first-launch state', async () => {
   for (const state of [false, undefined, null, 'true', 1]) {

@@ -5,13 +5,15 @@ import Database from 'better-sqlite3'
 import { eq } from 'drizzle-orm'
 import { drizzle } from 'drizzle-orm/better-sqlite3'
 import { migrate } from 'drizzle-orm/better-sqlite3/migrator'
-import * as schema from '../server/database/schema.ts'
-import { persistPhotoWithAlbum } from '../server/utils/photo-album.ts'
+import * as schema from '../apps/self-hosted/server/database/schema.ts'
+import { persistPhotoWithAlbum } from '../apps/self-hosted/server/utils/photo-album.ts'
 
 const setup = () => {
   const sqlite = new Database(':memory:')
   const db = drizzle(sqlite, { schema })
-  migrate(db, { migrationsFolder: './server/database/migrations' })
+  migrate(db, {
+    migrationsFolder: './apps/self-hosted/server/database/migrations',
+  })
   return { sqlite, db }
 }
 
@@ -157,7 +159,7 @@ test('migration keeps the earliest album position while removing legacy duplicat
       (4, 2, 'photo', 15)`)
 
     const migration = readFileSync(
-      'server/database/migrations/0016_upload_album_membership.sql',
+      'apps/self-hosted/server/database/migrations/0016_upload_album_membership.sql',
       'utf8',
     )
     for (const statement of migration.split('--> statement-breakpoint')) {

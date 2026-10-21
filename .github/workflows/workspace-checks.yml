@@ -1,0 +1,37 @@
+name: Workspace checks
+on:
+  pull_request:
+    paths:
+      - 'apps/**'
+      - 'packages/**'
+      - 'scripts/**'
+      - 'tests/**'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
+      - 'Dockerfile'
+      - '.dockerignore'
+      - '.npmrc'
+      - '**/tsconfig.json'
+      - '.github/workflows/workspace-checks.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  self-hosted:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.34.6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22.23.3
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm check:packages
+      - run: pnpm lint
+      - run: pnpm test
+      - run: pnpm build:deps
+      - run: pnpm build

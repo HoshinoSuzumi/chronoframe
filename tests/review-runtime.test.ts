@@ -47,7 +47,7 @@ test('Live Photo companion reservation leaves the image generation unchanged', a
       storageConnectionId: null,
       storageRevision: 1,
     })
-    const source = load('server/utils/upload-source.ts', {
+    const source = load('apps/self-hosted/server/utils/upload-source.ts', {
       './db': { useDB: () => connection.db, tables },
       './file-utils': { generateSafePhotoId: () => 'IMG' },
       './object-storage': {
@@ -76,7 +76,7 @@ test('non-local thumbnails read app-relative keys through the provider after aut
     .toBuffer()
   const calls: string[] = []
   const route = load(
-    'server/routes/thumb/[...thumbnailUrl].get.ts',
+    'apps/self-hosted/server/routes/thumb/[...thumbnailUrl].get.ts',
     {
       '../../utils/object-storage': {},
       '../../utils/local-media': {},
@@ -139,7 +139,7 @@ test('single and batch manual retries discard stale bindings and adopt the curre
         storageRevision: 1,
       })
       const route = load(
-        'server/api/queue/task/' + path,
+        'apps/self-hosted/server/api/queue/task/' + path,
         {},
         {
           defineEventHandler: (handler: unknown) => handler,
@@ -189,7 +189,7 @@ test('upload reservation failure creates no provider plan and duplicate skip nev
     reservations = 0,
     duplicate = false
   const route = load(
-    'server/api/photos/index.post.ts',
+    'apps/self-hosted/server/api/photos/index.post.ts',
     {
       '../../utils/upload-source': {
         reserveUploadSource: () => {
@@ -250,7 +250,7 @@ test('Live Photo management preserves missing photo and source conflict response
   const { CoreError } = await import('@chronoframe/core')
   for (const status of [404, 409]) {
     const route = load(
-      'server/api/photos/livephoto/manage.post.ts',
+      'apps/self-hosted/server/api/photos/livephoto/manage.post.ts',
       {
         '@chronoframe/database': {
           createSiteRepository: () => ({
@@ -300,12 +300,15 @@ test('native metadata editing stages a unique object and discard preserves origi
       .jpeg()
       .toBuffer()
     await provider.create('photo.jpg', original)
-    const adapter = load('server/services/resources/photo-metadata.ts', {
-      '../image/exif': { extractExifData: async () => null },
-      '../../utils/logger': {
-        logger: { image: { error: () => {}, warn: () => {} } },
+    const adapter = load(
+      'apps/self-hosted/server/services/resources/photo-metadata.ts',
+      {
+        '../image/exif': { extractExifData: async () => null },
+        '../../utils/logger': {
+          logger: { image: { error: () => {}, warn: () => {} } },
+        },
       },
-    }).editPhotoMetadata
+    ).editPhotoMetadata
     const staged = await adapter(
       { storageKey: 'photos/photo.jpg' },
       { title: 'Staged title' },
@@ -368,12 +371,15 @@ test('S3 metadata publication uses image MIME and the returned prefixed key for 
       provider.getPublicUrl = () => {
         throw new Error('URL construction failed')
       }
-    const adapter = load('server/services/resources/photo-metadata.ts', {
-      '../image/exif': { extractExifData: async () => null },
-      '../../utils/logger': {
-        logger: { image: { error: () => {}, warn: () => {} } },
+    const adapter = load(
+      'apps/self-hosted/server/services/resources/photo-metadata.ts',
+      {
+        '../image/exif': { extractExifData: async () => null },
+        '../../utils/logger': {
+          logger: { image: { error: () => {}, warn: () => {} } },
+        },
       },
-    }).editPhotoMetadata
+    ).editPhotoMetadata
     if (failAfterCreate)
       await assert.rejects(
         adapter({ storageKey: 'photos/original.JPG' }, {}, provider),
@@ -439,13 +445,16 @@ test('HEIC metadata publication retains the derived JPEG target rather than its 
       .values({ name: 'S3', provider: 's3', config })
       .returning()
       .get()
-    const adapter = load('server/services/resources/photo-metadata.ts', {
-      'exiftool-vendored': { exiftool: { write: async () => {} } },
-      '../image/exif': { extractExifData: async () => null },
-      '../../utils/logger': {
-        logger: { image: { error: () => {}, warn: () => {} } },
+    const adapter = load(
+      'apps/self-hosted/server/services/resources/photo-metadata.ts',
+      {
+        'exiftool-vendored': { exiftool: { write: async () => {} } },
+        '../image/exif': { extractExifData: async () => null },
+        '../../utils/logger': {
+          logger: { image: { error: () => {}, warn: () => {} } },
+        },
       },
-    }).editPhotoMetadata
+    ).editPhotoMetadata
     for (const derivedKey of ['photos/generated/original.jpeg', null]) {
       const id = derivedKey ? 'derived' : 'legacy'
       const target = provider.getPublicUrl(derivedKey ?? 'photos/legacy.jpeg')
@@ -497,7 +506,7 @@ test('HEIC metadata publication retains the derived JPEG target rather than its 
         .toBuffer()
       let fetches = 0
       const imageRoute = load(
-        'server/routes/image/[...key].get.ts',
+        'apps/self-hosted/server/routes/image/[...key].get.ts',
         {
           '../../utils/object-storage': {
             storageForPhoto: async () => provider,

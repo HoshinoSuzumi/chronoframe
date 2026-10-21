@@ -7,7 +7,7 @@ import {
   enqueueLocationMigration,
   enqueueLocationMigrationRequest,
   getLocationMigrationStatus,
-} from '../server/services/pipeline-queue/location-migration.ts'
+} from '../apps/self-hosted/server/services/pipeline-queue/location-migration.ts'
 
 test('migration selects only old geocoded photos and deduplicates queue entries', () => {
   const sqlite = new Database(':memory:')
@@ -23,7 +23,7 @@ test('migration selects only old geocoded photos and deduplicates queue entries'
   sqlite.exec(
     readFileSync(
       new URL(
-        '../server/database/migrations/0017_location_components.sql',
+        '../apps/self-hosted/server/database/migrations/0017_location_components.sql',
         import.meta.url,
       ),
       'utf8',
@@ -149,9 +149,9 @@ test('existing queue APIs accept migration tasks only for administrators', async
   })
   try {
     const { default: single } =
-      await import('../server/api/queue/add-task.post.ts')
+      await import('../apps/self-hosted/server/api/queue/add-task.post.ts')
     const { default: batch } =
-      await import('../server/api/queue/add-tasks.post.ts')
+      await import('../apps/self-hosted/server/api/queue/add-tasks.post.ts')
     const payload = { type: 'location-migration' }
     await assert.rejects(single({ admin: false, body: { payload } } as never), {
       statusCode: 403,

@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 import { ref } from 'vue'
 import { useLocationLabel } from '../packages/gallery/app/composables/useLocationLabel.ts'
-import type { NormalizedLocation } from '../shared/types/location.ts'
+import type { NormalizedLocation } from '../packages/gallery/shared/types/location.ts'
 
 test('location label overrides survive isolated rendering and retain reactive defaults', () => {
   const previous = Object.getOwnPropertyDescriptor(
