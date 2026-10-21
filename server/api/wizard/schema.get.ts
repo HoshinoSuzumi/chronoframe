@@ -1,10 +1,11 @@
+import { defineWizardHandler } from '../../utils/wizard-handler'
 import { z } from 'zod'
 import { settingsManager } from '~~/server/services/settings/settingsManager'
 import { getHiddenSettingKeys } from '~~/server/services/settings/contants'
 import { getSettingUIConfig } from '~~/server/services/settings/ui-config'
 import type { FieldDescriptor } from '~~/shared/types/settings'
 
-export default eventHandler(async (event) => {
+export default defineWizardHandler(async (event) => {
   const query = await getValidatedQuery(
     event,
     z.object({

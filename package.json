@@ -58,6 +58,7 @@
     "es-toolkit": "^1.52.0",
     "exiftool-vendored": "^35.21.0",
     "file-type": "^22.1.1",
+    "h3": "^1.15.11",
     "heic-convert": "^2.1.0",
     "maplibre-gl": "^5.24.0",
     "motion-v": "^2.6.0",
