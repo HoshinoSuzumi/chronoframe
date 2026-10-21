@@ -9,9 +9,11 @@ const versions = new Map<string, StorageProvider>()
 /** Resolve immutable connection revisions, rather than silently reading the currently active provider. */
 export async function storageForReference(
   reference: { storageConnectionId: number | null; storageRevision: number },
-  fallback: StorageProvider,
+  fallback: StorageProvider | (() => StorageProvider),
 ): Promise<StorageProvider> {
-  if (reference.storageConnectionId === null) return fallback // Legacy unconfigured records.
+  // Bound jobs can resume before the active storage manager has initialized.
+  if (reference.storageConnectionId === null)
+    return typeof fallback === 'function' ? fallback() : fallback
   const key = siteCacheKey(
     DEFAULT_SITE,
     `${reference.storageConnectionId}:${reference.storageRevision}`,

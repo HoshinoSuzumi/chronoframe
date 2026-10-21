@@ -160,8 +160,7 @@ export class QueueManager {
       repository.commit(lease, () => enqueueLocationMigration(db))
       return
     }
-    const provider = await storageForReference(
-      lease,
+    const provider = await storageForReference(lease, () =>
       getStorageManager().getProvider(),
     )
     const generated = new Set<string>(),
