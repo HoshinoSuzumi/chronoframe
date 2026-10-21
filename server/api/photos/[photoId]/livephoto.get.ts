@@ -1,3 +1,5 @@
+import { and as siteAnd, eq as siteEq } from 'drizzle-orm'
+import { DEFAULT_SITE } from '@chronoframe/core'
 import { eq } from 'drizzle-orm'
 
 export default eventHandler(async (event) => {
@@ -19,7 +21,12 @@ export default eventHandler(async (event) => {
     const photos = await db
       .select()
       .from(tables.photos)
-      .where(eq(tables.photos.id, photoId))
+      .where(
+        siteAnd(
+          eq(tables.photos.id, photoId),
+          siteEq(tables.photos.siteId, DEFAULT_SITE.id),
+        ),
+      )
       .limit(1)
 
     if (photos.length === 0) {

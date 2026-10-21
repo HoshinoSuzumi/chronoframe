@@ -1,3 +1,5 @@
+import { and as siteAnd, eq as siteEq } from 'drizzle-orm'
+import { DEFAULT_SITE } from '@chronoframe/core'
 import { desc, inArray, or } from 'drizzle-orm'
 import { photos, pipelineQueue } from '~~/server/database/schema'
 import type { PipelineQueueItem } from '~~/server/utils/db'
@@ -42,10 +44,12 @@ export default defineEventHandler(async (event) => {
       status: pipelineQueue.status,
       statusStage: pipelineQueue.statusStage,
       errorMessage: pipelineQueue.errorMessage,
+      warningCode: pipelineQueue.warningCode,
       createdAt: pipelineQueue.createdAt,
       completedAt: pipelineQueue.completedAt,
     })
     .from(pipelineQueue)
+    .where(siteEq(pipelineQueue.siteId, DEFAULT_SITE.id))
     .orderBy(desc(pipelineQueue.createdAt))
     .limit(RECENT_TASK_LIMIT)
     .all()
@@ -80,7 +84,12 @@ export default defineEventHandler(async (event) => {
             storageKey: photos.storageKey,
           })
           .from(photos)
-          .where(or(...photoFilters))
+          .where(
+            siteAnd(
+              or(...photoFilters),
+              siteEq(photos.siteId, DEFAULT_SITE.id),
+            ),
+          )
           .all()
       : []
 
@@ -109,6 +118,7 @@ export default defineEventHandler(async (event) => {
       status: task.status,
       statusStage: task.statusStage,
       errorMessage: task.errorMessage,
+      warningCode: task.warningCode,
       createdAt: task.createdAt,
       completedAt: task.completedAt,
       fileName: getFileName(storageKey),

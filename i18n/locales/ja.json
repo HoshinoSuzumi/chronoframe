@@ -4,7 +4,8 @@
     "description": "アルバムのパスワードでは、S3、OpenList、CDN の公開写真 URL を保護できません。直接リンクを持つ人は、パスワードなしでファイルにアクセスできます。保護するアルバムにはローカルストレージを使用してください。パスワードやデフォルトのストレージを変更しても、既存のリンクやキャッシュは無効になりません。すでに公開した写真は、ストレージ/CDN 側で公開アクセスを無効にし、キャッシュを削除してオブジェクト URL を変更する必要があります。"
   },
   "plural": {
-    "photo": "写真がありません | 写真 {count} 枚"
+    "photo": "写真がありません | 写真 {count} 枚",
+    "selectedPhoto": "選択した写真 {count} 枚"
   },
   "ui": {
     "locale": {
@@ -166,6 +167,14 @@
     }
   },
   "album": {
+    "list": {
+      "loading": "アルバムを読み込み中…",
+      "emptyTitle": "表示できるアルバムがありません",
+      "emptyDescription": "また後でご確認ください。",
+      "errorTitle": "アルバムを読み込めませんでした",
+      "errorDescription": "問題が発生しました。もう一度お試しください。",
+      "retry": "再試行"
+    },
     "passwordRequired": "パスワードが必要です",
     "passwordPlaceholder": "アルバムのパスワードを入力",
     "incorrectPassword": "パスワードが正しくありません",
@@ -188,7 +197,8 @@
       "dateRange": "日付範囲",
       "created": "作成"
     },
-    "createdTooltip": "作成日：{date}"
+    "createdTooltip": "作成日：{date}",
+    "uploadToThisAlbum": "このアルバムにアップロード"
   },
   "map": {
     "setupNotice": {
@@ -507,6 +517,10 @@
       "delete": "削除",
       "edit": "編集"
     },
+    "albumAssignment": {
+      "warning": "アルバムに追加できませんでした",
+      "missing": "写真はアップロードされましたが、追加前に選択したアルバムが削除されました。"
+    },
     "unknownError": "不明なエラー"
   },
   "dashboard": {
@@ -585,11 +599,25 @@
         "batchReprocess": "一括再処理",
         "batchEraseLocation": "位置情報を抹消",
         "batchDownload": "一括ダウンロード",
-        "batchDelete": "一括削除"
+        "batchDelete": "一括削除",
+        "addToAlbum": "アルバムに追加"
       },
       "slideover": {
         "title": "写真をアップロード",
         "description": "ドラッグアンドドロップするか、ファイルを選択します。写真は自動的に処理され、ライブラリに追加されます。",
+        "album": {
+          "label": "アルバムに追加（任意）",
+          "description": "この一括アップロードで正常に処理された写真を、選択したアルバムに追加します。",
+          "none": "アルバムなし",
+          "empty": "利用できるアルバムがまだありません。",
+          "hidden": "非表示",
+          "passwordProtected": "パスワード保護",
+          "loadFailed": "アルバムを読み込めませんでした。再試行してください。",
+          "loadFailedUpload": "アルバムを読み込めませんでした。再試行するか、アルバムなしでアップロードしてください。",
+          "retry": "再試行",
+          "unavailable": "選択したアルバムを利用できません。別のアルバムを選択してください。",
+          "requestedUnavailable": "このアルバムは存在しません。別のアルバムを選択してください。"
+        },
         "options": {
           "eraseLocation": {
             "label": "アップロード時に位置情報を抹消",
@@ -790,7 +818,21 @@
           "goToQueue": "キュー"
         }
       },
-      "previewTitle": "写真プレビュー"
+      "previewTitle": "写真プレビュー",
+      "addToAlbum": {
+        "title": "写真をアルバムに追加",
+        "description": "{photos}を既存のアルバムに追加します。",
+        "albumLabel": "アルバム",
+        "cancel": "キャンセル",
+        "confirm": "写真を追加",
+        "success": "アルバムを更新しました",
+        "noChanges": "変更はありません",
+        "result": "{added} 枚追加 · {alreadyPresent} 枚は追加済み",
+        "missing": "{count} 枚は利用できません",
+        "allAlreadyPresent": "選択した写真はすべてこのアルバムに追加されています。",
+        "error": "写真をアルバムに追加できませんでした",
+        "partialError": "{processed} を処理した後にリクエストが失敗しました。再試行しても重複は追加されません。"
+      }
     },
     "albums": {
       "title": "アルバム管理",
@@ -884,7 +926,8 @@
       "photoCount": "{count} 枚",
       "actions": {
         "moveUp": "上へ移動",
-        "moveDown": "下へ移動"
+        "moveDown": "下へ移動",
+        "uploadToAlbum": "\"{title}\" にアップロード"
       }
     },
     "overview": {
@@ -1014,7 +1057,8 @@
         "photo": "写真処理",
         "live-photo-video": "LivePhoto動画",
         "photo-reverse-geocoding": "写真の逆ジオコーディング",
-        "photo-erase-location": "写真位置情報の抹消"
+        "photo-erase-location": "写真位置情報の抹消",
+        "location-migration": "位置情報の形式移行"
       },
       "stages": {
         "preprocessing": "前処理",
@@ -1084,6 +1128,14 @@
     "nav": {
       "documentation": "ドキュメント",
       "viewGallery": "ギャラリーを表示"
+    },
+    "locationMigration": {
+      "title": "位置情報の更新",
+      "description": "写真の位置情報の保存形式が更新されました。{count} 枚の写真の行政区画情報を再取得する必要があります。今すぐ移行しますか？確認後、「キュー管理」で進捗を確認できます。",
+      "confirm": "移行する",
+      "cancel": "キャンセル",
+      "error": "移行タスクをキューに追加できませんでした。もう一度お試しください。",
+      "queued": "移行タスクをキューに追加しました。「キュー管理」で進捗を確認できます。"
     }
   },
   "settings": {
@@ -1114,6 +1166,12 @@
         "removeFailed": "アバターの削除に失敗しました",
         "invalidType": "PNG、JPEG、WebP、または GIF 画像を選択してください",
         "tooLarge": "画像は {size}MB 未満である必要があります"
+      },
+      "homeView": {
+        "label": "ホームページ",
+        "description": "サイトのトップページに表示する内容を選択",
+        "photos": "写真一覧",
+        "albums": "アルバム"
       },
       "appearance": {
         "theme": {
@@ -1242,6 +1300,24 @@
           "description": "Nominatim リバースジオコーディング API のベース URL",
           "help": "空のままにすると、デフォルトで公開 Nominatim サービスを使用します"
         }
+      },
+      "levels": {
+        "country": "国 / 地域",
+        "region": "都道府県 / 州",
+        "subregion": "中間行政区画",
+        "city": "市町村 / 集落",
+        "district": "市内の行政区",
+        "locality": "地区 / 郊外",
+        "neighborhood": "近隣地区"
+      },
+      "preferredLevel": {
+        "label": "優先する位置情報の階層",
+        "description": "写真と地図に表示する位置情報の階層を選択します。都市フィルターは引き続き都市単位で集計します。"
+      },
+      "fallbackOrder": {
+        "label": "位置情報の代替順序",
+        "description": "優先する階層がない場合、この順序で利用可能な項目を選択します。",
+        "help": "項目名を半角カンマで区切ります：city、subregion、region、country、district、locality、neighborhood。例：city,subregion,region,country"
       }
     },
     "privacy": {
@@ -1650,7 +1726,10 @@
       "skip": {
         "title": "重複ファイルをスキップしました",
         "message": "写真「{fileName}」は既に存在するため、自動的にスキップされました",
-        "info": "既存の写真の撮影日：{dateTaken}"
+        "info": "既存の写真の撮影日：{dateTaken}",
+        "addedToAlbum": "既存の写真を選択したアルバムに追加しました。重複ファイルはアップロードしていません。",
+        "alreadyInAlbum": "既存の写真はすでに選択したアルバムにあります。重複ファイルはアップロードしていません。",
+        "albumAddFailed": "重複ファイルはアップロードされず、既存の写真も選択したアルバムに追加できませんでした。写真ライブラリの「アルバムに追加」を使用してください。"
       },
       "warn": {
         "title": "重複ファイルを検出しました",

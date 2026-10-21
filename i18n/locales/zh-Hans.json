@@ -180,6 +180,14 @@
     }
   },
   "album": {
+    "list": {
+      "loading": "正在加载相簿…",
+      "emptyTitle": "暂无可显示的相簿",
+      "emptyDescription": "请稍后再来查看。",
+      "errorTitle": "无法加载相簿",
+      "errorDescription": "出现问题，请重试。",
+      "retry": "重试"
+    },
     "passwordRequired": "此相簿需要密码",
     "passwordPlaceholder": "输入相簿密码",
     "incorrectPassword": "密码错误",
@@ -202,7 +210,8 @@
       "dateRange": "日期范围",
       "created": "创建"
     },
-    "createdTooltip": "创建于：{date}"
+    "createdTooltip": "创建于：{date}",
+    "uploadToThisAlbum": "上传到此相册"
   },
   "minimap": {
     "loading": "加载小地图..."
@@ -410,7 +419,8 @@
     "iso": "ISO"
   },
   "plural": {
-    "photo": "没有照片 | 一张照片 | {count} 张照片"
+    "photo": "没有照片 | 一张照片 | {count} 张照片",
+    "selectedPhoto": "{count} 张选中的照片"
   },
   "title": {
     "dashboard": "仪表板",
@@ -507,6 +517,10 @@
       "delete": "删除",
       "edit": "编辑"
     },
+    "albumAssignment": {
+      "warning": "未添加到相簿",
+      "missing": "照片已上传，但所选相簿在添加照片前已被删除。"
+    },
     "unknownError": "未知错误"
   },
   "upload": {
@@ -519,7 +533,10 @@
       "skip": {
         "title": "跳过重复文件",
         "message": "照片 \"{fileName}\" 已存在，已自动跳过上传",
-        "info": "现有照片拍摄于 {dateTaken}"
+        "info": "现有照片拍摄于 {dateTaken}",
+        "addedToAlbum": "已将现有照片添加到所选相册，重复文件未重新上传。",
+        "alreadyInAlbum": "现有照片已在所选相册中，重复文件未重新上传。",
+        "albumAddFailed": "重复文件未上传，现有照片也未能添加到所选相册。请在照片图库中使用“添加到相册”。"
       },
       "warn": {
         "title": "检测到重复文件",
@@ -660,11 +677,25 @@
         "batchReprocess": "重新处理",
         "batchEraseLocation": "抹除位置信息",
         "batchDownload": "批量下载",
-        "batchDelete": "批量删除"
+        "batchDelete": "批量删除",
+        "addToAlbum": "添加到相册"
       },
       "slideover": {
         "title": "上传照片",
         "description": "拖拽或选择文件。上传后照片会自动处理并添加到库中。",
+        "album": {
+          "label": "添加到相簿（可选）",
+          "description": "此批次中成功处理的照片都会添加到所选相簿。",
+          "none": "不添加到相簿",
+          "empty": "暂无可用相簿。",
+          "hidden": "已隐藏",
+          "passwordProtected": "密码保护",
+          "loadFailed": "无法加载相册，请重试。",
+          "loadFailedUpload": "无法加载相册，请重试，或选择“不选择相册”后直接上传。",
+          "retry": "重试",
+          "unavailable": "所选相册不可用，请选择其他相册后再上传。",
+          "requestedUnavailable": "此相册已不存在，请选择其他相册后再上传。"
+        },
         "options": {
           "eraseLocation": {
             "label": "上传时抹除位置信息",
@@ -865,7 +896,21 @@
           "goToQueue": "队列"
         }
       },
-      "previewTitle": "照片预览"
+      "previewTitle": "照片预览",
+      "addToAlbum": {
+        "title": "将照片添加到相册",
+        "description": "将{photos}添加到现有相册。",
+        "albumLabel": "相册",
+        "cancel": "取消",
+        "confirm": "添加照片",
+        "success": "相册已更新",
+        "noChanges": "无更改",
+        "result": "已添加 {added} 张 · {alreadyPresent} 张已在相册中",
+        "missing": "{count} 张不可用",
+        "allAlreadyPresent": "所选照片均已在相册中。",
+        "error": "无法将照片添加到相册",
+        "partialError": "请求在 {processed} 后失败。可以安全重试，重复照片会被跳过。"
+      }
     },
     "albums": {
       "title": "相簿管理",
@@ -959,7 +1004,8 @@
       "photoCount": "{count} 张",
       "actions": {
         "moveUp": "上移",
-        "moveDown": "下移"
+        "moveDown": "下移",
+        "uploadToAlbum": "上传到\"{title}\""
       }
     },
     "overview": {
@@ -1089,7 +1135,8 @@
         "photo": "照片处理",
         "live-photo-video": "LivePhoto视频",
         "photo-reverse-geocoding": "照片逆地理编码",
-        "photo-erase-location": "照片位置信息抹除"
+        "photo-erase-location": "照片位置信息抹除",
+        "location-migration": "位置区划格式迁移"
       },
       "stages": {
         "preprocessing": "预处理",
@@ -1159,6 +1206,14 @@
     "nav": {
       "documentation": "文档",
       "viewGallery": "查看画廊"
+    },
+    "locationMigration": {
+      "title": "更新地理位置信息",
+      "description": "照片位置信息存储格式已更新，{count} 张照片需要重新获取区划信息。是否现在迁移？确认后可在“队列管理”中查看进度",
+      "confirm": "确认迁移",
+      "cancel": "取消",
+      "error": "迁移任务入队失败，请重试。",
+      "queued": "迁移任务已加入队列，可在任务队列中查看处理进度。"
     }
   },
   "settings": {
@@ -1189,6 +1244,12 @@
         "removeFailed": "头像移除失败",
         "invalidType": "请选择 PNG、JPEG、WebP 或 GIF 图片",
         "tooLarge": "图片大小必须小于 {size}MB"
+      },
+      "homeView": {
+        "label": "首页内容",
+        "description": "选择访客打开网站首页时看到的内容",
+        "photos": "照片墙",
+        "albums": "相簿"
       },
       "appearance": {
         "theme": {
@@ -1317,6 +1378,24 @@
           "description": "Nominatim 反向地理编码 API 的基础 URL",
           "help": "留空则默认使用公共 Nominatim 服务"
         }
+      },
+      "levels": {
+        "country": "国家 / 地区",
+        "region": "省 / 州",
+        "subregion": "中间行政区划",
+        "city": "城市 / 居民点",
+        "district": "城市区县",
+        "locality": "地方 / 郊区",
+        "neighborhood": "社区 / 街区"
+      },
+      "preferredLevel": {
+        "label": "首选位置层级",
+        "description": "选择照片和地图显示的位置层级，城市筛选仍按城市统计。"
+      },
+      "fallbackOrder": {
+        "label": "位置字段回退顺序",
+        "description": "首选层级缺失时，按此顺序选择可用字段。",
+        "help": "使用英文逗号分隔：city（城市）、subregion（中间区划）、region（省州）、country（国家地区）、district（区县）、locality（地方）、neighborhood（社区）。示例：city,subregion,region,country"
       }
     },
     "privacy": {

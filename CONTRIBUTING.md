@@ -69,4 +69,6 @@ Push your branch to your fork and open a pull request. State what problem it sol
 
 ## Report an issue or discuss an idea
 
+For suspected security vulnerabilities, follow the [Security Policy](SECURITY.md) and report privately.
+
 Use the [issue template chooser](https://github.com/HoshinoSuzumi/chronoframe/issues/new/choose) to report bugs or request features. For a bug, include the version, deployment method, storage type, reproduction steps and relevant logs with secrets removed. Use [GitHub Discussions](https://github.com/HoshinoSuzumi/chronoframe/discussions) or [Discord](https://discord.gg/MM4ZK4Ed7s) for questions and ideas.

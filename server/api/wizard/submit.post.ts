@@ -1,9 +1,11 @@
+import { toUserSummary } from '~~/server/utils/dto'
+import { defineWizardHandler } from '../../utils/wizard-handler'
 import { z } from 'zod'
 import { settingsManager } from '~~/server/services/settings/settingsManager'
 import { storageConfigSchema } from '~~/shared/types/storage'
 import { useDB, tables, eq } from '~~/server/utils/db'
 
-export default eventHandler(async (event) => {
+export default defineWizardHandler(async (event) => {
   const body = await readValidatedBody(
     event,
     z.object({
@@ -46,7 +48,11 @@ export default eventHandler(async (event) => {
         })
         .where(eq(tables.users.id, existingUser.id))
         .run()
-      adminUser = db.select().from(tables.users).where(eq(tables.users.id, existingUser.id)).get()
+      adminUser = db
+        .select()
+        .from(tables.users)
+        .where(eq(tables.users.id, existingUser.id))
+        .get()
     } else {
       throw createError({
         statusCode: 400,
@@ -64,7 +70,11 @@ export default eventHandler(async (event) => {
         createdAt: new Date(),
       })
       .run()
-    adminUser = db.select().from(tables.users).where(eq(tables.users.email, body.admin.email)).get()
+    adminUser = db
+      .select()
+      .from(tables.users)
+      .where(eq(tables.users.email, body.admin.email))
+      .get()
   }
 
   // 2. Handle Site Settings
@@ -90,13 +100,11 @@ export default eventHandler(async (event) => {
   await settingsManager.set('map', 'provider', body.map.provider)
   const mapToken = body.map.token.trim()
   if (body.map.provider === 'mapbox') {
-    if (mapToken)
-      await settingsManager.set('map', 'mapbox.token', mapToken)
+    if (mapToken) await settingsManager.set('map', 'mapbox.token', mapToken)
     if (body.map.style)
       await settingsManager.set('map', 'mapbox.style', body.map.style)
   } else {
-    if (mapToken)
-      await settingsManager.set('map', 'maplibre.token', mapToken)
+    if (mapToken) await settingsManager.set('map', 'maplibre.token', mapToken)
     if (body.map.style)
       await settingsManager.set('map', 'maplibre.style', body.map.style)
   }
@@ -108,7 +116,7 @@ export default eventHandler(async (event) => {
   if (adminUser) {
     await setUserSession(
       event,
-      { user: adminUser },
+      { user: toUserSummary(adminUser) },
       {
         cookie: {
           secure: false,

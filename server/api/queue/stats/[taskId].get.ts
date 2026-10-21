@@ -1,3 +1,4 @@
+import type {} from '../../../types/worker'
 import z from 'zod'
 
 export default defineEventHandler(async (event) => {

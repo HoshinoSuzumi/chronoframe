@@ -1,3 +1,5 @@
+import { eq as siteEq } from 'drizzle-orm'
+import { DEFAULT_SITE } from '@chronoframe/core'
 import { z } from 'zod'
 import { desc, sql, eq, and } from 'drizzle-orm'
 
@@ -16,6 +18,7 @@ export default defineEventHandler(async (event) => {
           .optional(),
         type: z
           .enum([
+            'location-migration',
             'photo',
             'live-photo-video',
             'photo-reverse-geocoding',
@@ -40,8 +43,10 @@ export default defineEventHandler(async (event) => {
       )
     }
 
-    const whereCondition =
-      conditions.length > 0 ? and(...conditions) : undefined
+    const whereCondition = and(
+      siteEq(tables.pipelineQueue.siteId, DEFAULT_SITE.id),
+      ...conditions,
+    )
 
     // 构建查询
     const queryBuilder = db
@@ -54,15 +59,13 @@ export default defineEventHandler(async (event) => {
         status: tables.pipelineQueue.status,
         statusStage: tables.pipelineQueue.statusStage,
         errorMessage: tables.pipelineQueue.errorMessage,
+        warningCode: tables.pipelineQueue.warningCode,
         createdAt: tables.pipelineQueue.createdAt,
         completedAt: tables.pipelineQueue.completedAt,
       })
       .from(tables.pipelineQueue)
+      .where(whereCondition)
       .orderBy(desc(tables.pipelineQueue.createdAt))
-
-    if (whereCondition) {
-      queryBuilder.where(whereCondition)
-    }
 
     const tasks = await queryBuilder
 

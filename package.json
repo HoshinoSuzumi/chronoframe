@@ -16,7 +16,7 @@
     "db:check": "drizzle-kit check",
     "db:up": "drizzle-kit up",
     "db:generate": "drizzle-kit generate",
-    "db:migrate": "drizzle-kit migrate",
+    "db:migrate": "node --experimental-strip-types scripts/migrate-database.ts",
     "build": "NODE_OPTIONS=\"--max-old-space-size=8192\" nuxt build",
     "build:deps": "pnpm --filter @chronoframe/webgl-image build",
     "dev": "run-p dev:dep dev:wait-only",
@@ -32,11 +32,14 @@
     "postinstall": "nuxt prepare",
     "docs:dev": "vitepress dev docs",
     "docs:build": "vitepress build docs",
-    "docs:preview": "vitepress preview docs"
+    "docs:preview": "vitepress preview docs",
+    "check:packages": "node scripts/check-package-boundaries.mjs && pnpm --filter @chronoframe/jobs --filter @chronoframe/processing --filter @chronoframe/database --filter @chronoframe/core --filter @chronoframe/contracts --filter @chronoframe/storage --filter @chronoframe/media --filter @chronoframe/geocoding type-check",
+    "test": "node --experimental-strip-types --test tests/*.test.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1149.0",
     "@aws-sdk/s3-request-presigner": "^3.1149.0",
+    "@chronoframe/contracts": "workspace:*",
     "@chronoframe/webgl-image": "workspace:*",
     "@iconify/vue": "5.0.3",
     "@indoorequal/vue-maplibre-gl": "^8.4.2",
@@ -58,6 +61,7 @@
     "es-toolkit": "^1.52.0",
     "exiftool-vendored": "^35.21.0",
     "file-type": "^22.1.1",
+    "h3": "^1.15.11",
     "heic-convert": "^2.1.0",
     "maplibre-gl": "^5.24.0",
     "motion-v": "^2.6.0",
@@ -80,7 +84,15 @@
     "vue": "^3.5.43",
     "vue-router": "^4.6.4",
     "wait-on": "^9.5.1",
-    "zod": "^4.6.6"
+    "zod": "^4.6.6",
+    "@chronoframe/storage": "workspace:*",
+    "@chronoframe/media": "workspace:*",
+    "@chronoframe/geocoding": "workspace:*",
+    "@chronoframe/core": "workspace:*",
+    "h3": "^1.15.11",
+    "@chronoframe/database": "workspace:*",
+    "@chronoframe/jobs": "workspace:*",
+    "@chronoframe/processing": "workspace:*"
   },
   "packageManager": "pnpm@10.34.6",
   "devDependencies": {

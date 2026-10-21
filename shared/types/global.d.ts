@@ -1,11 +1,5 @@
-import type { Photo as DatabasePhoto } from '../../server/utils/db'
-import type { WorkerPool } from '../../server/services/pipeline-queue'
-
+import type { Photo as PhotoDto } from '@chronoframe/contracts/resources'
 declare global {
-  var __workerPool: WorkerPool | undefined
-  interface Photo extends DatabasePhoto {
-    fileName?: string | null
-  }
+  interface Photo extends PhotoDto {}
 }
-
 export {}

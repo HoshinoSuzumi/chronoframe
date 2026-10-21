@@ -157,6 +157,7 @@ export default defineNuxtConfig({
         'dayjs/plugin/timezone', // CJS
         'dayjs/plugin/updateLocale', // CJS
         'dayjs/plugin/utc', // CJS
+        'driver.js',
         'es-toolkit',
         'file-type',
         'mapbox-gl', // CJS
@@ -180,6 +181,9 @@ export default defineNuxtConfig({
     build: {
       sourcemap: false,
       rollupOptions: {
+        // Nitro resolves shared source imports before emitting the runtime bundle.
+        // Keep their absolute identities instead of deriving paths from SSR chunks.
+        makeAbsoluteExternalsRelative: false,
         output: {
           manualChunks(id) {
             if (!id.includes('node_modules')) {

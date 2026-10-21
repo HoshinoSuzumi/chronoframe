@@ -118,6 +118,8 @@ pnpm docs:build    # 构建文档
 
 ## 🤝 贡献与交流
 
+如发现疑似安全漏洞，请按照[安全政策](SECURITY_zh.md)私下报告。
+
 欢迎提交问题和 Pull Request。请说明问题、改动后的行为和验证结果；文档改动请同步维护中文和英文。
 
 [GitHub Issues](https://github.com/HoshinoSuzumi/chronoframe/issues/new/choose) · [Discussions](https://github.com/HoshinoSuzumi/chronoframe/discussions) · [Discord](https://discord.gg/MM4ZK4Ed7s)

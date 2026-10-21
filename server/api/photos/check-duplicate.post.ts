@@ -1,5 +1,9 @@
+import { DEFAULT_SITE } from '@chronoframe/core'
 import { z } from 'zod'
-import { eq } from 'drizzle-orm'
+import { createDuplicateChecker } from '@chronoframe/core'
+import { createSqliteUploadRepository } from '../../repositories/sqlite-uploads'
+import { useDB } from '../../utils/db'
+import { useStorageProvider } from '../../utils/useStorageProvider'
 import { generateSafePhotoId } from '~~/server/utils/file-utils'
 
 /**
@@ -33,73 +37,16 @@ export default defineEventHandler(async (event) => {
       })
     }
 
-    const db = useDB()
-    const results = []
-
-    // 检查文件名
-    if (fileNames && fileNames.length > 0) {
-      for (const fileName of fileNames) {
-        // 生成 photoId（与上传时的逻辑相同）
-        const { storageProvider } = useStorageProvider(event)
-        const storageKey = `${(storageProvider.config?.prefix || '').replace(/\/+$/, '')}/${fileName}`
-        const photoId = generateSafePhotoId(storageKey)
-
-        // 查询数据库
-        const existingPhoto = await db
-          .select({
-            id: tables.photos.id,
-            title: tables.photos.title,
-            storageKey: tables.photos.storageKey,
-            originalUrl: tables.photos.originalUrl,
-            thumbnailUrl: tables.photos.thumbnailUrl,
-            dateTaken: tables.photos.dateTaken,
-            fileSize: tables.photos.fileSize,
-            width: tables.photos.width,
-            height: tables.photos.height,
-          })
-          .from(tables.photos)
-          .where(eq(tables.photos.id, photoId))
-          .get()
-
-        results.push({
-          fileName,
-          storageKey,
-          photoId,
-          exists: !!existingPhoto,
-          photo: existingPhoto || null,
-        })
-      }
-    }
-
-    // 检查 storageKey
-    if (storageKeys && storageKeys.length > 0) {
-      for (const storageKey of storageKeys) {
-        const photoId = generateSafePhotoId(storageKey)
-
-        const existingPhoto = await db
-          .select({
-            id: tables.photos.id,
-            title: tables.photos.title,
-            storageKey: tables.photos.storageKey,
-            originalUrl: tables.photos.originalUrl,
-            thumbnailUrl: tables.photos.thumbnailUrl,
-            dateTaken: tables.photos.dateTaken,
-            fileSize: tables.photos.fileSize,
-            width: tables.photos.width,
-            height: tables.photos.height,
-          })
-          .from(tables.photos)
-          .where(eq(tables.photos.id, photoId))
-          .get()
-
-        results.push({
-          storageKey,
-          photoId,
-          exists: !!existingPhoto,
-          photo: existingPhoto || null,
-        })
-      }
-    }
+    const { storageProvider } = useStorageProvider(event)
+    const config = storageProvider.config
+    const check = createDuplicateChecker({
+      identifiers: { fromStorageKey: generateSafePhotoId },
+      find: createSqliteUploadRepository(useDB(), DEFAULT_SITE).findDetails,
+    })
+    const results = await check(
+      { fileNames, storageKeys },
+      config && 'prefix' in config ? config.prefix : '',
+    )
 
     const duplicatesFound = results.filter((r) => r.exists).length
 

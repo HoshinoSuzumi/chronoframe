@@ -1,3 +1,6 @@
+import { eq as siteEq } from 'drizzle-orm'
+import { DEFAULT_SITE } from '@chronoframe/core'
+import { toPhotoDto } from '../../utils/dto'
 import { photos } from '~~/server/database/schema'
 
 export default eventHandler(async (event) => {
@@ -10,12 +13,13 @@ export default eventHandler(async (event) => {
     const recentPhotos = await useDB()
       .select()
       .from(photos)
+      .where(siteEq(photos.siteId, DEFAULT_SITE.id))
       .orderBy(photos.lastModified)
       .limit(10)
       .all()
 
     return {
-      recentPhotos,
+      recentPhotos: recentPhotos.map(toPhotoDto),
       timestamp: new Date().toISOString(),
     }
   } else {

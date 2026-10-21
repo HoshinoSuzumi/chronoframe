@@ -36,7 +36,7 @@ export default eventHandler(async (event) => {
   try {
     // 获取该命名空间的所有设置
     const schema = await settingsManager.getSchema()
-    const allowedKeys = new Set(
+    const allowedKeys = new Set<string>(
       DEFAULT_SETTINGS.filter((s) => s.namespace === query.namespace).map(
         (s) => s.key,
       ),

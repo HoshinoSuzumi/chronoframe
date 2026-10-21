@@ -22,6 +22,7 @@ const emit = defineEmits<{
 }>()
 
 const dayjs = useDayjs()
+const locationLabel = useLocationLabel()
 
 const onClick = () => {
   emit('click', props.clusterPoint)
@@ -217,7 +218,7 @@ const sizeDelta = computed(() => {
                     <div
                       v-if="
                         clusteredPhotos.length &&
-                        clusteredPhotos.some((p) => p.city)
+                        clusteredPhotos.some((p) => locationLabel(p))
                       "
                       class="flex items-center gap-1 text-xs text-neutral-600 dark:text-muted font-medium mt-2"
                     >
@@ -228,7 +229,7 @@ const sizeDelta = computed(() => {
                       <span class="truncate">
                         {{
                           clusteredPhotos
-                            .map((p) => p.city)
+                            .map((p) => locationLabel(p))
                             .filter((v, i, a) => v && a.indexOf(v) === i)
                             .join(', ')
                         }}

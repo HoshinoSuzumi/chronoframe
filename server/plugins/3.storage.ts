@@ -90,7 +90,10 @@ export async function initializeStorageManagerFromActiveProvider(
   }
 
   try {
-    const storageManager = new StorageManager(activeProvider.config, logger.storage)
+    const storageManager = new StorageManager(
+      activeProvider.config,
+      logger.storage,
+    )
     setGlobalStorageManager(storageManager)
     attachStorageManagerEvents(storageManager)
     await ensureLocalStorageReady(activeProvider.config)

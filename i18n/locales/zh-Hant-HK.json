@@ -180,6 +180,14 @@
     }
   },
   "album": {
+    "list": {
+      "loading": "正在載入相簿…",
+      "emptyTitle": "暫無可顯示的相簿",
+      "emptyDescription": "請稍後再嚟睇吓。",
+      "errorTitle": "無法載入相簿",
+      "errorDescription": "發生問題，請再試一次。",
+      "retry": "重試"
+    },
     "passwordRequired": "此相簿需要密碼",
     "passwordPlaceholder": "輸入相簿密碼",
     "incorrectPassword": "密碼錯誤",
@@ -202,7 +210,8 @@
       "dateRange": "日期範圍",
       "created": "建立"
     },
-    "createdTooltip": "建立於：{date}"
+    "createdTooltip": "建立於：{date}",
+    "uploadToThisAlbum": "上傳至此相簿"
   },
   "minimap": {
     "loading": "載入小地圖..."
@@ -410,7 +419,8 @@
     "iso": "ISO"
   },
   "plural": {
-    "photo": "沒有相片 | 一張相片 | {count} 張相片"
+    "photo": "沒有相片 | 一張相片 | {count} 張相片",
+    "selectedPhoto": "{count} 張選取的相片"
   },
   "title": {
     "dashboard": "控制台",
@@ -507,6 +517,10 @@
       "delete": "刪除",
       "edit": "編輯"
     },
+    "albumAssignment": {
+      "warning": "未加入相簿",
+      "missing": "相片已上傳，但所選相簿在新增相片前已被刪除。"
+    },
     "unknownError": "未知錯誤"
   },
   "dashboard": {
@@ -585,11 +599,25 @@
         "batchReprocess": "批量重新處理",
         "batchEraseLocation": "抹除位置資訊",
         "batchDownload": "批量下載",
-        "batchDelete": "批量刪除"
+        "batchDelete": "批量刪除",
+        "addToAlbum": "加入相簿"
       },
       "slideover": {
         "title": "上傳相片",
         "description": "拖曳或選擇檔案。相片會自動處理並新增到圖庫。",
+        "album": {
+          "label": "新增至相簿（可選）",
+          "description": "此批次中成功處理的相片都會新增至所選相簿。",
+          "none": "不加入相簿",
+          "empty": "暫無可用相簿。",
+          "hidden": "已隱藏",
+          "passwordProtected": "密碼保護",
+          "loadFailed": "無法載入相簿，請重試。",
+          "loadFailedUpload": "無法載入相簿，請重試，或選擇「不選擇相簿」後直接上傳。",
+          "retry": "重試",
+          "unavailable": "所選相簿無法使用，請選擇其他相簿後再上傳。",
+          "requestedUnavailable": "此相簿已不存在，請選擇其他相簿後再上傳。"
+        },
         "options": {
           "eraseLocation": {
             "label": "上傳時抹除位置資訊",
@@ -790,7 +818,21 @@
           "goToQueue": "佇列"
         }
       },
-      "previewTitle": "相片預覽"
+      "previewTitle": "相片預覽",
+      "addToAlbum": {
+        "title": "將相片加入相簿",
+        "description": "將{photos}加入現有相簿。",
+        "albumLabel": "相簿",
+        "cancel": "取消",
+        "confirm": "加入相片",
+        "success": "相簿已更新",
+        "noChanges": "沒有變更",
+        "result": "已加入 {added} 張 · {alreadyPresent} 張已在相簿中",
+        "missing": "{count} 張無法使用",
+        "allAlreadyPresent": "所選相片均已在相簿中。",
+        "error": "無法將相片加入相簿",
+        "partialError": "請求在 {processed} 後失敗。可以安全重試，重複相片會被略過。"
+      }
     },
     "albums": {
       "title": "相簿管理",
@@ -884,7 +926,8 @@
       "photoCount": "{count} 張",
       "actions": {
         "moveUp": "上移",
-        "moveDown": "下移"
+        "moveDown": "下移",
+        "uploadToAlbum": "上傳至\"{title}\""
       }
     },
     "overview": {
@@ -1014,7 +1057,8 @@
         "photo": "照片處理",
         "live-photo-video": "LivePhoto視頻",
         "photo-reverse-geocoding": "照片逆地理編碼",
-        "photo-erase-location": "照片位置資訊抹除"
+        "photo-erase-location": "照片位置資訊抹除",
+        "location-migration": "位置區劃格式遷移"
       },
       "stages": {
         "preprocessing": "預處理",
@@ -1084,6 +1128,14 @@
     "nav": {
       "documentation": "文件",
       "viewGallery": "查看畫廊"
+    },
+    "locationMigration": {
+      "title": "更新地理位置資訊",
+      "description": "相片位置資訊儲存格式已更新，{count} 張相片需要重新取得區劃資訊。是否現在遷移？確認後可在「佇列管理」中查看進度",
+      "confirm": "確認遷移",
+      "cancel": "取消",
+      "error": "遷移任務加入佇列失敗，請重試。",
+      "queued": "遷移任務已加入佇列，可在任務佇列中查看處理進度。"
     }
   },
   "settings": {
@@ -1114,6 +1166,12 @@
         "removeFailed": "頭像移除失敗",
         "invalidType": "請選擇 PNG、JPEG、WebP 或 GIF 圖片",
         "tooLarge": "圖片大小必須小於 {size}MB"
+      },
+      "homeView": {
+        "label": "首頁內容",
+        "description": "選擇訪客打開網站首頁時見到嘅內容",
+        "photos": "相片牆",
+        "albums": "相簿"
       },
       "appearance": {
         "theme": {
@@ -1242,6 +1300,24 @@
           "description": "Nominatim 反向地理編碼 API 嘅基礎 URL",
           "help": "留空則預設使用公開 Nominatim 服務"
         }
+      },
+      "levels": {
+        "country": "國家 / 地區",
+        "region": "省 / 州",
+        "subregion": "中間行政區劃",
+        "city": "城市 / 居民點",
+        "district": "城市區縣",
+        "locality": "地方 / 郊區",
+        "neighborhood": "社區 / 街區"
+      },
+      "preferredLevel": {
+        "label": "首選位置層級",
+        "description": "選擇照片和地圖顯示的位置層級，城市篩選仍按城市統計。"
+      },
+      "fallbackOrder": {
+        "label": "位置欄位回退順序",
+        "description": "首選層級缺失時，按此順序選擇可用欄位。",
+        "help": "使用英文逗號分隔：city、subregion、region、country、district、locality、neighborhood。範例：city,subregion,region,country"
       }
     },
     "privacy": {
@@ -1641,7 +1717,10 @@
       "skip": {
         "title": "已跳過重複檔案",
         "message": "相片「{fileName}」已存在，已自動跳過上傳",
-        "info": "現有相片拍攝於 {dateTaken}"
+        "info": "現有相片拍攝於 {dateTaken}",
+        "addedToAlbum": "已將現有相片加入所選相簿，重複檔案沒有重新上傳。",
+        "alreadyInAlbum": "現有相片已在所選相簿中，重複檔案沒有重新上傳。",
+        "albumAddFailed": "重複檔案沒有上傳，現有相片亦未能加入所選相簿。請在相片圖庫使用「加入相簿」。"
       },
       "warn": {
         "title": "偵測到重複檔案",

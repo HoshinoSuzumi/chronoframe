@@ -85,7 +85,12 @@ const getComponentProps = (): Record<string, any> => {
       break
     case 'select':
       propsMap.items = props.field.ui.options
-        ? Array.from(props.field.ui.options)
+        ? Array.from(props.field.ui.options).map((option) => ({
+            ...option,
+            label: option.label.startsWith('settings.location.levels.')
+              ? $t(option.label)
+              : option.label,
+          }))
         : []
       propsMap['label-key'] = 'label'
       propsMap['value-key'] = 'value'

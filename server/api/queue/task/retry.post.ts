@@ -1,3 +1,5 @@
+import { and as siteAnd, eq as siteEq } from 'drizzle-orm'
+import { DEFAULT_SITE } from '@chronoframe/core'
 import { z } from 'zod'
 import { eq } from 'drizzle-orm'
 
@@ -5,7 +7,7 @@ import { eq } from 'drizzle-orm'
  * 重试指定的失败任务
  */
 export default defineEventHandler(async (event) => {
-  await requireUserSession(event)
+  const session = await requireUserSession(event)
 
   try {
     const { taskId } = await readValidatedBody(
@@ -21,13 +23,25 @@ export default defineEventHandler(async (event) => {
     const task = await db
       .select()
       .from(tables.pipelineQueue)
-      .where(eq(tables.pipelineQueue.id, taskId))
+      .where(
+        siteAnd(
+          eq(tables.pipelineQueue.id, taskId),
+          siteEq(tables.pipelineQueue.siteId, DEFAULT_SITE.id),
+        ),
+      )
       .get()
 
     if (!task) {
       throw createError({
         statusCode: 404,
         statusMessage: 'Task not found',
+      })
+    }
+
+    if (task.payload.type === 'location-migration' && !session.user.isAdmin) {
+      throw createError({
+        statusCode: 403,
+        statusMessage: 'Admin privileges required',
       })
     }
 
@@ -43,21 +57,29 @@ export default defineEventHandler(async (event) => {
       .update(tables.pipelineQueue)
       .set({
         status: 'pending',
+        resourceId: null,
+        sourceHash: null,
+        attemptId: null,
+        workerId: null,
+        leaseExpiresAt: null,
         statusStage: null,
         errorMessage: null,
+        warningCode: null,
         attempts: 0, // 重置尝试次数
         availableAt: new Date(),
       })
-      .where(eq(tables.pipelineQueue.id, taskId))
+      .where(
+        siteAnd(
+          eq(tables.pipelineQueue.id, taskId),
+          siteEq(tables.pipelineQueue.siteId, DEFAULT_SITE.id),
+        ),
+      )
 
     return {
       success: true,
       message: `Task ${taskId} has been reset and will be retried`,
       taskId,
-      payload: {
-        type: task.payload.type,
-        storageKey: task.payload.storageKey,
-      },
+      payload: task.payload,
     }
   } catch (error) {
     if (error && typeof error === 'object' && 'statusCode' in error) {

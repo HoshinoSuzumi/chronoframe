@@ -1,10 +1,14 @@
+import { storageForPhoto } from '../../utils/object-storage'
+import { and as siteAnd, eq as siteEq } from 'drizzle-orm'
+import { DEFAULT_SITE } from '@chronoframe/core'
+import { serveLocalMedia } from '../../utils/local-media'
 import { eq } from 'drizzle-orm'
 import { Readable } from 'node:stream'
 import { assertPhotoAccess } from '../../utils/album-access'
 import { tables, useDB } from '../../utils/db'
 
 export default eventHandler(async (event) => {
-  const { storageProvider } = useStorageProvider(event)
+  let { storageProvider } = useStorageProvider(event)
   const key = getRouterParam(event, 'key')
 
   if (!key) {
@@ -30,12 +34,18 @@ export default eventHandler(async (event) => {
     const photo = useDB()
       .select()
       .from(tables.photos)
-      .where(eq(tables.photos.id, photoId))
+      .where(
+        siteAnd(
+          eq(tables.photos.id, photoId),
+          siteEq(tables.photos.siteId, DEFAULT_SITE.id),
+        ),
+      )
       .get()
     if (!photo) {
       throw createError({ statusCode: 404, statusMessage: 'Photo not found' })
     }
     const restricted = await assertPhotoAccess(event, photo.id)
+    storageProvider = await storageForPhoto(photo.id, storageProvider)
 
     const targetUrl =
       kind === 'original'
@@ -45,6 +55,22 @@ export default eventHandler(async (event) => {
           : photo.livePhotoVideoUrl
     if (!targetUrl) {
       throw createError({ statusCode: 404, statusMessage: 'Photo not found' })
+    }
+
+    if (
+      storageProvider.config?.provider === 'local' &&
+      /^\/(?:storage|image)\//.test(targetUrl)
+    ) {
+      const localKey = decodeURIComponent(
+        targetUrl.replace(/^\/(?:storage|image)\//, ''),
+      )
+      const targetRestricted = await assertPhotoAccess(event, localKey)
+      return serveLocalMedia(
+        event,
+        storageProvider.config,
+        localKey,
+        restricted || targetRestricted,
+      )
     }
 
     const absoluteTarget = new URL(targetUrl, getRequestURL(event)).toString()

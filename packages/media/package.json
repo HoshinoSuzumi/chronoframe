@@ -1,0 +1,35 @@
+{
+  "name": "@chronoframe/media",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./processor": "./src/processor.ts",
+    "./thumbnail": "./src/thumbnail.ts",
+    "./blurhash": "./src/blurhash.ts",
+    "./histogram": "./src/histogram.ts",
+    "./exif": "./src/exif.ts",
+    "./motion-photo": "./src/motion-photo.ts",
+    "./livephoto": "./src/livephoto.ts",
+    "./retry": "./src/retry.ts"
+  },
+  "scripts": {
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "sharp": "^0.35.5",
+    "@vingle/bmp-js": "^0.2.5",
+    "heic-convert": "^2.1.0",
+    "exiftool-vendored": "^35.21.0",
+    "es-toolkit": "^1.52.0",
+    "thumbhash": "^0.1.1",
+    "@chronoframe/contracts": "workspace:*",
+    "@chronoframe/storage": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.5",
+    "@types/heic-convert": "^2.1.1",
+    "typescript": "^5.9.3"
+  }
+}

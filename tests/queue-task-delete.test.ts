@@ -7,7 +7,7 @@ import { pipelineQueue } from '../server/database/schema.ts'
 test('single task deletion only removes finished queue records', async (t) => {
   const sqlite = new Database(':memory:')
   sqlite.exec(
-    'CREATE TABLE pipeline_queue (id INTEGER PRIMARY KEY, status TEXT NOT NULL)',
+    'CREATE TABLE pipeline_queue (id INTEGER PRIMARY KEY, status TEXT NOT NULL, site_id INTEGER NOT NULL DEFAULT 1)',
   )
   const db = drizzle(sqlite)
   const globals = {
@@ -33,7 +33,7 @@ test('single task deletion only removes finished queue records', async (t) => {
     const seed = (status: string) => {
       sqlite.exec('DELETE FROM pipeline_queue')
       sqlite
-        .prepare('INSERT INTO pipeline_queue VALUES (1, ?), (2, ?)')
+        .prepare('INSERT INTO pipeline_queue (id,status) VALUES (1, ?), (2, ?)')
         .run(status, 'completed')
     }
     const remaining = () =>

@@ -18,6 +18,7 @@ const isDark = computed({
 
 const { hasActiveFilters, selectedCounts } = usePhotoFilters()
 const { currentSortIcon, currentSortOption } = usePhotoSort()
+const { albumListPath } = useHomeView()
 const totalSelectedFilters = computed(() =>
   Object.values(selectedCounts.value).reduce(
     (total, count) => total + count,
@@ -49,7 +50,7 @@ const totalSelectedFilters = computed(() =>
           class="cursor-pointer rounded-full bg-transparent"
           icon="tabler:photo"
           size="sm"
-          to="/albums"
+          :to="albumListPath"
         />
       </UTooltip>
     </div>
@@ -156,7 +157,7 @@ const totalSelectedFilters = computed(() =>
             color="neutral"
             icon="tabler:photo"
             :label="$t('title.albums')"
-            to="/albums"
+            :to="albumListPath"
           />
           <UButton
             variant="ghost"

@@ -4,7 +4,8 @@
     "description": "Album passwords cannot protect public S3, OpenList or CDN photo URLs: anyone with a direct link can still access the file without the password. Use local storage for protected albums. Changing the password or default storage does not revoke existing links or cached copies. If photos were already public, disable public access at the storage/CDN, clear caches and change object URLs."
   },
   "plural": {
-    "photo": "no photos | one photo | {count} photos"
+    "photo": "no photos | one photo | {count} photos",
+    "selectedPhoto": "no selected photos | one selected photo | {count} selected photos"
   },
   "ui": {
     "locale": {
@@ -166,6 +167,14 @@
     }
   },
   "album": {
+    "list": {
+      "loading": "Loading albums…",
+      "emptyTitle": "No albums to show",
+      "emptyDescription": "Please check back later.",
+      "errorTitle": "Unable to load albums",
+      "errorDescription": "Something went wrong. Please try again.",
+      "retry": "Retry"
+    },
     "passwordRequired": "Password required",
     "passwordPlaceholder": "Enter album password",
     "incorrectPassword": "Incorrect password",
@@ -188,7 +197,8 @@
       "dateRange": "Date Range",
       "created": "Created"
     },
-    "createdTooltip": "Created: {date}"
+    "createdTooltip": "Created: {date}",
+    "uploadToThisAlbum": "Upload to this album"
   },
   "map": {
     "setupNotice": {
@@ -507,6 +517,10 @@
       "delete": "Delete",
       "edit": "Edit"
     },
+    "albumAssignment": {
+      "warning": "Album not added",
+      "missing": "The photo was uploaded, but the selected album was deleted before it could be added."
+    },
     "unknownError": "Unknown error"
   },
   "upload": {
@@ -519,7 +533,10 @@
       "skip": {
         "title": "Duplicate File Skipped",
         "message": "Photo \"{fileName}\" already exists and has been automatically skipped",
-        "info": "Existing photo taken on {dateTaken}"
+        "info": "Existing photo taken on {dateTaken}",
+        "addedToAlbum": "Existing photo added to the selected album. The duplicate file was not uploaded.",
+        "alreadyInAlbum": "Existing photo is already in the selected album. The duplicate file was not uploaded.",
+        "albumAddFailed": "The duplicate file was not uploaded, and the existing photo could not be added to the selected album. Use Add to album in the photo library."
       },
       "warn": {
         "title": "Duplicate File Detected",
@@ -660,11 +677,25 @@
         "batchReprocess": "Reprocess",
         "batchEraseLocation": "Erase location info",
         "batchDownload": "Download",
-        "batchDelete": "Batch Delete"
+        "batchDelete": "Batch Delete",
+        "addToAlbum": "Add to album"
       },
       "slideover": {
         "title": "Upload Photos",
         "description": "Drag and drop or select files. Photos will be automatically processed and added to the library.",
+        "album": {
+          "label": "Add to album (optional)",
+          "description": "Every successfully uploaded photo in this batch will be added to the selected album.",
+          "none": "No album",
+          "empty": "No albums available yet.",
+          "hidden": "Hidden",
+          "passwordProtected": "Password protected",
+          "loadFailed": "Could not load albums. Try again.",
+          "loadFailedUpload": "Could not load albums. Retry, or choose no album to upload without one.",
+          "retry": "Retry",
+          "unavailable": "The selected album is unavailable. Choose another album before uploading.",
+          "requestedUnavailable": "This album no longer exists. Choose another album before uploading."
+        },
         "options": {
           "eraseLocation": {
             "label": "Erase location info on upload",
@@ -865,7 +896,21 @@
           "goToQueue": "Queue"
         }
       },
-      "previewTitle": "Photo Preview"
+      "previewTitle": "Photo Preview",
+      "addToAlbum": {
+        "title": "Add photos to album",
+        "description": "Add {photos} to an existing album.",
+        "albumLabel": "Album",
+        "cancel": "Cancel",
+        "confirm": "Add photos",
+        "success": "Album updated",
+        "noChanges": "No changes",
+        "result": "{added} added · {alreadyPresent} already in album",
+        "missing": "{count} unavailable",
+        "allAlreadyPresent": "All selected photos are already in this album.",
+        "error": "Could not add photos to the album",
+        "partialError": "The request failed after {processed}. Retry safely; duplicates will be skipped."
+      }
     },
     "albums": {
       "title": "Album Management",
@@ -959,7 +1004,8 @@
       "photoCount": "{count} photos",
       "actions": {
         "moveUp": "Move up",
-        "moveDown": "Move down"
+        "moveDown": "Move down",
+        "uploadToAlbum": "Upload to \"{title}\""
       }
     },
     "overview": {
@@ -1089,7 +1135,8 @@
         "photo": "Photo Processing",
         "live-photo-video": "LivePhoto Video",
         "photo-reverse-geocoding": "Photo Reverse Geocoding",
-        "photo-erase-location": "Photo Location Erasure"
+        "photo-erase-location": "Photo Location Erasure",
+        "location-migration": "Location format migration"
       },
       "stages": {
         "preprocessing": "Preprocessing",
@@ -1159,6 +1206,14 @@
     "nav": {
       "documentation": "Documentation",
       "viewGallery": "View Gallery"
+    },
+    "locationMigration": {
+      "title": "Update stored location information",
+      "description": "The storage format for photo locations has changed. Administrative area details need to be fetched again for {count} photos. Migrate now? You can track progress in Queue Management after confirming.",
+      "confirm": "Confirm migration",
+      "cancel": "Cancel",
+      "error": "Could not queue migration. Please try again.",
+      "queued": "Migration task queued. Track its progress in the task queue."
     }
   },
   "settings": {
@@ -1189,6 +1244,12 @@
         "removeFailed": "Failed to remove avatar",
         "invalidType": "Please choose a PNG, JPEG, WebP, or GIF image",
         "tooLarge": "Image must be smaller than {size}MB"
+      },
+      "homeView": {
+        "label": "Home page",
+        "description": "Choose what visitors see at the site root",
+        "photos": "Photo wall",
+        "albums": "Albums"
       },
       "appearance": {
         "theme": {
@@ -1317,6 +1378,24 @@
           "description": "Base URL for Nominatim reverse geocoding API",
           "help": "Leave empty to use the public Nominatim service by default"
         }
+      },
+      "levels": {
+        "country": "Country / territory",
+        "region": "Province / state",
+        "subregion": "Intermediate administrative area",
+        "city": "City / settlement",
+        "district": "City district",
+        "locality": "Local area",
+        "neighborhood": "Neighborhood"
+      },
+      "preferredLevel": {
+        "label": "Preferred location level",
+        "description": "Choose the location shown on photos and maps. City filters continue to use cities."
+      },
+      "fallbackOrder": {
+        "label": "Location fallback order",
+        "description": "If the preferred level is missing, try these fields in order.",
+        "help": "Comma-separated fields: city, subregion, region, country, district, locality, neighborhood. Example: city,subregion,region,country"
       }
     },
     "privacy": {

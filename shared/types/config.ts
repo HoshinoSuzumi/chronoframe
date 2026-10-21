@@ -1,5 +1,6 @@
-import type { StorageConfig } from '../../server/services/storage'
+import type { StorageConfig } from '@chronoframe/contracts/storage'
 
+/** Server configuration containing credentials; not a public response. */
 export interface ChronoConfig {
   storage: StorageConfig
 }

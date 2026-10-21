@@ -4,6 +4,8 @@ import { motion } from 'motion-v'
 const route = useRoute()
 const router = useRouter()
 const dayjs = useDayjs()
+const { user } = useUserSession()
+const { albumListPath } = useHomeView()
 
 const albumId = computed(() => {
   const id = route.params.albumId as string
@@ -37,7 +39,8 @@ const unlockAlbum = async () => {
   unlockSucceeded.value = false
   try {
     await $fetch(`/api/albums/${albumId.value}/unlock`, {
-      method: 'POST', body: { password: albumPassword.value },
+      method: 'POST',
+      body: { password: albumPassword.value },
     })
     albumPassword.value = ''
     await refresh()
@@ -141,12 +144,14 @@ watch(
   ([requestedPhoto, photos]) => {
     const viewer = useViewerState()
     if (typeof requestedPhoto !== 'string' || !photos) {
-      if (viewer.returnRoute === `/albums/${albumId.value}`) viewer.closeViewer()
+      if (viewer.returnRoute === `/albums/${albumId.value}`)
+        viewer.closeViewer()
       return
     }
     const index = photos.findIndex((photo) => photo.id === requestedPhoto)
     if (index < 0) {
-      if (viewer.returnRoute === `/albums/${albumId.value}`) viewer.closeViewer()
+      if (viewer.returnRoute === `/albums/${albumId.value}`)
+        viewer.closeViewer()
       return
     }
     const { openViewer } = viewer
@@ -184,7 +189,7 @@ const handleScroll = () => {
 }
 
 const goBackToAlbums = () => {
-  router.push('/albums')
+  router.push(albumListPath.value)
 }
 
 onMounted(() => {
@@ -196,13 +201,16 @@ onUnmounted(() => {
 })
 
 useHead({
-  title: () => albumData.value?.title ||
-    (error.value?.statusCode === 403 ? $t('album.passwordRequired') : $t('album.notFound')),
+  title: () =>
+    albumData.value?.title ||
+    (error.value?.statusCode === 403
+      ? $t('album.passwordRequired')
+      : $t('album.notFound')),
 })
 </script>
 
 <template>
-  <div class="relative w-full">
+  <div class="relative min-h-screen w-full">
     <div
       v-if="pending && !isUnlocking"
       class="flex flex-col items-center justify-center min-h-[50vh] gap-4"
@@ -219,47 +227,95 @@ useHead({
     <motion.div
       v-else-if="error?.statusCode === 403 || isUnlocking"
       class="relative mx-auto flex min-h-[65vh] max-w-md items-center justify-center overflow-hidden px-6 py-16"
-      :initial="prefersReducedMotion ? false : { opacity: 0, y: 20, scale: 0.97 }"
-      :animate="unlockSucceeded && !prefersReducedMotion
-        ? { opacity: 0, y: -12, scale: 0.98 }
-        : { opacity: 1, y: 0, scale: 1 }"
-      :transition="{ duration: prefersReducedMotion ? 0 : 0.42, ease: 'easeOut' }"
+      :initial="
+        prefersReducedMotion ? false : { opacity: 0, y: 20, scale: 0.97 }
+      "
+      :animate="
+        unlockSucceeded && !prefersReducedMotion
+          ? { opacity: 0, y: -12, scale: 0.98 }
+          : { opacity: 1, y: 0, scale: 1 }
+      "
+      :transition="{
+        duration: prefersReducedMotion ? 0 : 0.42,
+        ease: 'easeOut',
+      }"
     >
-      <div class="relative w-full rounded-3xl border border-neutral-200/70 bg-white/80 p-8 shadow-xl shadow-neutral-900/5 backdrop-blur-xl dark:border-neutral-700/70 dark:bg-neutral-900/80 dark:shadow-black/20 sm:p-10">
+      <div
+        class="relative w-full rounded-3xl border border-neutral-200/70 bg-white/80 p-8 shadow-xl shadow-neutral-900/5 backdrop-blur-xl dark:border-neutral-700/70 dark:bg-neutral-900/80 dark:shadow-black/20 sm:p-10"
+      >
         <motion.div
           class="mx-auto mb-4 flex size-16 items-center justify-center text-primary-600 dark:text-primary-400"
-          :initial="prefersReducedMotion ? false : { opacity: 0, scale: 0.7, rotate: -12 }"
+          :initial="
+            prefersReducedMotion
+              ? false
+              : { opacity: 0, scale: 0.7, rotate: -12 }
+          "
           :animate="{ opacity: 1, scale: 1, rotate: 0 }"
-          :transition="{ delay: prefersReducedMotion ? 0 : 0.12, type: 'spring', stiffness: 260, damping: 20 }"
+          :transition="{
+            delay: prefersReducedMotion ? 0 : 0.12,
+            type: 'spring',
+            stiffness: 260,
+            damping: 20,
+          }"
         >
-          <Icon name="tabler:lock" class="size-10" />
+          <Icon
+            name="tabler:lock"
+            class="size-10"
+          />
         </motion.div>
         <motion.h1
           class="mb-5 text-center text-2xl font-semibold text-neutral-900 dark:text-white"
           :initial="prefersReducedMotion ? false : { opacity: 0, y: 10 }"
           :animate="{ opacity: 1, y: 0 }"
-          :transition="{ delay: prefersReducedMotion ? 0 : 0.2, duration: prefersReducedMotion ? 0 : 0.35 }"
+          :transition="{
+            delay: prefersReducedMotion ? 0 : 0.2,
+            duration: prefersReducedMotion ? 0 : 0.35,
+          }"
         >
           {{ $t('album.passwordRequired') }}
         </motion.h1>
         <motion.div
           :initial="prefersReducedMotion ? false : { opacity: 0, y: 12 }"
           :animate="{ opacity: 1, y: 0 }"
-          :transition="{ delay: prefersReducedMotion ? 0 : 0.28, duration: prefersReducedMotion ? 0 : 0.35 }"
+          :transition="{
+            delay: prefersReducedMotion ? 0 : 0.28,
+            duration: prefersReducedMotion ? 0 : 0.35,
+          }"
         >
-          <form class="flex flex-col gap-3" @submit.prevent="unlockAlbum">
+          <form
+            class="flex flex-col gap-3"
+            @submit.prevent="unlockAlbum"
+          >
             <motion.div
-              :animate="unlockErrorMessageKey && !prefersReducedMotion
-                ? { x: [0, -6, 6, -4, 4, 0] } : { x: 0 }"
+              :animate="
+                unlockErrorMessageKey && !prefersReducedMotion
+                  ? { x: [0, -6, 6, -4, 4, 0] }
+                  : { x: 0 }
+              "
               :transition="{ duration: 0.32 }"
             >
-              <UInput v-model="albumPassword" type="password" autocomplete="off"
-                :placeholder="$t('album.passwordPlaceholder')" autofocus class="w-full" />
+              <UInput
+                v-model="albumPassword"
+                type="password"
+                autocomplete="off"
+                :placeholder="$t('album.passwordPlaceholder')"
+                autofocus
+                class="w-full"
+              />
             </motion.div>
-            <p v-if="unlockErrorMessageKey" role="alert" class="text-sm text-error-500">
+            <p
+              v-if="unlockErrorMessageKey"
+              role="alert"
+              class="text-sm text-error-500"
+            >
               {{ $t(unlockErrorMessageKey) }}
             </p>
-            <UButton type="submit" block :loading="isUnlocking" :disabled="!albumPassword">
+            <UButton
+              type="submit"
+              block
+              :loading="isUnlocking"
+              :disabled="!albumPassword"
+            >
               {{ $t('album.unlock') }}
             </UButton>
           </form>
@@ -304,12 +360,22 @@ useHead({
             :transition="{ duration: 0.4 }"
           >
             <!-- title -->
-            <div>
+            <div class="flex flex-wrap items-center justify-between gap-4">
               <h1
                 class="text-3xl sm:text-4xl font-bold text-neutral-900 dark:text-white tracking-tight"
               >
                 {{ albumData.title }}
               </h1>
+              <UButton
+                v-if="user?.isAdmin"
+                icon="tabler:cloud-upload"
+                :to="{
+                  path: '/dashboard/photos',
+                  query: { uploadAlbumId: String(albumId) },
+                }"
+              >
+                {{ $t('album.uploadToThisAlbum') }}
+              </UButton>
             </div>
 
             <!-- metadata -->
@@ -356,7 +422,13 @@ useHead({
                 <!-- Created -->
                 <div
                   class="flex items-center gap-1"
-                  :title="$t('album.createdTooltip', { date: $dayjs(albumData.createdAt).format('YYYY-MM-DD HH:mm:ss') })"
+                  :title="
+                    $t('album.createdTooltip', {
+                      date: $dayjs(albumData.createdAt).format(
+                        'YYYY-MM-DD HH:mm:ss',
+                      ),
+                    })
+                  "
                 >
                   <Icon
                     name="tabler:clock-plus"

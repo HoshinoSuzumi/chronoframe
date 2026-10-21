@@ -1,3 +1,4 @@
+import { toStorageProviderDto } from '../../../../utils/dto'
 import { z } from 'zod'
 import { settingsManager } from '~~/server/services/settings/settingsManager'
 import {
@@ -17,7 +18,9 @@ export default eventHandler(async (event) => {
 
   switch (event.method) {
     case 'GET': {
-      return await settingsManager.storage.getProviders()
+      return (await settingsManager.storage.getProviders()).map(
+        toStorageProviderDto,
+      )
     }
     case 'POST': {
       const newStorageConfig = await readValidatedBody(

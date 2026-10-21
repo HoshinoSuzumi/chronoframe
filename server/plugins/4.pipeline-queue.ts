@@ -1,3 +1,6 @@
+import { exiftool } from 'exiftool-vendored'
+import { closeDB } from '../utils/db'
+import type {} from '../types/worker'
 import { WorkerPool } from '../services/pipeline-queue'
 import { settingsManager } from '../services/settings/settingsManager'
 import { DEFAULT_QUEUE_WORKER_COUNT } from '~~/shared/utils/queue-config'
@@ -21,7 +24,11 @@ export default defineNitroPlugin(async (nitroApp) => {
   globalThis.__workerPool = workerPool
 
   let shutdown: Promise<void> | undefined
-  const stop = () => (shutdown ||= workerPool.stop())
+  const stop = () =>
+    (shutdown ||= workerPool.stop().finally(async () => {
+      await exiftool.end()
+      closeDB()
+    }))
   nitroApp.hooks.hook('close', stop)
 
   const exitHandler = () => {

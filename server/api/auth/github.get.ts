@@ -1,3 +1,4 @@
+import { toUserSummary } from '~~/server/utils/dto'
 import { settingsManager } from '~~/server/services/settings/settingsManager'
 
 const _accessDeniedError = createError({
@@ -38,7 +39,7 @@ async function onGithubOAuthSuccess(event: any, { user }: { user: any }) {
   } else {
     await setUserSession(
       event,
-      { user: userFromEmail },
+      { user: toUserSummary(userFromEmail) },
       {
         cookie: {
           // secure: !useRuntimeConfig().allowInsecureCookie,

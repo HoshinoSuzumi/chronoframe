@@ -12,6 +12,8 @@ const props = withDefaults(defineProps<Props>(), {
 
 const dayjs = useDayjs()
 const router = useRouter()
+const route = useRoute()
+const locationLabel = useLocationLabel()
 
 const { filteredPhotos, hasActiveFilters } = usePhotoFilters()
 const { sortedPhotos } = usePhotoSort()
@@ -22,7 +24,8 @@ const displayPhotos = computed(() => {
   return hasActiveFilters.value ? filteredPhotos.value : sortedPhotos.value
 })
 
-const { currentPhotoIndex, isViewerOpen } = storeToRefs(useViewerState())
+const viewer = useViewerState()
+const { currentPhotoIndex, isViewerOpen } = storeToRefs(viewer)
 
 const FIRST_SCREEN_ITEMS_COUNT = 50
 const MASONRY_GAP = 4
@@ -232,7 +235,11 @@ const updateDateRange = () => {
 
   // Calculate visible cities
   const cities = visiblePhotosArray
-    .map((index) => displayPhotos.value[index]?.city)
+    .map((index) =>
+      displayPhotos.value[index]
+        ? locationLabel(displayPhotos.value[index]!)
+        : undefined,
+    )
     .filter((city): city is string => Boolean(city))
 
   const uniqueCities = [...new Set(cities)]
@@ -308,7 +315,11 @@ onUnmounted(() => {
 })
 
 const handleOpenViewer = (index: number) => {
-  router.push(`/${displayPhotos.value[index]?.id}`)
+  const photo = displayPhotos.value[index]
+  if (!photo) return
+
+  viewer.openViewer(index, route.path, displayPhotos.value)
+  router.push(`/${photo.id}`)
 }
 
 const scrollToPhoto = (photoIndex: number) => {

@@ -30,6 +30,21 @@ export const APP_SETTINGS_UI: Record<string, FieldUIConfig> = {
     placeholder: 'https://example.com/avatar.jpg',
     help: 'settings.app.avatarUrl.help',
   },
+  homeView: {
+    type: 'tabs',
+    options: [
+      {
+        label: 'settings.app.homeView.photos',
+        value: 'photos',
+        icon: 'tabler:photo',
+      },
+      {
+        label: 'settings.app.homeView.albums',
+        value: 'albums',
+        icon: 'tabler:folders',
+      },
+    ],
+  },
   'appearance.theme': {
     type: 'tabs',
     options: [
@@ -103,6 +118,23 @@ export const MAP_SETTINGS_UI: Record<string, FieldUIConfig> = {
 }
 
 export const LOCATION_SETTINGS_UI: Record<string, FieldUIConfig> = {
+  preferredLevel: {
+    type: 'select',
+    options: [
+      'country',
+      'region',
+      'subregion',
+      'city',
+      'district',
+      'locality',
+      'neighborhood',
+    ].map((value) => ({ value, label: 'settings.location.levels.' + value })),
+  },
+  fallbackOrder: {
+    type: 'input',
+    placeholder: 'city,subregion,region,country',
+    help: 'settings.location.fallbackOrder.help',
+  },
   language: {
     type: 'select',
     options: i18nOptions.locales.map((locale) => ({

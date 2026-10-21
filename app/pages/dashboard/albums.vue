@@ -1,11 +1,11 @@
 <script lang="ts" setup>
-import type { Album, Photo } from '~~/server/utils/db'
+import type { Album, Photo } from '@chronoframe/contracts/resources'
 import type { FormSubmitEvent, FormError } from '@nuxt/ui'
 import {
   ALBUM_PASSWORD_MAX_LENGTH,
   ALBUM_PASSWORD_MIN_LENGTH,
   isValidAlbumPasswordLength,
-} from '~~/shared/utils/album-password'
+} from '~~/shared/utils/album'
 
 definePageMeta({
   layout: 'dashboard',
@@ -16,7 +16,6 @@ useHead({
 })
 
 interface AlbumItem extends Album {
-  hasPassword?: boolean
   photoCount?: number
   photoIds?: string[]
   coverPhoto?: Photo | null
@@ -29,6 +28,8 @@ interface AlbumFormState {
   password: string
   passwordEnabled: boolean
 }
+
+const locationLabel = useLocationLabel()
 
 const { data: currentStorageProvider } = await useFetch<{
   namespace: string
@@ -508,6 +509,9 @@ const submitButtonLabel = computed(() => {
     : $t('dashboard.albums.slideover.submitCreate')
 })
 
+const albumUploadLabel = (album: AlbumItem) =>
+  $t('dashboard.albums.actions.uploadToAlbum', { title: album.title })
+
 const columns = computed<any[]>(() => [
   {
     id: 'coverPhoto',
@@ -653,6 +657,26 @@ const columns = computed<any[]>(() => [
                 class="flex gap-1"
                 data-tour="album-actions"
               >
+                <UButton
+                  variant="ghost"
+                  color="primary"
+                  size="xs"
+                  icon="tabler:cloud-upload"
+                  :aria-label="
+                    albumUploadLabel(row.original as unknown as AlbumItem)
+                  "
+                  :title="
+                    albumUploadLabel(row.original as unknown as AlbumItem)
+                  "
+                  :to="{
+                    path: '/dashboard/photos',
+                    query: {
+                      uploadAlbumId: String(
+                        (row.original as unknown as AlbumItem).id,
+                      ),
+                    },
+                  }"
+                />
                 <UButton
                   variant="ghost"
                   color="neutral"
@@ -1269,11 +1293,14 @@ const columns = computed<any[]>(() => [
                               $t('ui.photo.untitled')
                             }}
                           </p>
-                          <p class="truncate text-[9px] text-white/72">
+                          <p
+                            v-if="photo.dateTaken"
+                            class="truncate text-[9px] text-white/72"
+                          >
                             {{
-                              photo.city
-                                ? `${photo.city} · ${dayjs(photo.createdAt).format('MM-DD')}`
-                                : dayjs(photo.createdAt).format('YYYY-MM-DD')
+                              locationLabel(photo)
+                                ? `${locationLabel(photo)} · ${dayjs(photo.dateTaken).format('MM-DD')}`
+                                : dayjs(photo.dateTaken).format('YYYY-MM-DD')
                             }}
                           </p>
                         </div>
