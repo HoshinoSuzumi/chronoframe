@@ -20,6 +20,7 @@ export const settingsFieldCommitKey: InjectionKey<
  * const { fields, state, submit, loading } = useSettingsForm('app')
  */
 export function useSettingsForm(namespace: string) {
+  const consoleApi = useConsoleApi()
   const { t } = useI18n()
   const toast = useToast()
 
@@ -37,7 +38,7 @@ export function useSettingsForm(namespace: string) {
     error.value = null
 
     try {
-      const response = await $fetch<SettingsFieldsResponse>(
+      const response = await consoleApi<SettingsFieldsResponse>(
         '/api/system/settings/fields',
         {
           query: { namespace },
@@ -83,7 +84,7 @@ export function useSettingsForm(namespace: string) {
         value,
       }))
 
-      await $fetch('/api/system/settings/batch', {
+      await consoleApi('/api/system/settings/batch', {
         method: 'PUT',
         body: { updates },
       })

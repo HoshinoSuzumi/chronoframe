@@ -1,4 +1,6 @@
 <script setup lang="ts">
+const consoleApi = useConsoleApi()
+
 const { user } = useUserSession()
 const migrationOpen = ref(false)
 const migrationCount = ref(0)
@@ -10,7 +12,7 @@ const migrationHandled = useState('location-migration-handled', () => false)
 async function checkLocationMigration() {
   if (!user.value?.isAdmin || migrationHandled.value) return
   try {
-    const status = await $fetch('/api/location/migration-status')
+    const status = await consoleApi('/api/location/migration-status')
     if (migrationHandled.value) return
     migrationCount.value = status.count
     migrationOpen.value = migrationCount.value > 0 && !status.requestActive
@@ -29,7 +31,7 @@ async function confirmLocationMigration() {
   migrationLoading.value = true
   migrationError.value = false
   try {
-    await $fetch('/api/queue/add-task', {
+    await consoleApi('/api/queue/add-task', {
       method: 'POST',
       body: { payload: { type: 'location-migration' } },
     })

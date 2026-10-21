@@ -32,12 +32,12 @@ importers:
       '@chronoframe/jobs':
         specifier: workspace:*
         version: link:packages/jobs
-      '@chronoframe/processing':
-        specifier: workspace:*
-        version: link:packages/processing
       '@chronoframe/media':
         specifier: workspace:*
         version: link:packages/media
+      '@chronoframe/processing':
+        specifier: workspace:*
+        version: link:packages/processing
       '@chronoframe/storage':
         specifier: workspace:*
         version: link:packages/storage
@@ -250,6 +250,8 @@ importers:
         specifier: 2.0.0-alpha.20
         version: 2.0.0-alpha.20(@types/node@24.9.0)(axios@1.20.0)(change-case@5.4.4)(esbuild@0.28.0)(fuse.js@7.5.0)(jiti@2.7.0)(postcss@8.5.29)(sass-embedded@1.105.1)(sass@1.105.1)(terser@5.44.0)(tsx@4.21.0)(typescript@5.9.3)(yaml@2.9.0)
 
+  packages/console: {}
+
   packages/contracts:
     dependencies:
       zod:
@@ -272,15 +274,15 @@ importers:
 
   packages/database:
     dependencies:
-      '@chronoframe/jobs':
-        specifier: workspace:*
-        version: link:../jobs
       '@chronoframe/contracts':
         specifier: workspace:*
         version: link:../contracts
       '@chronoframe/core':
         specifier: workspace:*
         version: link:../core
+      '@chronoframe/jobs':
+        specifier: workspace:*
+        version: link:../jobs
       better-sqlite3:
         specifier: ^12.11.1
         version: 12.11.1
@@ -288,12 +290,12 @@ importers:
         specifier: ^0.45.4
         version: 0.45.4(@cloudflare/workers-types@4.20260402.1)(@opentelemetry/api@1.9.0)(@types/better-sqlite3@9.6.0)(better-sqlite3@12.11.1)
     devDependencies:
-      '@types/node':
-        specifier: ^22.20.5
-        version: 22.20.5
       '@types/better-sqlite3':
         specifier: ^9.6.0
         version: 9.6.0
+      '@types/node':
+        specifier: ^22.20.5
+        version: 22.20.5
       typescript:
         specifier: ^5.9.3
         version: 5.9.3
@@ -307,6 +309,19 @@ importers:
       '@types/node':
         specifier: ^22.20.5
         version: 22.20.5
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
+
+  packages/jobs:
+    dependencies:
+      '@chronoframe/contracts':
+        specifier: workspace:*
+        version: link:../contracts
+      '@chronoframe/core':
+        specifier: workspace:*
+        version: link:../core
+    devDependencies:
       typescript:
         specifier: ^5.9.3
         version: 5.9.3
@@ -348,6 +363,28 @@ importers:
         specifier: ^5.9.3
         version: 5.9.3
 
+  packages/processing:
+    dependencies:
+      '@chronoframe/contracts':
+        specifier: workspace:*
+        version: link:../contracts
+      '@chronoframe/geocoding':
+        specifier: workspace:*
+        version: link:../geocoding
+      '@chronoframe/media':
+        specifier: workspace:*
+        version: link:../media
+      '@chronoframe/storage':
+        specifier: workspace:*
+        version: link:../storage
+    devDependencies:
+      '@types/node':
+        specifier: ^22.20.5
+        version: 22.20.5
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
+
   packages/storage:
     dependencies:
       '@aws-sdk/client-s3':
@@ -366,41 +403,6 @@ importers:
       typescript:
         specifier: ^5.9.3
         version: 5.9.3
-
-  packages/jobs:
-    dependencies:
-      '@chronoframe/core':
-        specifier: workspace:*
-        version: link:../core
-      '@chronoframe/contracts':
-        specifier: workspace:*
-        version: link:../contracts
-    devDependencies:
-      typescript:
-        specifier: ^5.9.3
-        version: 5.9.3
-
-  packages/processing:
-    dependencies:
-      '@chronoframe/contracts':
-        specifier: workspace:*
-        version: link:../contracts
-      '@chronoframe/media':
-        specifier: workspace:*
-        version: link:../media
-      '@chronoframe/storage':
-        specifier: workspace:*
-        version: link:../storage
-      '@chronoframe/geocoding':
-        specifier: workspace:*
-        version: link:../geocoding
-    devDependencies:
-      typescript:
-        specifier: ^5.9.3
-        version: 5.9.3
-      '@types/node':
-        specifier: ^22.20.5
-        version: 22.20.5
 
   packages/webgl-image:
     dependencies:

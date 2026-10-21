@@ -4,6 +4,7 @@ import i18n, { dayjsLocales } from './i18n/i18n.options'
 
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
+  extends: ['./packages/console'],
   compatibilityDate: '2025-07-15',
   devtools: { enabled: true },
 
@@ -31,6 +32,12 @@ export default defineNuxtConfig({
 
   runtimeConfig: {
     public: {
+      console: {
+        apiBase: '',
+        signInPath: '/signin',
+        galleryPath: '/',
+        navigation: [] as unknown[],
+      },
       VERSION: pkg.version,
       mapbox: {
         accessToken: '',

@@ -25,7 +25,7 @@ const {
   data: activityData,
   pending,
   refresh,
-} = await useFetch('/api/queue/recent')
+} = await useConsoleFetch('/api/queue/recent')
 
 useIntervalFn(refresh, 5000)
 

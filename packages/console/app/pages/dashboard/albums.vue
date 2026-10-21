@@ -1,4 +1,6 @@
 <script lang="ts" setup>
+const consoleApi = useConsoleApi()
+
 import type { Album, Photo } from '@chronoframe/contracts/resources'
 import type { FormSubmitEvent, FormError } from '@nuxt/ui'
 import {
@@ -31,14 +33,14 @@ interface AlbumFormState {
 
 const locationLabel = useLocationLabel()
 
-const { data: currentStorageProvider } = await useFetch<{
+const { data: currentStorageProvider } = await useConsoleFetch<{
   namespace: string
   key: string
   value: SettingValue
 }>('/api/system/settings/storage/provider')
-const { data: availableStorage } = await useFetch<SettingStorageProvider[]>(
-  '/api/system/settings/storage-config',
-)
+const { data: availableStorage } = await useConsoleFetch<
+  SettingStorageProvider[]
+>('/api/system/settings/storage-config')
 
 const isCurrentStorageNonLocal = computed(() => {
   const provider = availableStorage.value?.find(
@@ -130,7 +132,7 @@ const validateForm = (state: any): FormError[] => {
 const loadAlbums = async () => {
   isLoadingAlbums.value = true
   try {
-    const response = await $fetch('/api/albums')
+    const response = await consoleApi('/api/albums')
     albums.value = (response as any[]).map((album) => ({
       ...album,
       photoCount: album.photoIds?.length || 0,
@@ -186,7 +188,7 @@ const openCreateSlideover = () => {
 const openEditSlideover = async (album: AlbumItem) => {
   currentAlbum.value = album
   try {
-    const albumDetail = (await $fetch(`/api/albums/${album.id}`)) as any
+    const albumDetail = (await consoleApi(`/api/albums/${album.id}`)) as any
     formData.title = album.title
     formData.description = album.description || ''
     formData.isHidden = album.isHidden || false
@@ -214,7 +216,7 @@ const onFormSubmit = async (event: FormSubmitEvent<AlbumFormState>) => {
   isSubmittingForm.value = true
   try {
     if (currentAlbum.value) {
-      await $fetch(`/api/albums/${currentAlbum.value.id}`, {
+      await consoleApi(`/api/albums/${currentAlbum.value.id}`, {
         method: 'PUT',
         body: {
           title: event.data.title,
@@ -235,7 +237,7 @@ const onFormSubmit = async (event: FormSubmitEvent<AlbumFormState>) => {
 
       isAlbumSlideoverOpen.value = false
     } else {
-      await $fetch('/api/albums', {
+      await consoleApi('/api/albums', {
         method: 'POST',
         body: {
           title: event.data.title,
@@ -275,7 +277,7 @@ const deleteAlbum = async () => {
   if (!currentAlbum.value) return
 
   try {
-    await $fetch(`/api/albums/${currentAlbum.value.id}`, {
+    await consoleApi(`/api/albums/${currentAlbum.value.id}`, {
       method: 'DELETE',
     })
 
@@ -311,7 +313,7 @@ const moveAlbum = async (index: number, direction: -1 | 1) => {
   albums.value = next
 
   try {
-    await $fetch('/api/albums/reorder', {
+    await consoleApi('/api/albums/reorder', {
       method: 'PUT',
       body: { albumIds: next.map((album) => album.id) },
     })

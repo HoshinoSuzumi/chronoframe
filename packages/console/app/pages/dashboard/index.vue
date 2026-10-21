@@ -16,7 +16,7 @@ const appSlogan = useSettingRef('app:slogan')
 const { photos } = usePhotos()
 
 const { data: dashboardStats, refresh: refreshStats } =
-  await useFetch('/api/system/stats')
+  await useConsoleFetch('/api/system/stats')
 
 const isLoading = ref(false)
 
