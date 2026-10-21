@@ -118,6 +118,8 @@ After changing the database schema, run `pnpm db:generate` and review the SQL. G
 
 ## 🤝 Contributing and community
 
+For suspected vulnerabilities, follow the [Security Policy](SECURITY.md) and report privately.
+
 Issues and pull requests are welcome. Explain the problem, resulting behavior and verification. Keep English and Chinese documentation in sync.
 
 [GitHub Issues](https://github.com/HoshinoSuzumi/chronoframe/issues/new/choose) · [Discussions](https://github.com/HoshinoSuzumi/chronoframe/discussions) · [Discord](https://discord.gg/MM4ZK4Ed7s)
