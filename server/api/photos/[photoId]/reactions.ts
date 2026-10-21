@@ -1,3 +1,5 @@
+import { and as siteAnd, eq as siteEq } from 'drizzle-orm'
+import { DEFAULT_SITE } from '@chronoframe/core'
 import type { H3Event } from 'h3'
 import { eq, and, sql } from 'drizzle-orm'
 import { assertPhotoIdAccess } from '../../../utils/album-access'
@@ -40,9 +42,12 @@ async function checkRateLimit(fingerprint: string): Promise<boolean> {
     .select({ count: sql<number>`count(*)` })
     .from(tables.photoReactions)
     .where(
-      and(
-        eq(tables.photoReactions.fingerprint, fingerprint),
-        sql`${tables.photoReactions.createdAt} > ${Math.floor(windowStart.getTime() / 1000)}`,
+      siteAnd(
+        and(
+          eq(tables.photoReactions.fingerprint, fingerprint),
+          sql`${tables.photoReactions.createdAt} > ${Math.floor(windowStart.getTime() / 1000)}`,
+        ),
+        siteEq(tables.photoReactions.siteId, DEFAULT_SITE.id),
       ),
     )
     .get()
@@ -73,7 +78,12 @@ export default defineEventHandler(async (event) => {
         count: sql<number>`count(*)`,
       })
       .from(tables.photoReactions)
-      .where(eq(tables.photoReactions.photoId, photoId))
+      .where(
+        siteAnd(
+          eq(tables.photoReactions.photoId, photoId),
+          siteEq(tables.photoReactions.siteId, DEFAULT_SITE.id),
+        ),
+      )
       .groupBy(tables.photoReactions.reactionType)
       .all()
 
@@ -83,9 +93,12 @@ export default defineEventHandler(async (event) => {
       .select()
       .from(tables.photoReactions)
       .where(
-        and(
-          eq(tables.photoReactions.photoId, photoId),
-          eq(tables.photoReactions.fingerprint, fingerprint),
+        siteAnd(
+          and(
+            eq(tables.photoReactions.photoId, photoId),
+            eq(tables.photoReactions.fingerprint, fingerprint),
+          ),
+          siteEq(tables.photoReactions.siteId, DEFAULT_SITE.id),
         ),
       )
       .get()
@@ -142,9 +155,12 @@ export default defineEventHandler(async (event) => {
       .select()
       .from(tables.photoReactions)
       .where(
-        and(
-          eq(tables.photoReactions.photoId, photoId),
-          eq(tables.photoReactions.fingerprint, fingerprint),
+        siteAnd(
+          and(
+            eq(tables.photoReactions.photoId, photoId),
+            eq(tables.photoReactions.fingerprint, fingerprint),
+          ),
+          siteEq(tables.photoReactions.siteId, DEFAULT_SITE.id),
         ),
       )
       .get()
@@ -157,7 +173,12 @@ export default defineEventHandler(async (event) => {
           reactionType,
           updatedAt: new Date(),
         })
-        .where(eq(tables.photoReactions.id, existingReaction.id))
+        .where(
+          siteAnd(
+            eq(tables.photoReactions.id, existingReaction.id),
+            siteEq(tables.photoReactions.siteId, DEFAULT_SITE.id),
+          ),
+        )
 
       return {
         success: true,
@@ -190,9 +211,12 @@ export default defineEventHandler(async (event) => {
       .select()
       .from(tables.photoReactions)
       .where(
-        and(
-          eq(tables.photoReactions.photoId, photoId),
-          eq(tables.photoReactions.fingerprint, fingerprint),
+        siteAnd(
+          and(
+            eq(tables.photoReactions.photoId, photoId),
+            eq(tables.photoReactions.fingerprint, fingerprint),
+          ),
+          siteEq(tables.photoReactions.siteId, DEFAULT_SITE.id),
         ),
       )
       .get()
@@ -206,7 +230,12 @@ export default defineEventHandler(async (event) => {
 
     await db
       .delete(tables.photoReactions)
-      .where(eq(tables.photoReactions.id, existingReaction.id))
+      .where(
+        siteAnd(
+          eq(tables.photoReactions.id, existingReaction.id),
+          siteEq(tables.photoReactions.siteId, DEFAULT_SITE.id),
+        ),
+      )
 
     return {
       success: true,

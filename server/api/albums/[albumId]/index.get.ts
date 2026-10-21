@@ -1,9 +1,9 @@
-import { toAlbumDto, toPhotoDto } from '../../../utils/dto'
-import { eq } from 'drizzle-orm'
 import z from 'zod'
-
-import { fetchAlbumPhotos } from '../../../utils/album-visibility'
 import { albumAccess } from '../../../utils/album-access'
+import {
+  resourceReadResponse,
+  useResourceReader,
+} from '../../../utils/resource-reader'
 
 export default eventHandler(async (event) => {
   const { albumId } = await getValidatedRouterParams(
@@ -12,76 +12,11 @@ export default eventHandler(async (event) => {
       albumId: z
         .string()
         .regex(/^\d+$/)
-        .transform((val) => parseInt(val, 10)),
+        .transform((value) => parseInt(value, 10)),
     }).parse,
   )
-
-  const db = useDB()
-
-  const album = db
-    .select()
-    .from(tables.albums)
-    .where(eq(tables.albums.id, albumId))
-    .get()
-
-  if (!album) {
-    throw createError({
-      statusCode: 404,
-      statusMessage: 'Album not found',
-    })
-  }
-
-  // 检查相册是否隐藏，如果隐藏则需要用户登录才能访问
-  const { admin: isLoggedIn, canAccess } = await albumAccess(event)
-
-  if (album.isHidden && !isLoggedIn) {
-    throw createError({
-      statusCode: 404,
-      statusMessage: 'Album not found',
-    })
-  }
-
-  if (!canAccess(album)) {
-    throw createError({
-      statusCode: 403,
-      statusMessage: 'Album password required',
-    })
-  }
-
-  // Anonymous viewers must not see photos that are also members of any
-  // hidden album — otherwise a photo shared between a public and a hidden
-  // album would leak through the public album (see issue #299).
-  const rows = await fetchAlbumPhotos(
-    db,
-    tables,
-    albumId,
-    isLoggedIn,
-    isLoggedIn || Boolean(album.passwordHash),
+  const access = await albumAccess(event)
+  return resourceReadResponse(() =>
+    useResourceReader().getAlbum(albumId, access),
   )
-  const photoDtos = rows.map(toPhotoDto)
-  const photos = album.passwordHash
-    ? photoDtos.map((photo) => {
-        const fileName = photo.storageKey?.split(/[\\/]/).pop() || null
-        const {
-          storageKey: _storageKey,
-          thumbnailKey: _thumbnailKey,
-          livePhotoVideoKey: _livePhotoVideoKey,
-          ...safePhoto
-        } = photo
-        return {
-          ...safePhoto,
-          fileName,
-          originalUrl: `/image/__photo__/${encodeURIComponent(photo.id)}/original`,
-          thumbnailUrl: `/image/__photo__/${encodeURIComponent(photo.id)}/thumbnail`,
-          livePhotoVideoUrl: photo.livePhotoVideoUrl
-            ? `/image/__photo__/${encodeURIComponent(photo.id)}/live`
-            : null,
-        }
-      })
-    : photoDtos
-
-  return {
-    ...toAlbumDto(album),
-    photos,
-  }
 })

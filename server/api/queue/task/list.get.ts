@@ -1,3 +1,5 @@
+import { eq as siteEq } from 'drizzle-orm'
+import { DEFAULT_SITE } from '@chronoframe/core'
 import { z } from 'zod'
 import { desc, sql, eq, and } from 'drizzle-orm'
 
@@ -41,8 +43,10 @@ export default defineEventHandler(async (event) => {
       )
     }
 
-    const whereCondition =
-      conditions.length > 0 ? and(...conditions) : undefined
+    const whereCondition = and(
+      siteEq(tables.pipelineQueue.siteId, DEFAULT_SITE.id),
+      ...conditions,
+    )
 
     // 构建查询
     const queryBuilder = db
@@ -60,11 +64,8 @@ export default defineEventHandler(async (event) => {
         completedAt: tables.pipelineQueue.completedAt,
       })
       .from(tables.pipelineQueue)
+      .where(whereCondition)
       .orderBy(desc(tables.pipelineQueue.createdAt))
-
-    if (whereCondition) {
-      queryBuilder.where(whereCondition)
-    }
 
     const tasks = await queryBuilder
 

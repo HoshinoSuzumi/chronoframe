@@ -1,3 +1,5 @@
+import { and as siteAnd, eq as siteEq } from 'drizzle-orm'
+import { DEFAULT_SITE } from '@chronoframe/core'
 import { z } from 'zod'
 import { eq } from 'drizzle-orm'
 
@@ -21,7 +23,12 @@ export default defineEventHandler(async (event) => {
     const task = await db
       .select()
       .from(tables.pipelineQueue)
-      .where(eq(tables.pipelineQueue.id, taskId))
+      .where(
+        siteAnd(
+          eq(tables.pipelineQueue.id, taskId),
+          siteEq(tables.pipelineQueue.siteId, DEFAULT_SITE.id),
+        ),
+      )
       .get()
 
     if (!task) {
@@ -50,13 +57,23 @@ export default defineEventHandler(async (event) => {
       .update(tables.pipelineQueue)
       .set({
         status: 'pending',
+        resourceId: null,
+        sourceHash: null,
+        attemptId: null,
+        workerId: null,
+        leaseExpiresAt: null,
         statusStage: null,
         errorMessage: null,
         warningCode: null,
         attempts: 0, // 重置尝试次数
         availableAt: new Date(),
       })
-      .where(eq(tables.pipelineQueue.id, taskId))
+      .where(
+        siteAnd(
+          eq(tables.pipelineQueue.id, taskId),
+          siteEq(tables.pipelineQueue.siteId, DEFAULT_SITE.id),
+        ),
+      )
 
     return {
       success: true,

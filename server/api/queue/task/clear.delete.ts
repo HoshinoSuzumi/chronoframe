@@ -1,3 +1,5 @@
+import { and as siteAnd, eq as siteEq } from 'drizzle-orm'
+import { DEFAULT_SITE } from '@chronoframe/core'
 import { z } from 'zod'
 import { or, eq, sql } from 'drizzle-orm'
 
@@ -72,7 +74,12 @@ export default defineEventHandler(async (event) => {
         createdAt: tables.pipelineQueue.createdAt,
       })
       .from(tables.pipelineQueue)
-      .where(whereCondition)
+      .where(
+        siteAnd(
+          whereCondition,
+          siteEq(tables.pipelineQueue.siteId, DEFAULT_SITE.id),
+        ),
+      )
 
     if (tasksToDelete.length === 0) {
       return {
@@ -87,7 +94,14 @@ export default defineEventHandler(async (event) => {
     }
 
     // 执行删除操作
-    await db.delete(tables.pipelineQueue).where(whereCondition)
+    await db
+      .delete(tables.pipelineQueue)
+      .where(
+        siteAnd(
+          whereCondition,
+          siteEq(tables.pipelineQueue.siteId, DEFAULT_SITE.id),
+        ),
+      )
 
     // 统计删除的任务
     const breakdown = tasksToDelete.reduce(

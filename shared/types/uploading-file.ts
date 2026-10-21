@@ -1,3 +1,4 @@
+import type { UploadPreparationResponse } from '@chronoframe/contracts/upload'
 import type { UploadQueueStatus } from '~~/shared/utils/upload-status'
 
 export interface UploadingFile {
@@ -10,7 +11,7 @@ export interface UploadingFile {
   error?: string
   warning?: string
   taskId?: number
-  signedUrlResponse?: { signedUrl: string; fileKey: string; expiresIn: number }
+  signedUrlResponse?: UploadPreparationResponse
   uploadProgress?: {
     loaded: number
     total: number

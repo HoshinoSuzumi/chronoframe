@@ -20,9 +20,21 @@ importers:
       '@chronoframe/contracts':
         specifier: workspace:*
         version: link:packages/contracts
+      '@chronoframe/core':
+        specifier: workspace:*
+        version: link:packages/core
+      '@chronoframe/database':
+        specifier: workspace:*
+        version: link:packages/database
       '@chronoframe/geocoding':
         specifier: workspace:*
         version: link:packages/geocoding
+      '@chronoframe/jobs':
+        specifier: workspace:*
+        version: link:packages/jobs
+      '@chronoframe/processing':
+        specifier: workspace:*
+        version: link:packages/processing
       '@chronoframe/media':
         specifier: workspace:*
         version: link:packages/media
@@ -92,6 +104,9 @@ importers:
       file-type:
         specifier: ^22.1.1
         version: 22.1.1
+      h3:
+        specifier: ^1.15.11
+        version: 1.15.11
       heic-convert:
         specifier: ^2.1.0
         version: 2.1.0
@@ -245,6 +260,44 @@ importers:
         specifier: ^5.9.3
         version: 5.9.3
 
+  packages/core:
+    dependencies:
+      '@chronoframe/contracts':
+        specifier: workspace:*
+        version: link:../contracts
+    devDependencies:
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
+
+  packages/database:
+    dependencies:
+      '@chronoframe/jobs':
+        specifier: workspace:*
+        version: link:../jobs
+      '@chronoframe/contracts':
+        specifier: workspace:*
+        version: link:../contracts
+      '@chronoframe/core':
+        specifier: workspace:*
+        version: link:../core
+      better-sqlite3:
+        specifier: ^12.11.1
+        version: 12.11.1
+      drizzle-orm:
+        specifier: ^0.45.4
+        version: 0.45.4(@cloudflare/workers-types@4.20260402.1)(@opentelemetry/api@1.9.0)(@types/better-sqlite3@9.6.0)(better-sqlite3@12.11.1)
+    devDependencies:
+      '@types/node':
+        specifier: ^22.20.5
+        version: 22.20.5
+      '@types/better-sqlite3':
+        specifier: ^9.6.0
+        version: 9.6.0
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
+
   packages/geocoding:
     dependencies:
       '@chronoframe/contracts':
@@ -313,6 +366,41 @@ importers:
       typescript:
         specifier: ^5.9.3
         version: 5.9.3
+
+  packages/jobs:
+    dependencies:
+      '@chronoframe/core':
+        specifier: workspace:*
+        version: link:../core
+      '@chronoframe/contracts':
+        specifier: workspace:*
+        version: link:../contracts
+    devDependencies:
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
+
+  packages/processing:
+    dependencies:
+      '@chronoframe/contracts':
+        specifier: workspace:*
+        version: link:../contracts
+      '@chronoframe/media':
+        specifier: workspace:*
+        version: link:../media
+      '@chronoframe/storage':
+        specifier: workspace:*
+        version: link:../storage
+      '@chronoframe/geocoding':
+        specifier: workspace:*
+        version: link:../geocoding
+    devDependencies:
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
+      '@types/node':
+        specifier: ^22.20.5
+        version: 22.20.5
 
   packages/webgl-image:
     dependencies:

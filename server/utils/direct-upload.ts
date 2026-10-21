@@ -37,7 +37,7 @@ export async function abortDirectUpload(id: string) {
 export async function prepareUpload(
   owner: string,
   key: string,
-  size: number,
+  size: number | undefined,
   contentType: string,
   provider: StorageProvider,
   chunked: boolean,
@@ -49,7 +49,12 @@ export async function prepareUpload(
     size,
     chunked,
   })
-  if (provider.prepareDirectUpload && Number.isSafeInteger(size) && size > 0) {
+  if (
+    provider.prepareDirectUpload &&
+    typeof size === 'number' &&
+    Number.isSafeInteger(size) &&
+    size > 0
+  ) {
     const setup = await provider.prepareDirectUpload(key, size, contentType)
     if (setup?.mode === 'single' || setup?.mode === 'range') {
       logUpload('prepare.direct', {
@@ -101,6 +106,7 @@ export async function prepareUpload(
     }
   }
   if (chunked && provider.config?.provider === 'local') {
+    if (typeof size !== 'number') throw new Error('Invalid file size')
     return {
       mode: 'chunks',
       url: await createChunkUpload(owner, key, size, contentType, provider),

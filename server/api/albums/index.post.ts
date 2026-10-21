@@ -1,17 +1,13 @@
-import { toAlbumDto } from '../../utils/dto'
-import { min } from 'drizzle-orm'
+import { requireAdminSession } from '../../utils/require-admin.ts'
 import z from 'zod'
 import {
   ALBUM_PASSWORD_MAX_LENGTH,
   ALBUM_PASSWORD_MIN_LENGTH,
 } from '~~/shared/utils/album'
-import { hashAlbumPassword } from '../../utils/album-access'
-import { appendAlbumPhotos } from '../../utils/album-membership.ts'
-import { requireAdminSession } from '../../utils/require-admin.ts'
+import { useAlbumWriter, mutationResponse } from '../../utils/resource-writer'
 
 export default eventHandler(async (event) => {
   await requireAdminSession(event)
-
   const body = await readValidatedBody(
     event,
     z.object({
@@ -28,47 +24,7 @@ export default eventHandler(async (event) => {
     }).parse,
   )
 
-  const db = useDB()
-
-  const passwordHash = body.password
-    ? await hashAlbumPassword(body.password)
-    : null
-
-  const album = db.transaction((tx) => {
-    // Place new album first (min position minus one gap), preserving the
-    // default "newest first" order
-    const minRow = tx
-      .select({ min: min(tables.albums.position) })
-      .from(tables.albums)
-      .get()
-    const position = (minRow?.min ?? 1000) - 1000
-
-    const newAlbum = tx
-      .insert(tables.albums)
-      .values({
-        title: body.title,
-        description: body.description || null,
-        coverPhotoId: body.coverPhotoId || null,
-        isHidden: body.isHidden || false,
-        passwordHash,
-        position,
-      })
-      .returning()
-      .get()
-
-    const albumId = newAlbum.id
-    const photoIds = new Set(body.photoIds || [])
-
-    if (body.coverPhotoId) {
-      photoIds.add(body.coverPhotoId)
-    }
-
-    if (photoIds.size > 0) {
-      appendAlbumPhotos(tx, albumId, [...photoIds])
-    }
-
-    return toAlbumDto(newAlbum)
-  })
-
-  return album
+  return mutationResponse(() =>
+    useAlbumWriter().create(body, { authenticated: true }),
+  )
 })

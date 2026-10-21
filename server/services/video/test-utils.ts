@@ -1,3 +1,5 @@
+import { and as siteAnd, eq as siteEq } from 'drizzle-orm'
+import { DEFAULT_SITE } from '@chronoframe/core'
 import { eq, and, inArray } from 'drizzle-orm'
 import { findLivePhotoVideoForImage } from '../video/livephoto'
 
@@ -54,9 +56,12 @@ export const batchTestLivePhotoDetection = async (photoIds?: string[]) => {
         .select()
         .from(tables.photos)
         .where(
-          and(
-            eq(tables.photos.isLivePhoto, 0),
-            inArray(tables.photos.id, photoIds),
+          siteAnd(
+            and(
+              eq(tables.photos.isLivePhoto, 0),
+              inArray(tables.photos.id, photoIds),
+            ),
+            siteEq(tables.photos.siteId, DEFAULT_SITE.id),
           ),
         )
     } else {
@@ -64,7 +69,12 @@ export const batchTestLivePhotoDetection = async (photoIds?: string[]) => {
       photos = await db
         .select()
         .from(tables.photos)
-        .where(eq(tables.photos.isLivePhoto, 0))
+        .where(
+          siteAnd(
+            eq(tables.photos.isLivePhoto, 0),
+            siteEq(tables.photos.siteId, DEFAULT_SITE.id),
+          ),
+        )
     }
 
     logger.chrono.info(

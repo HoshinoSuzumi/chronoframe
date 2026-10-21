@@ -1,3 +1,5 @@
+import { and as siteAnd, eq as siteEq } from 'drizzle-orm'
+import { DEFAULT_SITE } from '@chronoframe/core'
 import { eq } from 'drizzle-orm'
 import z from 'zod'
 import { albumAccess } from '../../../utils/album-access'
@@ -30,7 +32,12 @@ export default eventHandler(async (event) => {
       tables.albumPhotos,
       eq(tables.albums.id, tables.albumPhotos.albumId),
     )
-    .where(eq(tables.albumPhotos.photoId, photoId))
+    .where(
+      siteAnd(
+        eq(tables.albumPhotos.photoId, photoId),
+        siteEq(tables.albums.siteId, DEFAULT_SITE.id),
+      ),
+    )
     .all()
 
   return albums.filter(canAccess).map(({ passwordHash, ...album }) => ({

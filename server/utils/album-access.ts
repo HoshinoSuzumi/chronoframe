@@ -1,10 +1,17 @@
+import { and as siteAnd, eq as siteEq } from 'drizzle-orm'
+import { DEFAULT_SITE } from '@chronoframe/core'
+import {
+  canReadAlbum,
+  photoAccessDenied,
+  type AlbumAccessTarget,
+} from '@chronoframe/core'
 import { createHmac, randomBytes, scrypt, timingSafeEqual } from 'node:crypto'
 import { promisify } from 'node:util'
 import { eq, inArray } from 'drizzle-orm'
 import type { H3Event } from 'h3'
 import { tables, useDB } from './db'
 
-const cookieName = 'album_access'
+const cookieName = `album_access_${DEFAULT_SITE.id}`
 const grantLifetimeSeconds = 7 * 24 * 60 * 60
 const maxGrants = 30
 type Grant = { id: number; hash: string; expiresAt: number }
@@ -42,7 +49,7 @@ export async function verifyAlbumPassword(
 
 function signature(payload: string): string {
   return createHmac('sha256', sessionSecret())
-    .update('album-access-cookie\0')
+    .update(`album-access-cookie:${DEFAULT_SITE.id}\0`)
     .update(payload)
     .digest('base64url')
 }
@@ -108,27 +115,8 @@ export function grantAlbumAccess(
   })
 }
 
-type AlbumAccessTarget = {
-  id: number
-  isHidden: boolean
-  passwordHash: string | null
-}
-
 function photoNotFound() {
   return createError({ statusCode: 404, statusMessage: 'Photo not found' })
-}
-
-function photoAccessDenied(
-  admin: boolean,
-  memberships: { album: AlbumAccessTarget }[],
-  canAccess: (album: AlbumAccessTarget) => boolean,
-): boolean {
-  if (admin) return false
-  return (
-    memberships.some(({ album }) => album.isHidden) ||
-    (memberships.some(({ album }) => album.passwordHash) &&
-      !memberships.some(({ album }) => album.passwordHash && canAccess(album)))
-  )
 }
 
 export async function albumAccess(event: H3Event) {
@@ -136,14 +124,13 @@ export async function albumAccess(event: H3Event) {
   const admin = Boolean(session.user)
   const grants = readGrants(event)
   const canAccess = (album: AlbumAccessTarget) =>
-    admin ||
-    (!album.isHidden &&
-      (!album.passwordHash ||
-        grants.some(
-          (grant) =>
-            grant.id === album.id &&
-            grant.hash === passwordVersion(album.passwordHash!),
-        )))
+    canReadAlbum(album, admin, (target) =>
+      grants.some(
+        (grant) =>
+          grant.id === target.id &&
+          grant.hash === passwordVersion(target.passwordHash!),
+      ),
+    )
   return { admin, canAccess }
 }
 
@@ -170,7 +157,12 @@ export async function assertPhotoAccess(
   const matchedPhotos = db
     .select({ id: tables.photoAccessKeys.photoId })
     .from(tables.photoAccessKeys)
-    .where(eq(tables.photoAccessKeys.accessKey, cleanKey))
+    .where(
+      siteAnd(
+        eq(tables.photoAccessKeys.accessKey, cleanKey),
+        siteEq(tables.photoAccessKeys.siteId, DEFAULT_SITE.id),
+      ),
+    )
     .all()
   if (matchedPhotos.length === 0) {
     if (!admin || requireKnown) throw photoNotFound()
@@ -185,7 +177,12 @@ export async function assertPhotoAccess(
         tables.albums,
         eq(tables.albumPhotos.albumId, tables.albums.id),
       )
-      .where(eq(tables.albumPhotos.photoId, photo.id))
+      .where(
+        siteAnd(
+          eq(tables.albumPhotos.photoId, photo.id),
+          siteEq(tables.albumPhotos.siteId, DEFAULT_SITE.id),
+        ),
+      )
       .all()
     if (memberships.some(({ album }) => album.isHidden || album.passwordHash)) {
       restricted = true
@@ -221,7 +218,12 @@ export async function filterAccessiblePhotoIds(
     const existing = db
       .select({ id: tables.photos.id })
       .from(tables.photos)
-      .where(inArray(tables.photos.id, chunk))
+      .where(
+        siteAnd(
+          inArray(tables.photos.id, chunk),
+          siteEq(tables.photos.siteId, DEFAULT_SITE.id),
+        ),
+      )
       .all()
     if (existing.length === 0) continue
 
@@ -241,7 +243,12 @@ export async function filterAccessiblePhotoIds(
         tables.albums,
         eq(tables.albumPhotos.albumId, tables.albums.id),
       )
-      .where(inArray(tables.albumPhotos.photoId, ids))
+      .where(
+        siteAnd(
+          inArray(tables.albumPhotos.photoId, ids),
+          siteEq(tables.albumPhotos.siteId, DEFAULT_SITE.id),
+        ),
+      )
       .all()
     const membershipsByPhoto = new Map<string, { album: AlbumAccessTarget }[]>()
     for (const row of rows) {

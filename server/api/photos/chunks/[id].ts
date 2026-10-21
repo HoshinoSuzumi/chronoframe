@@ -1,3 +1,5 @@
+import { completeLocalUpload } from '@chronoframe/core'
+import { mutationResponse } from '../../../utils/resource-writer'
 import { open, stat, rm } from 'node:fs/promises'
 import { UPLOAD_CHUNK_SIZE } from '../../../../shared/utils/upload'
 import { logUpload } from '../../../utils/upload-log'
@@ -47,28 +49,31 @@ export default eventHandler(async (event) => {
         receivedParts: upload.hashes.size,
         size: upload.size,
       })
-      if (
-        upload.hashes.size !== Math.ceil(upload.size / UPLOAD_CHUNK_SIZE) ||
-        (await stat(upload.filePath)).size !== upload.size
-      ) {
-        throw createError({
-          statusCode: 400,
-          statusMessage: 'Upload is incomplete',
-        })
-      }
-      await upload.provider.createFromFile(
-        upload.key,
-        upload.filePath,
-        upload.contentType,
+      await mutationResponse(() =>
+        completeLocalUpload({
+          completed: upload.completed,
+          cancelled: upload.cancelled,
+          key: upload.key,
+          size: upload.size,
+          partSize: UPLOAD_CHUNK_SIZE,
+          receivedParts: upload.hashes.size,
+          fileSize: async () => (await stat(upload.filePath)).size,
+          publish: () =>
+            upload.provider
+              .createFromFile(upload.key, upload.filePath, upload.contentType)
+              .then(() => {}),
+          markCompleted: () => {
+            upload.completed = true
+          },
+          cleanup: () => rm(upload.filePath, { force: true }),
+        }),
       )
-      upload.completed = true
       logUpload('local.complete.succeeded', {
         sessionId: id,
         key: upload.key,
         size: upload.size,
         durationMs: Date.now() - startedAt,
       })
-      await rm(upload.filePath, { force: true }).catch(() => {})
       return { ok: true, key: upload.key }
     }
     if (event.method !== 'PUT') throw createError({ statusCode: 405 })

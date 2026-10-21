@@ -1,3 +1,5 @@
+import { and as siteAnd, eq as siteEq } from 'drizzle-orm'
+import { DEFAULT_SITE } from '@chronoframe/core'
 import { asc, eq, getTableColumns, or, isNotNull, ne, and } from 'drizzle-orm'
 import type { useDB } from './db'
 import type * as schema from '../database/schema'
@@ -28,7 +30,12 @@ export async function fetchAlbumPhotos(
       tables.albumPhotos,
       eq(tables.photos.id, tables.albumPhotos.photoId),
     )
-    .where(eq(tables.albumPhotos.albumId, albumId))
+    .where(
+      siteAnd(
+        eq(tables.albumPhotos.albumId, albumId),
+        siteEq(tables.photos.siteId, DEFAULT_SITE.id),
+      ),
+    )
     .orderBy(asc(tables.albumPhotos.position))
     .all()
 
@@ -45,15 +52,18 @@ export async function fetchAlbumPhotos(
         eq(tables.albumPhotos.albumId, tables.albums.id),
       )
       .where(
-        includePasswordProtected
-          ? eq(tables.albums.isHidden, true)
-          : or(
-              eq(tables.albums.isHidden, true),
-              and(
-                isNotNull(tables.albums.passwordHash),
-                ne(tables.albums.id, albumId),
+        siteAnd(
+          includePasswordProtected
+            ? eq(tables.albums.isHidden, true)
+            : or(
+                eq(tables.albums.isHidden, true),
+                and(
+                  isNotNull(tables.albums.passwordHash),
+                  ne(tables.albums.id, albumId),
+                ),
               ),
-            ),
+          siteEq(tables.albumPhotos.siteId, DEFAULT_SITE.id),
+        ),
       )
       .all()
   ).map((r: { photoId: string }) => r.photoId)

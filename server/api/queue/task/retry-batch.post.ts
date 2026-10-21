@@ -1,3 +1,5 @@
+import { and as siteAnd, eq as siteEq } from 'drizzle-orm'
+import { DEFAULT_SITE } from '@chronoframe/core'
 import { z } from 'zod'
 import { eq, inArray } from 'drizzle-orm'
 
@@ -36,7 +38,12 @@ export default defineEventHandler(async (event) => {
     const tasksToRetry = await db
       .select()
       .from(tables.pipelineQueue)
-      .where(whereCondition)
+      .where(
+        siteAnd(
+          whereCondition,
+          siteEq(tables.pipelineQueue.siteId, DEFAULT_SITE.id),
+        ),
+      )
 
     if (
       !session.user.isAdmin &&
@@ -70,13 +77,23 @@ export default defineEventHandler(async (event) => {
       .update(tables.pipelineQueue)
       .set({
         status: 'pending',
+        resourceId: null,
+        sourceHash: null,
+        attemptId: null,
+        workerId: null,
+        leaseExpiresAt: null,
         statusStage: null,
         errorMessage: null,
         warningCode: null,
         attempts: 0, // 重置尝试次数
         availableAt: new Date(),
       })
-      .where(inArray(tables.pipelineQueue.id, failedTaskIds))
+      .where(
+        siteAnd(
+          inArray(tables.pipelineQueue.id, failedTaskIds),
+          siteEq(tables.pipelineQueue.siteId, DEFAULT_SITE.id),
+        ),
+      )
 
     return {
       success: true,

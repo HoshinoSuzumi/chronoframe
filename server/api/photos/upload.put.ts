@@ -1,3 +1,7 @@
+import {
+  providerForUpload,
+  sourceAwareUploadStorage,
+} from '../../utils/upload-source'
 import { mkdtemp, open, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
@@ -8,7 +12,7 @@ import { settingsManager } from '~~/server/services/settings/settingsManager'
 export default eventHandler(async (event) => {
   await requireUserSession(event)
 
-  const { storageProvider } = useStorageProvider(event)
+  let { storageProvider } = useStorageProvider(event)
   const key = getQuery(event).key as string | undefined
   const t = await useTranslation(event)
 
@@ -22,6 +26,10 @@ export default eventHandler(async (event) => {
       },
     })
   }
+
+  storageProvider = sourceAwareUploadStorage(
+    await providerForUpload(key, storageProvider),
+  )
 
   const contentType =
     getHeader(event, 'content-type') || 'application/octet-stream'

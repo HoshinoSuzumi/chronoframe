@@ -1,3 +1,5 @@
+import { and as siteAnd, eq as siteEq } from 'drizzle-orm'
+import { DEFAULT_SITE } from '@chronoframe/core'
 import type {} from '../../types/worker'
 import { getLocationMigrationStatus } from '../../services/pipeline-queue/location-migration'
 import { settingsManager } from '~~/server/services/settings/settingsManager'
@@ -134,12 +136,14 @@ export default eventHandler(async (event) => {
       >`MIN(CASE WHEN status = 'pending' THEN created_at END)`,
     })
     .from(tables.pipelineQueue)
+    .where(siteEq(tables.pipelineQueue.siteId, DEFAULT_SITE.id))
     .get()
 
   // 获取基础统计
   const totalPhotos = await useDB()
     .select({ count: sql<number>`count(*)` })
     .from(tables.photos)
+    .where(siteEq(tables.photos.siteId, DEFAULT_SITE.id))
     .get()
 
   // 获取今日新增照片数量
@@ -150,7 +154,12 @@ export default eventHandler(async (event) => {
   const todayPhotos = await useDB()
     .select({ count: sql<number>`count(*)` })
     .from(tables.photos)
-    .where(gte(tables.photos.dateTaken, todayISO))
+    .where(
+      siteAnd(
+        gte(tables.photos.dateTaken, todayISO),
+        siteEq(tables.photos.siteId, DEFAULT_SITE.id),
+      ),
+    )
     .get()
 
   // 获取本周新增照片数量
@@ -162,7 +171,12 @@ export default eventHandler(async (event) => {
   const weekPhotos = await useDB()
     .select({ count: sql<number>`count(*)` })
     .from(tables.photos)
-    .where(gte(tables.photos.dateTaken, weekAgoISO))
+    .where(
+      siteAnd(
+        gte(tables.photos.dateTaken, weekAgoISO),
+        siteEq(tables.photos.siteId, DEFAULT_SITE.id),
+      ),
+    )
     .get()
 
   // 获取本月新增照片数量
@@ -174,7 +188,12 @@ export default eventHandler(async (event) => {
   const monthPhotos = await useDB()
     .select({ count: sql<number>`count(*)` })
     .from(tables.photos)
-    .where(gte(tables.photos.dateTaken, monthStartISO))
+    .where(
+      siteAnd(
+        gte(tables.photos.dateTaken, monthStartISO),
+        siteEq(tables.photos.siteId, DEFAULT_SITE.id),
+      ),
+    )
     .get()
 
   // 获取存储统计（估算）
@@ -185,6 +204,7 @@ export default eventHandler(async (event) => {
       maxSize: sql<number>`COALESCE(max(file_size), 0)`,
     })
     .from(tables.photos)
+    .where(siteEq(tables.photos.siteId, DEFAULT_SITE.id))
     .get()
 
   // 获取最近7天的上传趋势
@@ -201,7 +221,12 @@ export default eventHandler(async (event) => {
       count: sql<number>`count(*)`,
     })
     .from(tables.photos)
-    .where(gte(tables.photos.dateTaken, sevenDaysAgoISO))
+    .where(
+      siteAnd(
+        gte(tables.photos.dateTaken, sevenDaysAgoISO),
+        siteEq(tables.photos.siteId, DEFAULT_SITE.id),
+      ),
+    )
     .groupBy(sql`DATE(${tables.photos.dateTaken})`)
     .orderBy(sql`DATE(${tables.photos.dateTaken}) ASC`)
     .all()

@@ -16,7 +16,7 @@
     "db:check": "drizzle-kit check",
     "db:up": "drizzle-kit up",
     "db:generate": "drizzle-kit generate",
-    "db:migrate": "drizzle-kit migrate",
+    "db:migrate": "node --experimental-strip-types scripts/migrate-database.ts",
     "build": "NODE_OPTIONS=\"--max-old-space-size=8192\" nuxt build",
     "build:deps": "pnpm --filter @chronoframe/webgl-image build",
     "dev": "run-p dev:dep dev:wait-only",
@@ -33,7 +33,7 @@
     "docs:dev": "vitepress dev docs",
     "docs:build": "vitepress build docs",
     "docs:preview": "vitepress preview docs",
-    "check:packages": "node scripts/check-package-boundaries.mjs && pnpm --filter @chronoframe/contracts --filter @chronoframe/storage --filter @chronoframe/media --filter @chronoframe/geocoding type-check",
+    "check:packages": "node scripts/check-package-boundaries.mjs && pnpm --filter @chronoframe/jobs --filter @chronoframe/processing --filter @chronoframe/database --filter @chronoframe/core --filter @chronoframe/contracts --filter @chronoframe/storage --filter @chronoframe/media --filter @chronoframe/geocoding type-check",
     "test": "node --experimental-strip-types --test tests/*.test.ts"
   },
   "dependencies": {
@@ -86,7 +86,12 @@
     "zod": "^4.6.6",
     "@chronoframe/storage": "workspace:*",
     "@chronoframe/media": "workspace:*",
-    "@chronoframe/geocoding": "workspace:*"
+    "@chronoframe/geocoding": "workspace:*",
+    "@chronoframe/core": "workspace:*",
+    "h3": "^1.15.11",
+    "@chronoframe/database": "workspace:*",
+    "@chronoframe/jobs": "workspace:*",
+    "@chronoframe/processing": "workspace:*"
   },
   "packageManager": "pnpm@10.34.6",
   "devDependencies": {

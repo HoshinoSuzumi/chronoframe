@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import type { FormSubmitEvent, TableColumn } from '@nuxt/ui'
+import type { UploadPreparationResponse } from '@chronoframe/contracts/upload'
 import type { Album, Photo } from '@chronoframe/contracts/resources'
 import type { UploadingFile } from '~~/shared/types/uploading-file'
 import {
@@ -288,15 +289,18 @@ const uploadImage = async (
   try {
     // 第一步：获取预签名 URL
     uploadingFile.status = UploadQueueStatus.Preparing
-    const signedUrlResponse = await $fetch('/api/photos', {
-      method: 'POST',
-      body: {
-        fileName: file.name,
-        contentType: file.type,
-        fileSize: file.size,
-        chunked: true,
+    const signedUrlResponse = await $fetch<UploadPreparationResponse>(
+      '/api/photos',
+      {
+        method: 'POST',
+        body: {
+          fileName: file.name,
+          contentType: file.type,
+          fileSize: file.size,
+          chunked: true,
+        },
       },
-    })
+    )
 
     uploadingFile.signedUrlResponse = signedUrlResponse
 

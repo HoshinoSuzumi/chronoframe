@@ -1,3 +1,6 @@
+import { and as siteAnd, eq as siteEq } from 'drizzle-orm'
+import { DEFAULT_SITE } from '@chronoframe/core'
+import { createSettingsRuntimeEffects } from '../runtime/settings-effects'
 import type { SettingValue } from '~~/shared/types/settings'
 import { DEFAULT_SETTINGS } from '../services/settings/contants'
 import type { SettingNamespace } from '../services/settings/contants'
@@ -6,6 +9,9 @@ import { and, eq, tables, useDB } from '../utils/db'
 
 export default defineNitroPlugin(async (_nitroApp) => {
   const _settingsManager = settingsManager
+  _settingsManager.setRuntimeEffects(
+    createSettingsRuntimeEffects(_settingsManager),
+  )
 
   // Mark initialization phase to prevent storage provider switch triggers
   // until storage manager is properly initialized in plugin 2_storage.ts
@@ -84,7 +90,9 @@ async function migrateRuntimeConfigToSettings() {
     }
 
     // Migrate auth settings (GitHub OAuth) from explicit env only
-    const githubOauthEnabled = getExplicitEnv('NUXT_PUBLIC_OAUTH_GITHUB_ENABLED')
+    const githubOauthEnabled = getExplicitEnv(
+      'NUXT_PUBLIC_OAUTH_GITHUB_ENABLED',
+    )
     if (githubOauthEnabled === 'true') {
       await migrateSetting('system', 'auth.github.enabled', true, _logger)
     }
@@ -124,7 +132,8 @@ async function migrateRuntimeConfigToSettings() {
         } else {
           try {
             // Check if a provider of the same type already exists
-            const existingProviders = await settingsManager.storage.getProviders()
+            const existingProviders =
+              await settingsManager.storage.getProviders()
             const sameTypeProviderExists = existingProviders.some(
               (provider) => provider.provider === storageProvider,
             )
@@ -230,9 +239,12 @@ async function removeDeprecatedSettings() {
 
   db.delete(tables.settings)
     .where(
-      and(
-        eq(tables.settings.namespace, 'app'),
-        eq(tables.settings.key, 'upload.maxFileSize'),
+      siteAnd(
+        and(
+          eq(tables.settings.namespace, 'app'),
+          eq(tables.settings.key, 'upload.maxFileSize'),
+        ),
+        siteEq(tables.settings.siteId, DEFAULT_SITE.id),
       ),
     )
     .run()
@@ -298,9 +310,9 @@ function isRuntimeProviderConfigUsable(config: any): boolean {
     case 's3':
       return Boolean(
         config.endpoint &&
-          config.bucket &&
-          config.accessKeyId &&
-          config.secretAccessKey,
+        config.bucket &&
+        config.accessKeyId &&
+        config.secretAccessKey,
       )
     case 'local':
       return Boolean(config.basePath)

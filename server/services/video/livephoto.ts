@@ -1,3 +1,8 @@
+import { createSiteRepository } from '@chronoframe/database'
+import { storageForPhoto } from '../../utils/object-storage'
+import type { StorageProvider } from '@chronoframe/storage'
+import { and as siteAnd, eq as siteEq } from 'drizzle-orm'
+import { DEFAULT_SITE } from '@chronoframe/core'
 import { isLivePhotoVideo } from '@chronoframe/media/livephoto'
 import path from 'path'
 import { eq } from 'drizzle-orm'
@@ -10,7 +15,7 @@ export const processLivePhotoVideo = async (
   videoKey: string,
   _videoSize: number,
 ): Promise<boolean> => {
-  const storageProvider = getStorageManager().getProvider()
+  let storageProvider = getStorageManager().getProvider()
   const db = useDB()
 
   try {
@@ -39,7 +44,12 @@ export const processLivePhotoVideo = async (
       const photos = await db
         .select()
         .from(tables.photos)
-        .where(eq(tables.photos.storageKey, photoKey))
+        .where(
+          siteAnd(
+            eq(tables.photos.storageKey, photoKey),
+            siteEq(tables.photos.siteId, DEFAULT_SITE.id),
+          ),
+        )
         .limit(1)
 
       if (photos.length > 0) {
@@ -56,18 +66,16 @@ export const processLivePhotoVideo = async (
       return false
     }
 
-    // 获取视频的公共 URL
-    const videoUrl = storageProvider.getPublicUrl(videoKey)
-
-    // 更新照片记录，设置 LivePhoto 信息
-    await db
-      .update(tables.photos)
-      .set({
-        isLivePhoto: 1,
-        livePhotoVideoUrl: videoUrl,
-        livePhotoVideoKey: videoKey,
-      })
-      .where(eq(tables.photos.id, matchedPhoto.id))
+    const repository = createSiteRepository(db, DEFAULT_SITE)
+    const snapshot = await repository.capturePhoto(matchedPhoto.id)
+    if (!snapshot) return false
+    storageProvider = await storageForPhoto(matchedPhoto.id, storageProvider)
+    if (!(await storageProvider.getFileMeta(videoKey))) return false
+    await repository.updatePhotoSnapshot(matchedPhoto.id, snapshot.version, {
+      isLivePhoto: 1,
+      livePhotoVideoUrl: storageProvider.getPublicUrl(videoKey),
+      livePhotoVideoKey: videoKey,
+    })
 
     logger.chrono.success(
       `Successfully processed LivePhoto: ${matchedPhoto.id}, video: ${videoKey}`,
@@ -84,9 +92,8 @@ export const processLivePhotoVideo = async (
  */
 export const findLivePhotoVideoForImage = async (
   imageKey: string,
+  storageProvider: StorageProvider = getStorageManager().getProvider(),
 ): Promise<{ videoKey: string; videoSize: number } | null> => {
-  const storageProvider = getStorageManager().getProvider()
-
   try {
     // 从图片文件名提取基础名称（去除扩展名）
     const imageBaseName = path.basename(imageKey, path.extname(imageKey))

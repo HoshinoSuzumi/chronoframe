@@ -1,8 +1,10 @@
+import { createSiteRepository } from '@chronoframe/database'
+import { storageForPhoto } from '../../../utils/object-storage'
+import { CoreError, DEFAULT_SITE } from '@chronoframe/core'
 import {
   processSpecificLivePhotoVideo,
   scanAndProcessExistingLivePhotos,
 } from '~~/server/services/video/scanner'
-import { eq } from 'drizzle-orm'
 import { findLivePhotoVideoForImage } from '~~/server/services/video/livephoto'
 import { getStorageManager } from '~~/server/plugins/3.storage'
 import { batchTestLivePhotoDetection } from '~~/server/services/video/test-utils'
@@ -68,39 +70,27 @@ export default eventHandler(async (event) => {
           })
         }
 
-        const db = useDB()
-        const photos = await db
-          .select()
-          .from(tables.photos)
-          .where(eq(tables.photos.id, photoId))
-          .limit(1)
-
-        if (photos.length === 0) {
+        const repository = createSiteRepository(useDB(), DEFAULT_SITE)
+        const snapshot = await repository.capturePhoto(photoId)
+        if (!snapshot?.photo.storageKey)
           throw createError({
             statusCode: 404,
             statusMessage: 'Photo not found',
           })
-        }
-
-        const photo = photos[0]
-        const livePhotoVideo = await findLivePhotoVideoForImage(
-          photo.storageKey!,
+        const provider = await storageForPhoto(
+          photoId,
+          getStorageManager().getProvider(),
         )
-
+        const livePhotoVideo = await findLivePhotoVideoForImage(
+          snapshot.photo.storageKey,
+          provider,
+        )
         if (livePhotoVideo) {
-          const storageProvider = getStorageManager().getProvider()
-
-          await db
-            .update(tables.photos)
-            .set({
-              isLivePhoto: 1,
-              livePhotoVideoUrl: storageProvider.getPublicUrl(
-                livePhotoVideo.videoKey,
-              ),
-              livePhotoVideoKey: livePhotoVideo.videoKey,
-            })
-            .where(eq(tables.photos.id, photoId))
-
+          await repository.updatePhotoSnapshot(photoId, snapshot.version, {
+            isLivePhoto: 1,
+            livePhotoVideoUrl: provider.getPublicUrl(livePhotoVideo.videoKey),
+            livePhotoVideoKey: livePhotoVideo.videoKey,
+          })
           return {
             message: 'Photo updated to LivePhoto successfully',
             success: true,
@@ -124,6 +114,12 @@ export default eventHandler(async (event) => {
         })
     }
   } catch (error) {
+    if (error instanceof CoreError)
+      throw createError({
+        statusCode: error.statusCode,
+        statusMessage: error.message,
+      })
+    if (error && typeof error === 'object' && 'statusCode' in error) throw error
     logger.chrono.error('LivePhoto management error:', error)
     throw createError({
       statusCode: 500,
