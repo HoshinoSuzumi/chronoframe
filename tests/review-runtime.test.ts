@@ -325,3 +325,74 @@ test('native metadata editing stages a unique object and discard preserves origi
     await rm(root, { recursive: true, force: true })
   }
 })
+
+test('S3 metadata publication uses image MIME and the returned prefixed key for both cleanup paths', async () => {
+  const { S3StorageProvider } = await import('@chronoframe/storage')
+  const original = await sharp({
+    create: { width: 2, height: 3, channels: 3, background: 'red' },
+  })
+    .jpeg()
+    .toBuffer()
+  for (const failAfterCreate of [false, true]) {
+    const provider = new S3StorageProvider({
+      provider: 's3',
+      bucket: 'test',
+      region: 'us-east-1',
+      prefix: 'photos',
+      endpoint: 'https://storage.example.com',
+      accessKeyId: 'test',
+      secretAccessKey: 'test',
+    })
+    const objects = new Map<string, Buffer>([['photos/original.JPG', original]])
+    const writes: { Key: string; ContentType: string }[] = []
+    const deletes: string[] = []
+    ;(provider as any).client.send = async (command: any) => {
+      const input = command.input
+      if (command.constructor.name === 'GetObjectCommand')
+        return {
+          Body: { transformToByteArray: async () => objects.get(input.Key)! },
+        }
+      if (command.constructor.name === 'PutObjectCommand') {
+        writes.push(input)
+        objects.set(input.Key, input.Body)
+        return {}
+      }
+      if (command.constructor.name === 'DeleteObjectCommand') {
+        deletes.push(input.Key)
+        objects.delete(input.Key)
+        return {}
+      }
+      throw new Error('Unexpected S3 command')
+    }
+    if (failAfterCreate)
+      provider.getPublicUrl = () => {
+        throw new Error('URL construction failed')
+      }
+    const adapter = load('server/services/resources/photo-metadata.ts', {
+      '../image/exif': { extractExifData: async () => null },
+      '../../utils/logger': {
+        logger: { image: { error: () => {}, warn: () => {} } },
+      },
+    }).editPhotoMetadata
+    if (failAfterCreate)
+      await assert.rejects(
+        adapter({ storageKey: 'photos/original.JPG' }, {}, provider),
+        /Failed to update photo metadata/,
+      )
+    else {
+      const staged = await adapter(
+        { storageKey: 'photos/original.JPG' },
+        {},
+        provider,
+      )
+      assert.equal(staged.storageKey, writes[0]!.Key)
+      await staged.discard()
+    }
+    assert.equal(writes.length, 1)
+    assert.equal(writes[0]!.ContentType, 'image/jpeg')
+    assert.ok(writes[0]!.Key.startsWith('photos/.generated/metadata/'))
+    assert.deepEqual(deletes, [writes[0]!.Key])
+    assert.deepEqual([...objects.keys()], ['photos/original.JPG'])
+    assert.deepEqual(objects.get('photos/original.JPG'), original)
+  }
+})

@@ -22,10 +22,8 @@ password hashing, object I/O, native EXIF editing, and task dispatch. SQLite
 adapters keep multi-row album changes transactional. HTTP validation, translated
 messages, signed cookies, upload transport, and runtime effects remain in Nuxt.
 
-Photo object edits and database updates retain the existing cross-system
-consistency boundary; source-version fencing and durable task recovery belong
-to the later jobs batch. Self-hosted account-wide quota remains unlimited while
-per-file limits continue to apply.
+Self-hosted account-wide quota remains unlimited while per-file limits continue
+to apply.
 
 Photo metadata edits stage a unique source object before publication. The database
 checks the captured source version and atomically updates the photo reference,

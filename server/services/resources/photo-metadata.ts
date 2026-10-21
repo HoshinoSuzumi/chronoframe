@@ -78,7 +78,25 @@ export async function editPhotoMetadata(
   await mkdir(tempRoot, { recursive: true })
   const tempDir = await mkdtemp(path.join(tempRoot, 'cframe-edit-'))
   const stagedKey = `.generated/metadata/${randomUUID()}/${path.posix.basename(photo.storageKey)}`
-  const ext = path.extname(photo.storageKey) || '.jpg'
+  let cleanupKey = stagedKey
+  const ext = path.extname(photo.storageKey).toLowerCase() || '.jpg'
+  const contentType =
+    (
+      {
+        '.jpg': 'image/jpeg',
+        '.jpeg': 'image/jpeg',
+        '.png': 'image/png',
+        '.webp': 'image/webp',
+        '.gif': 'image/gif',
+        '.bmp': 'image/bmp',
+        '.tif': 'image/tiff',
+        '.tiff': 'image/tiff',
+        '.avif': 'image/avif',
+        '.heic': 'image/heic',
+        '.heif': 'image/heif',
+        '.hif': 'image/heif',
+      } as Record<string, string>
+    )[ext] ?? 'application/octet-stream'
   const tempFile = path.join(tempDir, `edited${ext}`)
 
   try {
@@ -92,7 +110,12 @@ export async function editPhotoMetadata(
     // Publish to a unique object. The original stays untouched until the
     // database atomically selects this revision and enqueues follow-up work.
     const exifData = await extractExifData(updatedBuffer)
-    const staged = await storageProvider.create(stagedKey, updatedBuffer)
+    const staged = await storageProvider.create(
+      stagedKey,
+      updatedBuffer,
+      contentType,
+    )
+    cleanupKey = staged.key
 
     return {
       exif: exifData,
@@ -102,11 +125,11 @@ export async function editPhotoMetadata(
       originalUrl: /\.(?:heic|heif|hif)$/i.test(photo.storageKey)
         ? photo.originalUrl
         : storageProvider.getPublicUrl(staged.key),
-      discard: () => storageProvider.delete(stagedKey),
+      discard: () => storageProvider.delete(staged.key),
     }
   } catch (error) {
     try {
-      await storageProvider.delete(stagedKey)
+      await storageProvider.delete(cleanupKey)
     } catch (cleanupError) {
       logger.image.warn(
         'Failed to discard staged metadata object',
