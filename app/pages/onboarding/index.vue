@@ -29,8 +29,12 @@ definePageMeta({
             />
           </div>
           <div>
-            <h3 class="font-medium text-white">{{ $t('onboarding.welcome.cards.admin.title') }}</h3>
-            <p class="text-sm text-neutral-400 mt-1">{{ $t('onboarding.welcome.cards.admin.description') }}</p>
+            <h3 class="font-medium text-white">
+              {{ $t('onboarding.welcome.cards.admin.title') }}
+            </h3>
+            <p class="text-sm text-neutral-400 mt-1">
+              {{ $t('onboarding.welcome.cards.admin.description') }}
+            </p>
           </div>
         </div>
 
@@ -46,8 +50,12 @@ definePageMeta({
             />
           </div>
           <div>
-            <h3 class="font-medium text-white">{{ $t('onboarding.welcome.cards.site.title') }}</h3>
-            <p class="text-sm text-neutral-400 mt-1">{{ $t('onboarding.welcome.cards.site.description') }}</p>
+            <h3 class="font-medium text-white">
+              {{ $t('onboarding.welcome.cards.site.title') }}
+            </h3>
+            <p class="text-sm text-neutral-400 mt-1">
+              {{ $t('onboarding.welcome.cards.site.description') }}
+            </p>
           </div>
         </div>
 
@@ -63,7 +71,9 @@ definePageMeta({
             />
           </div>
           <div>
-            <h3 class="font-medium text-white">{{ $t('onboarding.welcome.cards.storage.title') }}</h3>
+            <h3 class="font-medium text-white">
+              {{ $t('onboarding.welcome.cards.storage.title') }}
+            </h3>
             <p class="text-sm text-neutral-400 mt-1">
               {{ $t('onboarding.welcome.cards.storage.description') }}
             </p>
@@ -82,7 +92,9 @@ definePageMeta({
             />
           </div>
           <div>
-            <h3 class="font-medium text-white">{{ $t('onboarding.welcome.cards.map.title') }}</h3>
+            <h3 class="font-medium text-white">
+              {{ $t('onboarding.welcome.cards.map.title') }}
+            </h3>
             <p class="text-sm text-neutral-400 mt-1">
               {{ $t('onboarding.welcome.cards.map.description') }}
             </p>

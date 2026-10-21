@@ -3,7 +3,7 @@ import {
   type TourId,
   type TourRecords,
   type TourStatus,
-} from '~~/shared/types/tours'
+} from '@chronoframe/gallery/shared/types/tours'
 export function useTours() {
   const consoleApi = useConsoleApi()
   const records = useState<TourRecords>(

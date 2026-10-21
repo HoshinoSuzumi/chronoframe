@@ -1,9 +1,12 @@
-import { UPLOAD_CHUNK_SIZE } from '~~/shared/utils/upload'
+import { UPLOAD_CHUNK_SIZE } from '@chronoframe/gallery/shared/utils/upload'
 import {
   UploadTransportStatus,
   isInFlightTransportStatus,
-} from '~~/shared/utils/upload-status'
-import type { UploadPlan, UploadPart } from '~~/shared/types/upload'
+} from '@chronoframe/gallery/shared/utils/upload-status'
+import type {
+  UploadPlan,
+  UploadPart,
+} from '@chronoframe/gallery/shared/types/upload'
 
 export interface UploadProgress {
   loaded: number

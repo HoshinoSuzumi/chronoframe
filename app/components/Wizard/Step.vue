@@ -20,11 +20,18 @@ defineProps<{
     <div class="shrink-0 px-6 lg:px-10 py-6 border-b border-white/10">
       <div class="max-w-3xl mx-auto space-y-2">
         <h1 class="text-2xl font-bold tracking-tight text-white">
-          {{ title }} 
+          {{ title }}
         </h1>
-        <div v-if="description" class="flex items-center justify-between">
+        <div
+          v-if="description"
+          class="flex items-center justify-between"
+        >
           <p class="text-sm text-neutral-400">{{ description }}</p>
-          <span v-if="tips" class="text-sm text-neutral-400 shrink-0 ml-4">{{ tips }}</span>
+          <span
+            v-if="tips"
+            class="text-sm text-neutral-400 shrink-0 ml-4"
+            >{{ tips }}</span
+          >
         </div>
       </div>
     </div>

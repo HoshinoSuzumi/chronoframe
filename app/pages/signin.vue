@@ -37,7 +37,8 @@ const onAuthSubmit = async (event: any) => {
       toast.add({
         color: 'error',
         title: $t('auth.messages.loginFailed.title'),
-        description: error?.data?.message || $t('auth.messages.loginFailed.description'),
+        description:
+          error?.data?.message || $t('auth.messages.loginFailed.description'),
       })
     })
     .finally(() => {

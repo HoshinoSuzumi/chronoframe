@@ -1,14 +1,14 @@
 <script lang="ts" setup>
 import { motion, AnimatePresence } from 'motion-v'
 import { computed, ref, watch, nextTick, onUnmounted } from 'vue'
-import type { UploadingFile } from '~~/shared/types/uploading-file'
+import type { UploadingFile } from '@chronoframe/gallery/shared/types/uploading-file'
 import {
   UploadQueueStatus,
   isAbortableUploadStatus,
   isActiveUploadStatus,
   isDismissibleUploadStatus,
   isSkippedOrBlockedUploadStatus,
-} from '~~/shared/utils/upload-status'
+} from '@chronoframe/gallery/shared/utils/upload-status'
 
 const props = defineProps<{
   uploadingFile: UploadingFile

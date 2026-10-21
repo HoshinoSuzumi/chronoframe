@@ -34,7 +34,8 @@
     "docs:build": "vitepress build docs",
     "docs:preview": "vitepress preview docs",
     "check:packages": "node scripts/check-package-boundaries.mjs && pnpm --filter @chronoframe/jobs --filter @chronoframe/processing --filter @chronoframe/database --filter @chronoframe/core --filter @chronoframe/contracts --filter @chronoframe/storage --filter @chronoframe/media --filter @chronoframe/geocoding type-check",
-    "test": "node --experimental-strip-types --test tests/*.test.ts"
+    "test": "node --experimental-strip-types --test tests/*.test.ts",
+    "check:ui": "node scripts/check-ui-boundaries.mjs"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1149.0",
@@ -89,10 +90,11 @@
     "@chronoframe/media": "workspace:*",
     "@chronoframe/geocoding": "workspace:*",
     "@chronoframe/core": "workspace:*",
-    "h3": "^1.15.11",
     "@chronoframe/database": "workspace:*",
     "@chronoframe/jobs": "workspace:*",
-    "@chronoframe/processing": "workspace:*"
+    "@chronoframe/processing": "workspace:*",
+    "@chronoframe/gallery": "workspace:*",
+    "@chronoframe/console": "workspace:*"
   },
   "packageManager": "pnpm@10.34.6",
   "devDependencies": {

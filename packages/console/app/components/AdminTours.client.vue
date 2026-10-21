@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { Driver, DriveStep } from 'driver.js'
-import { tourIds, type TourId } from '~~/shared/types/tours'
+import { tourIds, type TourId } from '@chronoframe/gallery/shared/types/tours'
 const route = useRoute()
 const { user } = useUserSession()
 const { records, ready, busy, revision, load, update } = useTours()

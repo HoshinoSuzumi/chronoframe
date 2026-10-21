@@ -69,7 +69,8 @@ async function onComplete() {
     console.error(error)
     toast.add({
       title: $t('onboarding.complete.setupFailedTitle'),
-      description: error.data?.message || $t('onboarding.complete.setupFailedDescription'),
+      description:
+        error.data?.message || $t('onboarding.complete.setupFailedDescription'),
       color: 'error',
     })
   } finally {
