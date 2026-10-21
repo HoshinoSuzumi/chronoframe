@@ -1,4 +1,11 @@
 <script setup lang="ts">
+const consoleApiBase = useRuntimeConfig().public.console.apiBase.replace(
+  /\/$/,
+  '',
+)
+
+const consoleApi = useConsoleApi()
+
 definePageMeta({
   layout: 'dashboard',
 })
@@ -409,7 +416,8 @@ const openLiveStream = () => {
   connectionState.value = 'connecting'
   eventSource?.close()
   const source = new EventSource(
-    `/api/system/logs?stream=1&offset=${liveOffset}&identity=${encodeURIComponent(fileIdentity)}`,
+    `${consoleApiBase}/api/system/logs?stream=1&offset=${liveOffset}&identity=${encodeURIComponent(fileIdentity)}`,
+    { withCredentials: true },
   )
   eventSource = source
   source.onopen = () => {
@@ -452,7 +460,7 @@ const connectLogStream = async () => {
   isConnected.value = false
   connectionState.value = 'loadingHistory'
   try {
-    const page = await $fetch<LogPage>('/api/system/logs', {
+    const page = await consoleApi<LogPage>('/api/system/logs', {
       signal: controller.signal,
     })
     if (controller.signal.aborted || disposed) return
@@ -486,7 +494,7 @@ const loadOlderLogs = async () => {
   isLoadingOlder.value = true
   autoScroll.value = false
   try {
-    const page = await $fetch<LogPage>('/api/system/logs', {
+    const page = await consoleApi<LogPage>('/api/system/logs', {
       query: { before: historyCursor.value, identity: fileIdentity },
       signal: controller?.signal,
     })

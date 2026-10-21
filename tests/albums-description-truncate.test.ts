@@ -3,7 +3,10 @@ import { readFileSync } from 'node:fs'
 import test from 'node:test'
 
 const source = readFileSync(
-  new URL('../app/pages/dashboard/albums.vue', import.meta.url),
+  new URL(
+    '../packages/console/app/pages/dashboard/albums.vue',
+    import.meta.url,
+  ),
   'utf8',
 )
 

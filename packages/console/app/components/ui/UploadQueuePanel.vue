@@ -171,37 +171,43 @@ const clearAllFiles = () => {
                   v-if="stats.waiting > 0"
                   class="text-neutral-600 dark:text-neutral-400"
                 >
-                  {{ stats.waiting }} {{ $t('dashboard.photos.uploadQueuePanel.stats.waiting') }}
+                  {{ stats.waiting }}
+                  {{ $t('dashboard.photos.uploadQueuePanel.stats.waiting') }}
                 </span>
                 <span
                   v-if="stats.active > 0"
                   class="text-blue-600 dark:text-blue-400"
                 >
-                  {{ stats.active }} {{ $t('dashboard.photos.uploadQueuePanel.stats.active') }}
+                  {{ stats.active }}
+                  {{ $t('dashboard.photos.uploadQueuePanel.stats.active') }}
                 </span>
                 <span
                   v-if="stats.completed > 0"
                   class="text-green-600 dark:text-green-400"
                 >
-                  {{ stats.completed }} {{ $t('dashboard.photos.uploadQueuePanel.stats.completed') }}
+                  {{ stats.completed }}
+                  {{ $t('dashboard.photos.uploadQueuePanel.stats.completed') }}
                 </span>
                 <span
                   v-if="stats.error > 0"
                   class="text-red-600 dark:text-red-400"
                 >
-                  {{ stats.error }} {{ $t('dashboard.photos.uploadQueuePanel.stats.error') }}
+                  {{ stats.error }}
+                  {{ $t('dashboard.photos.uploadQueuePanel.stats.error') }}
                 </span>
                 <span
                   v-if="stats.skipped > 0"
                   class="text-yellow-600 dark:text-yellow-400"
                 >
-                  {{ stats.skipped }} {{ $t('dashboard.photos.uploadQueuePanel.stats.skipped') }}
+                  {{ stats.skipped }}
+                  {{ $t('dashboard.photos.uploadQueuePanel.stats.skipped') }}
                 </span>
                 <span
                   v-if="stats.blocked > 0"
                   class="text-red-600 dark:text-red-400"
                 >
-                  {{ stats.blocked }} {{ $t('dashboard.photos.uploadQueuePanel.stats.blocked') }}
+                  {{ stats.blocked }}
+                  {{ $t('dashboard.photos.uploadQueuePanel.stats.blocked') }}
                 </span>
               </div>
             </div>
@@ -275,12 +281,10 @@ const clearAllFiles = () => {
         <motion.div
           v-if="
             !isCollapsed &&
-              (
-                stats.completed > 0 ||
-                stats.error > 0 ||
-                stats.skipped > 0 ||
-                stats.blocked > 0
-              )
+            (stats.completed > 0 ||
+              stats.error > 0 ||
+              stats.skipped > 0 ||
+              stats.blocked > 0)
           "
           :initial="{ opacity: 0, scaleY: 0 }"
           :animate="{ opacity: 1, scaleY: 1 }"
@@ -300,7 +304,9 @@ const clearAllFiles = () => {
               class="flex-1 min-w-0 py-2"
               @click="clearCompletedFiles"
             >
-              {{ $t('dashboard.photos.uploadQueuePanel.actions.clearCompleted') }}
+              {{
+                $t('dashboard.photos.uploadQueuePanel.actions.clearCompleted')
+              }}
             </UButton>
 
             <UButton

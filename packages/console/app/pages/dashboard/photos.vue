@@ -1,4 +1,6 @@
 <script lang="ts" setup>
+const consoleApi = useConsoleApi()
+
 import type { FormSubmitEvent, TableColumn } from '@nuxt/ui'
 import type { UploadPreparationResponse } from '@chronoframe/contracts/upload'
 import type { Album, Photo } from '@chronoframe/contracts/resources'
@@ -110,7 +112,7 @@ const fetchReactions = async (photoIds: string[]) => {
 
   reactionsLoading.value = true
   try {
-    const data = await $fetch('/api/photos/reactions', {
+    const data = await consoleApi('/api/photos/reactions', {
       query: { ids: photoIds },
     })
     reactionsData.value = data as Record<string, Record<string, number>>
@@ -289,7 +291,7 @@ const uploadImage = async (
   try {
     // 第一步：获取预签名 URL
     uploadingFile.status = UploadQueueStatus.Preparing
-    const signedUrlResponse = await $fetch<UploadPreparationResponse>(
+    const signedUrlResponse = await consoleApi<UploadPreparationResponse>(
       '/api/photos',
       {
         method: 'POST',
@@ -312,7 +314,7 @@ const uploadImage = async (
         try {
           const existingPhotoId = signedUrlResponse.existingPhoto?.id
           if (!existingPhotoId) throw new Error('Skipped photo has no ID')
-          const result = await $fetch<AddPhotosToAlbumResult>(
+          const result = await consoleApi<AddPhotosToAlbumResult>(
             `/api/albums/${albumId}/photos`,
             {
               method: 'POST',
@@ -411,7 +413,7 @@ const uploadImage = async (
           try {
             // 检查是否为MOV视频文件（通过MIME类型或文件扩展名）
             const enqueueTask = (targetAlbumId?: number) =>
-              $fetch('/api/queue/add-task', {
+              consoleApi('/api/queue/add-task', {
                 method: 'POST',
                 body: {
                   payload: {
@@ -609,7 +611,7 @@ const loadUploadAlbums = async () => {
   isLoadingUploadAlbums.value = true
   uploadAlbumsLoadFailed.value = false
   try {
-    const albums = await $fetch('/api/albums/upload-options')
+    const albums = await consoleApi('/api/albums/upload-options')
     if (requestId === uploadAlbumsRequestId) uploadAlbums.value = albums
   } catch (error) {
     if (requestId !== uploadAlbumsRequestId) return
@@ -767,7 +769,7 @@ const addSelectedPhotosToAlbum = async () => {
       index < photoIds.length;
       index += MAX_ALBUM_PHOTOS_PER_REQUEST
     ) {
-      const result = await $fetch<AddPhotosToAlbumResult>(
+      const result = await consoleApi<AddPhotosToAlbumResult>(
         `/api/albums/${albumId}/photos`,
         {
           method: 'POST',
@@ -886,7 +888,7 @@ const statusIntervals = ref<Map<number, NodeJS.Timeout>>(new Map())
 const startTaskStatusCheck = (taskId: number, fileId: string) => {
   const intervalId = setInterval(async () => {
     try {
-      const response = await $fetch(`/api/queue/stats/${taskId}`)
+      const response = await consoleApi(`/api/queue/stats/${taskId}`)
       const uploadingFile = uploadingFiles.value.get(fileId)
 
       if (!uploadingFile) {
@@ -1585,7 +1587,7 @@ const enqueueEraseLocationTask = async (photo: Photo) => {
     throw new Error($t('dashboard.photos.messages.photoNotFound'))
   }
 
-  const result = await $fetch('/api/queue/add-task', {
+  const result = await consoleApi('/api/queue/add-task', {
     method: 'POST',
     body: {
       payload: {
@@ -1650,7 +1652,7 @@ const saveMetadataChanges = async () => {
     let hasAnySuccessfulAction = false
 
     if (Object.keys(payload).length > 0) {
-      await $fetch(`/api/photos/${editingPhoto.value.id}`, {
+      await consoleApi(`/api/photos/${editingPhoto.value.id}`, {
         method: 'PUT',
         body: payload,
       })
@@ -1717,7 +1719,7 @@ const handleReverseGeocodeRequest = async (photo: Photo) => {
   setReverseGeocodeLoading(photo.id, true)
 
   try {
-    const result = await $fetch('/api/queue/add-task', {
+    const result = await consoleApi('/api/queue/add-task', {
       method: 'POST',
       body: {
         payload: {
@@ -1824,7 +1826,7 @@ const handleReprocessSingle = async (photo: Photo) => {
       color: 'info',
     })
 
-    const result = await $fetch('/api/queue/add-task', {
+    const result = await consoleApi('/api/queue/add-task', {
       method: 'POST',
       body: {
         payload: {
@@ -1988,7 +1990,7 @@ const confirmDelete = async () => {
       })
       await Promise.all(
         targetPhotos.map((photo) =>
-          $fetch(`/api/photos/${photo.id}`, {
+          consoleApi(`/api/photos/${photo.id}`, {
             method: 'DELETE',
           }),
         ),
@@ -2009,7 +2011,7 @@ const confirmDelete = async () => {
         throw new Error($t('dashboard.photos.messages.error'))
       }
 
-      await $fetch(`/api/photos/${photo.id}`, {
+      await consoleApi(`/api/photos/${photo.id}`, {
         method: 'DELETE',
       })
 
@@ -2082,7 +2084,7 @@ const handleBatchReprocess = async () => {
       color: 'info',
     })
 
-    const result = await $fetch('/api/queue/add-tasks', {
+    const result = await consoleApi('/api/queue/add-tasks', {
       method: 'POST',
       body: {
         tasks: photosWithStorageKey.map((photo: Photo) => ({
@@ -2157,7 +2159,7 @@ const handleBatchEraseLocation = async () => {
   }
 
   try {
-    const result = await $fetch('/api/queue/add-tasks', {
+    const result = await consoleApi('/api/queue/add-tasks', {
       method: 'POST',
       body: {
         tasks: targetPhotoIds.map((photoId) => ({

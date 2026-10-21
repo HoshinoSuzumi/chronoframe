@@ -1,4 +1,6 @@
 <script lang="ts" setup>
+const consoleApi = useConsoleApi()
+
 import { z } from 'zod'
 import type { StorageConfig } from '~~/shared/types/storage'
 
@@ -17,7 +19,7 @@ const {
   data: currentStorageProvider,
   refresh: refreshCurrentStorageProvider,
   status: currentStorageStatus,
-} = await useFetch<{
+} = await useConsoleFetch<{
   namespace: string
   key: string
   value: SettingValue
@@ -27,7 +29,7 @@ const {
   data: availableStorage,
   refresh: refreshAvailableStorage,
   status: availableStorageStatus,
-} = await useFetch<SettingStorageProvider[]>(
+} = await useConsoleFetch<SettingStorageProvider[]>(
   '/api/system/settings/storage-config',
 )
 
@@ -63,7 +65,7 @@ const confirmStorageActivation = async () => {
   if (!storagePendingActivation.value || isSwitchingStorage.value) return
   isSwitchingStorage.value = true
   try {
-    await $fetch('/api/system/settings/storage/provider', {
+    await consoleApi('/api/system/settings/storage/provider', {
       method: 'PUT',
       body: { value: storagePendingActivation.value.id },
     })
@@ -437,7 +439,7 @@ const saveStorageConfig = async (event: { data: Partial<StorageConfig> }) => {
       config: event.data,
     }
     if (editingStorage.value) {
-      await $fetch(
+      await consoleApi(
         `/api/system/settings/storage-config/${editingStorage.value.id}`,
         {
           method: 'PUT',
@@ -445,7 +447,7 @@ const saveStorageConfig = async (event: { data: Partial<StorageConfig> }) => {
         },
       )
     } else {
-      await $fetch('/api/system/settings/storage-config', {
+      await consoleApi('/api/system/settings/storage-config', {
         method: 'POST',
         body: payload,
       })
@@ -500,7 +502,7 @@ const confirmStorageDelete = async () => {
 
   isDeletingStorage.value = true
   try {
-    await $fetch(`/api/system/settings/storage-config/${storageId}`, {
+    await consoleApi(`/api/system/settings/storage-config/${storageId}`, {
       method: 'DELETE',
     })
     await refreshAvailableStorage()

@@ -5,6 +5,7 @@ import {
   type TourStatus,
 } from '~~/shared/types/tours'
 export function useTours() {
+  const consoleApi = useConsoleApi()
   const records = useState<TourRecords>(
     'tour-records',
     () =>
@@ -17,7 +18,7 @@ export function useTours() {
   async function load() {
     ready.value = false
     try {
-      records.value = await $fetch<TourRecords>('/api/system/tours')
+      records.value = await consoleApi<TourRecords>('/api/system/tours')
       ready.value = true
     } catch {
       /* Require authoritative state. */
@@ -31,7 +32,7 @@ export function useTours() {
     if (busy.value) return false
     busy.value = true
     try {
-      records.value = await $fetch<TourRecords>('/api/system/tours', {
+      records.value = await consoleApi<TourRecords>('/api/system/tours', {
         method: 'PUT',
         body: id ? { action: 'set', id, status } : { action: 'reset' },
       })

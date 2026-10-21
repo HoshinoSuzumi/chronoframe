@@ -1,4 +1,6 @@
 <script setup lang="ts">
+const consoleApi = useConsoleApi()
+
 import { h, resolveComponent } from 'vue'
 import type { TableColumn } from '@nuxt/ui'
 import { QueueWarningCode } from '~~/shared/utils/queue-warning'
@@ -23,7 +25,7 @@ const statusFilter = ref<string>('all')
 const typeFilter = ref<string>('all')
 
 // 数据获取
-const { data: queueData, refresh: refreshQueue } = await useFetch(
+const { data: queueData, refresh: refreshQueue } = await useConsoleFetch(
   '/api/queue/task/list',
   {
     query: computed(() => ({
@@ -63,7 +65,7 @@ const refreshData = async () => {
 const clearNonActiveTasks = async () => {
   try {
     isLoading.value = true
-    const result = await $fetch('/api/queue/task/clear', {
+    const result = await consoleApi('/api/queue/task/clear', {
       method: 'DELETE',
       query: {
         includeCompleted: 'true',
@@ -73,7 +75,9 @@ const clearNonActiveTasks = async () => {
 
     toast.add({
       title: $t('dashboard.queue.messages.clearSuccess'),
-      description: $t('dashboard.queue.messages.clearSuccessDescription', { count: result.deletedCount }),
+      description: $t('dashboard.queue.messages.clearSuccessDescription', {
+        count: result.deletedCount,
+      }),
       color: 'success',
     })
 
@@ -93,7 +97,7 @@ const clearNonActiveTasks = async () => {
 // 重试单个任务
 const retryTask = async (taskId: number) => {
   try {
-    await $fetch('/api/queue/task/retry', {
+    await consoleApi('/api/queue/task/retry', {
       method: 'POST',
       body: { taskId },
     })
@@ -118,14 +122,16 @@ const retryTask = async (taskId: number) => {
 const retryAllFailedTasks = async () => {
   try {
     isLoading.value = true
-    const result = await $fetch('/api/queue/task/retry-batch', {
+    const result = await consoleApi('/api/queue/task/retry-batch', {
       method: 'POST',
       body: { retryAll: true },
     })
 
     toast.add({
       title: $t('dashboard.queue.messages.batchRetrySuccess'),
-      description: $t('dashboard.queue.messages.batchRetrySuccessDescription', { count: result.retriedCount }),
+      description: $t('dashboard.queue.messages.batchRetrySuccessDescription', {
+        count: result.retriedCount,
+      }),
       color: 'success',
     })
 
@@ -134,7 +140,8 @@ const retryAllFailedTasks = async () => {
     console.error('Batch retry failed:', error)
     toast.add({
       title: $t('dashboard.queue.messages.operationFailed'),
-      description: error?.message || $t('dashboard.queue.messages.batchRetryFailed'),
+      description:
+        error?.message || $t('dashboard.queue.messages.batchRetryFailed'),
       color: 'error',
     })
   } finally {
@@ -148,7 +155,7 @@ const deleteTask = async (taskId: number) => {
   deletingTaskIds.value.add(taskId)
 
   try {
-    await $fetch(`/api/queue/task/${taskId}`, {
+    await consoleApi(`/api/queue/task/${taskId}`, {
       method: 'DELETE',
     })
 
@@ -162,7 +169,8 @@ const deleteTask = async (taskId: number) => {
     console.error('Delete task failed:', error)
     toast.add({
       title: $t('dashboard.queue.messages.operationFailed'),
-      description: error?.message || $t('dashboard.queue.messages.deleteFailed'),
+      description:
+        error?.message || $t('dashboard.queue.messages.deleteFailed'),
       color: 'error',
     })
   } finally {
@@ -200,7 +208,10 @@ const statusOptions = computed(() => [
 // 类型选项
 const typeOptions = computed(() => [
   { label: $t('dashboard.queue.filters.all'), value: 'all' },
-  { label: $t('dashboard.queue.types.location-migration'), value: 'location-migration' },
+  {
+    label: $t('dashboard.queue.types.location-migration'),
+    value: 'location-migration',
+  },
   { label: $t('dashboard.queue.types.photo'), value: 'photo' },
   {
     label: $t('dashboard.queue.types.live-photo-video'),
@@ -299,19 +310,23 @@ useIntervalFn(refreshData, 10000) // 每10秒刷新一次
           <UDropdownMenu
             :content="{ align: 'end' }"
             :items="[
-              [{
-                label: $t('dashboard.queue.actions.retryAll'),
-                icon: 'tabler:refresh',
-                disabled: isLoading,
-                onSelect: () => retryAllFailedTasks(),
-              }],
-              [{
-                label: $t('dashboard.queue.actions.clearNonActive'),
-                icon: 'tabler:trash',
-                color: 'error',
-                disabled: isLoading,
-                onSelect: () => clearNonActiveTasks(),
-              }],
+              [
+                {
+                  label: $t('dashboard.queue.actions.retryAll'),
+                  icon: 'tabler:refresh',
+                  disabled: isLoading,
+                  onSelect: () => retryAllFailedTasks(),
+                },
+              ],
+              [
+                {
+                  label: $t('dashboard.queue.actions.clearNonActive'),
+                  icon: 'tabler:trash',
+                  color: 'error',
+                  disabled: isLoading,
+                  onSelect: () => clearNonActiveTasks(),
+                },
+              ],
             ]"
           >
             <UButton
@@ -362,7 +377,9 @@ useIntervalFn(refreshData, 10000) // 每10秒刷新一次
         <UCard>
           <template #header>
             <div class="flex items-center justify-between pb-2">
-              <h2 class="text-lg font-semibold">{{ $t('dashboard.queue.taskListTitle') }}</h2>
+              <h2 class="text-lg font-semibold">
+                {{ $t('dashboard.queue.taskListTitle') }}
+              </h2>
               <div class="flex items-center gap-2">
                 <USelectMenu
                   v-model="statusFilter"
@@ -514,7 +531,9 @@ useIntervalFn(refreshData, 10000) // 每10秒刷新一次
                     <!-- 任务ID和类型 -->
                     <div class="flex gap-4">
                       <div>
-                        <p class="text-xs text-neutral-500">{{ $t('dashboard.queue.table.detail.photoId') }}</p>
+                        <p class="text-xs text-neutral-500">
+                          {{ $t('dashboard.queue.table.detail.photoId') }}
+                        </p>
                         <p class="text-sm capitalize">
                           {{ row.original.payload.photoId || '-' }}
                         </p>
@@ -575,13 +594,14 @@ useIntervalFn(refreshData, 10000) // 每10秒刷新一次
                       v-if="row.original.payload"
                       class="mt-3"
                     >
-                      <p class="text-xs text-gray-500 mb-1">{{ $t('dashboard.queue.table.detail.payload') }}</p>
+                      <p class="text-xs text-gray-500 mb-1">
+                        {{ $t('dashboard.queue.table.detail.payload') }}
+                      </p>
                       <pre
                         class="text-xs bg-neutral-100/50 dark:bg-neutral-800/50 p-2 rounded overflow-x-auto text-neutral-700 dark:text-neutral-300"
                         >{{
                           JSON.stringify(row.original.payload, null, 2)
-                        }}</pre
-                      >
+                        }}</pre>
                     </div>
                   </div>
                 </div>

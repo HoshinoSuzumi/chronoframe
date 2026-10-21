@@ -1,6 +1,7 @@
 <script lang="ts" setup>
 import type { DropdownMenuItem, NavigationMenuItem } from '@nuxt/ui'
 
+const consoleConfig = useRuntimeConfig().public.console
 const route = useRoute()
 const router = useRouter()
 const { loggedIn, user, clear: clearUserSession } = useUserSession()
@@ -17,7 +18,7 @@ const avatarUrl = computed(() => {
   return typeof value === 'string' && value.trim() ? value.trim() : undefined
 })
 
-const navItems = computed<NavigationMenuItem[][]>(() => [
+const defaultNavItems = computed<NavigationMenuItem[][]>(() => [
   [
     {
       label: $t('title.dashboard'),
@@ -104,9 +105,15 @@ const navItems = computed<NavigationMenuItem[][]>(() => [
   ],
 ])
 
+const navItems = computed<NavigationMenuItem[][]>(() =>
+  consoleConfig.navigation?.length
+    ? (consoleConfig.navigation as NavigationMenuItem[][])
+    : defaultNavItems.value,
+)
+
 const handleLogout = async () => {
   await clearUserSession()
-  await navigateTo('/')
+  await navigateTo(consoleConfig.galleryPath)
 }
 
 const accountMenuItems = computed<DropdownMenuItem[][]>(() => [
@@ -121,7 +128,7 @@ const accountMenuItems = computed<DropdownMenuItem[][]>(() => [
     {
       label: $t('dashboard.nav.viewGallery'),
       icon: 'tabler:photo',
-      to: '/',
+      to: consoleConfig.galleryPath,
     },
   ],
   [
@@ -141,7 +148,7 @@ useHead({
 
 const handleLogin = () => {
   router.push({
-    path: '/signin',
+    path: consoleConfig.signInPath,
     query: { redirect: route.fullPath },
   })
 }
@@ -258,7 +265,6 @@ const handleLogin = () => {
         </UDropdownMenu>
       </template>
     </UDashboardSidebar>
-
 
     <DashboardLocationMigration />
     <NuxtPage />

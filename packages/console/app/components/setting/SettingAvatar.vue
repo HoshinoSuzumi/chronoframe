@@ -1,5 +1,7 @@
 <script setup lang="ts">
-import { settingsFieldCommitKey } from '~/composables/useSettingsForm'
+const consoleApi = useConsoleApi()
+
+import { settingsFieldCommitKey } from '#console/composables/useSettingsForm'
 import { getAvatarInputType } from '~/utils/avatar'
 import {
   AVATAR_ALLOWED_MIME_TYPES,
@@ -94,7 +96,7 @@ const onFileChange = async (event: Event) => {
   try {
     const form = new FormData()
     form.append('file', file)
-    const { url } = await $fetch<{ url: string }>(
+    const { url } = await consoleApi<{ url: string }>(
       '/api/system/settings/avatar',
       { method: 'POST', body: form },
     )
@@ -113,7 +115,7 @@ const onFileChange = async (event: Event) => {
 const removeAvatar = async () => {
   removing.value = true
   try {
-    await $fetch('/api/system/settings/avatar', { method: 'DELETE' })
+    await consoleApi('/api/system/settings/avatar', { method: 'DELETE' })
     await syncAfterSave('')
     toast.add({
       title: t('settings.app.avatarUrl.removeSuccess'),
