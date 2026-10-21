@@ -42,6 +42,8 @@ jobs:
 
       - name: 📝 Generate changelog
         id: changelog
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
         run: |
           echo "Generating changelog..."
 
@@ -58,13 +60,17 @@ jobs:
 
           if [ -n "$PREVIOUS_TAG" ]; then
             echo "Generating changelog from $PREVIOUS_TAG to current"
-            changelog=$(npx @uniiem/changelogen@latest --from=$PREVIOUS_TAG --no-output --noMerges)
+            changelog=$(npx @uniiem/changelogen@0.7.2 --from="$PREVIOUS_TAG" --no-output --noMerges --noAuthors)
+            contributors=$(node scripts/changelog-contributors.mjs "$PREVIOUS_TAG..HEAD")
           else
             echo "No previous tag found, generating full changelog"
-            changelog=$(npx @uniiem/changelogen@latest --no-output --noMerges)
+            changelog=$(npx @uniiem/changelogen@0.7.2 --no-output --noMerges --noAuthors)
+            contributors=$(node scripts/changelog-contributors.mjs HEAD)
           fi
 
           changelog=$(echo "$changelog" | sed 's/^\[log\][[:space:]]*//')
+          changelog="$changelog
+          $contributors"
 
           echo "changelog<<EOF" >> $GITHUB_OUTPUT
           echo "$changelog" >> $GITHUB_OUTPUT
