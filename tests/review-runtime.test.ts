@@ -396,3 +396,147 @@ test('S3 metadata publication uses image MIME and the returned prefixed key for 
     assert.deepEqual(objects.get('photos/original.JPG'), original)
   }
 })
+
+test('HEIC metadata publication retains the derived JPEG target rather than its protected display route', async () => {
+  const { createPhotoWriter } = await import('@chronoframe/core')
+  const { createSqlitePhotoWriteRepository } =
+    await import('@chronoframe/database')
+  const { S3StorageProvider } = await import('@chronoframe/storage')
+  const connection = openDatabase({
+    filename: ':memory:',
+    migrationsFolder: 'packages/database/migrations',
+  })
+  const config = {
+    provider: 's3' as const,
+    bucket: 'test',
+    region: 'us-east-1',
+    prefix: 'photos',
+    endpoint: 'https://storage.example.com',
+    accessKeyId: 'test',
+    secretAccessKey: 'test',
+  }
+  const provider = new S3StorageProvider(config)
+  const fixture = Buffer.from('source bytes for URL publication test')
+  const objects = new Map<string, Buffer>([['photos/original.HEIC', fixture]])
+  ;(provider as any).client.send = async (command: any) => {
+    const input = command.input
+    if (command.constructor.name === 'GetObjectCommand')
+      return { Body: objects.get(input.Key) }
+    if (command.constructor.name === 'PutObjectCommand') {
+      objects.set(input.Key, input.Body)
+      return {}
+    }
+    if (command.constructor.name === 'DeleteObjectCommand') {
+      objects.delete(input.Key)
+      return {}
+    }
+    throw new Error('Unexpected S3 command')
+  }
+  try {
+    const db = connection.db
+    const storage = db
+      .insert(tables.settings_storage_providers)
+      .values({ name: 'S3', provider: 's3', config })
+      .returning()
+      .get()
+    const adapter = load('server/services/resources/photo-metadata.ts', {
+      'exiftool-vendored': { exiftool: { write: async () => {} } },
+      '../image/exif': { extractExifData: async () => null },
+      '../../utils/logger': {
+        logger: { image: { error: () => {}, warn: () => {} } },
+      },
+    }).editPhotoMetadata
+    for (const derivedKey of ['photos/generated/original.jpeg', null]) {
+      const id = derivedKey ? 'derived' : 'legacy'
+      const target = provider.getPublicUrl(derivedKey ?? 'photos/legacy.jpeg')
+      db.insert(tables.photos)
+        .values({
+          id,
+          storageKey: 'photos/original.HEIC',
+          originalUrl: target,
+          originalDerivedKey: derivedKey,
+          storageConnectionId: storage.id,
+        })
+        .run()
+      const repository = createSqlitePhotoWriteRepository(db, DEFAULT_SITE)
+      const captured = (await repository.get(id))!
+      assert.equal(captured.originalUrl, target)
+      if (derivedKey) {
+        const staged = await adapter(
+          { ...captured, originalUrl: `/image/__photo__/${id}/original` },
+          {},
+          provider,
+        )
+        assert.equal(staged.originalUrl, target)
+        await staged.discard()
+      }
+      const writer = createPhotoWriter({
+        repository,
+        clock: { now: () => new Date() },
+        storage: { forPhoto: async () => provider },
+        editMetadata: (photo, input) => adapter(photo, input, provider),
+        warn: () => {},
+      })
+      const result = await writer.update(
+        id,
+        { title: 'Edited' },
+        { authenticated: true },
+      )
+      assert.equal(result.photo!.originalUrl, `/image/__photo__/${id}/original`)
+      const persisted = db
+        .select()
+        .from(tables.photos)
+        .all()
+        .find((row) => row.id === id)!
+      assert.equal(persisted.originalUrl, target)
+      assert.ok(!persisted.originalUrl!.includes('/image/__photo__/'))
+      const jpeg = await sharp({
+        create: { width: 2, height: 3, channels: 3, background: 'blue' },
+      })
+        .jpeg()
+        .toBuffer()
+      let fetches = 0
+      const imageRoute = load(
+        'server/routes/image/[...key].get.ts',
+        {
+          '../../utils/object-storage': {
+            storageForPhoto: async () => provider,
+          },
+          '../../utils/local-media': {},
+          '../../utils/album-access': { assertPhotoAccess: async () => false },
+          '../../utils/db': { tables, useDB: () => db },
+        },
+        {
+          eventHandler: (handler: unknown) => handler,
+          useStorageProvider: () => ({ storageProvider: provider }),
+          URL,
+          getRouterParam: () => `__photo__/${id}/original`,
+          getRequestURL: () =>
+            new URL(`https://app.example.com/image/__photo__/${id}/original`),
+          getHeader: () => undefined,
+          setHeader: () => {},
+          fetch: async (url: string) => {
+            fetches++
+            assert.equal(url, target)
+            return new Response(jpeg, {
+              headers: { 'content-type': 'image/jpeg' },
+            })
+          },
+          sendStream: async (
+            _event: unknown,
+            stream: AsyncIterable<Buffer>,
+          ) => {
+            const chunks: Buffer[] = []
+            for await (const chunk of stream) chunks.push(chunk)
+            return Buffer.concat(chunks)
+          },
+        },
+      ).default
+      const displayed = await imageRoute({ node: { res: {} } })
+      assert.deepEqual(displayed, jpeg)
+      assert.equal(fetches, 1)
+    }
+  } finally {
+    connection.close()
+  }
+})

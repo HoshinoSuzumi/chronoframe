@@ -11,7 +11,7 @@ import { logger } from '../../utils/logger'
 
 /** Keep temporary files, EXIF tooling and object I/O in the application adapter. */
 export async function editPhotoMetadata(
-  photo: Photo & { storageKey: string },
+  photo: Photo & { storageKey: string; originalDerivedKey?: string | null },
   payload: PhotoMetadataInput,
   storageProvider: StorageProvider,
 ) {
@@ -123,7 +123,9 @@ export async function editPhotoMetadata(
       storageKey: staged.key,
       // HEIC originals retain their separately generated browser-readable JPEG.
       originalUrl: /\.(?:heic|heif|hif)$/i.test(photo.storageKey)
-        ? photo.originalUrl
+        ? photo.originalDerivedKey
+          ? storageProvider.getPublicUrl(photo.originalDerivedKey)
+          : photo.originalUrl
         : storageProvider.getPublicUrl(staged.key),
       discard: () => storageProvider.delete(staged.key),
     }

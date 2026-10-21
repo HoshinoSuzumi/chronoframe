@@ -194,6 +194,8 @@ export function createSqlitePhotoWriteRepository(
   requireSite(db, site)
   const record = (photo: typeof tables.photos.$inferSelect) => ({
     ...toPhotoDto(photo),
+    // Internal mutation records retain persisted targets, never presentation routes.
+    originalUrl: photo.originalUrl,
     originalDerivedKey: photo.originalDerivedKey,
     storageReference: {
       connectionId: photo.storageConnectionId,
