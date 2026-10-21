@@ -80,6 +80,9 @@ importers:
       file-type:
         specifier: ^22.1.1
         version: 22.1.1
+      h3:
+        specifier: ^1.15.11
+        version: 1.15.11
       heic-convert:
         specifier: ^2.1.0
         version: 2.1.0
