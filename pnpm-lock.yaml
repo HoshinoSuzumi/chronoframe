@@ -507,6 +507,179 @@ importers:
       vue-tsc:
         specifier: ^2.2.12
         version: 2.2.12(typescript@5.9.3)
+  apps/self-hosted:
+    dependencies:
+      "@aws-sdk/client-s3":
+        specifier: ^3.1149.0
+        version: 3.1149.0
+      "@aws-sdk/s3-request-presigner":
+        specifier: ^3.1149.0
+        version: 3.1149.0
+      "@chronoframe/console":
+        specifier: workspace:*
+        version: link:../../packages/console
+      "@chronoframe/gallery":
+        specifier: workspace:*
+        version: link:../../packages/gallery
+      "@chronoframe/contracts":
+        specifier: workspace:*
+        version: link:../../packages/contracts
+      "@chronoframe/core":
+        specifier: workspace:*
+        version: link:../../packages/core
+      "@chronoframe/database":
+        specifier: workspace:*
+        version: link:../../packages/database
+      "@chronoframe/geocoding":
+        specifier: workspace:*
+        version: link:../../packages/geocoding
+      "@chronoframe/jobs":
+        specifier: workspace:*
+        version: link:../../packages/jobs
+      "@chronoframe/media":
+        specifier: workspace:*
+        version: link:../../packages/media
+      "@chronoframe/processing":
+        specifier: workspace:*
+        version: link:../../packages/processing
+      "@chronoframe/storage":
+        specifier: workspace:*
+        version: link:../../packages/storage
+      "@chronoframe/webgl-image":
+        specifier: workspace:*
+        version: link:../../packages/webgl-image
+      "@iconify/vue":
+        specifier: 5.0.3
+        version: 5.0.3(vue@3.5.43(typescript@5.9.3))
+      "@indoorequal/vue-maplibre-gl":
+        specifier: ^8.4.2
+        version: 8.4.2(maplibre-gl@5.24.0)(vue@3.5.43(typescript@5.9.3))
+      "@nuxt/fonts":
+        specifier: 0.14.0
+        version: 0.14.0(@nuxt/schema@4.6.1)(confbox@0.2.4)(db0@0.3.4(better-sqlite3@12.11.1)(drizzle-orm@0.45.4(@cloudflare/workers-types@4.20260402.1)(@opentelemetry/api@1.9.0)(@types/better-sqlite3@9.6.0)(better-sqlite3@12.11.1)))(dotenv@17.4.0)(esbuild@0.28.0)(giget@3.2.0)(ioredis@5.10.1)(jiti@2.7.0)(magic-string@1.4.3)(mlly@1.8.2)(oxc-parser@0.151.0)(rolldown@1.2.13)(rollup@4.60.3)(vite@8.3.4(@types/node@24.9.0)(esbuild@0.28.0)(jiti@2.7.0)(sass-embedded@1.105.1)(sass@1.105.1)(terser@5.44.0)(tsx@4.21.0)(yaml@2.9.0))
+      "@nuxt/icon":
+        specifier: 2.5.1
+        version: 2.5.1(@nuxt/schema@4.6.1)(confbox@0.2.4)(dotenv@17.4.0)(giget@3.2.0)(jiti@2.7.0)(magic-string@1.4.3)(oxc-parser@0.151.0)(rolldown@1.2.13)(unplugin@3.4.0(esbuild@0.28.0)(rolldown@1.2.13)(rollup@4.60.3)(vite@8.3.4(@types/node@24.9.0)(esbuild@0.28.0)(jiti@2.7.0)(sass-embedded@1.105.1)(sass@1.105.1)(terser@5.44.0)(tsx@4.21.0)(yaml@2.9.0)))(vite@8.3.4(@types/node@24.9.0)(esbuild@0.28.0)(jiti@2.7.0)(sass-embedded@1.105.1)(sass@1.105.1)(terser@5.44.0)(tsx@4.21.0)(yaml@2.9.0))(vue@3.5.43(typescript@5.9.3))
+      "@nuxt/ui":
+        specifier: ^4.11.3
+        version: 4.11.3(3ebf5098cfbfe964344b6efe7eae24df)
+      "@nuxtjs/i18n":
+        specifier: 10.6.0
+        version: 10.6.0(@nuxt/schema@4.6.1)(@vue/compiler-dom@3.5.43)(db0@0.3.4(better-sqlite3@12.11.1)(drizzle-orm@0.45.4(@cloudflare/workers-types@4.20260402.1)(@opentelemetry/api@1.9.0)(@types/better-sqlite3@9.6.0)(better-sqlite3@12.11.1)))(dotenv@17.4.0)(esbuild@0.28.0)(eslint@9.38.0(jiti@2.7.0))(giget@3.2.0)(ioredis@5.10.1)(jiti@2.7.0)(pinia@3.0.4(typescript@5.9.3)(vue@3.5.43(typescript@5.9.3)))(rolldown@1.2.13)(rollup@4.60.3)(typescript@5.9.3)(vite@8.3.4(@types/node@24.9.0)(esbuild@0.28.0)(jiti@2.7.0)(sass-embedded@1.105.1)(sass@1.105.1)(terser@5.44.0)(tsx@4.21.0)(yaml@2.9.0))(vue@3.5.43(typescript@5.9.3))
+      "@pinia/nuxt":
+        specifier: ^0.11.3
+        version: 0.11.3(@nuxt/schema@4.6.1)(confbox@0.2.4)(dotenv@17.4.0)(giget@3.2.0)(jiti@2.7.0)(magic-string@1.4.3)(mlly@1.8.2)(oxc-parser@0.151.0)(pinia@3.0.4(typescript@5.9.3)(vue@3.5.43(typescript@5.9.3)))(rolldown@1.2.13)(unplugin@3.4.0(esbuild@0.28.0)(rolldown@1.2.13)(rollup@4.60.3)(vite@8.3.4(@types/node@24.9.0)(esbuild@0.28.0)(jiti@2.7.0)(sass-embedded@1.105.1)(sass@1.105.1)(terser@5.44.0)(tsx@4.21.0)(yaml@2.9.0)))
+      "@tailwindcss/vite":
+        specifier: ^4.3.3
+        version: 4.3.3(vite@8.3.4(@types/node@24.9.0)(esbuild@0.28.0)(jiti@2.7.0)(sass-embedded@1.105.1)(sass@1.105.1)(terser@5.44.0)(tsx@4.21.0)(yaml@2.9.0))
+      "@takumi-rs/core":
+        specifier: 2.15.0
+        version: 2.15.0(csstype@3.2.3)
+      "@unhead/vue":
+        specifier: ^2.1.17
+        version: 2.1.17(vue@3.5.43(typescript@5.9.3))
+      "@vingle/bmp-js":
+        specifier: ^0.2.5
+        version: 0.2.5
+      "@vueuse/nuxt":
+        specifier: 14.4.0
+        version: 14.4.0(@nuxt/schema@4.6.1)(confbox@0.2.4)(dotenv@17.4.0)(giget@3.2.0)(jiti@2.7.0)(magic-string@1.4.3)(mlly@1.8.2)(nuxt@4.6.1(165166b5178185dd2552bfcb477f8ef8))(oxc-parser@0.151.0)(rolldown@1.2.13)(unplugin@3.4.0(esbuild@0.28.0)(rolldown@1.2.13)(rollup@4.60.3)(vite@8.3.4(@types/node@24.9.0)(esbuild@0.28.0)(jiti@2.7.0)(sass-embedded@1.105.1)(sass@1.105.1)(terser@5.44.0)(tsx@4.21.0)(yaml@2.9.0)))(vue@3.5.43(typescript@5.9.3))
+      "@yeger/vue-masonry-wall":
+        specifier: ^6.1.4
+        version: 6.1.4(vue@3.5.43(typescript@5.9.3))
+      better-sqlite3:
+        specifier: ^12.11.1
+        version: 12.11.1
+      dayjs-nuxt:
+        specifier: 2.1.11
+        version: 2.1.11(magicast@0.3.5)
+      driver.js:
+        specifier: ^1.9.0
+        version: 1.9.0
+      drizzle-orm:
+        specifier: ^0.45.4
+        version: 0.45.4(@cloudflare/workers-types@4.20260402.1)(@opentelemetry/api@1.9.0)(@types/better-sqlite3@9.6.0)(better-sqlite3@12.11.1)
+      es-toolkit:
+        specifier: ^1.52.0
+        version: 1.52.0
+      exiftool-vendored:
+        specifier: ^35.21.0
+        version: 35.21.0
+      file-type:
+        specifier: ^22.1.1
+        version: 22.1.1
+      h3:
+        specifier: ^1.15.11
+        version: 1.15.11
+      heic-convert:
+        specifier: ^2.1.0
+        version: 2.1.0
+      maplibre-gl:
+        specifier: ^5.24.0
+        version: 5.24.0
+      motion-v:
+        specifier: ^2.6.0
+        version: 2.6.0(@vueuse/core@14.4.0(vue@3.5.43(typescript@5.9.3)))(vue@3.5.43(typescript@5.9.3))
+      nuxt:
+        specifier: ^4.6.1
+        version: 4.6.1(165166b5178185dd2552bfcb477f8ef8)
+      nuxt-auth-utils:
+        specifier: 0.5.31
+        version: 0.5.31(confbox@0.2.4)(dotenv@17.4.0)(giget@3.2.0)(jiti@2.7.0)(magic-string@1.4.3)(mlly@1.8.2)(oxc-parser@0.151.0)(rolldown@1.2.13)(unplugin@3.4.0(esbuild@0.28.0)(rolldown@1.2.13)(rollup@4.60.3)(vite@8.3.4(@types/node@24.9.0)(esbuild@0.28.0)(jiti@2.7.0)(sass-embedded@1.105.1)(sass@1.105.1)(terser@5.44.0)(tsx@4.21.0)(yaml@2.9.0)))
+      nuxt-gtag:
+        specifier: 4.1.0
+        version: 4.1.0(@nuxt/schema@4.6.1)(confbox@0.2.4)(dotenv@17.4.0)(giget@3.2.0)(jiti@2.7.0)(magic-string@1.4.3)(mlly@1.8.2)(oxc-parser@0.151.0)(rolldown@1.2.13)(unplugin@3.4.0(esbuild@0.28.0)(rolldown@1.2.13)(rollup@4.60.3)(vite@8.3.4(@types/node@24.9.0)(esbuild@0.28.0)(jiti@2.7.0)(sass-embedded@1.105.1)(sass@1.105.1)(terser@5.44.0)(tsx@4.21.0)(yaml@2.9.0)))
+      nuxt-mapbox:
+        specifier: 1.6.4
+        version: 1.6.4(@nuxt/schema@4.6.1)(confbox@0.2.4)(dotenv@17.4.0)(giget@3.2.0)(jiti@2.7.0)(magic-string@1.4.3)(mlly@1.8.2)(oxc-parser@0.151.0)(rolldown@1.2.13)(typescript@5.9.3)(unplugin@3.4.0(esbuild@0.28.0)(rolldown@1.2.13)(rollup@4.60.3)(vite@8.3.4(@types/node@24.9.0)(esbuild@0.28.0)(jiti@2.7.0)(sass-embedded@1.105.1)(sass@1.105.1)(terser@5.44.0)(tsx@4.21.0)(yaml@2.9.0)))(vite@8.3.4(@types/node@24.9.0)(esbuild@0.28.0)(jiti@2.7.0)(sass-embedded@1.105.1)(sass@1.105.1)(terser@5.44.0)(tsx@4.21.0)(yaml@2.9.0))
+      nuxt-maplibre:
+        specifier: ^1.2.2
+        version: 1.2.2(vue@3.5.43(typescript@5.9.3))
+      nuxt-og-image:
+        specifier: 6.10.3
+        version: 6.10.3(5d1d6479d0b90dde027d14f9fefd1849)
+      pinia:
+        specifier: ^3.0.4
+        version: 3.0.4(typescript@5.9.3)(vue@3.5.43(typescript@5.9.3))
+      reka-ui:
+        specifier: ^2.11.0
+        version: 2.11.0(vue@3.5.43(typescript@5.9.3))
+      sharp:
+        specifier: 0.35.5
+        version: 0.35.5(@types/node@24.9.0)
+      swiper:
+        specifier: ^12.2.0
+        version: 12.2.0
+      systeminformation:
+        specifier: ^5.33.15
+        version: 5.33.15
+      tailwind-merge:
+        specifier: ^3.7.0
+        version: 3.7.0
+      tailwindcss:
+        specifier: ^4.3.3
+        version: 4.3.3
+      thumbhash:
+        specifier: ^0.1.1
+        version: 0.1.1
+      tippy.js:
+        specifier: ^6.3.7
+        version: 6.3.7
+      unstorage:
+        specifier: ^1.17.5
+        version: 1.17.5(db0@0.3.4(better-sqlite3@12.11.1)(drizzle-orm@0.45.4(@cloudflare/workers-types@4.20260402.1)(@opentelemetry/api@1.9.0)(@types/better-sqlite3@9.6.0)(better-sqlite3@12.11.1)))(ioredis@5.10.1)
+      vue:
+        specifier: ^3.5.43
+        version: 3.5.43(typescript@5.9.3)
+      vue-router:
+        specifier: ^4.6.4
+        version: 4.6.4(vue@3.5.43(typescript@5.9.3))
+      wait-on:
+        specifier: ^9.5.1
+        version: 9.5.1
+      zod:
+        specifier: ^4.6.6
+        version: 4.6.6
 
 packages:
 

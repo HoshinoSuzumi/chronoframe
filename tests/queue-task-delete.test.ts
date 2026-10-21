@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 import Database from 'better-sqlite3'
 import { drizzle } from 'drizzle-orm/better-sqlite3'
-import { pipelineQueue } from '../server/database/schema.ts'
+import { pipelineQueue } from '../apps/self-hosted/server/database/schema.ts'
 
 test('single task deletion only removes finished queue records', async (t) => {
   const sqlite = new Database(':memory:')
@@ -27,7 +27,7 @@ test('single task deletion only removes finished queue records', async (t) => {
 
   try {
     const { default: handler } =
-      await import('../server/api/queue/task/[taskId].delete.ts')
+      await import('../apps/self-hosted/server/api/queue/task/[taskId].delete.ts')
     const call = (taskId: string, authenticated = true) =>
       handler({ taskId, authenticated } as never)
     const seed = (status: string) => {

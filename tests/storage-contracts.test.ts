@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import { storageConfigSchema } from '@chronoframe/contracts/storage'
-import { storageConfigSchema as compatibilitySchema } from '../shared/types/storage.ts'
+import { storageConfigSchema as compatibilitySchema } from '../packages/gallery/shared/types/storage.ts'
 
 // Exercise the workspace export as a plain Node consumer, outside Nuxt.
 test('Self-hosted compatibility entry uses the shared storage schema', () => {

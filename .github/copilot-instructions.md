@@ -13,10 +13,11 @@ ChronoFrame is a high-performance photo management and gallery application built
 
 ### Key Directories
 
-- `app/`: Nuxt 4 application (components, pages, composables)
-- `server/`: API routes and backend services
+- `apps/self-hosted/`: Nuxt entry, onboarding, authentication and server adapters
+- `packages/console/`: Shared dashboard Nuxt layer
+- `packages/gallery/`: Shared public gallery, UI state and translations
 - `packages/webgl-image/`: Standalone WebGL image viewer package
-- `shared/`: Type definitions shared between client/server
+- `packages/gallery/shared/`: Compatibility presentation types and utilities; domain DTOs live in contracts
 
 ## Development Workflow
 
@@ -45,7 +46,7 @@ This is a pnpm workspace with the WebGL package as a local dependency. Always us
 
 ### Multi-Provider System
 
-Storage providers are abstracted through `server/services/storage/interfaces.ts`:
+Storage providers are abstracted through `apps/self-hosted/server/services/storage/interfaces.ts`:
 
 - **S3**: AWS S3-compatible storage (primary)
 - **HubR2**: Cloudflare R2 via NuxtHub
@@ -59,7 +60,7 @@ All storage operations go through `useStorageProvider(event)` in API routes. The
 
 ### Async Processing Pattern
 
-Photos are processed via `execPhotoPipelineAsync()` in `server/services/photo/pipeline-async.ts`:
+Photos are processed via `execPhotoPipelineAsync()` in `apps/self-hosted/server/services/photo/pipeline-async.ts`:
 
 1. **Preprocessing**: HEIC conversion to JPEG, buffer management
 2. **Metadata**: Sharp processing for dimensions/format
@@ -72,7 +73,7 @@ Photos are processed via `execPhotoPipelineAsync()` in `server/services/photo/pi
 
 - Use `setImmediate()` for non-blocking async operations
 - Always handle HEIC → JPEG conversion for Apple photos
-- EXIF processing requires temporary file writes (see `server/services/image/exif.ts`)
+- EXIF processing requires temporary file writes (see `apps/self-hosted/server/services/image/exif.ts`)
 - Thumbnails are stored as separate WebP files with hash compression
 
 ## Component Patterns
@@ -90,7 +91,7 @@ Photos are processed via `execPhotoPipelineAsync()` in `server/services/photo/pi
 
 ### Masonry Grid System
 
-The `app/components/masonry/Root.vue` implements a CSS-based masonry layout:
+The `packages/gallery/app/components/masonry/Root.vue` implements a CSS-based masonry layout:
 
 - Auto-responsive column counts based on viewport
 - Intersection Observer for performance and date range tracking
@@ -98,13 +99,13 @@ The `app/components/masonry/Root.vue` implements a CSS-based masonry layout:
 
 ### WebGL Integration
 
-Register WebGL components via plugin (`app/plugins/chrono-webgl-image.ts`). The package provides hardware-accelerated zooming and panning for large images.
+Register WebGL components via plugin (`packages/gallery/app/plugins/chrono-webgl-image.ts`). The package provides hardware-accelerated zooming and panning for large images.
 
 ## Database Operations
 
 ### Core Database Pattern
 
-**ALWAYS use `useDB()` from `server/utils/db.ts` for all database operations:**
+**ALWAYS use `useDB()` from `apps/self-hosted/server/utils/db.ts` for all database operations:**
 
 ```typescript
 import { useDB, tables, eq } from '~~/server/utils/db'
@@ -138,7 +139,7 @@ await useDB()
 
 ### Photo Model Schema
 
-Key fields in `server/database/schema.ts`:
+Key fields in `apps/self-hosted/server/database/schema.ts`:
 
 - `storageKey`: Original file path in storage
 - `originalUrl`: Public URL (may point to JPEG version for HEIC)
@@ -206,7 +207,7 @@ Each provider has specific env vars (see README). S3 is most commonly used with 
 
 ### Database Operations
 
-- **CRITICAL**: Always use `useDB()` from `server/utils/db.ts` - never import Drizzle directly
+- **CRITICAL**: Always use `useDB()` from `apps/self-hosted/server/utils/db.ts` - never import Drizzle directly
 - Import query helpers: `import { useDB, tables, eq, and, or } from '~~/server/utils/db'`
 - Use `tables.photos`, `tables.users` for schema references
 - Database file is `data/app.sqlite3` (better-sqlite3 + Drizzle ORM)

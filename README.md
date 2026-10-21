@@ -137,3 +137,11 @@ Thanks to the maintainers of [Nuxt](https://nuxt.com/), [Vue](https://vuejs.org/
    <img alt="Star History Chart" src="https://star-history.dera.page/svg?repos=HoshinoSuzumi/chronoframe&type=date&legend=top-left" />
  </picture>
 </a>
+
+
+### Workspace layout
+
+The Self-hosted application lives in `apps/self-hosted`. Shared dashboard and
+gallery Nuxt layers live in `packages/console` and `packages/gallery`. Root
+`pnpm dev`, `pnpm build`, and database commands retain their existing entry points.
+See [the Self-hosted development notes](apps/self-hosted/README.md).

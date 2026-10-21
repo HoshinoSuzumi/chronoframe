@@ -1,3 +1,4 @@
+import { existsSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { openDatabase } from '@chronoframe/database'
 export { tables } from '@chronoframe/database'
@@ -22,7 +23,13 @@ export function useDB() {
   connection ??= openDatabase({
     filename: resolve(process.env.DATABASE_URL || './data/app.sqlite3'),
     migrationsFolder: resolve(
-      process.env.DATABASE_MIGRATIONS || './server/database/migrations',
+      process.env.DATABASE_MIGRATIONS ||
+        [
+          './packages/database/migrations',
+          '../../packages/database/migrations',
+          './server/database/migrations',
+        ].find((candidate) => existsSync(resolve(candidate))) ||
+        './server/database/migrations',
     ),
     verbose:
       process.env.NODE_ENV === 'development'

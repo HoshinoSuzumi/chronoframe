@@ -7,8 +7,8 @@ import {
   type ReadAccess,
 } from '@chronoframe/core'
 import type { Album, Photo } from '@chronoframe/contracts/resources'
-import { toPhotoDto } from '../server/utils/dto.ts'
-import type { Photo as PhotoRow } from '../server/utils/db.ts'
+import { toPhotoDto } from '../apps/self-hosted/server/utils/dto.ts'
+import type { Photo as PhotoRow } from '../apps/self-hosted/server/utils/db.ts'
 
 const photos = ['public', 'shared-hidden', 'locked', 'shared-locked'].map(
   (id) =>

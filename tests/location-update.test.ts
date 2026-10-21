@@ -4,12 +4,12 @@ import Database from 'better-sqlite3'
 import { drizzle } from 'drizzle-orm/better-sqlite3'
 import { migrate } from 'drizzle-orm/better-sqlite3/migrator'
 import { eq } from 'drizzle-orm'
-import { photos } from '../server/database/schema.ts'
+import { photos } from '../apps/self-hosted/server/database/schema.ts'
 import {
   matchesLocationRequest,
   updateGeocodedPhoto,
-} from '../server/services/pipeline-queue/location-update.ts'
-import type { LocationInfo } from '../server/services/location/geocoding.ts'
+} from '../apps/self-hosted/server/services/pipeline-queue/location-update.ts'
+import type { LocationInfo } from '../apps/self-hosted/server/services/location/geocoding.ts'
 import { photosToMarkers } from '../packages/gallery/app/utils/clustering.ts'
 
 const location: LocationInfo = {
@@ -27,7 +27,9 @@ const location: LocationInfo = {
 test('EXIF recovery writes NULL coordinates; concurrent changes discard the result', () => {
   const sqlite = new Database(':memory:')
   const db = drizzle(sqlite)
-  migrate(db, { migrationsFolder: 'server/database/migrations' })
+  migrate(db, {
+    migrationsFolder: 'apps/self-hosted/server/database/migrations',
+  })
   const typedDB = db as Parameters<typeof updateGeocodedPhoto>[0]
   try {
     db.insert(photos).values({ id: 'p' }).run()

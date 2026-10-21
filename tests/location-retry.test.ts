@@ -3,12 +3,14 @@ import test from 'node:test'
 import Database from 'better-sqlite3'
 import { drizzle } from 'drizzle-orm/better-sqlite3'
 import { migrate } from 'drizzle-orm/better-sqlite3/migrator'
-import * as tables from '../server/database/schema.ts'
+import * as tables from '../apps/self-hosted/server/database/schema.ts'
 
 test('retry endpoints authorize migration tasks before updating any tasks', async () => {
   const sqlite = new Database(':memory:')
   const db = drizzle(sqlite)
-  migrate(db, { migrationsFolder: 'server/database/migrations' })
+  migrate(db, {
+    migrationsFolder: 'apps/self-hosted/server/database/migrations',
+  })
   const globals = {
     defineEventHandler: (handler: unknown) => handler,
     requireUserSession: async (event: { admin: boolean }) => ({
@@ -27,9 +29,9 @@ test('retry endpoints authorize migration tasks before updating any tasks', asyn
   Object.assign(globalThis, globals)
   try {
     const { default: single } =
-      await import('../server/api/queue/task/retry.post.ts')
+      await import('../apps/self-hosted/server/api/queue/task/retry.post.ts')
     const { default: batch } =
-      await import('../server/api/queue/task/retry-batch.post.ts')
+      await import('../apps/self-hosted/server/api/queue/task/retry-batch.post.ts')
     const seed = () => {
       db.delete(tables.pipelineQueue).run()
       db.insert(tables.pipelineQueue)

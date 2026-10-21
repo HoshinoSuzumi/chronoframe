@@ -2,11 +2,11 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 import Database from 'better-sqlite3'
 import { drizzle } from 'drizzle-orm/better-sqlite3'
-import * as schema from '../server/database/schema.ts'
+import * as schema from '../apps/self-hosted/server/database/schema.ts'
 import {
   photoTaskAlbumExists,
   queuePayloadSchema,
-} from '../server/utils/queue-payload.ts'
+} from '../apps/self-hosted/server/utils/queue-payload.ts'
 
 test('photo queue payload accepts an optional positive album ID', () => {
   assert.deepEqual(

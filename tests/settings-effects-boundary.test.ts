@@ -4,12 +4,14 @@ import Database from 'better-sqlite3'
 import { drizzle } from 'drizzle-orm/better-sqlite3'
 import { migrate } from 'drizzle-orm/better-sqlite3/migrator'
 import { and, eq } from 'drizzle-orm'
-import * as tables from '../server/database/schema.ts'
+import * as tables from '../apps/self-hosted/server/database/schema.ts'
 
 test('settings emit effects only after persistence and restore an active config after reload failure', async () => {
   const sqlite = new Database(':memory:')
   const db = drizzle(sqlite, { schema: tables })
-  migrate(db, { migrationsFolder: './server/database/migrations' })
+  migrate(db, {
+    migrationsFolder: './apps/self-hosted/server/database/migrations',
+  })
   const fakeLogger = { info() {}, warn() {}, error() {}, debug() {} }
   const globals = globalThis as unknown as Record<string, unknown>
   const overrides = {
@@ -25,7 +27,7 @@ test('settings emit effects only after persistence and restore an active config 
   Object.assign(globals, overrides)
   try {
     const { settingsManager } =
-      await import('../server/services/settings/settingsManager.ts')
+      await import('../apps/self-hosted/server/services/settings/settingsManager.ts')
     db.insert(tables.settings)
       .values([
         {

@@ -9,7 +9,7 @@ import { createApp, eventHandler, toNodeListener } from 'h3'
 import {
   resolveLocalMediaPath,
   serveLocalMedia,
-} from '../server/utils/local-media.ts'
+} from '../apps/self-hosted/server/utils/local-media.ts'
 
 test('Local media stays within its real storage root, including symlink targets', async () => {
   const root = await mkdtemp(path.join(tmpdir(), 'local-media-'))

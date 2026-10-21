@@ -3,14 +3,16 @@ import test from 'node:test'
 import Database from 'better-sqlite3'
 import { drizzle } from 'drizzle-orm/better-sqlite3'
 import { migrate } from 'drizzle-orm/better-sqlite3/migrator'
-import * as schema from '../server/database/schema.ts'
-import { listUploadAlbumOptions } from '../server/utils/upload-album-options.ts'
+import * as schema from '../apps/self-hosted/server/database/schema.ts'
+import { listUploadAlbumOptions } from '../apps/self-hosted/server/utils/upload-album-options.ts'
 
 test('upload album options include metadata in album order', () => {
   const sqlite = new Database(':memory:')
   try {
     const db = drizzle(sqlite, { schema })
-    migrate(db, { migrationsFolder: './server/database/migrations' })
+    migrate(db, {
+      migrationsFolder: './apps/self-hosted/server/database/migrations',
+    })
     const later = db
       .insert(schema.albums)
       .values({

@@ -29,7 +29,7 @@ test('album authorization rejects non-admin sessions before reading input or acc
   Object.assign(globalThis, globals)
   try {
     const { requireAdminSession } =
-      await import('../server/utils/require-admin.ts')
+      await import('../apps/self-hosted/server/utils/require-admin.ts')
 
     await assert.rejects(requireAdminSession({ role: 'guest' } as never), {
       statusCode: 401,
@@ -63,7 +63,7 @@ test('all album mutation routes retain the administrator guard before input hand
     'albums/upload-options.get.ts',
   ]) {
     const source = await readFile(
-      new URL('../server/api/' + path, import.meta.url),
+      new URL('../apps/self-hosted/server/api/' + path, import.meta.url),
       'utf8',
     )
     assert.match(source, /await requireAdminSession\(event\)/, path)

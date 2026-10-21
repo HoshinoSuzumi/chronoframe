@@ -3,12 +3,12 @@ import test from 'node:test'
 import {
   normalizeMapbox,
   normalizeNominatim,
-} from '../server/services/location/normalize.ts'
+} from '../apps/self-hosted/server/services/location/normalize.ts'
 import {
   hasValidCoordinates,
   resolveLocationLabel,
-} from '../shared/utils/location.ts'
-import { waitForGeocodingSlot } from '../server/services/location/rate-limit.ts'
+} from '../packages/gallery/shared/utils/location.ts'
+import { waitForGeocodingSlot } from '../apps/self-hosted/server/services/location/rate-limit.ts'
 
 test('providers preserve city and district separately with source fields', () => {
   const mapbox = normalizeMapbox(
