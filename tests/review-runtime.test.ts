@@ -350,7 +350,7 @@ test('S3 metadata publication uses image MIME and the returned prefixed key for 
       const input = command.input
       if (command.constructor.name === 'GetObjectCommand')
         return {
-          Body: { transformToByteArray: async () => objects.get(input.Key)! },
+          Body: objects.get(input.Key)!,
         }
       if (command.constructor.name === 'PutObjectCommand') {
         writes.push(input)
