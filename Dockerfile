@@ -5,19 +5,29 @@ RUN corepack enable
 
 FROM base AS deps
 WORKDIR /usr/src/app
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
+COPY scripts/self-hosted.mjs ./scripts/
+COPY apps/self-hosted/package.json ./apps/self-hosted/
+COPY packages/console/package.json ./packages/console/
+COPY packages/gallery/package.json ./packages/gallery/
 COPY packages/webgl-image/package.json ./packages/webgl-image/
+COPY packages/contracts/package.json ./packages/contracts/
+COPY packages/core/package.json ./packages/core/
+COPY packages/database/package.json ./packages/database/
+COPY packages/jobs/package.json ./packages/jobs/
+COPY packages/processing/package.json ./packages/processing/
+COPY packages/storage/package.json ./packages/storage/
+COPY packages/media/package.json ./packages/media/
+COPY packages/geocoding/package.json ./packages/geocoding/
 RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile
 
-FROM base AS build
+FROM deps AS build
 WORKDIR /usr/src/app
-COPY --from=deps /usr/src/app/node_modules ./node_modules
-COPY --from=deps /usr/src/app/packages/webgl-image/node_modules ./packages/webgl-image/node_modules
 COPY . .
-RUN pnpm exec nuxt prepare
-RUN NODE_OPTIONS="--max-old-space-size=4096" pnpm run build:deps
-RUN NODE_OPTIONS="--max-old-space-size=8192" pnpm run build
-RUN find ./.output -type f -name '*.map' -delete
+RUN pnpm run prepare \
+    && NODE_OPTIONS="--max-old-space-size=4096" pnpm run build:deps \
+    && pnpm run build \
+    && find ./apps/self-hosted/.output -type f -name '*.map' -delete
 
 FROM node:22.23.3-alpine AS runtime_deps
 RUN apk add --no-cache ca-certificates perl exiftool \
@@ -41,8 +51,9 @@ COPY --from=runtime_deps /etc/ssl /etc/ssl
 # scratch has no temporary directory; uploads and image processing need one.
 COPY --from=runtime_deps --chmod=1777 /opt/runtime-tmp /tmp
 
-COPY --from=build /usr/src/app/.output ./.output
-COPY --from=build /usr/src/app/server/database/migrations ./server/database/migrations
+COPY --from=build /usr/src/app/apps/self-hosted/.output ./.output
+COPY --from=build /usr/src/app/packages/database/migrations ./server/database/migrations
+COPY --from=build /usr/src/app/LICENSE /usr/src/app/LICENSING.md ./
 
 EXPOSE 3000
 VOLUME ["/app/data"]

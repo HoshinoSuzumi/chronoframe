@@ -1,0 +1,3 @@
+<template>
+  <AlbumListing />
+</template>

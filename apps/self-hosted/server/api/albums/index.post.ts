@@ -1,0 +1,30 @@
+import { requireAdminSession } from '../../utils/require-admin.ts'
+import z from 'zod'
+import {
+  ALBUM_PASSWORD_MAX_LENGTH,
+  ALBUM_PASSWORD_MIN_LENGTH,
+} from '~~/shared/utils/album'
+import { useAlbumWriter, mutationResponse } from '../../utils/resource-writer'
+
+export default eventHandler(async (event) => {
+  await requireAdminSession(event)
+  const body = await readValidatedBody(
+    event,
+    z.object({
+      title: z.string().min(1).max(255),
+      description: z.string().max(1000).optional(),
+      coverPhotoId: z.string().optional(),
+      photoIds: z.array(z.string()).optional(),
+      isHidden: z.boolean().optional(),
+      password: z
+        .string()
+        .min(ALBUM_PASSWORD_MIN_LENGTH)
+        .max(ALBUM_PASSWORD_MAX_LENGTH)
+        .optional(),
+    }).parse,
+  )
+
+  return mutationResponse(() =>
+    useAlbumWriter().create(body, { authenticated: true }),
+  )
+})

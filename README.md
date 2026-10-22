@@ -11,7 +11,7 @@
   <a href="https://github.com/HoshinoSuzumi/chronoframe/releases">
     <img src="https://badgen.net/github/release/HoshinoSuzumi/chronoframe?icon=docker&label=prerelease" alt="Latest Prerelease">
   </a>
-  <img src="https://img.shields.io/badge/License-MIT-green.svg" alt="License">
+  <img src="https://img.shields.io/badge/License-AGPL--3.0--only-blue.svg" alt="License">
 </p>
 
 <p align="center">
@@ -116,7 +116,17 @@ pnpm docs:build    # Build documentation
 
 After changing the database schema, run `pnpm db:generate` and review the SQL. Generating migrations is unnecessary just to start the app. See the [contributing guide](https://chronoframe.bh8.ga/development/contributing.html) for more.
 
+## 📄 License
+
+ChronoFrame uses **AGPL-3.0-only** by default, including the Self-hosted and SaaS
+implementations. `packages/contracts` and `packages/webgl-image` remain MIT. See [LICENSE](LICENSE),
+[LICENSING.md](LICENSING.md) for scope, historical MIT rights,
+and commercial licensing inquiries to **ChronoFrame**. Paid hosting is permitted
+when the applicable AGPL requirements are met.
+
 ## 🤝 Contributing and community
+
+For suspected vulnerabilities, follow the [Security Policy](SECURITY.md) and report privately.
 
 Issues and pull requests are welcome. Explain the problem, resulting behavior and verification. Keep English and Chinese documentation in sync.
 
@@ -135,3 +145,25 @@ Thanks to the maintainers of [Nuxt](https://nuxt.com/), [Vue](https://vuejs.org/
    <img alt="Star History Chart" src="https://star-history.dera.page/svg?repos=HoshinoSuzumi/chronoframe&type=date&legend=top-left" />
  </picture>
 </a>
+
+### Workspace layout
+
+The Self-hosted application lives in `apps/self-hosted`. Shared dashboard and
+gallery Nuxt layers live in `packages/console` and `packages/gallery`. Root
+`pnpm dev`, `pnpm build`, and database commands retain their existing entry points.
+See [the Self-hosted development notes](apps/self-hosted/README.md).
+
+### Cloud and Site entries
+
+The public workspace also contains `apps/cloud` (marketing and portal) and
+`apps/site` (gallery). Their initial production target is Cloudflare Workers;
+Self-hosted remains a Node/Docker application. Use `pnpm dev:cloud` or
+`pnpm dev:site` for development. After `pnpm build:deps`, use `pnpm build:cloud`
+or `pnpm build:site`, then `pnpm smoke:cloud` or `pnpm smoke:site` to exercise the
+built workers locally through Wrangler/workerd. See the [Cloud](apps/cloud/README.md)
+and [Site](apps/site/README.md) notes for preview and deployment.
+
+These entries are composition foundations, not a launched hosted service.
+Platform APIs and tenant galleries remain unavailable until platform identity,
+Membership authorization, and trusted Site resolution are implemented. They do
+not use the Self-hosted administrator, database, storage, or root `.env`.

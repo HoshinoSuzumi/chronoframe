@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { getAvatarInputType } from '../app/utils/avatar.ts'
+import { getAvatarInputType } from '../packages/gallery/app/utils/avatar.ts'
 
 test('saved uploaded avatar paths do not require an absolute URL', () => {
   assert.equal(

@@ -1,0 +1,274 @@
+<script lang="ts" setup>
+import type { DropdownMenuItem, NavigationMenuItem } from '@nuxt/ui'
+
+const consoleConfig = useRuntimeConfig().public.console
+const route = useRoute()
+const router = useRouter()
+const { loggedIn, user, clear: clearUserSession } = useUserSession()
+const settingsStore = useSettingsStore()
+const { menuItems: localeMenuItems } = useLocalePreference()
+
+const appTitle = computed(() => {
+  const value = settingsStore.getSetting('app:title')
+  return value ? String(value) : $t('title.dashboard')
+})
+
+const avatarUrl = computed(() => {
+  const value = settingsStore.getSetting('app:avatarUrl')
+  return typeof value === 'string' && value.trim() ? value.trim() : undefined
+})
+
+const defaultNavItems = computed<NavigationMenuItem[][]>(() => [
+  [
+    {
+      label: $t('title.dashboard'),
+      icon: 'tabler:dashboard',
+      to: '/dashboard',
+    },
+    {
+      label: $t('title.photos'),
+      icon: 'tabler:photo-cog',
+      to: '/dashboard/photos',
+    },
+    {
+      label: $t('title.albums'),
+      icon: 'tabler:album',
+      to: '/dashboard/albums',
+    },
+    {
+      label: $t('title.queue'),
+      icon: 'tabler:list-check',
+      to: '/dashboard/queue',
+    },
+    {
+      label: $t('title.logs'),
+      icon: 'tabler:file-text',
+      to: '/dashboard/logs',
+    },
+    {
+      label: $t('title.siteAdministration'),
+      icon: 'tabler:settings',
+      defaultOpen: route.path.startsWith('/dashboard/settings'),
+      children: [
+        {
+          label: $t('title.generalSettings'),
+          icon: 'tabler:settings-2',
+          to: '/dashboard/settings/general',
+        },
+        {
+          label: $t('title.storageSettings'),
+          icon: 'tabler:database',
+          to: '/dashboard/settings/storage',
+        },
+        {
+          label: $t('title.privacySettings'),
+          icon: 'tabler:shield-lock',
+          to: '/dashboard/settings/privacy',
+        },
+        {
+          label: $t('title.mapAndLocation'),
+          icon: 'tabler:map-pin',
+          to: '/dashboard/settings/map',
+        },
+        {
+          label: $t('title.systemSettings'),
+          icon: 'tabler:cpu',
+          to: '/dashboard/settings/system',
+        },
+        {
+          label: $t('title.analyticsSettings'),
+          icon: 'tabler:chart-bar',
+          to: '/dashboard/settings/analytics',
+        },
+      ],
+    },
+  ],
+  [
+    {
+      label: 'GitHub',
+      icon: 'tabler:brand-github',
+      to: 'https://github.com/HoshinoSuzumi/chronoframe',
+      target: '_blank',
+    },
+    {
+      label: $t('dashboard.nav.documentation'),
+      icon: 'tabler:book',
+      to: 'https://chronoframe.bh8.ga/',
+      target: '_blank',
+    },
+    {
+      label: 'Discord',
+      icon: 'tabler:brand-discord',
+      to: 'https://discord.gg/MM4ZK4Ed7s',
+      target: '_blank',
+    },
+  ],
+])
+
+const navItems = computed<NavigationMenuItem[][]>(() =>
+  consoleConfig.navigation?.length
+    ? (consoleConfig.navigation as NavigationMenuItem[][])
+    : defaultNavItems.value,
+)
+
+const handleLogout = async () => {
+  await clearUserSession()
+  await navigateTo(consoleConfig.galleryPath)
+}
+
+const accountMenuItems = computed<DropdownMenuItem[][]>(() => [
+  [
+    {
+      label: $t('ui.locale.label'),
+      icon: 'tabler:language',
+      children: localeMenuItems.value,
+    },
+  ],
+  [
+    {
+      label: $t('dashboard.nav.viewGallery'),
+      icon: 'tabler:photo',
+      to: consoleConfig.galleryPath,
+    },
+  ],
+  [
+    {
+      label: $t('ui.action.logout.tooltip'),
+      icon: 'tabler:logout',
+      color: 'error',
+      onSelect: handleLogout,
+    },
+  ],
+])
+
+useHead({
+  title: () => $t('title.dashboard'),
+  titleTemplate: (title) => `${title ? `${title} | ` : ''}${appTitle.value}`,
+})
+
+const handleLogin = () => {
+  router.push({
+    path: consoleConfig.signInPath,
+    query: { redirect: route.fullPath },
+  })
+}
+</script>
+
+<template>
+  <!-- TODO: unified error page -->
+  <div
+    v-if="!loggedIn || !user?.isAdmin"
+    class="h-svh flex flex-col gap-4 items-center justify-center px-4"
+  >
+    <Icon
+      name="tabler:alert-triangle"
+      class="size-12 text-primary"
+    />
+    <p class="text-gray-500 text-center">
+      {{
+        !user?.isAdmin
+          ? $t('dashboard.access.pleaseLogin')
+          : $t('dashboard.access.noAccess')
+      }}
+    </p>
+    <UButton @click="handleLogin">{{ $t('auth.form.signin.title') }}</UButton>
+  </div>
+  <UDashboardGroup
+    v-else
+    class="bg-default dark:bg-neutral-950"
+  >
+    <UDashboardSidebar
+      id="cframe-dashboard-sidebar"
+      resizable
+      collapsible
+      mode="drawer"
+      :min-size="8"
+      :max-size="12"
+      :ui="{ footer: 'border-t border-default' }"
+      :toggle="{
+        color: 'primary',
+        variant: 'subtle',
+        class: 'rounded-full',
+      }"
+    >
+      <template #toggle>
+        <UDashboardSidebarToggle variant="soft" />
+      </template>
+
+      <template #header="{ collapsed }">
+        <div
+          v-if="!collapsed"
+          class="flex items-center gap-2"
+        >
+          <img
+            src="/favicon.svg"
+            class="h-8 w-auto shrink-0"
+          />
+          <div class="flex flex-col overflow-hidden">
+            <NuxtLink
+              to="/"
+              class="text-lg font-medium line-clamp-1"
+            >
+              {{ appTitle }}
+            </NuxtLink>
+          </div>
+        </div>
+        <img
+          v-else
+          src="/favicon.svg"
+          class="size-8 mx-auto"
+        />
+      </template>
+
+      <template #default="{ collapsed }">
+        <UNavigationMenu
+          :collapsed="collapsed"
+          :items="navItems[0]"
+          orientation="vertical"
+        />
+        <UNavigationMenu
+          :collapsed="collapsed"
+          :items="navItems[1]"
+          orientation="vertical"
+          class="mt-auto"
+        />
+      </template>
+
+      <template #footer="{ collapsed }">
+        <UDropdownMenu
+          :items="accountMenuItems"
+          :content="{ align: 'center', collisionPadding: 12 }"
+          :ui="{
+            content: collapsed
+              ? 'min-w-48'
+              : 'min-w-(--reka-dropdown-menu-trigger-width)',
+          }"
+        >
+          <UButton
+            :avatar="{
+              src: avatarUrl,
+              alt: user?.username || user?.email || 'User Avatar',
+              icon: 'tabler:user',
+              ui: {
+                image: 'object-cover',
+              },
+            }"
+            :label="collapsed ? undefined : user?.username || 'User'"
+            :trailing-icon="collapsed ? undefined : 'tabler:selector'"
+            size="lg"
+            color="neutral"
+            variant="ghost"
+            class="w-full data-[state=open]:bg-elevated"
+            :block="collapsed"
+            :ui="{ trailingIcon: 'text-dimmed ms-auto' }"
+          />
+        </UDropdownMenu>
+      </template>
+    </UDashboardSidebar>
+
+    <DashboardLocationMigration />
+    <NuxtPage />
+  </UDashboardGroup>
+</template>
+
+<style scoped></style>

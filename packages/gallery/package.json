@@ -1,0 +1,32 @@
+{
+  "name": "@chronoframe/gallery",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "license": "AGPL-3.0-only",
+  "exports": {
+    ".": "./nuxt.config.ts",
+    "./shared/*": "./shared/*.ts",
+    "./i18n/*": "./i18n/*.ts"
+  },
+  "dependencies": {
+    "@chronoframe/contracts": "workspace:*",
+    "tailwind-merge": "^3.7.0",
+    "@iconify/vue": "5.0.3",
+    "motion-v": "^2.6.0",
+    "vue": "^3.5.43",
+    "maplibre-gl": "^5.24.0",
+    "@nuxt/ui": "^4.11.3",
+    "@chronoframe/webgl-image": "workspace:*",
+    "swiper": "^12.2.0",
+    "zod": "^4.6.6",
+    "tippy.js": "^6.3.7",
+    "thumbhash": "^0.1.1",
+    "file-type": "^22.1.1",
+    "@yeger/vue-masonry-wall": "^6.1.4",
+    "pinia": "^3.0.4",
+    "@nuxtjs/i18n": "10.6.0",
+    "dayjs-nuxt": "2.1.11",
+    "vue-i18n": "^11.4.14"
+  }
+}

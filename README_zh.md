@@ -11,7 +11,7 @@
   <a href="https://github.com/HoshinoSuzumi/chronoframe/releases">
     <img src="https://badgen.net/github/release/HoshinoSuzumi/chronoframe?icon=docker&label=测试" alt="Latest Prerelease">
   </a>
-  <img src="https://img.shields.io/badge/License-MIT-green.svg" alt="License">
+  <img src="https://img.shields.io/badge/License-AGPL--3.0--only-blue.svg" alt="License">
 </p>
 
 <p align="center">
@@ -116,7 +116,15 @@ pnpm docs:build    # 构建文档
 
 修改数据库 schema 后，使用 `pnpm db:generate` 生成迁移并检查 SQL。仅启动项目时无需生成迁移。更多说明见[贡献指南](https://chronoframe.bh8.ga/zh/development/contributing.html)。
 
+## 📄 许可证
+
+ChronoFrame 默认采用 **AGPL-3.0-only**，包括 Self-hosted 与 SaaS 实现；
+`packages/contracts` 和 `packages/webgl-image` 保留 MIT。适用范围、历史 MIT 权利及向 **ChronoFrame**
+咨询商业授权的方式见 [LICENSE](LICENSE) 和 [LICENSING.md](LICENSING.md)。满足适用 AGPL 义务的收费托管是允许的。
+
 ## 🤝 贡献与交流
+
+如发现疑似安全漏洞，请按照[安全政策](SECURITY_zh.md)私下报告。
 
 欢迎提交问题和 Pull Request。请说明问题、改动后的行为和验证结果；文档改动请同步维护中文和英文。
 
@@ -135,3 +143,16 @@ pnpm docs:build    # 构建文档
    <img alt="Star History Chart" src="https://star-history.dera.page/svg?repos=HoshinoSuzumi/chronoframe&type=date&legend=top-left" />
  </picture>
 </a>
+
+### Cloud 与 Site 入口
+
+同一公开工作区包含 `apps/cloud`（官网与门户）和 `apps/site`（展示站），首个生产
+目标为 Cloudflare Workers；Self-hosted 继续使用 Node/Docker。
+使用 `pnpm dev:cloud`、`pnpm dev:site` 启动开发入口。执行 `pnpm build:deps` 后，
+使用 `pnpm build:cloud` 或 `pnpm build:site` 构建，再通过 `pnpm smoke:cloud` 或
+`pnpm smoke:site` 在 Wrangler/workerd 中验证产物。预览和部署说明见
+[Cloud](apps/cloud/README.md)、[Site](apps/site/README.md)。
+
+这些入口目前是应用组合基础，不代表托管服务已上线。平台身份、Membership 授权和
+可信 Site 解析接入前，平台 API 与租户图库保持不可用；不复用 Self-hosted 的管理员、
+数据库、存储或根目录 `.env`。

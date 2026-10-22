@@ -1,0 +1,1987 @@
+{
+  "albumProtectionWarning": {
+    "title": "アルバムのパスワード保護の制限",
+    "description": "アルバムのパスワードでは、S3、OpenList、CDN の公開写真 URL を保護できません。直接リンクを持つ人は、パスワードなしでファイルにアクセスできます。保護するアルバムにはローカルストレージを使用してください。パスワードやデフォルトのストレージを変更しても、既存のリンクやキャッシュは無効になりません。すでに公開した写真は、ストレージ/CDN 側で公開アクセスを無効にし、キャッシュを削除してオブジェクト URL を変更する必要があります。"
+  },
+  "plural": {
+    "photo": "写真がありません | 写真 {count} 枚",
+    "selectedPhoto": "選択した写真 {count} 枚"
+  },
+  "ui": {
+    "locale": {
+      "label": "言語",
+      "auto": "自動（ブラウザの言語）"
+    },
+    "action": {
+      "more": { "tooltip": "その他のメニュー" },
+      "filter": {
+        "tooltip": "写真をフィルター",
+        "title": "写真をフィルター",
+        "clearAll": "すべてクリア",
+        "tabs": {
+          "tags": "タグ",
+          "cameras": "カメラ",
+          "lenses": "レンズ",
+          "cities": "都市",
+          "ratings": "評価"
+        },
+        "empty": {
+          "tags": "タグなし",
+          "cameras": "カメラ情報なし",
+          "lenses": "レンズ情報なし",
+          "cities": "都市情報なし"
+        },
+        "rating": {
+          "showAll": "すべての写真を表示",
+          "showStarsAndAbove": "{count} 星以上の写真を表示"
+        },
+        "searchPlaceholder": "ファイル名などで検索...",
+        "shuffleTooltip": "リストをシャッフル"
+      },
+      "select": {
+        "rangeTip": "ヒント：Shift キーを押しながらクリックすると、範囲内の写真をまとめて選択できます"
+      },
+      "sort": {
+        "tooltip": "写真の並び替え",
+        "title": "並び替え",
+        "options": {
+          "dateTakenDesc": "撮影日（新しい順）",
+          "dateTakenAsc": "撮影日（古い順）",
+          "lastModifiedDesc": "最終更新（新しい順）",
+          "lastModifiedAsc": "最終更新（古い順）",
+          "fileSizeAsc": "ファイルサイズ（昇順）",
+          "fileSizeDesc": "ファイルサイズ（降順）",
+          "titleAsc": "タイトル（昇順）",
+          "titleDesc": "タイトル（降順）",
+          "shuffle": "シャッフル"
+        }
+      },
+      "theme": {
+        "tooltip": "カラーテーマ"
+      },
+      "dashboard": {
+        "tooltip": "ダッシュボード"
+      },
+      "logout": {
+        "tooltip": "ログアウト"
+      },
+      "globe": {
+        "tooltip": "グローブ"
+      },
+      "home": {
+        "tooltip": "ホームに戻る"
+      },
+      "share": {
+        "tooltip": "写真を共有",
+        "title": "写真を共有",
+        "tabs": {
+          "social": "ソーシャル共有",
+          "advanced": "高度な共有"
+        },
+        "platforms": {
+          "twitter": "Twitter",
+          "telegram": "Telegram",
+          "weibo": "Weibo",
+          "facebook": "Facebook",
+          "whatsapp": "WhatsApp",
+          "linkedin": "LinkedIn"
+        },
+        "actions": {
+          "nativeShareShort": "共有",
+          "originalShort": "元画像",
+          "shareCardShort": "共有カード",
+          "nativeShare": "システム共有を使用",
+          "copyLink": "リンクをコピー",
+          "copied": "コピー済み",
+          "close": "閉じる",
+          "otherPlatforms": "その他の共有先",
+          "retry": "再試行",
+          "copyImage": "画像をコピー",
+          "downloadImage": "オリジナルをダウンロード",
+          "generateShareImage": "共有画像を生成",
+          "shareUrl": "共有URL",
+          "downloadOgImage": "共有カードをダウンロード",
+          "downloadOriginal": "オリジナルをダウンロード",
+          "downloadOriginalImage": "オリジナル画像をダウンロード"
+        },
+        "success": {
+          "linkCopied": "リンクをクリップボードにコピーしました",
+          "imageCopied": "画像をクリップボードにコピーしました",
+          "ogImageDownloaded": "プレビュー画像のダウンロードが完了しました",
+          "originalImageDownloaded": "オリジナル画像のダウンロードが完了しました"
+        },
+        "error": {
+          "copyNotSupported": "このブラウザではコピー機能がサポートされていません",
+          "shareFailed": "共有に失敗しました",
+          "nativeShareFailed": "ネイティブ共有に失敗しました",
+          "linkCopyFailed": "リンクのコピーに失敗しました",
+          "ogImageDownloadFailed": "プレビュー画像のダウンロードに失敗しました",
+          "originalImageDownloadFailed": "オリジナル画像のダウンロードに失敗しました"
+        },
+        "ogImage": {
+          "title": "共有プレビュー",
+          "alt": "写真共有プレビュー画像",
+          "loading": "読み込み中...",
+          "loadError": "読み込みに失敗しました"
+        },
+        "fallback": {
+          "photoTitle": "美しい写真"
+        },
+        "text": {
+          "prefix": "この写真をご覧ください:"
+        }
+      },
+      "backtotop": {
+        "tooltip": "ページの先頭に戻る",
+        "ariaLabel": "トップへ戻る"
+      }
+    },
+    "stats": {
+      "totalPhotosWithRange": "{range}、@:plural.photo 合計",
+      "noPhotosTip": "まだ写真はありません。アップロードしてください！"
+    },
+    "livePhoto": "Live Photo",
+    "album": {
+      "noImage": "空のアルバム",
+      "emptyAlbumTip": "写真を追加して開始しましょう",
+      "noDescription": "説明がありません"
+    },
+    "loading": "読み込み中",
+    "indexPanelCountCity": "他 {count} 都市",
+    "photo": {
+      "untitled": "無題",
+      "altFallback": "写真",
+      "loadError": "画像の読み込みに失敗しました",
+      "avatarAlt": "作者のアバター"
+    },
+    "authForm": {
+      "logoAlt": "アプリのロゴ"
+    },
+    "histogram": {
+      "rendering": "レンダリング中",
+      "loadError": "ヒストグラムの読み込みに失敗しました"
+    },
+    "calendarHeatmap": {
+      "on": "に",
+      "contributions": "件"
+    }
+  },
+  "album": {
+    "list": {
+      "loading": "アルバムを読み込み中…",
+      "emptyTitle": "表示できるアルバムがありません",
+      "emptyDescription": "また後でご確認ください。",
+      "errorTitle": "アルバムを読み込めませんでした",
+      "errorDescription": "問題が発生しました。もう一度お試しください。",
+      "retry": "再試行"
+    },
+    "passwordRequired": "パスワードが必要です",
+    "passwordPlaceholder": "アルバムのパスワードを入力",
+    "incorrectPassword": "パスワードが正しくありません",
+    "tooManyAttempts": "試行回数が多すぎます。1分以内に再度お試しください。",
+    "unlock": "アルバムのロックを解除",
+    "notFound": "アルバムが見つかりません",
+    "noDateInfo": "日付情報なし",
+    "noPhotosTip": "このアルバムにはまだ写真がありません",
+    "emptyAlbumTitle": "アルバムが空です",
+    "emptyAlbumDescription": "素敵な瞬間がここに表示されます。",
+    "failedToLoadTitle": "アルバムの読み込みに失敗しました",
+    "failedToLoadDescription": "このアルバムを読み込む際に問題が発生しました。",
+    "failedToLoad": "アルバムの読み込みに失敗しました",
+    "backToAlbums": "アルバムに戻る",
+    "noDescription": "説明がありません",
+    "photo": "写真がありません | 写真 {count} 枚",
+    "createdAt": "{time} に作成されました",
+    "metadata": {
+      "photos": "写真",
+      "dateRange": "日付範囲",
+      "created": "作成"
+    },
+    "createdTooltip": "作成日：{date}",
+    "uploadToThisAlbum": "このアルバムにアップロード"
+  },
+  "map": {
+    "setupNotice": {
+      "title": "地図サービスが未設定です",
+      "description": "この地図を表示するには MapTiler または Mapbox のアクセストークンが必要です。管理者は「地図と場所」の設定から追加できます。MapTiler トークンの代わりに、カスタム MapLibre スタイル URL を使うこともできます。",
+      "openSettings": "地図設定を開く",
+      "dismiss": "閉じる"
+    },
+    "cluster": {
+      "details": "クリックして詳細を見る",
+      "nearbyPhotos": "近くに {0} 枚の写真",
+      "altFallback": "クラスタ {id}"
+    },
+    "photo": {
+      "altFallback": "写真 {id}",
+      "unknownCoord": "不明"
+    }
+  },
+  "minimap": {
+    "loading": "ミニマップを読み込み中..."
+  },
+  "viewer": {
+    "hint": {
+      "livePhoto": {
+        "mobile": "長押しでライブフォトを再生 · ダブルタップまたはピンチでズーム",
+        "desktop": "再生アイコンにホバー · ダブルクリック／スクロールでズーム"
+      },
+      "mobile": "ダブルタップまたはピンチでズーム",
+      "desktop": "ダブルクリックまたはマウスホイールでズーム"
+    },
+    "reaction": {
+      "add": "リアクション",
+      "change": "リアクション済み",
+      "count": "リアクションなし | {count} 件のリアクション | {count} 件のリアクション",
+      "like": "ナイス",
+      "love": "好き",
+      "amazing": "すごい",
+      "funny": "笑",
+      "wow": "わお",
+      "sad": "感動",
+      "fire": "アツい",
+      "sparkle": "キラッ",
+      "error": {
+        "title": "リアクション失敗",
+        "rateLimited": "操作が頻繁すぎます。しばらくしてからもう一度お試しください"
+      }
+    },
+    "photoload": {
+      "loadError": "画像の読み込みに失敗しました",
+      "loading": "画像を読み込み中",
+      "converting": "変換中...",
+      "loadingWebGL": "WebGLを読み込み中...",
+      "loadingHEIC": "HEIC画像を読み込み中...",
+      "loadingTexture": "テクスチャを構築中"
+    }
+  },
+  "exif": {
+    "sections": {
+      "basic": "基本情報",
+      "deviceInfomation": "機材情報",
+      "specification": "技術パラメータ",
+      "rating": "評価",
+      "tags": "キーワード",
+      "albums": "含まれたアルバム",
+      "histogram": "ヒストグラム",
+      "capture": {},
+      "shooting": {
+        "parameters": "撮影パラメータ",
+        "mode": "撮影モード"
+      }
+    },
+    "aperture": "絞り値",
+    "dateTaken": {
+      "title": "撮影日時"
+    },
+    "filename": "ファイル名",
+    "fileSize": "ファイルサイズ",
+    "resolution": "解像度",
+    "pixels": "画素数",
+    "colorSpace": {
+      "title": "カラースペース"
+    },
+    "artist": "作者",
+    "software": "ソフトウェア",
+    "tz": "タイムゾーン",
+    "country": "国",
+    "city": "都市",
+    "gps": {
+      "title": "座標"
+    },
+    "focal": {
+      "length": {
+        "actual": "焦点距離",
+        "equivalent": "35mm 換算"
+      },
+      "plane": {
+        "resolution": "撮像面解像度"
+      }
+    },
+    "exposure": {
+      "time": "露出時間",
+      "program": "露出プログラム",
+      "mode": "露出モード"
+    },
+    "camera": "カメラ",
+    "lens": "レンズ",
+    "maxAperture": "開放絞り",
+    "wb": {
+      "title": "ホワイトバランス",
+      "shiftAB": "WB シフト（アンバー–ブルー）",
+      "shiftGM": "WB シフト（グリーン–マゼンタ）",
+      "bias": "WB バイアス",
+      "fineTune": "WB 微調整"
+    },
+    "metering": {
+      "title": "測光モード"
+    },
+    "flash": {
+      "title": "フラッシュ",
+      "meteringMode": "フラッシュ測光モード"
+    },
+    "scene": {
+      "captureType": "シーン撮影タイプ"
+    },
+    "brightness": {
+      "value": "輝度"
+    },
+    "sensing": {
+      "method": "センサー方式"
+    },
+    "values": {
+      "exposureProgram": {
+        "notDefined": "未定義",
+        "manual": "マニュアル",
+        "programAe": "プログラム AE",
+        "aperturePriorityAe": "絞り優先 AE",
+        "shutterSpeedPriorityAe": "シャッター優先 AE",
+        "creativeSlowSpeed": "クリエイティブ（低速）",
+        "actionHighSpeed": "アクション（高速）",
+        "portrait": "ポートレート",
+        "landscape": "風景",
+        "bulb": "バルブ"
+      },
+      "exposureMode": {
+        "auto": "オート",
+        "manual": "マニュアル",
+        "autoBracket": "オートブラケット"
+      },
+      "flash": {
+        "noFlash": "発光なし",
+        "fired": "発光",
+        "firedReturnNotDetected": "発光、戻り光なし",
+        "firedReturnDetected": "発光、戻り光あり",
+        "onDidNotFire": "オン、発光なし",
+        "onFired": "オン、発光",
+        "onReturnNotDetected": "オン、戻り光なし",
+        "onReturnDetected": "オン、戻り光あり",
+        "offDidNotFire": "オフ、発光なし",
+        "offDidNotFireReturnNotDetected": "オフ、発光なし、戻り光なし",
+        "autoDidNotFire": "オート、発光なし",
+        "autoFired": "オート、発光",
+        "autoFiredReturnNotDetected": "オート、発光、戻り光なし",
+        "autoFiredReturnDetected": "オート、発光、戻り光あり",
+        "noFlashFunction": "フラッシュ機能なし",
+        "offNoFlashFunction": "オフ、フラッシュ機能なし",
+        "firedRedEyeReduction": "発光、赤目軽減",
+        "firedRedEyeReductionReturnNotDetected": "発光、赤目軽減、戻り光なし",
+        "firedRedEyeReductionReturnDetected": "発光、赤目軽減、戻り光あり",
+        "onRedEyeReduction": "オン、赤目軽減",
+        "onRedEyeReductionReturnNotDetected": "オン、赤目軽減、戻り光なし",
+        "onRedEyeReductionReturnDetected": "オン、赤目軽減、戻り光あり",
+        "offRedEyeReduction": "オフ、赤目軽減",
+        "autoDidNotFireRedEyeReduction": "オート、発光なし、赤目軽減",
+        "autoFiredRedEyeReduction": "オート、発光、赤目軽減",
+        "autoFiredRedEyeReductionReturnNotDetected": "オート、発光、赤目軽減、戻り光なし",
+        "autoFiredRedEyeReductionReturnDetected": "オート、発光、赤目軽減、戻り光あり"
+      },
+      "meteringMode": {
+        "unknown": "不明",
+        "average": "平均測光",
+        "centerWeightedAverage": "中央重点平均測光",
+        "spot": "スポット測光",
+        "multiSpot": "マルチスポット測光",
+        "multiSegment": "分割測光",
+        "partial": "部分測光",
+        "other": "その他"
+      },
+      "whiteBalance": {
+        "auto": "オート",
+        "manual": "マニュアル",
+        "auto1": "通常補正、ニュートラル",
+        "auto2": "環境の暖色を保持"
+      },
+      "sceneCaptureType": {
+        "standard": "標準",
+        "landscape": "風景",
+        "portrait": "ポートレート",
+        "night": "夜景",
+        "other": "その他"
+      },
+      "sensingMethod": {
+        "notDefined": "未定義",
+        "monochromeArea": "モノクロエリア",
+        "oneChipColorArea": "1 チップカラーエリア",
+        "twoChipColorArea": "2 チップカラーエリア",
+        "threeChipColorArea": "3 チップカラーエリア",
+        "colorSequentialArea": "順次カラーエリア",
+        "monochromeLinear": "モノクロリニア",
+        "trilinear": "トリリニア",
+        "colorSequentialLinear": "順次カラーニア"
+      },
+      "colorSpace": {
+        "srgb": "sRGB",
+        "adobeRgb": "Adobe RGB",
+        "wideGamutRgb": "ワイドガマット RGB",
+        "displayP3": "Display P3",
+        "iccProfile": "ICC プロファイル",
+        "uncalibrated": "未調整",
+        "rgb": "RGB"
+      }
+    },
+    "iso": "ISO"
+  },
+  "title": {
+    "gallery": "ギャラリー",
+    "fallback": {
+      "photo": "写真"
+    },
+    "dashboard": "ダッシュボード",
+    "photos": "写真",
+    "locations": "場所",
+    "globe": "写真グローブ",
+    "queue": "キュー管理",
+    "logs": "システムログ",
+    "albums": "アルバム",
+    "siteAdministration": "サイト設定",
+    "generalSettings": "一般設定",
+    "appearanceSettings": "外観設定",
+    "privacySettings": "プライバシー設定",
+    "mapAndLocation": "地図と場所",
+    "location": "位置情報サービス",
+    "storageSettings": "ストレージ設定",
+    "systemSettings": "システム設定",
+    "analyticsSettings": "アナリティクスとトラッキング"
+  },
+  "auth": {
+    "form": {
+      "signin": {
+        "title": "サインイン",
+        "subtitle": "{0} にログインします"
+      },
+      "action": {
+        "or": "または",
+        "continue": "続く",
+        "backToHome": "ホームに戻る"
+      },
+      "labels": {
+        "email": "メール",
+        "password": "パスワード"
+      },
+      "errors": {
+        "invalidPassword": "パスワードは6文字以上で入力してください",
+        "invalidEmail": "無効なメールアドレスです"
+      }
+    },
+    "messages": {
+      "loginFailed": {
+        "title": "ログインに失敗しました",
+        "description": "予期しないエラーが発生しました。もう一度お試しください。"
+      }
+    }
+  },
+  "common": {
+    "unsavedChanges": "未保存の変更があります。",
+    "months": {
+      "jan": "1月",
+      "feb": "2月",
+      "mar": "3月",
+      "apr": "4月",
+      "may": "5月",
+      "jun": "6月",
+      "jul": "7月",
+      "aug": "8月",
+      "sep": "9月",
+      "oct": "10月",
+      "nov": "11月",
+      "dec": "12月"
+    },
+    "days": {
+      "sun": "日",
+      "mon": "月",
+      "tue": "火",
+      "wed": "水",
+      "thu": "木",
+      "fri": "金",
+      "sat": "土"
+    },
+    "heatmap": {
+      "legend": {
+        "less": "少ない",
+        "more": "もっと",
+        "recentlyYear": "直近1年"
+      },
+      "tooltip": {
+        "data": "{0}が{1}枚の写真を撮影しました",
+        "noData": "{0}は写真がありません"
+      }
+    },
+    "unknown": "不明",
+    "actions": {
+      "save": "保存",
+      "saveSettings": "設定を保存",
+      "reset": "リセット",
+      "cancel": "キャンセル",
+      "continue": "続行",
+      "delete": "削除",
+      "edit": "編集"
+    },
+    "albumAssignment": {
+      "warning": "アルバムに追加できませんでした",
+      "missing": "写真はアップロードされましたが、追加前に選択したアルバムが削除されました。"
+    },
+    "unknownError": "不明なエラー"
+  },
+  "dashboard": {
+    "photos": {
+      "title": "写真をアップロード",
+      "subtitle": "アップロードされた写真は自動的に処理され、ライブラリに追加されます。その後、{0}セクションで写真を整理できます。",
+      "supportedFormats": "JPEG / PNG / HEIC / ライブフォト / モーションフォト",
+      "maxFileSize": "最大 {size}MB",
+      "buttons": {
+        "upload": "写真をアップロード",
+        "queue": "タスクキュー"
+      },
+      "uploader": {
+        "label": "ドラッグアンドドロップするか、クリックして写真を選択します",
+        "description": "JPEG、PNG、HEIC形式の写真、およびMOV形式のライブフォトビデオをサポート。ファイルあたりの最大サイズ：{maxSize}MB"
+      },
+      "toolbar": {
+        "title": "写真管理",
+        "filter": "フィルター",
+        "refresh": "更新"
+      },
+      "photoFilter": {
+        "all": "すべての写真",
+        "livephoto": "ライブフォト",
+        "static": "静止画"
+      },
+      "stats": {
+        "photos": "枚の写真",
+        "livePhotos": "枚のライブフォト"
+      },
+      "table": {
+        "columns": {
+          "thumbnail": {
+            "title": "サムネイル",
+            "action": "新しいタブで写真を開く"
+          },
+          "id": "写真ID",
+          "title": "写真のタイトル",
+          "tags": "キーワード",
+          "rating": "評価",
+          "isLivePhoto": "ライブフォト",
+          "location": "位置情報",
+          "dateTaken": "撮影日",
+          "lastModified": "最終更新",
+          "fileSize": "ファイルサイズ",
+          "colorSpace": "カラースペース",
+          "reactions": "リアクション",
+          "actions": "操作"
+        },
+        "cells": {
+          "noTags": "タグなし",
+          "noRating": "未評価",
+          "noGps": "GPS情報なし",
+          "unknown": "不明",
+          "staticPhoto": "静止画",
+          "noReactions": "リアクションなし"
+        },
+        "columnVisibility": {
+          "button": "列設定",
+          "description": "列の表示/非表示を切り替える"
+        },
+        "selectAllAria": "すべて選択",
+        "selectRowAria": "行を選択",
+        "thumbnailAlt": "写真サムネイル"
+      },
+      "actions": {
+        "reprocess": "再処理",
+        "refreshLocation": "都市情報を再取得",
+        "eraseLocationInfo": "位置情報を抹消",
+        "delete": "削除",
+        "editMetadata": "メタデータを編集",
+        "previewPhoto": "プレビュー写真"
+      },
+      "selection": {
+        "selected": "{count} / {total}行選択済み",
+        "batchReprocess": "一括再処理",
+        "batchEraseLocation": "位置情報を抹消",
+        "batchDownload": "一括ダウンロード",
+        "batchDelete": "一括削除",
+        "addToAlbum": "アルバムに追加"
+      },
+      "slideover": {
+        "title": "写真をアップロード",
+        "description": "ドラッグアンドドロップするか、ファイルを選択します。写真は自動的に処理され、ライブラリに追加されます。",
+        "album": {
+          "label": "アルバムに追加（任意）",
+          "description": "この一括アップロードで正常に処理された写真を、選択したアルバムに追加します。",
+          "none": "アルバムなし",
+          "empty": "利用できるアルバムがまだありません。",
+          "hidden": "非表示",
+          "passwordProtected": "パスワード保護",
+          "loadFailed": "アルバムを読み込めませんでした。再試行してください。",
+          "loadFailedUpload": "アルバムを読み込めませんでした。再試行するか、アルバムなしでアップロードしてください。",
+          "retry": "再試行",
+          "unavailable": "選択したアルバムを利用できません。別のアルバムを選択してください。",
+          "requestedUnavailable": "このアルバムは存在しません。別のアルバムを選択してください。"
+        },
+        "options": {
+          "eraseLocation": {
+            "label": "アップロード時に位置情報を抹消",
+            "description": "このアップロードではシステム既定値を上書きでき、いつでもオン/オフを切り替えできます。"
+          },
+          "duplicateCheck": {
+            "label": "重複ファイルの処理方法",
+            "descriptionEnabled": "重複検出が有効です。アップロード時に同名ファイルは選択した処理モードに従います。",
+            "descriptionDisabled": "重複検出が無効です。同名ファイルはそのままアップロードされます。",
+            "enabled": "検出が有効",
+            "disabled": "検出が無効",
+            "currentMode": "現在のモード：{mode}"
+          }
+        },
+        "buttons": {
+          "clear": "選択をクリア",
+          "upload": "{count}個のファイルをアップロード"
+        },
+        "footer": {
+          "noSelection": "アップロードする写真を選択してください",
+          "prepared": "{count}個のファイル · {size}"
+        }
+      },
+      "delete": {
+        "single": {
+          "title": "写真を削除",
+          "message": "この写真を削除してもよろしいですか？"
+        },
+        "batch": {
+          "title": "写真を一括削除",
+          "message": "選択された{count}枚の写真を削除してもよろしいですか？"
+        },
+        "warning": "写真を削除すると、元のファイル、サムネイル、およびライブフォトビデオが削除され、元に戻すことはできません。",
+        "buttons": {
+          "cancel": "キャンセル",
+          "confirm": "削除を確認"
+        }
+      },
+      "livePhotoModal": {
+        "title": "ライブフォト：{title}",
+        "staticImage": "静止画",
+        "livePhotoVideo": "ライブフォトビデオ",
+        "buttons": {
+          "openVideo": "新しいウィンドウでビデオを開く",
+          "downloadVideo": "ビデオをダウンロード",
+          "close": "閉じる"
+        },
+        "notSupported": "お使いのブラウザはビデオ再生をサポートしていません"
+      },
+      "messages": {
+        "uploadSuccess": "写真が正常にアップロードされました。処理中です...",
+        "uploadMultipleSuccess": "{count}枚の写真が正常にアップロードされました。処理中です...",
+        "reprocessSuccess": "再処理タスクが追加されました",
+        "batchReprocessSuccess": "{count}枚の写真の再処理タスクをキューに正常に送信しました",
+        "batchReprocessing": "再処理タスクを送信しています...",
+        "reprocessTaskId": "タスク ID：{taskId}",
+        "deleteSuccess": "写真が正常に削除されました",
+        "batchDeleteSuccess": "{count}枚の写真を正常に削除しました",
+        "batchSelectRequired": "この操作を実行するには、少なくとも1枚の写真を選択してください",
+        "noStorageKey": "処理できません：ストレージ情報がありません",
+        "batchNoStorageKey": "{count}枚の写真のストレージ情報がなく、処理できません",
+        "batchNoUrl": "ダウンロードURLが利用可能な写真がありません",
+        "batchPartialUrl": "{count}枚の写真（合計{total}枚）のみダウンロードURLが利用可能です",
+        "downloadStarted": "ダウンロード開始",
+        "downloadingCount": "{count}枚の写真をダウンロード中...",
+        "batchDownloadSuccess": "一括ダウンロード完了",
+        "batchDownloadFailed": "一括ダウンロードに失敗しました",
+        "batchDownloadPartial": "一括ダウンロードが完了しましたが、一部失敗しました",
+        "downloadedCount": "{count}枚の写真をダウンロードしました",
+        "downloadFailedCount": "{count}枚の写真のダウンロードに失敗しました",
+        "downloadPartialCount": "{success}枚の写真をダウンロードしました。{failed}枚失敗しました",
+        "warning": "警告",
+        "error": "エラーが発生しました",
+        "deleteFailed": "写真の削除に失敗しました",
+        "batchDeleteFailed": "一括削除に失敗しました",
+        "batchReprocessFailed": "一括再処理に失敗しました",
+        "reprocessFailed": "写真の再処理に失敗しました",
+        "livePhotoNotFound": "ライブフォトではありません",
+        "livePhotoLoadError": "ライブフォト情報を読み込めません",
+        "metadataUpdateSuccess": "写真のメタデータを更新しました",
+        "metadataUpdateFailed": "写真のメタデータを更新できませんでした",
+        "photoNotFound": "写真が見つかりません",
+        "photoFileMissing": "写真ファイルが見つかりません",
+        "noChangesProvided": "適用できる変更がありません",
+        "queueUnavailable": "タスクキューを利用できません",
+        "reverseGeocodeQueued": "都市情報の再取得タスクをキューに追加しました",
+        "reverseGeocodeFailed": "都市情報の再取得タスクの追加に失敗しました",
+        "eraseLocationQueued": "位置情報の抹消タスクをキューに追加しました",
+        "eraseLocationFailed": "位置情報の抹消タスクの追加に失敗しました",
+        "batchEraseLocationQueued": "{count} 件の位置情報抹消タスクをキューに追加しました",
+        "batchEraseLocationFailed": "位置情報抹消タスクの一括追加に失敗しました",
+        "taskSubmitFailed": "タスクの送信に失敗しました",
+        "taskStatusCheckFailed": "タスク状態の確認に失敗しました",
+        "uploadFailed": "アップロードに失敗しました"
+      },
+      "errors": {
+        "noSelection": "アップロードする写真を選択してください",
+        "fileValidationFailed": "ファイル検証に失敗しました",
+        "allFilesValidationFailed": "すべてのファイルが検証に失敗しました",
+        "allFilesTooLarge": "選択した {count} 件のファイルはすべて最大サイズ制限（{maxSize}MB）を超えています。",
+        "filesTooLargeSkipped": "サイズ超過のファイルを {count} 件スキップしました（上限 {maxSize}MB）。残りのファイルはアップロードを続行します。",
+        "filesUnsupportedSkipped": "未対応形式のファイルを {count} 件スキップしました。残りのファイルはアップロードを続行します。",
+        "unsupportedFormat": "サポートされていないファイル形式：{type}。JPEG、PNG、またはHEIC写真、またはMOV形式のライブフォトビデオを選択してください。",
+        "fileTooLarge": "ファイルが大きすぎます：{size}MB。最大サポート：{maxSize}MB。",
+        "uploadFailed": "アップロードに失敗しました",
+        "uploadNetworkError": "ネットワーク接続に失敗したか、CORSエラーが発生しました。ネットワークとストレージ設定を確認してください。",
+        "uploadCorsError": "CORSリクエストに失敗しました。ストレージCORS設定を確認してください。",
+        "uploadUnauthorized": "未認可です。もう一度ログインしてください。",
+        "taskSubmitFailed": "処理タスクの送信に失敗しました",
+        "taskStatusCheckFailed": "タスク状態の確認に失敗しました。ページを更新して再度お試しください。"
+      },
+      "processing": {
+        "preparing": "準備中",
+        "uploading": "アップロード中",
+        "processing": "処理中",
+        "completed": "完了",
+        "error": "エラー",
+        "skipped": "スキップ",
+        "blocked": "ブロック済み"
+      },
+      "uploadQueue": {
+        "clearCompleted": "完了したタスクをクリア",
+        "clearAll": "すべてのタスクをクリア",
+        "taskCleared": "完了したタスクをクリアしました",
+        "allTasksCleared": "すべてのアップロードタスクをクリアしました",
+        "tasksCleared": "{count}個のタスクをクリアしました"
+      },
+      "editModal": {
+        "title": "写真情報を編集",
+        "description": "タイトル・説明・タグ・撮影場所を更新します。",
+        "fields": {
+          "title": "タイトル",
+          "description": "説明",
+          "tags": "タグ",
+          "tagsHint": "タグを入力し、Enter キーで追加してください。",
+          "location": "撮影場所",
+          "locationHint": "地図をクリックして撮影場所を選択してください。",
+          "clearLocation": "位置情報を抹消",
+          "coordinates": "座標",
+          "noLocation": "位置情報が未設定です",
+          "rating": "評価",
+          "ratingHint": "星をクリックして写真の評価を設定します（0～5つ星）。",
+          "noRating": "未評価"
+        },
+        "actions": {
+          "cancel": "キャンセル",
+          "save": "変更を保存"
+        }
+      },
+      "uploadQueueItem": {
+        "status": {
+          "waiting": "アップロード待機",
+          "preparing": "準備中",
+          "uploading": "アップロード中 {0}%",
+          "finalizing": "ファイルを保存中",
+          "pendingProcessing": "処理待ち",
+          "completed": "完了",
+          "error": "エラー",
+          "skipped": "スキップ",
+          "blocked": "ブロック",
+          "unknown": "不明"
+        },
+        "stage": {
+          "preprocessing": "前処理中",
+          "metadata": "メタデータ抽出",
+          "thumbnail": "サムネイル生成",
+          "exif": "EXIF 処理",
+          "reverseGeocoding": "逆ジオコーディング",
+          "livePhoto": "Live Photo 検出"
+        },
+        "actions": {
+          "abort": "中止",
+          "clear": "クリア"
+        },
+        "progress": {
+          "upload": "アップロード進捗",
+          "remainingTime": "残り時間: {0}",
+          "processing": "処理状態"
+        },
+        "alerts": {
+          "longProcessing": "大きなファイルは処理に時間がかかることがあります。",
+          "success": "ファイルのアップロードと処理が完了しました"
+        }
+      },
+      "uploadQueuePanel": {
+        "title": "ファイルアップロードキュー",
+        "stats": {
+          "waiting": "待機",
+          "active": "処理中",
+          "completed": "完了",
+          "error": "失敗",
+          "skipped": "スキップ",
+          "blocked": "ブロック"
+        },
+        "actions": {
+          "clearCompleted": "完了済みを削除",
+          "clearAll": "すべて削除",
+          "goToQueue": "キュー"
+        }
+      },
+      "previewTitle": "写真プレビュー",
+      "addToAlbum": {
+        "title": "写真をアルバムに追加",
+        "description": "{photos}を既存のアルバムに追加します。",
+        "albumLabel": "アルバム",
+        "cancel": "キャンセル",
+        "confirm": "写真を追加",
+        "success": "アルバムを更新しました",
+        "noChanges": "変更はありません",
+        "result": "{added} 枚追加 · {alreadyPresent} 枚は追加済み",
+        "missing": "{count} 枚は利用できません",
+        "allAlreadyPresent": "選択した写真はすべてこのアルバムに追加されています。",
+        "error": "写真をアルバムに追加できませんでした",
+        "partialError": "{processed} を処理した後にリクエストが失敗しました。再試行しても重複は追加されません。"
+      }
+    },
+    "albums": {
+      "title": "アルバム管理",
+      "subtitle": "写真アルバムを作成・管理する",
+      "createButton": "アルバムを作成",
+      "noAlbums": "アルバムがまだありません",
+      "noAlbumsTip": "最初のアルバムを作成して、写真を整理してください",
+      "form": {
+        "title": "タイトル",
+        "titlePlaceholder": "アルバムのタイトルを入力",
+        "titleRequired": "アルバムのタイトルを入力してください",
+        "description": "説明",
+        "descriptionPlaceholder": "アルバムの説明を入力（オプション）",
+        "coverPhoto": "アルバムカバー",
+        "addCoverPhoto": "カバー写真を追加",
+        "selectPhotos": "写真を選択",
+        "editPhotos": "写真の選択を編集",
+        "selectedCount": "{count}枚の写真を選択しました",
+        "clearAll": "すべてクリア",
+        "isHidden": "アルバムを非表示",
+        "isHiddenHint": "非表示のアルバム内の写真はホームページに表示されません",
+        "passwordProtection": "パスワード保護",
+        "passwordProtectionHint": "このアルバムにアクセスするにはパスワードが必要になります",
+        "password": "パスワード",
+        "passwordPlaceholder": "パスワードを入力",
+        "passwordKeepHint": "現在のパスワードを変更しない場合は空欄にしてください",
+        "passwordLengthHint": "{min}〜{max} 文字で入力してください",
+        "passwordRequired": "パスワードを入力してください",
+        "passwordTooShort": "パスワードは {min} 文字以上にしてください",
+        "passwordTooLong": "パスワードは {max} 文字以下にしてください",
+        "movePhotoUp": "写真を上へ移動",
+        "movePhotoDown": "写真を下へ移動",
+        "removePhoto": "写真を選択から外す"
+      },
+      "table": {
+        "columns": {
+          "cover": "カバー",
+          "title": "タイトル",
+          "description": "説明",
+          "photoCount": "写真数",
+          "createdAt": "作成時刻",
+          "actions": "操作"
+        }
+      },
+      "modal": {
+        "selectPhotos": "写真を選択",
+        "totalPhotos": "全{count}枚",
+        "selectedPhotos": "{count}枚選択中",
+        "searchPlaceholder": "写真を検索...",
+        "searchResults": "結果：{current} / {total}",
+        "selectAll": "すべて選択",
+        "setCover": "カバーに設定",
+        "noPhotos": "写真がありません",
+        "noResults": "一致する写真が見つかりません",
+        "tryOtherKeywords": "他のキーワードで検索してみてください",
+        "confirm": "確認 ({count})",
+        "selectedInfo": "選択済み：",
+        "coverSetInfo": "カバーが設定されました"
+      },
+      "slideover": {
+        "create": {
+          "title": "アルバムを作成",
+          "description": "写真を整理するための新しいアルバムを作成します"
+        },
+        "edit": {
+          "title": "アルバムを編集",
+          "description": "アルバムの情報と写真を変更"
+        },
+        "submitCreate": "作成",
+        "submitEdit": "保存",
+        "cancel": "キャンセル"
+      },
+      "delete": {
+        "title": "アルバムを削除",
+        "message": "アルバム\"{title}\"を削除してもよろしいですか？アルバムを削除しても、その中の写真は削除されず、アルバム自体のみが削除されます。",
+        "cancel": "キャンセル",
+        "confirm": "削除を確認"
+      },
+      "messages": {
+        "createSuccess": "アルバムが正常に作成されました",
+        "updateSuccess": "アルバムが正常に更新されました",
+        "deleteSuccess": "アルバムが正常に削除されました",
+        "createError": "アルバムの作成に失敗しました",
+        "updateError": "アルバムの更新に失敗しました",
+        "deleteError": "アルバムの削除に失敗しました",
+        "loadError": "アルバムの読み込みに失敗しました",
+        "loadDetailError": "アルバムの詳細の読み込みに失敗しました",
+        "loadPhotosError": "写真の読み込みに失敗しました",
+        "reorderError": "アルバムの並べ替えに失敗しました"
+      },
+      "photoCount": "{count} 枚",
+      "actions": {
+        "moveUp": "上へ移動",
+        "moveDown": "下へ移動",
+        "uploadToAlbum": "\"{title}\" にアップロード"
+      }
+    },
+    "overview": {
+      "title": "概要",
+      "indicator": {
+        "totalPhotos": "写真の総数",
+        "thisMonth": "今月は新しく",
+        "queueStatus": {
+          "title": "キューステータス",
+          "processing": "処理",
+          "pending": "アイドル"
+        },
+        "storageUsage": "ストレージの使用"
+      },
+      "section": {
+        "runtimeInfo": {
+          "title": "操作情報",
+          "version": "ランニングバージョン",
+          "uptime": "実行時間",
+          "environment": "ランニング環境",
+          "lastUpdate": "最後に更新されました",
+          "systems": {
+            "windows": "Microsoft Windows",
+            "windows10": "Microsoft Windows 10",
+            "windows11": "Microsoft Windows 11",
+            "ubuntu": "Ubuntu",
+            "debian": "Debian",
+            "centos": "CentOS",
+            "redhat": "Red Hat Enterprise Linux",
+            "fedora": "Fedora",
+            "arch": "Arch Linux",
+            "alpine": "Alpine Linux",
+            "opensuse": "openSUSE",
+            "macos": "macOS",
+            "docker": "Docker コンテナ",
+            "unknown": "不明なシステム"
+          }
+        },
+        "memory": {
+          "title": "メモリの使用"
+        },
+        "queue": {
+          "title": "システム状態",
+          "activeWorkers": "アクティブワーカー",
+          "totalWorkers": "総 Workers",
+          "totalProcessed": "処理",
+          "totalFailed": "障害カウント",
+          "avgSuccessRate": "成功率",
+          "pending": "待機中",
+          "workers": "ワーカー",
+          "states": {
+            "unknown": "不明",
+            "stopped": "停止中",
+            "processing": "処理中",
+            "attention": "要確認",
+            "idle": "待機中"
+          },
+          "stoppedNotice": "ワーカーが停止中です。{count} 件のタスクが待機しています。",
+          "waitNotice": "最も古いタスクは {minutes} 分待機しています。",
+          "failedNotice": "{count} 件の失敗タスクを確認してください。",
+          "debug": {
+            "label": "模擬プレビュー",
+            "scenarios": {
+              "empty": "処理履歴なし",
+              "processing": "処理中",
+              "backlog": "滞留",
+              "stopped": "停止中",
+              "failures": "一部失敗",
+              "allFailed": "すべて失敗"
+            }
+          }
+        },
+        "recentActivity": {
+          "title": "最近のアクティビティ",
+          "viewQueue": "キュー",
+          "empty": "最近のタスクはまだありません。"
+        }
+      },
+      "shareSite": {
+        "button": "サイトを共有"
+      },
+      "memoryUnavailable": "メモリ情報を取得できません"
+    },
+    "queue": {
+      "title": "キュー管理",
+      "indicator": {
+        "pending": "処理待ち",
+        "processing": "処理中",
+        "completed": "完了",
+        "failed": "失敗したタスク"
+      },
+      "actions": {
+        "refresh": "データを更新",
+        "clearCompleted": "完了済みをクリア",
+        "clearFailed": "失敗タスクをクリア",
+        "clearAll": "すべてクリア",
+        "retrySelected": "選択した項目を再試行",
+        "retryAll": "すべての失敗を再試行",
+        "clearNonActive": "非アクティブタスクをクリア",
+        "moreActions": "その他の操作"
+      },
+      "table": {
+        "id": "タスクID",
+        "type": "タイプ",
+        "status": "ステータス",
+        "attempts": "試行回数",
+        "priority": "優先度",
+        "stage": "処理段階",
+        "error": "エラー情報",
+        "errorMessage": "エラーメッセージ",
+        "createdAt": "作成日時",
+        "completedAt": "完了日時",
+        "actions": "操作",
+        "expandAria": "展開",
+        "detail": {
+          "photoId": "写真ID",
+          "payload": "ペイロード"
+        }
+      },
+      "status": {
+        "pending": "待機中",
+        "in-stages": "処理中",
+        "completed": "完了",
+        "failed": "失敗"
+      },
+      "types": {
+        "photo": "写真処理",
+        "live-photo-video": "LivePhoto動画",
+        "photo-reverse-geocoding": "写真の逆ジオコーディング",
+        "photo-erase-location": "写真位置情報の抹消",
+        "location-migration": "位置情報の形式移行"
+      },
+      "stages": {
+        "preprocessing": "前処理",
+        "metadata": "メタデータ",
+        "thumbnail": "サムネイル",
+        "exif": "EXIF処理",
+        "motion-photo": "モーションフォト処理",
+        "reverse-geocoding": "地理解析",
+        "live-photo": "LivePhoto処理",
+        "location-erase": "位置情報の抹消"
+      },
+      "buttons": {
+        "retry": "再試行",
+        "delete": "削除"
+      },
+      "messages": {
+        "noTasks": "タスクが見つかりません",
+        "retrySuccess": "タスクの再試行が成功しました",
+        "retryFailed": "タスクの再試行に失敗しました",
+        "deleteSuccess": "タスクの削除が成功しました",
+        "batchRetrySuccess": "バッチ再試行が成功しました",
+        "clearSuccess": "クリア完了",
+        "operationFailed": "操作に失敗しました",
+        "clearSuccessDescription": "{count} 件のタスクをクリアしました",
+        "clearFailed": "タスクのクリアに失敗しました",
+        "batchRetrySuccessDescription": "{count} 件のタスクを再試行しました",
+        "batchRetryFailed": "一括再試行に失敗しました",
+        "deleteFailed": "タスクの削除に失敗しました"
+      },
+      "filters": {
+        "all": "すべて",
+        "status": "ステータスでフィルター",
+        "type": "タイプでフィルター"
+      },
+      "taskListTitle": "タスクキュー"
+    },
+    "logs": {
+      "connectionStatus": {
+        "idle": "未接続",
+        "connecting": "接続中...",
+        "loadingHistory": "履歴を読み込み中...",
+        "live": "リアルタイム",
+        "error": "接続エラー"
+      },
+      "search": {
+        "placeholder": "ログ内容を検索...",
+        "clearAriaLabel": "検索入力をクリア"
+      },
+      "filter": {
+        "levelPlaceholder": "レベルで絞り込む",
+        "tagPlaceholder": "タグで絞り込む"
+      },
+      "loadedCount": "読み込み済み {count} 件",
+      "matchedCount": "一致 {count} 件",
+      "errorCount": "エラー {count}",
+      "warningCount": "警告 {count}",
+      "timeRange": "期間：{start} ～ {end}",
+      "empty": {
+        "waiting": "ログデータを待機中...",
+        "noMatch": "一致するログエントリがありません"
+      }
+    },
+    "access": {
+      "pleaseLogin": "ダッシュボードを表示するにはログインしてください",
+      "noAccess": "申し訳ありませんが、このページにアクセスする権限がありません。"
+    },
+    "nav": {
+      "documentation": "ドキュメント",
+      "viewGallery": "ギャラリーを表示"
+    },
+    "locationMigration": {
+      "title": "位置情報の更新",
+      "description": "写真の位置情報の保存形式が更新されました。{count} 枚の写真の行政区画情報を再取得する必要があります。今すぐ移行しますか？確認後、「キュー管理」で進捗を確認できます。",
+      "confirm": "移行する",
+      "cancel": "キャンセル",
+      "error": "移行タスクをキューに追加できませんでした。もう一度お試しください。",
+      "queued": "移行タスクをキューに追加しました。「キュー管理」で進捗を確認できます。"
+    }
+  },
+  "settings": {
+    "app": {
+      "title": {
+        "label": "インスタンス名",
+        "description": "インスタンスのタイトル"
+      },
+      "slogan": {
+        "label": "スローガン",
+        "description": "インスタンスのスローガン",
+        "help": "スローガンはホームページのタイトルの下に表示されます"
+      },
+      "author": {
+        "label": "オーナー",
+        "description": "インスタンスのオーナー名"
+      },
+      "avatarUrl": {
+        "label": "アバター",
+        "description": "画像をアップロードするか、オーナーのアバターへのリンクを入力",
+        "help": "アバターはローディングページとホームページに表示されます。",
+        "upload": "アップロード",
+        "replace": "変更",
+        "remove": "削除",
+        "uploadSuccess": "アバターを更新しました",
+        "uploadFailed": "アバターのアップロードに失敗しました",
+        "removeSuccess": "アバターを削除しました",
+        "removeFailed": "アバターの削除に失敗しました",
+        "invalidType": "PNG、JPEG、WebP、または GIF 画像を選択してください",
+        "tooLarge": "画像は {size}MB 未満である必要があります"
+      },
+      "homeView": {
+        "label": "ホームページ",
+        "description": "サイトのトップページに表示する内容を選択",
+        "photos": "写真一覧",
+        "albums": "アルバム"
+      },
+      "appearance": {
+        "theme": {
+          "label": "テーマ",
+          "description": "アプリケーションテーマを選択",
+          "help": "ユーザーは自分のブラウザでこれをオーバーライドできます",
+          "light": "ライト",
+          "dark": "ダーク",
+          "system": "システム"
+        },
+        "homeHeaderLayout": {
+          "label": "ホームのヘッダーレイアウト",
+          "description": "ホームの写真ウォールでのヘッダー表示方法を選択",
+          "embedded": "写真ウォールに埋め込む",
+          "fixed": "上部に固定"
+        }
+      },
+      "upload": {
+        "maxFileSize": {
+          "label": "アップロードファイルの最大サイズ",
+          "description": "アップロード可能な単一ファイルの最大サイズ（MB）",
+          "help": "設定後すぐに反映され、全ユーザーのファイルアップロードに適用されます"
+        }
+      }
+    },
+    "system": {
+      "sections": {
+        "thirdPartyLogin": "外部ログイン",
+        "fileProcessing": "ファイル処理",
+        "debugSettings": "デバッグ設定"
+      },
+      "upload": {
+        "duplicateCheck": {
+          "enabled": {
+            "label": "アップロード時に重複ファイルを検出",
+            "description": "ファイル名で重複写真を検出し、選択した方針を適用します",
+            "help": "無効にすると重複の事前チェックを行わず、同名ファイルはそのままアップロード処理に進みます"
+          },
+          "mode": {
+            "label": "重複ファイル処理モード",
+            "description": "重複ファイルを検出した場合の処理方法",
+            "help": "重複検出が有効な場合のみ適用されます",
+            "options": {
+              "skip": "スキップ",
+              "warn": "警告して上書き",
+              "block": "アップロードを拒否"
+            }
+          }
+        }
+      },
+      "webglImageViewerDebug": {
+        "label": "WebGL Image Viewer デバッグモード",
+        "description": "WebGL 画像ビューアのデバッグ情報を本番環境でも表示するかを制御します",
+        "help": "有効にすると、ログイン中のユーザーは環境を問わず WebGL デバッグパネルを表示できます。無効時は開発環境のみ表示されます"
+      },
+      "auth": {
+        "github": {
+          "enabled": {
+            "label": "GitHub ログインを有効化",
+            "description": "GitHub OAuth ログインを有効にするかどうか"
+          },
+          "clientId": {
+            "label": "GitHub Client ID",
+            "description": "GitHub OAuth アプリの Client ID"
+          },
+          "clientSecret": {
+            "label": "GitHub Client Secret",
+            "description": "GitHub OAuth アプリの Client Secret"
+          }
+        }
+      },
+      "sectionDescription": "システムレベルの動作パラメーターを設定します。ここでの変更はグローバルなアップロードとサービスの動作に影響します。",
+      "queue": {
+        "workerCount": {
+          "label": "キューの同時実行数",
+          "description": "同時に処理するキュータスクの数。",
+          "help": "1〜8、初期値は5。保存後すぐに反映されます。小さい値ほどリソース使用量が減ります。減らした場合も実行中のタスクは完了まで続行します。"
+        }
+      }
+    },
+    "map": {
+      "provider": {
+        "label": "地図プロバイダー",
+        "description": "地図サービスプロバイダーを選択"
+      },
+      "mapbox": {
+        "token": {
+          "label": "Mapbox トークン",
+          "description": "Mapbox API アクセストークン",
+          "help": "ドメイン制限のないトークンを使用すべきです"
+        },
+        "style": {
+          "label": "Mapbox スタイル",
+          "description": "Mapbox 地図スタイル URL"
+        }
+      },
+      "maplibre": {
+        "token": {
+          "label": "MapTiler トークン",
+          "description": "MapTiler API アクセストークン",
+          "help": "MapLibre はデフォルトで無料の地図サービスプロバイダー MapTiler を使用します"
+        },
+        "style": {
+          "label": "MapLibre スタイル",
+          "description": "MapLibre 地図スタイル URL"
+        }
+      },
+      "sectionDescription": "地図の表示と地理コーディングサービスを設定します。地図プロバイダーは地図のスタイルとアクセス認証情報に影響します。"
+    },
+    "location": {
+      "language": {
+        "label": "位置情報の言語",
+        "description": "場所名を逆ジオコーディングする際の言語",
+        "help": "写真の位置情報を決定する逆ジオコーディング用の言語を選択します。デフォルトは英語です。"
+      },
+      "mapbox": {
+        "token": {
+          "label": "Mapbox トークン",
+          "description": "Mapbox API アクセストークン",
+          "help": "設定すると、位置情報サービスとして Nominatim に代わります"
+        }
+      },
+      "nominatim": {
+        "baseUrl": {
+          "label": "Nominatim ベース URL",
+          "description": "Nominatim リバースジオコーディング API のベース URL",
+          "help": "空のままにすると、デフォルトで公開 Nominatim サービスを使用します"
+        }
+      },
+      "levels": {
+        "country": "国 / 地域",
+        "region": "都道府県 / 州",
+        "subregion": "中間行政区画",
+        "city": "市町村 / 集落",
+        "district": "市内の行政区",
+        "locality": "地区 / 郊外",
+        "neighborhood": "近隣地区"
+      },
+      "preferredLevel": {
+        "label": "優先する位置情報の階層",
+        "description": "写真と地図に表示する位置情報の階層を選択します。都市フィルターは引き続き都市単位で集計します。"
+      },
+      "fallbackOrder": {
+        "label": "位置情報の代替順序",
+        "description": "優先する階層がない場合、この順序で利用可能な項目を選択します。",
+        "help": "項目名を半角カンマで区切ります：city、subregion、region、country、district、locality、neighborhood。例：city,subregion,region,country"
+      }
+    },
+    "privacy": {
+      "upload": {
+        "autoEraseLocation": {
+          "label": "アップロード時に位置情報を自動で抹消",
+          "description": "アップロード処理中に EXIF の GPS 情報と地理位置フィールドを自動的に削除します",
+          "help": "有効化すると、位置情報抹消はキューで非同期に実行されます"
+        }
+      },
+      "sectionDescription": "写真アップロード時のデータプライバシーポリシーを管理します。公開サイトでは位置情報の削除を有効にすることをお勧めします。"
+    },
+    "storage": {
+      "name": {
+        "label": "設定名",
+        "description": "ストレージプロバイダー設定の名前"
+      },
+      "provider": {
+        "label": "ストレージプロバイダー",
+        "description": "ストレージサービスプロバイダーを選択",
+        "options": {
+          "local": {
+            "label": "ローカルストレージ",
+            "description": "写真をサーバーのファイルシステムに直接保存します。"
+          },
+          "s3": {
+            "label": "S3 互換",
+            "description": "AWS S3、Cloudflare R2、またはその他の S3 互換サービスを使用します。"
+          },
+          "openlist": {
+            "label": "OpenList",
+            "description": "Alist または OpenList インスタンスに接続して保存します。"
+          }
+        }
+      },
+      "s3": {
+        "bucket": {
+          "label": "バケット名",
+          "description": "S3 バケットの名前"
+        },
+        "region": {
+          "label": "リージョン",
+          "description": "S3 バケットが配置されている AWS リージョン"
+        },
+        "endpoint": {
+          "label": "エンドポイント",
+          "description": "S3 サービスのエンドポイント URL"
+        },
+        "prefix": {
+          "label": "プレフィックス",
+          "description": "S3 内の全ファイルのパスプレフィックス"
+        },
+        "cdnUrl": {
+          "label": "CDN URL",
+          "description": "ファイルにアクセスするための CDN アドレス"
+        },
+        "accessKeyId": {
+          "label": "アクセスキー ID",
+          "description": "AWS IAM アクセスキー ID"
+        },
+        "secretAccessKey": {
+          "label": "シークレットアクセスキー",
+          "description": "AWS IAM シークレットアクセスキー"
+        },
+        "forcePathStyle": {
+          "label": "パススタイルを強制",
+          "description": "仮想ホストスタイルではなく、パススタイル URL を使用"
+        },
+        "maxKeys": {
+          "label": "最大キー数",
+          "description": "S3 リスト操作ごとに返される最大オブジェクト数"
+        }
+      },
+      "local": {
+        "basePath": {
+          "label": "基本パス",
+          "description": "ローカルファイルシステムでファイルを保存するベースディレクトリパス"
+        },
+        "baseUrl": {
+          "label": "ベース URL",
+          "description": "ローカルストレージファイルにアクセスするためのベース URL"
+        },
+        "prefix": {
+          "label": "プレフィックス",
+          "description": "ローカルストレージ内の全ファイルのパスプレフィックス"
+        }
+      },
+      "openlist": {
+        "baseUrl": {
+          "label": "OpenList ベース URL",
+          "description": "OpenList サーバーのベース URL"
+        },
+        "rootPath": {
+          "label": "ルートパス",
+          "description": "OpenList で写真を保存するルートパス"
+        },
+        "token": {
+          "label": "認証トークン",
+          "description": "OpenList API の認証トークン"
+        },
+        "uploadEndpoint": {
+          "label": "アップロードエンドポイント",
+          "description": "ファイルをアップロードするための API エンドポイント（デフォルト：/api/fs/put）"
+        },
+        "downloadEndpoint": {
+          "label": "ダウンロードエンドポイント",
+          "description": "ファイルをダウンロードするための API エンドポイント（オプション）"
+        },
+        "listEndpoint": {
+          "label": "リストエンドポイント",
+          "description": "ファイルをリストアップするための API エンドポイント（オプション）"
+        },
+        "deleteEndpoint": {
+          "label": "削除エンドポイント",
+          "description": "ファイルを削除するための API エンドポイント（デフォルト：/api/fs/remove）"
+        },
+        "metaEndpoint": {
+          "label": "メタデータエンドポイント",
+          "description": "ファイルメタデータを取得するための API エンドポイント（デフォルト：/api/fs/get）"
+        },
+        "pathField": {
+          "label": "パスフィールド名",
+          "description": "API リクエストのファイルパスパラメータ名（デフォルト：path）"
+        },
+        "cdnUrl": {
+          "label": "CDN URL",
+          "description": "画像にアクセスするためのカスタム CDN URL"
+        }
+      },
+      "sectionDescription": "ファイルの保存先を管理します。使用中の構成への変更は保存後すぐに反映されます。",
+      "listDescription": "構成を直接編集するか、別の構成をデフォルトに設定できます。",
+      "active": "使用中",
+      "editActiveHint": "この構成は使用中です。変更は保存後すぐに反映されます。",
+      "advancedSettings": "詳細設定",
+      "moreActions": "「{name}」のその他の操作",
+      "empty": {
+        "title": "ストレージが未設定です",
+        "description": "写真のアップロードを始めるにはストレージ構成を追加してください。最初の構成は自動的にデフォルトになります。"
+      },
+      "discard": {
+        "title": "未保存の変更を破棄しますか？",
+        "description": "変更はまだ保存されていません。編集画面を閉じると変更が失われます。"
+      },
+      "table": {
+        "columns": {
+          "name": "ストレージ名",
+          "type": "ストレージ種別",
+          "actions": "操作"
+        }
+      },
+      "messages": {
+        "saved": "設定を保存しました",
+        "saveError": "設定の保存中にエラーが発生しました",
+        "created": "ストレージ構成を作成しました",
+        "createError": "ストレージ構成の作成中にエラーが発生しました",
+        "deleted": "ストレージ構成を削除しました",
+        "deleteError": "ストレージ構成の削除に失敗しました",
+        "updated": "ストレージ構成を更新しました",
+        "updateError": "ストレージ構成の更新に失敗しました"
+      },
+      "providers": {
+        "s3": "AWS S3 互換ストレージ",
+        "local": "ローカルストレージ",
+        "openlist": "OpenList"
+      },
+      "sections": {
+        "currentDefault": "現在のデフォルトストレージ",
+        "management": "ストレージ構成管理"
+      },
+      "form": {
+        "namePlaceholder": "例：写真ストレージ",
+        "isrequired": "この項目は必須です",
+        "schemeLabel": "ストレージ構成",
+        "schemePlaceholder": "ストレージ構成を選択",
+        "typeLabel": "ストレージ種別",
+        "typePlaceholder": "ストレージ種別を選択",
+        "nameLabel": "ストレージ名"
+      },
+      "changeModal": {
+        "target": "「{name}」をデフォルトのストレージに設定しますか？",
+        "title": "ストレージ構成を変更",
+        "alertTitle": "注意",
+        "alertDescription": "ストレージ構成を変更した後にアップロードされたファイルは新しいストレージ構成に保存されます。元の構成にある既存のファイルは移行されません。"
+      },
+      "deleteModal": {
+        "title": "ストレージ構成を削除",
+        "message": "「{name}」を削除してもよろしいですか？この構成は ChronoFrame から削除されます。この構成で保存済みのファイルは削除されません。"
+      },
+      "slideover": {
+        "title": "ストレージ構成を作成",
+        "editTitle": "ストレージ構成を編集"
+      },
+      "actions": {
+        "discard": "変更を破棄",
+        "keepEditing": "編集を続ける",
+        "retry": "再試行",
+        "activate": "デフォルトに設定",
+        "add": "ストレージを追加",
+        "create": "ストレージを作成",
+        "edit": "編集"
+      }
+    },
+    "analytics": {
+      "sectionDescription": "アナリティクス、トラッキング、または構造化データ用のカスタム script タグを head と body に注入します。スクリプトはすべての訪問者に実行されます。信頼できるコードのみ貼り付けてください。",
+      "headScripts": {
+        "label": "Head スクリプト",
+        "description": "head に注入する script タグを含む HTML 断片。",
+        "help": "完全な script タグを貼り付けます（複数可）。GA、百度統計、Plausible、Umami、JSON-LD などに適用。既存の Matomo 統合は独立して実行されます。"
+      },
+      "bodyScripts": {
+        "label": "Body スクリプト",
+        "description": "body の先頭に注入する script タグを含む HTML 断片。",
+        "help": "完全な script タグを貼り付けます（複数可）。body の開始時に実行する必要があるスクリプトに適しています。"
+      }
+    },
+    "general": {
+      "description": "サイトの基本情報と表示外観を管理します。変更はダッシュボードと公開側の表示に即時反映されます。"
+    },
+    "form": {
+      "loadFailed": "設定の読み込みに失敗しました",
+      "saveSuccess": "設定が保存されました",
+      "saveFailed": "設定の保存に失敗しました"
+    }
+  },
+  "wizard": {
+    "admin": {
+      "username": {
+        "label": "ユーザー名"
+      },
+      "email": {
+        "label": "メールアドレス"
+      },
+      "password": {
+        "label": "パスワード"
+      },
+      "confirmPassword": {
+        "label": "パスワード（確認）"
+      }
+    },
+    "site": {
+      "avatarUrl": {
+        "help": "アバターはローディングページとホームページに表示されます。ストレージを設定すると、画像のアップロードもできるようになります。"
+      }
+    },
+    "map": {
+      "provider": {
+        "mapbox": {
+          "label": "Mapbox",
+          "description": "豊富なスタイルオプションを備えた高性能マップ。"
+        },
+        "maplibre": {
+          "label": "MapLibre",
+          "description": "Mapbox GL JS のオープンソースフォーク。"
+        }
+      }
+    },
+    "form": {
+      "loadSchemaFailed": "ウィザードスキーマの読み込みに失敗しました"
+    }
+  },
+  "onboarding": {
+    "layout": {
+      "steps": {
+        "welcome": "ようこそ",
+        "admin": "管理者アカウント",
+        "site": "サイト情報",
+        "storage": "ストレージ設定",
+        "map": "地図サービス",
+        "complete": "完了"
+      },
+      "tips": "入力間違いがあっても心配しないでください。後から管理画面で変更できます",
+      "current": "進行中",
+      "stepCounter": "ステップ {0} / {1}",
+      "logoAlt": "ChronoFrame ロゴ"
+    },
+    "actions": {
+      "next": "次へ",
+      "previous": "前へ",
+      "completeSetup": "設定を完了"
+    },
+    "welcome": {
+      "title": "ChronoFrame へようこそ",
+      "description": "ウィザードに従って、数分でギャラリーを設定できます。",
+      "intro": "ChronoFrame は多機能な個人ギャラリーアプリです。写真をアップロードする前に、いくつかの項目を設定しましょう。",
+      "cards": {
+        "admin": {
+          "title": "管理者アカウント",
+          "description": "管理コンソールへのログインに使用します",
+          "invalidUsername": "ユーザー名は最小 2 文字以上です",
+          "invalidEmail": "メールアドレスは無効です",
+          "invalidPassword": "パスワードは最小 6 文字以上です",
+          "invalidConfirmPassword": "パスワード（確認）は最小 6 文字以上です",
+          "passwordMismatch": "パスワードと確認パスワードが一致しません"
+        },
+        "site": {
+          "title": "サイト情報",
+          "description": "ギャラリーをパーソナライズします",
+          "invalidTitle": "サイトタイトルを入力してください",
+          "invalidAvatarUrl": "無効なアバター URL です"
+        },
+        "storage": {
+          "title": "ストレージ",
+          "description": "写真をローカルまたはクラウドに保存します",
+          "isrequired": "この項目は必須項目",
+          "invalidUrl": "無効な URL です"
+        },
+        "map": {
+          "title": "地図サービス",
+          "description": "位置の可視化と撮影地点の表示"
+        }
+      },
+      "privacyNotice": "ChronoFrame はあなたのデータを収集しません。",
+      "start": "はじめる"
+    },
+    "admin": {
+      "title": "管理者アカウント",
+      "description": "管理者アカウントを作成します",
+      "invalidUsername": "ユーザー名は2文字以上で入力してください",
+      "invalidEmail": "有効なメールアドレスを入力してください",
+      "invalidPassword": "パスワードは6文字以上で入力してください",
+      "invalidConfirmPassword": "確認パスワードは6文字以上で入力してください",
+      "passwordMismatch": "パスワードと確認パスワードが一致しません"
+    },
+    "site": {
+      "title": "サイト情報",
+      "description": "サイトの基本情報を設定します",
+      "invalidTitle": "サイトタイトルを入力してください",
+      "invalidAvatarUrl": "無効なアバターURLです"
+    },
+    "storage": {
+      "title": "ストレージ設定",
+      "description": "写真の保存先を選択します",
+      "isrequired": "この項目は必須です",
+      "invalidUrl": "無効なURL形式です"
+    },
+    "map": {
+      "title": "地図サービス",
+      "description": "グローブ表示と写真詳細のミニマップ向けに地図サービスを設定します",
+      "tokenOptional": "アクセストークンは任意です。あとから「地図と場所」の設定で追加できます。追加するまで、グローブ、写真のミニマップ、位置選択は空白のままです。カスタム MapLibre スタイル URL なら MapTiler トークンなしで利用できます。"
+    },
+    "complete": {
+      "title": "まもなく完了です！",
+      "description": "ChronoFrame ギャラリーの準備ができました。",
+      "body": "基本設定はすべて完了しました。管理者アカウントでログインして写真のアップロードを開始できます。",
+      "goToDashboard": "ダッシュボードへ",
+      "setupFailedTitle": "セットアップ失敗",
+      "setupFailedDescription": "セットアップの完了に失敗しました"
+    }
+  },
+  "globe": {
+    "analysis": {
+      "annotation": "撮影パラメータ注釈",
+      "annotationDescription": "撮影パラメータ別に地理分布を表示",
+      "mode": {
+        "none": {
+          "label": "デフォルト",
+          "description": "注釈を無効化"
+        },
+        "focalLength": {
+          "label": "焦点距離",
+          "description": "広角 / 標準 / 望遠"
+        },
+        "shutterSpeed": {
+          "label": "シャッター速度",
+          "description": "高速 / 中速 / 低速"
+        },
+        "altitude": {
+          "label": "標高",
+          "description": "低 / 中 / 高標高"
+        }
+      },
+      "legend": {
+        "focalLength": {
+          "title": "焦点距離分布",
+          "wide": "広角",
+          "standard": "標準",
+          "telephoto": "望遠"
+        },
+        "shutterSpeed": {
+          "title": "シャッター速度分布",
+          "fast": "高速",
+          "medium": "中速",
+          "slow": "低速"
+        },
+        "altitude": {
+          "title": "標高分布",
+          "low": "低標高",
+          "medium": "中標高",
+          "high": "高標高"
+        }
+      }
+    },
+    "timeline": {
+      "toggle": "タイムラインの有効/無効",
+      "playPause": "タイムライン再生/一時停止",
+      "title": "タイムライン"
+    }
+  },
+  "upload": {
+    "duplicate": {
+      "block": {
+        "title": "ファイルは既に存在します",
+        "message": "写真「{fileName}」は既に存在し、重複アップロードは許可されていません",
+        "suggestion": "対処方法：1) ファイル名を変更して再アップロードする 2) 設定で「警告モード」に切り替えて上書きを許可する"
+      },
+      "skip": {
+        "title": "重複ファイルをスキップしました",
+        "message": "写真「{fileName}」は既に存在するため、自動的にスキップされました",
+        "info": "既存の写真の撮影日：{dateTaken}",
+        "addedToAlbum": "既存の写真を選択したアルバムに追加しました。重複ファイルはアップロードしていません。",
+        "alreadyInAlbum": "既存の写真はすでに選択したアルバムにあります。重複ファイルはアップロードしていません。",
+        "albumAddFailed": "重複ファイルはアップロードされず、既存の写真も選択したアルバムに追加できませんでした。写真ライブラリの「アルバムに追加」を使用してください。"
+      },
+      "warn": {
+        "title": "重複ファイルを検出しました",
+        "message": "写真「{fileName}」は既に存在します。続行すると既存の写真を上書きします",
+        "warning": "既存の写真ファイルを上書きします",
+        "info": "既存の写真：{title}、撮影日：{dateTaken}"
+      }
+    },
+    "success": {
+      "upload": {
+        "single": "写真のアップロードが完了しました。処理中...",
+        "multiple": "{count} 枚の写真のアップロードが完了しました。処理中..."
+      },
+      "check": {
+        "title": "チェック完了",
+        "message": "{total} 個のファイルをチェックし、{duplicates} 個の重複が見つかりました"
+      }
+    },
+    "error": {
+      "required": {
+        "title": "必須パラメータがありません",
+        "message": "{field} パラメータを指定してください"
+      },
+      "invalidType": {
+        "title": "サポートされていないファイル形式",
+        "message": "サポートされていないメディアタイプ：{type}",
+        "suggestion": "許可されている形式：{allowed}"
+      },
+      "tooLarge": {
+        "title": "ファイルサイズが大きすぎます",
+        "message": "ファイルサイズ {size}MB が上限を超えています",
+        "suggestion": "最大許容サイズ：{maxSize}MB"
+      },
+      "uploadFailed": {
+        "title": "アップロードに失敗しました",
+        "message": "アップロード中にエラーが発生しました。しばらくしてから再試行してください"
+      }
+    },
+    "runtimeError": {
+      "missingEtag": "ストレージの応答から ETag を読み取れません。バケットの CORS ExposeHeaders に ETag を追加してください。",
+      "networkFailed": "ネットワーク接続に失敗しました",
+      "clientError": "クライアントエラー ({status})",
+      "serverError": "サーバーエラー ({status})",
+      "networkError": "ネットワークエラー (ステータス: {status})",
+      "timeout": "アップロードがタイムアウトしました ({timeout}ms)",
+      "aborted": "アップロードが中止されました",
+      "badRequest": "リクエスト形式エラー",
+      "unauthorized": "認証されていません",
+      "forbidden": "アクセスが拒否されました",
+      "notFound": "アップロードエンドポイントが見つかりません",
+      "conflict": "ファイルが競合しています",
+      "fileTooLarge": "ファイルが大きすぎます",
+      "unsupportedType": "サポートされていないファイル形式",
+      "rateLimited": "アップロード頻度が高すぎます",
+      "internalServerError": "サーバー内部エラー",
+      "serviceUnavailable": "サーバーが一時的に利用できません",
+      "httpError": "HTTPエラー: {status}",
+      "retrying": "{message}（試行 {attempt}/{max}）"
+    },
+    "progress": {
+      "calculating": "計算中...",
+      "seconds": "{seconds}秒"
+    }
+  },
+  "photo": {
+    "image": {
+      "loadError": "画像の読み込み失敗"
+    }
+  },
+  "debug": {
+    "title": "デバッグツール",
+    "open": "デバッグツールを開く",
+    "info": "基本情報",
+    "route": "ルート",
+    "version": "バージョン",
+    "viewport": "画面サイズ",
+    "locale": "言語",
+    "theme": "テーマ",
+    "general": "共通操作",
+    "outline": "要素の輪郭を表示",
+    "refresh": "データ更新",
+    "reload": "ページ再読み込み",
+    "reset": "設定をリセット",
+    "page": "現在のページ",
+    "empty": "このページにデバッグ設定はありません。",
+    "scenario": "シナリオ",
+    "window": {
+      "maximize": "最大化",
+      "restore": "元に戻す",
+      "close": "閉じる"
+    },
+    "viewer": {
+      "title": "写真ビューア",
+      "visibility": "WebGL 診断表示",
+      "system": "システム設定に従う",
+      "show": "強制表示",
+      "hide": "強制非表示",
+      "delay": "読込遅延（ms）",
+      "failure": "読込失敗を模擬",
+      "reload": "現在の画像を再読込",
+      "systemValue": "システム設定",
+      "effective": "実際の表示",
+      "stage": "読込段階",
+      "waiting": "模擬遅延中",
+      "stages": {
+        "idle": "待機",
+        "delay": "模擬遅延",
+        "image": "画像読込",
+        "texture": "テクスチャ読込",
+        "ready": "準備完了",
+        "error": "失敗",
+        "tile": "タイル読込"
+      }
+    },
+    "ogImage": "ページの OG 画像",
+    "openOgImage": "OG 画像を開く",
+    "ogImageError": "OG 画像を読み込めませんでした。"
+  },
+  "tours": {
+    "controlsTitle": "使い方ガイド",
+    "reset": "すべてのガイドをリセット",
+    "resetHelp": "リセットすると、各ページを次に開いたときにガイドが再び表示されます。",
+    "saveError": "ガイドの状態を保存できませんでした。もう一度お試しください。",
+    "next": "次へ",
+    "previous": "戻る",
+    "done": "完了",
+    "skip": "ガイドをスキップ",
+    "status": {
+      "pending": "未表示",
+      "completed": "完了",
+      "skipped": "スキップ済み"
+    },
+    "dashboard": {
+      "title": "写真の統計",
+      "description": "写真の総数を表示するカードです。クリックすると写真管理を開きます。隣のカードでは今月追加した写真やストレージ使用量を確認できます。"
+    },
+    "photos": {
+      "title": "写真の管理",
+      "description": "写真のアップロード、情報の編集、公開設定の変更ができます。処理状況はタスクキューで確認できます。"
+    },
+    "albums": {
+      "title": "アルバムの管理",
+      "description": "アルバムを作成し、名前、説明、カバー、アクセス制限を設定してから写真を追加できます。"
+    },
+    "general": {
+      "title": "サイトの基本設定",
+      "description": "ギャラリーとブラウザーのタブに表示するサイト名を設定し、このセクションの変更を保存します。"
+    },
+    "storage": {
+      "title": "写真のストレージ",
+      "description": "新しい写真の保存先となる既定のストレージを選び、変更を保存します。"
+    },
+    "map": {
+      "title": "地図の設定",
+      "description": "Mapbox または MapLibre を選びます。対応するスタイルとトークンの設定が下に表示されます。"
+    },
+    "location": {
+      "title": "場所の検索",
+      "description": "写真の撮影地名に使用する言語を選びます。地図表示と場所の検索は個別に設定できます。"
+    },
+    "privacy": {
+      "title": "位置情報のプライバシー",
+      "description": "撮影場所を保護するため、アップロード時に位置情報を自動で削除するかどうかを設定します。"
+    },
+    "system": {
+      "title": "システム設定",
+      "description": "アップロード、重複チェック、外部サービスでのログインを設定できます。このページからすべてのガイドをリセットできます。"
+    },
+    "home": {
+      "title": "ギャラリーのホームページ",
+      "description": "訪問者は写真の閲覧、絞り込み、並べ替え、詳細表示ができ、アルバムや地図も探索できます。"
+    },
+    "queueDetails": {
+      "title": "処理状況を確認",
+      "description": "タスクキューを開いてアップロードの処理状況や失敗したタスクを確認し、必要なタスクを再実行できます。"
+    },
+    "shareSite": {
+      "title": "サイトを共有",
+      "description": "新しく構築した ChronoFrame インスタンスをコミュニティに共有して、あなたのサイトを紹介しましょう。"
+    },
+    "photoFilter": {
+      "title": "写真の種類で絞り込む",
+      "description": "すべての写真、Live Photos、通常の写真を切り替えて表示できます。"
+    },
+    "albumActions": {
+      "title": "既存のアルバムを管理",
+      "description": "このボタンでアルバムの並べ替え、編集、削除ができます。編集時にはカバーやアクセス制限も設定できます。"
+    },
+    "avatar": {
+      "title": "サイトのアバター",
+      "description": "ギャラリーのヘッダーに表示するアバターをアップロードまたは変更します。"
+    },
+    "appearance": {
+      "title": "外観を選択",
+      "description": "ライト、ダーク、システムに合わせるテーマから選びます。"
+    },
+    "saveSettings": {
+      "title": "設定を保存",
+      "description": "このセクションの保存ボタンで変更を反映します。変更がない場合はボタンが無効になります。"
+    },
+    "storageAdd": {
+      "title": "ストレージを追加",
+      "description": "ローカル、S3、OpenList の保存先を追加し、パスや認証情報を設定して保存します。"
+    },
+    "mapStyle": {
+      "title": "地図のスタイル",
+      "description": "選択した地図サービスに対応するスタイルの URL を設定します。"
+    },
+    "mapToken": {
+      "title": "地図のアクセストークン",
+      "description": "選択した地図サービスのアクセストークンを入力します。スタイルとトークンは同じサービスに対応する必要があります。"
+    },
+    "locationService": {
+      "title": "場所検索サービス",
+      "description": "Nominatim の URL を設定します。上の Mapbox トークンを設定すると Mapbox の場所検索を使用できます。"
+    },
+    "githubLogin": {
+      "title": "GitHub でログイン",
+      "description": "GitHub ログインを有効にしてから、OAuth の Client ID と Client Secret を設定します。"
+    },
+    "uploadLimit": {
+      "title": "アップロードサイズの上限",
+      "description": "アップロードするファイルごとの最大サイズを MB 単位で設定します。"
+    },
+    "queueConcurrency": {
+      "title": "キューの同時実行数",
+      "description": "ここで画像を同時に処理するキュータスクの数を設定します。サーバーの性能に応じて適切な値に調整してください。"
+    },
+    "duplicateCheck": {
+      "title": "重複ファイルのチェック",
+      "description": "重複チェックを有効にし、下で重複ファイルの処理方法を選びます。"
+    },
+    "resetTours": {
+      "title": "ガイドをリセット",
+      "description": "すべてのガイドの記録をリセットします。各ページを再び開くとガイドが表示されます。"
+    },
+    "photoUpload": {
+      "title": "写真をアップロード",
+      "description": "このボタンでアップロードパネルを開き、写真を選択してアップロードを開始します。"
+    },
+    "albumCreate": {
+      "title": "アルバムを作成",
+      "description": "このボタンでアルバム作成フォームを開き、名前と説明を入力して保存します。"
+    },
+    "homeAvatar": {
+      "title": "アバターとログイン",
+      "description": "サイトのアバターです。ログアウト後、アバターをクリックするとログイン画面が開きます。/signin に直接アクセスすることもできます。"
+    },
+    "homeDashboard": {
+      "title": "ダッシュボードを開く",
+      "description": "管理者としてログインした後、このボタンからダッシュボードを開き、写真、アルバム、サイト設定を管理できます。"
+    },
+    "debugTitle": "ガイドの状態"
+  }
+}

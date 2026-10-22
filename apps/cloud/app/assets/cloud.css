@@ -1,0 +1,106 @@
+.cloud-page {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 0 28px;
+}
+.cloud-nav,
+.cloud-nav nav,
+.actions,
+.cloud-page footer {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+.cloud-nav {
+  justify-content: space-between;
+  padding: 28px 0;
+}
+.brand {
+  font-weight: 700;
+  font-size: 22px;
+  letter-spacing: -0.04em;
+}
+.cloud-nav nav,
+.cloud-page footer {
+  font-size: 14px;
+}
+.hero {
+  padding: 112px 0 96px;
+  max-width: 800px;
+}
+.eyebrow {
+  color: var(--ui-primary);
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+}
+.hero h1 {
+  font-size: clamp(40px, 6vw, 72px);
+  line-height: 1.08;
+  letter-spacing: -0.05em;
+  margin: 24px 0;
+  font-weight: 600;
+}
+.intro {
+  max-width: 560px;
+  color: var(--ui-text-muted);
+  font-size: 19px;
+  line-height: 1.7;
+  margin-bottom: 32px;
+}
+.features {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 36px;
+  border-top: 1px solid var(--ui-border);
+  padding: 48px 0 72px;
+}
+.features span {
+  color: var(--ui-text-muted);
+  font-size: 12px;
+}
+.features h2 {
+  font-size: 19px;
+  margin: 16px 0 10px;
+  font-weight: 600;
+}
+.features p,
+.cloud-message p {
+  color: var(--ui-text-muted);
+  line-height: 1.7;
+}
+.cloud-page footer {
+  justify-content: space-between;
+  border-top: 1px solid var(--ui-border);
+  padding: 24px 0;
+}
+.cloud-message {
+  max-width: 640px;
+  margin: 16vh auto;
+  padding: 28px;
+}
+.cloud-message h1 {
+  font-size: 36px;
+  letter-spacing: -0.04em;
+  margin: 40px 0 16px;
+  font-weight: 600;
+}
+.cloud-message .actions {
+  margin-top: 28px;
+}
+@media (max-width: 640px) {
+  .features {
+    grid-template-columns: 1fr;
+    gap: 28px;
+  }
+  .hero {
+    padding: 64px 0;
+  }
+  .actions {
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .cloud-nav nav {
+    gap: 12px;
+  }
+}

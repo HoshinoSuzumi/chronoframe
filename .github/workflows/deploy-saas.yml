@@ -1,0 +1,172 @@
+name: Deploy SaaS Workers
+
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: Source branch to deploy
+        type: string
+        required: true
+      environment:
+        description: Deployment environment
+        type: choice
+        options: [staging, production]
+        default: staging
+        required: true
+      deploy_cloud:
+        description: Deploy the cloud portal
+        type: boolean
+        default: true
+      deploy_site:
+        description: Deploy the public site entry
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: saas-workers-${{ inputs.environment }}
+  cancel-in-progress: false
+
+jobs:
+  plan:
+    runs-on: ubuntu-24.04
+    outputs:
+      commit: ${{ steps.plan.outputs.commit }}
+      entries: ${{ steps.plan.outputs.entries }}
+    steps:
+      - name: Checkout requested source branch
+        uses: actions/checkout@v7
+        with:
+          ref: refs/heads/${{ inputs.branch }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Validate and summarize deployment
+        id: plan
+        env:
+          SOURCE_BRANCH: ${{ inputs.branch }}
+          DEPLOY_ENVIRONMENT: ${{ inputs.environment }}
+          DEPLOY_CLOUD: ${{ inputs.deploy_cloud }}
+          DEPLOY_SITE: ${{ inputs.deploy_site }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          git check-ref-format "refs/heads/$SOURCE_BRANCH"
+          case "$DEPLOY_ENVIRONMENT" in staging|production) ;; *) exit 1 ;; esac
+          entries=()
+          [[ "$DEPLOY_CLOUD" == true ]] && entries+=(cloud)
+          [[ "$DEPLOY_SITE" == true ]] && entries+=(site)
+          if (( ${#entries[@]} == 0 )); then
+            echo "::error::Select at least one application."
+            exit 1
+          fi
+          # Referencing a missing environment would silently create an unprotected one.
+          # Refuse to proceed unless an explicit reviewer gate is already configured.
+          gh api "repos/$GITHUB_REPOSITORY/environments/saas-$DEPLOY_ENVIRONMENT" > "$RUNNER_TEMP/environment.json"
+          jq -e 'any(.protection_rules[]?; .type == "required_reviewers" and (.reviewers | length > 0))' "$RUNNER_TEMP/environment.json" > /dev/null
+          commit=$(git rev-parse HEAD)
+          echo "commit=$commit" >> "$GITHUB_OUTPUT"
+          echo "entries=${entries[*]}" >> "$GITHUB_OUTPUT"
+          {
+            echo '## SaaS deployment awaiting approval'
+            echo ""
+            echo "- Source branch: \`$SOURCE_BRANCH\`"
+            echo "- Commit: [$commit]($GITHUB_SERVER_URL/$GITHUB_REPOSITORY/commit/$commit)"
+            echo "- Approval environment: \`saas-$DEPLOY_ENVIRONMENT\`"
+            echo "- Deployment identifier: \`${commit:0:12}-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT\`"
+            echo '- Build and deployment start only after approval; the source SHA remains fixed.'
+            echo '- workers.dev only; no custom domains, Git release tags, or Docker publication.'
+            echo '- Current SaaS entries are bootstrap applications; tenant/auth APIs remain unavailable.'
+            echo ""
+            echo '### Targets'
+            for entry in "${entries[@]}"; do
+              echo "- \`$entry\` → \`chronoframe-$entry-$DEPLOY_ENVIRONMENT\` (workers.dev)"
+            done
+            echo ""
+            echo '### Latest source changes'
+            echo '```text'
+            git log -10 --format='%h %s' | tr -d '\r'
+            echo '```'
+            echo 'This is source history, not a comparison with the currently deployed Worker.'
+            echo ""
+            echo 'Both Workers deploy sequentially. A failure can leave a partial deployment; inspect the results before retrying.'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  deploy:
+    needs: plan
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    environment:
+      name: saas-${{ inputs.environment }}
+    env:
+      WRANGLER_SEND_METRICS: 'false'
+    steps:
+      - name: Checkout approved immutable source
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.plan.outputs.commit }}
+          persist-credentials: false
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.34.6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22.23.3
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm check:entries
+      - run: pnpm build:deps
+      - name: Build and verify all selected Workers before deploying any
+        env:
+          ENTRIES: ${{ needs.plan.outputs.entries }}
+          DEPLOY_ENVIRONMENT: ${{ inputs.environment }}
+        run: |
+          set -euo pipefail
+          for entry in $ENTRIES; do
+            pnpm "build:$entry"
+            node scripts/check-entry-boundaries.mjs --built "$entry"
+            pnpm "smoke:$entry"
+            export ENTRY="$entry"
+            node --input-type=module <<'NODE'
+          import fs from 'node:fs'
+          const path = `apps/${process.env.ENTRY}/.output/server/wrangler.json`
+          const config = JSON.parse(fs.readFileSync(path, 'utf8'))
+          config.name = `chronoframe-${process.env.ENTRY}-${process.env.DEPLOY_ENVIRONMENT}`
+          config.workers_dev = true
+          config.preview_urls = false
+          config.routes = []
+          delete config.route
+          delete config.env
+          fs.writeFileSync(path, JSON.stringify(config, null, 2) + '\n')
+          NODE
+            pnpm exec wrangler deploy --dry-run --config "apps/$entry/.output/server/wrangler.json" --outdir "$RUNNER_TEMP/worker-$entry"
+          done
+      - name: Publish approved Workers
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          ENTRIES: ${{ needs.plan.outputs.entries }}
+          DEPLOY_ENVIRONMENT: ${{ inputs.environment }}
+          SOURCE_COMMIT: ${{ needs.plan.outputs.commit }}
+        run: |
+          set -euo pipefail
+          if [[ -z "$CLOUDFLARE_API_TOKEN" || -z "$CLOUDFLARE_ACCOUNT_ID" ]]; then
+            echo '::error::Configure CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID in the selected GitHub Environment.'
+            exit 1
+          fi
+          echo '## Worker deployment results' >> "$GITHUB_STEP_SUMMARY"
+          for entry in $ENTRIES; do
+            worker="chronoframe-$entry-$DEPLOY_ENVIRONMENT"
+            echo "### $worker" >> "$GITHUB_STEP_SUMMARY"
+            if pnpm exec wrangler deploy --config "apps/$entry/.output/server/wrangler.json" \
+              --message "Source $SOURCE_COMMIT; Actions $GITHUB_RUN_ID/$GITHUB_RUN_ATTEMPT" \
+              2>&1 | tee "$RUNNER_TEMP/deploy-$entry.log"; then
+              echo "- Successfully deployed approved commit \`$SOURCE_COMMIT\`." >> "$GITHUB_STEP_SUMMARY"
+              sed -nE 's/.*(https:\/\/[a-zA-Z0-9._-]+\.workers\.dev).*/- URL: \1/p' "$RUNNER_TEMP/deploy-$entry.log" >> "$GITHUB_STEP_SUMMARY"
+            else
+              echo '- **Deployment failed.** Previously successful targets remain deployed; subsequent targets were not attempted.' >> "$GITHUB_STEP_SUMMARY"
+              exit 1
+            fi
+          done
