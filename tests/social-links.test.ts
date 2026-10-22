@@ -55,7 +55,7 @@ test('validates HTTPS URL syntax without requiring a reachable public host', () 
     'https://example.example/profile',
     'https://foo.onion/profile',
   ]) {
-    assert.equal(parseSocialLink(link).href, link)
+    assert.equal(parseSocialLink(link), link)
   }
 })
 

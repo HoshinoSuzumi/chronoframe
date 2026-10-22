@@ -1,6 +1,16 @@
-/// <reference lib="dom" />
-
 export const MAX_SOCIAL_LINKS = 4
+
+type ParsedSocialLinkUrl = {
+  href: string
+  protocol: string
+  username: string
+  password: string
+  hostname: string
+  origin: string
+  pathname: string
+}
+
+declare const URL: new (value: string) => ParsedSocialLinkUrl
 
 export type SocialLinkErrorCode = 'shape' | 'limit' | 'invalid' | 'duplicate'
 
@@ -26,7 +36,11 @@ export class SocialLinkError extends Error {
 }
 
 /** Validate HTTPS profile URL syntax without checking host reachability. */
-export function parseSocialLink(value: unknown): URL {
+export function parseSocialLink(value: unknown): string {
+  return parseSocialLinkUrl(value).href
+}
+
+function parseSocialLinkUrl(value: unknown): ParsedSocialLinkUrl {
   if (
     typeof value !== 'string' ||
     value.length === 0 ||
@@ -40,7 +54,7 @@ export function parseSocialLink(value: unknown): URL {
     throw new SocialLinkError('invalid', 'Enter a valid HTTPS URL')
   }
 
-  let url: URL
+  let url: ParsedSocialLinkUrl
   try {
     url = new URL(value)
   } catch {
@@ -71,7 +85,7 @@ export function parseSocialLink(value: unknown): URL {
 }
 
 export function socialLinkIdentity(value: unknown): string {
-  const url = parseSocialLink(value)
+  const url = parseSocialLinkUrl(value)
   return `${url.origin}${url.pathname.replace(/\/+$/, '')}`
 }
 
@@ -178,7 +192,7 @@ export function resolveSocialPlatform(value: string): {
 } {
   let hostname: string
   try {
-    hostname = parseSocialLink(value).hostname
+    hostname = parseSocialLinkUrl(value).hostname
   } catch {
     return { label: 'Link', icon: 'tabler:link' }
   }
