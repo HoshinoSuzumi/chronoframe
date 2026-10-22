@@ -30,3 +30,24 @@ checks the captured source version and atomically updates the photo reference,
 resource generation, and any follow-up task. Failed or stale publications discard
 only their own staged object; they never restore bytes over a newer edit. Prior
 source objects remain available rather than being deleted during publication.
+
+## Platform request boundaries
+
+`createPlatformAccess` accepts an asynchronous `PlatformDirectory`; it does not
+open SQLite, infer `DEFAULT_SITE`, or accept client headers as identity. A session
+adapter must verify the platform cookie and expiry before passing its internal
+user ID. Membership is loaded for every authorization decision. Existing `admin`
+roles can mutate/manage a Site; `member` is read-only in this platform policy.
+Self-hosted authorization is unchanged.
+
+Public resolution accepts only a canonical DNS hostname from the direct request
+URL. The directory must return ownership-verified, active domain mappings and
+published Sites; forwarded host and caller-supplied Site IDs are not trusted.
+`platformCacheKey`/`platformStateKey` separate Site, audience, user/role, and Host.
+Only anonymous unprotected data may enter a public cache. Visitor-protected
+responses remain private/no-store, and verified grants must match Site, album,
+password revision, and expiry through `hasSiteVisitorGrant`.
+
+These interfaces establish the application boundary. They do not implement a
+persistent platform identity directory, email delivery, or signed session/grant
+cookies. Until adapters are connected, the cloud/site data routes stay unavailable.

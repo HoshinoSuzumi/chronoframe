@@ -8,6 +8,8 @@ const entry = process.argv[2]
 if (!['cloud', 'site'].includes(entry))
   throw new Error('Expected cloud or site')
 const port = entry === 'cloud' ? 8787 : 8788
+const originHost = process.env.CHRONOFRAME_SMOKE_HOST
+const portalOrigin = originHost === 'app.chronoframe.art'
 const require = createRequire(import.meta.url)
 const cli = resolve(
   dirname(require.resolve('wrangler/package.json')),
@@ -19,6 +21,7 @@ const worker = spawn(
     cli,
     'dev',
     '--local',
+    ...(originHost ? ['--local-upstream', originHost] : []),
     '--config',
     `apps/${entry}/.output/server/wrangler.json`,
     '--port',
@@ -72,14 +75,18 @@ try {
     assert.equal(response.status, 503, endpoint)
     assert.equal(response.headers.get('cache-control'), 'no-store', endpoint)
   }
-  const home = await fetch(base)
-  assert.equal(home.status, entry === 'cloud' ? 200 : 503)
-  const html = await home.text()
-  assert.ok(
-    html.includes(
-      entry === 'cloud' ? 'A home for the moments' : 'Service unavailable',
-    ),
+  const home = await fetch(base, { redirect: 'manual' })
+  assert.equal(
+    home.status,
+    entry === 'cloud' ? (portalOrigin ? 302 : 200) : 503,
   )
+  const html = await home.text()
+  if (!portalOrigin)
+    assert.ok(
+      html.includes(
+        entry === 'cloud' ? 'A home for the moments' : 'Service unavailable',
+      ),
+    )
   if (entry === 'cloud') {
     assert.equal((await fetch(base + '/signin')).status, 200)
     const dashboard = await fetch(base + '/dashboard/photos', {
@@ -93,6 +100,21 @@ try {
     )
     assert.equal((await fetch(base + '/sites')).status, 503)
     assert.equal((await fetch(base + '/albums')).status, 404)
+    if (portalOrigin) {
+      assert.ok(home.headers.get('location').endsWith('/signin'))
+    }
+    if (originHost === 'chronoframe.art') {
+      const links = [...html.matchAll(/\bhref="([^"]*)"/g)]
+      assert.ok(
+        links.some(([, href]) => href === 'https://app.chronoframe.art/signin'),
+        'Marketing sign-in link must target the exact portal URL',
+      )
+      const forgedPortal = await fetch(base, {
+        headers: { 'x-forwarded-host': 'app.chronoframe.art' },
+        redirect: 'manual',
+      })
+      assert.equal(forgedPortal.status, 200)
+    }
   } else {
     assert.equal((await fetch(base + '/albums')).status, 503)
     assert.equal((await fetch(base + '/dashboard')).status, 404)

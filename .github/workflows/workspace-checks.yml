@@ -59,3 +59,8 @@ jobs:
       - run: node scripts/check-entry-boundaries.mjs --built ${{ matrix.entry }}
       - run: pnpm exec wrangler deploy --dry-run --config apps/${{ matrix.entry }}/.output/server/wrangler.json --outdir /tmp/chronoframe-${{ matrix.entry }}-worker
       - run: pnpm smoke:${{ matrix.entry }}
+      - name: Check marketing and portal Host routing
+        if: matrix.entry == 'cloud'
+        run: |
+          CHRONOFRAME_SMOKE_HOST=chronoframe.art pnpm smoke:cloud
+          CHRONOFRAME_SMOKE_HOST=app.chronoframe.art pnpm smoke:cloud

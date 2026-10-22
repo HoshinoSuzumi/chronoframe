@@ -30,6 +30,9 @@
     "@nuxtjs/color-mode": "4.0.1",
     "@nuxt/icon": "2.5.1",
     "nuxt-site-config": "4.2.3",
-    "@unhead/vue": "3.4.2"
+    "@unhead/vue": "3.4.2",
+    "@chronoframe/platform": "workspace:*",
+    "@chronoframe/core": "workspace:*",
+    "h3": "1.15.11"
   }
 }
