@@ -20,8 +20,6 @@ export default defineNuxtConfig({
     platform: {
       portalOrigin: 'https://app.chronoframe.art',
       secret: '',
-      emailProvider: '',
-      emailApiKey: '',
       emailFrom: '',
     },
   },

@@ -1,3 +1,4 @@
+import { platformEmailReady } from '../../../../platform-email'
 import {
   platformRequestURL,
   platformDatabase,
@@ -7,9 +8,10 @@ export default defineEventHandler(async (event) => {
   const origin = platformRequestURL(event).origin
   const configured =
     origin === config.portalOrigin &&
-    config.emailProvider === 'resend' &&
-    !!config.emailApiKey &&
-    !!config.emailFrom &&
+    platformEmailReady(
+      event.context.cloudflare?.env?.EMAIL,
+      config.emailFrom,
+    ) &&
     config.secret.length >= 32 &&
     !!event.context.cloudflare?.env?.PLATFORM_DB
   if (!configured) return { enabled: false }

@@ -134,6 +134,7 @@ jobs:
           ENTRIES: ${{ needs.plan.outputs.entries }}
           DEPLOY_ENVIRONMENT: ${{ inputs.environment }}
           PLATFORM_D1_DATABASE_ID: ${{ vars.PLATFORM_D1_DATABASE_ID }}
+          PLATFORM_EMAIL_FROM: ${{ vars.PLATFORM_EMAIL_FROM }}
         run: |
           set -euo pipefail
           for entry in $ENTRIES; do
@@ -161,6 +162,14 @@ jobs:
             } else {
               config.d1_databases = [binding]
             }
+          }
+          const emailFrom = process.env.PLATFORM_EMAIL_FROM
+          if (process.env.ENTRY === 'cloud' && emailFrom) {
+            if (!/^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(emailFrom)) throw new Error('Invalid platform email sender address')
+            const target = process.env.DEPLOY_ENVIRONMENT === 'staging' ? config.previews : config
+            target.send_email = [{ name: 'EMAIL', allowed_sender_addresses: [emailFrom] }]
+            target.vars = { ...target.vars, NUXT_PLATFORM_EMAIL_FROM: emailFrom }
+            if (process.env.DEPLOY_ENVIRONMENT === 'staging') delete config.send_email
           }
           config.routes = []
           delete config.route

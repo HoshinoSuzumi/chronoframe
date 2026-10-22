@@ -23,9 +23,22 @@ Cloud runtime settings are private Worker configuration:
   `https://app.chronoframe.art`. A staging Preview needs its own exact origin.
 - `NUXT_PLATFORM_SECRET`: independent random secret of at least 32 bytes in each
   environment. Used for keyed email-code digests and opaque session-token digests.
-- `NUXT_PLATFORM_EMAIL_PROVIDER`, `NUXT_PLATFORM_EMAIL_API_KEY`, and
-  `NUXT_PLATFORM_EMAIL_FROM`: enable only after selecting a mail provider.
-  An optional Resend adapter is available; it is disabled by default.
+- `NUXT_PLATFORM_EMAIL_FROM`: a plain sender address on your verified Cloudflare
+  Email Service domain, for example `login@noreply.chronoframe.art`.
+- `EMAIL`: a Cloudflare Email Sending `send_email` binding, using the structured
+  `send({ from, to, subject, text })` API. No Resend or email API key is needed.
+
+Set the GitHub Environment variable `PLATFORM_EMAIL_FROM` to that sender address.
+The workflow adds `EMAIL` only to cloud, restricts `allowed_sender_addresses` to
+this address, and sets `NUXT_PLATFORM_EMAIL_FROM`. Production uses top-level
+configuration; staging uses `previews.send_email` and `previews.vars`. This keeps
+runtime bindings reproducible on subsequent deployments. With no sender variable
+or binding, email sign-in stays disabled. Local Wrangler simulation must use
+`remote: false` (the default) to avoid real delivery.
+
+See the [Cloudflare binding API](https://developers.cloudflare.com/email-service/api/send-emails/workers-api/).
+The verified sending domain must be active; any account recipient restrictions
+or sending limits still apply. A binding does not verify the domain itself.
 
 Configure Preview secrets separately from production. Runtime credentials are
 not GitHub deployment credentials, and no plaintext OTP is stored in D1.
