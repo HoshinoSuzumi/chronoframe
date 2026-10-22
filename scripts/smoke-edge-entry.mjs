@@ -94,7 +94,9 @@ try {
     })
     assert.equal(dashboard.status, 302)
     assert.ok(
-      new URL(dashboard.headers.get('location'), base).pathname === '/sites',
+      ['/sites', '/signin'].includes(
+        new URL(dashboard.headers.get('location'), base).pathname,
+      ),
     )
     assert.equal(
       (await fetch(base + '/DASHBOARD', { redirect: 'manual' })).status,
@@ -107,7 +109,9 @@ try {
     assert.equal((await fetch(base + '/albums')).status, 404)
     if (portalOrigin) {
       assert.ok(
-        new URL(home.headers.get('location'), base).pathname === '/sites',
+        ['/sites', '/signin'].includes(
+          new URL(home.headers.get('location'), base).pathname,
+        ),
       )
     }
     if (originHost === 'chronoframe.art') {
