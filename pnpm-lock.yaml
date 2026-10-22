@@ -10,9 +10,6 @@ overrides:
 importers:
   .:
     dependencies:
-      h3:
-        specifier: 1.15.11
-        version: 1.15.11
       '@aws-sdk/client-s3':
         specifier: ^3.1149.0
         version: 3.1149.0
@@ -113,7 +110,7 @@ importers:
         specifier: ^22.1.1
         version: 22.1.1
       h3:
-        specifier: ^1.15.11
+        specifier: 1.15.11
         version: 1.15.11
       heic-convert:
         specifier: ^2.1.0

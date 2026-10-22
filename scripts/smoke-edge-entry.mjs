@@ -104,7 +104,11 @@ try {
       assert.ok(home.headers.get('location').endsWith('/signin'))
     }
     if (originHost === 'chronoframe.art') {
-      assert.ok(html.includes('https://app.chronoframe.art/signin'))
+      const links = [...html.matchAll(/\bhref="([^"]*)"/g)]
+      assert.ok(
+        links.some(([, href]) => href === 'https://app.chronoframe.art/signin'),
+        'Marketing sign-in link must target the exact portal URL',
+      )
       const forgedPortal = await fetch(base, {
         headers: { 'x-forwarded-host': 'app.chronoframe.art' },
         redirect: 'manual',
