@@ -3,7 +3,7 @@
   "version": "1.0.1",
   "private": true,
   "type": "module",
-  "license": "MIT",
+  "license": "AGPL-3.0-only",
   "scripts": {
     "dev": "node ../../scripts/self-hosted.mjs dev",
     "build": "node ../../scripts/self-hosted.mjs build",

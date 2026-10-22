@@ -2,10 +2,10 @@
   "name": "chronoframe",
   "version": "1.0.1",
   "author": {
-    "name": "Timothy Yin",
+    "name": "ChronoFrame",
     "email": "master@uniiem.com"
   },
-  "license": "MIT",
+  "license": "AGPL-3.0-only",
   "type": "module",
   "private": true,
   "scripts": {

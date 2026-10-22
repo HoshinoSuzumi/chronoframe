@@ -72,3 +72,16 @@ Push your branch to your fork and open a pull request. State what problem it sol
 For suspected security vulnerabilities, follow the [Security Policy](SECURITY.md) and report privately.
 
 Use the [issue template chooser](https://github.com/HoshinoSuzumi/chronoframe/issues/new/choose) to report bugs or request features. For a bug, include the version, deployment method, storage type, reproduction steps and relevant logs with secrets removed. Use [GitHub Discussions](https://github.com/HoshinoSuzumi/chronoframe/discussions) or [Discord](https://discord.gg/MM4ZK4Ed7s) for questions and ideas.
+
+## Contribution licensing
+
+The repository default is AGPL-3.0-only. The contracts and webgl-image packages
+have MIT exceptions; see [LICENSING.md](LICENSING.md) before contributing. Preserve existing copyright
+and third-party license notices and identify any third-party material you add.
+Only submit material you own or are authorized to contribute under its applicable
+license; obtain employer or other rights-holder authorization where necessary.
+
+If a separate contributor agreement is requested through the project's designated
+signing process, review that agreement and its version before accepting it. This
+guide is not a CLA and does not itself grant additional commercial relicensing
+rights. Questions may be sent to ChronoFrame at contact@chronoframe.art.

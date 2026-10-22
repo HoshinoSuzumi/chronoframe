@@ -11,7 +11,7 @@
   <a href="https://github.com/HoshinoSuzumi/chronoframe/releases">
     <img src="https://badgen.net/github/release/HoshinoSuzumi/chronoframe?icon=docker&label=测试" alt="Latest Prerelease">
   </a>
-  <img src="https://img.shields.io/badge/License-MIT-green.svg" alt="License">
+  <img src="https://img.shields.io/badge/License-AGPL--3.0--only-blue.svg" alt="License">
 </p>
 
 <p align="center">
@@ -115,6 +115,12 @@ pnpm docs:build    # 构建文档
 ```
 
 修改数据库 schema 后，使用 `pnpm db:generate` 生成迁移并检查 SQL。仅启动项目时无需生成迁移。更多说明见[贡献指南](https://chronoframe.bh8.ga/zh/development/contributing.html)。
+
+## 📄 许可证
+
+ChronoFrame 默认采用 **AGPL-3.0-only**，包括 Self-hosted 与 SaaS 实现；
+`packages/contracts` 和 `packages/webgl-image` 保留 MIT。适用范围、历史 MIT 权利及向 **ChronoFrame**
+咨询商业授权的方式见 [LICENSE](LICENSE) 和 [LICENSING.md](LICENSING.md)。满足适用 AGPL 义务的收费托管是允许的。
 
 ## 🤝 贡献与交流
 
