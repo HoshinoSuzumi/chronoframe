@@ -1,7 +1,9 @@
 <script setup lang="ts">
 useSeoMeta({ title: 'Your sites — ChronoFrame', robots: 'noindex' })
+const userId = useState<number | null>('platform-user-id', () => null)
 const { data, error } = await useFetch('/api/sites', {
-  key: 'platform-site-list',
+  key: computed(() => `platform-sites:${userId.value}`),
+  getCachedData: () => undefined,
   cache: 'no-store',
 })
 if (error.value)
