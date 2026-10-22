@@ -85,6 +85,7 @@ jobs:
             fi
             echo '- workers.dev only; no custom domains, Git release tags, or Docker publication.'
             echo '- Platform D1 binding is read from the selected GitHub Environment after approval; staging and production require separate databases.'
+            echo '- Pending platform D1 migrations run after approval and successful builds, before Worker publication. Applied migrations remain if publication later fails.'
             echo '- Email sign-in additionally requires explicitly configured runtime mail credentials and a portal origin.'
             echo ""
             echo '### Targets'
@@ -178,6 +179,39 @@ jobs:
           NODE
             pnpm exec wrangler deploy --dry-run --config "apps/$entry/.output/server/wrangler.json" --outdir "$RUNNER_TEMP/worker-$entry"
           done
+      - name: Apply approved platform D1 migrations
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          PLATFORM_D1_DATABASE_ID: ${{ vars.PLATFORM_D1_DATABASE_ID }}
+        run: |
+          set -euo pipefail
+          if [[ -z "$PLATFORM_D1_DATABASE_ID" ]]; then
+            echo '- Platform D1 migration skipped: no database configured.' >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          if [[ -z "$CLOUDFLARE_API_TOKEN" || -z "$CLOUDFLARE_ACCOUNT_ID" ]]; then
+            echo '::error::Configure Cloudflare credentials in the selected GitHub Environment.'
+            exit 1
+          fi
+          export PLATFORM_MIGRATION_CONFIG="$RUNNER_TEMP/platform-d1-migrations.json"
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs'
+          import path from 'node:path'
+          const id = process.env.PLATFORM_D1_DATABASE_ID
+          if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) throw new Error('Invalid platform D1 database ID')
+          fs.writeFileSync(process.env.PLATFORM_MIGRATION_CONFIG, JSON.stringify({
+            name: 'chronoframe-platform-migrations',
+            compatibility_date: '2026-10-22',
+            d1_databases: [{ binding: 'DB', database_name: 'chronoframe-saas', database_id: id, migrations_dir: path.resolve('packages/platform/migrations') }],
+          }))
+          NODE
+          if pnpm exec wrangler d1 migrations apply DB --remote --config "$PLATFORM_MIGRATION_CONFIG"; then
+            echo '- Platform D1 migrations applied; previously applied files were skipped.' >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo '- **Platform D1 migration failed. Workers were not published.**' >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
       - name: Publish approved Workers
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
