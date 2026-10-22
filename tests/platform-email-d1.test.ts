@@ -245,11 +245,11 @@ test('actual workerd D1 serializes reservations and one-time verification', asyn
       modules: true,
       script: 'export default { fetch() { return new Response("ok") } }',
       compatibilityDate: '2026-10-22',
-      d1Databases: { PLATFORM_DB: 'platform-test' },
+      d1Databases: { DB: 'platform-test' },
     }),
   )
   try {
-    const db: PlatformD1 = await mf.getD1Database('PLATFORM_DB')
+    const db: PlatformD1 = await mf.getD1Database('DB')
     const migration = await readFile(
       new URL(
         '../packages/platform/migrations/0001_platform.sql',

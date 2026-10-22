@@ -13,7 +13,7 @@ export default defineEventHandler(async (event) => {
       config.emailFrom,
     ) &&
     config.secret.length >= 32 &&
-    !!event.context.cloudflare?.env?.PLATFORM_DB
+    !!event.context.cloudflare?.env?.DB
   if (!configured) return { enabled: false }
   try {
     await platformDatabase(event)

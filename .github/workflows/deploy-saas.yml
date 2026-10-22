@@ -155,7 +155,7 @@ jobs:
           const databaseId = process.env.PLATFORM_D1_DATABASE_ID
           if (databaseId) {
             if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(databaseId)) throw new Error('Invalid platform D1 database ID')
-            const binding = { binding: 'PLATFORM_DB', database_name: `chronoframe-platform-${process.env.DEPLOY_ENVIRONMENT}`, database_id: databaseId }
+            const binding = { binding: 'DB', database_name: 'chronoframe-saas', database_id: databaseId }
             if (process.env.DEPLOY_ENVIRONMENT === 'staging') {
               config.previews.d1_databases = [binding]
               delete config.d1_databases

@@ -19,9 +19,7 @@ import { createEmailCodeCrypto } from './platform-crypto'
 
 export const PLATFORM_COOKIE = '__Host-chronoframe-session'
 export function platformDatabase(event: H3Event): PlatformD1 {
-  const db = event.context.cloudflare?.env?.PLATFORM_DB as
-    | PlatformD1
-    | undefined
+  const db = event.context.cloudflare?.env?.DB as PlatformD1 | undefined
   if (!db?.prepare || !db.batch)
     throw createError({
       statusCode: 503,

@@ -12,7 +12,7 @@ Do not run these migrations on the Self-hosted database.
 
 Set the GitHub Environment variable `PLATFORM_D1_DATABASE_ID` in `saas-staging`
 and `saas-production` to their respective database IDs. The deployment workflow
-binds `PLATFORM_DB` at the top level for production and under `previews` for
+binds `DB` at the top level for production and under `previews` for
 staging. The two IDs must identify separate databases. No D1 database or remote
 migration is automatically created/applied by this change. The deployment token
 needs D1 access once the binding is enabled.
