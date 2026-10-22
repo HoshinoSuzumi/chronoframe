@@ -103,7 +103,10 @@ export function parseSocialLinks(value: unknown): string[] {
 
   const links = (value as { links: unknown[] }).links
   if (links.length > MAX_SOCIAL_LINKS)
-    throw new SocialLinkError('limit', 'Use at most four social links')
+    throw new SocialLinkError(
+      'limit',
+      `Use at most ${MAX_SOCIAL_LINKS} social links`,
+    )
 
   const seen = new Set<string>()
   return links.map((link) => {

@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import {
+  MAX_SOCIAL_LINKS,
   parseSocialLinks,
   parseSocialLink,
   resolveSocialPlatform,
@@ -8,7 +9,7 @@ import {
 } from '@chronoframe/contracts/social-links'
 import { validateSettingWrite } from '@chronoframe/core'
 
-test('accepts an ordered list of at most four HTTPS profile links', () => {
+test('accepts an ordered list up to the configured HTTPS profile link limit', () => {
   const links = [
     'https://instagram.com/example',
     'https://github.com/example',
@@ -17,9 +18,12 @@ test('accepts an ordered list of at most four HTTPS profile links', () => {
   ]
   assert.deepEqual(parseSocialLinks({ links }), links)
   assert.deepEqual(parseSocialLinks({ links: [] }), [])
+  assert.equal(links.length, MAX_SOCIAL_LINKS)
   assert.throws(
     () => parseSocialLinks({ links: [...links, 'https://x.com/example'] }),
-    /four/i,
+    {
+      message: `Use at most ${MAX_SOCIAL_LINKS} social links`,
+    },
   )
 })
 

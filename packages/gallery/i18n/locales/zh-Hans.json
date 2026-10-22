@@ -1220,13 +1220,13 @@
     "app": {
       "socialLinks": {
         "title": "社交账号",
-        "description": "最多添加四个 HTTPS 链接，显示在首页页眉。",
+        "description": "最多添加 {max} 个 HTTPS 链接，显示在首页页眉。",
         "slot": "社交链接 {number}",
         "placeholder": "https://example.com/your-profile",
         "clear": "清除社交链接 {number}",
         "visit": "访问 {platform}",
         "shape": "社交链接数据无效",
-        "limit": "最多添加四个链接",
+        "limit": "最多添加 {max} 个链接",
         "invalid": "请输入有效的 HTTPS URL",
         "duplicate": "此链接已添加"
       },

@@ -1220,13 +1220,13 @@
     "app": {
       "socialLinks": {
         "title": "Social accounts",
-        "description": "Add up to four HTTPS links to show in the home page header.",
+        "description": "Add up to {max} HTTPS links to show in the home page header.",
         "slot": "Social link {number}",
         "placeholder": "https://example.com/your-profile",
         "clear": "Clear social link {number}",
         "visit": "Visit {platform}",
         "shape": "Invalid social links data",
-        "limit": "Add no more than four links",
+        "limit": "Add no more than {max} links",
         "invalid": "Enter a valid HTTPS URL",
         "duplicate": "This link is already listed"
       },

@@ -1,7 +1,10 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import { reactive, readonly, ref } from 'vue'
-import { SocialLinkError } from '@chronoframe/contracts/social-links'
+import {
+  MAX_SOCIAL_LINKS,
+  SocialLinkError,
+} from '@chronoframe/contracts/social-links'
 import {
   applySettingsBatch,
   toSettingsBatchError,
@@ -13,12 +16,15 @@ test('batch errors preserve social validation codes without coding unrelated fai
     toSettingsBatchError(
       'app',
       'socialLinks',
-      new SocialLinkError('limit', 'Use at most four social links'),
+      new SocialLinkError(
+        'limit',
+        `Use at most ${MAX_SOCIAL_LINKS} social links`,
+      ),
     ),
     {
       namespace: 'app',
       key: 'socialLinks',
-      error: 'Use at most four social links',
+      error: `Use at most ${MAX_SOCIAL_LINKS} social links`,
       code: 'limit',
     },
   )
@@ -77,15 +83,15 @@ test('social validation errors from batch save use localized inline and toast me
               {
                 namespace: 'app',
                 key: 'socialLinks',
-                error: 'Use at most four social links',
+                error: `Use at most ${MAX_SOCIAL_LINKS} social links`,
                 code: errorCode,
               },
             ],
           },
     useI18n: () => ({
-      t: (key: string) =>
+      t: (key: string, values?: { max?: number }) =>
         key === 'settings.app.socialLinks.limit'
-          ? 'Add no more than four links'
+          ? `Add no more than ${values?.max} links`
           : key === 'settings.form.saveFailed'
             ? 'Could not save settings'
             : key,
@@ -106,9 +112,12 @@ test('social validation errors from batch save use localized inline and toast me
       (error: unknown) =>
         error instanceof SocialLinkError &&
         error.code === 'limit' &&
-        error.message === 'Add no more than four links',
+        error.message === `Add no more than ${MAX_SOCIAL_LINKS} links`,
     )
-    assert.equal(toasts.at(-1)?.description, 'Add no more than four links')
+    assert.equal(
+      toasts.at(-1)?.description,
+      `Add no more than ${MAX_SOCIAL_LINKS} links`,
+    )
 
     errorCode = 'new-server-code'
     await assert.rejects(form.submit({ socialLinks: { links: [] } }), {

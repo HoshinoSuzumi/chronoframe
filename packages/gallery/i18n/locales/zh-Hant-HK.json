@@ -1142,13 +1142,13 @@
     "app": {
       "socialLinks": {
         "title": "社交帳戶",
-        "description": "最多加入四個 HTTPS 連結，顯示於首頁頁首。",
+        "description": "最多加入 {max} 個 HTTPS 連結，顯示於首頁頁首。",
         "slot": "社交連結 {number}",
         "placeholder": "https://example.com/your-profile",
         "clear": "清除社交連結 {number}",
         "visit": "瀏覽 {platform}",
         "shape": "社交連結資料無效",
-        "limit": "最多只能加入四個連結",
+        "limit": "最多只能加入 {max} 個連結",
         "invalid": "請輸入有效的 HTTPS URL",
         "duplicate": "此連結已加入"
       },

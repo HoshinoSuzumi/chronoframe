@@ -88,6 +88,14 @@ const resetSocialLinks = () => {
 }
 
 const socialSubmitError = ref('')
+watch(
+  socialDraft,
+  () => {
+    socialSubmitError.value = ''
+  },
+  { deep: true },
+)
+
 const handleSocialLinksSubmit = async () => {
   socialSubmitError.value = ''
   const draftAtSubmission = [...socialDraft.value]
@@ -102,9 +110,15 @@ const handleSocialLinksSubmit = async () => {
       savedSocialLinks.value,
     )
   } catch (error) {
+    if (
+      socialDraft.value.some(
+        (value, index) => value !== draftAtSubmission[index],
+      )
+    )
+      return
     socialSubmitError.value =
       error instanceof SocialLinkError
-        ? t(`settings.app.socialLinks.${error.code}`)
+        ? t(`settings.app.socialLinks.${error.code}`, { max: MAX_SOCIAL_LINKS })
         : t('settings.form.saveFailed')
   }
 }
@@ -337,7 +351,11 @@ const handleAppearanceSettingsSubmit = async () => {
               {{ $t('settings.app.socialLinks.title') }}
             </h3>
             <p class="mt-1 text-sm text-neutral-600 dark:text-neutral-400">
-              {{ $t('settings.app.socialLinks.description') }}
+              {{
+                $t('settings.app.socialLinks.description', {
+                  max: MAX_SOCIAL_LINKS,
+                })
+              }}
             </p>
           </header>
 
@@ -359,43 +377,30 @@ const handleAppearanceSettingsSubmit = async () => {
             <div
               v-for="(_, index) in socialDraft"
               :key="index"
-              class="flex items-start gap-3"
+              class="grid grid-cols-[20px_minmax(0,1fr)_auto] items-center gap-x-3"
             >
+              <label
+                :for="`social-link-${index}`"
+                class="col-start-2 col-span-2 row-start-1 mb-1 block text-sm font-medium text-neutral-900 dark:text-neutral-100"
+              >
+                {{ $t('settings.app.socialLinks.slot', { number: index + 1 }) }}
+              </label>
               <Icon
                 :name="resolveSocialPlatform(socialDraft[index] || '').icon"
-                class="mt-2.5 shrink-0 text-xl text-neutral-500 dark:text-neutral-400"
+                class="col-start-1 row-start-2 self-center text-xl text-neutral-500 dark:text-neutral-400"
                 aria-hidden="true"
               />
-              <div class="min-w-0 flex-1">
-                <label
-                  :for="`social-link-${index}`"
-                  class="mb-1 block text-sm font-medium text-neutral-900 dark:text-neutral-100"
-                >
-                  {{
-                    $t('settings.app.socialLinks.slot', { number: index + 1 })
-                  }}
-                </label>
-                <UInput
-                  :id="`social-link-${index}`"
-                  v-model="socialDraft[index]"
-                  type="url"
-                  class="w-full"
-                  :placeholder="$t('settings.app.socialLinks.placeholder')"
-                  :aria-invalid="Boolean(socialErrors[index])"
-                  :aria-describedby="
-                    socialErrors[index]
-                      ? `social-link-error-${index}`
-                      : undefined
-                  "
-                />
-                <p
-                  v-if="socialErrors[index]"
-                  :id="`social-link-error-${index}`"
-                  class="mt-1 text-sm text-error-600 dark:text-error-400"
-                >
-                  {{ socialErrors[index] }}
-                </p>
-              </div>
+              <UInput
+                :id="`social-link-${index}`"
+                v-model="socialDraft[index]"
+                type="url"
+                class="col-start-2 row-start-2 w-full min-w-0"
+                :placeholder="$t('settings.app.socialLinks.placeholder')"
+                :aria-invalid="Boolean(socialErrors[index])"
+                :aria-describedby="
+                  socialErrors[index] ? `social-link-error-${index}` : undefined
+                "
+              />
               <UButton
                 v-if="socialDraft[index]"
                 type="button"
@@ -405,9 +410,16 @@ const handleAppearanceSettingsSubmit = async () => {
                 :aria-label="
                   $t('settings.app.socialLinks.clear', { number: index + 1 })
                 "
-                class="mt-6"
+                class="col-start-3 row-start-2 self-center"
                 @click="socialDraft[index] = ''"
               />
+              <p
+                v-if="socialErrors[index]"
+                :id="`social-link-error-${index}`"
+                class="col-start-2 col-span-2 row-start-3 mt-1 text-sm text-error-600 dark:text-error-400"
+              >
+                {{ socialErrors[index] }}
+              </p>
             </div>
 
             <p
@@ -418,25 +430,33 @@ const handleAppearanceSettingsSubmit = async () => {
               {{ socialSubmitError }}
             </p>
             <div
-              class="flex items-center justify-end gap-2 border-t border-neutral-200 pt-4 dark:border-neutral-800"
+              class="border-t border-neutral-200 pt-4 dark:border-neutral-800"
             >
-              <UButton
-                type="button"
-                color="neutral"
-                variant="outline"
-                :disabled="!isSocialDirty || loading"
-                @click="resetSocialLinks"
+              <div
+                v-if="isSocialDirty"
+                class="mb-3 rounded-md border border-warning-200 bg-warning-50 px-3 py-2 text-sm text-warning-800 dark:border-warning-900/60 dark:bg-warning-950/30 dark:text-warning-200"
               >
-                {{ $t('common.actions.reset') }}
-              </UButton>
-              <UButton
-                type="submit"
-                icon="tabler:device-floppy"
-                :loading="loading"
-                :disabled="!isSocialDirty || socialErrors.some(Boolean)"
-              >
-                {{ $t('common.actions.saveSettings') }}
-              </UButton>
+                {{ $t('common.unsavedChanges') }}
+              </div>
+              <div class="flex items-center justify-end gap-2">
+                <UButton
+                  type="button"
+                  color="neutral"
+                  variant="outline"
+                  :disabled="!isSocialDirty || loading"
+                  @click="resetSocialLinks"
+                >
+                  {{ $t('common.actions.reset') }}
+                </UButton>
+                <UButton
+                  type="submit"
+                  icon="tabler:device-floppy"
+                  :loading="loading"
+                  :disabled="!isSocialDirty || socialErrors.some(Boolean)"
+                >
+                  {{ $t('common.actions.saveSettings') }}
+                </UButton>
+              </div>
             </div>
           </form>
         </section>

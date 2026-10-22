@@ -5,6 +5,7 @@ import type {
   SettingsFieldsResponse,
 } from '@chronoframe/gallery/shared/types/settings'
 import {
+  MAX_SOCIAL_LINKS,
   isSocialLinkErrorCode,
   SocialLinkError,
 } from '@chronoframe/contracts/social-links'
@@ -124,7 +125,9 @@ export function useSettingsForm(namespace: string) {
           if (isSocialLinkErrorCode(socialFailure.code)) {
             throw new SocialLinkError(
               socialFailure.code,
-              t(`settings.app.socialLinks.${socialFailure.code}`),
+              t(`settings.app.socialLinks.${socialFailure.code}`, {
+                max: MAX_SOCIAL_LINKS,
+              }),
             )
           }
           throw new Error(t('settings.form.saveFailed'))
