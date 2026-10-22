@@ -2,9 +2,9 @@
 import { settingsFieldCommitKey } from '#console/composables/useSettingsForm'
 import {
   MAX_SOCIAL_LINKS,
-  parseSocialLink,
   parseSocialLinks,
   resolveSocialPlatform,
+  socialLinkIdentity,
   SocialLinkError,
 } from '@chronoframe/contracts/social-links'
 
@@ -60,8 +60,7 @@ const socialErrors = computed(() => {
   return socialDraft.value.map((value) => {
     if (!value.trim()) return ''
     try {
-      const url = parseSocialLink(value.trim())
-      const identity = `${url.origin}${url.pathname.replace(/\/+$/, '')}`
+      const identity = socialLinkIdentity(value.trim())
       if (seen.has(identity)) return t('settings.app.socialLinks.duplicate')
       seen.add(identity)
       return ''

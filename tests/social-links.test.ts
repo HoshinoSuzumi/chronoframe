@@ -3,6 +3,7 @@ import test from 'node:test'
 import {
   parseSocialLinks,
   resolveSocialPlatform,
+  socialLinkIdentity,
 } from '@chronoframe/contracts/social-links'
 import { validateSettingWrite } from '@chronoframe/core'
 
@@ -45,6 +46,23 @@ test('rejects unsafe, malformed and duplicate social links', () => {
     () => parseSocialLinks({ links: ['https://example.com'], extra: true }),
     /shape/i,
   )
+})
+
+test('duplicate identity ignores query, fragment and trailing slash but keeps the hostname', () => {
+  const first = 'https://example.com/a?x=1#top'
+  const queryVariant = 'https://example.com/a/?x=2#bottom'
+  const withWww = 'https://www.example.com/a'
+
+  assert.equal(socialLinkIdentity(first), socialLinkIdentity(queryVariant))
+  assert.notEqual(socialLinkIdentity(first), socialLinkIdentity(withWww))
+  assert.throws(
+    () => parseSocialLinks({ links: [first, queryVariant] }),
+    /duplicate/i,
+  )
+  assert.deepEqual(parseSocialLinks({ links: [first, withWww] }), [
+    first,
+    withWww,
+  ])
 })
 
 test('settings write validation enforces the social-link contract', () => {

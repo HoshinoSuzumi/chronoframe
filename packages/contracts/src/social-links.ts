@@ -70,6 +70,11 @@ export function parseSocialLink(value: unknown): URL {
   return url
 }
 
+export function socialLinkIdentity(value: unknown): string {
+  const url = parseSocialLink(value)
+  return `${url.origin}${url.pathname.replace(/\/+$/, '')}`
+}
+
 export function parseSocialLinks(value: unknown): string[] {
   if (
     !value ||
@@ -88,9 +93,7 @@ export function parseSocialLinks(value: unknown): string[] {
 
   const seen = new Set<string>()
   return links.map((link) => {
-    const url = parseSocialLink(link)
-    const path = url.pathname.replace(/\/+$/, '')
-    const identity = `${url.origin}${path}`
+    const identity = socialLinkIdentity(link)
     if (seen.has(identity))
       throw new SocialLinkError('duplicate', 'Duplicate social link')
     seen.add(identity)
