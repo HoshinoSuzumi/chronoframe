@@ -1149,7 +1149,7 @@
         "visit": "{platform} を開く",
         "shape": "ソーシャルリンクのデータが無効です",
         "limit": "リンクは最大4件までです",
-        "invalid": "公開サイトの有効な HTTPS リンクを入力してください",
+        "invalid": "有効な HTTPS URL を入力してください",
         "duplicate": "このリンクは既に追加されています"
       },
       "title": {

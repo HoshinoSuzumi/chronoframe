@@ -1149,7 +1149,7 @@
         "visit": "前往 {platform}",
         "shape": "社群連結資料無效",
         "limit": "最多只能新增四個連結",
-        "invalid": "請輸入指向公開網站的有效 HTTPS 連結",
+        "invalid": "請輸入有效的 HTTPS URL",
         "duplicate": "此連結已新增"
       },
       "title": {

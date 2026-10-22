@@ -25,7 +25,7 @@ export class SocialLinkError extends Error {
   }
 }
 
-/** Validate public profile URLs without requesting or resolving their hosts. */
+/** Validate HTTPS profile URL syntax without checking host reachability. */
 export function parseSocialLink(value: unknown): URL {
   if (
     typeof value !== 'string' ||

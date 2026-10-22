@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 import {
   parseSocialLinks,
+  parseSocialLink,
   resolveSocialPlatform,
   socialLinkIdentity,
 } from '@chronoframe/contracts/social-links'
@@ -46,6 +47,16 @@ test('rejects unsafe, malformed and duplicate social links', () => {
     () => parseSocialLinks({ links: ['https://example.com'], extra: true }),
     /shape/i,
   )
+})
+
+test('validates HTTPS URL syntax without requiring a reachable public host', () => {
+  for (const link of [
+    'https://evil.test/profile',
+    'https://example.example/profile',
+    'https://foo.onion/profile',
+  ]) {
+    assert.equal(parseSocialLink(link).href, link)
+  }
 })
 
 test('duplicate identity ignores query, fragment and trailing slash but keeps the hostname', () => {

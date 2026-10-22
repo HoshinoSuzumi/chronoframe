@@ -1227,7 +1227,7 @@
         "visit": "访问 {platform}",
         "shape": "社交链接数据无效",
         "limit": "最多添加四个链接",
-        "invalid": "请输入指向公开网站的有效 HTTPS 链接",
+        "invalid": "请输入有效的 HTTPS URL",
         "duplicate": "此链接已添加"
       },
       "title": {

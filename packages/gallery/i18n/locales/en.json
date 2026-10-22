@@ -1227,7 +1227,7 @@
         "visit": "Visit {platform}",
         "shape": "Invalid social links data",
         "limit": "Add no more than four links",
-        "invalid": "Enter a valid HTTPS link to a public website",
+        "invalid": "Enter a valid HTTPS URL",
         "duplicate": "This link is already listed"
       },
       "title": {
