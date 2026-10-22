@@ -35,3 +35,27 @@ jobs:
       - run: pnpm test
       - run: pnpm build:deps
       - run: pnpm build
+
+  edge:
+    env:
+      WRANGLER_SEND_METRICS: 'false'
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        entry: [cloud, site]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.34.6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22.23.3
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm check:entries
+      - run: pnpm build:deps
+      - run: pnpm build:${{ matrix.entry }}
+      - run: node scripts/check-entry-boundaries.mjs --built ${{ matrix.entry }}
+      - run: pnpm exec wrangler deploy --dry-run --config apps/${{ matrix.entry }}/.output/server/wrangler.json --outdir /tmp/chronoframe-${{ matrix.entry }}-worker
+      - run: pnpm smoke:${{ matrix.entry }}

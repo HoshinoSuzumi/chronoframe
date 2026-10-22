@@ -68,6 +68,8 @@
     "@chronoframe/jobs": "workspace:*",
     "@chronoframe/processing": "workspace:*",
     "@chronoframe/gallery": "workspace:*",
-    "@chronoframe/console": "workspace:*"
+    "@chronoframe/console": "workspace:*",
+    "@nuxtjs/color-mode": "4.0.1",
+    "nuxt-site-config": "4.2.3"
   }
 }

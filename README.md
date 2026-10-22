@@ -152,3 +152,18 @@ The Self-hosted application lives in `apps/self-hosted`. Shared dashboard and
 gallery Nuxt layers live in `packages/console` and `packages/gallery`. Root
 `pnpm dev`, `pnpm build`, and database commands retain their existing entry points.
 See [the Self-hosted development notes](apps/self-hosted/README.md).
+
+### Cloud and Site entries
+
+The public workspace also contains `apps/cloud` (marketing and portal) and
+`apps/site` (gallery). Their initial production target is Cloudflare Workers;
+Self-hosted remains a Node/Docker application. Use `pnpm dev:cloud` or
+`pnpm dev:site` for development. After `pnpm build:deps`, use `pnpm build:cloud`
+or `pnpm build:site`, then `pnpm smoke:cloud` or `pnpm smoke:site` to exercise the
+built workers locally through Wrangler/workerd. See the [Cloud](apps/cloud/README.md)
+and [Site](apps/site/README.md) notes for preview and deployment.
+
+These entries are composition foundations, not a launched hosted service.
+Platform APIs and tenant galleries remain unavailable until platform identity,
+Membership authorization, and trusted Site resolution are implemented. They do
+not use the Self-hosted administrator, database, storage, or root `.env`.
