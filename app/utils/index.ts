@@ -1,3 +1,5 @@
+export const FIXED_HEADER_HEIGHT_PX = 60
+
 // 格式化字节大小的辅助函数
 export const formatBytes = (bytes: number): string => {
   if (bytes === 0) return '0 B'

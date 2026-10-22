@@ -13,6 +13,7 @@
       "auto": "自動（ブラウザの言語）"
     },
     "action": {
+      "more": { "tooltip": "その他のメニュー" },
       "filter": {
         "tooltip": "写真をフィルター",
         "title": "写真をフィルター",
@@ -1180,6 +1181,12 @@
           "light": "ライト",
           "dark": "ダーク",
           "system": "システム"
+        },
+        "homeHeaderLayout": {
+          "label": "ホームのヘッダーレイアウト",
+          "description": "ホームの写真ウォールでのヘッダー表示方法を選択",
+          "embedded": "写真ウォールに埋め込む",
+          "fixed": "上部に固定"
         }
       },
       "upload": {

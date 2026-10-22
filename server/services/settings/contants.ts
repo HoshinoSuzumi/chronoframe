@@ -100,6 +100,16 @@ export const DEFAULT_SETTINGS = [
     isPublic: true,
   },
   {
+    namespace: 'app',
+    key: 'appearance.homeHeaderLayout',
+    type: 'string',
+    defaultValue: 'embedded',
+    enum: ['embedded', 'fixed'],
+    label: 'settings.app.appearance.homeHeaderLayout.label',
+    description: 'settings.app.appearance.homeHeaderLayout.description',
+    isPublic: true,
+  },
+  {
     namespace: 'system',
     key: 'upload.maxFileSize',
     type: 'number',

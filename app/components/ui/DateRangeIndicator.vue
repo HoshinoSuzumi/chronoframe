@@ -6,6 +6,7 @@ const props = defineProps<{
   locations?: string
   isVisible: boolean
   isMobile?: boolean
+  topOffset?: number
   class?: string
 }>()
 
@@ -36,6 +37,12 @@ const mobileVariants = {
     y: 0,
   },
 }
+
+// The desktop indicator is a floating card, so it keeps a gap below the fixed
+// header, mirroring the default top-4/top-6 offset it uses without a header.
+// The mobile indicator is an edge-to-edge bar; it intentionally sits flush
+// against the bottom edge of the fixed header instead of using this gap.
+const DESKTOP_TOP_GAP = 16
 </script>
 
 <template>
@@ -44,7 +51,13 @@ const mobileVariants = {
       <!-- Desktop Date Range Indicator -->
       <motion.div
         v-if="shouldShow && !isMobile"
-        class="fixed top-4 left-4 z-50 lg:top-6 lg:left-6 flex flex-col gap-1 bg-black/40 backdrop-blur-3xl rounded-xl border border-white/10 px-4 py-2 pb-4 shadow-2xl"
+        class="fixed left-4 z-50 lg:left-6 flex flex-col gap-1 bg-black/40 backdrop-blur-3xl rounded-xl border border-white/10 px-4 py-2 pb-4 shadow-2xl"
+        :class="topOffset == null ? 'top-4 lg:top-6' : ''"
+        :style="
+          topOffset == null
+            ? undefined
+            : { top: `${topOffset + DESKTOP_TOP_GAP}px` }
+        "
         :initial="dateRangeVariants.initial"
         :animate="dateRangeVariants.animate"
         :exit="dateRangeVariants.initial"
@@ -55,7 +68,7 @@ const mobileVariants = {
         }"
       >
         <span
-          class="text-white text-4xl font-black leading-normal tracking-wide"
+          class="text-white text-2xl font-black leading-normal tracking-wide"
           >{{ dateRange }}</span
         >
         <span
@@ -68,7 +81,9 @@ const mobileVariants = {
       <!-- Mobile Date Range Indicator -->
       <motion.div
         v-if="shouldShow && isMobile"
-        class="fixed inset-0 bottom-auto z-50"
+        class="fixed inset-x-0 bottom-auto z-50"
+        :class="topOffset == null ? 'top-0' : ''"
+        :style="topOffset == null ? undefined : { top: `${topOffset}px` }"
         :initial="mobileVariants.initial"
         :animate="mobileVariants.animate"
         :exit="mobileVariants.initial"

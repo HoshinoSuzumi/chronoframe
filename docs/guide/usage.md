@@ -35,17 +35,19 @@ Album passwords control access through ChronoFrame. If S3, OpenList or a CDN exp
 
 Site details, maps, location services, storage and upload limits can be edited in the dashboard. Settings are stored in the database; there is no need to edit `.env` or rebuild the container.
 
-| Setting   | Purpose                                                              |
-| --------- | -------------------------------------------------------------------- |
-| Site      | Title, description, author, avatar and color theme                   |
-| Storage   | Add or edit local, S3 and OpenList schemes; choose the active scheme |
-| Map       | MapLibre / Mapbox, access token and map style                        |
-| Location  | Place-name language, Mapbox geocoding token and custom Nominatim URL |
-| System    | Upload size limit, duplicate handling and GitHub login               |
-| Privacy   | Automatically remove location data from new uploads                  |
-| Analytics | Custom tracking scripts inserted into the page head or body          |
+| Setting   | Purpose                                                                |
+| --------- | ---------------------------------------------------------------------- |
+| Site      | Title, description, author, avatar, color theme and home header layout |
+| Storage   | Add or edit local, S3 and OpenList schemes; choose the active scheme   |
+| Map       | MapLibre / Mapbox, access token and map style                          |
+| Location  | Place-name language, Mapbox geocoding token and custom Nominatim URL   |
+| System    | Upload size limit, duplicate handling and GitHub login                 |
+| Privacy   | Automatically remove location data from new uploads                    |
+| Analytics | Custom tracking scripts inserted into the page head or body            |
 
 For provider selection, credentials and CORS, see [Storage schemes](/configuration/storage-providers). For tokens and styles, see [Maps and locations](/configuration/map-providers).
+
+In **General Settings → Appearance**, choose the home header layout. **Embedded in photo wall** is the default. **Fixed at top** keeps the header visible while visitors scroll the photos. Save the Appearance section to apply the change.
 
 ::: tip After changing settings
 
