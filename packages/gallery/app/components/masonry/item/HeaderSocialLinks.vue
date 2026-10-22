@@ -55,7 +55,7 @@ const links = computed(() => {
       <Icon
         :name="link.icon"
         mode="svg"
-        class="text-xl"
+        class="size-4"
         aria-hidden="true"
       />
     </a>
