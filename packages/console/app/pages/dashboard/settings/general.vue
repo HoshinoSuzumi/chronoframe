@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import { settingsFieldCommitKey } from '#console/composables/useSettingsForm'
+import { reconcileSocialDraftAfterSave } from '#console/utils/socialLinksDraft'
 import {
   MAX_SOCIAL_LINKS,
   parseSocialLinks,
@@ -36,6 +37,7 @@ const appearanceFields = computed(() =>
 const socialField = computed(() =>
   fields.value.find((field) => field.key === 'socialLinks'),
 )
+const publishedSocialLinks = useSettingRef('app:socialLinks')
 const socialDraft = ref<string[]>(Array(MAX_SOCIAL_LINKS).fill(''))
 const socialInitialized = ref(false)
 const savedSocialLinks = computed(() => {
@@ -88,13 +90,16 @@ const resetSocialLinks = () => {
 const socialSubmitError = ref('')
 const handleSocialLinksSubmit = async () => {
   socialSubmitError.value = ''
-  const links = socialDraft.value.map((link) => link.trim()).filter(Boolean)
+  const draftAtSubmission = [...socialDraft.value]
+  const links = draftAtSubmission.map((link) => link.trim()).filter(Boolean)
   try {
     parseSocialLinks({ links })
     await submit({ socialLinks: { links } })
-    socialDraft.value = Array.from(
-      { length: MAX_SOCIAL_LINKS },
-      (_, index) => links[index] ?? '',
+    commitField('socialLinks', publishedSocialLinks.value)
+    socialDraft.value = reconcileSocialDraftAfterSave(
+      socialDraft.value,
+      draftAtSubmission,
+      savedSocialLinks.value,
     )
   } catch (error) {
     socialSubmitError.value =
