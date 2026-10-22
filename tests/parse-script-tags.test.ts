@@ -80,3 +80,46 @@ test('renders data attributes in both head and body scripts through Unhead', asy
     assert.match(html, /src="tracker.js"/)
   }
 })
+
+test('recognizes HTML script end-tag whitespace, slash, and ignored attributes', () => {
+  for (const ending of [
+    '</script >',
+    '</SCRIPT\n>',
+    '</script/>',
+    '</script ignored>',
+  ]) {
+    assert.deepEqual(
+      parseScriptTags(`<script>first()${ending}<script>second()</script>`),
+      [{ innerHTML: 'first()' }, { innerHTML: 'second()' }],
+    )
+  }
+})
+
+test('skips comments without joining text into new markup', () => {
+  assert.deepEqual(
+    parseScriptTags(
+      '<<!-- removed -->script>unexpected()</script><script>expected()</script>',
+    ),
+    [{ innerHTML: 'expected()' }],
+  )
+  assert.deepEqual(
+    parseScriptTags(
+      '<!-- <script>hidden()</script> --><script>visible()</script><!-- <script>unterminated()</script>',
+    ),
+    [{ innerHTML: 'visible()' }],
+  )
+})
+
+test('preserves comment-like JavaScript strings and separates self-closing scripts', () => {
+  assert.deepEqual(
+    parseScriptTags(
+      '<script>const marker = "<!-- keep -->"</script><script src="a.js" /><script>next()</script>',
+    ),
+    [
+      { innerHTML: 'const marker = "<!-- keep -->"' },
+      { src: 'a.js' },
+      { innerHTML: 'next()' },
+    ],
+  )
+  assert.deepEqual(parseScriptTags('<scripture>notAScript()</scripture>'), [])
+})

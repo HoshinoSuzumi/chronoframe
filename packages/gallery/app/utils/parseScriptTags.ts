@@ -23,19 +23,15 @@ export interface ParsedScriptTag {
   nonce?: string
 }
 
-/** 剥离 HTML 注释（含多行） */
-const COMMENT_RE = /<!--[\s\S]*?-->/g
-
 /**
- * 匹配 <script> 标签：
- * - 分支 A：`<script attrs>content</script>`（含内容）
- * - 分支 B：`<script attrs />`（自闭合，无内容）
- *
- * 已知限制：`[^>]*?` 无法处理属性值中包含 `>` 的情况。
- * 统计代码场景中极为罕见，如遇到可手动拆分多个脚本。
+ * Scan comments and script elements in source order without removing text.
+ * Deleting comments can join surrounding text into new markup. Instead, skip
+ * entire comments while preserving comment-like text inside script raw content.
+ * HTML script end tags may contain whitespace, a slash, or ignored attributes.
+ * As before, quoted attribute values containing `>` are not supported.
  */
 const SCRIPT_TAG_RE =
-  /<script\b([^>]*?)>([\s\S]*?)<\/script>|<script\b([^>]*?)\s*\/>/gi
+  /<!--[\s\S]*?(?:-->|$)|<script(?=[\t\n\f\r />])([^>]*?)\s*\/>|<script(?=[\t\n\f\r >])([^>]*?)>([\s\S]*?)<\/script(?=[\t\n\f\r />])[^>]*>/gi
 
 /**
  * 属性解析：name(=value)?
@@ -119,7 +115,7 @@ function parseAttributes(attrs: string, out: ParsedScriptTag): void {
  * 解析原始 HTML 片段为 <script> 标签描述符数组。
  *
  * 行为：
- *  - 先剥离 HTML 注释
+ *  - 按源码顺序跳过 HTML 注释，不删除或拼接原始文本
  *  - 同时匹配含内容与自闭合两种 <script> 形式
  *  - 解析 src/async/defer/type/crossorigin/integrity/nomodule/referrerpolicy/nonce
  *  - 保留 data-* 自定义属性，属性名转为小写，属性值保持字符串
@@ -140,18 +136,16 @@ function parseAttributes(attrs: string, out: ParsedScriptTag): void {
 export function parseScriptTags(raw: string): ParsedScriptTag[] {
   if (!raw || typeof raw !== 'string') return []
 
-  // 1. 剥离注释
-  const cleaned = raw.replace(COMMENT_RE, '')
-
   const result: ParsedScriptTag[] = []
 
-  // 2. 逐个匹配 <script> 标签
+  // Scan original input; comments are skipped rather than stripped.
   SCRIPT_TAG_RE.lastIndex = 0
   let match: RegExpExecArray | null
-  while ((match = SCRIPT_TAG_RE.exec(cleaned)) !== null) {
-    // 分支 A：含内容；分支 B：自闭合
-    const attrs = match[1] ?? match[3] ?? ''
-    const content = match[2] ?? ''
+  while ((match = SCRIPT_TAG_RE.exec(raw)) !== null) {
+    if (match[0].startsWith('<!--')) continue
+    // First script branch is self-closing; second contains raw script text.
+    const attrs = match[1] ?? match[2] ?? ''
+    const content = match[3] ?? ''
 
     const tag: ParsedScriptTag = {}
 
