@@ -84,10 +84,19 @@ export function useSettingsForm(namespace: string) {
         value,
       }))
 
-      await consoleApi('/api/system/settings/batch', {
+      const result = await consoleApi<{
+        success: boolean
+        errors?: Array<{ error: string }>
+      }>('/api/system/settings/batch', {
         method: 'PUT',
         body: { updates },
       })
+      if (!result.success) {
+        throw new Error(
+          result.errors?.map((item) => item.error).join('; ') ||
+            t('settings.form.saveFailed'),
+        )
+      }
 
       // 刷新全局设置状态，确保所有使用 getSetting() 的地方都能获取到最新值
       await refreshSettings()

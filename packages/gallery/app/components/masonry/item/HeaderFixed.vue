@@ -32,6 +32,7 @@ defineProps<{
             :total="stats?.total"
             :date-range-text="dateRangeText"
           />
+          <MasonryItemHeaderSocialLinks variant="fixedDesktop" />
           <MasonryItemActions
             :logged-in="loggedIn"
             :clear="clear"
@@ -53,6 +54,10 @@ defineProps<{
           </MasonryItemActions>
           <MasonryItemHeaderFooter variant="fixed" />
         </div>
+        <MasonryItemHeaderSocialLinks
+          variant="fixedMobile"
+          class="border-t border-neutral-200 px-2 dark:border-neutral-800"
+        />
       </template>
     </AuthState>
   </header>

@@ -1140,6 +1140,18 @@
   },
   "settings": {
     "app": {
+      "socialLinks": {
+        "title": "社交帳戶",
+        "description": "最多加入四個 HTTPS 連結，顯示於首頁頁首。",
+        "slot": "社交連結 {number}",
+        "placeholder": "https://example.com/your-profile",
+        "clear": "清除社交連結 {number}",
+        "visit": "瀏覽 {platform}",
+        "shape": "社交連結資料無效",
+        "limit": "最多只能加入四個連結",
+        "invalid": "請輸入指向公開網站的有效 HTTPS 連結",
+        "duplicate": "此連結已加入"
+      },
       "title": {
         "label": "實例名稱",
         "description": "實例的標題"
