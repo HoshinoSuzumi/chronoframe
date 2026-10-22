@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { motion } from 'motion-v'
-import { FIXED_HEADER_HEIGHT_PX } from '~/utils'
+import { FIXED_HEADER_HEIGHT_PX } from '#gallery/utils'
 interface Props {
   photos: Photo[]
   columns?: number | 'auto'

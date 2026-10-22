@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { FIXED_HEADER_HEIGHT_PX } from '~/utils'
+import { FIXED_HEADER_HEIGHT_PX } from '#gallery/utils'
 
 defineProps<{
   stats?: {
