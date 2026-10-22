@@ -143,16 +143,3 @@ ChronoFrame 默认采用 **AGPL-3.0-only**，包括 Self-hosted 与 SaaS 实现�
    <img alt="Star History Chart" src="https://star-history.dera.page/svg?repos=HoshinoSuzumi/chronoframe&type=date&legend=top-left" />
  </picture>
 </a>
-
-### Cloud 与 Site 入口
-
-同一公开工作区包含 `apps/cloud`（官网与门户）和 `apps/site`（展示站），首个生产
-目标为 Cloudflare Workers；Self-hosted 继续使用 Node/Docker。
-使用 `pnpm dev:cloud`、`pnpm dev:site` 启动开发入口。执行 `pnpm build:deps` 后，
-使用 `pnpm build:cloud` 或 `pnpm build:site` 构建，再通过 `pnpm smoke:cloud` 或
-`pnpm smoke:site` 在 Wrangler/workerd 中验证产物。预览和部署说明见
-[Cloud](apps/cloud/README.md)、[Site](apps/site/README.md)。
-
-这些入口目前是应用组合基础，不代表托管服务已上线。平台身份、Membership 授权和
-可信 Site 解析接入前，平台 API 与租户图库保持不可用；不复用 Self-hosted 的管理员、
-数据库、存储或根目录 `.env`。
