@@ -1,4 +1,5 @@
 export const FIXED_HEADER_HEIGHT_PX = 60
+export const FIXED_HEADER_SOCIAL_ROW_HEIGHT_PX = 44
 
 // 格式化字节大小的辅助函数
 export const formatBytes = (bytes: number): string => {

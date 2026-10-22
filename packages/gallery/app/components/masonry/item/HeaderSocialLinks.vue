@@ -3,6 +3,7 @@ import {
   parseSocialLinks,
   resolveSocialPlatform,
 } from '@chronoframe/contracts/social-links'
+import { FIXED_HEADER_SOCIAL_ROW_HEIGHT_PX } from '#gallery/utils'
 
 const props = withDefaults(
   defineProps<{ variant?: 'embedded' | 'fixedDesktop' | 'fixedMobile' }>(),
@@ -26,12 +27,18 @@ const links = computed(() => {
   <nav
     v-if="links.length"
     :aria-label="$t('settings.app.socialLinks.title')"
-    class="flex-wrap items-center justify-center gap-1"
+    class="items-center justify-center gap-1"
     :class="{
-      flex: props.variant === 'embedded',
+      'flex flex-wrap': props.variant === 'embedded',
       'hidden lg:flex': props.variant === 'fixedDesktop',
-      'flex lg:hidden': props.variant === 'fixedMobile',
+      'flex flex-nowrap overflow-x-auto lg:hidden':
+        props.variant === 'fixedMobile',
     }"
+    :style="
+      props.variant === 'fixedMobile'
+        ? { height: `${FIXED_HEADER_SOCIAL_ROW_HEIGHT_PX}px` }
+        : undefined
+    "
   >
     <a
       v-for="link in links"
