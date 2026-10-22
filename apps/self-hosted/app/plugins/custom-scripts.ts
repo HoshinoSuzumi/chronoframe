@@ -15,6 +15,7 @@ import { parseScriptTags } from '#gallery/utils/parseScriptTags'
  * useHead 自动同步 DOM。
  */
 export default defineNuxtPlugin(() => {
+  if (!useEntryCapabilities().customScripts) return
   const headScriptsRef = useSettingRef('analytics:headScripts')
   const bodyScriptsRef = useSettingRef('analytics:bodyScripts')
 

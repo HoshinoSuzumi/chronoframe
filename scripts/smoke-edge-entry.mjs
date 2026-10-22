@@ -93,15 +93,22 @@ try {
       redirect: 'manual',
     })
     assert.equal(dashboard.status, 302)
-    assert.ok(dashboard.headers.get('location').endsWith('/signin'))
+    assert.ok(
+      new URL(dashboard.headers.get('location'), base).pathname === '/sites',
+    )
     assert.equal(
       (await fetch(base + '/DASHBOARD', { redirect: 'manual' })).status,
       302,
     )
-    assert.equal((await fetch(base + '/sites')).status, 503)
+    assert.equal(
+      (await fetch(base + '/sites', { redirect: 'manual' })).status,
+      302,
+    )
     assert.equal((await fetch(base + '/albums')).status, 404)
     if (portalOrigin) {
-      assert.ok(home.headers.get('location').endsWith('/signin'))
+      assert.ok(
+        new URL(home.headers.get('location'), base).pathname === '/sites',
+      )
     }
     if (originHost === 'chronoframe.art') {
       const links = [...html.matchAll(/\bhref="([^"]*)"/g)]

@@ -41,7 +41,15 @@ const normalImageCache: LRUCache<string, ImageLoaderCacheResult> = new LRUCache<
   }
 })
 
+export function clearImageLoaderCache() {
+  normalImageCache.clear()
+}
+
 export class ImageLoaderManager {
+  private readonly scope: string
+  constructor(scope = 'self-hosted') {
+    this.scope = scope
+  }
   private lastXHR: XMLHttpRequest | null = null
   private timer: NodeJS.Timeout | null = null
 
@@ -152,7 +160,7 @@ export class ImageLoaderManager {
     callbacks: ImageLoaderCallbacks,
   ) {
     const { onUpdateLoadingState } = callbacks
-    const cacheKey = originalUrl
+    const cacheKey = JSON.stringify([this.scope, originalUrl])
     const cacheResult = normalImageCache.get(cacheKey)
     if (cacheResult) {
       onUpdateLoadingState?.({

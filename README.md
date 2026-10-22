@@ -30,7 +30,7 @@
 
 ChronoFrame is a self-hosted photo gallery. Upload your photos and it extracts EXIF, creates previews and identifies shooting locations. Visitors can browse by time, album or map, zoom into large images and play Live Photos.
 
-[Live demo](https://lens.bh8.ga) · [Documentation](https://chronoframe.bh8.ga/) · [Changelog](https://chronoframe.bh8.ga/changelog)
+[Live demo](https://lens.bh8.ga) · [Documentation](https://docs.chronoframe.art/) · [Changelog](https://docs.chronoframe.art/changelog)
 
 ## ✨ Features
 
@@ -77,7 +77,7 @@ Open `http://localhost:3000` and use the setup wizard to create your administrat
 
 Keep the `./data` mount: it holds the database, settings, session secret and local photos when using the path above.
 
-Use HTTPS for a public deployment. See [Getting Started](https://chronoframe.bh8.ga/guide/getting-started) and the [update guide](https://chronoframe.bh8.ga/guide/updates) for proxies, backups and migration from older versions.
+Use HTTPS for a public deployment. See [Getting Started](https://docs.chronoframe.art/guide/getting-started) and the [update guide](https://docs.chronoframe.art/guide/updates) for proxies, backups and migration from older versions.
 
 ## 📖 Usage
 
@@ -85,7 +85,7 @@ Sign in and open `/dashboard` to upload and organize photos. After upload, the t
 
 For Apple Live Photos, the image and MOV must share a filename, such as `IMG_1234.heic` and `IMG_1234.mov`; either can be uploaded first. Image formats include JPEG, PNG, WebP, GIF, BMP, TIFF and HEIC / HEIF.
 
-Album passwords control access through ChronoFrame. If S3, OpenList or a CDN exposes public image URLs, manage access in that service too. Read [Using ChronoFrame](https://chronoframe.bh8.ga/guide/usage) for details.
+Album passwords control access through ChronoFrame. If S3, OpenList or a CDN exposes public image URLs, manage access in that service too. Read [Using ChronoFrame](https://docs.chronoframe.art/guide/usage) for details.
 
 ## 📸 Screenshots
 
@@ -114,7 +114,7 @@ pnpm build         # Build the application
 pnpm docs:build    # Build documentation
 ```
 
-After changing the database schema, run `pnpm db:generate` and review the SQL. Generating migrations is unnecessary just to start the app. See the [contributing guide](https://chronoframe.bh8.ga/development/contributing.html) for more.
+After changing the database schema, run `pnpm db:generate` and review the SQL. Generating migrations is unnecessary just to start the app. See the [contributing guide](https://docs.chronoframe.art/development/contributing.html) for more.
 
 ## 📄 License
 

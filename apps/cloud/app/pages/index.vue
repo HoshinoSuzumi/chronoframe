@@ -19,7 +19,7 @@ useSeoMeta({
         >ChronoFrame</NuxtLink
       >
       <nav aria-label="Main navigation">
-        <a href="https://chronoframe.bh8.ga/">Documentation</a
+        <a href="https://docs.chronoframe.art/">Documentation</a
         ><NuxtLink :to="signInUrl">Cloud access</NuxtLink>
       </nav>
     </header>

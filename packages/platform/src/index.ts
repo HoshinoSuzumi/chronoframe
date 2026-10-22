@@ -139,3 +139,41 @@ export function createD1Sessions(db: PlatformD1) {
     },
   }
 }
+
+export interface PlatformSiteSummary {
+  siteId: number
+  workspaceId: number
+  name: string
+  published: boolean
+  role: 'admin' | 'member'
+}
+export function createD1SiteCatalog(db: PlatformD1) {
+  return {
+    async list(userId: number): Promise<PlatformSiteSummary[]> {
+      // JSON aggregation avoids exposing driver-specific `all()` result types.
+      const row = await db
+        .prepare(`SELECT json_group_array(json_object(
+        'siteId', id, 'workspaceId', workspace_id, 'name', name,
+        'published', published, 'role', role)) AS items FROM (
+        SELECT s.id, s.workspace_id, s.name, s.published, m.role
+        FROM platform_sites s JOIN platform_memberships m ON m.workspace_id = s.workspace_id
+        WHERE m.user_id = ? AND m.role IN ('admin', 'member') ORDER BY s.id
+      )`)
+        .bind(userId)
+        .first<{ items: string }>()
+      return (
+        JSON.parse(row?.items ?? '[]') as (Omit<
+          PlatformSiteSummary,
+          'published'
+        > & { published: number })[]
+      ).map((site) => ({ ...site, published: site.published === 1 }))
+    },
+    async name(siteId: number): Promise<string> {
+      const row = await db
+        .prepare('SELECT name FROM platform_sites WHERE id = ?')
+        .bind(siteId)
+        .first<{ name: string }>()
+      return row?.name ?? 'ChronoFrame'
+    },
+  }
+}

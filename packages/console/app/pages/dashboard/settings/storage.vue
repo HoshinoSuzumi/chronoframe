@@ -99,23 +99,26 @@ const getStorageDestination = (storage: SettingStorageProvider) => {
   }
 }
 
-const providerOptions = computed(() => [
-  {
-    label: $t('settings.storage.providers.s3'),
-    value: 's3',
-    icon: PROVIDER_ICON.s3,
-  },
-  {
-    label: $t('settings.storage.providers.local'),
-    value: 'local',
-    icon: PROVIDER_ICON.local,
-  },
-  {
-    label: $t('settings.storage.providers.openlist'),
-    value: 'openlist',
-    icon: PROVIDER_ICON.openlist,
-  },
-])
+const capabilities = useEntryCapabilities()
+const providerOptions = computed(() =>
+  [
+    {
+      label: $t('settings.storage.providers.s3'),
+      value: 's3',
+      icon: PROVIDER_ICON.s3,
+    },
+    {
+      label: $t('settings.storage.providers.local'),
+      value: 'local',
+      icon: PROVIDER_ICON.local,
+    },
+    {
+      label: $t('settings.storage.providers.openlist'),
+      value: 'openlist',
+      icon: PROVIDER_ICON.openlist,
+    },
+  ].filter((option) => capabilities.storageProviders.includes(option.value)),
+)
 
 const storageConfigState = reactive<{
   name: string

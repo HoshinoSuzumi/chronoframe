@@ -54,3 +54,15 @@ POSTs require the configured portal Origin.
 
 These account APIs do not provision a default Workspace/Site, publish tenants,
 or enable the photo-management backend. Those remain later integration work.
+
+P3 request integration exposes a membership-filtered Site catalog and short-lived
+context subscriptions. Every reconnect rechecks the session and Membership.
+Host-resolved public contexts contain no platform identity or Workspace details.
+All context responses and SSR pages are private and are not shared-cache entries.
+
+`0002_visitor_access.sql` stores Site/album password policies and attempt counters.
+The gallery access adapter issues signed, host-only Secure/HttpOnly visitor cookies
+only after password verification. Grants are scoped to Host, Site, album, password
+revision and expiry. Configure an independent `NUXT_PLATFORM_SECRET` on the Site
+Worker and its Preview. Policy provisioning and photo repositories remain P4 work;
+these endpoints never infer a default album or reuse a platform session.

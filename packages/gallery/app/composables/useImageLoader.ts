@@ -24,7 +24,7 @@ export const useImageLoader = (
   const t = $i18n.t
   if (highResLoaded || !isCurrentImage || error) return null
 
-  const loaderManager = new ImageLoaderManager()
+  const loaderManager = new ImageLoaderManager(useEntryContext().value?.scope)
 
   const cleanup = () => {
     loaderManager.cleanup()

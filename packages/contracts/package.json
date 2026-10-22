@@ -11,7 +11,8 @@
     "./location": "./src/location.ts",
     "./resources": "./src/resources.ts",
     "./settings": "./src/settings.ts",
-    "./queue": "./src/queue.ts"
+    "./queue": "./src/queue.ts",
+    "./entry": "./src/entry.ts"
   },
   "scripts": {
     "type-check": "tsc --noEmit"

@@ -4,6 +4,9 @@ const { data: session } = await useFetch('/api/auth/session')
 if (!session.value?.authenticated) await navigateTo('/signin')
 async function signOut() {
   await $fetch('/api/auth/logout', { method: 'POST' })
+  clearNuxtData()
+  useEntryContext().value = null
+  useSettingsStore().$reset()
   await navigateTo('/signin')
 }
 </script>
@@ -19,6 +22,7 @@ async function signOut() {
       Your email is verified. Workspace and site setup are coming in the next
       stage.
     </p>
+    <NuxtLink to="/sites">Your sites</NuxtLink>
     <UButton @click="signOut">Sign out</UButton>
   </main>
 </template>

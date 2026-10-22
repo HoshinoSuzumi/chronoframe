@@ -1,3 +1,4 @@
+import { SELF_HOSTED_CAPABILITIES } from '../../packages/contracts/src/entry'
 import pkg from '../../package.json'
 import type { AnalyticsConfig } from './shared/types/config'
 import { dayjsLocales } from '../../packages/gallery/i18n/i18n.options'
@@ -31,6 +32,7 @@ export default defineNuxtConfig({
 
   runtimeConfig: {
     public: {
+      capabilities: SELF_HOSTED_CAPABILITIES,
       console: {
         apiBase: '',
         signInPath: '/signin',

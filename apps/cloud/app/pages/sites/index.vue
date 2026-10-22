@@ -1,1 +1,37 @@
-<template><div /></template>
+<script setup lang="ts">
+useSeoMeta({ title: 'Your sites — ChronoFrame', robots: 'noindex' })
+const { data, error } = await useFetch('/api/sites', {
+  key: 'platform-site-list',
+  cache: 'no-store',
+})
+if (error.value)
+  throw createError({
+    statusCode: error.value.statusCode ?? 503,
+    statusMessage: 'Unable to load sites',
+  })
+</script>
+<template>
+  <main class="cloud-message">
+    <h1>Your sites</h1>
+    <ul
+      v-if="data?.sites.length"
+      class="space-y-4"
+    >
+      <li
+        v-for="site in data.sites"
+        :key="site.siteId"
+      >
+        <NuxtLink :to="`/sites/${site.siteId}`">{{ site.name }}</NuxtLink>
+        <span>
+          · {{ site.role }} ·
+          {{ site.published ? 'Published' : 'Not published' }}</span
+        >
+      </li>
+    </ul>
+    <p v-else>
+      You have no sites yet. Workspace and site creation are coming in the next
+      stage.
+    </p>
+    <NuxtLink to="/account">Your account</NuxtLink>
+  </main>
+</template>

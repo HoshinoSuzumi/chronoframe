@@ -1,3 +1,4 @@
+import { SITE_CAPABILITIES } from '../../packages/contracts/src/entry'
 import { sharedUi } from '../nuxt.shared'
 export default defineNuxtConfig({
   ...sharedUi,
@@ -12,6 +13,11 @@ export default defineNuxtConfig({
   extends: ['../../packages/gallery'],
   runtimeConfig: {
     ...sharedUi.runtimeConfig,
+    public: {
+      ...sharedUi.runtimeConfig.public,
+      capabilities: SITE_CAPABILITIES,
+    },
     session: { name: 'chronoframe-site' },
+    platform: { secret: '' },
   },
 })
