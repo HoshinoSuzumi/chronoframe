@@ -156,7 +156,7 @@ export async function unlockVisitor(
   if (!event.context.cloudflare || !client)
     throw createError({ statusCode: 503 })
   const mac = await createEmailCodeCrypto(secret)
-  const clientKey = await mac.mac(['visitor-attempt', context.site.id, client])
+  const clientKey = await mac.mac(['visitor-attempt', String(context.site.id), client])
   const window = Math.floor(Date.now() / 60_000)
   const row = await platformDatabase(event)
     .prepare(`INSERT INTO platform_visitor_limits(key, window_start, attempts) VALUES(?, ?, 1)
