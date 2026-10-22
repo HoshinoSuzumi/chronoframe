@@ -1,7 +1,7 @@
 # ChronoFrame
 
 <p align="center">
-  <img src="./public/chronoframe-banner.png" alt="ChronoFrame">
+  <img src="./apps/self-hosted/public/chronoframe-banner.png" alt="ChronoFrame">
 </p>
 
 <p align="center">
