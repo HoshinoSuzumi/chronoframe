@@ -30,11 +30,12 @@ Cloud runtime settings are private Worker configuration:
 
 Set the GitHub Environment variable `PLATFORM_EMAIL_FROM` to that sender address.
 The workflow adds `EMAIL` only to cloud, restricts `allowed_sender_addresses` to
-this address, and sets `NUXT_PLATFORM_EMAIL_FROM`. Production uses top-level
+this address, enables `remote: true`, and sets `NUXT_PLATFORM_EMAIL_FROM`. Production uses top-level
 configuration; staging uses `previews.send_email` and `previews.vars`. This keeps
 runtime bindings reproducible on subsequent deployments. With no sender variable
-or binding, email sign-in stays disabled. Local Wrangler simulation must use
-`remote: false` (the default) to avoid real delivery.
+or binding, email sign-in stays disabled. The `remote: true` setting also enables real email delivery when this configuration
+is used with `wrangler dev`. Local regression tests explicitly override it with
+`remote: false` to simulate delivery.
 
 See the [Cloudflare binding API](https://developers.cloudflare.com/email-service/api/send-emails/workers-api/).
 The verified sending domain must be active; any account recipient restrictions

@@ -167,7 +167,7 @@ jobs:
           if (process.env.ENTRY === 'cloud' && emailFrom) {
             if (!/^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(emailFrom)) throw new Error('Invalid platform email sender address')
             const target = process.env.DEPLOY_ENVIRONMENT === 'staging' ? config.previews : config
-            target.send_email = [{ name: 'EMAIL', allowed_sender_addresses: [emailFrom] }]
+            target.send_email = [{ name: 'EMAIL', remote: true, allowed_sender_addresses: [emailFrom] }]
             target.vars = { ...target.vars, NUXT_PLATFORM_EMAIL_FROM: emailFrom }
             if (process.env.DEPLOY_ENVIRONMENT === 'staging') delete config.send_email
           }
