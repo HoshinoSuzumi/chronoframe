@@ -77,12 +77,22 @@ jobs:
             echo "- Approval environment: \`saas-$DEPLOY_ENVIRONMENT\`"
             echo "- Deployment identifier: \`${commit:0:12}-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT\`"
             echo '- Build and deployment start only after approval; the source SHA remains fixed.'
+            if [[ "$DEPLOY_ENVIRONMENT" == staging ]]; then
+              echo '- Target: isolated Preview named `staging`; production deployment is unchanged.'
+              echo '- Preview variables/secrets/bindings must use test resources; production settings are not inherited.'
+            else
+              echo '- Target: production deployment; existing staging Previews are not replaced.'
+            fi
             echo '- workers.dev only; no custom domains, Git release tags, or Docker publication.'
             echo '- Current SaaS entries are bootstrap applications; tenant/auth APIs remain unavailable.'
             echo ""
             echo '### Targets'
             for entry in "${entries[@]}"; do
-              echo "- \`$entry\` → \`chronoframe-$entry-$DEPLOY_ENVIRONMENT\` (workers.dev)"
+              if [[ "$DEPLOY_ENVIRONMENT" == staging ]]; then
+                echo "- \`$entry\` → \`chronoframe-$entry-production\`, Preview \`staging\` (workers.dev)"
+              else
+                echo "- \`$entry\` → \`chronoframe-$entry-production\` (workers.dev)"
+              fi
             done
             echo ""
             echo '### Latest source changes'
@@ -133,9 +143,12 @@ jobs:
           import fs from 'node:fs'
           const path = `apps/${process.env.ENTRY}/.output/server/wrangler.json`
           const config = JSON.parse(fs.readFileSync(path, 'utf8'))
-          config.name = `chronoframe-${process.env.ENTRY}-${process.env.DEPLOY_ENVIRONMENT}`
+          config.name = `chronoframe-${process.env.ENTRY}-production`
           config.workers_dev = true
+          // Version URLs are separate from isolated Worker Previews.
           config.preview_urls = false
+          // Do not copy production variables or data bindings into Preview settings.
+          config.previews ??= {}
           config.routes = []
           delete config.route
           delete config.env
@@ -158,9 +171,15 @@ jobs:
           fi
           echo '## Worker deployment results' >> "$GITHUB_STEP_SUMMARY"
           for entry in $ENTRIES; do
-            worker="chronoframe-$entry-$DEPLOY_ENVIRONMENT"
-            echo "### $worker" >> "$GITHUB_STEP_SUMMARY"
-            if pnpm exec wrangler deploy --config "apps/$entry/.output/server/wrangler.json" \
+            worker="chronoframe-$entry-production"
+            command=(deploy)
+            target="$worker (production)"
+            if [[ "$DEPLOY_ENVIRONMENT" == staging ]]; then
+              command=(preview --name staging --worker-name "$worker")
+              target="$worker / Preview staging"
+            fi
+            echo "### $target" >> "$GITHUB_STEP_SUMMARY"
+            if pnpm exec wrangler "${command[@]}" --config "apps/$entry/.output/server/wrangler.json" \
               --message "Source $SOURCE_COMMIT; Actions $GITHUB_RUN_ID/$GITHUB_RUN_ATTEMPT" \
               2>&1 | tee "$RUNNER_TEMP/deploy-$entry.log"; then
               echo "- Successfully deployed approved commit \`$SOURCE_COMMIT\`." >> "$GITHUB_STEP_SUMMARY"
