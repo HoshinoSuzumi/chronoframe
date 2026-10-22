@@ -25,6 +25,8 @@ for (const entry of ['cloud', 'site']) {
   for (const file of [
     ...(await sources(`apps/${entry}`)),
     'apps/nuxt.shared.ts',
+    'apps/platform.runtime.ts',
+    'apps/platform-crypto.ts',
   ]) {
     const code = await readFile(file, 'utf8')
     for (const match of code.matchAll(

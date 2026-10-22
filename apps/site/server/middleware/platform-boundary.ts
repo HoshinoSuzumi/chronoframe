@@ -1,4 +1,4 @@
-/** No Self-hosted fallback before platform authorization and Site resolution exist. */
+/** Only trusted public context resolution is enabled; Self-hosted APIs stay unavailable. */
 export default defineEventHandler((event) => {
   setResponseHeader(event, 'Cache-Control', 'no-store')
   let path: string
@@ -10,6 +10,7 @@ export default defineEventHandler((event) => {
       statusMessage: 'Invalid request path',
     })
   }
+  if (path === '/api/public/context') return
   if (path === '/api' || (path.startsWith('/api/') && path !== '/api/health')) {
     throw createError({ statusCode: 503, statusMessage: 'Service unavailable' })
   }

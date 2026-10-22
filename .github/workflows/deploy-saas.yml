@@ -84,7 +84,8 @@ jobs:
               echo '- Target: production deployment; existing staging Previews are not replaced.'
             fi
             echo '- workers.dev only; no custom domains, Git release tags, or Docker publication.'
-            echo '- Current SaaS entries are bootstrap applications; tenant/auth APIs remain unavailable.'
+            echo '- Platform D1 binding is read from the selected GitHub Environment after approval; staging and production require separate databases.'
+            echo '- Email sign-in additionally requires explicitly configured runtime mail credentials and a portal origin.'
             echo ""
             echo '### Targets'
             for entry in "${entries[@]}"; do
@@ -132,6 +133,7 @@ jobs:
         env:
           ENTRIES: ${{ needs.plan.outputs.entries }}
           DEPLOY_ENVIRONMENT: ${{ inputs.environment }}
+          PLATFORM_D1_DATABASE_ID: ${{ vars.PLATFORM_D1_DATABASE_ID }}
         run: |
           set -euo pipefail
           for entry in $ENTRIES; do
@@ -149,6 +151,17 @@ jobs:
           config.preview_urls = false
           // Do not copy production variables or data bindings into Preview settings.
           config.previews ??= {}
+          const databaseId = process.env.PLATFORM_D1_DATABASE_ID
+          if (databaseId) {
+            if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(databaseId)) throw new Error('Invalid platform D1 database ID')
+            const binding = { binding: 'PLATFORM_DB', database_name: `chronoframe-platform-${process.env.DEPLOY_ENVIRONMENT}`, database_id: databaseId }
+            if (process.env.DEPLOY_ENVIRONMENT === 'staging') {
+              config.previews.d1_databases = [binding]
+              delete config.d1_databases
+            } else {
+              config.d1_databases = [binding]
+            }
+          }
           config.routes = []
           delete config.route
           delete config.env

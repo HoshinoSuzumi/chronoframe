@@ -10,6 +10,9 @@ overrides:
 importers:
   .:
     dependencies:
+      h3:
+        specifier: 1.15.11
+        version: 1.15.11
       '@aws-sdk/client-s3':
         specifier: ^3.1149.0
         version: 3.1149.0
@@ -302,6 +305,16 @@ importers:
       typescript:
         specifier: ^5.9.3
         version: 5.9.3
+  packages/platform:
+    dependencies:
+      '@chronoframe/core':
+        specifier: workspace:*
+        version: link:../core
+    devDependencies:
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
+
   packages/core:
     dependencies:
       "@chronoframe/contracts":
@@ -699,6 +712,15 @@ importers:
 
   apps/cloud:
     dependencies:
+      h3:
+        specifier: 1.15.11
+        version: 1.15.11
+      '@chronoframe/platform':
+        specifier: workspace:*
+        version: link:../../packages/platform
+      '@chronoframe/core':
+        specifier: workspace:*
+        version: link:../../packages/core
       nuxt:
         specifier: ^4.6.1
         version: 4.6.1(165166b5178185dd2552bfcb477f8ef8)
@@ -762,6 +784,15 @@ importers:
 
   apps/site:
     dependencies:
+      h3:
+        specifier: 1.15.11
+        version: 1.15.11
+      '@chronoframe/platform':
+        specifier: workspace:*
+        version: link:../../packages/platform
+      '@chronoframe/core':
+        specifier: workspace:*
+        version: link:../../packages/core
       nuxt:
         specifier: ^4.6.1
         version: 4.6.1(165166b5178185dd2552bfcb477f8ef8)
