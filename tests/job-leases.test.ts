@@ -485,3 +485,129 @@ test('temporary heartbeat failures abort processing but remain retryable', async
     connection.close()
   }
 })
+
+test('cancelled upload reservations leave the published photo editable and reindexable without reviving old jobs', async () => {
+  const connection = openDatabase({ filename: ':memory:', migrationsFolder })
+  const { db } = connection
+  try {
+    const { createSiteRepository } = await import('@chronoframe/database')
+    db.insert(tables.photos)
+      .values({
+        id: 'photo',
+        storageKey: 'library/.generated/metadata/edited/photo.jpg',
+        originalUrl: '/image/published.jpg',
+        thumbnailKey: 'library/.generated/thumb.webp',
+        title: 'Published',
+      })
+      .run()
+    const jobs = createSqliteJobRepository(db, DEFAULT_SITE, resolveId)
+    jobs.enqueue({ type: 'photo', storageKey: 'library/photo.jpg' })
+    const oldLease = (await jobs.claim('old-worker', clock, 60000))!
+    const reserved = reserveResource(db, DEFAULT_SITE, 'photo', {
+      storageConnectionId: null,
+      storageRevision: 1,
+      storageKey: 'library/photo.jpg',
+    })
+    // Cancelling an uncompleted upload removes its transport session; no bytes or
+    // photo row were published, and its resource epoch must not be rolled back.
+    const repository = createSiteRepository(db, DEFAULT_SITE)
+    const snapshot = (await repository.capturePhoto('photo'))!
+    assert.equal(snapshot.version, reserved)
+    assert.equal(
+      snapshot.photo.storageKey,
+      'library/.generated/metadata/edited/photo.jpg',
+    )
+    await repository.updatePhotoSnapshot('photo', snapshot.version, {
+      exif: { Title: 'Reindexed' },
+    })
+    const writer = createSqlitePhotoWriteRepository(db, DEFAULT_SITE)
+    const photo = (await writer.get('photo'))!
+    await writer.update(
+      'photo',
+      { title: 'Edited after cancellation' },
+      undefined,
+      photo.mutationVersion,
+    )
+    const row = db.select().from(tables.photos).get()!
+    assert.equal(row.title, 'Edited after cancellation')
+    assert.equal(row.exif?.Title, 'Reindexed')
+    assert.equal(row.thumbnailKey, 'library/.generated/thumb.webp')
+    assert.equal(row.storageKey, snapshot.photo.storageKey)
+    assert.ok(row.sourceVersion > reserved)
+    assert.throws(
+      () =>
+        jobs.commit(
+          oldLease,
+          () => {
+            throw new Error('must not publish')
+          },
+          { now: clock },
+        ),
+      LostLeaseError,
+    )
+  } finally {
+    connection.close()
+  }
+})
+
+test('maintenance snapshots still lose to newer upload reservations and publications', async () => {
+  const connection = openDatabase({ filename: ':memory:', migrationsFolder })
+  const { db } = connection
+  try {
+    const { createSiteRepository } = await import('@chronoframe/database')
+    db.insert(tables.photos)
+      .values({ id: 'photo', storageKey: 'published.jpg', title: 'Published' })
+      .run()
+    const repository = createSiteRepository(db, DEFAULT_SITE)
+    reserveResource(db, DEFAULT_SITE, 'photo', {
+      storageConnectionId: null,
+      storageRevision: 1,
+      storageKey: 'first-upload.jpg',
+    })
+    const snapshot = (await repository.capturePhoto('photo'))!
+    const writer = createSqlitePhotoWriteRepository(db, DEFAULT_SITE)
+    const mutation = (await writer.get('photo'))!
+    reserveResource(db, DEFAULT_SITE, 'photo', {
+      storageConnectionId: null,
+      storageRevision: 1,
+      storageKey: 'second-upload.jpg',
+    })
+    await assert.rejects(
+      repository.updatePhotoSnapshot('photo', snapshot.version, {
+        title: 'Stale reindex',
+      }),
+    )
+    await assert.rejects(
+      writer.update(
+        'photo',
+        { title: 'Stale edit' },
+        undefined,
+        mutation.mutationVersion,
+      ),
+    )
+    const current = (await repository.capturePhoto('photo'))!
+    const jobs = createSqliteJobRepository(db, DEFAULT_SITE, resolveId)
+    jobs.enqueue({ type: 'photo', storageKey: 'second-upload.jpg' })
+    const lease = (await jobs.claim('new-worker', clock, 60000))!
+    jobs.commit(
+      lease,
+      () =>
+        db
+          .update(tables.photos)
+          .set({ title: 'New upload', storageKey: 'second-upload.jpg' })
+          .where(eq(tables.photos.id, 'photo'))
+          .run(),
+      { now: clock, resourceUpdated: true },
+    )
+    await assert.rejects(
+      repository.updatePhotoSnapshot('photo', current.version, {
+        title: 'Stale after publication',
+      }),
+    )
+    const latest = (await repository.capturePhoto('photo'))!
+    assert.equal(latest.photo.title, 'New upload')
+    assert.equal(latest.photo.storageKey, 'second-upload.jpg')
+  } finally {
+    connection.close()
+  }
+})

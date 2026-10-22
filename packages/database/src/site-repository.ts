@@ -43,13 +43,12 @@ export function createSiteRepository(db: AppDatabase, site: SiteContext) {
             ),
           )
           .get()
-        if (
-          !version ||
-          version.deleted ||
-          version.storageConnectionId !== photo.storageConnectionId ||
-          version.storageRevision !== photo.storageRevision ||
-          version.storageKey !== photo.storageKey
-        )
+        // Upload preparation fences older work before issuing a transport plan.
+        // Its reference describes the incoming source, not the published photo;
+        // cancelling that plan must not make the still-published source unusable.
+        // Read from the photo's own reference and fence publication with the
+        // current epoch, so later reservations/writes still invalidate this read.
+        if (!version || version.deleted)
           throw new CoreError(409, 'Photo source changed; retry the operation')
         return { photo, version: version.version }
       })
