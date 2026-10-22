@@ -4,6 +4,17 @@ export const MAX_SOCIAL_LINKS = 4
 
 export type SocialLinkErrorCode = 'shape' | 'limit' | 'invalid' | 'duplicate'
 
+export function isSocialLinkErrorCode(
+  value: unknown,
+): value is SocialLinkErrorCode {
+  return (
+    value === 'shape' ||
+    value === 'limit' ||
+    value === 'invalid' ||
+    value === 'duplicate'
+  )
+}
+
 export class SocialLinkError extends Error {
   readonly code: SocialLinkErrorCode
 

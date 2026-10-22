@@ -1,4 +1,5 @@
 import type { StorageConfig } from './storage.ts'
+import type { SocialLinkErrorCode } from './social-links.ts'
 
 export type SettingType = 'string' | 'number' | 'boolean' | 'json'
 export type SettingValue =
@@ -116,6 +117,17 @@ export interface SettingsFieldsResponse {
   namespace: string
   fields: FieldDescriptor[]
 }
+
+export interface SettingsBatchFieldError {
+  namespace: string
+  key: string
+  error: string
+  code?: SocialLinkErrorCode
+}
+
+export type SettingsBatchResponse =
+  | { success: true; updated: number }
+  | { success: false; updated: number; errors: SettingsBatchFieldError[] }
 
 /**
  * Settings 批量更新请求

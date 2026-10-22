@@ -1,8 +1,13 @@
 import type { InjectionKey } from 'vue'
 import type {
   FieldDescriptor,
+  SettingsBatchResponse,
   SettingsFieldsResponse,
 } from '@chronoframe/gallery/shared/types/settings'
+import {
+  isSocialLinkErrorCode,
+  SocialLinkError,
+} from '@chronoframe/contracts/social-links'
 
 export const settingsFieldCommitKey: InjectionKey<
   (fieldKey: string, value: any) => void
@@ -104,14 +109,26 @@ export function useSettingsForm(namespace: string) {
         value,
       }))
 
-      const result = await consoleApi<{
-        success: boolean
-        errors?: Array<{ error: string }>
-      }>('/api/system/settings/batch', {
-        method: 'PUT',
-        body: { updates },
-      })
+      const result = await consoleApi<SettingsBatchResponse>(
+        '/api/system/settings/batch',
+        {
+          method: 'PUT',
+          body: { updates },
+        },
+      )
       if (!result.success) {
+        const socialFailure = result.errors.find(
+          (item) => item.namespace === 'app' && item.key === 'socialLinks',
+        )
+        if (socialFailure) {
+          if (isSocialLinkErrorCode(socialFailure.code)) {
+            throw new SocialLinkError(
+              socialFailure.code,
+              t(`settings.app.socialLinks.${socialFailure.code}`),
+            )
+          }
+          throw new Error(t('settings.form.saveFailed'))
+        }
         throw new Error(
           result.errors?.map((item) => item.error).join('; ') ||
             t('settings.form.saveFailed'),
