@@ -8,7 +8,13 @@ export default defineNuxtRouteMiddleware(async (to) => {
     return navigateTo('/sites', { redirectCode: 302 })
   if (path === '/sites' || path.startsWith('/sites/')) {
     const fetcher = useRequestFetch()
-    const session = await fetcher('/api/auth/session')
+    const session = await fetcher<{ authenticated: boolean }>(
+      '/api/auth/session',
+    ).catch((error) => {
+      if ([401, 403].includes(error.statusCode ?? error.status))
+        return { authenticated: false }
+      throw error
+    })
     if (!session.authenticated)
       return navigateTo('/signin', { redirectCode: 302 })
     if (path !== '/sites') {
