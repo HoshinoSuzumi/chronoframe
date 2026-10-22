@@ -53,6 +53,7 @@ COPY --from=runtime_deps --chmod=1777 /opt/runtime-tmp /tmp
 
 COPY --from=build /usr/src/app/apps/self-hosted/.output ./.output
 COPY --from=build /usr/src/app/packages/database/migrations ./server/database/migrations
+COPY --from=build /usr/src/app/LICENSE /usr/src/app/LICENSING.md ./
 
 EXPOSE 3000
 VOLUME ["/app/data"]

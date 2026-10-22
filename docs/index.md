@@ -54,4 +54,4 @@ Browse galleries shared by developers and community members on the [Demo Sites p
 
 ## 📄 License
 
-ChronoFrame is released under the [MIT License](https://github.com/HoshinoSuzumi/chronoframe/blob/main/LICENSE).
+ChronoFrame uses [AGPL-3.0-only](https://github.com/HoshinoSuzumi/chronoframe/blob/main/LICENSE) by default. The contracts and webgl-image packages remain MIT. See the [licensing guide](https://github.com/HoshinoSuzumi/chronoframe/blob/main/LICENSING.md) for scope, historical MIT rights, and commercial licensing by ChronoFrame.

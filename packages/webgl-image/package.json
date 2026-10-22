@@ -11,7 +11,7 @@
     "high-performance"
   ],
   "author": {
-    "name": "Timothy Yin",
+    "name": "ChronoFrame",
     "email": "master@uniiem.com"
   },
   "license": "MIT",
@@ -41,7 +41,8 @@
   "types": "./dist/index.d.ts",
   "files": [
     "dist",
-    "src"
+    "src",
+    "LICENSE"
   ],
   "scripts": {
     "build": "vite build",

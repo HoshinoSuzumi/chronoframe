@@ -2,8 +2,9 @@
 
 This application combines the console and gallery Nuxt layers with the existing
 session, settings, SQLite, storage and embedded-worker adapters. The shared
-layers contain no server implementations. SaaS-only entries are outside this
-phase; the existing MIT license remains unchanged.
+layers contain no server implementations. This entry uses AGPL-3.0-only; see the root LICENSING.md for package exceptions,
+historical MIT rights, and commercial licensing. Future SaaS entries share the
+repository default unless explicitly licensed otherwise.
 
 From the repository root, run `pnpm install`, `pnpm dev`, or
 `pnpm build:deps && pnpm build`. Root commands and filtered application scripts

@@ -54,4 +54,4 @@ features:
 
 ## 📄 开源协议
 
-ChronoFrame 基于 [MIT 协议](https://github.com/HoshinoSuzumi/chronoframe/blob/main/LICENSE) 开源。
+ChronoFrame 默认采用 [AGPL-3.0-only](https://github.com/HoshinoSuzumi/chronoframe/blob/main/LICENSE)，contracts 和 webgl-image 包保留 MIT。适用范围、历史 MIT 权利和 ChronoFrame 的商业授权说明见[许可指南](https://github.com/HoshinoSuzumi/chronoframe/blob/main/LICENSING.md)。

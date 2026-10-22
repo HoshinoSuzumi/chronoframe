@@ -11,7 +11,7 @@
   <a href="https://github.com/HoshinoSuzumi/chronoframe/releases">
     <img src="https://badgen.net/github/release/HoshinoSuzumi/chronoframe?icon=docker&label=prerelease" alt="Latest Prerelease">
   </a>
-  <img src="https://img.shields.io/badge/License-MIT-green.svg" alt="License">
+  <img src="https://img.shields.io/badge/License-AGPL--3.0--only-blue.svg" alt="License">
 </p>
 
 <p align="center">
@@ -116,6 +116,14 @@ pnpm docs:build    # Build documentation
 
 After changing the database schema, run `pnpm db:generate` and review the SQL. Generating migrations is unnecessary just to start the app. See the [contributing guide](https://chronoframe.bh8.ga/development/contributing.html) for more.
 
+## 📄 License
+
+ChronoFrame uses **AGPL-3.0-only** by default, including the Self-hosted and SaaS
+implementations. `packages/contracts` and `packages/webgl-image` remain MIT. See [LICENSE](LICENSE),
+[LICENSING.md](LICENSING.md) for scope, historical MIT rights,
+and commercial licensing inquiries to **ChronoFrame**. Paid hosting is permitted
+when the applicable AGPL requirements are met.
+
 ## 🤝 Contributing and community
 
 For suspected vulnerabilities, follow the [Security Policy](SECURITY.md) and report privately.
@@ -137,7 +145,6 @@ Thanks to the maintainers of [Nuxt](https://nuxt.com/), [Vue](https://vuejs.org/
    <img alt="Star History Chart" src="https://star-history.dera.page/svg?repos=HoshinoSuzumi/chronoframe&type=date&legend=top-left" />
  </picture>
 </a>
-
 
 ### Workspace layout
 
