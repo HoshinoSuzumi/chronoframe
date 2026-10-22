@@ -17,6 +17,11 @@ export default defineNuxtConfig({
   runtimeConfig: {
     ...sharedUi.runtimeConfig,
     session: { name: 'chronoframe-cloud' },
+    platform: {
+      portalOrigin: 'https://app.chronoframe.art',
+      secret: '',
+      emailFrom: '',
+    },
   },
   css: ['~/assets/cloud.css'],
   hooks: {

@@ -1,4 +1,9 @@
 <script setup lang="ts">
+const signInUrl =
+  useRequestURL().hostname === 'chronoframe.art'
+    ? 'https://app.chronoframe.art/signin'
+    : '/signin'
+
 useSeoMeta({
   title: 'ChronoFrame — A home for your photography',
   description:
@@ -15,7 +20,7 @@ useSeoMeta({
       >
       <nav aria-label="Main navigation">
         <a href="https://chronoframe.bh8.ga/">Documentation</a
-        ><NuxtLink to="/signin">Cloud access</NuxtLink>
+        ><NuxtLink :to="signInUrl">Cloud access</NuxtLink>
       </nav>
     </header>
     <main>
@@ -32,7 +37,7 @@ useSeoMeta({
             size="xl"
             >Explore Self-hosted</UButton
           ><UButton
-            to="/signin"
+            :to="signInUrl"
             variant="outline"
             size="xl"
             >Cloud availability</UButton

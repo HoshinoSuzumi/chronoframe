@@ -147,3 +147,5 @@ export * from './upload-preparation.ts'
 
 export * from './site.ts'
 export * from './publication.ts'
+export * from './platform.ts'
+export * from './email-auth.ts'
