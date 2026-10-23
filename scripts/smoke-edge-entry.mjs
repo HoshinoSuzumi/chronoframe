@@ -84,7 +84,7 @@ try {
   if (!portalOrigin)
     assert.match(
       html,
-      entry === 'cloud' ? /A home for the moments/ : /service unavailable/i,
+      entry === 'cloud' ? /Every frame\./ : /service unavailable/i,
     )
   if (entry === 'cloud') {
     assert.equal((await fetch(base + '/signin')).status, 200)

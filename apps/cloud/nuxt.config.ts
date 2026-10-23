@@ -6,6 +6,9 @@ const galleryPages = fileURLToPath(
 )
 export default defineNuxtConfig({
   ...sharedUi,
+  modules: [...sharedUi.modules, 'shadcn-nuxt'],
+  shadcn: { prefix: '', componentDir: './app/components/ui' },
+  app: { head: { htmlAttrs: { lang: 'en' } } },
   devServer: { port: 3001 },
   nitro: {
     ...sharedUi.nitro,
