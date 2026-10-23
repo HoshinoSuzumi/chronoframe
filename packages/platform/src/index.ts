@@ -180,3 +180,10 @@ export function createD1SiteCatalog(db: PlatformD1) {
     },
   }
 }
+
+export {
+  createD1Provisioning,
+  siteIdentity,
+  ProvisioningError,
+} from './provisioning.ts'
+export type { ManagedSite } from './provisioning.ts'

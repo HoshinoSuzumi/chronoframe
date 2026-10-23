@@ -1,11 +1,17 @@
 <script setup lang="ts">
 import { motion } from 'motion-v'
-import { ArrowLeft, Images, ImagePlus, ShieldCheck } from 'lucide-vue-next'
+import {
+  ArrowLeft,
+  ArrowUpRight,
+  Images,
+  ImagePlus,
+  ShieldCheck,
+} from 'lucide-vue-next'
 const entrance = useCloudMotion()
 
 import type { EntrySiteContext } from '@chronoframe/contracts/entry'
 definePageMeta({ key: (route) => route.fullPath })
-useSeoMeta({ title: 'Manage site — ChronoFrame', robots: 'noindex' })
+useSeoMeta({ title: 'Manage site — ChronoFrame Cloud', robots: 'noindex' })
 const context = useEntryContext()
 const fetcher = useRequestFetch()
 let stream: EventSource | undefined
@@ -50,67 +56,55 @@ onBeforeUnmount(() => stream?.close())
     ><motion.div
       v-if="context"
       v-bind="entrance"
-      ><NuxtLink
+    >
+      <NuxtLink
         to="/sites"
         class="cf-back-link"
-        ><ArrowLeft :size="15" />All sites</NuxtLink
+        ><ArrowLeft :size="14" />All sites</NuxtLink
       >
       <div class="cf-page-heading">
         <div class="cf-detail-header">
-          <span class="cf-site-icon"
-            ><Images
-              :size="26"
-              :stroke-width="1.5"
-          /></span>
+          <span class="cf-site-icon"><Images :size="20" /></span>
           <div>
-            <p class="cf-eyebrow">SITE OVERVIEW</p>
             <h1 class="cf-page-title">{{ context.name }}</h1>
+            <p class="cf-page-description">Gallery settings and access.</p>
           </div>
         </div>
-        <CloudBadge :tone="context.published ? 'success' : 'warning'">{{
-          context.published ? 'Published' : 'Not published'
+        <CloudBadge :tone="context.published ? 'success' : 'neutral'">{{
+          context.published ? 'Published' : 'Draft'
         }}</CloudBadge>
       </div>
-      <CloudCard class="cf-details"
-        ><dl>
-          <div class="cf-detail-row">
-            <dt>Your role</dt>
-            <dd class="cf-capitalize">{{ context.role }}</dd>
-          </div>
-          <div class="cf-detail-row">
-            <dt>Publication status</dt>
-            <dd>{{ context.published ? 'Published' : 'Not published' }}</dd>
-          </div>
-          <div class="cf-detail-row">
-            <dt>Access</dt>
-            <dd class="cf-inline-status">
-              <ShieldCheck :size="14" />Membership verified
-            </dd>
-          </div>
-        </dl></CloudCard
-      >
-      <CloudCard
-        v-if="!context.capabilities.mediaManagement"
-        class="cf-empty"
-        ><div class="cf-empty-icon">
-          <ImagePlus
-            :size="27"
-            :stroke-width="1.4"
-          />
+      <dl class="cf-site-facts">
+        <div>
+          <dt>Your role</dt>
+          <dd class="cf-capitalize">{{ context.role }}</dd>
         </div>
-        <h2>A space for what comes next.</h2>
-        <p>
-          Photo management and publishing setup are coming in the next stage.
-          For now, you can review your site and membership details here.
-        </p>
-        <CloudButton
-          as-child
-          variant="secondary"
-          ><a href="https://docs.chronoframe.art/"
-            >Read the documentation</a
-          ></CloudButton
-        ></CloudCard
-      >
-    </motion.div></CloudPortalShell
-  >
+        <div>
+          <dt>Publication</dt>
+          <dd>{{ context.published ? 'Published' : 'Private draft' }}</dd>
+        </div>
+        <div>
+          <dt>Access</dt>
+          <dd><ShieldCheck :size="13" />Membership verified</dd>
+        </div>
+      </dl>
+      <div class="cf-site-workbench">
+        <CloudSiteSettings :site-id="context.siteId" />
+        <aside
+          v-if="!context.capabilities.mediaManagement"
+          class="cf-workbench-note"
+          aria-label="Photo management information"
+        >
+          <span class="cf-note-icon"><ImagePlus :size="18" /></span>
+          <h2>Photo management</h2>
+          <p>
+            Storage, uploads and new publishing options are coming in the next
+            stage.
+          </p>
+          <a href="https://docs.chronoframe.art/"
+            >Read the documentation<ArrowUpRight :size="13"
+          /></a>
+        </aside>
+      </div> </motion.div
+  ></CloudPortalShell>
 </template>

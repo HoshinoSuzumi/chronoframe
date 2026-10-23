@@ -83,6 +83,7 @@ export function definePlatformHandler<T>(
         401: 'Authentication required or invalid code',
         403: 'Permission denied',
         404: 'Site not found',
+        409: 'Site address or settings conflict; reload and try again',
         429: 'Please wait before trying again',
         503: 'Platform service unavailable',
       }

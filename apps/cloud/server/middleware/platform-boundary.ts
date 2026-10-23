@@ -18,8 +18,9 @@ export default defineEventHandler((event) => {
       '/api/auth/logout',
       '/api/auth/security',
       '/api/sites',
+      '/api/workspaces/default',
     ].includes(path) ||
-    /^\/api\/sites\/[1-9][0-9]*\/(?:context|events)$/.test(path)
+    /^\/api\/sites\/[1-9][0-9]*\/(?:context|events|settings)$/.test(path)
   if (platformRoute || accountRouteAllowed(path, event.method)) return
   if (path === '/api' || (path.startsWith('/api/') && path !== '/api/health')) {
     throw createError({ statusCode: 503, statusMessage: 'Service unavailable' })

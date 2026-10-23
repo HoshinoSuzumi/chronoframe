@@ -6,15 +6,25 @@ import {
   BookOpen,
   ShieldCheck,
   LogOut,
+  Menu,
 } from 'lucide-vue-next'
+import { PopoverRoot, PopoverTrigger, PopoverContent } from 'reka-ui'
+const mobileMenuOpen = ref(false)
 const route = useRoute()
 const { busy, error, signOut } = useCloudSignOut()
 </script>
 <template>
   <div class="cf-portal">
     <header class="cf-portal-header">
-      <CloudBrand cloud />
-      <div class="cf-header-actions">
+      <div class="cf-portal-brand">
+        <CloudBrand cloud /><span
+          class="cf-header-divider"
+          aria-hidden="true"
+        /><span class="cf-header-location">{{
+          route.path.startsWith('/sites') ? 'Workspace' : 'Account settings'
+        }}</span>
+      </div>
+      <div class="cf-header-actions cf-portal-desktop-actions">
         <CloudBadge>Cloud preview</CloudBadge
         ><CloudButton
           variant="ghost"
@@ -24,9 +34,40 @@ const { busy, error, signOut } = useCloudSignOut()
           ><LogOut :size="15" />Sign out</CloudButton
         ><CloudThemeToggle />
       </div>
+      <div class="cf-portal-mobile-actions">
+        <PopoverRoot v-model:open="mobileMenuOpen">
+          <PopoverTrigger as-child
+            ><CloudButton
+              variant="ghost"
+              size="icon"
+              aria-label="Open account menu"
+              ><Menu :size="20" /></CloudButton
+          ></PopoverTrigger>
+          <PopoverContent
+            class="cf-mobile-menu"
+            align="end"
+            :side-offset="12"
+            :collision-padding="16"
+            aria-label="Account menu"
+          >
+            <div class="cf-mobile-menu-theme">
+              <span>Appearance</span><CloudThemeToggle />
+            </div>
+            <CloudButton
+              variant="ghost"
+              :loading="busy"
+              @click="signOut"
+              ><LogOut :size="16" />Sign out</CloudButton
+            >
+          </PopoverContent>
+        </PopoverRoot>
+      </div>
     </header>
     <div class="cf-portal-grid">
-      <aside class="cf-sidebar">
+      <aside
+        class="cf-sidebar"
+        aria-label="Workspace"
+      >
         <p class="cf-nav-label">YOUR SPACE</p>
         <nav aria-label="Portal navigation">
           <NuxtLink
@@ -57,7 +98,7 @@ const { busy, error, signOut } = useCloudSignOut()
           {{ error }}
         </p>
         <div class="cf-sidebar-bottom">
-          <p>A little guidance?</p>
+          <p>ChronoFrame Cloud</p>
           <a
             href="https://docs.chronoframe.art/"
             target="_blank"
@@ -72,14 +113,8 @@ const { busy, error, signOut } = useCloudSignOut()
         class="cf-portal-main"
         tabindex="-1"
       >
-        <slot />
+        <div class="cf-portal-content"><slot /></div>
       </main>
     </div>
-    <footer class="cf-portal-footer">
-      <span>Made for the way you see.</span
-      ><a href="https://github.com/HoshinoSuzumi/chronoframe"
-        >Built in the open <ArrowUpRight :size="12"
-      /></a>
-    </footer>
   </div>
 </template>

@@ -11,10 +11,9 @@ const { data: security } = await useFetch('/api/auth/security')
     ><motion.div v-bind="entrance"
       ><div class="cf-page-heading">
         <div>
-          <p class="cf-eyebrow">YOUR SPACE</p>
           <h1 class="cf-page-title">Your account</h1>
           <p class="cf-page-description">
-            A few essentials, so you can get back to what matters.
+            Your profile, preferences and session.
           </p>
         </div>
         <CloudBadge tone="success"
@@ -24,7 +23,7 @@ const { data: security } = await useFetch('/api/auth/security')
       <CloudCard class="cf-settings-card"
         ><div class="cf-setting-row">
           <div>
-            <h2>Sign-in method</h2>
+            <h2>Email address</h2>
             <p>{{ security?.email }}</p>
           </div>
           <CloudButton
@@ -55,11 +54,6 @@ const { data: security } = await useFetch('/api/auth/security')
           </div>
           <CloudThemeToggle /></div
       ></CloudCard>
-      <div class="cf-notice">
-        <strong>Your email is verified.</strong>Workspace and site setup are
-        coming in the next stage. We’ll keep the essentials here as your space
-        grows.
-      </div>
       <CloudCard class="cf-settings-card"
         ><div class="cf-setting-row">
           <div>
