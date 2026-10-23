@@ -156,10 +156,13 @@ async function savePhoto() {
 }
 async function loadAlbum() {
   if (!albumId.value) return
-  const data = await api<{ album: { title: string }; revision: number }>(
-    base.value + '/albums/' + albumId.value + '/settings',
-  )
+  const data = await api<{
+    album: { title: string; isHidden: boolean }
+    revision: number
+  }>(base.value + '/albums/' + albumId.value + '/settings')
   renameAlbum.title = data.album.title
+  albumHidden.value = data.album.isHidden
+  albumPassword.value = ''
   renameAlbum.revision = data.revision
 }
 async function saveAlbum() {
