@@ -32,7 +32,7 @@ const notFound = computed(() => props.error.statusCode === 404)
         ><ArrowLeft :size="15" />Back to home</CloudButton
       ><CloudButton
         v-if="!notFound"
-        @click="reloadNuxtApp()"
+        @click="reloadNuxtApp({ force: true })"
         ><RotateCw :size="15" />Try again</CloudButton
       >
     </div>

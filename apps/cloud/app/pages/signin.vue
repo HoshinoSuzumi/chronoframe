@@ -23,6 +23,7 @@ async function submit() {
   if (busy.value || !status.value?.enabled) return
   busy.value = true
   error.value = ''
+  let focusCode = false
   try {
     if (!challenge.value) {
       const result = await $fetch('/api/auth/email/request', {
@@ -30,8 +31,7 @@ async function submit() {
         body: { email: email.value },
       })
       challenge.value = result.challengeId
-      await nextTick()
-      codeInput.value?.$el?.focus()
+      focusCode = true
     } else {
       await $fetch('/api/auth/email/verify', {
         method: 'POST',
@@ -53,6 +53,10 @@ async function submit() {
           : 'Sign-in could not be completed. Please try again later.'
   } finally {
     busy.value = false
+  }
+  if (focusCode) {
+    await nextTick()
+    codeInput.value?.$el?.focus()
   }
 }
 </script>
