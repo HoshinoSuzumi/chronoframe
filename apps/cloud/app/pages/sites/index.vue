@@ -1,30 +1,24 @@
 <script setup lang="ts">
+import type { EntrySiteCatalog } from '@chronoframe/contracts/entry'
 useSeoMeta({ title: 'Your sites — ChronoFrame', robots: 'noindex' })
 const userId = useState<number | null>('platform-user-id', () => null)
-const { data, error, refresh } = await useFetch('/api/sites', {
-  key: computed(() => `platform-sites:${userId.value}`),
-  getCachedData: () => undefined,
-  immediate: false,
-  cache: 'no-store',
-})
-// Nuxt can retain a live AsyncData ref even when payload cache reuse is disabled.
-// Always finish a fresh membership query before rendering the catalog.
-await refresh({ dedupe: 'cancel' })
-if (error.value)
-  throw createError({
-    statusCode: error.value.statusCode ?? 503,
-    statusMessage: 'Unable to load sites',
-  })
+const catalog = useState<EntrySiteCatalog | null>(
+  'platform-site-catalog',
+  () => null,
+)
+const sites = computed(() =>
+  catalog.value?.userId === userId.value ? catalog.value.sites : [],
+)
 </script>
 <template>
   <main class="cloud-message">
     <h1>Your sites</h1>
     <ul
-      v-if="data?.sites.length"
+      v-if="sites.length"
       class="space-y-4"
     >
       <li
-        v-for="site in data.sites"
+        v-for="site in sites"
         :key="site.siteId"
       >
         <NuxtLink :to="`/sites/${site.siteId}`">{{ site.name }}</NuxtLink>

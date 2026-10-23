@@ -63,3 +63,15 @@ export function entryRequestPath(
       : '/api/public'
   return prefix + path.slice(4)
 }
+
+export interface EntrySiteSummary {
+  siteId: number
+  workspaceId: number
+  name: string
+  published: boolean
+  role: 'admin' | 'member'
+}
+export interface EntrySiteCatalog {
+  userId: number
+  sites: EntrySiteSummary[]
+}

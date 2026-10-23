@@ -82,10 +82,9 @@ try {
   )
   const html = await home.text()
   if (!portalOrigin)
-    assert.ok(
-      html.includes(
-        entry === 'cloud' ? 'A home for the moments' : 'Service unavailable',
-      ),
+    assert.match(
+      html,
+      entry === 'cloud' ? /A home for the moments/ : /service unavailable/i,
     )
   if (entry === 'cloud') {
     assert.equal((await fetch(base + '/signin')).status, 200)
