@@ -4,7 +4,7 @@ import { ArrowUpRight, Images, Compass, ShieldCheck } from 'lucide-vue-next'
 const entrance = useCloudMotion()
 
 import type { EntrySiteCatalog } from '@chronoframe/contracts/entry'
-useSeoMeta({ title: 'Your sites — ChronoFrame', robots: 'noindex' })
+useSeoMeta({ title: 'Your sites — ChronoFrame Cloud', robots: 'noindex' })
 const userId = useState<number | null>('platform-user-id', () => null)
 const catalog = useState<EntrySiteCatalog | null>(
   'platform-site-catalog',

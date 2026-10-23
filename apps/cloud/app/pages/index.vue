@@ -7,12 +7,12 @@ import {
   HardDrive,
   Code2,
   Check,
+  Menu,
 } from 'lucide-vue-next'
+import { PopoverRoot, PopoverTrigger, PopoverContent } from 'reka-ui'
+const mobileMenuOpen = ref(false)
 const entrance = useCloudMotion()
-const signInUrl =
-  useRequestURL().hostname === 'chronoframe.art'
-    ? 'https://app.chronoframe.art/signin'
-    : '/signin'
+const links = useCloudLinks()
 useSeoMeta({
   title: 'ChronoFrame — A home for your photography',
   description:
@@ -34,13 +34,69 @@ useSeoMeta({
             :size="12"
             aria-hidden="true"
             class="cf-inline-icon" /></a
-        ><CloudThemeToggle /><CloudButton
+        ><CloudThemeToggle />
+        <CloudButton
+          as-child
+          variant="secondary"
+          size="sm"
+          ><NuxtLink
+            :to="links.signin"
+            external
+            >Log in</NuxtLink
+          ></CloudButton
+        ><CloudButton
           as-child
           size="sm"
-          ><NuxtLink :to="signInUrl"
-            >Cloud access <ArrowUpRight :size="14" /></NuxtLink
+          ><NuxtLink
+            :to="links.signup"
+            external
+            >Get started <ArrowUpRight :size="14" /></NuxtLink
         ></CloudButton>
       </nav>
+      <div class="cf-mobile-header-actions">
+        <CloudButton
+          as-child
+          size="sm"
+          ><NuxtLink
+            :to="links.signup"
+            external
+            >Sign up</NuxtLink
+          ></CloudButton
+        >
+        <PopoverRoot v-model:open="mobileMenuOpen">
+          <PopoverTrigger as-child
+            ><CloudButton
+              variant="ghost"
+              size="icon"
+              aria-label="Open navigation"
+              ><Menu :size="20" /></CloudButton
+          ></PopoverTrigger>
+          <PopoverContent
+            class="cf-mobile-menu"
+            align="end"
+            :side-offset="12"
+            :collision-padding="20"
+            aria-label="Navigation"
+          >
+            <nav aria-label="Mobile navigation">
+              <NuxtLink
+                :to="links.signin"
+                external
+                >Log in <ArrowRight :size="16"
+              /></NuxtLink>
+              <a href="https://docs.chronoframe.art/"
+                >Documentation <ArrowUpRight :size="15"
+              /></a>
+              <a href="https://github.com/HoshinoSuzumi/chronoframe"
+                >GitHub <ArrowUpRight :size="15"
+              /></a>
+            </nav>
+            <div class="cf-mobile-menu-theme">
+              <span>Appearance</span><CloudThemeToggle />
+            </div>
+          </PopoverContent>
+        </PopoverRoot>
+      </div>
     </header>
     <main
       id="main-content"
@@ -58,8 +114,11 @@ useSeoMeta({
             <CloudButton
               as-child
               size="lg"
-              ><NuxtLink :to="signInUrl"
-                >Explore Cloud <ArrowRight :size="16" /></NuxtLink></CloudButton
+              ><NuxtLink
+                :to="links.signup"
+                external
+                >Create your account
+                <ArrowRight :size="16" /></NuxtLink></CloudButton
             ><CloudButton
               as-child
               variant="secondary"

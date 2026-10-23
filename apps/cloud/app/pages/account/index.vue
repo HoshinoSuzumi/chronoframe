@@ -2,30 +2,9 @@
 import { motion } from 'motion-v'
 import { ShieldCheck, ArrowRight, LogOut } from 'lucide-vue-next'
 const entrance = useCloudMotion()
-const busy = ref(false)
-const error = ref('')
-
-useSeoMeta({ title: 'Your account — ChronoFrame', robots: 'noindex' })
-const { data: session } = await useFetch('/api/auth/session')
-if (!session.value?.authenticated) await navigateTo('/signin')
-async function signOut() {
-  if (busy.value) return
-  busy.value = true
-  error.value = ''
-  try {
-    await $fetch('/api/auth/logout', { method: 'POST' })
-    clearNuxtData()
-    useEntryContext().value = null
-    useState('platform-site-catalog').value = null
-    useState('platform-user-id').value = null
-    useSettingsStore().$reset()
-    await navigateTo('/signin')
-  } catch {
-    error.value = 'We could not sign you out. Please try again.'
-  } finally {
-    busy.value = false
-  }
-}
+const { busy, error, signOut } = useCloudSignOut()
+useSeoMeta({ title: 'Your account — ChronoFrame Cloud', robots: 'noindex' })
+const { data: security } = await useFetch('/api/auth/security')
 </script>
 <template>
   <CloudPortalShell
@@ -46,9 +25,15 @@ async function signOut() {
         ><div class="cf-setting-row">
           <div>
             <h2>Sign-in method</h2>
-            <p>Email verification code. No password required.</p>
+            <p>{{ security?.email }}</p>
           </div>
-          <CloudBadge tone="success">Verified</CloudBadge>
+          <CloudButton
+            as-child
+            variant="secondary"
+            size="sm"
+            ><NuxtLink to="/account/security"
+              >Security settings <ArrowRight :size="14" /></NuxtLink
+          ></CloudButton>
         </div>
         <div class="cf-setting-row">
           <div>

@@ -12,6 +12,15 @@ export default defineNuxtConfig({
   devServer: { port: 3001 },
   nitro: {
     ...sharedUi.nitro,
+    // WebAuthn certificate validation uses reflection during module initialization.
+    moduleSideEffects: ['reflect-metadata'],
+    // Telemetry is disabled; omit the library's optional Node environment probes too.
+    alias: {
+      ...sharedUi.nitro.alias,
+      '@better-auth/telemetry': fileURLToPath(
+        new URL('./server/utils/account-telemetry.ts', import.meta.url),
+      ),
+    },
     cloudflare: {
       ...sharedUi.nitro.cloudflare,
       wrangler: { name: 'chronoframe-cloud', compatibility_date: '2026-10-22' },

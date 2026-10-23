@@ -54,6 +54,8 @@ export async function platformSession(
   event: H3Event,
   secret: string,
 ): Promise<PlatformSession | null> {
+  if (event.context.platformSessionResolver)
+    return event.context.platformSessionResolver()
   const token = getCookie(event, PLATFORM_COOKIE)
   if (!token || secret.length < 32) return null
   if (!/^[a-f0-9-]{36}$/.test(token)) return null

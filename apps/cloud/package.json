@@ -12,6 +12,7 @@
     "deploy": "wrangler deploy --config .output/server/wrangler.json"
   },
   "dependencies": {
+    "@better-auth/passkey": "1.7.12",
     "@chronoframe/console": "workspace:*",
     "@chronoframe/contracts": "workspace:*",
     "@chronoframe/core": "workspace:*",
@@ -24,6 +25,7 @@
     "@pinia/nuxt": "^0.11.3",
     "@unhead/vue": "3.4.2",
     "@vueuse/nuxt": "14.4.0",
+    "better-auth": "1.7.12",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "dayjs-nuxt": "2.1.11",
@@ -37,6 +39,8 @@
     "nuxt-og-image": "6.10.3",
     "nuxt-site-config": "4.2.3",
     "pinia": "^3.0.4",
+    "qrcode": "^1.5.4",
+    "reflect-metadata": "0.2.2",
     "reka-ui": "^2.11.0",
     "shadcn-nuxt": "^2.8.2",
     "tailwind-merge": "^3.7.0",
