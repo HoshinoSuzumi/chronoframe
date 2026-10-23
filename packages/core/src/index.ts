@@ -149,3 +149,5 @@ export * from './site.ts'
 export * from './publication.ts'
 export * from './platform.ts'
 export * from './email-auth.ts'
+
+export type * from './cloud-media.ts'
