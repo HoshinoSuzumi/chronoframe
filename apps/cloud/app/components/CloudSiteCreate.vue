@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { Plus, ArrowRight } from 'lucide-vue-next'
+import { Plus, ArrowRight, Layers } from 'lucide-vue-next'
+defineProps<{ workspaceName?: string }>()
 const open = ref(false)
 const name = ref('')
 const slug = ref('')
@@ -17,6 +18,11 @@ async function show() {
   open.value = true
   await nextTick()
   document.getElementById('site-name')?.focus()
+}
+async function cancel() {
+  open.value = false
+  await nextTick()
+  document.getElementById('create-site-trigger')?.focus()
 }
 async function create() {
   if (busy.value) return
@@ -45,66 +51,72 @@ async function create() {
 }
 </script>
 <template>
-  <CloudCard class="cf-settings-card cf-site-create">
-    <div class="cf-setting-row">
-      <div>
-        <h2>Your next perspective</h2>
-        <p>
-          Create a private draft. You can add photographs and publish in a later
-          stage.
-        </p>
-      </div>
-      <CloudButton
-        v-if="!open"
-        @click="show"
-        ><Plus :size="16" />Create site</CloudButton
-      >
+  <div class="cf-workspace-toolbar">
+    <span><Layers :size="15" />{{ workspaceName || 'My workspace' }}</span
+    ><CloudButton
+      v-if="!open"
+      id="create-site-trigger"
+      size="sm"
+      @click="show"
+      ><Plus :size="15" />Create site</CloudButton
+    >
+  </div>
+  <CloudCard
+    v-if="open"
+    class="cf-create-panel"
+  >
+    <div class="cf-panel-heading">
+      <h2>Create a site</h2>
+      <p>
+        Start with a private draft. Your address is reserved until publishing is
+        available.
+      </p>
     </div>
     <form
-      v-if="open"
       class="cf-form"
       @submit.prevent="create"
     >
-      <div class="cf-field">
-        <label for="site-name">Site name</label
-        ><CloudInput
-          id="site-name"
-          v-model="name"
-          required
-          maxlength="80"
-          autocomplete="off"
-          :disabled="busy"
-        />
+      <div class="cf-create-fields">
+        <div class="cf-field">
+          <label for="site-name">Site name</label
+          ><CloudInput
+            id="site-name"
+            v-model="name"
+            required
+            maxlength="80"
+            autocomplete="off"
+            :disabled="busy"
+          />
+        </div>
+        <div class="cf-field">
+          <label for="site-slug">Site address</label
+          ><CloudInput
+            id="site-slug"
+            v-model="slug"
+            required
+            minlength="3"
+            maxlength="40"
+            pattern="[a-z0-9][a-z0-9-]{1,38}[a-z0-9]"
+            autocomplete="off"
+            autocapitalize="none"
+            spellcheck="false"
+            aria-describedby="site-address-help site-address-preview"
+            :disabled="busy"
+          />
+        </div>
       </div>
-      <div class="cf-field">
-        <label for="site-slug">Site address</label
-        ><CloudInput
-          id="site-slug"
-          v-model="slug"
-          required
-          minlength="3"
-          maxlength="40"
-          pattern="[a-z0-9][a-z0-9-]{1,38}[a-z0-9]"
-          autocomplete="off"
-          autocapitalize="none"
-          spellcheck="false"
-          aria-describedby="site-address-help"
-          :disabled="busy"
-        />
-        <p
-          id="site-address-help"
-          class="cf-page-description"
-        >
-          3–40 lowercase letters, numbers or hyphens; start and end with a
-          letter or number. Some addresses are reserved.
-        </p>
-      </div>
-      <p class="cf-site-address">
+      <p
+        id="site-address-preview"
+        class="cf-address-preview"
+      >
         {{ slug || 'your-site' }}.site.chronoframe.art
       </p>
-      <p class="cf-page-description">
-        This address is reserved for your draft. Public access is not enabled
-        yet. The address cannot be changed here.
+      <p
+        id="site-address-help"
+        class="cf-field-hint"
+      >
+        Use 3–40 lowercase letters, numbers or hyphens. Some addresses are
+        reserved. The address cannot be changed here.
       </p>
       <p
         v-if="error"
@@ -118,12 +130,12 @@ async function create() {
           type="submit"
           :disabled="busy || !name.trim() || !validSlug"
           >{{ busy ? 'Creating…' : 'Create draft'
-          }}<ArrowRight :size="15" /></CloudButton
+          }}<ArrowRight :size="14" /></CloudButton
         ><CloudButton
           type="button"
           variant="ghost"
           :disabled="busy"
-          @click="open = false"
+          @click="cancel"
           >Cancel</CloudButton
         >
       </div>
