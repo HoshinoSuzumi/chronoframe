@@ -130,6 +130,28 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm check:entries
       - run: pnpm build:deps
+      - name: Validate platform runtime configuration
+        env:
+          ENTRIES: ${{ needs.plan.outputs.entries }}
+          PLATFORM_D1_DATABASE_ID: ${{ vars.PLATFORM_D1_DATABASE_ID }}
+          PLATFORM_PORTAL_ORIGIN: ${{ vars.PLATFORM_PORTAL_ORIGIN }}
+          PLATFORM_EMAIL_FROM: ${{ vars.PLATFORM_EMAIL_FROM }}
+          CLOUD_PLATFORM_SECRET: ${{ secrets.CLOUD_PLATFORM_SECRET }}
+          SITE_PLATFORM_SECRET: ${{ secrets.SITE_PLATFORM_SECRET }}
+        run: |
+          node --input-type=module <<'NODE'
+          if (process.env.PLATFORM_D1_DATABASE_ID) {
+            for (const entry of process.env.ENTRIES.split(/\s+/).filter(Boolean)) {
+              const key = entry === 'cloud' ? 'CLOUD_PLATFORM_SECRET' : 'SITE_PLATFORM_SECRET'
+              if ((process.env[key] || '').length < 32) throw new Error(`Configure ${key} with at least 32 characters in the selected GitHub Environment secrets`)
+              if (entry === 'cloud') {
+                const origin = process.env.PLATFORM_PORTAL_ORIGIN
+                if (!origin || new URL(origin).protocol !== 'https:' || new URL(origin).origin !== origin) throw new Error('Configure PLATFORM_PORTAL_ORIGIN as an exact HTTPS origin in the selected GitHub Environment variables')
+                if (!process.env.PLATFORM_EMAIL_FROM) throw new Error('Configure PLATFORM_EMAIL_FROM in the selected GitHub Environment variables')
+              }
+            }
+          }
+          NODE
       - name: Build and verify all selected Workers before deploying any
         env:
           ENTRIES: ${{ needs.plan.outputs.entries }}
@@ -229,13 +251,18 @@ jobs:
           ENTRIES: ${{ needs.plan.outputs.entries }}
           DEPLOY_ENVIRONMENT: ${{ inputs.environment }}
           SOURCE_COMMIT: ${{ needs.plan.outputs.commit }}
+          PLATFORM_PORTAL_ORIGIN: ${{ vars.PLATFORM_PORTAL_ORIGIN }}
+          PLATFORM_EMAIL_FROM: ${{ vars.PLATFORM_EMAIL_FROM }}
+          CLOUD_PLATFORM_SECRET: ${{ secrets.CLOUD_PLATFORM_SECRET }}
+          SITE_PLATFORM_SECRET: ${{ secrets.SITE_PLATFORM_SECRET }}
         run: |
           set -euo pipefail
           if [[ -z "$CLOUDFLARE_API_TOKEN" || -z "$CLOUDFLARE_ACCOUNT_ID" ]]; then
             echo '::error::Configure CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID in the selected GitHub Environment.'
             exit 1
           fi
-          echo '::notice::Preview plain-text vars are managed by previews.vars. Configure PLATFORM_PORTAL_ORIGIN in the GitHub Environment and NUXT_PLATFORM_SECRET as an encrypted Worker/Preview secret; existing Preview secrets are retained.'
+          secret_file="$(mktemp "$RUNNER_TEMP/worker-secrets.XXXXXX")"
+          trap 'rm -f "$secret_file"' EXIT
           echo '## Worker deployment results' >> "$GITHUB_STEP_SUMMARY"
           for entry in $ENTRIES; do
             worker="chronoframe-$entry"
@@ -245,6 +272,21 @@ jobs:
               command=(preview --name staging --worker-name "$worker")
               target="$worker / Preview staging"
             fi
+            if [[ "$entry" == cloud ]]; then
+              if [[ -n "$PLATFORM_PORTAL_ORIGIN" ]]; then
+                command+=(--var "NUXT_PLATFORM_PORTAL_ORIGIN:$PLATFORM_PORTAL_ORIGIN")
+              fi
+              if [[ -n "$PLATFORM_EMAIL_FROM" ]]; then
+                command+=(--var "NUXT_PLATFORM_EMAIL_FROM:$PLATFORM_EMAIL_FROM")
+              fi
+            fi
+            export ENTRY="$entry" WORKER_SECRET_FILE="$secret_file"
+            node --input-type=module <<'NODE'
+          import fs from 'node:fs'
+          const secret = process.env[process.env.ENTRY === 'cloud' ? 'CLOUD_PLATFORM_SECRET' : 'SITE_PLATFORM_SECRET']
+          fs.writeFileSync(process.env.WORKER_SECRET_FILE, JSON.stringify(secret ? { NUXT_PLATFORM_SECRET: secret } : {}), { mode: 0o600 })
+          NODE
+            command+=(--secrets-file "$secret_file")
             echo "### $target" >> "$GITHUB_STEP_SUMMARY"
             if pnpm exec wrangler "${command[@]}" --config "apps/$entry/.output/server/wrangler.json" \
               --message "Source $SOURCE_COMMIT; Actions $GITHUB_RUN_ID/$GITHUB_RUN_ATTEMPT" \
