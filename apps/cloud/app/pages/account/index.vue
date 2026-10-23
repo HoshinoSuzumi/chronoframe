@@ -56,9 +56,8 @@ const { data: security } = await useFetch('/api/auth/security')
           <CloudThemeToggle /></div
       ></CloudCard>
       <div class="cf-notice">
-        <strong>Your email is verified.</strong>Workspace and site setup are
-        coming in the next stage. We’ll keep the essentials here as your space
-        grows.
+        <strong>Your email is verified.</strong>Your workspace is ready. Create
+        and manage your gallery drafts from Your sites.
       </div>
       <CloudCard class="cf-settings-card"
         ><div class="cf-setting-row">

@@ -928,7 +928,7 @@
     display: none;
   }
   .cf-portal-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
   .cf-sidebar {
     border-right: 0;
@@ -943,7 +943,10 @@
     flex-direction: row;
   }
   .cf-sidebar nav a {
-    min-width: 100px;
+    min-width: 0;
+    flex: 1;
+    justify-content: center;
+    padding-inline: 8px;
   }
   .cf-portal-main {
     padding: 30px 20px 45px;
@@ -1199,4 +1202,49 @@
     padding: 0;
     flex-shrink: 0;
   }
+}
+
+.cf-site-create {
+  margin-block: 1.5rem;
+}
+.cf-site-create .cf-form {
+  padding: 1.5rem;
+  max-width: 40rem;
+}
+.cf-site-address {
+  padding: 1rem;
+  overflow-wrap: anywhere;
+  font-size: 0.875rem;
+}
+.cf-site-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.cf-site-create .cf-form {
+  display: grid;
+  gap: 20px;
+  min-width: 0;
+}
+.cf-site-create .cf-field {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+.cf-site-create label {
+  font-size: 13px;
+  font-weight: 550;
+}
+.cf-site-settings {
+  padding: 24px;
+}
+.cf-site-settings .cf-form {
+  padding: 24px 0 0;
+}
+.cf-site-settings .cf-site-address {
+  padding: 16px 0;
+}
+.cf-site-create .cf-page-description {
+  font-size: 13px;
 }

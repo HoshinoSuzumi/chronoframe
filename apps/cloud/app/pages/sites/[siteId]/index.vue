@@ -5,7 +5,7 @@ const entrance = useCloudMotion()
 
 import type { EntrySiteContext } from '@chronoframe/contracts/entry'
 definePageMeta({ key: (route) => route.fullPath })
-useSeoMeta({ title: 'Manage site — ChronoFrame', robots: 'noindex' })
+useSeoMeta({ title: 'Manage site — ChronoFrame Cloud', robots: 'noindex' })
 const context = useEntryContext()
 const fetcher = useRequestFetch()
 let stream: EventSource | undefined
@@ -89,6 +89,7 @@ onBeforeUnmount(() => stream?.close())
           </div>
         </dl></CloudCard
       >
+      <CloudSiteSettings :site-id="context.siteId" />
       <CloudCard
         v-if="!context.capabilities.mediaManagement"
         class="cf-empty"
@@ -100,7 +101,7 @@ onBeforeUnmount(() => stream?.close())
         </div>
         <h2>A space for what comes next.</h2>
         <p>
-          Photo management and publishing setup are coming in the next stage.
+          Photo storage, uploads and publishing are coming in the next stage.
           For now, you can review your site and membership details here.
         </p>
         <CloudButton
