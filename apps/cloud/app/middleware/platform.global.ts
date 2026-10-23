@@ -27,11 +27,11 @@ export default defineNuxtRouteMiddleware(async (to) => {
     })
     useState<number | null>('platform-user-id', () => null).value =
       session.user?.id ?? null
-    if (!session.authenticated)
+    if (!session.authenticated || !session.user)
       return navigateTo('/signin', { redirectCode: 302 })
     if (path === '/sites') {
       const result = await fetcher<{ sites: EntrySiteSummary[] }>('/api/sites')
-      catalog.value = { userId: session.user!.id, sites: result.sites }
+      catalog.value = { userId: session.user.id, sites: result.sites }
     }
     if (path !== '/sites') {
       const match = /^\/sites\/([1-9][0-9]*)$/.exec(path)
