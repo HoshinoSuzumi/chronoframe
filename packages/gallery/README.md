@@ -14,5 +14,6 @@ Entry middleware installs a request-local `EntrySiteContext` before rendering.
 Shared API helpers derive portal/public paths from that context and frame async
 cache keys with its Site/audience/principal scope. Site/account changes clear
 settings and viewer state; late settings responses cannot repopulate the old scope.
+API instances reject calls after their creating Site/account scope changes.
 Self-hosted uses its existing unprefixed APIs when no platform context is installed.
 Public capability flags describe available UI features, not authorization.

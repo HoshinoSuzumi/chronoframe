@@ -1,10 +1,12 @@
 import { useEntryContext, entryRequestPath } from './useEntryContext'
-/** Snapshot the context for this request; a route switch cannot retarget an in-flight request. */
+/** Bind to the creating scope; delayed handlers must never target a different Site/account. */
 export function useEntryApi(baseURL: string) {
   const context = useEntryContext()
   const fetcher = useRequestFetch() as typeof $fetch
-  return ((request: string, options?: Record<string, unknown>) => {
-    const snapshot = context.value
+  const snapshot = context.value
+  return (async (request: string, options?: Record<string, unknown>) => {
+    if (context.value?.scope !== snapshot?.scope)
+      throw new Error('Site context changed; discard the previous request')
     return fetcher(entryRequestPath(request, snapshot), { ...options, baseURL })
   }) as typeof $fetch
 }

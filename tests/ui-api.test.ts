@@ -92,6 +92,10 @@ for (const name of ['console', 'gallery'])
     context.value = { ...context.value, scope: 'site:2:portal:user2' }
     await api[`use${title}Fetch`]('/api/albums', { key: 'albums' })
     assert.ok(String(calls.at(-1)!.options.key).includes('user2'))
-    await fetcher('/api/photos', { baseURL: 'https://untrusted.example' })
+    await assert.rejects(fetcher('/api/photos'), /Site context changed/)
+    const currentFetcher = api[`use${title}Api`]()
+    await currentFetcher('/api/photos', {
+      baseURL: 'https://untrusted.example',
+    })
     assert.equal(calls.at(-1)!.options.baseURL, '')
   })
