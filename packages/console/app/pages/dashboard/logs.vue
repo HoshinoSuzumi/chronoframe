@@ -5,6 +5,8 @@ const consoleApiBase = useRuntimeConfig().public.console.apiBase.replace(
 )
 
 const consoleApi = useConsoleApi()
+const entryContext = useEntryContext()
+const capabilities = useEntryCapabilities()
 
 definePageMeta({
   layout: 'dashboard',
@@ -412,11 +414,11 @@ const appendLines = (lines: string[]) => {
 }
 
 const openLiveStream = () => {
-  if (disposed) return
+  if (disposed || !capabilities.subscriptions) return
   connectionState.value = 'connecting'
   eventSource?.close()
   const source = new EventSource(
-    `${consoleApiBase}/api/system/logs?stream=1&offset=${liveOffset}&identity=${encodeURIComponent(fileIdentity)}`,
+    `${consoleApiBase}${entryRequestPath(`/api/system/logs?stream=1&offset=${liveOffset}&identity=${encodeURIComponent(fileIdentity)}`, entryContext.value)}`,
     { withCredentials: true },
   )
   eventSource = source
@@ -566,6 +568,18 @@ onMounted(() => {
 
   connectLogStream()
 })
+
+watch(
+  () => entryContext.value?.scope,
+  () => {
+    disposed = true
+    requestController?.abort()
+    eventSource?.close()
+    if (reconnectTimer) clearTimeout(reconnectTimer)
+    logs.value = []
+  },
+  { flush: 'sync' },
+)
 
 onUnmounted(() => {
   disposed = true

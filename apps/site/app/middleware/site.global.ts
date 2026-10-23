@@ -1,12 +1,28 @@
-/** A default Site is never inferred from an untrusted request Host. */
-export default defineNuxtRouteMiddleware((to) => {
-  const path = to.path.toLowerCase()
-  if (path === '/dashboard' || path.startsWith('/dashboard/')) {
+export default defineNuxtRouteMiddleware(async (to) => {
+  const context = useEntryContext()
+  if (
+    to.path.toLowerCase() === '/dashboard' ||
+    to.path.toLowerCase().startsWith('/dashboard/')
+  ) {
+    context.value = null
     return abortNavigation(
       createError({ statusCode: 404, statusMessage: 'Page not found' }),
     )
   }
-  return abortNavigation(
-    createError({ statusCode: 503, statusMessage: 'Service unavailable' }),
-  )
+  try {
+    context.value = await useRequestFetch()('/api/public/context')
+  } catch (error) {
+    context.value = null
+    return abortNavigation(error as Error)
+  }
+  // Photo repositories are delivered in P4; never fall back to Self-hosted data.
+  if (to.path !== '/') {
+    context.value = null
+    return abortNavigation(
+      createError({
+        statusCode: 503,
+        statusMessage: 'Gallery content is not available yet',
+      }),
+    )
+  }
 })

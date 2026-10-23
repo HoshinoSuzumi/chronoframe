@@ -709,6 +709,9 @@ importers:
 
   apps/cloud:
     dependencies:
+      '@chronoframe/contracts':
+        specifier: workspace:*
+        version: link:../../packages/contracts
       h3:
         specifier: 1.15.11
         version: 1.15.11

@@ -93,7 +93,7 @@ const defaultNavItems = computed<NavigationMenuItem[][]>(() => [
     {
       label: $t('dashboard.nav.documentation'),
       icon: 'tabler:book',
-      to: 'https://chronoframe.bh8.ga/',
+      to: 'https://docs.chronoframe.art/',
       target: '_blank',
     },
     {

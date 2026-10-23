@@ -82,10 +82,9 @@ try {
   )
   const html = await home.text()
   if (!portalOrigin)
-    assert.ok(
-      html.includes(
-        entry === 'cloud' ? 'A home for the moments' : 'Service unavailable',
-      ),
+    assert.match(
+      html,
+      entry === 'cloud' ? /A home for the moments/ : /service unavailable/i,
     )
   if (entry === 'cloud') {
     assert.equal((await fetch(base + '/signin')).status, 200)
@@ -93,15 +92,26 @@ try {
       redirect: 'manual',
     })
     assert.equal(dashboard.status, 302)
-    assert.ok(dashboard.headers.get('location').endsWith('/signin'))
+    assert.ok(
+      ['/sites', '/signin'].includes(
+        new URL(dashboard.headers.get('location'), base).pathname,
+      ),
+    )
     assert.equal(
       (await fetch(base + '/DASHBOARD', { redirect: 'manual' })).status,
       302,
     )
-    assert.equal((await fetch(base + '/sites')).status, 503)
+    assert.equal(
+      (await fetch(base + '/sites', { redirect: 'manual' })).status,
+      302,
+    )
     assert.equal((await fetch(base + '/albums')).status, 404)
     if (portalOrigin) {
-      assert.ok(home.headers.get('location').endsWith('/signin'))
+      assert.ok(
+        ['/sites', '/signin'].includes(
+          new URL(home.headers.get('location'), base).pathname,
+        ),
+      )
     }
     if (originHost === 'chronoframe.art') {
       const links = [...html.matchAll(/\bhref="([^"]*)"/g)]

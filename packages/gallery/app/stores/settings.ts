@@ -60,19 +60,23 @@ export const useSettingsStore = defineStore('settings', {
       this.isLoading = true
       this.error = null
 
+      const context = useEntryContext()
+      const scope = context.value?.scope
       try {
         const response = await useGalleryApi()<PublicSettingsResponse>(
           '/api/system/settings/all',
         )
 
+        if (context.value?.scope !== scope) return
         this.data = response.data
         this.isInitialized = true
       } catch (error) {
+        if (context.value?.scope !== scope) return
         this.error = error as Error
         console.error('[Settings] Failed to initialize settings:', error)
         throw error
       } finally {
-        this.isLoading = false
+        if (context.value?.scope === scope) this.isLoading = false
       }
     },
 
@@ -114,19 +118,23 @@ export const useSettingsStore = defineStore('settings', {
       this.isLoading = true
       this.error = null
 
+      const context = useEntryContext()
+      const scope = context.value?.scope
       try {
         const response = await useGalleryApi()<PublicSettingsResponse>(
           '/api/system/settings/all',
         )
 
+        if (context.value?.scope !== scope) return
         this.data = response.data
         this.isInitialized = true
       } catch (error) {
+        if (context.value?.scope !== scope) return
         this.error = error as Error
         console.error('[Settings] Failed to refresh settings:', error)
         throw error
       } finally {
-        this.isLoading = false
+        if (context.value?.scope === scope) this.isLoading = false
       }
     },
   },

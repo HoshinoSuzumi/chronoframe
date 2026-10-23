@@ -1,6 +1,7 @@
 import type { LoadingIndicatorRef } from '#gallery/components/photo/LoadingIndicator.vue'
 import { ImageLoaderManager } from '#gallery/libs/image-loader-manager'
 
+/** Manage the current image load with cleanup and a snapshot of the entry scope. */
 export const useImageLoader = (
   src: string,
   isCurrentImage: boolean,
@@ -24,7 +25,7 @@ export const useImageLoader = (
   const t = $i18n.t
   if (highResLoaded || !isCurrentImage || error) return null
 
-  const loaderManager = new ImageLoaderManager()
+  const loaderManager = new ImageLoaderManager(useEntryContext().value?.scope)
 
   const cleanup = () => {
     loaderManager.cleanup()

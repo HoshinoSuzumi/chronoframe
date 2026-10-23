@@ -352,3 +352,27 @@ test('email and client hourly limits are enforced across distinct challenges', a
     sqlite.close()
   }
 })
+
+test('D1 Site catalog lists only current memberships, including unpublished owned sites', async () => {
+  const { createD1SiteCatalog } =
+    await import('../packages/platform/src/index.ts')
+  const { sqlite, db } = await database()
+  try {
+    sqlite.exec(`INSERT INTO platform_users VALUES(1,'one@example.com',1),(2,'two@example.com',1);
+      INSERT INTO platform_workspaces VALUES(1,'one'),(2,'two');
+      INSERT INTO platform_sites VALUES(1,1,'one-public',1),(2,2,'two-private',0),(3,1,'one-draft',0);
+      INSERT INTO platform_memberships VALUES(1,1,'admin'),(2,2,'member');`)
+    assert.deepEqual(
+      (await createD1SiteCatalog(db).list(1)).map((s) => s.siteId),
+      [1, 3],
+    )
+    assert.deepEqual(
+      (await createD1SiteCatalog(db).list(2)).map((s) => s.siteId),
+      [2],
+    )
+    sqlite.exec('DELETE FROM platform_memberships WHERE user_id = 1')
+    assert.deepEqual(await createD1SiteCatalog(db).list(1), [])
+  } finally {
+    sqlite.close()
+  }
+})

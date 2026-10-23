@@ -30,7 +30,7 @@
 
 ChronoFrame 是一个可以自行部署的照片画廊。上传照片后，应用会提取 EXIF、生成预览并整理拍摄地点；访客可以按时间、相册或地图浏览，也能查看大图和播放实况照片。
 
-[在线演示](https://lens.bh8.ga) · [使用文档](https://chronoframe.bh8.ga/zh/) · [更新日志](https://chronoframe.bh8.ga/zh/changelog)
+[在线演示](https://lens.bh8.ga) · [使用文档](https://docs.chronoframe.art/zh/) · [更新日志](https://docs.chronoframe.art/zh/changelog.html)
 
 ## ✨ 功能
 
@@ -77,7 +77,7 @@ docker run -d --name chronoframe --restart unless-stopped \
 
 请保留 `./data` 挂载，其中包含数据库、设置、会话密钥，以及采用上述路径时的本地照片。
 
-部署到公网时使用 HTTPS。反向代理、数据备份和旧版迁移见[快速开始](https://chronoframe.bh8.ga/zh/guide/getting-started)和[升级指南](https://chronoframe.bh8.ga/zh/guide/updates)。
+部署到公网时使用 HTTPS。反向代理、数据备份和旧版迁移见[快速开始](https://docs.chronoframe.art/zh/guide/getting-started.html)和[升级指南](https://docs.chronoframe.art/zh/guide/updates.html)。
 
 ## 📖 使用
 
@@ -85,7 +85,7 @@ docker run -d --name chronoframe --restart unless-stopped \
 
 Apple Live Photo 的图片和 MOV 文件需要相同文件名，例如 `IMG_1234.heic` 和 `IMG_1234.mov`，上传顺序不限。照片支持 JPEG、PNG、WebP、GIF、BMP、TIFF、HEIC / HEIF 等格式。
 
-密码相册限制的是通过 ChronoFrame 访问的内容。如果 S3、OpenList 或 CDN 提供公开的图片直链，需要同时管理外部服务的权限。详见[日常使用](https://chronoframe.bh8.ga/zh/guide/usage)。
+密码相册限制的是通过 ChronoFrame 访问的内容。如果 S3、OpenList 或 CDN 提供公开的图片直链，需要同时管理外部服务的权限。详见[日常使用](https://docs.chronoframe.art/zh/guide/usage.html)。
 
 ## 📸 截图
 
@@ -114,7 +114,7 @@ pnpm build         # 构建应用
 pnpm docs:build    # 构建文档
 ```
 
-修改数据库 schema 后，使用 `pnpm db:generate` 生成迁移并检查 SQL。仅启动项目时无需生成迁移。更多说明见[贡献指南](https://chronoframe.bh8.ga/zh/development/contributing.html)。
+修改数据库 schema 后，使用 `pnpm db:generate` 生成迁移并检查 SQL。仅启动项目时无需生成迁移。更多说明见[贡献指南](https://docs.chronoframe.art/zh/development/contributing.html)。
 
 ## 📄 许可证
 

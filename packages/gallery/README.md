@@ -9,3 +9,11 @@ The host supplies the session adapter and `runtimeConfig.public.gallery.apiBase`
 The entry owns its photo query and chooses public or authenticated data; the
 viewer accepts that collection. This layer never imports console or server
 implementations. Shared source modules are available through `./shared/*`.
+
+Entry middleware installs a request-local `EntrySiteContext` before rendering.
+Shared API helpers derive portal/public paths from that context and frame async
+cache keys with its Site/audience/principal scope. Site/account changes clear
+settings and viewer state; late settings responses cannot repopulate the old scope.
+API instances reject calls after their creating Site/account scope changes.
+Self-hosted uses its existing unprefixed APIs when no platform context is installed.
+Public capability flags describe available UI features, not authorization.

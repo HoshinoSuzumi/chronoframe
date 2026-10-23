@@ -33,3 +33,32 @@ export async function createEmailCodeCrypto(
     },
   }
 }
+
+// Conservative cost for Workers deployments that enforce the Web Crypto PBKDF2 cap.
+export const VISITOR_PBKDF2_ITERATIONS = 100_000
+/** Derive a portable PBKDF2-SHA256 verifier; callers must use a unique salt per policy. */
+export async function visitorPasswordHash(
+  password: string,
+  salt: string,
+): Promise<string> {
+  const key = await crypto.subtle.importKey(
+    'raw',
+    new TextEncoder().encode(password),
+    'PBKDF2',
+    false,
+    ['deriveBits'],
+  )
+  const bits = await crypto.subtle.deriveBits(
+    {
+      name: 'PBKDF2',
+      hash: 'SHA-256',
+      salt: new TextEncoder().encode(salt),
+      iterations: VISITOR_PBKDF2_ITERATIONS,
+    },
+    key,
+    256,
+  )
+  return Array.from(new Uint8Array(bits), (b) =>
+    b.toString(16).padStart(2, '0'),
+  ).join('')
+}

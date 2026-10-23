@@ -10,7 +10,11 @@ export default defineEventHandler((event) => {
       statusMessage: 'Invalid request path',
     })
   }
-  if (path === '/api/public/context') return
+  if (
+    path === '/api/public/context' ||
+    /^\/api\/public\/albums\/[1-9][0-9]*\/(?:access|unlock)$/.test(path)
+  )
+    return
   if (path === '/api' || (path.startsWith('/api/') && path !== '/api/health')) {
     throw createError({ statusCode: 503, statusMessage: 'Service unavailable' })
   }

@@ -28,6 +28,8 @@ for (const entry of ['cloud', 'site']) {
     'apps/platform.runtime.ts',
     'apps/platform-crypto.ts',
     'apps/platform-email.ts',
+    'apps/platform-context.ts',
+    'apps/platform-visitor.ts',
   ]) {
     const code = await readFile(file, 'utf8')
     for (const match of code.matchAll(

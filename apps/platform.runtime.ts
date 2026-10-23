@@ -11,11 +11,11 @@ import type { H3Event, EventHandler, EventHandlerRequest } from 'h3'
 import {
   createD1Directory,
   createD1Sessions,
-} from '../packages/platform/src/index'
-import type { PlatformD1 } from '../packages/platform/src/index'
-import { createPlatformAccess } from '../packages/core/src/platform'
-import type { PlatformSession } from '../packages/core/src/platform'
-import { createEmailCodeCrypto } from './platform-crypto'
+} from '../packages/platform/src/index.ts'
+import type { PlatformD1 } from '../packages/platform/src/index.ts'
+import { createPlatformAccess } from '../packages/core/src/platform.ts'
+import type { PlatformSession } from '../packages/core/src/platform.ts'
+import { createEmailCodeCrypto } from './platform-crypto.ts'
 
 export const PLATFORM_COOKIE = '__Host-chronoframe-session'
 export function platformDatabase(event: H3Event): PlatformD1 {

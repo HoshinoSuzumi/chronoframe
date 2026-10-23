@@ -1,3 +1,4 @@
+import { CLOUD_CAPABILITIES } from '../../packages/contracts/src/entry'
 import { sharedUi } from '../nuxt.shared'
 import { fileURLToPath } from 'node:url'
 const galleryPages = fileURLToPath(
@@ -16,6 +17,10 @@ export default defineNuxtConfig({
   extends: ['../../packages/console', '../../packages/gallery'],
   runtimeConfig: {
     ...sharedUi.runtimeConfig,
+    public: {
+      ...sharedUi.runtimeConfig.public,
+      capabilities: CLOUD_CAPABILITIES,
+    },
     session: { name: 'chronoframe-cloud' },
     platform: {
       portalOrigin: 'https://app.chronoframe.art',
