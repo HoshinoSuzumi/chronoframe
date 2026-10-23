@@ -134,6 +134,11 @@ for (const backend of ['SQLite', 'D1'] as const) {
         now: 10,
       })
       await a.reserveUpload(reserve('same'))
+      await a.reserveUpload(reserve('same'))
+      await assert.rejects(
+        a.reserveUpload({ ...reserve('same'), expectedBytes: 99 }),
+        { statusCode: 409 },
+      )
       await b.reserveUpload(reserve('same'))
       assert.equal(await a.upload('same', 2), null)
       assert.equal(
@@ -155,6 +160,8 @@ for (const backend of ['SQLite', 'D1'] as const) {
       assert.equal((await a.photo('same'))?.title, 'Photo')
       assert.equal((await b.photo('same'))?.title, 'Other tenant')
       await a.createAlbum('album', 'My album')
+      await a.createAlbum('album', 'My album')
+      await assert.rejects(a.createAlbum('album', 'Other'), { statusCode: 409 })
       await a.addToAlbum('album', 'same')
       await a.addToAlbum('album', 'same')
       assert.equal((await a.albumPhotos('album')).length, 1)

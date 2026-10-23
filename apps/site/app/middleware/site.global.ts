@@ -15,14 +15,10 @@ export default defineNuxtRouteMiddleware(async (to) => {
     context.value = null
     return abortNavigation(error as Error)
   }
-  // Photo repositories are delivered in P4; never fall back to Self-hosted data.
-  if (to.path !== '/') {
-    context.value = null
-    return abortNavigation(
-      createError({
-        statusCode: 503,
-        statusMessage: 'Gallery content is not available yet',
-      }),
-    )
-  }
+  if (
+    to.path !== '/' &&
+    to.path !== '/albums' &&
+    !/^\/albums\/[1-9][0-9]*$/.test(to.path)
+  )
+    return abortNavigation(createError({ statusCode: 404 }))
 })

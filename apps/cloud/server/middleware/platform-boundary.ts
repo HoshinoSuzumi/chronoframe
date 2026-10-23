@@ -21,6 +21,13 @@ export default defineEventHandler((event) => {
       '/api/workspaces/default',
     ].includes(path) ||
     /^\/api\/sites\/[1-9][0-9]*\/(?:context|events|settings)$/.test(path)
+  if (
+    /^\/api\/sites\/[1-9][0-9]*\/media(?:\/|$)/.test(path) ||
+    /^\/api\/internal\/worker\/(?:claim|heartbeat|grant|complete|fail|cleanup)$/.test(
+      path,
+    )
+  )
+    return
   if (platformRoute || accountRouteAllowed(path, event.method)) return
   if (path === '/api' || (path.startsWith('/api/') && path !== '/api/health')) {
     throw createError({ statusCode: 503, statusMessage: 'Service unavailable' })

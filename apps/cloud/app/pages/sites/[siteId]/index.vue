@@ -105,6 +105,10 @@ onBeforeUnmount(() => stream?.close())
             >Read the documentation<ArrowUpRight :size="13"
           /></a>
         </aside>
-      </div> </motion.div
+      </div>
+      <CloudMediaWorkbench
+        :site-id="context.siteId"
+        :role="context.role"
+      /> </motion.div
   ></CloudPortalShell>
 </template>

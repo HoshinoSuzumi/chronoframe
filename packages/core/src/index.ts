@@ -15,6 +15,7 @@ export interface PhotoMembership {
 
 /** Async boundary allows both embedded SQLite and future asynchronous adapters. */
 export interface ResourceReadRepository {
+  protectedPhoto?(photo: Photo): Photo
   listPhotos(
     excludedIds?: string[],
     page?: { limit: number; offset: number },
@@ -23,6 +24,7 @@ export interface ResourceReadRepository {
   getAlbum(id: number): Promise<AlbumReadRecord | null>
   listAlbumPhotos(id: number): Promise<Photo[]>
   listAlbumPhotoIds(id: number): Promise<string[]>
+  membershipsForPhoto?(id: string): Promise<PhotoMembership[]>
   listMemberships(): Promise<PhotoMembership[]>
 }
 
@@ -117,6 +119,8 @@ export function createResourceReader(repository: ResourceReadRepository) {
         ...resource,
         photos: passwordHash
           ? photos.map((photo) => {
+              if (repository.protectedPhoto)
+                return repository.protectedPhoto(photo)
               const {
                 storageKey,
                 thumbnailKey: _thumbnailKey,
@@ -151,3 +155,4 @@ export * from './platform.ts'
 export * from './email-auth.ts'
 
 export type * from './cloud-media.ts'
+export type * from './cloud-execution.ts'

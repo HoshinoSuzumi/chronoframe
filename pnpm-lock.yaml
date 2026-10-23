@@ -264,6 +264,37 @@ importers:
         specifier: 2.0.0-alpha.20
         version: 2.0.0-alpha.20(@types/node@24.9.0)(axios@1.20.0)(change-case@5.4.4)(esbuild@0.28.0)(fuse.js@7.5.0)(jiti@2.7.0)(postcss@8.5.29)(sass-embedded@1.105.1)(sass@1.105.1)(terser@5.44.0)(tsx@4.21.0)(typescript@5.9.3)(yaml@2.9.0)
 
+  apps/worker:
+    dependencies:
+      '@chronoframe/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@chronoframe/contracts':
+        specifier: workspace:*
+        version: link:../../packages/contracts
+      '@chronoframe/processing':
+        specifier: workspace:*
+        version: link:../../packages/processing
+      '@chronoframe/storage':
+        specifier: workspace:*
+        version: link:../../packages/storage
+      '@chronoframe/media':
+        specifier: workspace:*
+        version: link:../../packages/media
+      'exiftool-vendored':
+        specifier: ^35.21.0
+        version: 35.21.0
+      'sharp':
+        specifier: 0.35.5
+        version: 0.35.5(@types/node@22.20.5)
+    devDependencies:
+      '@types/node':
+        specifier: ^22.20.5
+        version: 22.20.5
+      'typescript':
+        specifier: ^5.9.3
+        version: 5.9.3
+
   packages/console:
     dependencies:
       "@chronoframe/gallery":
@@ -487,6 +518,9 @@ importers:
         version: 5.9.3
   packages/storage:
     dependencies:
+      '@smithy/fetch-http-handler':
+        specifier: 5.8.0
+        version: 5.8.0
       "@aws-sdk/client-s3":
         specifier: ^3.1149.0
         version: 3.1149.0
@@ -497,6 +531,9 @@ importers:
         specifier: workspace:*
         version: link:../contracts
     devDependencies:
+      esbuild:
+        specifier: 0.28.0
+        version: 0.28.0
       "@types/node":
         specifier: ^22.20.5
         version: 22.20.5
@@ -709,6 +746,12 @@ importers:
 
   apps/cloud:
     dependencies:
+      '@chronoframe/database':
+        specifier: workspace:*
+        version: link:../../packages/database
+      '@chronoframe/storage':
+        specifier: workspace:*
+        version: link:../../packages/storage
       better-auth:
         specifier: 1.7.12
         version: 1.7.12(@opentelemetry/api@1.9.0)(drizzle-kit@0.31.11)(drizzle-orm@0.45.4(@cloudflare/workers-types@4.20260402.1)(@opentelemetry/api@1.9.0)(@types/better-sqlite3@9.6.0)(better-sqlite3@12.11.1)(kysely@0.29.7))(vue@3.5.43(typescript@5.9.3))
@@ -811,6 +854,15 @@ importers:
 
   apps/site:
     dependencies:
+      '@chronoframe/contracts':
+        specifier: workspace:*
+        version: link:../../packages/contracts
+      '@chronoframe/database':
+        specifier: workspace:*
+        version: link:../../packages/database
+      '@chronoframe/storage':
+        specifier: workspace:*
+        version: link:../../packages/storage
       h3:
         specifier: 1.15.11
         version: 1.15.11

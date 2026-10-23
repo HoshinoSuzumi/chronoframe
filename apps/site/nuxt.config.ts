@@ -18,6 +18,6 @@ export default defineNuxtConfig({
       capabilities: SITE_CAPABILITIES,
     },
     session: { name: 'chronoframe-site' },
-    platform: { secret: '' },
+    platform: { secret: '', storageSecret: '', s3EndpointHosts: '' },
   },
 })

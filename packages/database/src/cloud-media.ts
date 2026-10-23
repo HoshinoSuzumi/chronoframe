@@ -76,13 +76,28 @@ export function createCloudMediaRepository(
     async createAlbum(id: string, title: string) {
       await db.batch([
         statement(
-          'INSERT INTO cloud_albums(site_id,id,title) VALUES(?,?,?)',
+          'INSERT INTO cloud_albums(site_id,id,title) SELECT ?,?,? WHERE (SELECT COUNT(*) FROM cloud_albums WHERE site_id=?)<100 ON CONFLICT DO NOTHING',
           text(id),
           text(title),
+          siteId,
         ),
       ])
+      const existing = await first<{ title: string }>(
+        'SELECT title FROM cloud_albums WHERE site_id=? AND id=?',
+        id,
+      )
+      if (!existing) throw new CoreError(429, 'Album limit reached')
+      if (existing.title !== title)
+        throw new CoreError(409, 'Album identifier already used')
     },
     async addToAlbum(albumId: string, photoId: string) {
+      if (
+        !(await first<{ id: string }>(
+          'SELECT id FROM cloud_albums WHERE site_id=? AND id=?',
+          text(albumId),
+        ))
+      )
+        throw new CoreError(404, 'Album not found')
       await db.batch([
         statement(
           `INSERT INTO cloud_album_photos(site_id,album_id,photo_id)
@@ -130,10 +145,22 @@ export function createCloudMediaRepository(
       await db.batch([
         statement(
           `INSERT INTO cloud_uploads(site_id,id,owner_id,photo_id,source_version,connection_id,object_key,provider_upload_id,expected_bytes,expires_at)
-         VALUES(?,?,?,?,?,?,?,?,?,?)`,
+         VALUES(?,?,?,?,?,?,?,?,?,?) ON CONFLICT DO NOTHING`,
           ...values,
         ),
       ])
+      const existing = await upload(input.id, input.ownerId)
+      if (
+        !existing ||
+        existing.photo_id !== input.photoId ||
+        existing.source_version !== input.sourceVersion ||
+        existing.connection_id !== input.connectionId ||
+        existing.object_key !== input.objectKey ||
+        existing.provider_upload_id !== input.providerUploadId ||
+        existing.expected_bytes !== input.expectedBytes ||
+        existing.expires_at !== input.expiresAt
+      )
+        throw new CoreError(409, 'Upload identifier or object already used')
     },
     /** Only call after provider-side object verification. Completion and durable
      * queued job are one batch; queue delivery is a separate later adapter.
@@ -169,6 +196,14 @@ export function createCloudMediaRepository(
           SELECT ?,?,id,photo_id,source_version,?,? FROM cloud_uploads WHERE ${condition}`,
           jobId,
           pipelineVersion,
+          now,
+          siteId,
+          id,
+          ownerId,
+          now,
+        ),
+        statement(
+          `INSERT INTO cloud_usage_events(site_id,upload_id,bytes,created_at) SELECT ?,id,expected_bytes+expected_video_bytes,? FROM cloud_uploads WHERE ${condition} ON CONFLICT DO NOTHING`,
           now,
           siteId,
           id,
