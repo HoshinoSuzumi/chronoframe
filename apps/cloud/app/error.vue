@@ -28,8 +28,10 @@ const notFound = computed(() => props.error.statusCode === 404)
     <div class="cf-header-actions">
       <CloudButton
         variant="secondary"
-        @click="clearError({ redirect: '/' })"
-        ><ArrowLeft :size="15" />Back to home</CloudButton
+        as-child
+        ><a href="https://chronoframe.art/"
+          ><ArrowLeft :size="15" />Back to home</a
+        ></CloudButton
       ><CloudButton
         v-if="!notFound"
         @click="reloadNuxtApp({ force: true })"

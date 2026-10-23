@@ -17,7 +17,7 @@ export default defineEventHandler(async (event) => {
   if (!configured) return { enabled: false }
   try {
     await platformDatabase(event)
-      .prepare('SELECT id FROM platform_users LIMIT 1')
+      .prepare('SELECT id FROM platform_auth_sessions LIMIT 1')
       .first()
     return { enabled: true }
   } catch {

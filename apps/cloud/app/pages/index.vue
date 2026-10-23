@@ -9,10 +9,7 @@ import {
   Check,
 } from 'lucide-vue-next'
 const entrance = useCloudMotion()
-const signInUrl =
-  useRequestURL().hostname === 'chronoframe.art'
-    ? 'https://app.chronoframe.art/signin'
-    : '/signin'
+const links = useCloudLinks()
 useSeoMeta({
   title: 'ChronoFrame — A home for your photography',
   description:
@@ -34,11 +31,23 @@ useSeoMeta({
             :size="12"
             aria-hidden="true"
             class="cf-inline-icon" /></a
-        ><CloudThemeToggle /><CloudButton
+        ><CloudThemeToggle />
+        <CloudButton
+          as-child
+          variant="secondary"
+          size="sm"
+          ><NuxtLink
+            :to="links.signin"
+            external
+            >Log in</NuxtLink
+          ></CloudButton
+        ><CloudButton
           as-child
           size="sm"
-          ><NuxtLink :to="signInUrl"
-            >Cloud access <ArrowUpRight :size="14" /></NuxtLink
+          ><NuxtLink
+            :to="links.signup"
+            external
+            >Get started <ArrowUpRight :size="14" /></NuxtLink
         ></CloudButton>
       </nav>
     </header>
@@ -58,8 +67,11 @@ useSeoMeta({
             <CloudButton
               as-child
               size="lg"
-              ><NuxtLink :to="signInUrl"
-                >Explore Cloud <ArrowRight :size="16" /></NuxtLink></CloudButton
+              ><NuxtLink
+                :to="links.signup"
+                external
+                >Create your account
+                <ArrowRight :size="16" /></NuxtLink></CloudButton
             ><CloudButton
               as-child
               variant="secondary"

@@ -1016,10 +1016,119 @@
   min-width: 0;
 }
 @media (max-width: 380px) {
-  .cf-marketing-nav > .cf-button:not(.cf-button-icon) {
-    display: none;
+  .cf-marketing-nav {
+    gap: 4px;
   }
   .cf-hero-title {
     font-size: clamp(44px, 15vw, 56px);
+  }
+}
+
+/* Account controls share the same surface, spacing and focus language. */
+.cf-brand-edition {
+  font-size: 0.78em;
+  font-weight: 500;
+  opacity: 0.8;
+}
+.cf-marketing-header {
+  height: auto;
+  min-height: 76px;
+  padding-block: 18px;
+  gap: 20px;
+}
+.cf-marketing-nav {
+  gap: 18px;
+}
+.cf-auth-tabs,
+.cf-security-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-block: 20px;
+}
+.cf-auth-form select {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--card);
+  color: inherit;
+  font: inherit;
+}
+.cf-security-card {
+  padding: clamp(20px, 4vw, 32px);
+  margin-block: 20px;
+}
+.cf-security-card h2 {
+  margin: 0 0 8px;
+  font-size: 19px;
+}
+.cf-security-card p {
+  color: var(--muted-foreground);
+  line-height: 1.7;
+}
+.cf-security-card form {
+  display: grid;
+  gap: 12px;
+  max-width: 440px;
+  margin-block: 20px;
+}
+.cf-security-card label {
+  display: block;
+  font-size: 14px;
+  margin-block: 12px 8px;
+}
+.cf-security-card > .cf-input {
+  max-width: 440px;
+}
+.cf-totp-setup {
+  margin-block: 24px;
+}
+.cf-totp-setup img {
+  border-radius: 12px;
+  background: white;
+}
+.cf-secret-value {
+  overflow-wrap: anywhere;
+  font-family: monospace;
+}
+.cf-recovery-codes {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  padding: 16px;
+  list-style: none;
+}
+.cf-passkey-list {
+  list-style: none;
+  padding: 0;
+}
+.cf-passkey-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding-block: 16px;
+  border-top: 1px solid var(--border);
+}
+@media (max-width: 600px) {
+  .cf-marketing-header {
+    flex-wrap: wrap;
+    gap: 14px;
+  }
+  .cf-marketing-nav {
+    justify-content: flex-end;
+    flex: 1;
+    gap: 6px;
+  }
+  .cf-marketing-nav .cf-button {
+    padding-inline: 10px;
+  }
+  .cf-portal-header {
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .cf-recovery-codes {
+    grid-template-columns: 1fr;
   }
 }

@@ -1,3 +1,4 @@
+import { accountRouteAllowed } from '../utils/account-routes'
 /** Enable explicit platform endpoints only; never fall back to Self-hosted APIs. */
 export default defineEventHandler((event) => {
   setResponseHeader(event, 'Cache-Control', 'no-store')
@@ -12,15 +13,14 @@ export default defineEventHandler((event) => {
   }
   const platformRoute =
     [
-      '/api/auth/email/request',
-      '/api/auth/email/verify',
       '/api/auth/status',
       '/api/auth/session',
       '/api/auth/logout',
+      '/api/auth/security',
       '/api/sites',
     ].includes(path) ||
     /^\/api\/sites\/[1-9][0-9]*\/(?:context|events)$/.test(path)
-  if (platformRoute) return
+  if (platformRoute || accountRouteAllowed(path, event.method)) return
   if (path === '/api' || (path.startsWith('/api/') && path !== '/api/health')) {
     throw createError({ statusCode: 503, statusMessage: 'Service unavailable' })
   }

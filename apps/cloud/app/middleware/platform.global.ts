@@ -21,7 +21,19 @@ export default defineNuxtRouteMiddleware(async (to) => {
     return navigateTo('/sites', { redirectCode: 302 })
   if (path === '/dashboard' || path.startsWith('/dashboard/'))
     return navigateTo('/sites', { redirectCode: 302 })
-  if (path === '/sites' || path.startsWith('/sites/')) {
+  if (['/signin', '/signup'].includes(path)) {
+    const session = await useRequestFetch()<{ authenticated: boolean }>(
+      '/api/auth/session',
+    ).catch(() => null)
+    if (session?.authenticated)
+      return navigateTo('/sites', { redirectCode: 302 })
+  }
+  if (
+    path === '/account' ||
+    path.startsWith('/account/') ||
+    path === '/sites' ||
+    path.startsWith('/sites/')
+  ) {
     const fetcher = useRequestFetch()
     const session = await fetcher<{
       authenticated: boolean
@@ -42,7 +54,7 @@ export default defineNuxtRouteMiddleware(async (to) => {
       const result = await fetcher<{ sites: EntrySiteSummary[] }>('/api/sites')
       catalog.value = { userId: session.user.id, sites: result.sites }
     }
-    if (path !== '/sites') {
+    if (path.startsWith('/sites/')) {
       const match = /^\/sites\/([1-9][0-9]*)$/.exec(path)
       if (!match)
         return abortNavigation(

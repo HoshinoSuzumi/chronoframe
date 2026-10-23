@@ -1,220 +1,265 @@
 <script setup lang="ts">
-import { motion } from 'motion-v'
-import { ArrowLeft, ArrowRight, Mail, ShieldCheck } from 'lucide-vue-next'
-const entrance = useCloudMotion()
-const codeInput = ref<{ $el: HTMLInputElement }>()
-const emailInput = ref<{ $el: HTMLInputElement }>()
-
-useSeoMeta({ title: 'Sign in — ChronoFrame', robots: 'noindex' })
+import { accountError } from '../utils/account-error'
 const { data: status } = await useFetch('/api/auth/status')
-const email = ref('')
-const code = ref('')
-const challenge = ref<string>()
-const busy = ref(false)
-const error = ref('')
-async function resetChallenge() {
-  challenge.value = undefined
-  code.value = ''
+useSeoMeta({ title: 'Sign in — ChronoFrame Cloud', robots: 'noindex' })
+const email = ref(''),
+  password = ref(''),
+  code = ref('')
+const mode = ref<'password' | 'email'>('password')
+const step = ref<'credentials' | 'code' | 'second'>('credentials')
+function setMode(value: 'email' | 'password') {
+  mode.value = value
   error.value = ''
-  await nextTick()
-  emailInput.value?.$el?.focus()
+}
+const factor = ref<'email' | 'totp' | 'recovery'>('email')
+const busy = ref(false),
+  error = ref('')
+const codeInput = ref<{ $el: HTMLInputElement }>()
+async function sendSecond() {
+  await $fetch('/api/auth/two-factor/send-otp', { method: 'POST', body: {} })
 }
 async function submit() {
-  if (busy.value || !status.value?.enabled) return
+  if (busy.value) return
   busy.value = true
   error.value = ''
-  let focusCode = false
   try {
-    if (!challenge.value) {
-      const result = await $fetch('/api/auth/email/request', {
+    if (step.value === 'second') {
+      const endpoint =
+        factor.value === 'email'
+          ? 'verify-otp'
+          : factor.value === 'totp'
+            ? 'verify-totp'
+            : 'verify-backup-code'
+      await $fetch(`/api/auth/two-factor/${endpoint}`, {
         method: 'POST',
-        body: { email: email.value },
+        body:
+          factor.value === 'recovery'
+            ? { code: code.value }
+            : { code: code.value, trustDevice: false },
       })
-      challenge.value = result.challengeId
-      focusCode = true
+    } else if (mode.value === 'email' && step.value === 'credentials') {
+      await $fetch('/api/auth/email-otp/send-verification-otp', {
+        method: 'POST',
+        body: { email: email.value, type: 'sign-in' },
+      })
+      step.value = 'code'
+      return
     } else {
-      await $fetch('/api/auth/email/verify', {
-        method: 'POST',
-        body: {
-          email: email.value,
-          code: code.value,
-          challengeId: challenge.value,
+      const result = await $fetch<{ twoFactorRedirect?: boolean }>(
+        mode.value === 'password'
+          ? '/api/auth/sign-in/email'
+          : '/api/auth/sign-in/email-otp',
+        {
+          method: 'POST',
+          body:
+            mode.value === 'password'
+              ? { email: email.value, password: password.value }
+              : { email: email.value, otp: code.value },
         },
-      })
-      await navigateTo('/account')
+      )
+      if (result.twoFactorRedirect) {
+        step.value = 'second'
+        code.value = ''
+        await sendSecond()
+        return
+      }
     }
+    clearNuxtData()
+    await navigateTo('/sites', { external: true })
   } catch (cause) {
-    const status = (cause as { statusCode?: number }).statusCode
+    error.value = accountError(cause)
+  } finally {
+    busy.value = false
+    if (step.value !== 'credentials') {
+      await nextTick()
+      codeInput.value?.$el?.focus()
+    }
+  }
+}
+async function passkeySignIn() {
+  busy.value = true
+  error.value = ''
+  try {
+    const result = await useCloudAccount().signIn.passkey()
+    if (result.error) throw result.error
+    clearNuxtData()
+    await navigateTo('/sites', { external: true })
+  } catch {
     error.value =
-      status === 429
-        ? 'Please wait before requesting another code.'
-        : status === 401
-          ? 'The code is invalid or expired. Try again or request a new code.'
-          : 'Sign-in could not be completed. Please try again later.'
+      'Passkey sign-in was not completed. Try again or use your email.'
   } finally {
     busy.value = false
   }
-  if (focusCode) {
-    await nextTick()
-    codeInput.value?.$el?.focus()
+}
+async function resend() {
+  busy.value = true
+  error.value = ''
+  try {
+    if (step.value === 'second') await sendSecond()
+    else
+      await $fetch('/api/auth/email-otp/send-verification-otp', {
+        method: 'POST',
+        body: { email: email.value, type: 'sign-in' },
+      })
+  } catch (cause) {
+    error.value = accountError(cause)
+  } finally {
+    busy.value = false
   }
 }
 </script>
 <template>
-  <div class="cf-auth">
-    <aside
-      class="cf-auth-visual"
-      aria-label="About ChronoFrame"
-    >
-      <CloudBrand light />
-      <div>
-        <div class="cf-auth-quote">
-          <h2>A little space.<br />A different perspective.</h2>
-          <p>Your photographs deserve a home that feels like you.</p>
-        </div>
-        <p class="cf-auth-caption">CHRONOFRAME · MADE FOR THE WAY YOU SEE</p>
-      </div>
-    </aside>
-    <main
-      id="main-content"
-      class="cf-auth-main"
-      tabindex="-1"
-    >
-      <div class="cf-auth-top">
-        <NuxtLink
-          to="/"
-          class="cf-back-link"
-          ><ArrowLeft :size="15" />Back to home</NuxtLink
-        ><CloudThemeToggle />
-      </div>
-      <motion.div
-        v-bind="entrance"
-        class="cf-auth-form"
-        ><CloudBadge>Cloud preview</CloudBadge>
-        <h1>
-          {{ challenge ? 'Check your inbox.' : 'Welcome to your space.' }}
-        </h1>
-        <template v-if="status?.enabled">
-          <p
-            v-if="challenge"
-            role="status"
-          >
-            We sent a six-digit code to <strong>{{ email }}</strong
-            >. It expires in 10 minutes.
-          </p>
-          <p v-else>Sign in with your email. No password to remember.</p>
-          <form
-            @submit.prevent="submit"
-            :aria-busy="busy"
-          >
-            <label for="signin-email">Email address</label
-            ><CloudInput
-              id="signin-email"
-              ref="emailInput"
-              v-model="email"
-              type="email"
-              autocomplete="email"
-              placeholder="you@example.com"
-              :disabled="!!challenge || busy"
-              required
-            />
-            <template v-if="challenge"
-              ><label for="signin-code">Verification code</label
-              ><CloudInput
-                id="signin-code"
-                ref="codeInput"
-                v-model="code"
-                class="cf-code-input"
-                inputmode="numeric"
-                autocomplete="one-time-code"
-                pattern="[0-9]{6}"
-                maxlength="6"
-                :disabled="busy"
-                :aria-invalid="!!error"
-                :aria-describedby="error ? 'signin-error' : 'code-hint'"
-                required
-              />
-              <p
-                id="code-hint"
-                class="cf-auth-hint"
-              >
-                Enter the six digits from your email.
-              </p></template
-            >
-            <p
-              v-if="error"
-              id="signin-error"
-              class="cf-error-message"
-              role="alert"
-            >
-              {{ error }}
-            </p>
-            <CloudButton
-              type="submit"
-              :loading="busy"
-              >{{
-                busy
-                  ? challenge
-                    ? 'Signing in…'
-                    : 'Sending code…'
-                  : challenge
-                    ? 'Sign in'
-                    : 'Continue with email'
-              }}<ArrowRight
-                v-if="!busy"
-                :size="16"
-            /></CloudButton>
-            <CloudButton
-              v-if="challenge"
-              variant="ghost"
-              :disabled="busy"
-              @click="resetChallenge"
-              >Use another email or request a new code</CloudButton
-            >
-            <p
-              v-else
-              class="cf-auth-hint"
-            >
-              <ShieldCheck
-                :size="13"
-                style="
-                  display: inline;
-                  vertical-align: middle;
-                  margin-right: 4px;
-                "
-              />We only use your email to help you sign in.
-            </p>
-          </form>
-        </template>
-        <template v-else
-          ><div
-            class="cf-notice"
-            role="status"
-          >
-            <Mail
-              :size="20"
-              class="cf-notice-icon"
-            /><strong
-              >Email sign-in is not available on this deployment yet.</strong
-            >Cloud access is still in preview. You can start your own gallery
-            with the self-hosted edition today.
-          </div>
-          <CloudButton
-            as-child
-            variant="secondary"
-            class="cf-action-spaced"
-            ><a href="https://docs.chronoframe.art/guide/getting-started.html"
-              >Explore Self-hosted<ArrowRight :size="16" /></a></CloudButton
-        ></template>
-      </motion.div>
-      <p class="cf-auth-bottom">
-        A home for your photographs.
-        <a
-          class="cf-text-link"
-          href="https://docs.chronoframe.art/"
-          >A little guidance, if you need it.</a
-        >
+  <CloudAuthLayout
+    ><CloudBadge>ChronoFrame Cloud</CloudBadge>
+    <h1>
+      {{
+        step === 'second'
+          ? 'One more step.'
+          : step === 'code'
+            ? 'Check your inbox.'
+            : 'Welcome back.'
+      }}
+    </h1>
+    <template v-if="status?.enabled"
+      ><p>
+        {{
+          step === 'second'
+            ? 'Complete your second verification to continue.'
+            : 'Your photographs. Your space.'
+        }}
       </p>
-    </main>
-  </div>
+      <div
+        v-if="step === 'credentials'"
+        class="cf-auth-tabs"
+        aria-label="Sign-in method"
+      >
+        <CloudButton
+          :variant="mode === 'password' ? 'secondary' : 'ghost'"
+          :disabled="busy"
+          @click="setMode('password')"
+          >Password</CloudButton
+        ><CloudButton
+          :variant="mode === 'email' ? 'secondary' : 'ghost'"
+          :disabled="busy"
+          @click="setMode('email')"
+          >Email code</CloudButton
+        >
+      </div>
+      <form
+        @submit.prevent="submit"
+        :aria-busy="busy"
+      >
+        <template v-if="step !== 'second'"
+          ><label for="email">Email address</label
+          ><CloudInput
+            id="email"
+            v-model="email"
+            type="email"
+            autocomplete="username"
+            :disabled="busy || step === 'code'"
+            required
+        /></template>
+        <template v-if="mode === 'password' && step === 'credentials'"
+          ><label for="password">Password</label
+          ><CloudInput
+            id="password"
+            v-model="password"
+            type="password"
+            autocomplete="current-password"
+            :disabled="busy"
+            required
+          /><NuxtLink
+            class="cf-text-link"
+            to="/forgot-password"
+            >Forgot your password?</NuxtLink
+          ></template
+        >
+        <template v-if="step === 'second'"
+          ><label for="factor">Verification method</label
+          ><select
+            id="factor"
+            v-model="factor"
+            :disabled="busy"
+            @change="code = ''"
+          >
+            <option value="email">Email code</option>
+            <option value="totp">Authenticator code</option>
+            <option value="recovery">Recovery code</option>
+          </select></template
+        >
+        <template v-if="step !== 'credentials'"
+          ><label for="code">{{
+            factor === 'recovery' && step === 'second'
+              ? 'Recovery code'
+              : 'Verification code'
+          }}</label
+          ><CloudInput
+            id="code"
+            ref="codeInput"
+            v-model="code"
+            autocomplete="one-time-code"
+            :inputmode="
+              factor === 'recovery' && step === 'second' ? 'text' : 'numeric'
+            "
+            :disabled="busy"
+            required
+          />
+          <p class="cf-auth-hint">
+            {{
+              step === 'code' || factor === 'email'
+                ? 'Enter the code from your email.'
+                : 'Use your authenticator or an unused recovery code.'
+            }}
+          </p></template
+        >
+        <p
+          v-if="error"
+          role="alert"
+          class="cf-error-message"
+        >
+          {{ error }}
+        </p>
+        <CloudButton
+          type="submit"
+          :loading="busy"
+          >{{
+            mode === 'email' && step === 'credentials'
+              ? 'Send sign-in code'
+              : 'Sign in'
+          }}</CloudButton
+        >
+        <CloudButton
+          v-if="
+            step !== 'credentials' && (step === 'code' || factor === 'email')
+          "
+          variant="ghost"
+          :disabled="busy"
+          @click="resend"
+          >Send a new code</CloudButton
+        >
+      </form>
+      <CloudButton
+        v-if="step === 'credentials'"
+        class="cf-action-spaced"
+        variant="secondary"
+        :disabled="busy"
+        @click="passkeySignIn"
+        >Sign in with a passkey</CloudButton
+      >
+      <p class="cf-auth-hint">
+        New here?
+        <NuxtLink
+          to="/signup"
+          class="cf-text-link"
+          >Create an account</NuxtLink
+        >
+      </p></template
+    >
+    <p
+      v-else
+      class="cf-notice"
+    >
+      Email sign-in is not available on this deployment yet.
+    </p></CloudAuthLayout
+  >
 </template>
