@@ -1112,23 +1112,91 @@
   border-top: 1px solid var(--border);
 }
 @media (max-width: 600px) {
-  .cf-marketing-header {
-    flex-wrap: wrap;
-    gap: 14px;
-  }
-  .cf-marketing-nav {
-    justify-content: flex-end;
-    flex: 1;
-    gap: 6px;
-  }
-  .cf-marketing-nav .cf-button {
-    padding-inline: 10px;
-  }
   .cf-portal-header {
     flex-wrap: wrap;
     gap: 12px;
   }
   .cf-recovery-codes {
     grid-template-columns: 1fr;
+  }
+}
+
+/* A single quiet header row on small screens; secondary actions live together. */
+.cf-mobile-header-actions {
+  display: none;
+}
+.cf-mobile-menu {
+  z-index: 60;
+  width: 240px;
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--card);
+  color: var(--foreground);
+  box-shadow: 0 12px 32px #20281f14;
+}
+.cf-mobile-menu nav {
+  display: grid;
+  gap: 2px;
+}
+.cf-mobile-menu nav a {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px;
+  border-radius: 8px;
+  font-size: 14px;
+}
+.cf-mobile-menu nav a:hover {
+  background: var(--secondary);
+}
+.cf-mobile-menu-theme {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 8px 0 12px;
+  margin-top: 6px;
+  border-top: 1px solid var(--border);
+  color: var(--muted-foreground);
+  font-size: 12px;
+}
+@media (max-width: 700px) {
+  .cf-marketing {
+    padding-inline: 20px;
+  }
+  .cf-marketing-header {
+    height: 72px;
+    min-height: 72px;
+    flex-wrap: nowrap;
+    gap: 10px;
+    padding-block: 0;
+  }
+  .cf-marketing-header > .cf-brand {
+    font-size: 18px;
+    gap: 7px;
+    white-space: nowrap;
+  }
+  .cf-marketing-header .cf-brand-logo {
+    width: 28px;
+    height: 28px;
+  }
+  .cf-marketing-nav {
+    display: none;
+  }
+  .cf-mobile-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+  .cf-mobile-header-actions > .cf-button {
+    height: 36px;
+    padding-inline: 12px;
+    white-space: nowrap;
+  }
+  .cf-mobile-header-actions .cf-button-icon {
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    flex-shrink: 0;
   }
 }
