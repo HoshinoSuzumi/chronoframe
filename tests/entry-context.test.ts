@@ -10,7 +10,7 @@ import {
   encodeVisitorGrants,
   decodeVisitorGrants,
   visitorPasswordHash,
-} from '../apps/platform-visitor.ts'
+} from '../apps/shared/platform/visitor.ts'
 import { hasSiteVisitorGrant } from '../packages/core/src/platform.ts'
 
 const secret = 'independent-site-test-secret-at-least-32-bytes'

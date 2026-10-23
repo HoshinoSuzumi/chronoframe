@@ -3,13 +3,13 @@ import { createD1EmailCodeStore } from '../../../../packages/platform/src/index'
 import {
   platformDatabase,
   platformPortalOrigin,
-} from '../../../platform.runtime'
-import { createEmailCodeCrypto } from '../../../platform-crypto'
+} from '../../../shared/platform/runtime'
+import { createEmailCodeCrypto } from '../../../shared/platform/crypto'
 import type { H3Event } from 'h3'
 import {
   createCloudflareEmailSender,
   platformEmailReady,
-} from '../../../platform-email'
+} from '../../../shared/platform/email'
 
 export async function emailSignIn(event: H3Event) {
   const config = useRuntimeConfig(event).platform

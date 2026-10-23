@@ -1,8 +1,8 @@
-import { definePlatformHandler } from '../../../../platform.runtime'
+import { definePlatformHandler } from '../../../../shared/platform/runtime'
 import {
   platformPortalOrigin,
   platformSession,
-} from '../../../../platform.runtime'
+} from '../../../../shared/platform/runtime'
 export default definePlatformHandler(async (event) => {
   const config = useRuntimeConfig(event).platform
   platformPortalOrigin(event, config.portalOrigin)

@@ -10,7 +10,7 @@ import {
   createD1Sessions,
 } from '../packages/platform/src/index.ts'
 import type { PlatformD1, D1Statement } from '../packages/platform/src/index.ts'
-import { createEmailCodeCrypto } from '../apps/platform-crypto.ts'
+import { createEmailCodeCrypto } from '../apps/shared/platform/crypto.ts'
 
 /** Actual SQLite SQL/transactions behind the D1 statement API; no storage mock. */
 async function database() {

@@ -1,4 +1,4 @@
-import { definePlatformHandler } from '../../../../../platform.runtime'
+import { definePlatformHandler } from '../../../../../shared/platform/runtime'
 import { emailSignIn } from '../../../utils/platform-auth'
 export default definePlatformHandler(async (event) => {
   const body = await readBody(event)

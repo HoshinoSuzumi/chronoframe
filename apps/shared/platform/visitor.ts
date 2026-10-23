@@ -3,14 +3,11 @@ import type { H3Event } from 'h3'
 import type {
   PublicSiteContext,
   SiteVisitorGrant,
-} from '../packages/core/src/platform.ts'
-import { hasSiteVisitorGrant } from '../packages/core/src/platform.ts'
-import { platformDatabase, platformRequestURL } from './platform.runtime.ts'
-import {
-  createEmailCodeCrypto,
-  visitorPasswordHash,
-} from './platform-crypto.ts'
-export { visitorPasswordHash } from './platform-crypto.ts'
+} from '../../../packages/core/src/platform.ts'
+import { hasSiteVisitorGrant } from '../../../packages/core/src/platform.ts'
+import { platformDatabase, platformRequestURL } from './runtime.ts'
+import { createEmailCodeCrypto, visitorPasswordHash } from './crypto.ts'
+export { visitorPasswordHash } from './crypto.ts'
 
 const encoder = new TextEncoder()
 const COOKIE = '__Host-chronoframe-visitor'

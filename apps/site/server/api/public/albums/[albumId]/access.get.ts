@@ -1,6 +1,6 @@
-import { definePlatformHandler } from '../../../../../../platform.runtime'
-import { publicSiteContext } from '../../../../../../platform-context'
-import { visitorAccess } from '../../../../../../platform-visitor'
+import { definePlatformHandler } from '../../../../../../shared/platform/runtime'
+import { publicSiteContext } from '../../../../../../shared/platform/context'
+import { visitorAccess } from '../../../../../../shared/platform/visitor'
 export default definePlatformHandler(async (event) =>
   visitorAccess(
     event,

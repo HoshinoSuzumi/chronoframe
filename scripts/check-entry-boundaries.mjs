@@ -25,11 +25,7 @@ for (const entry of ['cloud', 'site']) {
   for (const file of [
     ...(await sources(`apps/${entry}`)),
     'apps/nuxt.shared.ts',
-    'apps/platform.runtime.ts',
-    'apps/platform-crypto.ts',
-    'apps/platform-email.ts',
-    'apps/platform-context.ts',
-    'apps/platform-visitor.ts',
+    ...(await sources('apps/shared/platform')),
   ]) {
     const code = await readFile(file, 'utf8')
     for (const match of code.matchAll(
@@ -40,7 +36,7 @@ for (const entry of ['cloud', 'site']) {
         ? path.resolve(path.dirname(file), specifier)
         : specifier
       if (
-        /\/(?:server|app)\//.test(file) &&
+        /\/(?:server|app|shared)\//.test(file) &&
         /^(?:node:)?(?:fs(?:\/|$)|child_process|worker_threads)/.test(specifier)
       )
         failures.push(`${file}: ${specifier}`)

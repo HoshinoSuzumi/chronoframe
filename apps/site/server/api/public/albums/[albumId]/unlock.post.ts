@@ -1,6 +1,6 @@
-import { definePlatformHandler } from '../../../../../../platform.runtime'
-import { publicSiteContext } from '../../../../../../platform-context'
-import { unlockVisitor } from '../../../../../../platform-visitor'
+import { definePlatformHandler } from '../../../../../../shared/platform/runtime'
+import { publicSiteContext } from '../../../../../../shared/platform/context'
+import { unlockVisitor } from '../../../../../../shared/platform/visitor'
 export default definePlatformHandler(async (event) => {
   const context = await publicSiteContext(event)
   const body = await readBody(event)

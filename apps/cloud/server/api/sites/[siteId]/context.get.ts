@@ -1,8 +1,8 @@
-import { definePlatformHandler } from '../../../../../platform.runtime'
+import { definePlatformHandler } from '../../../../../shared/platform/runtime'
 import {
   portalSiteContext,
   siteContextDTO,
-} from '../../../../../platform-context'
+} from '../../../../../shared/platform/context'
 export default definePlatformHandler(async (event) =>
   siteContextDTO(
     event,

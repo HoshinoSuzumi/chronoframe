@@ -1,8 +1,8 @@
-import { platformEmailReady } from '../../../../platform-email'
+import { platformEmailReady } from '../../../../shared/platform/email'
 import {
   platformRequestURL,
   platformDatabase,
-} from '../../../../platform.runtime'
+} from '../../../../shared/platform/runtime'
 export default defineEventHandler(async (event) => {
   const config = useRuntimeConfig(event).platform
   const origin = platformRequestURL(event).origin

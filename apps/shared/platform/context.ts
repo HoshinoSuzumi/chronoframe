@@ -1,21 +1,21 @@
-import { platformStateKey } from '../packages/core/src/platform'
-import { createD1SiteCatalog } from '../packages/platform/src/index'
+import { platformStateKey } from '../../../packages/core/src/platform'
+import { createD1SiteCatalog } from '../../../packages/platform/src/index'
 import {
   CLOUD_CAPABILITIES,
   SITE_CAPABILITIES,
-} from '../packages/contracts/src/entry'
-import type { EntrySiteContext } from '../packages/contracts/src/entry'
+} from '../../../packages/contracts/src/entry'
+import type { EntrySiteContext } from '../../../packages/contracts/src/entry'
 import type {
   PortalContext,
   PublicSiteContext,
-} from '../packages/core/src/platform'
+} from '../../../packages/core/src/platform'
 import {
   platformAccess,
   platformDatabase,
   platformPortalOrigin,
   platformSession,
   platformRequestURL,
-} from './platform.runtime'
+} from './runtime'
 import { createError, getRouterParam } from 'h3'
 import type { H3Event } from 'h3'
 

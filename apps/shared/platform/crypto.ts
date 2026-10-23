@@ -1,4 +1,4 @@
-import type { EmailCodeCrypto } from '../packages/core/src/email-auth'
+import type { EmailCodeCrypto } from '../../../packages/core/src/email-auth'
 
 /** The secret is server-only and must be independently configured for each environment. */
 export async function createEmailCodeCrypto(

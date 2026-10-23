@@ -1,4 +1,4 @@
-import type { EmailCodeSender } from '../packages/core/src/email-auth'
+import type { EmailCodeSender } from '../../../packages/core/src/email-auth'
 
 /** Cloudflare Email Sending structured-message binding; no REST credentials. */
 export interface PlatformEmailBinding {

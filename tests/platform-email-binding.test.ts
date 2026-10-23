@@ -3,7 +3,7 @@ import assert from 'node:assert/strict'
 import {
   createCloudflareEmailSender,
   platformEmailReady,
-} from '../apps/platform-email.ts'
+} from '../apps/shared/platform/email.ts'
 
 test('Cloudflare Email Sending uses the structured binding without REST credentials', async () => {
   const messages: unknown[] = []

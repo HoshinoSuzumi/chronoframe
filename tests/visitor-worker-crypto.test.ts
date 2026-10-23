@@ -3,7 +3,7 @@ import test from 'node:test'
 import { createRequire } from 'node:module'
 import { pbkdf2Sync } from 'node:crypto'
 import { fileURLToPath } from 'node:url'
-import { VISITOR_PBKDF2_ITERATIONS } from '../apps/platform-crypto.ts'
+import { VISITOR_PBKDF2_ITERATIONS } from '../apps/shared/platform/crypto.ts'
 
 test('visitor password hashing stays within the portable Workers budget and executes in workerd', async () => {
   assert.ok(
@@ -16,7 +16,7 @@ test('visitor password hashing stays within the portable Workers budget and exec
   const { build } = wranglerRequire('esbuild')
   const { Miniflare, convertV4MiniflareOptions } = wranglerRequire('miniflare')
   const module = fileURLToPath(
-    new URL('../apps/platform-crypto.ts', import.meta.url),
+    new URL('../apps/shared/platform/crypto.ts', import.meta.url),
   )
   const bundle = await build({
     stdin: {

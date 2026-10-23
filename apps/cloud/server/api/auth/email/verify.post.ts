@@ -1,11 +1,11 @@
-import { definePlatformHandler } from '../../../../../platform.runtime'
+import { definePlatformHandler } from '../../../../../shared/platform/runtime'
 import { emailSignIn } from '../../../utils/platform-auth'
 import { createD1Sessions } from '../../../../../../packages/platform/src/index'
-import { createEmailCodeCrypto } from '../../../../../platform-crypto'
+import { createEmailCodeCrypto } from '../../../../../shared/platform/crypto'
 import {
   PLATFORM_COOKIE,
   platformDatabase,
-} from '../../../../../platform.runtime'
+} from '../../../../../shared/platform/runtime'
 export default definePlatformHandler(async (event) => {
   const body = await readBody(event)
   if (
