@@ -1,6 +1,10 @@
 <script setup lang="ts">
 import { motion } from 'motion-v'
-import { FIXED_HEADER_HEIGHT_PX } from '#gallery/utils'
+import {
+  FIXED_HEADER_HEIGHT_PX,
+  FIXED_HEADER_SOCIAL_ROW_HEIGHT_PX,
+} from '#gallery/utils'
+import { parseSocialLinks } from '@chronoframe/contracts/social-links'
 interface Props {
   photos: Photo[]
   columns?: number | 'auto'
@@ -19,6 +23,14 @@ const { filteredPhotos, hasActiveFilters } = usePhotoFilters()
 const { sortedPhotos } = usePhotoSort()
 const homeHeaderLayout = useSettingRef('app:appearance.homeHeaderLayout')
 const isFixedHeader = computed(() => homeHeaderLayout.value === 'fixed')
+const socialLinksSetting = useSettingRef('app:socialLinks')
+const hasSocialLinks = computed(() => {
+  try {
+    return parseSocialLinks(socialLinksSetting.value).length > 0
+  } catch {
+    return false
+  }
+})
 
 const displayPhotos = computed(() => {
   return hasActiveFilters.value ? filteredPhotos.value : sortedPhotos.value
@@ -380,7 +392,11 @@ watch(currentPhotoIndex, (newIndex) => {
     <div
       v-if="isFixedHeader"
       aria-hidden="true"
-      :style="{ height: `${fixedHeaderHeight}px` }"
+      :class="{ 'fixed-header-spacer-with-social-links': hasSocialLinks }"
+      :style="{
+        height: `${fixedHeaderHeight}px`,
+        '--fixed-header-mobile-min-height': `${FIXED_HEADER_HEIGHT_PX + FIXED_HEADER_SOCIAL_ROW_HEIGHT_PX}px`,
+      }"
     />
 
     <!-- Back to Top Button -->
@@ -462,6 +478,12 @@ watch(currentPhotoIndex, (newIndex) => {
 </template>
 
 <style scoped>
+@media (max-width: 1023px) {
+  .fixed-header-spacer-with-social-links {
+    min-height: var(--fixed-header-mobile-min-height);
+  }
+}
+
 .masonry-header-wrapper {
   z-index: 1;
 }

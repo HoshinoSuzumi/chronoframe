@@ -1140,6 +1140,18 @@
   },
   "settings": {
     "app": {
+      "socialLinks": {
+        "title": "ソーシャルアカウント",
+        "description": "ホームページのヘッダーに表示する HTTPS リンクを最大{max}件追加できます。",
+        "slot": "ソーシャルリンク {number}",
+        "placeholder": "https://example.com/your-profile",
+        "clear": "ソーシャルリンク {number} を消去",
+        "visit": "{platform} を開く",
+        "shape": "ソーシャルリンクのデータが無効です",
+        "limit": "リンクは最大{max}件までです",
+        "invalid": "有効な HTTPS URL を入力してください",
+        "duplicate": "このリンクは既に追加されています"
+      },
       "title": {
         "label": "インスタンス名",
         "description": "インスタンスのタイトル"

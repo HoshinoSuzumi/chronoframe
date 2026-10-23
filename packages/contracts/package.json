@@ -11,6 +11,7 @@
     "./location": "./src/location.ts",
     "./resources": "./src/resources.ts",
     "./settings": "./src/settings.ts",
+    "./social-links": "./src/social-links.ts",
     "./queue": "./src/queue.ts",
     "./entry": "./src/entry.ts"
   },

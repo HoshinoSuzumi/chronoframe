@@ -1,12 +1,35 @@
 import type { InjectionKey } from 'vue'
 import type {
   FieldDescriptor,
+  SettingsBatchResponse,
   SettingsFieldsResponse,
 } from '@chronoframe/gallery/shared/types/settings'
+import {
+  MAX_SOCIAL_LINKS,
+  isSocialLinkErrorCode,
+  SocialLinkError,
+} from '@chronoframe/contracts/social-links'
 
 export const settingsFieldCommitKey: InjectionKey<
   (fieldKey: string, value: any) => void
 > = Symbol('settings-field-commit')
+
+export function applySavedSettingsFields(
+  fields: FieldDescriptor[],
+  state: Record<string, any>,
+  submitted: Record<string, any>,
+  stateAtSubmission: Record<string, string | undefined>,
+) {
+  for (const [key, value] of Object.entries(submitted)) {
+    const field = fields.find((item) => item.key === key)
+    if (!field) continue
+
+    field.value = value
+    if (JSON.stringify(state[key]) === stateAtSubmission[key]) {
+      state[key] = value
+    }
+  }
+}
 
 /**
  * Settings Form Composable
@@ -75,6 +98,9 @@ export function useSettingsForm(namespace: string) {
   const submit = async (data: Record<string, any>) => {
     loading.value = true
     error.value = null
+    const stateAtSubmission = Object.fromEntries(
+      Object.keys(data).map((key) => [key, JSON.stringify(state[key])]),
+    )
 
     try {
       // 准备批量更新请求
@@ -84,16 +110,38 @@ export function useSettingsForm(namespace: string) {
         value,
       }))
 
-      await consoleApi('/api/system/settings/batch', {
-        method: 'PUT',
-        body: { updates },
-      })
+      const result = await consoleApi<SettingsBatchResponse>(
+        '/api/system/settings/batch',
+        {
+          method: 'PUT',
+          body: { updates },
+        },
+      )
+      if (!result.success) {
+        const socialFailure = result.errors.find(
+          (item) => item.namespace === 'app' && item.key === 'socialLinks',
+        )
+        if (socialFailure) {
+          if (isSocialLinkErrorCode(socialFailure.code)) {
+            throw new SocialLinkError(
+              socialFailure.code,
+              t(`settings.app.socialLinks.${socialFailure.code}`, {
+                max: MAX_SOCIAL_LINKS,
+              }),
+            )
+          }
+          throw new Error(t('settings.form.saveFailed'))
+        }
+        throw new Error(
+          result.errors?.map((item) => item.error).join('; ') ||
+            t('settings.form.saveFailed'),
+        )
+      }
 
       // 刷新全局设置状态，确保所有使用 getSetting() 的地方都能获取到最新值
       await refreshSettings()
 
-      // 重新加载字段以获取最新值
-      await fetchFields()
+      applySavedSettingsFields(fields.value, state, data, stateAtSubmission)
 
       toast.add({
         title: t('settings.form.saveSuccess'),

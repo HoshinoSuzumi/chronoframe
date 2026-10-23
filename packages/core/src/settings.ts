@@ -1,4 +1,5 @@
 import type { SettingValue } from '@chronoframe/contracts/settings'
+import { parseSocialLinks } from '@chronoframe/contracts/social-links'
 
 export const DEFAULT_QUEUE_WORKER_COUNT = 5
 
@@ -55,6 +56,7 @@ export function validateSettingWrite(input: {
   }
   if (namespace === 'system' && key === 'queue.workerCount')
     validateQueueWorkerCount(value)
+  if (namespace === 'app' && key === 'socialLinks') parseSocialLinks(value)
 }
 
 /** Resolve the configured connection through an injected persistence boundary. */

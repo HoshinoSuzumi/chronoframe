@@ -1218,6 +1218,18 @@
   },
   "settings": {
     "app": {
+      "socialLinks": {
+        "title": "Социальные сети",
+        "description": "Добавьте до {max} ссылок HTTPS для отображения в шапке главной страницы.",
+        "slot": "Ссылка {number}",
+        "placeholder": "https://example.com/your-profile",
+        "clear": "Очистить ссылку {number}",
+        "visit": "Открыть {platform}",
+        "shape": "Неверные данные социальных ссылок",
+        "limit": "Можно добавить не более {max} ссылок",
+        "invalid": "Введите корректный URL-адрес HTTPS",
+        "duplicate": "Эта ссылка уже добавлена"
+      },
       "title": {
         "label": "Название приложения",
         "description": "Название этого инстанса приложения"

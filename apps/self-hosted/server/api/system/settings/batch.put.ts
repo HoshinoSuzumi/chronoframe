@@ -6,6 +6,7 @@ import {
 } from '~~/server/services/settings/contants'
 import { settingsManager } from '~~/server/services/settings/settingsManager'
 import { useDB, tables, eq } from '~~/server/utils/db'
+import { applySettingsBatch } from '~~/server/utils/settings-batch-error'
 
 /**
  * PUT /api/system/settings/batch
@@ -48,9 +49,6 @@ export default eventHandler(async (event) => {
   )
 
   try {
-    let successCount = 0
-    const errors: Array<{ namespace: string; key: string; error: string }> = []
-
     // 获取当前用户ID，如果用户不存在于数据库则返回null
     const db = useDB()
     const currentUser = session.user.id
@@ -62,46 +60,17 @@ export default eventHandler(async (event) => {
       : null
     const updatedBy = currentUser ? currentUser.id : undefined
 
-    // 逐个更新设置
-    for (const update of body.updates) {
-      if (getHiddenSettingKeys(update.namespace).has(update.key)) {
-        errors.push({
-          namespace: update.namespace,
-          key: update.key,
-          error: 'Setting is not directly modifiable',
-        })
-        continue
-      }
-      try {
-        await settingsManager.set(
+    return applySettingsBatch(body.updates, {
+      isHidden: (update) =>
+        getHiddenSettingKeys(update.namespace).has(update.key),
+      set: (update) =>
+        settingsManager.set(
           update.namespace,
           update.key,
           update.value,
           updatedBy,
-        )
-        successCount++
-      } catch (err) {
-        errors.push({
-          namespace: update.namespace,
-          key: update.key,
-          error: (err as Error).message,
-        })
-      }
-    }
-
-    // 如果有错误，返回部分成功的响应
-    if (errors.length > 0) {
-      return {
-        success: false,
-        updated: successCount,
-        errors,
-      }
-    }
-
-    return {
-      success: true,
-      updated: successCount,
-    }
+        ),
+    })
   } catch (error) {
     throw createError({
       statusCode: 400,
