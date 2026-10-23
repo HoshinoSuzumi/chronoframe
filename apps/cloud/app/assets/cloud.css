@@ -193,6 +193,12 @@
   font-weight: 650;
   letter-spacing: -0.8px;
 }
+.cf-brand-logo {
+  width: 34px;
+  height: 34px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
 .cf-brand-dot {
   color: #97a180;
 }
