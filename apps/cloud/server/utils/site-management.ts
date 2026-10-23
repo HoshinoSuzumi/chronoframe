@@ -1,5 +1,6 @@
-import { createError, getHeader, readBody } from 'h3'
+import { createError, getHeader, getRequestWebStream } from 'h3'
 import type { H3Event } from 'h3'
+import { readSiteBody } from './site-body'
 import { requirePlatformSession } from '../../../shared/platform/context'
 import {
   platformDatabase,
@@ -22,13 +23,6 @@ export async function siteManagementBody(event: H3Event) {
     Number(getHeader(event, 'content-length')) > 4096
   )
     throw createError({ statusCode: 400 })
-  const body: unknown = await readBody(event)
-  if (
-    !body ||
-    typeof body !== 'object' ||
-    Array.isArray(body) ||
-    JSON.stringify(body).length > 4096
-  )
-    throw createError({ statusCode: 400 })
-  return body as Record<string, unknown>
+  // Nitro may already hold the original Cloudflare Request; read H3's active stream.
+  return readSiteBody(getRequestWebStream(event))
 }
