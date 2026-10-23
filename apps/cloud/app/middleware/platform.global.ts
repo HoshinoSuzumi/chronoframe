@@ -5,7 +5,13 @@ import type {
 export default defineNuxtRouteMiddleware(async (to) => {
   const path = to.path.toLowerCase()
   const context = useEntryContext()
-  context.value = null
+  const detail = /^\/sites\/([1-9][0-9]*)$/.exec(path)
+  if (
+    !detail ||
+    context.value?.siteId !== Number(detail[1]) ||
+    context.value?.audience !== 'portal'
+  )
+    context.value = null
   const catalog = useState<EntrySiteCatalog | null>(
     'platform-site-catalog',
     () => null,
@@ -23,12 +29,15 @@ export default defineNuxtRouteMiddleware(async (to) => {
     }>('/api/auth/session').catch((error) => {
       if ([401, 403].includes(error.statusCode ?? error.status))
         return { authenticated: false, user: null }
+      context.value = null
       throw error
     })
     useState<number | null>('platform-user-id', () => null).value =
       session.user?.id ?? null
-    if (!session.authenticated || !session.user)
+    if (!session.authenticated || !session.user) {
+      context.value = null
       return navigateTo('/signin', { redirectCode: 302 })
+    }
     if (path === '/sites') {
       const result = await fetcher<{ sites: EntrySiteSummary[] }>('/api/sites')
       catalog.value = { userId: session.user.id, sites: result.sites }
@@ -42,6 +51,7 @@ export default defineNuxtRouteMiddleware(async (to) => {
       try {
         context.value = await fetcher(`/api/sites/${match[1]}/context`)
       } catch (error) {
+        context.value = null
         return abortNavigation(error as Error)
       }
     }

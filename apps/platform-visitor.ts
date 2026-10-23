@@ -6,32 +6,15 @@ import type {
 } from '../packages/core/src/platform.ts'
 import { hasSiteVisitorGrant } from '../packages/core/src/platform.ts'
 import { platformDatabase, platformRequestURL } from './platform.runtime.ts'
-import { createEmailCodeCrypto } from './platform-crypto.ts'
+import {
+  createEmailCodeCrypto,
+  visitorPasswordHash,
+} from './platform-crypto.ts'
+export { visitorPasswordHash } from './platform-crypto.ts'
 
 const encoder = new TextEncoder()
 const COOKIE = '__Host-chronoframe-visitor'
 const TTL = 60 * 60 * 1000
-const iterations = 600_000
-export async function visitorPasswordHash(
-  password: string,
-  salt: string,
-): Promise<string> {
-  const key = await crypto.subtle.importKey(
-    'raw',
-    encoder.encode(password),
-    'PBKDF2',
-    false,
-    ['deriveBits'],
-  )
-  const bits = await crypto.subtle.deriveBits(
-    { name: 'PBKDF2', hash: 'SHA-256', salt: encoder.encode(salt), iterations },
-    key,
-    256,
-  )
-  return Array.from(new Uint8Array(bits), (b) =>
-    b.toString(16).padStart(2, '0'),
-  ).join('')
-}
 async function signingKey(secret: string) {
   if (encoder.encode(secret).length < 32) throw createError({ statusCode: 503 })
   return crypto.subtle.importKey(
