@@ -26,7 +26,7 @@ async function save(unpublish = false) {
     const result = await $fetch(`/api/sites/${props.siteId}/settings`, {
       method: 'PATCH',
       body: {
-        name: name.value,
+        name: unpublish ? data.value.site.name : name.value,
         revision: data.value.site.revision,
         published: unpublish ? false : !!data.value.site.published,
       },

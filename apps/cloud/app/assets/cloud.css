@@ -1248,3 +1248,43 @@
 .cf-site-create .cf-page-description {
   font-size: 13px;
 }
+
+/* Keep native pinch zoom available; 16px controls avoid iOS focus magnification. */
+@media (max-width: 700px), (pointer: coarse) {
+  .cf-root :is(input, select, textarea) {
+    font-size: 16px;
+  }
+}
+.cf-portal-mobile-actions {
+  display: none;
+}
+@media (max-width: 700px) {
+  .cf-portal-header {
+    height: 72px;
+    min-height: 72px;
+    padding-inline: 16px;
+    flex-wrap: nowrap;
+    gap: 10px;
+  }
+  .cf-portal-header > .cf-brand {
+    font-size: 18px;
+    gap: 8px;
+    min-width: 0;
+  }
+  .cf-portal-header .cf-brand-logo {
+    width: 28px;
+    height: 28px;
+  }
+  .cf-portal-header .cf-brand-edition {
+    font-size: 12px;
+    margin-inline-start: 4px;
+    letter-spacing: 0;
+  }
+  .cf-portal-desktop-actions {
+    display: none;
+  }
+  .cf-portal-mobile-actions {
+    display: flex;
+    flex: 0 0 auto;
+  }
+}

@@ -6,7 +6,10 @@ import {
   BookOpen,
   ShieldCheck,
   LogOut,
+  Menu,
 } from 'lucide-vue-next'
+import { PopoverRoot, PopoverTrigger, PopoverContent } from 'reka-ui'
+const mobileMenuOpen = ref(false)
 const route = useRoute()
 const { busy, error, signOut } = useCloudSignOut()
 </script>
@@ -14,7 +17,7 @@ const { busy, error, signOut } = useCloudSignOut()
   <div class="cf-portal">
     <header class="cf-portal-header">
       <CloudBrand cloud />
-      <div class="cf-header-actions">
+      <div class="cf-header-actions cf-portal-desktop-actions">
         <CloudBadge>Cloud preview</CloudBadge
         ><CloudButton
           variant="ghost"
@@ -23,6 +26,34 @@ const { busy, error, signOut } = useCloudSignOut()
           @click="signOut"
           ><LogOut :size="15" />Sign out</CloudButton
         ><CloudThemeToggle />
+      </div>
+      <div class="cf-portal-mobile-actions">
+        <PopoverRoot v-model:open="mobileMenuOpen">
+          <PopoverTrigger as-child
+            ><CloudButton
+              variant="ghost"
+              size="icon"
+              aria-label="Open account menu"
+              ><Menu :size="20" /></CloudButton
+          ></PopoverTrigger>
+          <PopoverContent
+            class="cf-mobile-menu"
+            align="end"
+            :side-offset="12"
+            :collision-padding="16"
+            aria-label="Account menu"
+          >
+            <div class="cf-mobile-menu-theme">
+              <span>Appearance</span><CloudThemeToggle />
+            </div>
+            <CloudButton
+              variant="ghost"
+              :loading="busy"
+              @click="signOut"
+              ><LogOut :size="16" />Sign out</CloudButton
+            >
+          </PopoverContent>
+        </PopoverRoot>
       </div>
     </header>
     <div class="cf-portal-grid">
