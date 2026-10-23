@@ -91,6 +91,13 @@ export const DEFAULT_SETTINGS = [
   },
   {
     namespace: 'app',
+    key: 'socialLinks',
+    type: 'json',
+    defaultValue: { links: [] },
+    isPublic: true,
+  },
+  {
+    namespace: 'app',
     key: 'appearance.theme',
     type: 'string',
     defaultValue: 'system',
