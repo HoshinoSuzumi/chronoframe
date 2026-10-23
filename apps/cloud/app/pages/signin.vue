@@ -11,6 +11,7 @@ function setMode(value: 'email' | 'password') {
   mode.value = value
   error.value = ''
 }
+const authenticatorRequired = ref(false)
 const factor = ref<'email' | 'totp' | 'recovery'>('email')
 const busy = ref(false),
   error = ref('')
@@ -45,7 +46,10 @@ async function submit() {
       step.value = 'code'
       return
     } else {
-      const result = await $fetch<{ twoFactorRedirect?: boolean }>(
+      const result = await $fetch<{
+        twoFactorRedirect?: boolean
+        twoFactorMethods?: string[]
+      }>(
         mode.value === 'password'
           ? '/api/auth/sign-in/email'
           : '/api/auth/sign-in/email-otp',
@@ -60,7 +64,10 @@ async function submit() {
       if (result.twoFactorRedirect) {
         step.value = 'second'
         code.value = ''
-        await sendSecond()
+        authenticatorRequired.value =
+          !!result.twoFactorMethods?.includes('totp')
+        factor.value = authenticatorRequired.value ? 'totp' : 'email'
+        if (!authenticatorRequired.value) await sendSecond()
         return
       }
     }
@@ -182,7 +189,12 @@ async function resend() {
             :disabled="busy"
             @change="code = ''"
           >
-            <option value="email">Email code</option>
+            <option
+              v-if="!authenticatorRequired"
+              value="email"
+            >
+              Email code
+            </option>
             <option value="totp">Authenticator code</option>
             <option value="recovery">Recovery code</option>
           </select></template

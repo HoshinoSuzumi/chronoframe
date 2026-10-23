@@ -7,10 +7,14 @@ import type { PlatformEmailBinding } from '../../../shared/platform/email'
 export function cloudAccount(event: H3Event) {
   if (!event.context.cloudAccountAuth) {
     const config = useRuntimeConfig(event).platform
+    const execution = event.context.cloudflare?.context as
+      | { waitUntil(task: Promise<unknown>): void }
+      | undefined
     event.context.cloudAccountAuth = createAccountAuth(
       platformDatabase(event) as unknown as BetterAuthOptions['database'],
       config,
       event.context.cloudflare?.env?.EMAIL as PlatformEmailBinding,
+      execution ? (task) => execution.waitUntil(task) : undefined,
     )
   }
   return event.context.cloudAccountAuth as ReturnType<typeof createAccountAuth>

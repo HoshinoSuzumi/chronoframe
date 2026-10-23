@@ -2,7 +2,8 @@ import 'reflect-metadata'
 import { betterAuth, type BetterAuthOptions } from 'better-auth'
 import { APIError } from 'better-auth/api'
 import { createEmailCodeCrypto } from '../../../shared/platform/crypto.ts'
-import { emailOTP, twoFactor } from 'better-auth/plugins'
+import { emailOTP } from 'better-auth/plugins'
+import { accountFactors } from './account-factors.ts'
 import { passkey } from '@better-auth/passkey'
 import type { PlatformEmailBinding } from '../../../shared/platform/email.ts'
 
@@ -16,6 +17,7 @@ export function accountAuthOptions(
   database: BetterAuthOptions['database'],
   config: AccountAuthConfig,
   email: PlatformEmailBinding,
+  defer?: (task: Promise<unknown>) => void,
 ) {
   const origin = new URL(config.portalOrigin)
   const send = async (to: string, subject: string, text: string) => {
@@ -31,6 +33,7 @@ export function accountAuthOptions(
     telemetry: { enabled: false },
     advanced: {
       database: { generateId: 'serial' },
+      backgroundTasks: defer ? { handler: defer } : undefined,
       // Every auth cookie has a browser-enforced host prefix. Avoid Better Auth
       // prepending __Secure- to our already-prefixed __Host- names.
       cookiePrefix: '__Host-chronoframe-cloud',
@@ -143,7 +146,7 @@ export function accountAuthOptions(
           )
         },
       }),
-      twoFactor({
+      accountFactors({
         issuer: 'ChronoFrame Cloud',
         schema: {
           user: { fields: { twoFactorEnabled: 'two_factor_enabled' } },

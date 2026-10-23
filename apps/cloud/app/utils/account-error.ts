@@ -7,6 +7,8 @@ export function accountError(cause: unknown) {
   if (error.statusCode === 429)
     return 'Too many attempts. Please wait before trying again.'
   const code = error.data?.code ?? ''
+  if (code === 'AUTHENTICATOR_REQUIRED')
+    return 'Use your authenticator or an unused recovery code to finish signing in.'
   if (code.includes('PASSWORD_TOO_SHORT'))
     return 'Use a password with at least 12 characters.'
   if (code.includes('EMAIL_NOT_VERIFIED'))

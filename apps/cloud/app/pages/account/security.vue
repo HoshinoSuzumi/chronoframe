@@ -197,8 +197,9 @@ async function deletePasskey(id: number) {
         <div>
           <h2>Two-step verification</h2>
           <p>
-            After password sign-in, verify an email or authenticator code.
-            Passkeys already verify you on your device.
+            After password sign-in, verify an email or authenticator code. A
+            connected authenticator also protects email-code sign-in. Passkeys
+            already verify you on your device.
           </p>
         </div>
         <CloudBadge

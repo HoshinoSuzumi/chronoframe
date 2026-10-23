@@ -227,6 +227,46 @@ test('Cloud account migration preserves identities and enforces verified registr
       200,
     )
     await call('/sign-out', {})
+    for (const type of ['sign-in', 'email-verification']) {
+      await call('/email-otp/send-verification-otp', { email, type })
+      const emailCode = messages.at(-1)!.text.match(/\b[0-9]{6}\b/)![0]
+      const entry = await call(
+        type === 'sign-in' ? '/sign-in/email-otp' : '/email-otp/verify-email',
+        { email, otp: emailCode },
+      )
+      assert.equal(
+        entry.data.twoFactorRedirect,
+        true,
+        JSON.stringify(entry.data),
+      )
+      assert.equal(
+        (await call('/get-session')).data,
+        null,
+        'email proof must not create a session before TOTP',
+      )
+      assert.equal(
+        (await call('/two-factor/send-otp', {})).response.status,
+        403,
+      )
+      assert.equal(
+        (await call('/two-factor/verify-otp', { code: emailCode })).response
+          .status,
+        403,
+        'email cannot substitute for the authenticator',
+      )
+      assert.equal(
+        (
+          await call('/two-factor/verify-totp', {
+            code: totp(setup.data.totpURI),
+            trustDevice: true,
+          })
+        ).response.status,
+        200,
+      )
+      assert.ok((await call('/get-session')).data.user)
+      await call('/sign-out', {})
+    }
+    await call('/sign-out', {})
     assert.equal(
       (await call('/sign-in/email', { email, password })).data
         .twoFactorRedirect,
@@ -413,6 +453,68 @@ test('Cloud account migration preserves identities and enforces verified registr
       before,
       'unknown accounts cannot silently register through email sign-in',
     )
+    let finishDelivery!: () => void
+    const delivery = new Promise<void>((resolve) => {
+      finishDelivery = resolve
+    })
+    let delivered = false
+    const background: Promise<unknown>[] = []
+    const deferredAuth = createAccountAuth(
+      db,
+      {
+        portalOrigin: 'https://app.chronoframe.art',
+        emailFrom: 'verify@example.com',
+        secret: crypto.randomUUID() + crypto.randomUUID(),
+      },
+      {
+        send: async () => {
+          await delivery
+          delivered = true
+          return { messageId: 'local-background-test' }
+        },
+      },
+      (task) => {
+        background.push(task)
+      },
+    )
+    try {
+      const queued = await Promise.race([
+        deferredAuth.handler(
+          new Request(
+            'https://app.chronoframe.art/api/auth/email-otp/send-verification-otp',
+            {
+              method: 'POST',
+              headers: {
+                origin: 'https://app.chronoframe.art',
+                'content-type': 'application/json',
+                'cf-connecting-ip': '203.0.113.25',
+              },
+              body: JSON.stringify({
+                email: 'existing@example.com',
+                type: 'sign-in',
+              }),
+            },
+          ),
+        ),
+        new Promise<never>((_, reject) => {
+          const timeout = setTimeout(
+            () => reject(new Error('Email provider delayed the auth response')),
+            1500,
+          )
+          timeout.unref()
+        }),
+      ])
+      assert.equal(queued.status, 200)
+      assert.equal(delivered, false)
+      assert.ok(
+        background.length > 0,
+        'delivery is attached to the platform background task handler',
+      )
+    } finally {
+      finishDelivery()
+      await Promise.all(background)
+    }
+    assert.equal(delivered, true)
   } finally {
     await mf.dispose()
   }
