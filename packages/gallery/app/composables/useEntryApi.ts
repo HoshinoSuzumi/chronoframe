@@ -2,7 +2,11 @@ import { useEntryContext, entryRequestPath } from './useEntryContext'
 /** Bind to the creating scope; delayed handlers must never target a different Site/account. */
 export function useEntryApi(baseURL: string) {
   const context = useEntryContext()
-  const fetcher = useRequestFetch() as typeof $fetch
+  // Scoped paths are dynamic; avoid instantiating Nitro's route matcher here.
+  const fetcher = useRequestFetch() as (
+    request: string,
+    options: Record<string, unknown>,
+  ) => Promise<unknown>
   const snapshot = context.value
   return (async (request: string, options?: Record<string, unknown>) => {
     if (context.value?.scope !== snapshot?.scope)
