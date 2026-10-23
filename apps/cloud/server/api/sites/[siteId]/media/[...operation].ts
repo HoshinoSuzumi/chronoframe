@@ -36,7 +36,8 @@ export default definePlatformHandler(async (event) => {
   const { siteId, userId, site, db, raw, sql, repository, vault } = ctx
   const operation = getRouterParam(event, 'operation') ?? ''
   const [kind, id, action] = operation.split('/')
-  const body = mutation ? await siteManagementBody(event) : {}
+  const body =
+    mutation && event.method !== 'DELETE' ? await siteManagementBody(event) : {}
   const now = Date.now()
   if (kind === 'storage' && !id) {
     if (event.method === 'GET') return { connections: await vault.list() }
@@ -265,38 +266,30 @@ export default definePlatformHandler(async (event) => {
         urls,
       }
     }
-    if (event.method === 'DELETE') {
+    if (
+      event.method === 'DELETE' ||
+      (event.method === 'POST' && action === 'cancel')
+    ) {
       if (upload.state !== 'pending') throw createError({ statusCode: 409 })
-      await repository.cancelUpload(id, userId)
-      await db.batch([
-        db
+      const changes = await raw.batch([
+        raw
           .prepare(
-            `INSERT INTO cloud_cleanup_requests(site_id,id,connection_id,connection_revision,object_key,provider_upload_id,available_at) VALUES(?,?,?,?,?,?,?) ON CONFLICT DO NOTHING`,
+            `INSERT INTO cloud_cleanup_requests(site_id,id,connection_id,connection_revision,object_key,provider_upload_id,available_at) SELECT site_id,'upload-'||id,connection_id,connection_revision,object_key,provider_upload_id,? FROM cloud_uploads WHERE site_id=? AND id=? AND owner_id=? AND state='pending' ON CONFLICT DO NOTHING`,
           )
-          .bind(
-            siteId,
-            'upload-' + id,
-            upload.connection_id,
-            detail.connection_revision,
-            upload.object_key,
-            upload.provider_upload_id,
-            now + 360000,
-          ),
+          .bind(now + 360000, siteId, id, userId),
+        raw
+          .prepare(
+            `INSERT INTO cloud_cleanup_requests(site_id,id,connection_id,connection_revision,object_key,available_at) SELECT site_id,'upload-video-'||id,connection_id,connection_revision,video_key,? FROM cloud_uploads WHERE site_id=? AND id=? AND owner_id=? AND state='pending' AND video_key IS NOT NULL ON CONFLICT DO NOTHING`,
+          )
+          .bind(now + 360000, siteId, id, userId),
+        raw
+          .prepare(
+            `UPDATE cloud_uploads SET state='cancelled' WHERE site_id=? AND id=? AND owner_id=? AND state='pending'`,
+          )
+          .bind(siteId, id, userId),
       ])
-      if (detail.video_key)
-        await raw
-          .prepare(
-            `INSERT INTO cloud_cleanup_requests(site_id,id,connection_id,connection_revision,object_key,available_at) VALUES(?,?,?,?,?,?) ON CONFLICT DO NOTHING`,
-          )
-          .bind(
-            siteId,
-            'upload-video-' + id,
-            upload.connection_id,
-            detail.connection_revision,
-            detail.video_key,
-            now + 360000,
-          )
-          .run()
+      if (!(changes[2] as { meta?: { changes?: number } }).meta?.changes)
+        throw createError({ statusCode: 409 })
       return { ok: true }
     }
     if (event.method === 'POST' && action === 'complete') {
@@ -396,14 +389,26 @@ export default definePlatformHandler(async (event) => {
     if (!changed) throw createError({ statusCode: 409 })
     return { revision: revision + 1 }
   }
-  if (kind === 'photos' && id && event.method === 'DELETE') {
+  if (
+    kind === 'photos' &&
+    id &&
+    (event.method === 'DELETE' ||
+      (event.method === 'POST' && action === 'delete'))
+  ) {
     const found = await raw
       .prepare('SELECT id FROM cloud_photos WHERE site_id=? AND id=?')
       .bind(siteId, ID(id))
       .first()
     if (!found) throw createError({ statusCode: 404 })
-    await repository.deletePhoto(id)
     await db.batch([
+      db
+        .prepare('UPDATE cloud_photos SET deleted=1 WHERE site_id=? AND id=?')
+        .bind(siteId, id),
+      db
+        .prepare(
+          "UPDATE cloud_processing_jobs SET state='cancelled' WHERE site_id=? AND photo_id=? AND state IN ('queued','running','retry_wait')",
+        )
+        .bind(siteId, id),
       db
         .prepare(
           `INSERT INTO cloud_cleanup_requests(site_id,id,connection_id,connection_revision,object_key,provider_upload_id,available_at) SELECT site_id,'original-'||id,connection_id,connection_revision,object_key,NULL,? FROM cloud_uploads WHERE site_id=? AND photo_id=? ON CONFLICT DO NOTHING`,
@@ -445,18 +450,24 @@ export default definePlatformHandler(async (event) => {
       return { id: Number(albumId) }
     }
   }
-  if (kind === 'albums' && id && event.method === 'DELETE') {
+  if (
+    kind === 'albums' &&
+    id &&
+    (event.method === 'DELETE' ||
+      (event.method === 'POST' &&
+        ['delete', 'remove-photo'].includes(action ?? '')))
+  ) {
     const albumId = String(number(Number(id)))
     if (!(await repository.album(albumId)))
       throw createError({ statusCode: 404 })
-    if (action === 'photos') {
+    if (action === 'photos' || action === 'remove-photo') {
       await raw
         .prepare(
           'DELETE FROM cloud_album_photos WHERE site_id=? AND album_id=? AND photo_id=?',
         )
         .bind(siteId, albumId, ID(body.photoId))
         .run()
-    } else if (!action) {
+    } else if (!action || action === 'delete') {
       await raw.batch([
         raw
           .prepare(

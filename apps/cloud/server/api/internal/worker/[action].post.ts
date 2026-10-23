@@ -53,7 +53,7 @@ export default definePlatformHandler(async (event) => {
       raw,
       siteId,
       await createStorageCipher(config.storageSecret),
-    ).get(id, revision)
+    ).resolve(id, revision)
     if (!item) throw createError({ statusCode: 503 })
     return createCloudS3(
       { ...item.config, ...item.credentials },

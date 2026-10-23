@@ -90,19 +90,44 @@ for (const backend of ['SQLite', 'D1'] as const) {
       await run(
         "INSERT INTO platform_sites(id,workspace_id,name,published) VALUES(1,1,'One',0),(2,1,'Two',0)",
       )
-      const migration = await readFile(
-        new URL(
-          '../packages/platform/migrations/0005_media_catalog.sql',
-          import.meta.url,
-        ),
-        'utf8',
-      )
+      const migration =
+        (await readFile(
+          new URL(
+            '../packages/platform/migrations/0005_media_catalog.sql',
+            import.meta.url,
+          ),
+          'utf8',
+        )) +
+        '\n' +
+        (await readFile(
+          new URL(
+            '../packages/platform/migrations/0009_cloud_usage_events.sql',
+            import.meta.url,
+          ),
+          'utf8',
+        ))
       for (const part of migration
         .replace(/^--.*$/gm, '')
         .split(';')
         .map((s) => s.trim())
-        .filter(Boolean))
+        .filter(Boolean)) {
+        if (part.startsWith('ALTER TABLE cloud_uploads'))
+          await run(
+            "INSERT INTO cloud_uploads(site_id,id,owner_id,photo_id,source_version,connection_id,object_key,expected_bytes,expires_at) VALUES(1,'pre-upgrade',1,'pre-upgrade','v1','storage-1','originals/pre-upgrade',42,1000)",
+          )
         await run(part)
+      }
+      assert.equal(
+        (
+          await db
+            .prepare(
+              "SELECT expected_video_bytes FROM cloud_uploads WHERE site_id=1 AND id='pre-upgrade'",
+            )
+            .all<{ expected_video_bytes: number }>()
+        ).results[0]?.expected_video_bytes,
+        0,
+      )
+
       assert.equal(
         (
           await db
@@ -159,26 +184,26 @@ for (const backend of ['SQLite', 'D1'] as const) {
       await b.completeUpload({ ...complete('same'), title: 'Other tenant' })
       assert.equal((await a.photo('same'))?.title, 'Photo')
       assert.equal((await b.photo('same'))?.title, 'Other tenant')
-      await a.createAlbum('album', 'My album')
-      await a.createAlbum('album', 'My album')
-      await assert.rejects(a.createAlbum('album', 'Other'), { statusCode: 409 })
-      await a.addToAlbum('album', 'same')
-      await a.addToAlbum('album', 'same')
-      assert.equal((await a.albumPhotos('album')).length, 1)
-      assert.equal((await a.albumPhotos('album', 'same')).length, 0)
-      assert.equal(await b.album('album'), null)
-      await b.createAlbum('other-album', 'Other')
-      await assert.rejects(b.addToAlbum('album', 'same'))
-      await assert.rejects(a.addToAlbum('album', 'missing'))
+      for (const id of ['album', '0', '01', '-1', '1.2', '9007199254740992'])
+        await assert.rejects(a.createAlbum(id, 'Invalid'), { statusCode: 400 })
+      await a.createAlbum('1', 'My album')
+      await a.createAlbum('1', 'My album')
+      await assert.rejects(a.createAlbum('1', 'Other'), { statusCode: 409 })
+      await a.addToAlbum('1', 'same')
+      await a.addToAlbum('1', 'same')
+      assert.equal((await a.albumPhotos('1')).length, 1)
+      assert.equal((await a.albumPhotos('1', 'same')).length, 0)
+      assert.equal(await b.album('1'), null)
+      await b.createAlbum('2', 'Other')
+      await assert.rejects(b.addToAlbum('1', 'same'))
+      await assert.rejects(a.addToAlbum('1', 'missing'))
       // Foreign key failure in the second operation must roll back the first.
       await assert.rejects(
         db.batch([
           db.prepare(
             "INSERT INTO cloud_albums VALUES(1,'rolled-back','Rollback')",
           ),
-          db.prepare(
-            "INSERT INTO cloud_album_photos VALUES(2,'other-album','missing')",
-          ),
+          db.prepare("INSERT INTO cloud_album_photos VALUES(2,'2','missing')"),
         ]),
       )
       assert.equal(await a.album('rolled-back'), null)
@@ -199,9 +224,9 @@ for (const backend of ['SQLite', 'D1'] as const) {
       })
       await a.deletePhoto('same')
       assert.equal(await a.photo('same'), null)
-      await assert.rejects(a.addToAlbum('album', 'same'), { statusCode: 404 })
+      await assert.rejects(a.addToAlbum('1', 'same'), { statusCode: 404 })
       assert.equal((await a.job('same'))?.state, 'cancelled')
-      assert.equal((await a.albumPhotos('album')).length, 0)
+      assert.equal((await a.albumPhotos('1')).length, 0)
       assert.equal((await b.photo('same'))?.title, 'Other tenant')
       assert.equal(await a.completeUpload(complete('same')), 'same')
       assert.equal(await a.photo('same'), null) // retry cannot resurrect a tombstone
@@ -246,13 +271,22 @@ test('D1 media sessions and queued jobs survive a workerd restart', async () => 
       'INSERT INTO platform_users VALUES(1)',
     ])
       await db.prepare(sql).run()
-    const migration = await readFile(
-      new URL(
-        '../packages/platform/migrations/0005_media_catalog.sql',
-        import.meta.url,
-      ),
-      'utf8',
-    )
+    const migration =
+      (await readFile(
+        new URL(
+          '../packages/platform/migrations/0005_media_catalog.sql',
+          import.meta.url,
+        ),
+        'utf8',
+      )) +
+      '\n' +
+      (await readFile(
+        new URL(
+          '../packages/platform/migrations/0009_cloud_usage_events.sql',
+          import.meta.url,
+        ),
+        'utf8',
+      ))
     for (const sql of migration
       .replace(/^--.*$/gm, '')
       .split(';')

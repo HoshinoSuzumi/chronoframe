@@ -197,6 +197,30 @@ test('Cloud D1 and Self-hosted SQLite share ordering, visibility and protected-a
       '/api/public/media/locked/display',
     )
     assert(!JSON.stringify(unlocked).includes('source/locked'))
+    await db
+      .prepare(
+        "UPDATE cloud_albums SET cover_photo_id='old' WHERE site_id=1 AND id='1'",
+      )
+      .run()
+    await media.deletePhoto('old')
+    await db
+      .prepare(
+        "UPDATE cloud_photos SET metadata_json=NULL WHERE site_id=1 AND id='new'",
+      )
+      .run()
+    const current = createCloudResourceRepository(
+      db,
+      { id: 1 },
+      '/api/public/media',
+    )
+    assert.deepEqual(await current.listAlbumPhotoIds(1), ['hidden', 'locked'])
+    assert.equal((await current.getAlbum(1))?.resource.coverPhotoId, null)
+    assert.deepEqual(
+      (await createResourceReader(current).listAlbums({ admin: false })).find(
+        (a) => a.id === 1,
+      )?.photoIds,
+      [],
+    )
   } finally {
     sqlite.close()
     await mf.dispose()

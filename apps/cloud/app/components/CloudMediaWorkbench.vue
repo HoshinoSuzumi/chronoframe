@@ -135,7 +135,7 @@ async function loadPhoto() {
   const data = await api<{ photo: Photo; revision: number }>(
     base.value + '/photos/' + editPhoto.id,
   )
-  editPhoto.title = data.photo.title
+  editPhoto.title = data.photo.title ?? 'Untitled photograph'
   editPhoto.description = data.photo.description ?? ''
   editPhoto.revision = data.revision
 }
@@ -202,8 +202,8 @@ async function sendFile(file: File, liveVideo?: File) {
   localStorage.setItem(cache, id)
   activeResumeKey = cache
   if (controller?.signal.aborted) {
-    await api(base.value + '/uploads/' + id, {
-      method: 'DELETE',
+    await api(base.value + '/uploads/' + id + '/cancel', {
+      method: 'POST',
       body: {},
     }).catch(() => {})
     localStorage.removeItem(cache)
@@ -224,8 +224,12 @@ async function sendFile(file: File, liveVideo?: File) {
     localStorage.removeItem(cache)
     return
   }
-  if (plan.state !== 'pending' || !plan.mode)
+  if (plan.state !== 'pending' || !plan.mode) {
+    localStorage.removeItem(cache)
+    activeResumeKey = undefined
+    activeUpload = undefined
     throw new Error('Upload unavailable')
+  }
   async function put(url: string, body: Blob, type?: string) {
     for (let attempt = 0; attempt < 3; attempt++) {
       controller?.signal.throwIfAborted()
@@ -317,8 +321,8 @@ async function cancel() {
   if (activeResumeKey) localStorage.removeItem(activeResumeKey)
   activeResumeKey = undefined
   if (activeUpload)
-    await api(base.value + '/uploads/' + activeUpload, {
-      method: 'DELETE',
+    await api(base.value + '/uploads/' + activeUpload + '/cancel', {
+      method: 'POST',
       body: {},
     }).catch(() => {})
   activeUpload = undefined
@@ -331,7 +335,11 @@ async function removePhoto(id: string) {
   )
     return
   await action(
-    () => api(base.value + '/photos/' + id, { method: 'DELETE', body: {} }),
+    () =>
+      api(base.value + '/photos/' + id + '/delete', {
+        method: 'POST',
+        body: {},
+      }),
     'Photograph deleted. Managed storage files are queued for cleanup.',
   )
 }
@@ -357,8 +365,8 @@ async function removeAlbum() {
     return
   await action(
     () =>
-      api(base.value + '/albums/' + albumId.value, {
-        method: 'DELETE',
+      api(base.value + '/albums/' + albumId.value + '/delete', {
+        method: 'POST',
         body: {},
       }),
     'Album deleted. Photographs remain in your library.',
@@ -374,8 +382,8 @@ async function removeFromAlbum() {
     return
   await action(
     () =>
-      api(base.value + '/albums/' + albumId.value + '/photos', {
-        method: 'DELETE',
+      api(base.value + '/albums/' + albumId.value + '/remove-photo', {
+        method: 'POST',
         body: { photoId: photoId.value },
       }),
     'Photograph removed from album.',

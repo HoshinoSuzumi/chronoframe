@@ -144,6 +144,11 @@ jobs:
         run: |
           node --input-type=module <<'NODE'
           if (process.env.PLATFORM_D1_DATABASE_ID) {
+            if ((process.env.PLATFORM_STORAGE_SECRET || '').length < 32) throw new Error('Configure PLATFORM_STORAGE_SECRET with at least 32 characters in the selected GitHub Environment secrets')
+            if (process.env.ENTRIES.split(/\s+/).includes('cloud') && (process.env.PLATFORM_WORKER_SECRET || '').length < 32) throw new Error('Configure PLATFORM_WORKER_SECRET with at least 32 characters in the selected GitHub Environment secrets')
+            for (const host of (process.env.PLATFORM_S3_ENDPOINT_HOSTS || '').split(',').filter(Boolean)) {
+              if (!/^[a-z0-9.-]+$/i.test(host.trim())) throw new Error('PLATFORM_S3_ENDPOINT_HOSTS must contain exact hostnames')
+            }
             for (const entry of process.env.ENTRIES.split(/\s+/).filter(Boolean)) {
               const key = entry === 'cloud' ? 'CLOUD_PLATFORM_SECRET' : 'SITE_PLATFORM_SECRET'
               if ((process.env[key] || '').length < 32) throw new Error(`Configure ${key} with at least 32 characters in the selected GitHub Environment secrets`)

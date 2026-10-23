@@ -31,7 +31,6 @@ CREATE TABLE cloud_uploads (
   object_key TEXT NOT NULL,
   provider_upload_id TEXT,
   expected_bytes INTEGER NOT NULL CHECK (expected_bytes > 0),
-  expected_video_bytes INTEGER NOT NULL DEFAULT 0 CHECK(expected_video_bytes>=0),
   expires_at INTEGER NOT NULL,
   state TEXT NOT NULL DEFAULT 'pending' CHECK (state IN ('pending','completed','cancelled')),
   PRIMARY KEY (site_id,id),
@@ -53,12 +52,3 @@ CREATE TABLE cloud_processing_jobs (
 );
 CREATE INDEX cloud_jobs_dispatch ON cloud_processing_jobs(site_id,state,created_at,id);
 CREATE INDEX cloud_uploads_expiry ON cloud_uploads(site_id,state,expires_at);
-
-CREATE TABLE cloud_usage_events (
- site_id INTEGER NOT NULL,
- upload_id TEXT NOT NULL,
- bytes INTEGER NOT NULL,
- created_at INTEGER NOT NULL,
- PRIMARY KEY(site_id,upload_id),
- FOREIGN KEY(site_id,upload_id) REFERENCES cloud_uploads(site_id,id)
-);

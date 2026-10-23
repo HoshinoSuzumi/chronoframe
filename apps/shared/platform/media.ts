@@ -103,7 +103,7 @@ export async function privateMedia(
     siteId,
     await createStorageCipher(config.storageSecret),
   )
-  const stored = await vault.get(
+  const stored = await vault.resolve(
     object.connection_id,
     object.connection_revision,
   )

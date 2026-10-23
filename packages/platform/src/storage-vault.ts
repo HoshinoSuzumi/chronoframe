@@ -68,6 +68,30 @@ export function createStorageVault(
         ),
       }
     },
+    /** Object revisions pin bucket metadata; rotation replaces credentials for that same connection. */
+    async resolve(id: string, revision?: number) {
+      validId(id)
+      const row = await db
+        .prepare(
+          `SELECT v.revision,v.public_json,c.current_revision,k.secret_ciphertext FROM cloud_storage_connections c JOIN cloud_storage_versions v ON v.site_id=c.site_id AND v.connection_id=c.id AND v.revision=COALESCE(?,c.current_revision) JOIN cloud_storage_versions k ON k.site_id=c.site_id AND k.connection_id=c.id AND k.revision=c.current_revision WHERE c.site_id=? AND c.id=?`,
+        )
+        .bind(revision ?? null, siteId, id)
+        .first<{
+          revision: number
+          public_json: string
+          current_revision: number
+          secret_ciphertext: string
+        }>()
+      if (!row) return null
+      return {
+        revision: row.revision,
+        config: JSON.parse(row.public_json) as CloudStoragePublic,
+        credentials: await cipher.open(
+          row.secret_ciphertext,
+          aad(id, row.current_revision),
+        ),
+      }
+    },
     async create(
       id: string,
       config: CloudStoragePublic,

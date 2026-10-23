@@ -64,7 +64,9 @@ export function createCloudResourceRepository(
       id: Number(r.id),
       title: String(r.title),
       description: r.description ? String(r.description) : null,
-      coverPhotoId: r.cover_photo_id ? String(r.cover_photo_id) : null,
+      coverPhotoId: r.ready_cover_photo_id
+        ? String(r.ready_cover_photo_id)
+        : null,
       isHidden: !!r.hidden,
       position: Number(r.position),
       createdAt: new Date(Number(r.created_at)).toISOString(),
@@ -73,7 +75,7 @@ export function createCloudResourceRepository(
     },
     passwordHash: r.password_hash ? String(r.password_hash) : null,
   })
-  const albumSelect = `SELECT a.*,v.password_hash FROM cloud_albums a LEFT JOIN platform_album_access v ON v.site_id=a.site_id AND CAST(v.album_id AS TEXT)=a.id WHERE a.site_id=?`
+  const albumSelect = `SELECT a.*,v.password_hash,(SELECT p.id FROM cloud_photos p WHERE p.site_id=a.site_id AND p.id=a.cover_photo_id AND ${ready}) AS ready_cover_photo_id FROM cloud_albums a LEFT JOIN platform_album_access v ON v.site_id=a.site_id AND CAST(v.album_id AS TEXT)=a.id WHERE a.site_id=?`
   async function memberships(photoId?: string) {
     return (
       await all<{
@@ -132,7 +134,7 @@ export function createCloudResourceRepository(
     async listAlbumPhotoIds(id) {
       return (
         await all<{ photo_id: string }>(
-          'SELECT photo_id FROM cloud_album_photos WHERE site_id=? AND album_id=? ORDER BY position,photo_id LIMIT 1000',
+          `SELECT a.photo_id FROM cloud_album_photos a JOIN cloud_photos p ON p.site_id=a.site_id AND p.id=a.photo_id WHERE a.site_id=? AND a.album_id=? AND ${ready} ORDER BY a.position,a.photo_id LIMIT 1000`,
           String(id),
         )
       ).map((r) => r.photo_id)

@@ -74,6 +74,8 @@ export function createCloudMediaRepository(
       )
     },
     async createAlbum(id: string, title: string) {
+      if (!/^[1-9][0-9]*$/.test(id) || !Number.isSafeInteger(Number(id)))
+        throw new CoreError(400, 'Canonical numeric album ID required')
       await db.batch([
         statement(
           'INSERT INTO cloud_albums(site_id,id,title) SELECT ?,?,? WHERE (SELECT COUNT(*) FROM cloud_albums WHERE site_id=?)<100 ON CONFLICT DO NOTHING',

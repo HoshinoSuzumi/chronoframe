@@ -58,7 +58,7 @@ export async function cloudMedia(event: H3Event, mutation = false) {
     .map((h) => h.trim())
     .filter(Boolean)
   async function storage(id: string, revision?: number) {
-    const item = await vault.get(id, revision)
+    const item = await vault.resolve(id, revision)
     if (!item) throw createError({ statusCode: 404 })
     return {
       revision: item.revision,

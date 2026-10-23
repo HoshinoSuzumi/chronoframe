@@ -99,6 +99,7 @@ test('Credential vault authenticates Site/revision, keeps old objects usable and
       '0005_media_catalog.sql',
       '0006_cloud_execution.sql',
       '0007_cloud_storage.sql',
+      '0009_cloud_usage_events.sql',
     ]) {
       const migration = await readFile(
         new URL('../packages/platform/migrations/' + name, import.meta.url),
@@ -154,6 +155,13 @@ test('Credential vault authenticates Site/revision, keeps old objects usable and
     ])
     assert.equal(rotated.filter(Boolean).length, 1)
     assert.equal((await vault.get('storage'))?.revision, 2)
+    const resolved = await vault.resolve('storage', 1)
+    assert.equal(resolved?.revision, 1)
+    assert.equal(
+      resolved?.credentials.secretAccessKey,
+      (await vault.get('storage'))?.credentials.secretAccessKey,
+    )
+    assert.equal(resolved?.config.bucket, config.bucket)
     assert.equal(
       (await vault.get('storage', 1))?.credentials.secretAccessKey,
       secretAccessKey,
