@@ -174,8 +174,8 @@ jobs:
           config.workers_dev = true
           // Production deploys retain Dashboard vars; Preview deployments manage vars separately.
           config.keep_vars = true
-          // Version URLs are separate from isolated Worker Previews.
-          config.preview_urls = false
+          // Named staging Previews also require workers.dev preview URLs to be enabled.
+          config.preview_urls = true
           // Do not copy production variables or data bindings into Preview settings.
           config.previews ??= {}
           const databaseId = process.env.PLATFORM_D1_DATABASE_ID
