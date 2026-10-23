@@ -36,6 +36,7 @@ export async function createEmailCodeCrypto(
 
 // Conservative cost for Workers deployments that enforce the Web Crypto PBKDF2 cap.
 export const VISITOR_PBKDF2_ITERATIONS = 100_000
+/** Derive a portable PBKDF2-SHA256 verifier; callers must use a unique salt per policy. */
 export async function visitorPasswordHash(
   password: string,
   salt: string,

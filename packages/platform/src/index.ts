@@ -147,8 +147,10 @@ export interface PlatformSiteSummary {
   published: boolean
   role: 'admin' | 'member'
 }
+/** Read portal Site metadata through live Workspace Memberships; never infer a default Site. */
 export function createD1SiteCatalog(db: PlatformD1) {
   return {
+    /** Return this user's readable Sites, including their unpublished drafts. */
     async list(userId: number): Promise<PlatformSiteSummary[]> {
       // JSON aggregation avoids exposing driver-specific `all()` result types.
       const row = await db
@@ -168,6 +170,7 @@ export function createD1SiteCatalog(db: PlatformD1) {
         > & { published: number })[]
       ).map((site) => ({ ...site, published: site.published === 1 }))
     },
+    /** Read a name after the caller has independently authorized or resolved the Site. */
     async name(siteId: number): Promise<string> {
       const row = await db
         .prepare('SELECT name FROM platform_sites WHERE id = ?')

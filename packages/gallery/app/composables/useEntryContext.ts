@@ -8,6 +8,7 @@ import { SELF_HOSTED_CAPABILITIES } from '@chronoframe/contracts/entry'
 export function useEntryContext() {
   return useState<EntrySiteContext | null>('entry-site-context', () => null)
 }
+/** Prefer server-resolved Site capabilities, with the entry profile as the bootstrap default. */
 export function useEntryCapabilities(): EntryCapabilities {
   return (
     useEntryContext().value?.capabilities ??

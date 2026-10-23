@@ -10,6 +10,7 @@ export function useEntryApi(baseURL: string) {
     return fetcher(entryRequestPath(request, snapshot), { ...options, baseURL })
   }) as typeof $fetch
 }
+/** Keep reactive fetch paths and hydration-cache keys inside the active entry scope. */
 export function useEntryFetch(
   request: unknown,
   options: Record<string, unknown> | undefined,

@@ -46,6 +46,7 @@ export interface EntrySiteContext {
   capabilities: EntryCapabilities
 }
 
+/** Prefix resolved Site APIs and reject traversal; preserve legacy Self-hosted paths. */
 export function entryRequestPath(
   path: string,
   context: EntrySiteContext | null,

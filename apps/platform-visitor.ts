@@ -15,6 +15,7 @@ export { visitorPasswordHash } from './platform-crypto.ts'
 const encoder = new TextEncoder()
 const COOKIE = '__Host-chronoframe-visitor'
 const TTL = 60 * 60 * 1000
+/** Import the independent visitor MAC key, rejecting unconfigured deployments. */
 async function signingKey(secret: string) {
   if (encoder.encode(secret).length < 32) throw createError({ statusCode: 503 })
   return crypto.subtle.importKey(
@@ -25,6 +26,7 @@ async function signingKey(secret: string) {
     ['sign', 'verify'],
   )
 }
+/** Sign Host-bound Site/album grants without carrying any platform identity. */
 export async function encodeVisitorGrants(
   secret: string,
   host: string,
@@ -40,6 +42,7 @@ export async function encodeVisitorGrants(
   )
   return body + '.' + btoa(String.fromCharCode(...new Uint8Array(signature)))
 }
+/** Verify the Host MAC and retain well-formed grants with bounded, unexpired lifetimes. */
 export async function decodeVisitorGrants(
   secret: string,
   host: string,
@@ -78,6 +81,7 @@ export async function decodeVisitorGrants(
     return []
   }
 }
+/** Load this Site's album policy, rejecting absent or malformed verifier records. */
 async function policy(
   event: H3Event,
   context: PublicSiteContext,
@@ -102,6 +106,7 @@ async function policy(
     throw createError({ statusCode: 503 })
   return result
 }
+/** Check the current password revision against visitor grants, never platform cookies. */
 export async function visitorAccess(
   event: H3Event,
   context: PublicSiteContext,
@@ -119,6 +124,7 @@ export async function visitorAccess(
     unlocked: hasSiteVisitorGrant(context, grants, albumId, current.revision),
   }
 }
+/** Verify a same-origin, rate-limited password attempt and issue a scoped visitor grant. */
 export async function unlockVisitor(
   event: H3Event,
   context: PublicSiteContext,

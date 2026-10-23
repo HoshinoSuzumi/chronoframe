@@ -41,12 +41,14 @@ const normalImageCache: LRUCache<string, ImageLoaderCacheResult> = new LRUCache<
   }
 })
 
+/** Release cached object URLs when the client changes Site or principal. */
 export function clearImageLoaderCache() {
   normalImageCache.clear()
 }
 
 export class ImageLoaderManager {
   private readonly scope: string
+  /** Bind image cache lookups to the creating entry scope. */
   constructor(scope = 'self-hosted') {
     this.scope = scope
   }
@@ -154,6 +156,7 @@ export class ImageLoaderManager {
     })
   }
 
+  /** Reuse object URLs only within this loader's scope, caching new image blobs on misses. */
   async processNormalImage(
     blob: Blob,
     originalUrl: string,
