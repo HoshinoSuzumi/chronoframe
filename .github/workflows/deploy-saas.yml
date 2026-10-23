@@ -136,6 +136,7 @@ jobs:
           DEPLOY_ENVIRONMENT: ${{ inputs.environment }}
           PLATFORM_D1_DATABASE_ID: ${{ vars.PLATFORM_D1_DATABASE_ID }}
           PLATFORM_EMAIL_FROM: ${{ vars.PLATFORM_EMAIL_FROM }}
+          PLATFORM_PORTAL_ORIGIN: ${{ vars.PLATFORM_PORTAL_ORIGIN }}
         run: |
           set -euo pipefail
           for entry in $ENTRIES; do
@@ -149,6 +150,8 @@ jobs:
           const config = JSON.parse(fs.readFileSync(path, 'utf8'))
           config.name = `chronoframe-${process.env.ENTRY}`
           config.workers_dev = true
+          // Production deploys retain Dashboard vars; Preview deployments manage vars separately.
+          config.keep_vars = true
           // Version URLs are separate from isolated Worker Previews.
           config.preview_urls = false
           // Do not copy production variables or data bindings into Preview settings.
@@ -163,6 +166,13 @@ jobs:
             } else {
               config.d1_databases = [binding]
             }
+          }
+          const portalOrigin = process.env.PLATFORM_PORTAL_ORIGIN
+          if (process.env.ENTRY === 'cloud' && portalOrigin) {
+            const url = new URL(portalOrigin)
+            if (url.protocol !== 'https:' || url.origin !== portalOrigin) throw new Error('Platform portal origin must be an exact HTTPS origin')
+            const target = process.env.DEPLOY_ENVIRONMENT === 'staging' ? config.previews : config
+            target.vars = { ...target.vars, NUXT_PLATFORM_PORTAL_ORIGIN: portalOrigin }
           }
           const emailFrom = process.env.PLATFORM_EMAIL_FROM
           if (process.env.ENTRY === 'cloud' && emailFrom) {
@@ -225,6 +235,7 @@ jobs:
             echo '::error::Configure CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID in the selected GitHub Environment.'
             exit 1
           fi
+          echo '::notice::Preview plain-text vars are managed by previews.vars. Configure PLATFORM_PORTAL_ORIGIN in the GitHub Environment and NUXT_PLATFORM_SECRET as an encrypted Worker/Preview secret; existing Preview secrets are retained.'
           echo '## Worker deployment results' >> "$GITHUB_STEP_SUMMARY"
           for entry in $ENTRIES; do
             worker="chronoframe-$entry"
