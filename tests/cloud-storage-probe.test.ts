@@ -39,6 +39,10 @@ function fixture(fail?: string) {
       hit('recover')
       return ['upload-id']
     },
+    async parts(_key, uploadId) {
+      hit('parts:' + uploadId)
+      return []
+    },
     async abort() {
       hit('abort')
     },
@@ -95,6 +99,7 @@ test('Connection probe checks object operations and returns only safe fixed fail
     'signed_read',
     'multipart',
     'recover',
+    'parts:upload-id',
     'abort',
     'cors',
     'cleanup',
@@ -334,4 +339,60 @@ test('Multipart recovery preserves literal percent keys and rejects incomplete o
     /Multipart pagination limit exceeded/,
   )
   assert.equal(calls, 20)
+})
+
+test('Connection probe accepts different usable opaque multipart IDs returned by create and list', async () => {
+  const f = fixture(),
+    checked: string[] = []
+  f.client.recoverMultipart = async () => ['listed-opaque-token']
+  f.client.parts = async (_key, id) => {
+    checked.push(id)
+    assert(['upload-id', 'listed-opaque-token'].includes(id))
+    return []
+  }
+  await probeStorageConnection(
+    f.client,
+    'https://portal.example',
+    async () => new Response('ok'),
+  )
+  assert.deepEqual(checked, ['upload-id', 'listed-opaque-token'])
+  assert(f.calls.includes('abort'))
+  assert(f.calls.includes('cors'))
+  assert(f.calls.includes('cleanup'))
+})
+
+test('Opaque multipart ID validation rejects unusable, missing and nonempty probes and still cleans up', async () => {
+  for (const invalid of ['listed', 'created', 'missing', 'nonempty']) {
+    const f = fixture()
+    f.client.recoverMultipart = async () =>
+      invalid === 'missing' ? [] : ['listed-token']
+    f.client.parts = async (_key, handle) => {
+      if (invalid === 'nonempty') return [{}]
+      if (
+        (invalid === 'listed' && handle === 'listed-token') ||
+        (invalid === 'created' && handle === 'upload-id')
+      )
+        throw Object.assign(new Error('provider secret must not leak'), {
+          name: 'NoSuchUpload',
+          $metadata: { httpStatusCode: 404 },
+        })
+      return []
+    }
+    await assert.rejects(
+      probeStorageConnection(
+        f.client,
+        'https://portal.example',
+        async () => new Response('ok'),
+      ),
+      (error) => {
+        assert(error instanceof StorageConnectionError)
+        assert.equal(error.code, 'storage_multipart_list_failed')
+        assert(!JSON.stringify(error).includes('secret'))
+        return true
+      },
+    )
+    assert(f.calls.includes('abort'))
+    assert(f.calls.includes('cleanup'))
+    assert(!f.calls.includes('cors'))
+  }
 })
