@@ -287,7 +287,8 @@ const downloadOriginalImage = async () => {
   if (downloadingOriginal.value || !props.photo.originalUrl) return
   downloadingOriginal.value = true
   try {
-    const response = await fetch(props.photo.originalUrl!)
+    const source = props.photo.downloadUrl || props.photo.originalUrl!
+    const response = await fetch(source)
     if (!response.ok) throw new Error(`HTTP ${response.status}`)
     const blob = await response.blob()
     const url = window.URL.createObjectURL(blob)

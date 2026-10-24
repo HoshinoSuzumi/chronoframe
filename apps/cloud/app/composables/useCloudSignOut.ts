@@ -1,5 +1,11 @@
 /** One logout behavior for account settings and the portal account menu. */
 export function useCloudSignOut() {
+  const nuxtApp = useNuxtApp(),
+    context = useEntryContext(),
+    catalog = useState('platform-site-catalog'),
+    userId = useState('platform-user-id'),
+    identity = usePortalIdentity(),
+    settings = useSettingsStore()
   const busy = ref(false),
     error = ref('')
   async function signOut() {
@@ -8,13 +14,18 @@ export function useCloudSignOut() {
     error.value = ''
     try {
       await $fetch('/api/auth/sign-out', { method: 'POST' })
-      clearNuxtData()
-      useEntryContext().value = null
-      useState('platform-site-catalog').value = null
-      useState('platform-user-id').value = null
-      useSettingsStore().$reset()
-      // Reset the document at the authentication boundary so no previous user's data survives.
-      await navigateTo('/signin', { external: true })
+      nuxtApp.runWithContext(() => {
+        clearNuxtData()
+        context.value = null
+        catalog.value = null
+        userId.value = null
+        identity.value = null
+        settings.$reset()
+      })
+      // Reset the document at the authentication boundary.
+      await nuxtApp.runWithContext(() =>
+        navigateTo('/signin', { external: true }),
+      )
     } catch {
       error.value = 'We could not sign you out. Please try again.'
     } finally {

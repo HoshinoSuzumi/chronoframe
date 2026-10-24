@@ -481,6 +481,11 @@ onUnmounted(() => {
 <template>
   <div
     ref="photoRef"
+    role="button"
+    tabindex="0"
+    :aria-label="photo.title || $t('ui.photo.altFallback')"
+    @keydown.enter.prevent="handleClick"
+    @keydown.space.prevent="handleClick"
     class="w-full transition-all duration-300 cursor-pointer select-none"
     :style="{
       transform: 'translateZ(0)',

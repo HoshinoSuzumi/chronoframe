@@ -17,12 +17,15 @@ export async function siteManagement(event: H3Event, mutation = false) {
     store: createD1Provisioning(platformDatabase(event)),
   }
 }
-export async function siteManagementBody(event: H3Event) {
+export async function siteManagementBody(event: H3Event, limit = 4096) {
   if (
+    !Number.isSafeInteger(limit) ||
+    limit < 1 ||
+    limit > 131072 ||
     !getHeader(event, 'content-type')?.startsWith('application/json') ||
-    Number(getHeader(event, 'content-length')) > 4096
+    Number(getHeader(event, 'content-length')) > limit
   )
     throw createError({ statusCode: 400 })
   // Nitro may already hold the original Cloudflare Request; read H3's active stream.
-  return readSiteBody(getRequestWebStream(event))
+  return readSiteBody(getRequestWebStream(event), limit)
 }

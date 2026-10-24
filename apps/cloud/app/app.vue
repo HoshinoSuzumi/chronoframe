@@ -1,5 +1,8 @@
+<script setup lang="ts">
+useHead({ bodyAttrs: { class: 'cf-cloud-body' } })
+</script>
 <template>
-  <div class="cf-root">
+  <UApp class="cf-root">
     <a
       href="#main-content"
       class="cf-skip-link"
@@ -7,5 +10,5 @@
     ><NuxtLoadingIndicator color="var(--cf-primary)" /><NuxtLayout
       ><NuxtPage
     /></NuxtLayout>
-  </div>
+  </UApp>
 </template>

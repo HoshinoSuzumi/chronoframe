@@ -1,4 +1,5 @@
 /* ChronoFrame Cloud tokens. Scoped to this entry: shared editions retain their theme. */
+.cf-cloud-body,
 .cf-root,
 .cf-error {
   --background: #f7f7f2;
@@ -27,6 +28,7 @@
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
 }
+.dark .cf-cloud-body,
 .dark .cf-root,
 .dark .cf-error {
   --background: #171d18;
@@ -1746,4 +1748,656 @@
   .cf-job-list small {
     margin-left: 0;
   }
+}
+
+/* One persistent shell: workspace and site navigation share a wider sidebar. */
+.cf-portal-grid {
+  grid-template-columns: 260px minmax(0, 1fr);
+}
+.cf-sidebar {
+  padding: 18px 12px 12px;
+  overflow: hidden;
+}
+.cf-sidebar-viewport {
+  position: relative;
+  flex: 1;
+  min-height: 200px;
+  overflow: hidden;
+}
+.cf-sidebar-panel {
+  width: 100%;
+}
+.cf-sidebar-panel nav {
+  display: grid;
+  gap: 4px;
+}
+.cf-sidebar-panel nav a,
+.cf-sidebar-back {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  min-height: 38px;
+  border-radius: 7px;
+  font-size: 13px;
+  color: var(--muted-foreground);
+}
+.cf-sidebar-panel nav a:hover,
+.cf-sidebar-back:hover {
+  background: var(--secondary);
+  color: var(--foreground);
+}
+.cf-sidebar-panel nav a.active {
+  background: var(--secondary);
+  color: var(--primary);
+  box-shadow: inset 0 0 0 1px var(--border);
+}
+.cf-sidebar-back {
+  margin-bottom: 14px;
+  font-size: 12px;
+}
+.cf-sidebar-site {
+  display: flex;
+  gap: 10px;
+  padding: 0 10px 22px;
+  align-items: center;
+  min-width: 0;
+}
+.cf-sidebar-site > div {
+  min-width: 0;
+}
+.cf-sidebar-site strong,
+.cf-sidebar-site span:not(.cf-site-icon) {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cf-sidebar-site strong {
+  font-size: 13px;
+  font-weight: 600;
+}
+.cf-sidebar-site > div > span {
+  font-size: 11px;
+  color: var(--muted-foreground);
+  margin-top: 2px;
+}
+.cf-sidebar-bottom {
+  display: block;
+  padding: 12px 0 0;
+  margin-top: auto;
+  border-top: 1px solid var(--border);
+}
+.cf-user-trigger {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-width: 0;
+  gap: 9px;
+  padding: 10px 8px;
+  text-align: left;
+  border-radius: 8px;
+  cursor: pointer;
+}
+.cf-user-trigger:hover,
+.cf-user-trigger[data-state='open'] {
+  background: var(--secondary);
+}
+.cf-user-trigger > svg {
+  flex-shrink: 0;
+  color: var(--muted-foreground);
+}
+.cf-user-avatar {
+  flex: 0 0 32px;
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--secondary);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--primary);
+}
+.cf-user-identity {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+.cf-user-identity strong {
+  font-size: 12px;
+  color: var(--foreground);
+  font-weight: 550;
+}
+.cf-user-identity span {
+  font-size: 10px;
+  color: var(--muted-foreground);
+}
+.cf-user-identity > * {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cf-account-menu {
+  z-index: 120;
+  width: 248px;
+  max-width: calc(100vw - 24px);
+  padding: 5px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--card);
+  box-shadow: 0 12px 32px #111c1620;
+  font-size: 12px;
+}
+.cf-account-menu-label {
+  display: grid;
+  gap: 3px;
+  padding: 9px;
+}
+.cf-account-menu-label > * {
+  overflow-wrap: anywhere;
+}
+.cf-account-menu-label span {
+  color: var(--muted-foreground);
+  font-size: 11px;
+}
+.cf-account-menu [role='menuitem'] {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 9px;
+  border-radius: 5px;
+  cursor: pointer;
+  outline: none;
+}
+.cf-account-menu [role='menuitem'][data-highlighted] {
+  background: var(--secondary);
+}
+.cf-menu-separator {
+  height: 1px;
+  margin: 4px 0;
+  background: var(--border);
+}
+.cf-sidebar-toggle {
+  display: none;
+}
+.cf-sidebar-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  background: #10191066;
+  backdrop-filter: blur(3px);
+}
+.cf-sidebar-drawer {
+  position: fixed;
+  inset: 0 auto 0 0;
+  z-index: 70;
+  width: min(290px, calc(100vw - 36px));
+  display: flex;
+  flex-direction: column;
+  padding: 14px 12px;
+  background: var(--background);
+  color: var(--foreground);
+  border-right: 1px solid var(--border);
+}
+.cf-drawer-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 16px;
+}
+.cf-portal-content {
+  max-width: 1320px;
+}
+.cf-portal-main {
+  padding: 26px 30px 40px;
+}
+.cf-account-page {
+  max-width: 980px;
+  margin-inline: auto;
+}
+.cf-account-page #security {
+  margin-top: 38px;
+  scroll-margin-top: 84px;
+}
+.cf-section-title {
+  font-size: 15px;
+  font-weight: 600;
+  margin-bottom: 14px;
+}
+.cf-nav-forward-enter-active,
+.cf-nav-forward-leave-active,
+.cf-nav-back-enter-active,
+.cf-nav-back-leave-active {
+  transition:
+    transform 220ms cubic-bezier(0.22, 0.68, 0.3, 1),
+    opacity 180ms ease;
+}
+.cf-nav-forward-leave-active,
+.cf-nav-back-leave-active {
+  position: absolute;
+  inset: 0;
+}
+.cf-nav-forward-enter-from,
+.cf-nav-back-leave-to {
+  transform: translateX(100%);
+  opacity: 0;
+}
+.cf-nav-forward-leave-to,
+.cf-nav-back-enter-from {
+  transform: translateX(-100%);
+  opacity: 0;
+}
+@media (max-width: 899px) {
+  .cf-portal-grid {
+    display: block;
+  }
+  .cf-sidebar {
+    display: none;
+  }
+  .cf-sidebar-toggle {
+    display: inline-flex;
+  }
+  .cf-portal-header {
+    height: 56px;
+    padding: 0 14px;
+    gap: 8px;
+  }
+  .cf-portal-brand {
+    gap: 7px;
+  }
+  .cf-portal-main {
+    padding: 22px 16px 32px;
+  }
+  .cf-sidebar-drawer .cf-sidebar-bottom {
+    display: block;
+  }
+  .cf-sidebar-drawer .cf-sidebar-panel nav {
+    display: grid;
+  }
+  .cf-preview-badge {
+    display: none;
+  }
+  .cf-portal .cf-brand {
+    font-size: 15px;
+    gap: 6px;
+  }
+  .cf-portal .cf-brand-edition {
+    font-size: 11px;
+    margin-inline-start: 3px;
+  }
+  .cf-portal-header .cf-button-icon {
+    width: 32px;
+    height: 36px;
+    min-height: 36px;
+    padding: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cf-sidebar-viewport *,
+  .cf-sidebar-viewport {
+    transition: none !important;
+    animation: none !important;
+  }
+}
+
+/* Management surfaces use the same table, metadata forms and viewer primitives as the console. */
+.cf-site-page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 14px;
+  padding-bottom: 22px;
+  margin-bottom: 24px;
+  border-bottom: 1px solid var(--border);
+}
+.cf-site-heading {
+  min-width: 0;
+}
+.cf-site-heading h1 {
+  font-size: 22px;
+  line-height: 1.3;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.cf-site-publication {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+  font-size: 11px;
+  color: var(--muted-foreground);
+}
+.cf-site-page-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.cf-draft-hint {
+  width: 100%;
+  font-size: 12px;
+  color: var(--muted-foreground);
+}
+.cf-site-settings-stack {
+  display: grid;
+  gap: 22px;
+  max-width: 980px;
+}
+.cf-library {
+  min-width: 0;
+}
+.cf-library-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 20px;
+}
+.cf-library-heading h2 {
+  font-size: 17px;
+  font-weight: 600;
+}
+.cf-library-heading p {
+  color: var(--muted-foreground);
+  font-size: 12px;
+  margin-top: 4px;
+}
+.cf-library-toolbar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.cf-library-search {
+  width: 260px;
+  max-width: 100%;
+}
+.cf-library-table {
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--card);
+}
+.cf-library-table table {
+  font-size: 12px;
+}
+.cf-library-thumb {
+  display: flex;
+  width: 52px;
+  height: 44px;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border-radius: 5px;
+  background: var(--secondary);
+}
+.cf-library-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.cf-photo-title {
+  text-align: left;
+  max-width: 240px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 500;
+  cursor: pointer;
+}
+.cf-photo-dimensions,
+.cf-table-description {
+  font-size: 11px;
+  color: var(--muted-foreground);
+  max-width: 240px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.cf-tag-list {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+.cf-live-label {
+  display: block;
+  font-size: 10px;
+  color: var(--muted-foreground);
+}
+.cf-library-empty {
+  padding: 42px 18px;
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+  text-align: center;
+  color: var(--muted-foreground);
+}
+.cf-library-empty h3 {
+  color: var(--foreground);
+  font-size: 14px;
+  font-weight: 500;
+}
+.cf-selection-bar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 10px 12px;
+  margin-bottom: 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--secondary);
+  font-size: 12px;
+}
+.cf-processing-panel {
+  margin-top: 20px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 14px;
+}
+.cf-processing-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0;
+  font-size: 12px;
+}
+.cf-photo-preview {
+  width: 100%;
+  max-height: 70vh;
+  object-fit: contain;
+}
+.cf-preview-details {
+  display: flex;
+  gap: 12px;
+  font-size: 12px;
+  color: var(--muted-foreground);
+}
+.cf-selected-photo {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 6px;
+}
+.cf-selected-photo > img {
+  width: 38px;
+  height: 38px;
+  object-fit: cover;
+  border-radius: 4px;
+}
+.cf-selected-photo > span {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+}
+.cf-photo-picker {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 12px;
+}
+.cf-picker-photo {
+  position: relative;
+  padding: 4px;
+  border: 2px solid transparent;
+  border-radius: 8px;
+  text-align: left;
+}
+.cf-picker-photo.selected {
+  border-color: var(--ui-primary);
+  background: var(--ui-bg-elevated);
+}
+.cf-picker-photo img {
+  width: 100%;
+  height: 110px;
+  object-fit: cover;
+  border-radius: 4px;
+}
+.cf-picker-photo > span {
+  display: block;
+  font-size: 12px;
+  margin: 6px 2px 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cf-picker-check {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: var(--ui-bg);
+  color: var(--ui-primary);
+  border-radius: 50%;
+}
+@media (max-width: 600px) {
+  .cf-site-page-header {
+    align-items: flex-start;
+    gap: 12px;
+  }
+  .cf-site-heading h1 {
+    font-size: 20px;
+  }
+  .cf-site-page-actions {
+    width: 100%;
+  }
+  .cf-library-heading {
+    align-items: flex-start;
+  }
+  .cf-library-search {
+    flex: 1;
+    min-width: 150px;
+  }
+  .cf-selected-photo {
+    gap: 2px;
+  }
+  .cf-selected-photo > img {
+    width: 30px;
+    height: 30px;
+  }
+}
+
+.cf-cloud-body {
+  --ui-primary: var(--primary);
+  --ui-bg: var(--background);
+  --ui-bg-elevated: var(--secondary);
+  --ui-bg-muted: var(--muted);
+  --ui-text: var(--foreground);
+  --ui-text-muted: var(--muted-foreground);
+  --ui-border: var(--border);
+}
+.cf-upload-dropzone {
+  width: 100%;
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+  padding: 36px 16px;
+  border: 1px dashed var(--ui-border);
+  border-radius: 10px;
+  text-align: center;
+  background: var(--ui-bg-muted);
+  cursor: pointer;
+}
+.cf-upload-dropzone span {
+  font-size: 12px;
+  color: var(--ui-text-muted);
+}
+.cf-upload-dropzone:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.cf-library-thumb {
+  position: relative;
+}
+.cf-library-thumb > div {
+  width: 100%;
+  height: 100%;
+}
+.cf-library-thumb .cf-live-label {
+  position: absolute;
+  bottom: 2px;
+  left: 3px;
+  padding: 0 2px;
+  border-radius: 2px;
+  color: #fff;
+  background: #0009;
+  font-size: 8px;
+}
+.cf-photo-dimensions {
+  display: block;
+  margin-top: 3px;
+}
+.cf-library-heading > button {
+  white-space: nowrap;
+  font-size: 12px;
+}
+.cf-selected-photo > div {
+  width: 38px;
+  height: 38px;
+  flex-shrink: 0;
+  border-radius: 4px;
+}
+.cf-picker-photo > div {
+  width: 100%;
+  height: 110px;
+  border-radius: 4px;
+}
+@media (max-width: 600px) {
+  .cf-library-toolbar .cf-library-search {
+    flex-basis: 100%;
+    width: 100%;
+  }
+}
+
+.cf-inline-picker {
+  margin-top: 18px;
+  padding: 14px;
+  border: 1px solid var(--ui-border);
+  border-radius: 8px;
+}
+.cf-inline-picker .cf-photo-picker {
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+.cf-photo-preview > .webgl-image-viewer {
+  height: min(65svh, 650px);
+}
+.cf-preview-details {
+  padding: 12px 16px;
+  flex-wrap: wrap;
 }

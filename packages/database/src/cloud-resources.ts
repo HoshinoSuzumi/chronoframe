@@ -40,6 +40,7 @@ export function createCloudResourceRepository(
       fileSize: typeof m.fileSize === 'number' ? m.fileSize : null,
       lastModified: null,
       originalUrl: base + '/display',
+      downloadUrl: base + '/original',
       thumbnailUrl: base + '/thumbnail',
       thumbnailHash:
         typeof m.thumbnailHash === 'string' ? m.thumbnailHash : null,
