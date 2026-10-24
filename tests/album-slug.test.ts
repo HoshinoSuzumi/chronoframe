@@ -17,6 +17,8 @@ test('generated album slugs romanize titles and normalize separators', () => {
   assert.equal(generatedAlbumSlug('Crème brûlée!'), 'creme-brulee')
   assert.equal(generatedAlbumSlug('你好，世界'), 'ni-hao-shi-jie')
   assert.equal(generatedAlbumSlug('Привет мир'), 'privet-mir')
+  assert.equal(generatedAlbumSlug('が'), 'ga')
+  assert.equal(generatedAlbumSlug('か\u3099'), 'ga')
 })
 
 test('custom album slugs are exact, lowercase, safe, and not numeric', () => {

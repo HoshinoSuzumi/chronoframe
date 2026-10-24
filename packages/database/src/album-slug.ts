@@ -8,7 +8,7 @@ import {
 
 /** Convert a title to a stable, URL-safe base. Persistence owns uniqueness. */
 export function generatedAlbumSlug(title: string): string {
-  const result = slugify(title.normalize('NFKD'), {
+  const result = slugify(title.normalize('NFKC'), {
     separator: '-',
     lowercase: true,
   })
