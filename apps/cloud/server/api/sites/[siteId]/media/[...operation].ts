@@ -31,13 +31,16 @@ const ID = (v: unknown) => {
   return s
 }
 export default definePlatformHandler(async (event) => {
+  // The Cloudflare Nitro adapter forwards bodies for POST/PUT/PATCH only.
+  // Management mutations use explicit POST actions, not body-bearing DELETE.
+  if (!['GET', 'POST', 'PATCH'].includes(event.method))
+    throw createError({ statusCode: 405 })
   const mutation = event.method !== 'GET',
     ctx = await cloudMedia(event, mutation)
   const { siteId, userId, site, db, raw, sql, repository, vault } = ctx
   const operation = getRouterParam(event, 'operation') ?? ''
   const [kind, id, action] = operation.split('/')
-  const body =
-    mutation && event.method !== 'DELETE' ? await siteManagementBody(event) : {}
+  const body = mutation ? await siteManagementBody(event) : {}
   const now = Date.now()
   if (kind === 'storage' && !id) {
     if (event.method === 'GET') return { connections: await vault.list() }
@@ -266,10 +269,7 @@ export default definePlatformHandler(async (event) => {
         urls,
       }
     }
-    if (
-      event.method === 'DELETE' ||
-      (event.method === 'POST' && action === 'cancel')
-    ) {
+    if (event.method === 'POST' && action === 'cancel') {
       if (upload.state !== 'pending') throw createError({ statusCode: 409 })
       const changes = await raw.batch([
         raw
@@ -392,8 +392,8 @@ export default definePlatformHandler(async (event) => {
   if (
     kind === 'photos' &&
     id &&
-    (event.method === 'DELETE' ||
-      (event.method === 'POST' && action === 'delete'))
+    event.method === 'POST' &&
+    action === 'delete'
   ) {
     const found = await raw
       .prepare('SELECT id FROM cloud_photos WHERE site_id=? AND id=?')
@@ -453,21 +453,20 @@ export default definePlatformHandler(async (event) => {
   if (
     kind === 'albums' &&
     id &&
-    (event.method === 'DELETE' ||
-      (event.method === 'POST' &&
-        ['delete', 'remove-photo'].includes(action ?? '')))
+    event.method === 'POST' &&
+    ['delete', 'remove-photo'].includes(action ?? '')
   ) {
     const albumId = String(number(Number(id)))
     if (!(await repository.album(albumId)))
       throw createError({ statusCode: 404 })
-    if (action === 'photos' || action === 'remove-photo') {
+    if (action === 'remove-photo') {
       await raw
         .prepare(
           'DELETE FROM cloud_album_photos WHERE site_id=? AND album_id=? AND photo_id=?',
         )
         .bind(siteId, albumId, ID(body.photoId))
         .run()
-    } else if (!action || action === 'delete') {
+    } else if (action === 'delete') {
       await raw.batch([
         raw
           .prepare(
