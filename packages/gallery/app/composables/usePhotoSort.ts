@@ -7,7 +7,7 @@ interface SortOption {
 }
 
 // 全局排序状态
-const sortOptions: SortOption[] = [
+const sortOptions: readonly SortOption[] = [
   {
     key: 'dateTaken-desc',
     labelI18n: 'ui.action.sort.options.dateTakenDesc',
@@ -70,6 +70,14 @@ const sortOptions: SortOption[] = [
   },
 ]
 
+const shuffleOption: SortOption = {
+  key: 'shuffle',
+  labelI18n: 'ui.action.sort.options.shuffle',
+  icon: 'tabler:dice-3',
+  value: () => Math.random(),
+  order: 'asc',
+}
+
 export function usePhotoSort() {
   const { photos } = usePhotos()
   const currentSort = useState<string>(
@@ -77,10 +85,16 @@ export function usePhotoSort() {
     () => 'dateTaken-desc',
   )
 
+  const availableSorts = computed(() =>
+    currentSort.value === 'shuffle'
+      ? [...sortOptions, shuffleOption]
+      : sortOptions,
+  )
+
   // 当前排序选项
   const currentSortOption = computed(() => {
     return (
-      sortOptions.find((sort) => sort.key === currentSort.value) ||
+      availableSorts.value.find((sort) => sort.key === currentSort.value) ||
       sortOptions[0]
     )
   })
@@ -122,7 +136,7 @@ export function usePhotoSort() {
 
   // 设置排序方式
   const setSortOption = (sortKey: string) => {
-    if (sortOptions.some((sort) => sort.key === sortKey)) {
+    if (availableSorts.value.some((sort) => sort.key === sortKey)) {
       currentSort.value = sortKey
     }
   }
@@ -136,9 +150,6 @@ export function usePhotoSort() {
       setSortOption('dateTaken-desc')
     }
   }
-
-  // 获取可用的排序选项
-  const availableSorts = computed(() => sortOptions)
 
   // 获取当前排序的显示标签
   const currentSortLabel = computed(
@@ -166,20 +177,6 @@ export function usePhotoSort() {
   const shufflePhotos = () => {
     // 创建一个特殊的排序方式用于打乱
     currentSort.value = 'shuffle'
-
-    // 更新可用排序中的 shuffle 选项
-    const shuffleIndex = sortOptions.findIndex((sort) => sort.key === 'shuffle')
-
-    if (shuffleIndex === -1) {
-      // 如果没有 shuffle 排序选项，则添加它
-      sortOptions.push({
-        key: 'shuffle',
-        labelI18n: 'ui.action.sort.options.shuffle',
-        icon: 'tabler:dice-3',
-        value: () => Math.random(),
-        order: 'asc',
-      })
-    }
   }
 
   return {

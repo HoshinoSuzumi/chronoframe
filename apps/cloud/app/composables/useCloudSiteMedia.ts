@@ -326,13 +326,26 @@ export function useCloudMediaWorkspace(props: {
     const input = event.target as HTMLInputElement,
       files = Array.from(input.files ?? [])
     if (!files.length || uploading.value || !connectionId.value) return
+    const isVideo = (file: File) => file.name.toLowerCase().endsWith('.mov')
+    const companionFor = (photo: File) =>
+      files.find(
+        (file) =>
+          isVideo(file) &&
+          file.name.replace(/\.[^.]+$/, '').toLowerCase() ===
+            photo.name.replace(/\.[^.]+$/, '').toLowerCase(),
+      )
     if (
       files.some((f) => f.size > 100 * 1024 * 1024) ||
-      files.every((f) => f.name.toLowerCase().endsWith('.mov'))
+      files.some(
+        (file) =>
+          !isVideo(file) &&
+          file.size + (companionFor(file)?.size ?? 0) > 100 * 1024 * 1024,
+      ) ||
+      files.every(isVideo)
     ) {
       failed.value = true
       message.value =
-        'Choose photographs under 100 MB. A Live Photo MOV must accompany a photograph with the same filename.'
+        'Each photograph and its matching Live Photo MOV must total at most 100 MiB. A MOV must accompany a photograph with the same filename.'
       input.value = ''
       return
     }
@@ -344,12 +357,7 @@ export function useCloudMediaWorkspace(props: {
       for (const file of files.filter(
         (f) => !f.name.toLowerCase().endsWith('.mov'),
       )) {
-        const companion = files.find(
-          (f) =>
-            f.name.toLowerCase().endsWith('.mov') &&
-            f.name.replace(/\.[^.]+$/, '').toLowerCase() ===
-              file.name.replace(/\.[^.]+$/, '').toLowerCase(),
-        )
+        const companion = companionFor(file)
         currentFile.value = file.name
         progress.value = 0
         await sendFile(file, companion)

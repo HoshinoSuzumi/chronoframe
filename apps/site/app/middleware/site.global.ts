@@ -19,7 +19,7 @@ export default defineNuxtRouteMiddleware(async (to) => {
     return navigateTo('https://app.chronoframe.art/signin', { external: true })
   if (
     !['/photos', '/globe'].includes(to.path) &&
-    !/^\/[a-z0-9_-]{1,128}$/.test(to.path) &&
+    !/^\/[a-zA-Z0-9_-]{1,128}$/.test(to.path) &&
     to.path !== '/' &&
     to.path !== '/albums' &&
     !/^\/albums\/[1-9][0-9]*$/.test(to.path)

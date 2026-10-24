@@ -47,7 +47,10 @@ export function useCloudSiteSubscription() {
     stream.onerror = () => {
       void fetcher<EntrySiteContext>(`/api/sites/${snapshot.siteId}/context`)
         .then(update)
-        .catch(invalidate)
+        .catch((error: { statusCode?: number; status?: number } | null) => {
+          const status = error?.statusCode ?? error?.status
+          if (status === 401 || status === 403 || status === 404) invalidate()
+        })
     }
   }
   watch(() => context.value?.scope, connect, { flush: 'sync' })

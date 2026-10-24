@@ -486,9 +486,9 @@ export default definePlatformHandler(async (event) => {
           .bind(siteId, albumId, ID(body.photoId)),
         raw
           .prepare(
-            'UPDATE cloud_albums SET revision=revision+1,updated_at=? WHERE site_id=? AND id=?',
+            'UPDATE cloud_albums SET cover_photo_id=CASE WHEN cover_photo_id=? THEN NULL ELSE cover_photo_id END,revision=revision+1,updated_at=? WHERE site_id=? AND id=?',
           )
-          .bind(now, siteId, albumId),
+          .bind(ID(body.photoId), now, siteId, albumId),
       ])
     } else if (action === 'delete') {
       await raw.batch([

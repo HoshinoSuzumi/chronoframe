@@ -89,7 +89,9 @@ async function dropFiles(event: DragEvent) {
           ><span
             >Drop images here, or choose images and matching .MOV files
             together.</span
-          ><span>Up to 100 MB per photograph and paired video.</span>
+          ><span
+            >Up to 100 MiB per photograph, including its paired video.</span
+          >
         </button>
         <div
           v-if="uploading"
