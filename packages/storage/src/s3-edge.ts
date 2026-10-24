@@ -289,18 +289,47 @@ export function createCloudS3(
       )
     },
     async recoverMultipart(key: string) {
-      const result = await client.send(
-        new ListMultipartUploadsCommand({
-          Bucket,
-          Prefix: safeKey(key),
-          MaxUploads: 100,
-        }),
-      )
-      if (result.IsTruncated)
-        throw new Error('Too many multipart sessions for one object')
-      return (result.Uploads ?? [])
-        .filter((upload) => upload.Key === key && upload.UploadId)
-        .map((upload) => upload.UploadId!)
+      const prefix = safeKey(key),
+        ids = new Set<string>(),
+        cursors = new Set<string>()
+      let keyMarker: string | undefined, uploadIdMarker: string | undefined
+      // Bound provider pagination, and never return a partial list for cleanup.
+      for (let page = 0; page < 20; page++) {
+        const result = await client.send(
+          new ListMultipartUploadsCommand({
+            Bucket,
+            Prefix: prefix,
+            MaxUploads: 100,
+            EncodingType: 'url',
+            KeyMarker: keyMarker,
+            UploadIdMarker: uploadIdMarker,
+          }),
+        )
+        // The SDK leaves S3 EncodingType=url values encoded. Decode exactly once;
+        // decoding unlabelled keys would confuse literal percent-escaped names.
+        const decodeKey = (value: string) =>
+          result.EncodingType === 'url' ? decodeURIComponent(value) : value
+        for (const upload of result.Uploads ?? []) {
+          if (
+            upload.Key !== undefined &&
+            decodeKey(upload.Key) === key &&
+            upload.UploadId
+          )
+            ids.add(upload.UploadId)
+        }
+        if (ids.size > 100)
+          throw new Error('Too many multipart sessions for one object')
+        if (!result.IsTruncated) return [...ids]
+        if (result.NextKeyMarker === undefined)
+          throw new Error('Missing multipart pagination marker')
+        keyMarker = decodeKey(result.NextKeyMarker)
+        uploadIdMarker = result.NextUploadIdMarker
+        const cursor = JSON.stringify([keyMarker, uploadIdMarker])
+        if (cursors.has(cursor))
+          throw new Error('Repeated multipart pagination marker')
+        cursors.add(cursor)
+      }
+      throw new Error('Multipart pagination limit exceeded')
     },
     async multipart(key: string, contentType: string) {
       const r = await client.send(

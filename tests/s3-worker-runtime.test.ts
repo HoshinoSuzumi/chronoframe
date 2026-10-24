@@ -38,10 +38,18 @@ test('S3 browser distribution parses multipart/CORS XML in real workerd without 
           )
         if (request.method === 'DELETE')
           return new Response(null, { status: 204 })
-        if (u.searchParams.has('uploads'))
+        if (u.searchParams.has('uploads')) {
+          assert.equal(u.searchParams.get('encoding-type'), 'url')
+          if (!u.searchParams.has('key-marker'))
+            return xml(
+              '<ListMultipartUploadsResult xmlns="http://s3.amazonaws.com/doc/2006-03-01/"><EncodingType>url</EncodingType><IsTruncated>true</IsTruncated><NextKeyMarker>test%2Ffile</NextKeyMarker><NextUploadIdMarker>marker</NextUploadIdMarker><Upload><Key>test%2Ffile-other</Key><UploadId>foreign-upload</UploadId></Upload></ListMultipartUploadsResult>',
+            )
+          assert.equal(u.searchParams.get('key-marker'), 'test/file')
+          assert.equal(u.searchParams.get('upload-id-marker'), 'marker')
           return xml(
-            '<ListMultipartUploadsResult><Upload><Key>test/file</Key><UploadId>test-upload</UploadId></Upload></ListMultipartUploadsResult>',
+            '<ListMultipartUploadsResult><EncodingType>url</EncodingType><IsTruncated>false</IsTruncated><Upload><Key>test%2Ffile</Key><UploadId>test-upload</UploadId></Upload></ListMultipartUploadsResult>',
           )
+        }
         if (u.searchParams.has('uploadId'))
           return xml(
             '<ListPartsResult><Part><PartNumber>1</PartNumber><ETag>test-etag</ETag><Size>32</Size></Part></ListPartsResult>',

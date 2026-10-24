@@ -258,3 +258,80 @@ test('Multipart diagnostics identify each operation and redact arbitrary provide
   )
   assert(absent.calls.includes('abort'))
 })
+
+test('Multipart recovery matches URL-encoded keys and follows exact pagination markers', async () => {
+  const key = 'chronoframe/connection-check/a%2Fb space+测试'
+  const requests: URL[] = []
+  const xml = (s: string) =>
+    new Response(s, { headers: { 'content-type': 'application/xml' } })
+  const client = createCloudS3(config, {
+    fetch: async (input) => {
+      const url = new URL(input instanceof Request ? input.url : String(input))
+      requests.push(url)
+      assert.equal(url.searchParams.get('prefix'), key)
+      assert.equal(url.searchParams.get('encoding-type'), 'url')
+      if (requests.length === 1)
+        return xml(
+          `<ListMultipartUploadsResult xmlns="http://s3.amazonaws.com/doc/2006-03-01/"><EncodingType>url</EncodingType><IsTruncated>true</IsTruncated><NextKeyMarker>${encodeURIComponent(key)}</NextKeyMarker><NextUploadIdMarker>cursor-id</NextUploadIdMarker><Upload><Key>${encodeURIComponent(key + '-other')}</Key><UploadId>foreign</UploadId></Upload></ListMultipartUploadsResult>`,
+        )
+      assert.equal(url.searchParams.get('key-marker'), key)
+      assert.equal(url.searchParams.get('upload-id-marker'), 'cursor-id')
+      return xml(
+        `<ListMultipartUploadsResult><EncodingType>url</EncodingType><IsTruncated>false</IsTruncated><Upload><Key>${encodeURIComponent(key)}</Key><UploadId>expected</UploadId></Upload><Upload><Key>${encodeURIComponent(key + '-other')}</Key><UploadId>foreign</UploadId></Upload></ListMultipartUploadsResult>`,
+      )
+    },
+  })
+  assert.deepEqual(await client.recoverMultipart(key), ['expected'])
+  assert.equal(requests.length, 2)
+})
+
+test('Multipart recovery preserves literal percent keys and rejects incomplete or looping listings', async () => {
+  const key = 'test/literal%2Fname'
+  const make = (body: string) =>
+    createCloudS3(config, {
+      fetch: async () =>
+        new Response(body, { headers: { 'content-type': 'application/xml' } }),
+    })
+  assert.deepEqual(
+    await make(
+      `<ListMultipartUploadsResult><Upload><Key>${key}</Key><UploadId>literal</UploadId></Upload></ListMultipartUploadsResult>`,
+    ).recoverMultipart(key),
+    ['literal'],
+  )
+  assert.deepEqual(
+    await make(
+      '<ListMultipartUploadsResult><EncodingType>url</EncodingType><Upload><Key>test%2Fliteral%252Fname</Key><UploadId>encoded</UploadId></Upload></ListMultipartUploadsResult>',
+    ).recoverMultipart(key),
+    ['encoded'],
+  )
+  await assert.rejects(
+    make(
+      '<ListMultipartUploadsResult><EncodingType>url</EncodingType><Upload><Key>test%ZZ</Key><UploadId>bad</UploadId></Upload></ListMultipartUploadsResult>',
+    ).recoverMultipart(key),
+  )
+  await assert.rejects(
+    make(
+      '<ListMultipartUploadsResult><IsTruncated>true</IsTruncated></ListMultipartUploadsResult>',
+    ).recoverMultipart(key),
+    /Missing multipart pagination marker/,
+  )
+  await assert.rejects(
+    make(
+      '<ListMultipartUploadsResult><IsTruncated>true</IsTruncated><NextKeyMarker>same</NextKeyMarker><NextUploadIdMarker>same</NextUploadIdMarker></ListMultipartUploadsResult>',
+    ).recoverMultipart(key),
+    /Repeated multipart pagination marker/,
+  )
+  let calls = 0
+  const many = createCloudS3(config, {
+    fetch: async () =>
+      new Response(
+        `<ListMultipartUploadsResult><IsTruncated>true</IsTruncated><NextKeyMarker>key-${++calls}</NextKeyMarker></ListMultipartUploadsResult>`,
+        { headers: { 'content-type': 'application/xml' } },
+      ),
+  })
+  await assert.rejects(
+    many.recoverMultipart(key),
+    /Multipart pagination limit exceeded/,
+  )
+  assert.equal(calls, 20)
+})
