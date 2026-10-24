@@ -32,7 +32,8 @@ test('user and album boundaries remove password material and serialize dates', (
     createdAt: date,
     updatedAt: date,
   }
-  const dto = toAlbumDto(album)
+  const dto = toAlbumDto(album, 'test')
+  assert.equal(dto.slug, 'test')
   assert.equal(dto.hasPassword, true)
   assert.equal('passwordHash' in dto, false)
   assert.equal(dto.createdAt, date.toISOString())

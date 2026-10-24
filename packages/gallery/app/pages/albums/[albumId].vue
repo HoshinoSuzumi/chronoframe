@@ -9,10 +9,46 @@ const dayjs = useDayjs()
 const { user } = useUserSession()
 const { albumListPath } = useHomeView()
 
-const albumId = computed(() => {
-  const id = route.params.albumId as string
-  return parseInt(id, 10)
+const albumSegment = computed(() => String(route.params.albumId))
+const { data: resolved, error: resolveError } = await useGalleryFetch<{
+  albumId: number
+  slug: string
+  isCanonical: boolean
+}>(() => `/api/albums/resolve/${encodeURIComponent(albumSegment.value)}`, {
+  watch: [albumSegment],
 })
+if (resolveError.value || !resolved.value)
+  throw createError({ statusCode: 404, statusMessage: $t('album.notFound') })
+if (!resolved.value.isCanonical)
+  await navigateTo(
+    {
+      path: `/albums/${resolved.value.slug}`,
+      query: route.query,
+      hash: route.hash,
+    },
+    {
+      redirectCode: 301,
+      replace: true,
+    },
+  )
+watch(resolved, (value) => {
+  if (value && !value.isCanonical)
+    void navigateTo(
+      { path: `/albums/${value.slug}`, query: route.query, hash: route.hash },
+      { replace: true },
+    )
+})
+const albumId = computed(() => resolved.value?.albumId ?? 0)
+const canonicalAlbumRoute = computed(() => `/albums/${resolved.value?.slug}`)
+const requestUrl = useRequestURL()
+useHead(() => ({
+  link: [
+    {
+      rel: 'canonical',
+      href: `${requestUrl.origin}${canonicalAlbumRoute.value}`,
+    },
+  ],
+}))
 
 const {
   data: album,
@@ -133,7 +169,7 @@ const handleOpenViewer = (index: number) => {
   const photos = albumData.value?.photos
   if (photos && photos[index]) {
     const { openViewer } = useViewerState()
-    const albumRoute = `/albums/${albumId.value}`
+    const albumRoute = canonicalAlbumRoute.value
     // Scope the viewer to the album's photos so prev/next stays within this album.
     // The fetched photos are serialized rows of the same shape as Photo.
     openViewer(index, albumRoute, photos as Photo[])
@@ -146,18 +182,16 @@ watch(
   ([requestedPhoto, photos]) => {
     const viewer = useViewerState()
     if (typeof requestedPhoto !== 'string' || !photos) {
-      if (viewer.returnRoute === `/albums/${albumId.value}`)
-        viewer.closeViewer()
+      if (viewer.returnRoute === canonicalAlbumRoute.value) viewer.closeViewer()
       return
     }
     const index = photos.findIndex((photo) => photo.id === requestedPhoto)
     if (index < 0) {
-      if (viewer.returnRoute === `/albums/${albumId.value}`)
-        viewer.closeViewer()
+      if (viewer.returnRoute === canonicalAlbumRoute.value) viewer.closeViewer()
       return
     }
     const { openViewer } = viewer
-    openViewer(index, `/albums/${albumId.value}`, photos as Photo[])
+    openViewer(index, canonicalAlbumRoute.value, photos as Photo[])
   },
   { immediate: true },
 )

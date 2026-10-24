@@ -8,6 +8,7 @@ import { createResourceReader } from '@chronoframe/core'
 import * as schema from '../apps/self-hosted/server/database/schema.ts'
 import { createSqliteResourceRepository } from '../apps/self-hosted/server/repositories/sqlite-resources.ts'
 import { fetchAlbumPhotos } from '../apps/self-hosted/server/utils/album-visibility.ts'
+import { backfillAlbumSlugs } from '../packages/database/src/album-slugs.ts'
 
 test('SQLite reader preserves migrated data, ordering and legacy album visibility', async () => {
   const sqlite = new Database(':memory:')
@@ -31,6 +32,7 @@ test('SQLite reader preserves migrated data, ordering and legacy album visibilit
         { id: 3, title: 'Locked', passwordHash: 'private-hash', position: 0 },
       ])
       .run()
+    backfillAlbumSlugs(db)
     db.insert(schema.albumPhotos)
       .values([
         { albumId: 1, photoId: 'old', position: 30 },

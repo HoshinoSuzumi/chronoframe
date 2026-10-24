@@ -1,7 +1,7 @@
 import { requireSite } from './site-repository.ts'
 import { type SiteContext } from '@chronoframe/core'
 import { and as siteAnd, eq as siteEq } from 'drizzle-orm'
-import { asc, desc, eq, getTableColumns, notInArray } from 'drizzle-orm'
+import { and, asc, desc, eq, getTableColumns, notInArray } from 'drizzle-orm'
 import type { ResourceReadRepository } from '@chronoframe/core'
 import { tables, type AppDatabase } from './connection.ts'
 import { toAlbumDto, toPhotoDto } from './dto.ts'
@@ -12,8 +12,10 @@ export function createSqliteResourceRepository(
   site: SiteContext,
 ): ResourceReadRepository {
   requireSite(db, site)
-  const albumRecord = (row: typeof tables.albums.$inferSelect) => ({
-    resource: toAlbumDto(row),
+  const albumRecord = (
+    row: typeof tables.albums.$inferSelect & { slug: string },
+  ) => ({
+    resource: toAlbumDto(row, row.slug),
     passwordHash: row.passwordHash,
   })
   return {
@@ -45,8 +47,19 @@ export function createSqliteResourceRepository(
     },
     async listAlbums() {
       return db
-        .select()
+        .select({
+          ...getTableColumns(tables.albums),
+          slug: tables.albumSlugs.slug,
+        })
         .from(tables.albums)
+        .innerJoin(
+          tables.albumSlugs,
+          and(
+            eq(tables.albumSlugs.siteId, tables.albums.siteId),
+            eq(tables.albumSlugs.albumId, tables.albums.id),
+            eq(tables.albumSlugs.isCurrent, true),
+          ),
+        )
         .where(siteEq(tables.albums.siteId, site.id))
         .orderBy(asc(tables.albums.position), desc(tables.albums.createdAt))
         .all()
@@ -54,8 +67,19 @@ export function createSqliteResourceRepository(
     },
     async getAlbum(id) {
       const row = db
-        .select()
+        .select({
+          ...getTableColumns(tables.albums),
+          slug: tables.albumSlugs.slug,
+        })
         .from(tables.albums)
+        .innerJoin(
+          tables.albumSlugs,
+          and(
+            eq(tables.albumSlugs.siteId, tables.albums.siteId),
+            eq(tables.albumSlugs.albumId, tables.albums.id),
+            eq(tables.albumSlugs.isCurrent, true),
+          ),
+        )
         .where(
           siteAnd(
             eq(tables.albums.id, id),

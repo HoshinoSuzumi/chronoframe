@@ -12,6 +12,7 @@ export default eventHandler(async (event) => {
     event,
     z.object({
       title: z.string().min(1).max(255),
+      slug: z.string().max(80).optional(),
       description: z.string().max(1000).optional(),
       coverPhotoId: z.string().optional(),
       photoIds: z.array(z.string()).optional(),

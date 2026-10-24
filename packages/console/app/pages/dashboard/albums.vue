@@ -25,6 +25,7 @@ interface AlbumItem extends Album {
 
 interface AlbumFormState {
   title: string
+  slug: string
   description: string
   isHidden: boolean
   password: string
@@ -62,6 +63,7 @@ const currentAlbum = ref<AlbumItem | null>(null)
 
 const formData = reactive<AlbumFormState>({
   title: '',
+  slug: '',
   description: '',
   isHidden: false,
   password: '',
@@ -98,6 +100,17 @@ const validateForm = (state: any): FormError[] => {
     errors.push({
       name: 'title',
       message: $t('dashboard.albums.form.titleRequired'),
+    })
+  }
+  if (
+    state.slug?.trim() &&
+    (state.slug.trim().length > 80 ||
+      !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(state.slug.trim()) ||
+      /^\d+$/.test(state.slug.trim()))
+  ) {
+    errors.push({
+      name: 'slug',
+      message: $t('dashboard.albums.form.slugInvalid'),
     })
   }
   if (state.passwordEnabled) {
@@ -175,6 +188,7 @@ const loadPhotos = async () => {
 const openCreateSlideover = () => {
   currentAlbum.value = null
   formData.title = ''
+  formData.slug = ''
   formData.description = ''
   formData.isHidden = false
   formData.password = ''
@@ -190,6 +204,7 @@ const openEditSlideover = async (album: AlbumItem) => {
   try {
     const albumDetail = (await consoleApi(`/api/albums/${album.id}`)) as any
     formData.title = album.title
+    formData.slug = album.slug
     formData.description = album.description || ''
     formData.isHidden = album.isHidden || false
     formData.password = ''
@@ -220,6 +235,7 @@ const onFormSubmit = async (event: FormSubmitEvent<AlbumFormState>) => {
         method: 'PUT',
         body: {
           title: event.data.title,
+          slug: event.data.slug,
           description: event.data.description || undefined,
           coverPhotoId: coverPhotoId.value || undefined,
           photoIds: selectedPhotoIds.value,
@@ -241,6 +257,7 @@ const onFormSubmit = async (event: FormSubmitEvent<AlbumFormState>) => {
         method: 'POST',
         body: {
           title: event.data.title,
+          slug: event.data.slug,
           description: event.data.description || undefined,
           coverPhotoId: coverPhotoId.value || undefined,
           photoIds: selectedPhotoIds.value,
@@ -261,6 +278,26 @@ const onFormSubmit = async (event: FormSubmitEvent<AlbumFormState>) => {
 
     await loadAlbums()
   } catch (error) {
+    const status =
+      (error as { statusCode?: number; status?: number })?.statusCode ??
+      (error as { status?: number })?.status
+    const message =
+      (error as { statusMessage?: string; message?: string })?.statusMessage ??
+      (error as { message?: string })?.message ??
+      ''
+    if (status === 409 || (status === 400 && /slug/i.test(message))) {
+      formRef.value?.setErrors([
+        {
+          name: 'slug',
+          message: $t(
+            status === 409
+              ? 'dashboard.albums.form.slugConflict'
+              : 'dashboard.albums.form.slugInvalid',
+          ),
+        },
+      ])
+      return
+    }
     console.error('Failed to save album:', error)
     useToast().add({
       title: currentAlbum.value
@@ -601,7 +638,7 @@ const columns = computed<any[]>(() => [
 
             <template #title-cell="{ row }">
               <NuxtLink
-                :to="`/albums/${(row.original as unknown as AlbumItem).id}`"
+                :to="`/albums/${(row.original as unknown as AlbumItem).slug}`"
                 target="_blank"
                 class="font-medium text-primary-600 dark:text-primary-400 hover:underline cursor-pointer inline-flex items-center gap-2"
               >
@@ -816,6 +853,27 @@ const columns = computed<any[]>(() => [
                     class="w-full"
                     :placeholder="$t('dashboard.albums.form.titlePlaceholder')"
                   />
+                </UFormField>
+
+                <UFormField
+                  :label="$t('dashboard.albums.form.slug')"
+                  :description="$t('dashboard.albums.form.slugHint')"
+                  name="slug"
+                >
+                  <UInput
+                    v-model="formData.slug"
+                    class="w-full"
+                    maxlength="80"
+                    :placeholder="$t('dashboard.albums.form.slugPlaceholder')"
+                  />
+                  <p
+                    v-if="currentAlbum"
+                    class="mt-1 text-xs text-muted"
+                  >
+                    {{ $t('dashboard.albums.form.slugCurrent') }}: /albums/{{
+                      currentAlbum.slug
+                    }}
+                  </p>
                 </UFormField>
 
                 <UFormField

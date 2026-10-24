@@ -33,6 +33,7 @@ export interface Photo {
 
 export interface Album {
   id: number
+  slug: string
   title: string
   description: string | null
   coverPhotoId: string | null

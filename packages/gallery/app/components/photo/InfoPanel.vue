@@ -14,6 +14,7 @@ interface Props {
 
 interface Album {
   id: number
+  slug: string
   title: string
   description: string | null
   coverPhotoId: string | null
@@ -481,8 +482,8 @@ const onTagClick = (tag: string) => {
   })
 }
 
-const onAlbumClick = (albumId: number) => {
-  window.open(`/albums/${albumId}`)
+const onAlbumClick = (albumSlug: string) => {
+  window.open(`/albums/${albumSlug}`)
 }
 </script>
 
@@ -588,7 +589,7 @@ const onAlbumClick = (albumId: number) => {
             v-for="album in albums"
             :key="album.id"
             class="p-3 bg-white/5 border border-white/10 rounded-lg cursor-pointer hover:bg-white/10 transition-colors"
-            @click="onAlbumClick(album.id)"
+            @click="onAlbumClick(album.slug)"
           >
             <p class="text-sm text-white font-medium line-clamp-1">
               {{ album.title }}

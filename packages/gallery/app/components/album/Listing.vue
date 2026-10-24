@@ -291,7 +291,7 @@ const hoveredAlbum = ref<number | null>(null)
         <NuxtLink
           v-for="album in visibleAlbums"
           :key="album.id"
-          :to="`/albums/${album.id}`"
+          :to="`/albums/${album.slug}`"
           class="block"
           @mouseenter="hoveredAlbum = album.id"
           @mouseleave="hoveredAlbum = null"
