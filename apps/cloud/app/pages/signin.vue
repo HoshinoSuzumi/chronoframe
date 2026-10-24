@@ -71,7 +71,6 @@ async function submit() {
         return
       }
     }
-    clearNuxtData()
     await navigateTo('/sites', { external: true })
   } catch (cause) {
     error.value = accountError(cause)
@@ -89,7 +88,6 @@ async function passkeySignIn() {
   try {
     const result = await useCloudAccount().signIn.passkey()
     if (result.error) throw result.error
-    clearNuxtData()
     await navigateTo('/sites', { external: true })
   } catch {
     error.value =

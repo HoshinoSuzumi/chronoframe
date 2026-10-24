@@ -32,7 +32,6 @@ async function submit() {
         method: 'POST',
         body: { email: email.value, otp: code.value },
       })
-      clearNuxtData()
       await navigateTo('/sites', { external: true })
     }
   } catch (cause) {

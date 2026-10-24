@@ -1,7 +1,12 @@
 <script setup lang="ts">
 import { ArrowUpRight, Settings, Globe } from 'lucide-vue-next'
-const context = useEntryContext(),
-  { admin, busy, photos, publish } = useCloudSiteMedia()
+const activeContext = useEntryContext()
+const context = shallowRef(activeContext.value)
+// Preserve the outgoing header, while accepting live updates for this Site only.
+watch(activeContext, (next) => {
+  if (next?.scope === context.value?.scope) context.value = next
+})
+const { admin, busy, photos, publish } = useCloudSiteMedia()
 const { data } = useFetch<{ site: { slug: string | null } }>(
   `/api/sites/${context.value?.siteId}/settings`,
 )

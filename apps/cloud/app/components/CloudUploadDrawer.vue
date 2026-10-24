@@ -13,7 +13,7 @@ const {
   usage,
   admin,
 } = useCloudSiteMedia()
-const context = useEntryContext(),
+const context = useEntryContext().value,
   input = ref<HTMLInputElement>()
 async function dropFiles(event: DragEvent) {
   if (
