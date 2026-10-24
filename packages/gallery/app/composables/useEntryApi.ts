@@ -20,13 +20,14 @@ export function useEntryFetch(
   options: Record<string, unknown> | undefined,
   baseURL: string,
 ) {
-  const context = useEntryContext()
+  // A mounted consumer belongs to its creating Site, including while leaving.
+  const snapshot = useEntryContext().value
   const path = computed(() =>
-    entryRequestPath(String(toValue(request as string)), context.value),
+    entryRequestPath(String(toValue(request as string)), snapshot),
   )
   const key = computed(
     () =>
-      `${context.value?.scope ?? 'self-hosted'}:fetch:${String(toValue(options?.key as string) ?? path.value)}`,
+      `${snapshot?.scope ?? 'self-hosted'}:fetch:${String(toValue(options?.key as string) ?? path.value)}`,
   )
   const fetcher = useFetch as (
     request: unknown,

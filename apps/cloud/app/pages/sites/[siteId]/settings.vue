@@ -1,7 +1,7 @@
 <script setup lang="ts">
 definePageMeta({ layout: 'portal' })
 useSeoMeta({ title: 'Site settings — ChronoFrame Cloud', robots: 'noindex' })
-const context = useEntryContext()
+const context = useEntryContext().value
 </script>
 <template>
   <div class="cf-site-settings-stack">

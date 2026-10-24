@@ -26,7 +26,8 @@ const catalog = useState<EntrySiteCatalog | null>(
   'platform-site-catalog',
   () => null,
 )
-const sites = computed(() =>
+// This page owns its catalog until it unmounts; middleware prepares the next route.
+const sites = ref(
   catalog.value?.userId === userId.value ? catalog.value.sites : [],
 )
 </script>

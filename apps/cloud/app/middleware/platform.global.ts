@@ -5,19 +5,10 @@ import type {
 export default defineNuxtRouteMiddleware(async (to) => {
   const path = to.path.toLowerCase()
   const context = useEntryContext()
-  const detail =
-    /^\/sites\/([1-9][0-9]*)(?:\/(?:photos|albums|settings))?$/.exec(path)
-  if (
-    !detail ||
-    context.value?.siteId !== Number(detail[1]) ||
-    context.value?.audience !== 'portal'
-  )
-    context.value = null
   const catalog = useState<EntrySiteCatalog | null>(
     'platform-site-catalog',
     () => null,
   )
-  catalog.value = null
   if (path === '/' && useRequestURL().hostname === 'app.chronoframe.art')
     return navigateTo('/sites', { redirectCode: 302 })
   if (path === '/dashboard' || path.startsWith('/dashboard/'))
@@ -77,4 +68,7 @@ export default defineNuxtRouteMiddleware(async (to) => {
       }
     }
   }
+  // Keep the current view intact while authorization and destination data load.
+  // The next page must still start without a previous Site's authority.
+  if (!path.startsWith('/sites/')) context.value = null
 })
