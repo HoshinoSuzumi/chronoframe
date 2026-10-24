@@ -926,7 +926,7 @@
         "slugPlaceholder": "Leave blank to generate from the title",
         "slugHint": "Clear this field to generate from the title. Changing it redirects old links.",
         "slugCurrent": "Current URL",
-        "slugInvalid": "Use lowercase letters, numbers, and single hyphens (up to 80 characters).",
+        "slugInvalid": "Use lowercase letters, numbers, and single hyphens (up to 80 characters). The URL cannot consist only of numbers.",
         "slugConflict": "This album URL is already in use.",
         "description": "Description",
         "descriptionPlaceholder": "Enter album description (optional)",
