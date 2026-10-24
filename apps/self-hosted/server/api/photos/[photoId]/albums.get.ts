@@ -19,6 +19,7 @@ export default eventHandler(async (event) => {
   const albums = await db
     .select({
       id: tables.albums.id,
+      slug: tables.albumSlugs.slug,
       isHidden: tables.albums.isHidden,
       passwordHash: tables.albums.passwordHash,
       title: tables.albums.title,
@@ -31,6 +32,14 @@ export default eventHandler(async (event) => {
     .innerJoin(
       tables.albumPhotos,
       eq(tables.albums.id, tables.albumPhotos.albumId),
+    )
+    .innerJoin(
+      tables.albumSlugs,
+      siteAnd(
+        eq(tables.albumSlugs.albumId, tables.albums.id),
+        eq(tables.albumSlugs.siteId, tables.albums.siteId),
+        eq(tables.albumSlugs.isCurrent, true),
+      ),
     )
     .where(
       siteAnd(

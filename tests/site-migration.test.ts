@@ -110,6 +110,14 @@ test('legacy ownership upgrade preserves rows, assigns memberships, backs up and
     raw.prepare('SELECT position FROM album_photos').get().position,
     42,
   )
+  assert.equal(
+    raw
+      .prepare(
+        'SELECT slug FROM album_slugs WHERE album_id = 1 AND is_current = 1',
+      )
+      .get().slug,
+    'legacy-album',
+  )
   assert.deepEqual(
     raw.prepare('SELECT user_id,role FROM memberships ORDER BY user_id').all(),
     [

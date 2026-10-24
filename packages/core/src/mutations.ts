@@ -11,6 +11,7 @@ export interface Clock {
 
 export interface AlbumInput {
   title?: string
+  slug?: string
   description?: string
   coverPhotoId?: string
   photoIds?: string[]
@@ -19,6 +20,7 @@ export interface AlbumInput {
 }
 export interface AlbumWriteData {
   title?: string
+  slug?: string
   description?: string | null
   coverPhotoId?: string | null
   isHidden?: boolean
@@ -68,6 +70,7 @@ export function createAlbumWriter(deps: {
       return deps.repository.createFirst(
         {
           title: input.title,
+          slug: input.slug ?? '',
           description: input.description || null,
           coverPhotoId: input.coverPhotoId || null,
           isHidden: input.isHidden || false,
@@ -84,6 +87,7 @@ export function createAlbumWriter(deps: {
         throw new CoreError(404, 'Album not found')
       const data: AlbumWriteData = { updatedAt: deps.clock.now() }
       if (input.title !== undefined) data.title = input.title
+      if (input.slug !== undefined) data.slug = input.slug
       if (input.description !== undefined)
         data.description = input.description || null
       if (input.coverPhotoId !== undefined)

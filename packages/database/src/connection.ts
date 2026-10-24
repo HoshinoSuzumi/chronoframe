@@ -6,6 +6,7 @@ import { dirname } from 'node:path'
 import Database from 'better-sqlite3'
 import { drizzle } from 'drizzle-orm/better-sqlite3'
 import * as schema from './schema.ts'
+import { backfillAlbumSlugs } from './album-slugs.ts'
 
 export const tables = schema
 export type AppDatabase = ReturnType<typeof drizzle<typeof schema>>
@@ -43,8 +44,13 @@ export function openDatabase(options: DatabaseOptions) {
     sqlite.pragma('cache_size = 1000')
     sqlite.pragma('temp_store = MEMORY')
     const db = drizzle(sqlite, { schema })
-    if (options.migrationsFolder)
+    if (options.migrationsFolder) {
       migrateDatabase(db, options.migrationsFolder, options.filename)
+      const slugTable = db.get<{ present: number }>(
+        sql`SELECT 1 AS present FROM sqlite_master WHERE type='table' AND name='album_slugs'`,
+      )
+      if (slugTable) backfillAlbumSlugs(db)
+    }
     return {
       db,
       /** SQLite backup includes committed WAL data and does not mutate the source. */

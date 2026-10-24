@@ -2,6 +2,7 @@
 const consoleApi = useConsoleApi()
 
 import type { Album, Photo } from '@chronoframe/contracts/resources'
+import { isValidAlbumSlug } from '@chronoframe/contracts/album-slug'
 import type { FormSubmitEvent, FormError } from '@nuxt/ui'
 import {
   ALBUM_PASSWORD_MAX_LENGTH,
@@ -18,6 +19,7 @@ useHead({
 })
 
 interface AlbumItem extends Album {
+  slug: string
   photoCount?: number
   photoIds?: string[]
   coverPhoto?: Photo | null
@@ -25,6 +27,7 @@ interface AlbumItem extends Album {
 
 interface AlbumFormState {
   title: string
+  slug: string
   description: string
   isHidden: boolean
   password: string
@@ -62,6 +65,7 @@ const currentAlbum = ref<AlbumItem | null>(null)
 
 const formData = reactive<AlbumFormState>({
   title: '',
+  slug: '',
   description: '',
   isHidden: false,
   password: '',
@@ -98,6 +102,12 @@ const validateForm = (state: any): FormError[] => {
     errors.push({
       name: 'title',
       message: $t('dashboard.albums.form.titleRequired'),
+    })
+  }
+  if (state.slug?.trim() && !isValidAlbumSlug(state.slug.trim())) {
+    errors.push({
+      name: 'slug',
+      message: $t('dashboard.albums.form.slugInvalid'),
     })
   }
   if (state.passwordEnabled) {
@@ -175,6 +185,7 @@ const loadPhotos = async () => {
 const openCreateSlideover = () => {
   currentAlbum.value = null
   formData.title = ''
+  formData.slug = ''
   formData.description = ''
   formData.isHidden = false
   formData.password = ''
@@ -190,6 +201,7 @@ const openEditSlideover = async (album: AlbumItem) => {
   try {
     const albumDetail = (await consoleApi(`/api/albums/${album.id}`)) as any
     formData.title = album.title
+    formData.slug = album.slug
     formData.description = album.description || ''
     formData.isHidden = album.isHidden || false
     formData.password = ''
@@ -220,6 +232,7 @@ const onFormSubmit = async (event: FormSubmitEvent<AlbumFormState>) => {
         method: 'PUT',
         body: {
           title: event.data.title,
+          slug: event.data.slug,
           description: event.data.description || undefined,
           coverPhotoId: coverPhotoId.value || undefined,
           photoIds: selectedPhotoIds.value,
@@ -241,6 +254,7 @@ const onFormSubmit = async (event: FormSubmitEvent<AlbumFormState>) => {
         method: 'POST',
         body: {
           title: event.data.title,
+          slug: event.data.slug,
           description: event.data.description || undefined,
           coverPhotoId: coverPhotoId.value || undefined,
           photoIds: selectedPhotoIds.value,
@@ -261,6 +275,26 @@ const onFormSubmit = async (event: FormSubmitEvent<AlbumFormState>) => {
 
     await loadAlbums()
   } catch (error) {
+    const status =
+      (error as { statusCode?: number; status?: number })?.statusCode ??
+      (error as { status?: number })?.status
+    const message =
+      (error as { statusMessage?: string; message?: string })?.statusMessage ??
+      (error as { message?: string })?.message ??
+      ''
+    if (status === 409 || (status === 400 && /slug/i.test(message))) {
+      formRef.value?.setErrors([
+        {
+          name: 'slug',
+          message: $t(
+            status === 409
+              ? 'dashboard.albums.form.slugConflict'
+              : 'dashboard.albums.form.slugInvalid',
+          ),
+        },
+      ])
+      return
+    }
     console.error('Failed to save album:', error)
     useToast().add({
       title: currentAlbum.value
@@ -601,7 +635,7 @@ const columns = computed<any[]>(() => [
 
             <template #title-cell="{ row }">
               <NuxtLink
-                :to="`/albums/${(row.original as unknown as AlbumItem).id}`"
+                :to="`/albums/${(row.original as unknown as AlbumItem).slug}`"
                 target="_blank"
                 class="font-medium text-primary-600 dark:text-primary-400 hover:underline cursor-pointer inline-flex items-center gap-2"
               >
@@ -809,6 +843,9 @@ const columns = computed<any[]>(() => [
                 <ConsoleAlbumDetailsFields
                   v-model:title="formData.title"
                   v-model:description="formData.description"
+                  v-model:slug="formData.slug"
+                  show-slug
+                  :current-slug="currentAlbum?.slug"
                 />
 
                 <UFormField name="isHidden">

@@ -248,6 +248,28 @@ export const albums = sqliteTable(
   (t) => [index('idx_albums_site').on(t.siteId)],
 )
 
+/** Current and historical public paths share one per-site namespace. */
+export const albumSlugs = sqliteTable(
+  'album_slugs',
+  {
+    siteId: siteColumn(),
+    slug: text('slug').notNull(),
+    albumId: integer('album_id').references(() => albums.id, {
+      onDelete: 'set null',
+    }),
+    isCurrent: integer('is_current', { mode: 'boolean' })
+      .notNull()
+      .default(false),
+  },
+  (t) => [
+    primaryKey({ columns: [t.siteId, t.slug] }),
+    uniqueIndex('album_slugs_one_current')
+      .on(t.siteId, t.albumId)
+      .where(sql`is_current = 1`),
+    index('album_slugs_album').on(t.siteId, t.albumId),
+  ],
+)
+
 // 相簿-照片 多对多关系表
 export const albumPhotos = sqliteTable(
   'album_photos',
