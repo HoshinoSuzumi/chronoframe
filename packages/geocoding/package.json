@@ -16,7 +16,7 @@
   },
   "devDependencies": {
     "@types/node": "^22.20.5",
-    "typescript": "^5.9.3"
+    "typescript": "^7.0.2"
   },
   "license": "AGPL-3.0-only"
 }
