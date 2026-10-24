@@ -85,7 +85,15 @@ export function definePlatformHandler<T>(
           createError({
             statusCode: 502,
             statusMessage: 'Storage connection check failed',
-            data: { code: error.code },
+            data: {
+              code: error.code,
+              ...(error.providerCode
+                ? { providerCode: error.providerCode }
+                : {}),
+              ...(error.providerStatus
+                ? { providerStatus: error.providerStatus }
+                : {}),
+            },
           }),
           false,
         )

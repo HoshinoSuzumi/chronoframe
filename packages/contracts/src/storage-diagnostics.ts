@@ -10,6 +10,12 @@ export const STORAGE_CONNECTION_MESSAGES = {
     'Signed storage access failed. Check the endpoint, region and S3 credentials.',
   storage_multipart_failed:
     'Multipart upload check failed. Check multipart creation, listing and abort permissions.',
+  storage_multipart_create_failed:
+    'Creating a multipart upload failed. Check storage permissions and S3 service compatibility.',
+  storage_multipart_list_failed:
+    'Listing multipart uploads failed or did not return the new upload. Check multipart listing permissions and S3 service compatibility.',
+  storage_multipart_abort_failed:
+    'Aborting the test multipart upload failed. Check multipart abort permissions.',
   storage_cors_failed:
     'Storage CORS check failed. Allow this portal origin, GET/PUT/HEAD, Content-Type, and expose ETag.',
   storage_cleanup_failed:
