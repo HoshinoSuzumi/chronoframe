@@ -3,6 +3,7 @@ import { sharedUi } from '../nuxt.shared'
 export default defineNuxtConfig({
   ...sharedUi,
   devServer: { port: 3002 },
+  app: { head: { htmlAttrs: { lang: 'en' } } },
   nitro: {
     ...sharedUi.nitro,
     cloudflare: {
@@ -18,6 +19,6 @@ export default defineNuxtConfig({
       capabilities: SITE_CAPABILITIES,
     },
     session: { name: 'chronoframe-site' },
-    platform: { secret: '' },
+    platform: { secret: '', storageSecret: '', s3EndpointHosts: '' },
   },
 })

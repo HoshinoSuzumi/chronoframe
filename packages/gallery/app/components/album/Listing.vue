@@ -16,9 +16,13 @@ const {
   data: albums,
   status,
   refresh,
-} = useAsyncData<AlbumWithPhotos[]>('albums', () => galleryApi('/api/albums'), {
-  watch: [],
-})
+} = useAsyncData<AlbumWithPhotos[]>(
+  'albums',
+  () => galleryApi<AlbumWithPhotos[]>('/api/albums'),
+  {
+    watch: [],
+  },
+)
 
 // 根据登录状态决定是否过滤隐藏的相册
 // 登录用户可以看到所有相册，未登录用户只能看到非隐藏相册
