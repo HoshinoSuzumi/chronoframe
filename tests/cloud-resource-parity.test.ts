@@ -8,6 +8,7 @@ import { migrate } from 'drizzle-orm/better-sqlite3/migrator'
 import { createResourceReader } from '@chronoframe/core'
 import * as schema from '../packages/database/src/schema.ts'
 import { createSqliteResourceRepository } from '../packages/database/src/sqlite-resources.ts'
+import { backfillAlbumSlugs } from '../packages/database/src/album-slugs.ts'
 import { createCloudResourceRepository } from '../packages/database/src/cloud-resources.ts'
 import { createCloudMediaRepository } from '../packages/database/src/cloud-media.ts'
 import { createCloudExecutionRepository } from '../packages/database/src/cloud-execution.ts'
@@ -109,6 +110,7 @@ test('Cloud D1 and Self-hosted SQLite share ordering, visibility and protected-a
         { id: 3, title: 'Locked', passwordHash: 'password', position: 0 },
       ])
       .run()
+    backfillAlbumSlugs(legacy)
     for (const a of [
       { id: '1', title: 'Public', position: 2, hidden: 0 },
       { id: '2', title: 'Hidden', position: 1, hidden: 1 },

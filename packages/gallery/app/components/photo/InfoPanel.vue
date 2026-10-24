@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { hasValidCoordinates } from '@chronoframe/gallery/shared/utils/location'
+import { albumPagePath } from '@chronoframe/gallery/shared/utils/albumPath'
 import { motion } from 'motion-v'
 import type { NeededExif } from '../../../shared/types/photo'
 import type { KVData } from './KVRenderer.vue'
@@ -14,7 +15,7 @@ interface Props {
 
 interface Album {
   id: number
-  slug: string
+  slug?: string
   title: string
   description: string | null
   coverPhotoId: string | null
@@ -25,6 +26,7 @@ interface Album {
 const dayjs = useDayjs()
 const router = useRouter()
 const { localizeExif } = useExifLocalization()
+const useSlugs = useEntryCapabilities().edition === 'self-hosted'
 
 const props = defineProps<Props>()
 
@@ -482,8 +484,8 @@ const onTagClick = (tag: string) => {
   })
 }
 
-const onAlbumClick = (albumSlug: string) => {
-  window.open(`/albums/${albumSlug}`)
+const onAlbumClick = (album: Album) => {
+  window.open(albumPagePath(album, useSlugs))
 }
 </script>
 
@@ -589,7 +591,7 @@ const onAlbumClick = (albumSlug: string) => {
             v-for="album in albums"
             :key="album.id"
             class="p-3 bg-white/5 border border-white/10 rounded-lg cursor-pointer hover:bg-white/10 transition-colors"
-            @click="onAlbumClick(album.slug)"
+            @click="onAlbumClick(album)"
           >
             <p class="text-sm text-white font-medium line-clamp-1">
               {{ album.title }}

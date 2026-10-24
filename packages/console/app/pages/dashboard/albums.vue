@@ -19,6 +19,7 @@ useHead({
 })
 
 interface AlbumItem extends Album {
+  slug: string
   photoCount?: number
   photoIds?: string[]
   coverPhoto?: Photo | null
@@ -842,6 +843,9 @@ const columns = computed<any[]>(() => [
                 <ConsoleAlbumDetailsFields
                   v-model:title="formData.title"
                   v-model:description="formData.description"
+                  v-model:slug="formData.slug"
+                  show-slug
+                  :current-slug="currentAlbum?.slug"
                 />
 
                 <UFormField name="isHidden">

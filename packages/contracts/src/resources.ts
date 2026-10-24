@@ -35,7 +35,8 @@ export interface Photo {
 
 export interface Album {
   id: number
-  slug: string
+  /** Present for Self-hosted albums; Cloud currently uses the numeric ID in URLs. */
+  slug?: string
   title: string
   description: string | null
   coverPhotoId: string | null
