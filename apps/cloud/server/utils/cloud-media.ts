@@ -1,3 +1,7 @@
+import {
+  probeStorageConnection,
+  StorageConnectionError,
+} from '@chronoframe/storage/connection-probe'
 import { createError, getRouterParam } from 'h3'
 import type { H3Event } from 'h3'
 import {
@@ -98,38 +102,12 @@ export async function checkStorage(
   origin: string,
   allowedHosts: string[],
 ) {
-  validateCloudS3(config, allowedHosts)
-  const s3 = createCloudS3(config, { allowedHosts }),
-    key = 'chronoframe/connection-check/' + crypto.randomUUID()
-  const sample = crypto.getRandomValues(new Uint8Array(32))
-  let written = false
+  let s3: ReturnType<typeof createCloudS3>
   try {
-    await s3.put(key, sample, 'application/octet-stream')
-    written = true
-    const head = await s3.head(key),
-      bytes = await s3.getProbe(key)
-    if (
-      head.bytes !== sample.length ||
-      !bytes ||
-      bytes.some((v, i) => v !== sample[i])
-    )
-      throw new Error('Storage read/write check failed')
-    // Probe the presigned path too; raw responses and URLs are never returned/logged.
-    const response = await fetch(await s3.signGet(key), {
-      redirect: 'manual',
-      signal: AbortSignal.timeout(15000),
-    })
-    if (!response.ok) throw new Error('Storage signed access failed')
-    await response.body?.cancel()
-    const multipartId = await s3.multipart(key, 'application/octet-stream')
-    try {
-      if (!(await s3.recoverMultipart(key)).includes(multipartId))
-        throw new Error('Multipart recovery check failed')
-    } finally {
-      await s3.abort(key, multipartId)
-    }
-    if (!(await s3.cors(origin))) throw new Error('Storage CORS check failed')
-  } finally {
-    if (written) await s3.remove(key)
+    validateCloudS3(config, allowedHosts)
+    s3 = createCloudS3(config, { allowedHosts })
+  } catch {
+    throw new StorageConnectionError('configuration')
   }
+  await probeStorageConnection(s3, origin)
 }

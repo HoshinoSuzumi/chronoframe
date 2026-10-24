@@ -14,7 +14,8 @@
       "types": "./src/s3-edge.ts",
       "default": "./dist/s3-edge.mjs"
     },
-    "./credential-cipher": "./src/credential-cipher.ts"
+    "./credential-cipher": "./src/credential-cipher.ts",
+    "./connection-probe": "./src/connection-probe.ts"
   },
   "scripts": {
     "type-check": "tsc --noEmit",

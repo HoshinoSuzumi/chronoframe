@@ -191,6 +191,89 @@ export function createCloudS3(
       }
       return bytes.subarray(0, size)
     },
+    /** Verify browser behavior without reading administrative bucket configuration. */
+    async browserCors(origin: string, key: string) {
+      const putUrl = await getSignedUrl(
+        client,
+        new PutObjectCommand({
+          Bucket,
+          Key: safeKey(key),
+          ContentLength: 32,
+          ContentType: 'application/octet-stream',
+        }),
+        { expiresIn: 60 },
+      )
+      const getUrl = await getSignedUrl(
+        client,
+        new GetObjectCommand({ Bucket, Key: safeKey(key) }),
+        { expiresIn: 60 },
+      )
+      const headUrl = await getSignedUrl(
+        client,
+        new HeadObjectCommand({ Bucket, Key: safeKey(key) }),
+        { expiresIn: 60 },
+      )
+      const allowsOrigin = (r: Response) =>
+        [origin, '*'].includes(
+          r.headers.get('access-control-allow-origin') ?? '',
+        )
+      const values = (r: Response, h: string) =>
+        (r.headers.get(h) ?? '').split(',').map((v) => v.trim().toLowerCase())
+      for (const [method, url] of [
+        ['PUT', putUrl],
+        ['GET', getUrl],
+        ['HEAD', headUrl],
+      ] as const) {
+        const response = await transport(url, {
+          method: 'OPTIONS',
+          headers: {
+            Origin: origin,
+            'Access-Control-Request-Method': method,
+            ...(method === 'PUT'
+              ? { 'Access-Control-Request-Headers': 'content-type' }
+              : {}),
+          },
+          redirect: 'manual',
+          signal: AbortSignal.timeout(15000),
+        })
+        try {
+          if (
+            !response.ok ||
+            !allowsOrigin(response) ||
+            !values(response, 'access-control-allow-methods').some(
+              (v) => v === method.toLowerCase() || v === '*',
+            )
+          )
+            return false
+          if (
+            method === 'PUT' &&
+            !values(response, 'access-control-allow-headers').some(
+              (v) => v === 'content-type' || v === '*',
+            )
+          )
+            return false
+        } finally {
+          await response.body?.cancel().catch(() => undefined)
+        }
+      }
+      const response = await transport(getUrl, {
+        headers: { Origin: origin },
+        redirect: 'manual',
+        signal: AbortSignal.timeout(15000),
+      })
+      try {
+        return (
+          response.ok &&
+          allowsOrigin(response) &&
+          response.headers.has('etag') &&
+          values(response, 'access-control-expose-headers').some(
+            (v) => v === 'etag' || v === '*',
+          )
+        )
+      } finally {
+        await response.body?.cancel().catch(() => undefined)
+      }
+    },
     async cors(origin: string) {
       const r = await client.send(new GetBucketCorsCommand({ Bucket }))
       return (r.CORSRules ?? []).some(

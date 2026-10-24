@@ -46,6 +46,7 @@ for (const entry of ['cloud', 'site']) {
         '@chronoframe/database/cloud-resources',
         '@chronoframe/storage/s3-edge',
         '@chronoframe/storage/credential-cipher',
+        '@chronoframe/storage/connection-probe',
       ].includes(specifier)
       if (
         !edgeSafe &&

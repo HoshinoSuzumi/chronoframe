@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { STORAGE_CONNECTION_MESSAGES } from '@chronoframe/contracts/storage-diagnostics'
 import type { Photo } from '@chronoframe/contracts/resources'
 const api = $fetch as <T = unknown>(
   path: string,
@@ -99,14 +100,22 @@ async function action(run: () => Promise<unknown>, success: string) {
   } catch (error) {
     failed.value = true
     const code = (error as { statusCode?: number }).statusCode
+    const diagnostic = (error as { data?: { data?: { code?: string } } }).data
+      ?.data?.code
     message.value =
-      code === 409
-        ? 'This item changed. Refresh and try again.'
-        : code === 429
-          ? 'The preview resource limit has been reached.'
-          : code === 403
-            ? 'Administrator access is required.'
-            : 'The operation failed. Check storage permissions and CORS, then retry.'
+      diagnostic && Object.hasOwn(STORAGE_CONNECTION_MESSAGES, diagnostic)
+        ? STORAGE_CONNECTION_MESSAGES[
+            diagnostic as keyof typeof STORAGE_CONNECTION_MESSAGES
+          ]
+        : code === 503
+          ? 'Media services need deployment configuration. Check the selected environment settings.'
+          : code === 409
+            ? 'This item changed. Refresh and try again.'
+            : code === 429
+              ? 'The preview resource limit has been reached.'
+              : code === 403
+                ? 'Administrator access is required.'
+                : 'The operation failed. Check storage permissions and CORS, then retry.'
   } finally {
     busy.value = false
   }

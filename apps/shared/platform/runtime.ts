@@ -1,3 +1,4 @@
+import { StorageConnectionError } from '@chronoframe/storage/connection-probe'
 import {
   createError,
   defineEventHandler,
@@ -77,6 +78,18 @@ export function definePlatformHandler<T>(
     try {
       return await handler(event)
     } catch (error) {
+      if (error instanceof StorageConnectionError) {
+        setResponseHeader(event, 'Cache-Control', 'no-store')
+        return sendError(
+          event,
+          createError({
+            statusCode: 502,
+            statusMessage: 'Storage connection check failed',
+            data: { code: error.code },
+          }),
+          false,
+        )
+      }
       const code = (error as { statusCode?: number })?.statusCode
       const messages: Record<number, string> = {
         400: 'Invalid request',

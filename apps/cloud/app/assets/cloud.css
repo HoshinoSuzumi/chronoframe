@@ -1621,6 +1621,11 @@
   gap: 16px;
   margin-top: 20px;
 }
+.cf-media-workbench .cf-inline-controls .cf-button {
+  max-width: 100%;
+  min-width: 0;
+  white-space: normal;
+}
 .cf-media-controls {
   display: grid;
   gap: 12px;
