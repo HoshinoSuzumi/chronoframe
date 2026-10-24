@@ -1,3 +1,5 @@
+import { deleteCloudPhotos } from '../../../../utils/cloud-photo-delete'
+import { updateCloudAlbum } from '../../../../utils/cloud-album-editor'
 import { getRouterParam, createError } from 'h3'
 import { definePlatformHandler } from '../../../../../../shared/platform/runtime'
 import { cloudMedia, checkStorage } from '../../../../utils/cloud-media'
@@ -40,7 +42,7 @@ export default definePlatformHandler(async (event) => {
   const { siteId, userId, site, db, raw, sql, repository, vault } = ctx
   const operation = getRouterParam(event, 'operation') ?? ''
   const [kind, id, action] = operation.split('/')
-  const body = mutation ? await siteManagementBody(event) : {}
+  const body = mutation ? await siteManagementBody(event, 131072) : {}
   const now = Date.now()
   if (kind === 'storage' && !id) {
     if (event.method === 'GET') return { connections: await vault.list() }
@@ -377,14 +379,49 @@ export default definePlatformHandler(async (event) => {
   }
   if (kind === 'photos' && id && event.method === 'PATCH') {
     const title = text(body.title, 255),
-      description =
-        body.description === null ? null : text(body.description, 2048),
       revision = number(body.revision)
+    const row = await raw
+      .prepare(
+        'SELECT metadata_json FROM cloud_photos WHERE site_id=? AND id=? AND revision=? AND deleted=0 AND metadata_json IS NOT NULL',
+      )
+      .bind(siteId, ID(id), revision)
+      .first<{ metadata_json: string }>()
+    if (!row) throw createError({ statusCode: 409 })
+    const metadata = JSON.parse(row.metadata_json)
+    if (body.description !== undefined) {
+      if (
+        body.description !== null &&
+        (typeof body.description !== 'string' || body.description.length > 2048)
+      )
+        throw createError({ statusCode: 400 })
+      metadata.description = body.description || null
+    }
+    if (body.tags !== undefined) {
+      if (
+        !Array.isArray(body.tags) ||
+        body.tags.length > 32 ||
+        body.tags.some((t) => typeof t !== 'string' || t.length > 64)
+      )
+        throw createError({ statusCode: 400 })
+      metadata.tags = body.tags
+    }
+    if (body.rating !== undefined) {
+      if (
+        body.rating !== null &&
+        (!Number.isInteger(body.rating) ||
+          Number(body.rating) < 1 ||
+          Number(body.rating) > 5)
+      )
+        throw createError({ statusCode: 400 })
+      metadata.exif = { ...metadata.exif }
+      if (body.rating === null) delete metadata.exif.Rating
+      else metadata.exif.Rating = body.rating
+    }
     const changed = await raw
       .prepare(
-        `UPDATE cloud_photos SET title=?,metadata_json=json_set(metadata_json,'$.description',?),revision=revision+1 WHERE site_id=? AND id=? AND revision=? AND deleted=0 AND metadata_json IS NOT NULL RETURNING id`,
+        'UPDATE cloud_photos SET title=?,metadata_json=?,revision=revision+1 WHERE site_id=? AND id=? AND revision=? AND deleted=0 RETURNING id',
       )
-      .bind(title, description, siteId, ID(id), revision)
+      .bind(title, JSON.stringify(metadata), siteId, ID(id), revision)
       .first()
     if (!changed) throw createError({ statusCode: 409 })
     return { revision: revision + 1 }
@@ -395,38 +432,10 @@ export default definePlatformHandler(async (event) => {
     event.method === 'POST' &&
     action === 'delete'
   ) {
-    const found = await raw
-      .prepare('SELECT id FROM cloud_photos WHERE site_id=? AND id=?')
-      .bind(siteId, ID(id))
-      .first()
-    if (!found) throw createError({ statusCode: 404 })
-    await db.batch([
-      db
-        .prepare('UPDATE cloud_photos SET deleted=1 WHERE site_id=? AND id=?')
-        .bind(siteId, id),
-      db
-        .prepare(
-          "UPDATE cloud_processing_jobs SET state='cancelled' WHERE site_id=? AND photo_id=? AND state IN ('queued','running','retry_wait')",
-        )
-        .bind(siteId, id),
-      db
-        .prepare(
-          `INSERT INTO cloud_cleanup_requests(site_id,id,connection_id,connection_revision,object_key,provider_upload_id,available_at) SELECT site_id,'original-'||id,connection_id,connection_revision,object_key,NULL,? FROM cloud_uploads WHERE site_id=? AND photo_id=? ON CONFLICT DO NOTHING`,
-        )
-        .bind(now + 360000, siteId, id),
-      db
-        .prepare(
-          `INSERT INTO cloud_cleanup_requests(site_id,id,connection_id,connection_revision,object_key,provider_upload_id,available_at) SELECT site_id,'video-'||id,connection_id,connection_revision,video_key,NULL,? FROM cloud_uploads WHERE site_id=? AND photo_id=? AND video_key IS NOT NULL ON CONFLICT DO NOTHING`,
-        )
-        .bind(now + 360000, siteId, id),
-      db
-        .prepare(
-          `INSERT INTO cloud_cleanup_requests(site_id,id,connection_id,connection_revision,object_key,provider_upload_id,available_at) SELECT site_id,'asset-'||photo_id||'-'||role,connection_id,connection_revision,object_key,NULL,? FROM cloud_media_assets WHERE site_id=? AND photo_id=? ON CONFLICT DO NOTHING`,
-        )
-        .bind(now + 360000, siteId, id),
-    ])
-    return { ok: true }
+    return deleteCloudPhotos(raw, siteId, [ID(id)], now)
   }
+  if (kind === 'photos' && id === 'delete-batch' && event.method === 'POST')
+    return deleteCloudPhotos(raw, siteId, body.photoIds, now)
   if (kind === 'jobs' && id && action === 'retry' && event.method === 'POST') {
     const changed = await raw
       .prepare(
@@ -446,7 +455,16 @@ export default definePlatformHandler(async (event) => {
       }
     if (event.method === 'POST') {
       const albumId = String(number(body.id))
-      await repository.createAlbum(albumId, text(body.title, 80))
+      const title = text(body.title, 80)
+      if (body.isHidden === true) {
+        const created = await raw
+          .prepare(
+            'INSERT INTO cloud_albums(site_id,id,title,hidden,created_at,updated_at) SELECT ?,?,?,1,?,? WHERE (SELECT COUNT(*) FROM cloud_albums WHERE site_id=?)<100 ON CONFLICT DO NOTHING RETURNING id',
+          )
+          .bind(siteId, albumId, title, now, now, siteId)
+          .first()
+        if (!created) throw createError({ statusCode: 409 })
+      } else await repository.createAlbum(albumId, title)
       return { id: Number(albumId) }
     }
   }
@@ -460,12 +478,18 @@ export default definePlatformHandler(async (event) => {
     if (!(await repository.album(albumId)))
       throw createError({ statusCode: 404 })
     if (action === 'remove-photo') {
-      await raw
-        .prepare(
-          'DELETE FROM cloud_album_photos WHERE site_id=? AND album_id=? AND photo_id=?',
-        )
-        .bind(siteId, albumId, ID(body.photoId))
-        .run()
+      await raw.batch([
+        raw
+          .prepare(
+            'DELETE FROM cloud_album_photos WHERE site_id=? AND album_id=? AND photo_id=?',
+          )
+          .bind(siteId, albumId, ID(body.photoId)),
+        raw
+          .prepare(
+            'UPDATE cloud_albums SET revision=revision+1,updated_at=? WHERE site_id=? AND id=?',
+          )
+          .bind(now, siteId, albumId),
+      ])
     } else if (action === 'delete') {
       await raw.batch([
         raw
@@ -497,7 +521,13 @@ export default definePlatformHandler(async (event) => {
       .bind(siteId, id)
       .first<{ revision: number }>()
     if (!album || !revision) throw createError({ statusCode: 404 })
-    return { album: album.resource, revision: revision.revision }
+    return {
+      album: {
+        ...album.resource,
+        photos: await ctx.resources.listAlbumPhotos(number(Number(id))),
+      },
+      revision: revision.revision,
+    }
   }
   if (
     kind === 'albums' &&
@@ -505,23 +535,75 @@ export default definePlatformHandler(async (event) => {
     action === 'settings' &&
     event.method === 'PATCH'
   ) {
-    const revision = number(body.revision),
-      title = text(body.title, 80)
-    const changed = await raw
-      .prepare(
-        'UPDATE cloud_albums SET title=?,revision=revision+1,updated_at=? WHERE site_id=? AND id=? AND revision=? RETURNING id',
-      )
-      .bind(title, now, siteId, String(number(Number(id))), revision)
-      .first()
-    if (!changed) throw createError({ statusCode: 409 })
-    return { revision: revision + 1 }
+    return updateCloudAlbum(raw, siteId, number(Number(id)), body)
+  }
+  if (kind === 'albums' && id === 'reorder' && event.method === 'POST') {
+    if (
+      !Array.isArray(body.albumIds) ||
+      body.albumIds.length > 100 ||
+      body.albumIds.some((v) => !Number.isSafeInteger(v) || Number(v) < 1) ||
+      new Set(body.albumIds).size !== body.albumIds.length
+    )
+      throw createError({ statusCode: 400 })
+    const rows = await sql<{ id: string }>(
+      'SELECT id FROM cloud_albums WHERE site_id=?',
+      siteId,
+    )
+    if (
+      rows.length !== body.albumIds.length ||
+      rows.some((row) => !(body.albumIds as number[]).includes(Number(row.id)))
+    )
+      throw createError({ statusCode: 409 })
+    await raw.batch(
+      body.albumIds.map((album, index) =>
+        raw
+          .prepare(
+            'UPDATE cloud_albums SET position=? WHERE site_id=? AND id=?',
+          )
+          .bind(index, siteId, String(album)),
+      ),
+    )
+    return { ok: true }
   }
   if (kind === 'albums' && id && event.method === 'POST') {
     const albumId = String(number(Number(id))),
       album = await repository.album(albumId)
     if (!album) throw createError({ statusCode: 404 })
     if (action === 'photos') {
-      await repository.addToAlbum(albumId, ID(body.photoId))
+      {
+        const ids = Array.isArray(body.photoIds)
+          ? body.photoIds
+          : [ID(body.photoId)]
+        if (
+          !ids.length ||
+          ids.length > 1000 ||
+          ids.some(
+            (v) => typeof v !== 'string' || !/^[a-zA-Z0-9_-]{1,128}$/.test(v),
+          )
+        )
+          throw createError({ statusCode: 400 })
+        const values = JSON.stringify([...new Set(ids)])
+        const ready = await raw
+          .prepare(
+            `SELECT COUNT(*) AS total FROM cloud_photos p WHERE p.site_id=? AND p.id IN (SELECT value FROM json_each(?)) AND p.deleted=0 AND p.metadata_json IS NOT NULL AND EXISTS(SELECT 1 FROM cloud_processing_jobs j WHERE j.site_id=p.site_id AND j.photo_id=p.id AND j.source_version=p.source_version AND j.state='succeeded')`,
+          )
+          .bind(siteId, values)
+          .first<{ total: number }>()
+        if (ready?.total !== new Set(ids).size)
+          throw createError({ statusCode: 400 })
+        await raw.batch([
+          raw
+            .prepare(
+              `INSERT INTO cloud_album_photos(site_id,album_id,photo_id,position) SELECT ?,?,value,CAST(key AS INTEGER)+COALESCE((SELECT MAX(position)+1 FROM cloud_album_photos WHERE site_id=? AND album_id=?),0) FROM json_each(?) WHERE true ON CONFLICT DO NOTHING`,
+            )
+            .bind(siteId, albumId, siteId, albumId, values),
+          raw
+            .prepare(
+              'UPDATE cloud_albums SET revision=revision+1,updated_at=? WHERE site_id=? AND id=?',
+            )
+            .bind(now, siteId, albumId),
+        ])
+      }
       return { ok: true }
     }
     if (action === 'access') {
@@ -540,7 +622,7 @@ export default definePlatformHandler(async (event) => {
       const statements = [
         db
           .prepare(
-            'UPDATE cloud_albums SET hidden=?,updated_at=? WHERE site_id=? AND id=?',
+            'UPDATE cloud_albums SET hidden=?,updated_at=?,revision=revision+1 WHERE site_id=? AND id=?',
           )
           .bind(hidden ? 1 : 0, now, siteId, albumId),
       ]

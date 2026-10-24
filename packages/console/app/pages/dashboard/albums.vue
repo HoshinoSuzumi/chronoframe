@@ -570,7 +570,7 @@ const columns = computed<any[]>(() => [
           v-if="albums.length > 0"
           class="bg-white dark:bg-neutral-900 rounded-lg border border-gray-200 dark:border-neutral-800"
         >
-          <UTable
+          <ConsoleMediaTable
             :data="albums"
             :columns="columns"
           >
@@ -719,7 +719,7 @@ const columns = computed<any[]>(() => [
                 />
               </div>
             </template>
-          </UTable>
+          </ConsoleMediaTable>
         </div>
 
         <div
@@ -806,31 +806,10 @@ const columns = computed<any[]>(() => [
                 class="space-y-4"
                 @submit="onFormSubmit"
               >
-                <UFormField
-                  :label="$t('dashboard.albums.form.title')"
-                  name="title"
-                  required
-                >
-                  <UInput
-                    v-model="formData.title"
-                    class="w-full"
-                    :placeholder="$t('dashboard.albums.form.titlePlaceholder')"
-                  />
-                </UFormField>
-
-                <UFormField
-                  :label="$t('dashboard.albums.form.description')"
-                  name="description"
-                >
-                  <UTextarea
-                    v-model="formData.description"
-                    class="w-full"
-                    :placeholder="
-                      $t('dashboard.albums.form.descriptionPlaceholder')
-                    "
-                    :rows="3"
-                  />
-                </UFormField>
+                <ConsoleAlbumDetailsFields
+                  v-model:title="formData.title"
+                  v-model:description="formData.description"
+                />
 
                 <UFormField name="isHidden">
                   <UCheckbox

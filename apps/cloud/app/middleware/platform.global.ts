@@ -5,7 +5,8 @@ import type {
 export default defineNuxtRouteMiddleware(async (to) => {
   const path = to.path.toLowerCase()
   const context = useEntryContext()
-  const detail = /^\/sites\/([1-9][0-9]*)$/.exec(path)
+  const detail =
+    /^\/sites\/([1-9][0-9]*)(?:\/(?:photos|albums|settings))?$/.exec(path)
   if (
     !detail ||
     context.value?.siteId !== Number(detail[1]) ||
@@ -37,13 +38,14 @@ export default defineNuxtRouteMiddleware(async (to) => {
     const fetcher = useRequestFetch()
     const session = await fetcher<{
       authenticated: boolean
-      user: { id: number } | null
+      user: { id: number; name?: string | null; email?: string } | null
     }>('/api/auth/session').catch((error) => {
       if ([401, 403].includes(error.statusCode ?? error.status))
         return { authenticated: false, user: null }
       context.value = null
       throw error
     })
+    usePortalIdentity().value = session.user
     useState<number | null>('platform-user-id', () => null).value =
       session.user?.id ?? null
     if (!session.authenticated || !session.user) {
@@ -55,13 +57,20 @@ export default defineNuxtRouteMiddleware(async (to) => {
       catalog.value = { userId: session.user.id, sites: result.sites }
     }
     if (path.startsWith('/sites/')) {
-      const match = /^\/sites\/([1-9][0-9]*)$/.exec(path)
+      const match =
+        /^\/sites\/([1-9][0-9]*)(?:\/(?:photos|albums|settings))?$/.exec(path)
       if (!match)
         return abortNavigation(
           createError({ statusCode: 404, statusMessage: 'Page not found' }),
         )
       try {
         context.value = await fetcher(`/api/sites/${match[1]}/context`)
+        // Resolve legacy URLs before mounting a nested page/Suspense boundary.
+        if (path === `/sites/${match[1]}`)
+          return navigateTo(`/sites/${match[1]}/photos`, {
+            replace: true,
+            redirectCode: 302,
+          })
       } catch (error) {
         context.value = null
         return abortNavigation(error as Error)

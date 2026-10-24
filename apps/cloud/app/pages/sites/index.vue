@@ -2,6 +2,7 @@
 import { motion } from 'motion-v'
 import { ArrowUpRight, Images, ShieldCheck } from 'lucide-vue-next'
 const entrance = useCloudMotion()
+definePageMeta({ layout: 'portal' })
 const workspace = ref<{ name: string } | null>(null)
 const workspaceError = ref(false)
 async function prepareWorkspace() {
@@ -30,97 +31,96 @@ const sites = computed(() =>
 )
 </script>
 <template>
-  <CloudPortalShell
-    ><motion.div v-bind="entrance">
-      <div class="cf-page-heading">
-        <div>
-          <h1 class="cf-page-title">Your sites</h1>
-          <p class="cf-page-description">
-            Manage your galleries, settings and access.
-          </p>
-        </div>
-        <CloudBadge
-          >{{ sites.length }}
-          {{ sites.length === 1 ? 'site' : 'sites' }}</CloudBadge
-        >
+  <motion.div v-bind="entrance">
+    <div class="cf-page-heading">
+      <div>
+        <h1 class="cf-page-title">Your sites</h1>
+        <p class="cf-page-description">
+          Manage your galleries, settings and access.
+        </p>
       </div>
-      <div
-        v-if="workspaceError"
-        class="cf-notice"
-        role="alert"
+      <CloudBadge
+        >{{ sites.length }}
+        {{ sites.length === 1 ? 'site' : 'sites' }}</CloudBadge
       >
-        Your workspace could not be opened.
-        <CloudButton
-          variant="ghost"
-          @click="prepareWorkspace"
-          >Try again</CloudButton
-        >
+    </div>
+    <div
+      v-if="workspaceError"
+      class="cf-notice"
+      role="alert"
+    >
+      Your workspace could not be opened.
+      <CloudButton
+        variant="ghost"
+        @click="prepareWorkspace"
+        >Try again</CloudButton
+      >
+    </div>
+    <CloudSiteCreate
+      v-if="workspace"
+      :workspace-name="workspace.name"
+    />
+    <div
+      v-if="sites.length"
+      class="cf-sites-table"
+    >
+      <div
+        class="cf-site-columns"
+        aria-hidden="true"
+      >
+        <span>Site</span><span>Status</span><span>Role</span><span />
       </div>
-      <CloudSiteCreate
-        v-if="workspace"
-        :workspace-name="workspace.name"
-      />
-      <div
-        v-if="sites.length"
-        class="cf-sites-table"
-      >
-        <div
-          class="cf-site-columns"
-          aria-hidden="true"
+      <ul class="cf-sites-list">
+        <li
+          v-for="site in sites"
+          :key="site.siteId"
         >
-          <span>Site</span><span>Status</span><span>Role</span><span />
-        </div>
-        <ul class="cf-sites-list">
-          <li
-            v-for="site in sites"
-            :key="site.siteId"
+          <NuxtLink
+            :to="`/sites/${site.siteId}/photos`"
+            :aria-label="site.name"
+            :aria-describedby="`site-status-${site.siteId} site-role-${site.siteId}`"
+            class="cf-site-row"
           >
-            <NuxtLink
-              :to="`/sites/${site.siteId}`"
-              :aria-label="site.name"
-              :aria-describedby="`site-status-${site.siteId} site-role-${site.siteId}`"
-              class="cf-site-row"
+            <span class="cf-site-identity"
+              ><span class="cf-site-icon"><Images :size="17" /></span
+              ><span
+                class="cf-site-name"
+                :title="site.name"
+                >{{ site.name }}</span
+              ></span
             >
-              <span class="cf-site-identity"
-                ><span class="cf-site-icon"><Images :size="17" /></span
-                ><span
-                  class="cf-site-name"
-                  :title="site.name"
-                  >{{ site.name }}</span
-                ></span
-              >
-              <span :id="`site-status-${site.siteId}`"
-                ><CloudBadge :tone="site.published ? 'success' : 'neutral'">{{
-                  site.published ? 'Published' : 'Draft'
-                }}</CloudBadge></span
-              >
-              <span
-                :id="`site-role-${site.siteId}`"
-                class="cf-site-role cf-capitalize"
-                >{{ site.role }}</span
-              ><ArrowUpRight
-                :size="15"
-                class="cf-row-arrow"
-                aria-hidden="true"
-              />
-            </NuxtLink>
-          </li>
-        </ul>
-      </div>
-      <CloudCard
-        v-else
-        class="cf-portal-empty"
-        ><span class="cf-site-icon"><Images :size="20" /></span>
-        <div>
-          <h2>No sites yet</h2>
-          <p>Create a draft above to reserve your gallery’s address.</p>
-        </div></CloudCard
-      >
-      <p class="cf-catalog-note">
-        <ShieldCheck :size="14" />Only sites you belong to appear here.<a
-          href="https://docs.chronoframe.art/"
-          >View documentation<ArrowUpRight :size="12"
-        /></a>
-      </p> </motion.div
-  ></CloudPortalShell>
+            <span :id="`site-status-${site.siteId}`"
+              ><CloudBadge :tone="site.published ? 'success' : 'neutral'">{{
+                site.published ? 'Published' : 'Draft'
+              }}</CloudBadge></span
+            >
+            <span
+              :id="`site-role-${site.siteId}`"
+              class="cf-site-role cf-capitalize"
+              >{{ site.role }}</span
+            ><ArrowUpRight
+              :size="15"
+              class="cf-row-arrow"
+              aria-hidden="true"
+            />
+          </NuxtLink>
+        </li>
+      </ul>
+    </div>
+    <CloudCard
+      v-else
+      class="cf-portal-empty"
+      ><span class="cf-site-icon"><Images :size="20" /></span>
+      <div>
+        <h2>No sites yet</h2>
+        <p>Create a draft above to reserve your gallery’s address.</p>
+      </div></CloudCard
+    >
+    <p class="cf-catalog-note">
+      <ShieldCheck :size="14" />Only sites you belong to appear here.<a
+        href="https://docs.chronoframe.art/"
+        >View documentation<ArrowUpRight :size="12"
+      /></a>
+    </p>
+  </motion.div>
 </template>

@@ -301,6 +301,7 @@ useHead({
                 type="password"
                 autocomplete="off"
                 :placeholder="$t('album.passwordPlaceholder')"
+                :aria-label="$t('album.passwordPlaceholder')"
                 autofocus
                 class="w-full"
               />

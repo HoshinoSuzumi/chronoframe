@@ -4,7 +4,7 @@ const props = defineProps<{
   loggedIn: boolean
 }>()
 
-const router = useRouter()
+const visitorIdentity = useEntryCapabilities().identity === 'visitor'
 const isFixed = computed(() => props.variant === 'fixed')
 const title = computed(() => getSetting('app:title'))
 const author = computed(() => getSetting('app:author'))
@@ -36,7 +36,12 @@ const avatarUrl = computed(
         type="button"
         :aria-label="$t('auth.form.signin.title')"
         class="absolute inset-0 cursor-pointer rounded-full focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary-500"
-        @click="router.push('/signin')"
+        @click="
+          navigateTo(
+            visitorIdentity ? 'https://app.chronoframe.art/signin' : '/signin',
+            { external: visitorIdentity },
+          )
+        "
       />
       <span
         v-if="loggedIn"

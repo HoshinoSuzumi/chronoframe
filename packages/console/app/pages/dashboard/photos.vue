@@ -2765,7 +2765,7 @@ onUnmounted(() => {
 
           <!-- 照片列表 -->
           <div class="relative flex-1 min-h-0 flex flex-col">
-            <UTable
+            <ConsoleMediaTable
               ref="table"
               v-model:row-selection="rowSelection"
               v-model:column-visibility="columnVisibility"
@@ -2822,7 +2822,7 @@ onUnmounted(() => {
                   </UDropdownMenu>
                 </div>
               </template>
-            </UTable>
+            </ConsoleMediaTable>
 
             <!-- 悬浮版批量操作菜单 -->
             <transition
@@ -2977,71 +2977,12 @@ onUnmounted(() => {
                 class="space-y-5"
                 @submit="handleEditSubmit"
               >
-                <UFormField
-                  :label="$t('dashboard.photos.editModal.fields.title')"
-                  name="title"
-                >
-                  <UInput
-                    v-model="editFormState.title"
-                    class="w-full"
-                  />
-                </UFormField>
-
-                <UFormField
-                  :label="$t('dashboard.photos.editModal.fields.description')"
-                  name="description"
-                >
-                  <UTextarea
-                    v-model="editFormState.description"
-                    :rows="3"
-                    class="w-full"
-                  />
-                </UFormField>
-
-                <div class="space-y-2">
-                  <UFormField
-                    :label="$t('dashboard.photos.editModal.fields.tags')"
-                    name="tags"
-                  >
-                    <UInputTags
-                      v-model="tagsModel"
-                      class="w-full"
-                    />
-                  </UFormField>
-                  <p class="text-xs text-neutral-500 dark:text-neutral-400">
-                    {{ $t('dashboard.photos.editModal.fields.tagsHint') }}
-                  </p>
-                </div>
-
-                <div class="flex items-center justify-between space-y-2">
-                  <label
-                    class="text-sm font-medium text-neutral-700 dark:text-neutral-200"
-                  >
-                    {{ $t('dashboard.photos.editModal.fields.rating') }}
-                  </label>
-                  <div class="flex items-center gap-3">
-                    <span
-                      v-if="editFormState.rating"
-                      class="text-sm text-neutral-600 dark:text-neutral-400"
-                    >
-                      {{ editFormState.rating }} / 5
-                    </span>
-                    <span
-                      v-else
-                      class="text-sm text-neutral-500 dark:text-neutral-500"
-                    >
-                      {{ $t('dashboard.photos.editModal.fields.noRating') }}
-                    </span>
-                    <Rating
-                      :model-value="editFormState.rating || 0"
-                      :allow-half="false"
-                      size="lg"
-                      @update:model-value="
-                        editFormState.rating = $event || null
-                      "
-                    />
-                  </div>
-                </div>
+                <ConsolePhotoDetailsFields
+                  v-model:title="editFormState.title"
+                  v-model:description="editFormState.description"
+                  v-model:tags="tagsModel"
+                  v-model:rating="editFormState.rating"
+                />
 
                 <div class="space-y-3">
                   <div class="flex items-center justify-between">

@@ -34,6 +34,7 @@ for (const name of ['console', 'gallery'])
       useRuntimeConfig: () => ({ public: { [name]: { apiBase: '' } } }),
       useRequestFetch: () => scopedFetch,
       useFetch: scopedFetch,
+      useEntryContext: () => context,
       computed: (get: () => unknown) => ({
         get value() {
           return get()
@@ -99,3 +100,65 @@ for (const name of ['console', 'gallery'])
     })
     assert.equal(calls.at(-1)!.options.baseURL, '')
   })
+
+test('public gallery unwraps resource envelopes without changing scoped SSR requests', async () => {
+  const calls: string[] = []
+  const context = { value: { audience: 'public', scope: 'site:1:public' } }
+  const responses: Record<string, unknown> = {
+    '/api/photos': { photos: [{ id: 'one' }] },
+    '/api/albums': { albums: [{ id: 1 }] },
+    '/api/albums/1': { album: { id: 1 } },
+    '/api/photos/one/reactions': { reactions: { heart: 1 } },
+  }
+  const exports: Record<string, any> = {}
+  const value = (v: any): any =>
+    typeof v === 'function'
+      ? v()
+      : v && typeof v === 'object' && 'value' in v
+        ? v.value
+        : v
+  const code = ts.transpileModule(
+    readFileSync('packages/gallery/app/composables/useGalleryApi.ts', 'utf8'),
+    { compilerOptions: { module: ts.ModuleKind.CommonJS } },
+  ).outputText
+  vm.runInNewContext(code, {
+    exports,
+    useEntryContext: () => context,
+    useRuntimeConfig: () => ({ public: { gallery: { apiBase: '' } } }),
+    computed: (get: () => unknown) => ({
+      get value() {
+        return get()
+      },
+    }),
+    toValue: value,
+    require: () => ({
+      useEntryApi: () => async (path: string) => {
+        calls.push(path)
+        return responses[path]
+      },
+      useEntryFetch: async (path: unknown, options: any) => {
+        const p = value(path)
+        calls.push(p)
+        return options.transform(responses[p])
+      },
+    }),
+  })
+  const api = exports.useGalleryApi()
+  assert.equal(
+    JSON.stringify(await api('/api/photos/visible')),
+    '[{"id":"one"}]',
+  )
+  assert.equal(calls.at(-1), '/api/photos')
+  assert.equal(JSON.stringify(await api('/api/albums')), '[{"id":1}]')
+  assert.equal(JSON.stringify(await api('/api/albums/1')), '{"id":1}')
+  assert.equal(
+    JSON.stringify(await api('/api/photos/one/reactions')),
+    '{"reactions":{"heart":1}}',
+  )
+  assert.equal(
+    await exports.useGalleryFetch(() => '/api/photos/visible', {
+      transform: (photos: unknown[]) => photos.length,
+    }),
+    1,
+  )
+})

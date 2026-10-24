@@ -14,7 +14,9 @@
     "./social-links": "./src/social-links.ts",
     "./queue": "./src/queue.ts",
     "./entry": "./src/entry.ts",
-    "./storage-diagnostics": "./src/storage-diagnostics.ts"
+    "./storage-diagnostics": "./src/storage-diagnostics.ts",
+    "./gallery-settings": "./src/gallery-settings.ts",
+    "./reactions": "./src/reactions.ts"
   },
   "scripts": {
     "type-check": "tsc --noEmit"

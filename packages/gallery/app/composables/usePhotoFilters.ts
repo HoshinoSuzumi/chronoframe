@@ -16,21 +16,23 @@ interface FilterStats {
 }
 
 // 全局筛选状态管理
-const globalFilters = ref<FilterOptions>({
-  tags: [],
-  cameras: [],
-  lenses: [],
-  cities: [],
-  ratings: 0,
-  search: '',
-})
 
 export function usePhotoFilters() {
   const { photos } = usePhotos()
   const { sortedPhotos } = usePhotoSort()
 
   // 使用全局筛选状态
-  const activeFilters = globalFilters
+  const activeFilters = useState<FilterOptions>(
+    `photo-filters:${useEntryContext().value?.scope ?? 'self-hosted'}`,
+    () => ({
+      tags: [],
+      cameras: [],
+      lenses: [],
+      cities: [],
+      ratings: 0,
+      search: '',
+    }),
+  )
 
   // 计算可用的筛选选项及其数量
   const filterStats = computed((): FilterStats => {

@@ -1,5 +1,6 @@
 import type { NuxtConfig } from 'nuxt/schema'
 import { createRequire } from 'node:module'
+import { fileURLToPath } from 'node:url'
 import { dayjsLocales } from '../packages/gallery/i18n/i18n.options'
 
 const require = createRequire(import.meta.url)
@@ -46,10 +47,28 @@ export const sharedUi = {
     'nuxt-mapbox',
     'nuxt-maplibre',
     'nuxt-og-image',
+    'nuxt-gtag',
   ],
   // Enable dynamic OG only after selecting a Worker-compatible WASM/remote renderer.
   ogImage: { enabled: false },
   ui: { fonts: false },
+  icon: {
+    clientBundle: {
+      scan: {
+        globInclude: [
+          fileURLToPath(
+            new URL('../packages/gallery/app/**/*.{vue,ts}', import.meta.url),
+          ),
+          fileURLToPath(
+            new URL('../packages/console/app/**/*.{vue,ts}', import.meta.url),
+          ),
+          fileURLToPath(new URL('./cloud/app/**/*.{vue,ts}', import.meta.url)),
+        ],
+      },
+    },
+  },
+  // Keep shared gallery event helpers available without injecting tracking scripts.
+  gtag: { enabled: false },
   components: ['~/components'],
   runtimeConfig: {
     public: {
