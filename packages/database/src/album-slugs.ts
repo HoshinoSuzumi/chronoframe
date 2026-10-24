@@ -1,4 +1,9 @@
 import { CoreError, type SiteContext } from '@chronoframe/core'
+import {
+  ALBUM_SLUG_MAX_LENGTH,
+  isNumericAlbumPathSegment,
+  isValidAlbumSlug,
+} from '@chronoframe/contracts/album-slug'
 import { and, asc, eq } from 'drizzle-orm'
 import { type AppDatabase } from './connection.ts'
 import * as tables from './schema.ts'
@@ -144,13 +149,13 @@ export function resolveAlbumPath(
   site: SiteContext,
   segment: string,
 ) {
-  if (segment.length > 80) return null
+  if (segment.length > ALBUM_SLUG_MAX_LENGTH) return null
   let albumId: number | null = null
   let isCurrent = false
-  if (/^\d+$/.test(segment)) {
+  if (isNumericAlbumPathSegment(segment)) {
     const number = Number(segment)
     if (Number.isSafeInteger(number) && number > 0) albumId = number
-  } else if (/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(segment)) {
+  } else if (isValidAlbumSlug(segment)) {
     const entry = resolveAlbumSlug(db, site, segment)
     albumId = entry?.albumId ?? null
     isCurrent = entry?.isCurrent ?? false

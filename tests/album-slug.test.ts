@@ -1,6 +1,10 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import {
+  isNumericAlbumPathSegment,
+  isValidAlbumSlug,
+} from '@chronoframe/contracts/album-slug'
+import {
   generatedAlbumSlug,
   validateCustomAlbumSlug,
 } from '../packages/database/src/album-slug.ts'
@@ -27,6 +31,15 @@ test('custom album slugs are exact, lowercase, safe, and not numeric', () => {
   ]) {
     assert.throws(() => validateCustomAlbumSlug(invalid))
   }
+})
+
+test('shared slug policy matches form validation and public route parsing', () => {
+  assert.equal(isValidAlbumSlug('my-album-1'), true)
+  assert.equal(isValidAlbumSlug('a'.repeat(80)), true)
+  for (const invalid of ['', 'My Album', 'my--album', '1', 'a'.repeat(81)])
+    assert.equal(isValidAlbumSlug(invalid), false)
+  assert.equal(isNumericAlbumPathSegment('001'), true)
+  assert.equal(isNumericAlbumPathSegment('my-album-1'), false)
 })
 
 test('automatic slugs have a fallback and a bounded length', () => {

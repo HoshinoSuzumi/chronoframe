@@ -2,6 +2,7 @@
 const consoleApi = useConsoleApi()
 
 import type { Album, Photo } from '@chronoframe/contracts/resources'
+import { isValidAlbumSlug } from '@chronoframe/contracts/album-slug'
 import type { FormSubmitEvent, FormError } from '@nuxt/ui'
 import {
   ALBUM_PASSWORD_MAX_LENGTH,
@@ -102,12 +103,7 @@ const validateForm = (state: any): FormError[] => {
       message: $t('dashboard.albums.form.titleRequired'),
     })
   }
-  if (
-    state.slug?.trim() &&
-    (state.slug.trim().length > 80 ||
-      !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(state.slug.trim()) ||
-      /^\d+$/.test(state.slug.trim()))
-  ) {
+  if (state.slug?.trim() && !isValidAlbumSlug(state.slug.trim())) {
     errors.push({
       name: 'slug',
       message: $t('dashboard.albums.form.slugInvalid'),

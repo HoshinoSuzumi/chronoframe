@@ -10,6 +10,7 @@
     "./photo": "./src/photo.ts",
     "./location": "./src/location.ts",
     "./resources": "./src/resources.ts",
+    "./album-slug": "./src/album-slug.ts",
     "./settings": "./src/settings.ts",
     "./social-links": "./src/social-links.ts",
     "./queue": "./src/queue.ts",
