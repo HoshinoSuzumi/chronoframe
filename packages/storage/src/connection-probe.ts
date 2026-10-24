@@ -64,6 +64,7 @@ export interface StorageProbeClient {
   signGet(key: string): Promise<string>
   multipart(key: string, contentType: string): Promise<string>
   recoverMultipart(key: string): Promise<string[]>
+  parts(key: string, uploadId: string): Promise<readonly unknown[]>
   abort(key: string, uploadId: string): Promise<unknown>
   browserCors(origin: string, key: string): Promise<boolean>
   remove(key: string): Promise<unknown>
@@ -119,7 +120,17 @@ export async function probeStorageConnection(
       const ids = await operation('multipart_list', () =>
         s3.recoverMultipart(key),
       )
-      if (!ids.includes(id)) throw new StorageConnectionError('multipart_list')
+      // Upload IDs are opaque handles. Some S3-compatible services return a
+      // different usable handle when listing the same upload. Validate capability
+      // instead of assuming the create and list strings must be identical.
+      if (!ids.length) throw new StorageConnectionError('multipart_list')
+      for (const handle of new Set([id, ids[0]!])) {
+        const parts = await operation('multipart_list', () =>
+          s3.parts(key, handle),
+        )
+        // This random-key probe has not uploaded any parts.
+        if (parts.length) throw new StorageConnectionError('multipart_list')
+      }
     } catch (error) {
       multipartFailure = error as StorageConnectionError
     }
