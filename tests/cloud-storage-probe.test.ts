@@ -70,7 +70,12 @@ test('Connection probe checks object operations and returns only safe fixed fail
       ),
       (error) => {
         assert(error instanceof StorageConnectionError)
-        assert.equal(error.code, 'storage_' + stage + '_failed')
+        assert.equal(
+          error.code,
+          'storage_' +
+            (stage === 'multipart' ? 'multipart_create' : stage) +
+            '_failed',
+        )
         assert(!JSON.stringify(error).includes('secret'))
         assert(!error.message.includes('private.example'))
         return true
@@ -112,7 +117,7 @@ test('Probe detects truncated content and preserves the primary error when compe
       'https://portal.example',
       async () => new Response('ok'),
     ),
-    { code: 'storage_multipart_failed' },
+    { code: 'storage_multipart_list_failed' },
   )
   assert(broken.calls.includes('abort'))
   const redirect = fixture()
@@ -186,4 +191,70 @@ test('Browser CORS checks do not require GetBucketCors or bucket administration'
     if (!failure)
       assert.deepEqual(methods, ['OPTIONS', 'OPTIONS', 'OPTIONS', 'GET'])
   }
+})
+
+test('Multipart diagnostics identify each operation and redact arbitrary provider fields', async () => {
+  for (const [method, step] of [
+    ['multipart', 'create'],
+    ['recoverMultipart', 'list'],
+    ['abort', 'abort'],
+  ] as const) {
+    const f = fixture()
+    f.client[method] = async () => {
+      throw Object.assign(new Error('secret signed URL'), {
+        name: 'AccessDenied',
+        $metadata: { httpStatusCode: 403, requestId: 'secret' },
+        response: 'secret',
+      })
+    }
+    await assert.rejects(
+      probeStorageConnection(
+        f.client,
+        'https://portal.example',
+        async () => new Response('ok'),
+      ),
+      (error) => {
+        assert(error instanceof StorageConnectionError)
+        assert.equal(error.code, `storage_multipart_${step}_failed`)
+        assert.equal(error.providerCode, 'AccessDenied')
+        assert.equal(error.providerStatus, 403)
+        assert(!JSON.stringify(error).includes('secret'))
+        return true
+      },
+    )
+    assert(f.calls.includes('cleanup'))
+  }
+  const unknown = new StorageConnectionError('multipart_create', {
+    name: 'https://secret.example',
+    $metadata: { httpStatusCode: 'secret' },
+  })
+  assert.equal(unknown.providerCode, undefined)
+  assert.equal(unknown.providerStatus, undefined)
+  const both = fixture('recover')
+  both.client.abort = async () => {
+    throw new Error('abort also failed')
+  }
+  await assert.rejects(
+    probeStorageConnection(
+      both.client,
+      'https://portal.example',
+      async () => new Response('ok'),
+    ),
+    {
+      code: 'storage_multipart_list_failed',
+    },
+  )
+  const absent = fixture()
+  absent.client.recoverMultipart = async () => []
+  await assert.rejects(
+    probeStorageConnection(
+      absent.client,
+      'https://portal.example',
+      async () => new Response('ok'),
+    ),
+    {
+      code: 'storage_multipart_list_failed',
+    },
+  )
+  assert(absent.calls.includes('abort'))
 })
