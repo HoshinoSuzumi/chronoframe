@@ -22,15 +22,15 @@
     "build": "node scripts/build-edge.mjs"
   },
   "dependencies": {
-    "@aws-sdk/client-s3": "^3.1149.0",
-    "@aws-sdk/s3-request-presigner": "^3.1149.0",
+    "@aws-sdk/client-s3": "^3.1156.0",
+    "@aws-sdk/s3-request-presigner": "^3.1156.0",
     "@chronoframe/contracts": "workspace:*",
     "@smithy/fetch-http-handler": "5.8.0"
   },
   "devDependencies": {
     "@types/node": "^22.20.5",
     "typescript": "^5.9.3",
-    "esbuild": "0.28.0"
+    "esbuild": "0.28.2"
   },
   "license": "AGPL-3.0-only"
 }

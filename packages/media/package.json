@@ -22,7 +22,7 @@
     "@vingle/bmp-js": "^0.2.5",
     "heic-convert": "^2.1.0",
     "exiftool-vendored": "^35.21.0",
-    "es-toolkit": "^1.52.0",
+    "es-toolkit": "^1.53.0",
     "thumbhash": "^0.1.1",
     "@chronoframe/contracts": "workspace:*",
     "@chronoframe/storage": "workspace:*"
