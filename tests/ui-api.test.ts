@@ -34,6 +34,7 @@ for (const name of ['console', 'gallery'])
       useRuntimeConfig: () => ({ public: { [name]: { apiBase: '' } } }),
       useRequestFetch: () => scopedFetch,
       useFetch: scopedFetch,
+      useEntryContext: () => context,
       computed: (get: () => unknown) => ({
         get value() {
           return get()
@@ -99,3 +100,173 @@ for (const name of ['console', 'gallery'])
     })
     assert.equal(calls.at(-1)!.options.baseURL, '')
   })
+
+test('public gallery unwraps resource envelopes without changing scoped SSR requests', async () => {
+  const calls: string[] = []
+  const context = { value: { audience: 'public', scope: 'site:1:public' } }
+  const responses: Record<string, unknown> = {
+    '/api/photos': { photos: [{ id: 'one' }] },
+    '/api/albums': { albums: [{ id: 1 }] },
+    '/api/albums/1': { album: { id: 1 } },
+    '/api/photos/one/reactions': { reactions: { heart: 1 } },
+  }
+  const exports: Record<string, any> = {}
+  const value = (v: any): any =>
+    typeof v === 'function'
+      ? v()
+      : v && typeof v === 'object' && 'value' in v
+        ? v.value
+        : v
+  const code = ts.transpileModule(
+    readFileSync('packages/gallery/app/composables/useGalleryApi.ts', 'utf8'),
+    {
+      compilerOptions: {
+        module: ts.ModuleKind.CommonJS,
+        target: ts.ScriptTarget.ES2022,
+      },
+    },
+  ).outputText
+  vm.runInNewContext(code, {
+    exports,
+    useEntryContext: () => context,
+    useRuntimeConfig: () => ({ public: { gallery: { apiBase: '' } } }),
+    computed: (get: () => unknown) => ({
+      get value() {
+        return get()
+      },
+    }),
+    toValue: value,
+    require: () => ({
+      useEntryApi: () => async (path: string) => {
+        calls.push(path)
+        return responses[path]
+      },
+      useEntryFetch: async (path: unknown, options: any) => {
+        const p = value(path)
+        calls.push(p)
+        return options.transform(responses[p])
+      },
+    }),
+  })
+  const api = exports.useGalleryApi()
+  assert.equal(
+    JSON.stringify(await api('/api/photos/visible')),
+    '[{"id":"one"}]',
+  )
+  assert.equal(calls.at(-1), '/api/photos')
+  assert.equal(JSON.stringify(await api('/api/albums')), '[{"id":1}]')
+  assert.equal(JSON.stringify(await api('/api/albums/1')), '{"id":1}')
+  assert.equal(
+    JSON.stringify(await api('/api/photos/one/reactions')),
+    '{"reactions":{"heart":1}}',
+  )
+  assert.equal(
+    await exports.useGalleryFetch(() => '/api/photos/visible', {
+      transform: (photos: unknown[]) => photos.length,
+    }),
+    1,
+  )
+})
+
+test('mounted entry fetch keeps its Site path and cache key while the next route changes context', () => {
+  const context: { value: any } = {
+    value: { siteId: 1, scope: 'site:1:portal:user1', audience: 'portal' },
+  }
+  let captured: any
+  const exports: Record<string, any> = {}
+  const code = ts.transpileModule(
+    readFileSync('packages/gallery/app/composables/useEntryApi.ts', 'utf8'),
+    {
+      compilerOptions: {
+        module: ts.ModuleKind.CommonJS,
+        target: ts.ScriptTarget.ES2022,
+      },
+    },
+  ).outputText
+  vm.runInNewContext(code, {
+    exports,
+    require: () => ({ useEntryContext: () => context, entryRequestPath }),
+    toValue: (value: any) => value?.value ?? value,
+    computed: (getter: () => unknown) => ({
+      get value() {
+        return getter()
+      },
+    }),
+    useFetch: (path: any, options: any) => {
+      captured = { path, options }
+    },
+  })
+  exports.useEntryFetch('/api/albums', undefined, '')
+  const outgoing = captured
+  context.value = null
+  assert.equal(outgoing.path.value, '/api/sites/1/albums')
+  assert.equal(
+    outgoing.options.key.value,
+    'site:1:portal:user1:fetch:/api/sites/1/albums',
+  )
+  context.value = {
+    siteId: 2,
+    scope: 'site:2:portal:user2',
+    audience: 'portal',
+  }
+  exports.useEntryFetch('/api/albums', undefined, '')
+  assert.equal(captured.path.value, '/api/sites/2/albums')
+  assert.notEqual(captured.options.key.value, outgoing.options.key.value)
+  assert.equal(outgoing.path.value, '/api/sites/1/albums')
+})
+
+test('retired Site async data is cleared after page completion, preserving a reactivated scope', () => {
+  const context: { value: any } = { value: { scope: 'site:1' } }
+  let changed: (scope: string, previous: string) => void = () => {}
+  let finish: () => void = () => {}
+  const cleared: string[] = []
+  const keys = ['site:1:fetch:photos', 'site:2:fetch:photos', 'auth-status']
+  const code = ts.transpileModule(
+    readFileSync(
+      'packages/gallery/app/plugins/entry-context.ts',
+      'utf8',
+    ).replace('import.meta.client', 'false'),
+    {
+      compilerOptions: {
+        module: ts.ModuleKind.CommonJS,
+        target: ts.ScriptTarget.ES2022,
+      },
+    },
+  ).outputText
+  vm.runInNewContext(code, {
+    exports: {},
+    require: () => ({ clearImageLoaderCache() {} }),
+    defineNuxtPlugin: (setup: any) =>
+      setup({
+        hook: (name: string, callback: () => void) => {
+          assert.equal(name, 'page:finish')
+          finish = callback
+        },
+      }),
+    useEntryContext: () => context,
+    useSettingsStore: () => ({ $reset() {} }),
+    useViewerState: () => ({ clearReturnRoute() {} }),
+    watch: (_: any, callback: any) => {
+      changed = callback
+    },
+    clearNuxtData: (predicate: (key: string) => boolean) => {
+      cleared.push(...keys.filter(predicate))
+    },
+  })
+  context.value = { scope: 'site:2' }
+  changed('site:2', 'site:1')
+  assert.deepEqual(cleared, [], 'outgoing component data remains available')
+  finish()
+  assert.deepEqual(cleared, ['site:1:fetch:photos'])
+  cleared.length = 0
+  context.value = { scope: 'site:1' }
+  changed('site:1', 'site:2')
+  context.value = { scope: 'site:2' }
+  changed('site:2', 'site:1')
+  finish()
+  assert.deepEqual(
+    cleared,
+    ['site:1:fetch:photos'],
+    'active scope and unrelated auth data survive',
+  )
+})

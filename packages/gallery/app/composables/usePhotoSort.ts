@@ -6,87 +6,96 @@ interface SortOption {
   order: 'asc' | 'desc'
 }
 
-interface SortState {
-  currentSort: string
-  availableSorts: SortOption[]
-}
-
 // 全局排序状态
-const globalSortState = ref<SortState>({
-  currentSort: 'dateTaken-desc', // 默认按拍摄时间倒序
-  availableSorts: [
-    {
-      key: 'dateTaken-desc',
-      labelI18n: 'ui.action.sort.options.dateTakenDesc',
-      icon: 'tabler:sort-descending',
-      value: (photo: Photo) =>
-        photo.dateTaken ? new Date(photo.dateTaken).getTime() : 0,
-      order: 'desc',
-    },
-    {
-      key: 'dateTaken-asc',
-      labelI18n: 'ui.action.sort.options.dateTakenAsc',
-      icon: 'tabler:sort-ascending',
-      value: (photo: Photo) =>
-        photo.dateTaken ? new Date(photo.dateTaken).getTime() : 0,
-      order: 'asc',
-    },
-    {
-      key: 'lastModified-desc',
-      labelI18n: 'ui.action.sort.options.lastModifiedDesc',
-      icon: 'tabler:sort-descending',
-      value: (photo: Photo) =>
-        photo.lastModified ? new Date(photo.lastModified).getTime() : 0,
-      order: 'desc',
-    },
-    {
-      key: 'lastModified-asc',
-      labelI18n: 'ui.action.sort.options.lastModifiedAsc',
-      icon: 'tabler:sort-ascending',
-      value: (photo: Photo) =>
-        photo.lastModified ? new Date(photo.lastModified).getTime() : 0,
-      order: 'asc',
-    },
-    {
-      key: 'fileSize-asc',
-      labelI18n: 'ui.action.sort.options.fileSizeAsc',
-      icon: 'tabler:sort-ascending-small-big',
-      value: (photo: Photo) => photo.fileSize || 0,
-      order: 'asc',
-    },
-    {
-      key: 'fileSize-desc',
-      labelI18n: 'ui.action.sort.options.fileSizeDesc',
-      icon: 'tabler:sort-descending-small-big',
-      value: (photo: Photo) => photo.fileSize || 0,
-      order: 'desc',
-    },
-    {
-      key: 'title-asc',
-      labelI18n: 'ui.action.sort.options.titleAsc',
-      icon: 'tabler:sort-ascending-letters',
-      value: (photo: Photo) => (photo.title || photo.id).toLowerCase(),
-      order: 'asc',
-    },
-    {
-      key: 'title-desc',
-      labelI18n: 'ui.action.sort.options.titleDesc',
-      icon: 'tabler:sort-descending-letters',
-      value: (photo: Photo) => (photo.title || photo.id).toLowerCase(),
-      order: 'desc',
-    },
-  ],
-})
+const sortOptions: readonly SortOption[] = [
+  {
+    key: 'dateTaken-desc',
+    labelI18n: 'ui.action.sort.options.dateTakenDesc',
+    icon: 'tabler:sort-descending',
+    value: (photo: Photo) =>
+      photo.dateTaken ? new Date(photo.dateTaken).getTime() : 0,
+    order: 'desc',
+  },
+  {
+    key: 'dateTaken-asc',
+    labelI18n: 'ui.action.sort.options.dateTakenAsc',
+    icon: 'tabler:sort-ascending',
+    value: (photo: Photo) =>
+      photo.dateTaken ? new Date(photo.dateTaken).getTime() : 0,
+    order: 'asc',
+  },
+  {
+    key: 'lastModified-desc',
+    labelI18n: 'ui.action.sort.options.lastModifiedDesc',
+    icon: 'tabler:sort-descending',
+    value: (photo: Photo) =>
+      photo.lastModified ? new Date(photo.lastModified).getTime() : 0,
+    order: 'desc',
+  },
+  {
+    key: 'lastModified-asc',
+    labelI18n: 'ui.action.sort.options.lastModifiedAsc',
+    icon: 'tabler:sort-ascending',
+    value: (photo: Photo) =>
+      photo.lastModified ? new Date(photo.lastModified).getTime() : 0,
+    order: 'asc',
+  },
+  {
+    key: 'fileSize-asc',
+    labelI18n: 'ui.action.sort.options.fileSizeAsc',
+    icon: 'tabler:sort-ascending-small-big',
+    value: (photo: Photo) => photo.fileSize || 0,
+    order: 'asc',
+  },
+  {
+    key: 'fileSize-desc',
+    labelI18n: 'ui.action.sort.options.fileSizeDesc',
+    icon: 'tabler:sort-descending-small-big',
+    value: (photo: Photo) => photo.fileSize || 0,
+    order: 'desc',
+  },
+  {
+    key: 'title-asc',
+    labelI18n: 'ui.action.sort.options.titleAsc',
+    icon: 'tabler:sort-ascending-letters',
+    value: (photo: Photo) => (photo.title || photo.id).toLowerCase(),
+    order: 'asc',
+  },
+  {
+    key: 'title-desc',
+    labelI18n: 'ui.action.sort.options.titleDesc',
+    icon: 'tabler:sort-descending-letters',
+    value: (photo: Photo) => (photo.title || photo.id).toLowerCase(),
+    order: 'desc',
+  },
+]
+
+const shuffleOption: SortOption = {
+  key: 'shuffle',
+  labelI18n: 'ui.action.sort.options.shuffle',
+  icon: 'tabler:dice-3',
+  value: () => Math.random(),
+  order: 'asc',
+}
 
 export function usePhotoSort() {
   const { photos } = usePhotos()
+  const currentSort = useState<string>(
+    `photo-sort:${useEntryContext().value?.scope ?? 'self-hosted'}`,
+    () => 'dateTaken-desc',
+  )
+
+  const availableSorts = computed(() =>
+    currentSort.value === 'shuffle'
+      ? [...sortOptions, shuffleOption]
+      : sortOptions,
+  )
 
   // 当前排序选项
   const currentSortOption = computed(() => {
     return (
-      globalSortState.value.availableSorts.find(
-        (sort) => sort.key === globalSortState.value.currentSort,
-      ) || globalSortState.value.availableSorts[0]
+      availableSorts.value.find((sort) => sort.key === currentSort.value) ||
+      sortOptions[0]
     )
   })
 
@@ -127,25 +136,20 @@ export function usePhotoSort() {
 
   // 设置排序方式
   const setSortOption = (sortKey: string) => {
-    if (
-      globalSortState.value.availableSorts.some((sort) => sort.key === sortKey)
-    ) {
-      globalSortState.value.currentSort = sortKey
+    if (availableSorts.value.some((sort) => sort.key === sortKey)) {
+      currentSort.value = sortKey
     }
   }
 
   // 切换时间排序（正序/倒序）
   const toggleDateSortOrder = () => {
-    const current = globalSortState.value.currentSort
+    const current = currentSort.value
     if (current === 'dateTaken-desc') {
       setSortOption('dateTaken-asc')
     } else {
       setSortOption('dateTaken-desc')
     }
   }
-
-  // 获取可用的排序选项
-  const availableSorts = computed(() => globalSortState.value.availableSorts)
 
   // 获取当前排序的显示标签
   const currentSortLabel = computed(
@@ -161,34 +165,18 @@ export function usePhotoSort() {
 
   // 检查是否为时间排序
   const isDateSort = computed(() => {
-    return globalSortState.value.currentSort.startsWith('dateTaken')
+    return currentSort.value.startsWith('dateTaken')
   })
 
   // 检查时间排序是否为倒序
   const isDateSortDesc = computed(() => {
-    return globalSortState.value.currentSort === 'dateTaken-desc'
+    return currentSort.value === 'dateTaken-desc'
   })
 
   // 打乱照片顺序
   const shufflePhotos = () => {
     // 创建一个特殊的排序方式用于打乱
-    globalSortState.value.currentSort = 'shuffle'
-
-    // 更新可用排序中的 shuffle 选项
-    const shuffleIndex = globalSortState.value.availableSorts.findIndex(
-      (sort) => sort.key === 'shuffle',
-    )
-
-    if (shuffleIndex === -1) {
-      // 如果没有 shuffle 排序选项，则添加它
-      globalSortState.value.availableSorts.push({
-        key: 'shuffle',
-        labelI18n: 'ui.action.sort.options.shuffle',
-        icon: 'tabler:dice-3',
-        value: () => Math.random(),
-        order: 'asc',
-      })
-    }
+    currentSort.value = 'shuffle'
   }
 
   return {

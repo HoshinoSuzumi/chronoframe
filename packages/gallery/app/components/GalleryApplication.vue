@@ -1,0 +1,111 @@
+<script setup lang="ts">
+import dayjsLocale_zhCN from 'dayjs/locale/zh-cn'
+import dayjsLocale_zhTW from 'dayjs/locale/zh-tw'
+import dayjsLocale_zhHK from 'dayjs/locale/zh-hk'
+
+const dayjs = useDayjs()
+const colorMode = useColorMode()
+const localeRef = ref('en')
+try {
+  const { locale } = useI18n()
+  watch(
+    locale,
+    (value) => {
+      localeRef.value = value
+    },
+    { immediate: true },
+  )
+} catch {
+  // i18n context may be unavailable during early server-side error rendering
+}
+
+// 初始化设置系统 - 一次性加载所有设置
+const settingsStore = useSettingsStore()
+await settingsStore.initSettings()
+
+const appTitle = useSettingRef('app:title')
+
+colorMode.preference = useSettingRef('app:appearance.theme').value as string
+
+useHead({
+  htmlAttrs: { lang: localeRef },
+  titleTemplate: (title) =>
+    `${title ? title + ' | ' : ''}${appTitle.value || 'ChronoFrame'}`,
+})
+
+// 根据用户登录状态和当前路由决定使用哪个 API
+// 登录用户或后台管理页面显示所有照片，未登录用户在前端页面只显示可见照片
+const route = useRoute()
+const { loggedIn } = useUserSession()
+const apiEndpoint = computed(() => {
+  // 后台管理页面始终显示所有照片
+  if (route.path.startsWith('/dashboard')) {
+    return '/api/photos'
+  }
+  // 前端页面：登录用户显示所有照片，未登录用户只显示可见照片
+  return loggedIn.value ? '/api/photos' : '/api/photos/visible'
+})
+const { data, refresh, status } = await useGalleryFetch(
+  () => apiEndpoint.value,
+  {
+    watch: [apiEndpoint],
+  },
+)
+
+const photos = computed(() => (data.value as Photo[]) || [])
+await useInstanceOpenGraph(photos)
+
+const {
+  viewerPhotos,
+  currentPhotoIndex,
+  isViewerOpen,
+  handleClose,
+  handleIndexChange,
+} = useGalleryViewer(photos)
+
+watchEffect(() => {
+  dayjs.locale('zh-Hans', dayjsLocale_zhCN)
+  dayjs.locale('zh-Hant-TW', dayjsLocale_zhTW)
+  dayjs.locale('zh-Hant-HK', dayjsLocale_zhHK)
+  dayjs.locale(localeRef.value)
+})
+
+// 在全局级别提供筛选功能的状态管理
+provide(
+  'photosFiltering',
+  reactive({
+    activeFilters: {
+      tags: [],
+      cameras: [],
+      lenses: [],
+      cities: [],
+      ratings: [],
+    },
+  }),
+)
+</script>
+
+<template>
+  <UApp>
+    <NuxtLoadingIndicator />
+    <PhotosProvider
+      :photos="photos"
+      :refresh="refresh"
+      :status="status"
+    >
+      <slot />
+      <ClientOnly>
+        <slot name="overlays" />
+        <PhotoViewer
+          :photos="viewerPhotos"
+          :current-index="currentPhotoIndex"
+          :is-open="isViewerOpen"
+          @close="handleClose"
+          @index-change="handleIndexChange"
+        />
+      </ClientOnly>
+    </PhotosProvider>
+  </UApp>
+</template>
+
+<style></style>

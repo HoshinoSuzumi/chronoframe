@@ -40,7 +40,16 @@ for (const entry of ['cloud', 'site']) {
         /^(?:node:)?(?:fs(?:\/|$)|child_process|worker_threads)/.test(specifier)
       )
         failures.push(`${file}: ${specifier}`)
+      const edgeSafe = [
+        '@chronoframe/database/cloud-media',
+        '@chronoframe/database/cloud-execution',
+        '@chronoframe/database/cloud-resources',
+        '@chronoframe/storage/s3-edge',
+        '@chronoframe/storage/credential-cipher',
+        '@chronoframe/storage/connection-probe',
+      ].includes(specifier)
       if (
+        !edgeSafe &&
         /self-hosted|@chronoframe\/(?:database|storage|media|processing|jobs)(?:\/|$)|better-sqlite3|exiftool|sharp|heic-convert/.test(
           specifier,
         )

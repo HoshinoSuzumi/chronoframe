@@ -2,7 +2,7 @@ import { existsSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { createRequire } from 'node:module'
-import { spawn } from 'node:child_process'
+import { spawn, execFileSync } from 'node:child_process'
 const root = fileURLToPath(new URL('../', import.meta.url))
 const [entry, command = 'dev', ...args] = process.argv.slice(2)
 if (
@@ -14,6 +14,12 @@ const app = resolve(root, 'apps', entry)
 if (command === 'prepare' && !existsSync(resolve(app, 'nuxt.config.ts'))) {
   console.log('Application preparation deferred until sources are available.')
 } else {
+  if (command === 'build')
+    execFileSync(
+      process.execPath,
+      [resolve(root, 'packages/storage/scripts/build-edge.mjs')],
+      { cwd: root, stdio: 'inherit' },
+    )
   const require = createRequire(import.meta.url)
   const cli = resolve(
     dirname(require.resolve('nuxt/package.json')),

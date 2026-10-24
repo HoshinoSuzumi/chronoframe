@@ -9,19 +9,28 @@
     "./manager": "./src/manager.ts",
     "./providers/local": "./src/providers/local.ts",
     "./providers/s3": "./src/providers/s3.ts",
-    "./providers/openlist": "./src/providers/openlist.ts"
+    "./providers/openlist": "./src/providers/openlist.ts",
+    "./s3-edge": {
+      "types": "./src/s3-edge.ts",
+      "default": "./dist/s3-edge.mjs"
+    },
+    "./credential-cipher": "./src/credential-cipher.ts",
+    "./connection-probe": "./src/connection-probe.ts"
   },
   "scripts": {
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "build": "node scripts/build-edge.mjs"
   },
   "dependencies": {
-    "@chronoframe/contracts": "workspace:*",
     "@aws-sdk/client-s3": "^3.1149.0",
-    "@aws-sdk/s3-request-presigner": "^3.1149.0"
+    "@aws-sdk/s3-request-presigner": "^3.1149.0",
+    "@chronoframe/contracts": "workspace:*",
+    "@smithy/fetch-http-handler": "5.8.0"
   },
   "devDependencies": {
     "@types/node": "^22.20.5",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "esbuild": "0.28.0"
   },
   "license": "AGPL-3.0-only"
 }

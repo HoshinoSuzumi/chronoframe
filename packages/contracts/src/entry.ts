@@ -23,9 +23,9 @@ export const CLOUD_CAPABILITIES: EntryCapabilities = {
   edition: 'cloud',
   identity: 'platform',
   database: 'd1',
-  storageProviders: [],
+  storageProviders: ['s3'],
   quota: 'plan',
-  mediaManagement: false,
+  mediaManagement: true,
   subscriptions: true,
   customScripts: false,
 }
@@ -33,6 +33,8 @@ export const SITE_CAPABILITIES: EntryCapabilities = {
   ...CLOUD_CAPABILITIES,
   edition: 'site',
   identity: 'visitor',
+  mediaManagement: false,
+  storageProviders: [],
   subscriptions: false,
 }
 export interface EntrySiteContext {

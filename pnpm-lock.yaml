@@ -264,6 +264,37 @@ importers:
         specifier: 2.0.0-alpha.20
         version: 2.0.0-alpha.20(@types/node@24.9.0)(axios@1.20.0)(change-case@5.4.4)(esbuild@0.28.0)(fuse.js@7.5.0)(jiti@2.7.0)(postcss@8.5.29)(sass-embedded@1.105.1)(sass@1.105.1)(terser@5.44.0)(tsx@4.21.0)(typescript@5.9.3)(yaml@2.9.0)
 
+  apps/worker:
+    dependencies:
+      '@chronoframe/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@chronoframe/contracts':
+        specifier: workspace:*
+        version: link:../../packages/contracts
+      '@chronoframe/processing':
+        specifier: workspace:*
+        version: link:../../packages/processing
+      '@chronoframe/storage':
+        specifier: workspace:*
+        version: link:../../packages/storage
+      '@chronoframe/media':
+        specifier: workspace:*
+        version: link:../../packages/media
+      'exiftool-vendored':
+        specifier: ^35.21.0
+        version: 35.21.0
+      'sharp':
+        specifier: 0.35.5
+        version: 0.35.5(@types/node@22.20.5)
+    devDependencies:
+      '@types/node':
+        specifier: ^22.20.5
+        version: 22.20.5
+      'typescript':
+        specifier: ^5.9.3
+        version: 5.9.3
+
   packages/console:
     dependencies:
       "@chronoframe/gallery":
@@ -490,6 +521,9 @@ importers:
         version: 5.9.3
   packages/storage:
     dependencies:
+      '@smithy/fetch-http-handler':
+        specifier: 5.8.0
+        version: 5.8.0
       "@aws-sdk/client-s3":
         specifier: ^3.1149.0
         version: 3.1149.0
@@ -500,6 +534,9 @@ importers:
         specifier: workspace:*
         version: link:../contracts
     devDependencies:
+      esbuild:
+        specifier: 0.28.0
+        version: 0.28.0
       "@types/node":
         specifier: ^22.20.5
         version: 22.20.5
@@ -712,6 +749,12 @@ importers:
 
   apps/cloud:
     dependencies:
+      '@chronoframe/database':
+        specifier: workspace:*
+        version: link:../../packages/database
+      '@chronoframe/storage':
+        specifier: workspace:*
+        version: link:../../packages/storage
       better-auth:
         specifier: 1.7.12
         version: 1.7.12(@opentelemetry/api@1.9.0)(drizzle-kit@0.31.11)(drizzle-orm@0.45.4(@cloudflare/workers-types@4.20260402.1)(@opentelemetry/api@1.9.0)(@types/better-sqlite3@9.6.0)(better-sqlite3@12.11.1)(kysely@0.29.7))(vue@3.5.43(typescript@5.9.3))
@@ -784,6 +827,9 @@ importers:
       '@nuxtjs/i18n':
         specifier: 10.6.0
         version: 10.6.0(@nuxt/schema@4.6.1)(@vue/compiler-dom@3.5.43)(db0@0.3.4(better-sqlite3@12.11.1)(drizzle-orm@0.45.4(@cloudflare/workers-types@4.20260402.1)(@opentelemetry/api@1.9.0)(@types/better-sqlite3@9.6.0)(better-sqlite3@12.11.1)))(dotenv@17.4.0)(esbuild@0.28.0)(eslint@9.38.0(jiti@2.7.0))(giget@3.2.0)(ioredis@5.10.1)(jiti@2.7.0)(pinia@3.0.4(typescript@5.9.3)(vue@3.5.43(typescript@5.9.3)))(rolldown@1.2.13)(rollup@4.60.3)(typescript@5.9.3)(vite@8.3.4(@types/node@24.9.0)(esbuild@0.28.0)(jiti@2.7.0)(sass-embedded@1.105.1)(sass@1.105.1)(terser@5.44.0)(tsx@4.21.0)(yaml@2.9.0))(vue@3.5.43(typescript@5.9.3))
+      nuxt-gtag:
+        specifier: 4.1.0
+        version: 4.1.0(@nuxt/schema@4.6.1)(confbox@0.2.4)(dotenv@17.4.0)(giget@3.2.0)(jiti@2.7.0)(magic-string@1.4.3)(mlly@1.8.2)(oxc-parser@0.151.0)(rolldown@1.2.13)(unplugin@3.4.0(esbuild@0.28.0)(rolldown@1.2.13)(rollup@4.60.3)(vite@8.3.4(@types/node@24.9.0)(esbuild@0.28.0)(jiti@2.7.0)(sass-embedded@1.105.1)(sass@1.105.1)(terser@5.44.0)(tsx@4.21.0)(yaml@2.9.0)))
       nuxt-mapbox:
         specifier: 1.6.4
         version: 1.6.4(@nuxt/schema@4.6.1)(confbox@0.2.4)(dotenv@17.4.0)(giget@3.2.0)(jiti@2.7.0)(magic-string@1.4.3)(mlly@1.8.2)(oxc-parser@0.151.0)(rolldown@1.2.13)(typescript@5.9.3)(unplugin@3.4.0(esbuild@0.28.0)(rolldown@1.2.13)(rollup@4.60.3)(vite@8.3.4(@types/node@24.9.0)(esbuild@0.28.0)(jiti@2.7.0)(sass-embedded@1.105.1)(sass@1.105.1)(terser@5.44.0)(tsx@4.21.0)(yaml@2.9.0)))(vite@8.3.4(@types/node@24.9.0)(esbuild@0.28.0)(jiti@2.7.0)(sass-embedded@1.105.1)(sass@1.105.1)(terser@5.44.0)(tsx@4.21.0)(yaml@2.9.0))
@@ -814,6 +860,15 @@ importers:
 
   apps/site:
     dependencies:
+      '@chronoframe/contracts':
+        specifier: workspace:*
+        version: link:../../packages/contracts
+      '@chronoframe/database':
+        specifier: workspace:*
+        version: link:../../packages/database
+      '@chronoframe/storage':
+        specifier: workspace:*
+        version: link:../../packages/storage
       h3:
         specifier: 1.15.11
         version: 1.15.11
@@ -856,6 +911,9 @@ importers:
       '@nuxtjs/i18n':
         specifier: 10.6.0
         version: 10.6.0(@nuxt/schema@4.6.1)(@vue/compiler-dom@3.5.43)(db0@0.3.4(better-sqlite3@12.11.1)(drizzle-orm@0.45.4(@cloudflare/workers-types@4.20260402.1)(@opentelemetry/api@1.9.0)(@types/better-sqlite3@9.6.0)(better-sqlite3@12.11.1)))(dotenv@17.4.0)(esbuild@0.28.0)(eslint@9.38.0(jiti@2.7.0))(giget@3.2.0)(ioredis@5.10.1)(jiti@2.7.0)(pinia@3.0.4(typescript@5.9.3)(vue@3.5.43(typescript@5.9.3)))(rolldown@1.2.13)(rollup@4.60.3)(typescript@5.9.3)(vite@8.3.4(@types/node@24.9.0)(esbuild@0.28.0)(jiti@2.7.0)(sass-embedded@1.105.1)(sass@1.105.1)(terser@5.44.0)(tsx@4.21.0)(yaml@2.9.0))(vue@3.5.43(typescript@5.9.3))
+      nuxt-gtag:
+        specifier: 4.1.0
+        version: 4.1.0(@nuxt/schema@4.6.1)(confbox@0.2.4)(dotenv@17.4.0)(giget@3.2.0)(jiti@2.7.0)(magic-string@1.4.3)(mlly@1.8.2)(oxc-parser@0.151.0)(rolldown@1.2.13)(unplugin@3.4.0(esbuild@0.28.0)(rolldown@1.2.13)(rollup@4.60.3)(vite@8.3.4(@types/node@24.9.0)(esbuild@0.28.0)(jiti@2.7.0)(sass-embedded@1.105.1)(sass@1.105.1)(terser@5.44.0)(tsx@4.21.0)(yaml@2.9.0)))
       nuxt-mapbox:
         specifier: 1.6.4
         version: 1.6.4(@nuxt/schema@4.6.1)(confbox@0.2.4)(dotenv@17.4.0)(giget@3.2.0)(jiti@2.7.0)(magic-string@1.4.3)(mlly@1.8.2)(oxc-parser@0.151.0)(rolldown@1.2.13)(typescript@5.9.3)(unplugin@3.4.0(esbuild@0.28.0)(rolldown@1.2.13)(rollup@4.60.3)(vite@8.3.4(@types/node@24.9.0)(esbuild@0.28.0)(jiti@2.7.0)(sass-embedded@1.105.1)(sass@1.105.1)(terser@5.44.0)(tsx@4.21.0)(yaml@2.9.0)))(vite@8.3.4(@types/node@24.9.0)(esbuild@0.28.0)(jiti@2.7.0)(sass-embedded@1.105.1)(sass@1.105.1)(terser@5.44.0)(tsx@4.21.0)(yaml@2.9.0))

@@ -10,7 +10,10 @@
     "./dto": "./src/dto.ts",
     "./album-membership": "./src/album-membership.ts",
     "./album-photos-add": "./src/album-photos-add.ts",
-    "./album-slugs": "./src/album-slugs.ts"
+    "./album-slugs": "./src/album-slugs.ts",
+    "./cloud-media": "./src/cloud-media.ts",
+    "./cloud-execution": "./src/cloud-execution.ts",
+    "./cloud-resources": "./src/cloud-resources.ts"
   },
   "scripts": {
     "type-check": "tsc --noEmit"

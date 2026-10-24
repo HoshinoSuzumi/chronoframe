@@ -15,6 +15,8 @@ export interface Photo {
   fileSize: number | null
   lastModified: string | null
   originalUrl: string | null
+  /** Unconverted source for download when the viewer uses a display derivative. */
+  downloadUrl?: string | null
   thumbnailUrl: string | null
   thumbnailHash: string | null
   tags: string[] | null

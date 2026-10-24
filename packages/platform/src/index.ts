@@ -187,3 +187,5 @@ export {
   ProvisioningError,
 } from './provisioning.ts'
 export type { ManagedSite } from './provisioning.ts'
+export { createStorageVault } from './storage-vault.ts'
+export type { CloudStoragePublic, CloudStorageSecret } from './storage-vault.ts'

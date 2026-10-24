@@ -33,6 +33,10 @@
     "@unhead/vue": "3.4.2",
     "@chronoframe/platform": "workspace:*",
     "@chronoframe/core": "workspace:*",
-    "h3": "1.15.11"
+    "h3": "1.15.11",
+    "@chronoframe/database": "workspace:*",
+    "@chronoframe/storage": "workspace:*",
+    "@chronoframe/contracts": "workspace:*",
+    "nuxt-gtag": "4.1.0"
   }
 }

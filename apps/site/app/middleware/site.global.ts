@@ -15,14 +15,14 @@ export default defineNuxtRouteMiddleware(async (to) => {
     context.value = null
     return abortNavigation(error as Error)
   }
-  // Photo repositories are delivered in P4; never fall back to Self-hosted data.
-  if (to.path !== '/') {
-    context.value = null
-    return abortNavigation(
-      createError({
-        statusCode: 503,
-        statusMessage: 'Gallery content is not available yet',
-      }),
-    )
-  }
+  if (to.path === '/signin')
+    return navigateTo('https://app.chronoframe.art/signin', { external: true })
+  if (
+    !['/photos', '/globe'].includes(to.path) &&
+    !/^\/[a-zA-Z0-9_-]{1,128}$/.test(to.path) &&
+    to.path !== '/' &&
+    to.path !== '/albums' &&
+    !/^\/albums\/[1-9][0-9]*$/.test(to.path)
+  )
+    return abortNavigation(createError({ statusCode: 404 }))
 })
