@@ -130,16 +130,38 @@ async function rotateStorage() {
     rotation.secretAccessKey = ''
   }, 'Credentials rotated. Existing media references remain available.')
 }
+const photoLoaded = ref(''),
+  albumLoaded = ref<number | ''>('')
+let photoLoadGeneration = 0,
+  albumLoadGeneration = 0
+const albumReady = computed(
+  () => !!albumId.value && albumLoaded.value === albumId.value,
+)
 async function loadPhoto() {
-  if (!editPhoto.id) return
-  const data = await api<{ photo: Photo; revision: number }>(
-    base.value + '/photos/' + editPhoto.id,
-  )
-  editPhoto.title = data.photo.title ?? 'Untitled photograph'
-  editPhoto.description = data.photo.description ?? ''
-  editPhoto.revision = data.revision
+  const id = editPhoto.id,
+    generation = ++photoLoadGeneration
+  photoLoaded.value = ''
+  editPhoto.title = ''
+  editPhoto.description = ''
+  if (!id) return
+  try {
+    const data = await api<{ photo: Photo; revision: number }>(
+      base.value + '/photos/' + id,
+    )
+    if (editPhoto.id !== id || generation !== photoLoadGeneration) return
+    editPhoto.title = data.photo.title ?? 'Untitled photograph'
+    editPhoto.description = data.photo.description ?? ''
+    editPhoto.revision = data.revision
+    photoLoaded.value = id
+  } catch {
+    if (editPhoto.id !== id || generation !== photoLoadGeneration) return
+    failed.value = true
+    message.value =
+      'Could not load photograph settings. Select it again to retry.'
+  }
 }
 async function savePhoto() {
+  if (!editPhoto.id || photoLoaded.value !== editPhoto.id) return
   await action(
     () =>
       api(base.value + '/photos/' + editPhoto.id, {
@@ -155,17 +177,58 @@ async function savePhoto() {
   await loadPhoto()
 }
 async function loadAlbum() {
-  if (!albumId.value) return
-  const data = await api<{
-    album: { title: string; isHidden: boolean }
-    revision: number
-  }>(base.value + '/albums/' + albumId.value + '/settings')
-  renameAlbum.title = data.album.title
-  albumHidden.value = data.album.isHidden
+  const id = albumId.value,
+    generation = ++albumLoadGeneration
+  albumLoaded.value = ''
   albumPassword.value = ''
-  renameAlbum.revision = data.revision
+  renameAlbum.title = ''
+  if (!id) return
+  try {
+    const data = await api<{
+      album: { title: string; isHidden: boolean }
+      revision: number
+    }>(base.value + '/albums/' + id + '/settings')
+    if (albumId.value !== id || generation !== albumLoadGeneration) return
+    renameAlbum.title = data.album.title
+    albumHidden.value = data.album.isHidden
+    renameAlbum.revision = data.revision
+    albumLoaded.value = id
+  } catch {
+    if (albumId.value !== id || generation !== albumLoadGeneration) return
+    failed.value = true
+    message.value = 'Could not load album settings. Select it again to retry.'
+  }
+}
+async function saveAlbumAccess(removePassword = false) {
+  if (!albumReady.value) return
+  if (
+    removePassword &&
+    !window.confirm(
+      'Remove password protection? Published photographs may become public.',
+    )
+  )
+    return
+  const id = albumId.value
+  await action(
+    async () => {
+      await api(base.value + '/albums/' + id + '/access', {
+        method: 'POST',
+        body: {
+          hidden: albumHidden.value,
+          ...(removePassword
+            ? { password: null }
+            : albumPassword.value
+              ? { password: albumPassword.value }
+              : {}),
+        },
+      })
+      if (albumId.value === id) albumPassword.value = ''
+    },
+    removePassword ? 'Album password removed.' : 'Album access updated.',
+  )
 }
 async function saveAlbum() {
+  if (!albumReady.value) return
   await action(
     () =>
       api(base.value + '/albums/' + albumId.value + '/settings', {
@@ -665,6 +728,7 @@ onBeforeUnmount(() => {
             <label
               >Photograph<select
                 v-model="editPhoto.id"
+                :disabled="busy"
                 class="cf-input"
                 required
                 @change="loadPhoto"
@@ -682,6 +746,7 @@ onBeforeUnmount(() => {
             <label
               >Title<input
                 v-model="editPhoto.title"
+                :disabled="busy || photoLoaded !== editPhoto.id"
                 class="cf-input"
                 maxlength="255"
                 required
@@ -689,6 +754,7 @@ onBeforeUnmount(() => {
             <label
               >Description<textarea
                 v-model="editPhoto.description"
+                :disabled="busy || photoLoaded !== editPhoto.id"
                 class="cf-input"
                 maxlength="2048"
               />
@@ -696,7 +762,7 @@ onBeforeUnmount(() => {
             <CloudButton
               type="submit"
               variant="secondary"
-              :disabled="busy || !editPhoto.id"
+              :disabled="busy || !editPhoto.id || photoLoaded !== editPhoto.id"
               >Save photograph</CloudButton
             >
           </form>
@@ -769,6 +835,7 @@ onBeforeUnmount(() => {
         <label class="cf-field-label"
           >Album<select
             v-model="albumId"
+            :disabled="busy"
             @change="loadAlbum"
             class="cf-input"
           >
@@ -791,13 +858,14 @@ onBeforeUnmount(() => {
           <label
             >Album name<input
               v-model="renameAlbum.title"
+              :disabled="busy || !albumReady"
               class="cf-input"
               maxlength="80"
               required /></label
           ><CloudButton
             type="submit"
             variant="secondary"
-            :disabled="busy"
+            :disabled="busy || !albumReady"
             >Rename album</CloudButton
           >
         </form>
@@ -843,39 +911,37 @@ onBeforeUnmount(() => {
         <form
           v-if="admin && albumId"
           class="cf-inline-controls"
-          @submit.prevent="
-            action(
-              () =>
-                api(base + '/albums/' + albumId + '/access', {
-                  method: 'POST',
-                  body: {
-                    hidden: albumHidden,
-                    password: albumPassword || null,
-                  },
-                }),
-              'Album access updated.',
-            )
-          "
+          @submit.prevent="saveAlbumAccess()"
         >
           <label
             ><input
               v-model="albumHidden"
+              :disabled="busy || !albumReady"
               type="checkbox"
             />
             Hidden</label
           ><label
             >Album password<input
               v-model="albumPassword"
+              :disabled="busy || !albumReady"
               type="password"
               class="cf-input"
               minlength="8"
               autocomplete="new-password"
-              placeholder="Empty removes protection" /></label
+              placeholder="Leave blank to keep current password" /></label
           ><CloudButton
             type="submit"
             variant="secondary"
-            :disabled="busy"
+            :disabled="busy || !albumReady"
             >Save access</CloudButton
+          >
+          <CloudButton
+            v-if="albums.find((a) => a.id === albumId)?.hasPassword"
+            type="button"
+            variant="ghost"
+            :disabled="busy || !albumReady"
+            @click="saveAlbumAccess(true)"
+            >Remove password protection</CloudButton
           >
         </form>
         <div

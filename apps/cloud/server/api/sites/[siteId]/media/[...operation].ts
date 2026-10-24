@@ -528,6 +528,7 @@ export default definePlatformHandler(async (event) => {
       const hidden = body.hidden === true,
         password = body.password
       if (
+        password !== undefined &&
         password !== null &&
         (typeof password !== 'string' ||
           password.length < 8 ||
@@ -536,30 +537,36 @@ export default definePlatformHandler(async (event) => {
         throw createError({ statusCode: 400 })
       const salt = crypto.randomUUID(),
         revision = crypto.randomUUID()
-      await db.batch([
+      const statements = [
         db
           .prepare(
             'UPDATE cloud_albums SET hidden=?,updated_at=? WHERE site_id=? AND id=?',
           )
           .bind(hidden ? 1 : 0, now, siteId, albumId),
-        password === null
-          ? db
-              .prepare(
-                'DELETE FROM platform_album_access WHERE site_id=? AND album_id=?',
-              )
-              .bind(siteId, Number(albumId))
-          : db
-              .prepare(
-                `INSERT INTO platform_album_access(site_id,album_id,revision,salt,password_hash) VALUES(?,?,?,?,?) ON CONFLICT(site_id,album_id) DO UPDATE SET revision=excluded.revision,salt=excluded.salt,password_hash=excluded.password_hash`,
-              )
-              .bind(
-                siteId,
-                Number(albumId),
-                revision,
-                salt,
-                await visitorPasswordHash(password as string, salt),
-              ),
-      ])
+      ]
+      // Omission preserves the existing password and its visitor-grant revision.
+      // Null is reserved for the explicit removal action.
+      if (password !== undefined)
+        statements.push(
+          password === null
+            ? db
+                .prepare(
+                  'DELETE FROM platform_album_access WHERE site_id=? AND album_id=?',
+                )
+                .bind(siteId, Number(albumId))
+            : db
+                .prepare(
+                  `INSERT INTO platform_album_access(site_id,album_id,revision,salt,password_hash) VALUES(?,?,?,?,?) ON CONFLICT(site_id,album_id) DO UPDATE SET revision=excluded.revision,salt=excluded.salt,password_hash=excluded.password_hash`,
+                )
+                .bind(
+                  siteId,
+                  Number(albumId),
+                  revision,
+                  salt,
+                  await visitorPasswordHash(password as string, salt),
+                ),
+        )
+      await db.batch(statements)
       return { ok: true }
     }
   }
