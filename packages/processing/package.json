@@ -16,7 +16,7 @@
     "@chronoframe/geocoding": "workspace:*"
   },
   "devDependencies": {
-    "typescript": "^5.9.3",
+    "typescript": "^7.0.2",
     "@types/node": "^22.20.5"
   },
   "license": "AGPL-3.0-only"
