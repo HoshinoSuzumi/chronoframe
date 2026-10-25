@@ -77,8 +77,29 @@ test('album slugs remain unique, redirectable, and reserved after deletion', asy
       'a-new-title',
     )
     assert.equal(
-      (await writer.update(first.id, { slug: 'my-album' }, access)).slug,
-      'my-album',
+      (await writer.update(first.id, { slug: 'a-new-title' }, access)).slug,
+      'a-new-title',
+    )
+    await assert.rejects(
+      writer.update(first.id, { slug: 'my-album' }, access),
+      (error) => error instanceof CoreError && error.statusCode === 409,
+    )
+    assert.equal(
+      (await writer.update(first.id, { title: 'My Album', slug: '' }, access))
+        .slug,
+      'my-album-2',
+    )
+    assert.equal(
+      resolveAlbumPath(db, DEFAULT_SITE, 'my-album')?.slug,
+      'my-album-2',
+    )
+    assert.equal(
+      resolveAlbumPath(db, DEFAULT_SITE, 'my-album')?.isCanonical,
+      false,
+    )
+    assert.equal(
+      resolveAlbumPath(db, DEFAULT_SITE, 'a-new-title')?.slug,
+      'my-album-2',
     )
 
     await assert.rejects(
@@ -97,7 +118,7 @@ test('album slugs remain unique, redirectable, and reserved after deletion', asy
     )
     assert.equal(
       (await writer.create({ title: 'My Album' }, access)).slug,
-      'my-album-2',
+      'my-album-3',
     )
   } finally {
     sqlite.close()

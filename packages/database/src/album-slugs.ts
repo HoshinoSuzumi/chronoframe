@@ -63,11 +63,11 @@ export function claimAlbumSlug(
         ),
       )
       .get()
-    if (existing && existing.albumId !== albumId) {
+    if (existing) {
+      if (existing.albumId === albumId && existing.isCurrent) return slug
       if (!automatic) throw new CoreError(409, 'Album URL slug already exists')
       continue
     }
-    if (existing?.isCurrent) return slug
     db.update(tables.albumSlugs)
       .set({ isCurrent: false })
       .where(
@@ -78,21 +78,9 @@ export function claimAlbumSlug(
         ),
       )
       .run()
-    if (existing) {
-      db.update(tables.albumSlugs)
-        .set({ isCurrent: true })
-        .where(
-          and(
-            eq(tables.albumSlugs.siteId, site.id),
-            eq(tables.albumSlugs.slug, slug),
-          ),
-        )
-        .run()
-    } else {
-      db.insert(tables.albumSlugs)
-        .values({ siteId: site.id, slug, albumId, isCurrent: true })
-        .run()
-    }
+    db.insert(tables.albumSlugs)
+      .values({ siteId: site.id, slug, albumId, isCurrent: true })
+      .run()
     return slug
   }
   throw new Error('Album slug namespace exhausted')
