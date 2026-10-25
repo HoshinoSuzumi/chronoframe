@@ -33,10 +33,8 @@ export function getCurrentAlbumSlug(
   db: AlbumSlugDb,
   site: SiteContext,
   albumId: number,
-): string {
-  const slug = currentSlug(db, site.id, albumId)
-  if (!slug) throw new Error(`Album ${albumId} has no current slug`)
-  return slug
+): string | null {
+  return currentSlug(db, site.id, albumId) ?? null
 }
 
 /** Must run inside the caller's transaction. The registry is the sole slug namespace. */
@@ -157,10 +155,12 @@ export function resolveAlbumPath(
     )
     .get()
   if (!album) return null
+  const slug = getCurrentAlbumSlug(db, site, albumId)
   return {
     albumId,
-    slug: getCurrentAlbumSlug(db, site, albumId),
-    isCanonical: isCurrent,
+    slug: slug ?? String(albumId),
+    isCanonical:
+      isCurrent || (slug === null && isNumericAlbumPathSegment(segment)),
     isHidden: album.isHidden,
   }
 }

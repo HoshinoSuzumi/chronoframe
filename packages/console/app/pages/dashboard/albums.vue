@@ -19,7 +19,7 @@ useHead({
 })
 
 interface AlbumItem extends Album {
-  slug: string
+  slug: string | null
   photoCount?: number
   photoIds?: string[]
   coverPhoto?: Photo | null
@@ -201,7 +201,7 @@ const openEditSlideover = async (album: AlbumItem) => {
   try {
     const albumDetail = (await consoleApi(`/api/albums/${album.id}`)) as any
     formData.title = album.title
-    formData.slug = album.slug
+    formData.slug = album.slug ?? ''
     formData.description = album.description || ''
     formData.isHidden = album.isHidden || false
     formData.password = ''
@@ -635,7 +635,7 @@ const columns = computed<any[]>(() => [
 
             <template #title-cell="{ row }">
               <NuxtLink
-                :to="`/albums/${(row.original as unknown as AlbumItem).slug}`"
+                :to="`/albums/${(row.original as unknown as AlbumItem).slug || row.original.id}`"
                 target="_blank"
                 class="font-medium text-primary-600 dark:text-primary-400 hover:underline cursor-pointer inline-flex items-center gap-2"
               >
@@ -845,7 +845,7 @@ const columns = computed<any[]>(() => [
                   v-model:description="formData.description"
                   v-model:slug="formData.slug"
                   show-slug
-                  :current-slug="currentAlbum?.slug"
+                  :current-slug="currentAlbum?.slug ?? undefined"
                 />
 
                 <UFormField name="isHidden">

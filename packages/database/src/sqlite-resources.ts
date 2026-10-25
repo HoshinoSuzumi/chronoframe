@@ -13,7 +13,7 @@ export function createSqliteResourceRepository(
 ): ResourceReadRepository {
   requireSite(db, site)
   const albumRecord = (
-    row: typeof tables.albums.$inferSelect & { slug: string },
+    row: typeof tables.albums.$inferSelect & { slug: string | null },
   ) => ({
     resource: toAlbumDto(row, row.slug),
     passwordHash: row.passwordHash,
@@ -52,7 +52,7 @@ export function createSqliteResourceRepository(
           slug: tables.albumSlugs.slug,
         })
         .from(tables.albums)
-        .innerJoin(
+        .leftJoin(
           tables.albumSlugs,
           and(
             eq(tables.albumSlugs.siteId, tables.albums.siteId),
@@ -72,7 +72,7 @@ export function createSqliteResourceRepository(
           slug: tables.albumSlugs.slug,
         })
         .from(tables.albums)
-        .innerJoin(
+        .leftJoin(
           tables.albumSlugs,
           and(
             eq(tables.albumSlugs.siteId, tables.albums.siteId),

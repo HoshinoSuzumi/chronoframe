@@ -10,7 +10,8 @@ test('album links use slugs only for the self-hosted gallery', () => {
   const album = { id: 12, slug: 'my-album' }
   assert.equal(albumPagePath(album, true), '/albums/my-album')
   assert.equal(albumPagePath(album, false), '/albums/12')
-  assert.throws(() => albumPagePath({ id: 12 }, true))
+  assert.equal(albumPagePath({ id: 12 }, true), '/albums/12')
+  assert.equal(albumPagePath({ id: 12, slug: null }, true), '/albums/12')
 })
 
 test('numeric Cloud paths and album share links remain valid', () => {

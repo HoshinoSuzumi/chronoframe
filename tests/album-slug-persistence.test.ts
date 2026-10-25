@@ -7,6 +7,7 @@ import { DEFAULT_SITE, CoreError, createAlbumWriter } from '@chronoframe/core'
 import * as schema from '../packages/database/src/schema.ts'
 import {
   backfillAlbumSlugs,
+  getCurrentAlbumSlug,
   resolveAlbumPath,
   resolveAlbumSlug,
 } from '../packages/database/src/album-slugs.ts'
@@ -133,6 +134,13 @@ test('backfill assigns deterministic slugs once for existing rows', () => {
     db.insert(schema.albums)
       .values([{ title: '你好' }, { title: '你好' }])
       .run()
+    assert.equal(getCurrentAlbumSlug(db, DEFAULT_SITE, 1), null)
+    assert.deepEqual(resolveAlbumPath(db, DEFAULT_SITE, '1'), {
+      albumId: 1,
+      slug: '1',
+      isCanonical: true,
+      isHidden: false,
+    })
     assert.equal(backfillAlbumSlugs(db), 2)
     assert.equal(backfillAlbumSlugs(db), 0)
     assert.deepEqual(

@@ -15,7 +15,7 @@ interface Props {
 
 interface Album {
   id: number
-  slug?: string
+  slug?: string | null
   title: string
   description: string | null
   coverPhotoId: string | null

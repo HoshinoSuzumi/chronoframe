@@ -49,7 +49,22 @@ export function openDatabase(options: DatabaseOptions) {
       const slugTable = db.get<{ present: number }>(
         sql`SELECT 1 AS present FROM sqlite_master WHERE type='table' AND name='album_slugs'`,
       )
-      if (slugTable) backfillAlbumSlugs(db)
+      if (slugTable) {
+        const count = backfillAlbumSlugs(db)
+        if (count) console.info(`Backfilled album slugs for ${count} album(s)`)
+      } else {
+        const albumTable = db.get<{ present: number }>(
+          sql`SELECT 1 AS present FROM sqlite_master WHERE type='table' AND name='albums'`,
+        )
+        if (
+          albumTable &&
+          db.get<{ count: number }>(sql`SELECT COUNT(*) AS count FROM albums`)!
+            .count
+        )
+          throw new Error(
+            'album_slugs table is missing for existing albums; check DATABASE_MIGRATIONS',
+          )
+      }
     }
     return {
       db,
