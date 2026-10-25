@@ -55,18 +55,22 @@ async function dropFiles(event: DragEvent) {
             class="w-full"
             :disabled="uploading"
         /></UFormField>
-        <p
+        <i18n-t
           v-if="!connections.length"
+          keypath="cloud.ui.connectStorageGuidance"
+          tag="p"
+          scope="global"
           class="text-sm text-muted"
         >
-          {{ $t('cloud.messages.connectYourPrivateStorageIn')
-          }}<NuxtLink
-            :to="`/sites/${context?.siteId}/storage`"
-            class="underline"
-            @click="uploadOpen = false"
-            >{{ $t('cloud.messages.storage') }}</NuxtLink
-          >{{ $t('cloud.messages.beforeUploading') }}
-        </p>
+          <template #link
+            ><NuxtLink
+              :to="`/sites/${context?.siteId}/storage`"
+              class="underline"
+              @click="uploadOpen = false"
+              >{{ $t('cloud.messages.storage') }}</NuxtLink
+            ></template
+          >
+        </i18n-t>
         <input
           ref="input"
           class="sr-only"

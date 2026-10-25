@@ -6,7 +6,9 @@ export function resolveCloudLocale(acceptLanguage: string): CloudLocale {
     .split(',')
     .map((part, index) => {
       const [range = '', ...parameters] = part.trim().split(';')
-      const quality = parameters.find((value) => value.trim().startsWith('q='))
+      const quality = parameters.find((value) =>
+        value.trim().toLowerCase().startsWith('q='),
+      )
       const weight = quality === undefined ? 1 : Number(quality.trim().slice(2))
       return { range: range.toLowerCase(), weight, index }
     })

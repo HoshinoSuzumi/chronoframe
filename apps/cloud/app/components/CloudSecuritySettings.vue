@@ -147,7 +147,7 @@ async function deletePasskey(id: number) {
           {{ $t('cloud.messages.security') }}
         </h2>
         <p class="cf-page-description">
-          {{ $t('cloud.ui.securityFor', { email: security?.email || '' }) }}.
+          {{ $t('cloud.ui.securityFor', { email: security?.email || '' }) }}
         </p>
       </div>
     </div>
@@ -205,16 +205,22 @@ async function deletePasskey(id: number) {
             >{{ $t('cloud.messages.updatePassword') }}</CloudButton
           >
         </form>
-        <p v-else>
-          {{ $t('cloud.messages.youSignedInWithAnEmailCode')
-          }}<NuxtLink
-            class="cf-text-link"
-            to="/forgot-password"
-            >{{
-              $t('cloud.messages.emailYourselfALinkToSetAPassword')
-            }}</NuxtLink
-          >{{ $t('cloud.messages.beforeEnablingTwoStepVerification') }}
-        </p>
+        <i18n-t
+          v-else
+          keypath="cloud.ui.passwordSetupGuidance"
+          tag="p"
+          scope="global"
+        >
+          <template #link
+            ><NuxtLink
+              class="cf-text-link"
+              to="/forgot-password"
+              >{{
+                $t('cloud.messages.emailYourselfALinkToSetAPassword')
+              }}</NuxtLink
+            ></template
+          >
+        </i18n-t>
       </div></CloudCard
     >
     <CloudCard class="cf-security-card"

@@ -150,19 +150,16 @@ async function unpublish() {
         v-if="!context?.published"
         class="cf-draft-hint"
       >
-        {{ $t('cloud.messages.thisAddressReturns404UntilYouPublishYourGallery')
-        }}{{
-          loading
-            ? $t('cloud.messages.checkingPhotographs')
-            : !photos.length
-              ? $t(
-                  'cloud.messages.uploadAPhotographAndWaitForProcessingToFinish',
-                )
-              : admin
-                ? $t('cloud.messages.readyToShareSelectPublishGalleryAbove')
-                : $t(
-                    'cloud.messages.askAWorkspaceAdministratorToPublishThisGallery',
-                  )
+        {{
+          $t(
+            loading
+              ? 'cloud.ui.draftChecking'
+              : !photos.length
+                ? 'cloud.ui.draftNeedsPhoto'
+                : admin
+                  ? 'cloud.ui.draftReady'
+                  : 'cloud.ui.draftAskAdmin',
+          )
         }}
       </p>
       <p

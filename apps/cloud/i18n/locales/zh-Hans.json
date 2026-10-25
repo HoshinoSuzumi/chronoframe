@@ -434,7 +434,7 @@
       "selectedCount": "已选择 {count} 项",
       "photographCount": "{count} 张照片",
       "photoMembershipCount": "照片 · {count}",
-      "securityFor": "管理 {email} 的登录方式",
+      "securityFor": "管理 {email} 的登录方式。",
       "uploadProgress": "{progress}% · 正在上传到你的私有存储桶",
       "uploadUsage": "{photos} / 1,000 张照片 · {bytes} / 5 GiB（近 30 天上传量）",
       "connectionRevision": "{bucket} · 凭证版本 {revision}",
@@ -448,7 +448,14 @@
       "cancelled": "已取消",
       "unknownJob": "处理状态暂不可用",
       "deletePhotosCount": "删除 {count} 张照片",
-      "processingFailure": "处理未能完成（{code}），请重试或联系平台管理员。"
+      "processingFailure": "处理未能完成（{code}），请重试或联系平台管理员。",
+      "draftChecking": "发布图库之前，访问此地址将返回 404。正在检查照片…",
+      "draftNeedsPhoto": "发布图库之前，访问此地址将返回 404。请先上传照片，等待处理完成后再发布。",
+      "draftReady": "发布图库之前，访问此地址将返回 404。准备好分享了吗？点击上方的“发布图库”。",
+      "draftAskAdmin": "发布图库之前，访问此地址将返回 404。请联系工作区管理员发布此图库。",
+      "passwordSetupGuidance": "你使用邮箱验证码登录。请先{link}，再启用两步验证。",
+      "connectStorageGuidance": "上传前，请先在{link}中连接私有存储。",
+      "attemptCount": "尝试次数 {count}"
     },
     "storageErrors": {
       "storage_configuration_failed": "请检查 S3 服务端点、区域、存储桶名称和凭证字段。",

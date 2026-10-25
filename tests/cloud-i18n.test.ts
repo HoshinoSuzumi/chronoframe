@@ -38,6 +38,8 @@ test('Cloud negotiates English and simplified Chinese by browser preference and 
     'ja,fr;q=0.8',
     'en-GB,zh;q=0.5',
     'zh;q=0,en-US;q=0.1',
+    'zh;Q=0,en;q=0.8',
+    'zh;Q=0.1,en;Q=0.9',
     'zh;q=invalid,en',
     'zh;q=2,en',
     'zh;q=0.5,en;q=0.9',

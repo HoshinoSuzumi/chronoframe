@@ -379,7 +379,7 @@ watch(
             )
           }}</strong
           ><span
-            >{{ $t('cloud.messages.attempt') }}{{ job.attempts
+            >{{ $t('cloud.ui.attemptCount', { count: job.attempts })
             }}<template v-if="job.error_code">
               ·
               {{

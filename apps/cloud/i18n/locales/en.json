@@ -434,7 +434,7 @@
       "selectedCount": "{count} selected",
       "photographCount": "{count} photograph | {count} photographs",
       "photoMembershipCount": "Photographs · {count}",
-      "securityFor": "Manage sign-in methods for {email}",
+      "securityFor": "Manage sign-in methods for {email}.",
       "uploadProgress": "{progress}% · Uploading to your private bucket",
       "uploadUsage": "{photos} / 1,000 photographs · {bytes} / 5 GiB uploaded in 30 days",
       "connectionRevision": "{bucket} · revision {revision}",
@@ -448,7 +448,14 @@
       "cancelled": "Cancelled",
       "unknownJob": "Processing status unavailable",
       "deletePhotosCount": "Delete {count} photograph | Delete {count} photographs",
-      "processingFailure": "Processing could not finish ({code}). Retry or contact the operator."
+      "processingFailure": "Processing could not finish ({code}). Retry or contact the operator.",
+      "draftChecking": "This address returns 404 until you publish your gallery. Checking photographs…",
+      "draftNeedsPhoto": "This address returns 404 until you publish your gallery. Upload a photograph and wait for processing to finish before publishing.",
+      "draftReady": "This address returns 404 until you publish your gallery. Ready to share? Select Publish gallery above.",
+      "draftAskAdmin": "This address returns 404 until you publish your gallery. Ask a workspace administrator to publish this gallery.",
+      "passwordSetupGuidance": "You signed in with an email code. {link} before enabling two-step verification.",
+      "connectStorageGuidance": "Connect your private storage in {link} before uploading.",
+      "attemptCount": "Attempt {count}"
     },
     "storageErrors": {
       "storage_configuration_failed": "Check the S3 endpoint, region, bucket name and credential fields.",
