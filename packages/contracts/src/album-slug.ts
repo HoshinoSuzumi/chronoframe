@@ -1,5 +1,13 @@
 export const ALBUM_SLUG_MAX_LENGTH = 80
 
+export interface AlbumPathResolution {
+  albumId: number
+  slug: string
+  isCanonical: boolean
+  isHidden?: boolean
+  redirectCode?: 301 | 302
+}
+
 const albumSlugPattern = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
 const numericAlbumPathPattern = /^\d+$/
 

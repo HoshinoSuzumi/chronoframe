@@ -13,6 +13,7 @@ const appSlogan = useSettingRef('app:slogan')
 const { homeView, photoWallPath } = useHomeView()
 const { photos } = usePhotos()
 const { loggedIn } = useUserSession()
+
 const {
   data: albums,
   status,

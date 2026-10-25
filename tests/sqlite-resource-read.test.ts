@@ -90,6 +90,19 @@ test('SQLite reader preserves migrated data, ordering and legacy album visibilit
     }
     assert.equal((await reader.getAlbum(1, anonymous)).photos[1]!.title, null)
     assert.equal(db.select().from(schema.photos).all().length, 4)
+    db.insert(schema.albums)
+      .values({ id: 4, title: 'Missing slug', position: 3 })
+      .run()
+    const sluglessListItem = (await reader.listAlbums({ admin: true })).find(
+      (album) => album.id === 4,
+    )
+    assert.ok(sluglessListItem)
+    assert.equal('slug' in sluglessListItem, false)
+    const sluglessDetail = await reader.getAlbum(4, {
+      admin: true,
+      canAccess: () => true,
+    })
+    assert.equal('slug' in sluglessDetail, false)
   } finally {
     sqlite.close()
   }

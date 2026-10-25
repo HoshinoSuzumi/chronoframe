@@ -33,10 +33,9 @@ export function createSqliteAlbumWriteRepository(
           .get(),
       )
     },
-    async createFirst(data, photoIds) {
+    async createFirst(data, photoIds, requestedSlug = '') {
       return db.transaction(
         (tx) => {
-          const { slug: requestedSlug = '', ...albumData } = data
           const row = tx
             .select({ min: min(tables.albums.position) })
             .from(tables.albums)
@@ -45,7 +44,7 @@ export function createSqliteAlbumWriteRepository(
           const album = tx
             .insert(tables.albums)
             .values({
-              ...albumData,
+              ...data,
               siteId: site.id,
               position: (row?.min ?? 1000) - 1000,
             })
@@ -64,7 +63,7 @@ export function createSqliteAlbumWriteRepository(
         { behavior: 'immediate' },
       )
     },
-    async update(id, data, photoIds) {
+    async update(id, data, photoIds, requestedSlug) {
       return db.transaction(
         (tx) => {
           const exists = tx
@@ -78,10 +77,9 @@ export function createSqliteAlbumWriteRepository(
             )
             .get()
           if (!exists) return null
-          const { slug: requestedSlug, ...albumData } = data
-          if (Object.keys(albumData).length) {
+          if (Object.keys(data).length) {
             tx.update(tables.albums)
-              .set(albumData)
+              .set(data)
               .where(
                 siteAnd(
                   eq(tables.albums.id, id),
@@ -103,7 +101,8 @@ export function createSqliteAlbumWriteRepository(
           }
           const slug =
             requestedSlug === undefined
-              ? getCurrentAlbumSlug(tx, site, id)
+              ? (getCurrentAlbumSlug(tx, site, id) ??
+                claimAlbumSlug(tx, site, id, data.title ?? exists.title, ''))
               : claimAlbumSlug(
                   tx,
                   site,

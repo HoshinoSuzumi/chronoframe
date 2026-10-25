@@ -38,6 +38,7 @@ test('user and album boundaries remove password material and serialize dates', (
   assert.equal('passwordHash' in dto, false)
   assert.equal(dto.createdAt, date.toISOString())
   assert.deepEqual(JSON.parse(JSON.stringify(dto)), dto)
+  assert.equal('slug' in toAlbumDto(album, null), false)
 })
 
 test('photo boundary excludes future internal columns without changing nullable fields', () => {

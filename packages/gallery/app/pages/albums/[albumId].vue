@@ -2,6 +2,7 @@
 const galleryApi = useGalleryApi()
 
 import { motion } from 'motion-v'
+import type { AlbumPathResolution } from '@chronoframe/contracts/album-slug'
 
 const route = useRoute()
 const router = useRouter()
@@ -9,36 +10,36 @@ const dayjs = useDayjs()
 const { user } = useUserSession()
 const { albumListPath } = useHomeView()
 const albumSegment = computed(() => String(route.params.albumId))
-const { data: resolved, error: resolveError } = await useGalleryFetch<{
-  albumId: number
-  slug: string
-  isCanonical: boolean
-}>(() => `/api/albums/resolve/${encodeURIComponent(albumSegment.value)}`, {
-  watch: [albumSegment],
-})
+const {
+  data: resolved,
+  error: resolveError,
+  status: resolveStatus,
+} = await useGalleryFetch<AlbumPathResolution>(
+  () => `/api/albums/resolve/${encodeURIComponent(albumSegment.value)}`,
+  {
+    watch: [albumSegment],
+  },
+)
 if (resolveError.value || !resolved.value)
   throw createError({ statusCode: 404, statusMessage: $t('album.notFound') })
-if (!resolved.value.isCanonical)
-  await navigateTo(
-    {
-      path: `/albums/${resolved.value.slug}`,
-      query: route.query,
-      hash: route.hash,
-    },
-    {
-      redirectCode: 301,
-      replace: true,
-    },
-  )
-watch(resolved, (value) => {
-  if (value && !value.isCanonical)
-    void navigateTo(
-      { path: `/albums/${value.slug}`, query: route.query, hash: route.hash },
-      { replace: true },
-    )
+const canonicalAlbumRoute = computed(() => `/albums/${resolved.value?.slug}`)
+const canonicalAlbumTarget = (slug: string) => ({
+  path: `/albums/${slug}`,
+  query: route.query,
+  hash: route.hash,
+})
+if (!resolved.value.isCanonical || route.path !== canonicalAlbumRoute.value)
+  await navigateTo(canonicalAlbumTarget(resolved.value.slug), {
+    redirectCode: resolved.value.redirectCode ?? 301,
+    replace: true,
+  })
+watch([resolved, () => route.path, resolveStatus], ([value]) => {
+  // Wait for the resolver to finish for the current route before redirecting.
+  if (resolveStatus.value !== 'success') return
+  if (value && (!value.isCanonical || route.path !== `/albums/${value.slug}`))
+    void navigateTo(canonicalAlbumTarget(value.slug), { replace: true })
 })
 const albumId = computed(() => resolved.value?.albumId ?? 0)
-const canonicalAlbumRoute = computed(() => `/albums/${resolved.value?.slug}`)
 const requestUrl = useRequestURL()
 useHead(() => ({
   link: [

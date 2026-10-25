@@ -927,7 +927,7 @@
         "slugHint": "清空此字段可根据标题生成。旧链接将自动重定向。",
         "slugCurrent": "当前网址",
         "slugInvalid": "仅可使用小写英文字母、数字和单个连字符（最多 80 个字符）。网址不能仅由数字组成。",
-        "slugConflict": "此相簿网址已被使用。",
+        "slugConflict": "此相簿网址正在使用或曾被使用，无法重复使用。请选择其他网址。",
         "description": "描述",
         "descriptionPlaceholder": "输入相簿描述（可选）",
         "coverPhoto": "相簿封面",

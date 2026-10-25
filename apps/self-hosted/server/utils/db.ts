@@ -1,6 +1,7 @@
 import { existsSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { openDatabase } from '@chronoframe/database'
+import { logger } from './logger.ts'
 export { tables } from '@chronoframe/database'
 export type {
   User,
@@ -17,6 +18,7 @@ export type {
 export { eq, and, or, inArray } from 'drizzle-orm'
 
 let connection: ReturnType<typeof openDatabase> | null = null
+const databaseLogger = logger.dynamic('db')
 
 /** Share the same configured connection for migrations and application queries. */
 export function useDB() {
@@ -33,8 +35,9 @@ export function useDB() {
     ),
     verbose:
       process.env.NODE_ENV === 'development'
-        ? logger.dynamic('db').verbose
+        ? databaseLogger.verbose
         : undefined,
+    logger: databaseLogger,
   })
   return connection.db
 }

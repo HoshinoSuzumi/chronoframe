@@ -33,7 +33,7 @@ export default eventHandler(async (event) => {
       tables.albumPhotos,
       eq(tables.albums.id, tables.albumPhotos.albumId),
     )
-    .innerJoin(
+    .leftJoin(
       tables.albumSlugs,
       siteAnd(
         eq(tables.albumSlugs.albumId, tables.albums.id),

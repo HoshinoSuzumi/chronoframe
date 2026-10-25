@@ -10,13 +10,10 @@ export function numericAlbumId(segment: string): number | null {
 }
 
 export function albumPagePath(
-  album: { id: number; slug?: string },
+  album: { id: number; slug?: string | null },
   useSlugs: boolean,
 ): string {
-  if (useSlugs) {
-    if (!album.slug) throw new Error('Album slug is missing')
-    return `/albums/${album.slug}`
-  }
+  if (useSlugs && album.slug) return `/albums/${album.slug}`
   return `/albums/${album.id}`
 }
 

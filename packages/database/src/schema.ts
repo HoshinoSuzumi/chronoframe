@@ -254,9 +254,9 @@ export const albumSlugs = sqliteTable(
   {
     siteId: siteColumn(),
     slug: text('slug').notNull(),
-    albumId: integer('album_id').references(() => albums.id, {
-      onDelete: 'set null',
-    }),
+    albumId: integer('album_id')
+      .notNull()
+      .references(() => albums.id, { onDelete: 'cascade' }),
     isCurrent: integer('is_current', { mode: 'boolean' })
       .notNull()
       .default(false),

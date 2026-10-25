@@ -43,6 +43,10 @@ test('legacy ownership upgrade preserves rows, assigns memberships, backs up and
     )
     .run()
   raw.close()
+  assert.throws(
+    () => openDatabase({ filename, migrationsFolder: migrations }),
+    /album_slugs.*missing/i,
+  )
   // Migration and its journal record must roll back together; the backup remains usable.
   const failure = {
     ...journal,

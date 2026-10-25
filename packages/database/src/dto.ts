@@ -50,10 +50,10 @@ export function toPhotoDto(photo: PhotoRow): Photo {
 }
 
 /** Serialize album dates and expose password presence without its hash. */
-export function toAlbumDto(album: AlbumRow, slug: string): Album {
+export function toAlbumDto(album: AlbumRow, slug: string | null): Album {
   return {
     id: album.id,
-    slug,
+    ...(slug === null ? {} : { slug }),
     title: album.title,
     description: album.description,
     coverPhotoId: album.coverPhotoId,

@@ -4,7 +4,9 @@ import {
   isNumericAlbumPathSegment,
   isValidAlbumSlug,
 } from '@chronoframe/contracts/album-slug'
-import { and, asc, eq } from 'drizzle-orm'
+import type { AlbumPathResolution } from '@chronoframe/contracts/album-slug'
+import { and, asc, eq, isNull } from 'drizzle-orm'
+import { alias } from 'drizzle-orm/sqlite-core'
 import { type AppDatabase } from './connection.ts'
 import * as tables from './schema.ts'
 import {
@@ -14,6 +16,7 @@ import {
 } from './album-slug.ts'
 
 type AlbumSlugDb = Pick<AppDatabase, 'select' | 'insert' | 'update'>
+const currentAlbumSlug = alias(tables.albumSlugs, 'current_album_slug')
 
 function currentSlug(db: AlbumSlugDb, siteId: number, albumId: number) {
   return db
@@ -33,10 +36,8 @@ export function getCurrentAlbumSlug(
   db: AlbumSlugDb,
   site: SiteContext,
   albumId: number,
-): string {
-  const slug = currentSlug(db, site.id, albumId)
-  if (!slug) throw new Error(`Album ${albumId} has no current slug`)
-  return slug
+): string | null {
+  return currentSlug(db, site.id, albumId) ?? null
 }
 
 /** Must run inside the caller's transaction. The registry is the sole slug namespace. */
@@ -49,7 +50,7 @@ export function claimAlbumSlug(
 ): string {
   const automatic = requestedSlug.trim() === ''
   const base = automatic
-    ? generatedAlbumSlug(title)
+    ? generatedAlbumSlug(title, `album-${albumId}`)
     : validateCustomAlbumSlug(requestedSlug)
   for (let suffix = 0; suffix < 1_000_000; suffix++) {
     const slug = automatic ? suffixedAlbumSlug(base, suffix) : base
@@ -63,11 +64,13 @@ export function claimAlbumSlug(
         ),
       )
       .get()
-    if (existing && existing.albumId !== albumId) {
-      if (!automatic) throw new CoreError(409, 'Album URL slug already exists')
-      continue
+    if (existing) {
+      if (existing.albumId === albumId && existing.isCurrent) return slug
+      if (existing.isCurrent) {
+        if (!automatic) throw new CoreError(409, 'Album URL slug is in use')
+        continue
+      }
     }
-    if (existing?.isCurrent) return slug
     db.update(tables.albumSlugs)
       .set({ isCurrent: false })
       .where(
@@ -78,9 +81,9 @@ export function claimAlbumSlug(
         ),
       )
       .run()
-    if (existing) {
+    if (existing)
       db.update(tables.albumSlugs)
-        .set({ isCurrent: true })
+        .set({ albumId, isCurrent: true })
         .where(
           and(
             eq(tables.albumSlugs.siteId, site.id),
@@ -88,32 +91,42 @@ export function claimAlbumSlug(
           ),
         )
         .run()
-    } else {
+    else
       db.insert(tables.albumSlugs)
         .values({ siteId: site.id, slug, albumId, isCurrent: true })
         .run()
-    }
     return slug
   }
   throw new Error('Album slug namespace exhausted')
 }
 
-/** Repeatable repair for old installations and rollback-created albums. */
+function albumsWithoutSlugs(db: AlbumSlugDb) {
+  return db
+    .select({
+      id: tables.albums.id,
+      siteId: tables.albums.siteId,
+      title: tables.albums.title,
+    })
+    .from(tables.albums)
+    .leftJoin(
+      tables.albumSlugs,
+      and(
+        eq(tables.albumSlugs.siteId, tables.albums.siteId),
+        eq(tables.albumSlugs.albumId, tables.albums.id),
+        eq(tables.albumSlugs.isCurrent, true),
+      ),
+    )
+    .where(isNull(tables.albumSlugs.slug))
+}
+
 export function backfillAlbumSlugs(db: AppDatabase) {
+  if (!albumsWithoutSlugs(db).limit(1).get()) return 0
   return db.transaction(
     (tx) => {
-      const albums = tx
-        .select({
-          id: tables.albums.id,
-          siteId: tables.albums.siteId,
-          title: tables.albums.title,
-        })
-        .from(tables.albums)
-        .orderBy(asc(tables.albums.siteId), asc(tables.albums.id))
-        .all()
       let created = 0
-      for (const album of albums) {
-        if (currentSlug(tx, album.siteId, album.id)) continue
+      for (const album of albumsWithoutSlugs(tx)
+        .orderBy(asc(tables.albums.siteId), asc(tables.albums.id))
+        .all()) {
         claimAlbumSlug(tx, { id: album.siteId }, album.id, album.title, '')
         created++
       }
@@ -148,31 +161,66 @@ export function resolveAlbumPath(
   db: AppDatabase,
   site: SiteContext,
   segment: string,
-) {
+): AlbumPathResolution | null {
   if (segment.length > ALBUM_SLUG_MAX_LENGTH) return null
-  let albumId: number | null = null
-  let isCurrent = false
-  if (isNumericAlbumPathSegment(segment)) {
-    const number = Number(segment)
-    if (Number.isSafeInteger(number) && number > 0) albumId = number
-  } else if (isValidAlbumSlug(segment)) {
-    const entry = resolveAlbumSlug(db, site, segment)
-    albumId = entry?.albumId ?? null
-    isCurrent = entry?.isCurrent ?? false
-  }
-  if (albumId === null) return null
-  const album = db
-    .select({ isHidden: tables.albums.isHidden })
-    .from(tables.albums)
-    .where(
-      and(eq(tables.albums.siteId, site.id), eq(tables.albums.id, albumId)),
-    )
-    .get()
+  const numeric = isNumericAlbumPathSegment(segment)
+  if (!numeric && !isValidAlbumSlug(segment)) return null
+  const numericId = Number(segment)
+  if (numeric && (!Number.isSafeInteger(numericId) || numericId < 1))
+    return null
+  const currentJoin = and(
+    eq(currentAlbumSlug.siteId, tables.albums.siteId),
+    eq(currentAlbumSlug.albumId, tables.albums.id),
+    eq(currentAlbumSlug.isCurrent, true),
+  )
+  const album = numeric
+    ? db
+        .select({
+          albumId: tables.albums.id,
+          slug: currentAlbumSlug.slug,
+          isHidden: tables.albums.isHidden,
+        })
+        .from(tables.albums)
+        .leftJoin(currentAlbumSlug, currentJoin)
+        .where(
+          and(
+            eq(tables.albums.siteId, site.id),
+            eq(tables.albums.id, numericId),
+          ),
+        )
+        .get()
+    : db
+        .select({
+          albumId: tables.albums.id,
+          slug: currentAlbumSlug.slug,
+          isHidden: tables.albums.isHidden,
+          isCurrent: tables.albumSlugs.isCurrent,
+        })
+        .from(tables.albumSlugs)
+        .innerJoin(
+          tables.albums,
+          and(
+            eq(tables.albums.id, tables.albumSlugs.albumId),
+            eq(tables.albums.siteId, tables.albumSlugs.siteId),
+          ),
+        )
+        .leftJoin(currentAlbumSlug, currentJoin)
+        .where(
+          and(
+            eq(tables.albumSlugs.siteId, site.id),
+            eq(tables.albumSlugs.slug, segment),
+          ),
+        )
+        .get()
   if (!album) return null
+  const isCurrent = 'isCurrent' in album && album.isCurrent === true
+  const isCanonical = isCurrent || (numeric && album.slug === null)
+  const redirectCode = isCanonical ? undefined : numeric ? 301 : 302
   return {
-    albumId,
-    slug: getCurrentAlbumSlug(db, site, albumId),
-    isCanonical: isCurrent,
+    albumId: album.albumId,
+    slug: album.slug ?? String(album.albumId),
+    isCanonical,
     isHidden: album.isHidden,
+    ...(redirectCode ? { redirectCode } : {}),
   }
 }

@@ -21,10 +21,16 @@ export type AlbumPhoto = typeof schema.albumPhotos.$inferSelect
 export type NewAlbumPhoto = typeof schema.albumPhotos.$inferInsert
 export type AlbumWithPhotos = Album & { photos: Photo[] }
 
+export interface DatabaseLogger {
+  info(message: string): void
+  warn(message: string, error?: unknown): void
+}
+
 export interface DatabaseOptions {
   filename: string
   migrationsFolder?: string
   verbose?: (message: string) => void
+  logger?: DatabaseLogger
 }
 
 /** Open one explicitly configured SQLite connection; the caller owns its lifetime. */
@@ -44,12 +50,38 @@ export function openDatabase(options: DatabaseOptions) {
     sqlite.pragma('cache_size = 1000')
     sqlite.pragma('temp_store = MEMORY')
     const db = drizzle(sqlite, { schema })
+    const logger = options.logger ?? {
+      info: (message: string) => console.info(message),
+      warn: (message: string, error?: unknown) => console.warn(message, error),
+    }
     if (options.migrationsFolder) {
       migrateDatabase(db, options.migrationsFolder, options.filename)
       const slugTable = db.get<{ present: number }>(
         sql`SELECT 1 AS present FROM sqlite_master WHERE type='table' AND name='album_slugs'`,
       )
-      if (slugTable) backfillAlbumSlugs(db)
+      if (slugTable) {
+        try {
+          const count = backfillAlbumSlugs(db)
+          if (count) logger.info(`Backfilled album slugs for ${count} album(s)`)
+        } catch (error) {
+          logger.warn(
+            'Album slug backfill failed; albums will fall back to numeric URLs',
+            error,
+          )
+        }
+      } else {
+        const albumTable = db.get<{ present: number }>(
+          sql`SELECT 1 AS present FROM sqlite_master WHERE type='table' AND name='albums'`,
+        )
+        if (
+          albumTable &&
+          db.get<{ count: number }>(sql`SELECT COUNT(*) AS count FROM albums`)!
+            .count
+        )
+          throw new Error(
+            'album_slugs table is missing for existing albums; check DATABASE_MIGRATIONS',
+          )
+      }
     }
     return {
       db,

@@ -148,6 +148,13 @@
       "when": 1792307738436,
       "tag": "0020_album_slugs",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "6",
+      "when": 1792307739436,
+      "tag": "0021_reusable_album_slugs",
+      "breakpoints": true
     }
   ]
 }
