@@ -20,7 +20,9 @@ export default defineEventHandler((event) => {
       '/api/sites',
       '/api/workspaces/default',
     ].includes(path) ||
-    /^\/api\/sites\/[1-9][0-9]*\/(?:context|events|settings)$/.test(path)
+    /^\/api\/sites\/[1-9][0-9]*\/(?:context|events|settings|domains)$/.test(
+      path,
+    )
   if (
     /^\/api\/sites\/[1-9][0-9]*\/media(?:\/|$)/.test(path) ||
     /^\/api\/internal\/worker\/(?:claim|heartbeat|grant|complete|fail|cleanup)$/.test(

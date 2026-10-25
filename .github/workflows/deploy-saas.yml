@@ -83,7 +83,8 @@ jobs:
             else
               echo '- Target: production deployment; existing staging Previews are not replaced.'
             fi
-            echo '- workers.dev only; no custom domains, Git release tags, or Docker publication.'
+            echo '- Existing service routes are retained. Enabled domain automation may provision certificates and exact customer routes within the configured limit. No Git release tags or Docker publication.'
+            echo '- Default-address migration uses the configured Site base domain. Verify DNS/TLS and reserved service routes before enabling it.'
             echo '- Platform D1 binding is read from the selected GitHub Environment after approval; staging and production require separate databases.'
             echo '- Pending platform D1 migrations run after approval and successful builds, before Worker publication. Applied migrations remain if publication later fails.'
             echo '- Email sign-in additionally requires explicitly configured runtime mail credentials and a portal origin.'
@@ -114,6 +115,16 @@ jobs:
       name: saas-${{ inputs.environment }}
     env:
       WRANGLER_SEND_METRICS: 'false'
+      DEPLOY_ENVIRONMENT: ${{ inputs.environment }}
+      PLATFORM_SITE_BASE_DOMAIN: ${{ vars.PLATFORM_SITE_BASE_DOMAIN }}
+      PLATFORM_DEFAULT_DOMAINS_READY: ${{ vars.PLATFORM_DEFAULT_DOMAINS_READY }}
+      PLATFORM_DOMAIN_ENABLED: ${{ vars.PLATFORM_DOMAIN_ENABLED }}
+      PLATFORM_DOMAIN_ROUTING_READY: ${{ vars.PLATFORM_DOMAIN_ROUTING_READY }}
+      PLATFORM_DOMAIN_ZONE_ID: ${{ vars.PLATFORM_DOMAIN_ZONE_ID }}
+      PLATFORM_DOMAIN_CNAME_TARGET: ${{ vars.PLATFORM_DOMAIN_CNAME_TARGET }}
+      PLATFORM_DOMAIN_SITE_WORKER: ${{ vars.PLATFORM_DOMAIN_SITE_WORKER }}
+      PLATFORM_DOMAIN_RESOURCE_LIMIT: ${{ vars.PLATFORM_DOMAIN_RESOURCE_LIMIT }}
+      PLATFORM_DOMAIN_PROVIDER_TOKEN: ${{ secrets.PLATFORM_DOMAIN_PROVIDER_TOKEN }}
     steps:
       - name: Checkout approved immutable source
         uses: actions/checkout@v7
@@ -143,6 +154,8 @@ jobs:
           PLATFORM_S3_ENDPOINT_HOSTS: ${{ vars.PLATFORM_S3_ENDPOINT_HOSTS }}
         run: |
           node --input-type=module <<'NODE'
+          import { domainDeploymentValues } from './scripts/domain-deployment.mjs'
+          domainDeploymentValues(process.env.DEPLOY_ENVIRONMENT,process.env)
           if (process.env.PLATFORM_D1_DATABASE_ID) {
             if ((process.env.PLATFORM_STORAGE_SECRET || '').length < 32) throw new Error('Configure PLATFORM_STORAGE_SECRET with at least 32 characters in the selected GitHub Environment secrets')
             if (process.env.ENTRIES.split(/\s+/).includes('cloud') && (process.env.PLATFORM_WORKER_SECRET || '').length < 32) throw new Error('Configure PLATFORM_WORKER_SECRET with at least 32 characters in the selected GitHub Environment secrets')
@@ -198,7 +211,7 @@ jobs:
             }
           }
           const portalOrigin = process.env.PLATFORM_PORTAL_ORIGIN
-          if (process.env.ENTRY === 'cloud' && portalOrigin) {
+          if (portalOrigin) {
             const url = new URL(portalOrigin)
             if (url.protocol !== 'https:' || url.origin !== portalOrigin) throw new Error('Platform portal origin must be an exact HTTPS origin')
             const target = process.env.DEPLOY_ENVIRONMENT === 'staging' ? config.previews : config
@@ -212,8 +225,8 @@ jobs:
             target.vars = { ...target.vars, NUXT_PLATFORM_EMAIL_FROM: emailFrom }
             if (process.env.DEPLOY_ENVIRONMENT === 'staging') delete config.send_email
           }
-          config.routes = []
-          delete config.route
+          const { configureDomainDeployment } = await import('./scripts/domain-deployment.mjs')
+          configureDomainDeployment(config,process.env.ENTRY,process.env.DEPLOY_ENVIRONMENT,process.env)
           delete config.env
           fs.writeFileSync(path, JSON.stringify(config, null, 2) + '\n')
           NODE
@@ -283,10 +296,10 @@ jobs:
               command=(preview --name staging --worker-name "$worker")
               target="$worker / Preview staging"
             fi
+            if [[ -n "$PLATFORM_PORTAL_ORIGIN" ]]; then
+              command+=(--var "NUXT_PLATFORM_PORTAL_ORIGIN:$PLATFORM_PORTAL_ORIGIN")
+            fi
             if [[ "$entry" == cloud ]]; then
-              if [[ -n "$PLATFORM_PORTAL_ORIGIN" ]]; then
-                command+=(--var "NUXT_PLATFORM_PORTAL_ORIGIN:$PLATFORM_PORTAL_ORIGIN")
-              fi
               if [[ -n "$PLATFORM_EMAIL_FROM" ]]; then
                 command+=(--var "NUXT_PLATFORM_EMAIL_FROM:$PLATFORM_EMAIL_FROM")
               fi
@@ -298,11 +311,21 @@ jobs:
           const values = secret ? { NUXT_PLATFORM_SECRET: secret } : {}
           if (process.env.PLATFORM_STORAGE_SECRET) values.NUXT_PLATFORM_STORAGE_SECRET = process.env.PLATFORM_STORAGE_SECRET
           if (process.env.ENTRY === 'cloud' && process.env.PLATFORM_WORKER_SECRET) values.NUXT_PLATFORM_WORKER_SECRET = process.env.PLATFORM_WORKER_SECRET
+          if (process.env.ENTRY === 'cloud' && process.env.PLATFORM_DOMAIN_PROVIDER_TOKEN) values.NUXT_PLATFORM_DOMAIN_PROVIDER_TOKEN = process.env.PLATFORM_DOMAIN_PROVIDER_TOKEN
           fs.writeFileSync(process.env.WORKER_SECRET_FILE, JSON.stringify(values), { mode: 0o600 })
           NODE
             if [[ -n "$PLATFORM_S3_ENDPOINT_HOSTS" ]]; then
               command+=(--var "NUXT_PLATFORM_S3_ENDPOINT_HOSTS:$PLATFORM_S3_ENDPOINT_HOSTS")
             fi
+            domain_vars_file="$RUNNER_TEMP/domain-vars-$entry.json"
+            export DOMAIN_VARS_FILE="$domain_vars_file"
+            node --input-type=module <<'NODE'
+          import fs from 'node:fs'
+          import { domainDeploymentValues } from './scripts/domain-deployment.mjs'
+          const values=domainDeploymentValues(process.env.DEPLOY_ENVIRONMENT,process.env)
+          fs.writeFileSync(process.env.DOMAIN_VARS_FILE,JSON.stringify(Object.entries(values).filter(([key])=>process.env.ENTRY==='cloud'||key.startsWith('NUXT_PUBLIC_'))))
+          NODE
+            while IFS= read -r pair; do command+=(--var "$pair"); done < <(jq -r '.[]|.[0]+":"+.[1]' "$domain_vars_file")
             command+=(--secrets-file "$secret_file")
             echo "### $target" >> "$GITHUB_STEP_SUMMARY"
             if pnpm exec wrangler "${command[@]}" --config "apps/$entry/.output/server/wrangler.json" \

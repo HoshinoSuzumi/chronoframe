@@ -80,6 +80,7 @@ test('Real D1 provisioning preserves old tenants, serializes defaults and enforc
     await migrate('0003_account_security.sql')
     await migrate('0004_workspace_sites.sql')
     await migrate('0011_site_identity.sql')
+    await migrate('0013_custom_domains.sql')
     await db
       .prepare('UPDATE platform_users SET email_verified=0 WHERE id=44')
       .run()
@@ -164,10 +165,15 @@ test('Real D1 provisioning preserves old tenants, serializes defaults and enforc
       ),
     )
     assert.equal(races.filter((r) => r.status === 'fulfilled').length, 1)
-    // Draft creation never creates a public mapping, or alters the existing published gallery.
+    // Draft reservations never expose a public gallery or alter the existing published gallery.
     assert.equal(
-      (await db.prepare('SELECT COUNT(*) AS n FROM platform_domains').first())
-        .n,
+      (
+        await db
+          .prepare(
+            'SELECT COUNT(*) AS n FROM platform_domains d JOIN platform_sites s ON s.id=d.site_id WHERE s.published=1 AND d.active=1',
+          )
+          .first()
+      ).n,
       0,
     )
     assert.equal((await store.get(42, 8)).published, 1)

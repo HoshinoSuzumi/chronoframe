@@ -5,13 +5,15 @@
   "type": "module",
   "license": "AGPL-3.0-only",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./domains": "./src/domains.ts"
   },
   "scripts": {
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
-    "@chronoframe/core": "workspace:*"
+    "@chronoframe/core": "workspace:*",
+    "@chronoframe/contracts": "workspace:*"
   },
   "devDependencies": {
     "typescript": "^5.9.3"

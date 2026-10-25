@@ -43,6 +43,7 @@ export interface EntrySiteContext {
   name: string
   published: boolean
   audience: 'portal' | 'public'
+  canonicalOrigin?: string
   role?: 'admin' | 'member'
   workspaceId?: number
   capabilities: EntryCapabilities

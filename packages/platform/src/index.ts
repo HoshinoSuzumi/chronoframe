@@ -1,3 +1,4 @@
+import { DOMAIN_HEALTH_TTL } from './domains.ts'
 import type { EmailCodeStore } from '@chronoframe/core'
 import type { PlatformDirectory, PlatformSession } from '@chronoframe/core'
 
@@ -11,7 +12,10 @@ export interface PlatformD1 {
   prepare(sql: string): D1Statement
   batch(statements: D1Statement[]): Promise<{ meta: { changes: number } }[]>
 }
-export function createD1Directory(db: PlatformD1): PlatformDirectory {
+export function createD1Directory(
+  db: PlatformD1,
+  now = Date.now,
+): PlatformDirectory {
   return {
     async getSite(id) {
       const row = await db
@@ -33,9 +37,9 @@ export function createD1Directory(db: PlatformD1): PlatformDirectory {
     async getPublishedSiteByHost(host) {
       const row = await db
         .prepare(
-          'SELECT s.id, s.workspace_id AS workspaceId, s.published FROM platform_domains d JOIN platform_sites s ON s.id = d.site_id WHERE d.hostname = ? AND d.verified = 1 AND d.active = 1 AND s.published = 1',
+          `SELECT s.id, s.workspace_id AS workspaceId, s.published FROM platform_domains d JOIN platform_sites s ON s.id=d.site_id LEFT JOIN platform_custom_domains cd ON cd.hostname=d.hostname WHERE d.hostname=? AND d.verified=1 AND d.active=1 AND s.published=1 AND (d.kind<>'custom' OR (cd.site_id=d.site_id AND cd.state='active' AND cd.verified_at>=?)) AND (d.kind<>'alias' OR d.redirect_until>?)`,
         )
-        .bind(host)
+        .bind(host, now() - DOMAIN_HEALTH_TTL, now())
         .first<{ id: number; workspaceId: number; published: number }>()
       return row ? { ...row, published: row.published === 1 } : null
     },

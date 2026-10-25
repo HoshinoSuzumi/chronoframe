@@ -193,6 +193,21 @@ test('D1 directory never maps unverified/inactive domains or unrelated Workspace
       INSERT INTO platform_sites VALUES(1,10,'one',1),(2,20,'two',1);
       INSERT INTO platform_memberships VALUES(1,10,'admin');
       INSERT INTO platform_domains VALUES('one.example.com',1,1,1),('two.example.com',2,0,1),('inactive.example.com',1,1,0);`)
+    for (const migration of [
+      '0002_visitor_access.sql',
+      '0003_account_security.sql',
+      '0004_workspace_sites.sql',
+      '0013_custom_domains.sql',
+    ])
+      sqlite.exec(
+        await readFile(
+          new URL(
+            '../packages/platform/migrations/' + migration,
+            import.meta.url,
+          ),
+          'utf8',
+        ),
+      )
     const access = createPlatformAccess(createD1Directory(db), () => 100)
     const session = { userId: 1, expiresAt: 200 }
     assert.equal((await access.authorizeSite(session, 1, 'manage')).site.id, 1)
