@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { settingsManager } from '~~/server/services/settings/settingsManager'
 import { getHiddenSettingKeys } from '~~/server/services/settings/contants'
 import { getSettingUIConfig } from '~~/server/services/settings/ui-config'
+import { isWizardRenderableField } from '~~/server/services/settings/wizard-fields'
 import type { FieldDescriptor } from '~~/shared/types/settings'
 
 export default defineWizardHandler(async (event) => {
@@ -235,7 +236,10 @@ export default defineWizardHandler(async (event) => {
     const schema = await settingsManager.getSchema()
     const hiddenKeys = getHiddenSettingKeys(query.namespace)
     const namespaceSettings = schema.filter(
-      (s) => s.namespace === query.namespace && !hiddenKeys.has(s.key),
+      (s) =>
+        s.namespace === query.namespace &&
+        !hiddenKeys.has(s.key) &&
+        isWizardRenderableField(s),
     )
 
     const fields = namespaceSettings.map((setting) => {
