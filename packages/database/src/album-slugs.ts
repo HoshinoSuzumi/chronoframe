@@ -65,7 +65,11 @@ export function claimAlbumSlug(
       .get()
     if (existing) {
       if (existing.albumId === albumId && existing.isCurrent) return slug
-      if (!automatic) throw new CoreError(409, 'Album URL slug already exists')
+      if (!automatic)
+        throw new CoreError(
+          409,
+          'Album URL slug is in use or was previously used',
+        )
       continue
     }
     db.update(tables.albumSlugs)

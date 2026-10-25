@@ -849,7 +849,7 @@
         "slugHint": "清除此欄位可根據標題產生。舊連結會自動重新導向。",
         "slugCurrent": "目前網址",
         "slugInvalid": "僅可使用小寫英文字母、數字與單個連字號（最多 80 個字元）。網址不可僅由數字組成。",
-        "slugConflict": "此相簿網址已被使用。",
+        "slugConflict": "此相簿網址正在使用或曾經使用，無法重複使用。請選擇其他網址。",
         "description": "描述",
         "descriptionPlaceholder": "輸入相簿描述（選填）",
         "coverPhoto": "相簿封面",

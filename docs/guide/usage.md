@@ -21,6 +21,8 @@ For Apple Live Photos, use matching image and MOV filenames, such as `IMG_1234.h
 
 Albums group photos by subject. ChronoFrame supports ordering for both albums and the photos within them.
 
+On self-hosted sites, album URLs are generated from titles. You can set a custom URL in the album form. Old URLs redirect after a rename; URLs from deleted albums remain reserved so an old link cannot open a different album. Choose a new URL if one was used before.
+
 ::: warning Hidden albums also affect shared photos
 Hidden albums restrict public visibility. ChronoFrame also restricts anonymous access to their photos, even when a photo belongs to a public album as well. Check the public gallery after changing visibility.
 :::

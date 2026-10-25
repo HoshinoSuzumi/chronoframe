@@ -849,7 +849,7 @@
         "slugHint": "空欄にするとタイトルから生成します。変更前の URL はリダイレクトされます。",
         "slugCurrent": "現在の URL",
         "slugInvalid": "小文字の英字、数字、単一のハイフンを使用してください（最大80文字）。数字のみの URL は使用できません。",
-        "slugConflict": "このアルバム URL は既に使用されています。",
+        "slugConflict": "このアルバム URL は現在使用中か、過去に使用されたため再利用できません。別の URL を選んでください。",
         "description": "説明",
         "descriptionPlaceholder": "アルバムの説明を入力（オプション）",
         "coverPhoto": "アルバムカバー",

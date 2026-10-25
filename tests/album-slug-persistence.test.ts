@@ -130,6 +130,13 @@ test('album slugs remain unique, redirectable, and reserved after deletion', asy
       resolveAlbumSlug(db, DEFAULT_SITE, 'a-new-title')?.albumId,
       null,
     )
+    await assert.rejects(
+      writer.update(second.id, { slug: 'a-new-title' }, access),
+      (error) =>
+        error instanceof CoreError &&
+        error.statusCode === 409 &&
+        /previously used/.test(error.message),
+    )
     assert.equal(
       (await writer.create({ title: 'My Album' }, access)).slug,
       'my-album-3',
