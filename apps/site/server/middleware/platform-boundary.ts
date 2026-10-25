@@ -17,6 +17,9 @@ export default defineEventHandler((event) => {
       '/api/public/photos',
       '/api/public/albums',
     ].includes(path) ||
+    /^\/api\/public\/albums\/resolve\/(?:[a-z0-9]+(?:-[a-z0-9]+)*)$/.test(
+      path,
+    ) ||
     /^\/api\/public\/albums\/[1-9][0-9]*$/.test(path) ||
     /^\/api\/public\/photos\/[a-z0-9_-]+\/(?:albums|reactions)$/.test(path) ||
     /^\/api\/public\/media\/[a-z0-9_-]+\/(?:original|thumbnail|live-video|display)$/.test(

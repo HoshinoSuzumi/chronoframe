@@ -117,6 +117,21 @@ for (const backend of ['SQLite', 'D1'] as const) {
           )
         await run(part)
       }
+      for (const file of [
+        '0008_cloud_albums.sql',
+        '0012_cloud_album_slugs.sql',
+      ]) {
+        const sql = await readFile(
+          new URL('../packages/platform/migrations/' + file, import.meta.url),
+          'utf8',
+        )
+        for (const part of sql
+          .replace(/^--.*$/gm, '')
+          .split(';')
+          .map((s) => s.trim())
+          .filter(Boolean))
+          await run(part)
+      }
       assert.equal(
         (
           await db

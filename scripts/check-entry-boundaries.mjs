@@ -44,6 +44,7 @@ for (const entry of ['cloud', 'site']) {
         '@chronoframe/database/cloud-media',
         '@chronoframe/database/cloud-execution',
         '@chronoframe/database/cloud-resources',
+        '@chronoframe/database/cloud-album-slugs',
         '@chronoframe/storage/s3-edge',
         '@chronoframe/storage/credential-cipher',
         '@chronoframe/storage/connection-probe',

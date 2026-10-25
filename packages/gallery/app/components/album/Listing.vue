@@ -13,7 +13,6 @@ const appSlogan = useSettingRef('app:slogan')
 const { homeView, photoWallPath } = useHomeView()
 const { photos } = usePhotos()
 const { loggedIn } = useUserSession()
-const useSlugs = useEntryCapabilities().edition === 'self-hosted'
 const {
   data: albums,
   status,
@@ -297,7 +296,7 @@ const hoveredAlbum = ref<number | null>(null)
         <NuxtLink
           v-for="album in visibleAlbums"
           :key="album.id"
-          :to="albumPagePath(album, useSlugs)"
+          :to="albumPagePath(album, true)"
           class="block"
           @mouseenter="hoveredAlbum = album.id"
           @mouseleave="hoveredAlbum = null"

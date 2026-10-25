@@ -26,7 +26,6 @@ interface Album {
 const dayjs = useDayjs()
 const router = useRouter()
 const { localizeExif } = useExifLocalization()
-const useSlugs = useEntryCapabilities().edition === 'self-hosted'
 
 const props = defineProps<Props>()
 
@@ -485,7 +484,7 @@ const onTagClick = (tag: string) => {
 }
 
 const onAlbumClick = (album: Album) => {
-  window.open(albumPagePath(album, useSlugs))
+  window.open(albumPagePath(album, true))
 }
 </script>
 

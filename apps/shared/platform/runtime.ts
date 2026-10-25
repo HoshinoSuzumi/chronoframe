@@ -98,6 +98,21 @@ export function definePlatformHandler<T>(
           false,
         )
       }
+      if (
+        (error as { statusCode?: number; code?: string })?.statusCode === 409 &&
+        (error as { code?: string }).code === 'album_slug_conflict'
+      ) {
+        setResponseHeader(event, 'Cache-Control', 'no-store')
+        return sendError(
+          event,
+          createError({
+            statusCode: 409,
+            statusMessage: 'Album URL slug already exists',
+            data: { code: 'album_slug_conflict' },
+          }),
+          false,
+        )
+      }
       const code = (error as { statusCode?: number })?.statusCode
       const messages: Record<number, string> = {
         400: 'Invalid request',

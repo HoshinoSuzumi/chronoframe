@@ -1,3 +1,4 @@
+import { ensureCloudAlbumSlugs } from './cloud-album-slugs.ts'
 import {
   assertSiteContext,
   type SiteContext,
@@ -15,6 +16,8 @@ export function createCloudResourceRepository(
   mediaPrefix: string,
 ): ResourceReadRepository {
   assertSiteContext(site)
+  let slugRepair: Promise<void> | undefined
+  const ensureSlugs = () => (slugRepair ??= ensureCloudAlbumSlugs(db, site.id))
   const all = async <T>(sql: string, ...values: (string | number | null)[]) =>
     (
       await db
@@ -63,6 +66,7 @@ export function createCloudResourceRepository(
   const album = (r: Record<string, unknown>): AlbumReadRecord => ({
     resource: {
       id: Number(r.id),
+      slug: String(r.slug),
       title: String(r.title),
       description: r.description ? String(r.description) : null,
       coverPhotoId: r.ready_cover_photo_id
@@ -76,7 +80,7 @@ export function createCloudResourceRepository(
     },
     passwordHash: r.password_hash ? String(r.password_hash) : null,
   })
-  const albumSelect = `SELECT a.*,v.password_hash,(SELECT p.id FROM cloud_photos p WHERE p.site_id=a.site_id AND p.id=a.cover_photo_id AND ${ready}) AS ready_cover_photo_id FROM cloud_albums a LEFT JOIN platform_album_access v ON v.site_id=a.site_id AND CAST(v.album_id AS TEXT)=a.id WHERE a.site_id=?`
+  const albumSelect = `SELECT a.*,(SELECT slug FROM cloud_album_slugs s WHERE s.site_id=a.site_id AND s.album_id=a.id AND s.is_current=1) AS slug,v.password_hash,(SELECT p.id FROM cloud_photos p WHERE p.site_id=a.site_id AND p.id=a.cover_photo_id AND ${ready}) AS ready_cover_photo_id FROM cloud_albums a LEFT JOIN platform_album_access v ON v.site_id=a.site_id AND CAST(v.album_id AS TEXT)=a.id WHERE a.site_id=?`
   async function memberships(photoId?: string) {
     return (
       await all<{
@@ -117,6 +121,7 @@ export function createCloudResourceRepository(
       ).map(photo)
     },
     async listAlbums() {
+      await ensureSlugs()
       return (
         await all<Record<string, unknown>>(
           albumSelect + ' ORDER BY a.position,a.created_at DESC LIMIT 100',
@@ -124,6 +129,7 @@ export function createCloudResourceRepository(
       ).map(album)
     },
     async getAlbum(id) {
+      await ensureSlugs()
       const row = (
         await all<Record<string, unknown>>(
           albumSelect + ' AND a.id=?',

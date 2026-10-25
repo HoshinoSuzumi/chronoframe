@@ -22,6 +22,9 @@ test('album metadata and password changes share a revision fence and retain tena
             args = v
             return statement
           },
+          async all() {
+            return { results: sqlite.prepare(sql).all(...args) }
+          },
           async first() {
             return sqlite.prepare(sql).get(...args)
           },

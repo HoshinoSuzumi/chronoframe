@@ -4,13 +4,15 @@
   "private": true,
   "type": "module",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./album-slug": "./src/album-slug.ts"
   },
   "scripts": {
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
-    "@chronoframe/contracts": "workspace:*"
+    "@chronoframe/contracts": "workspace:*",
+    "transliteration": "2.6.1"
   },
   "devDependencies": {
     "typescript": "^5.9.3"
