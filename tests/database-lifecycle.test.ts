@@ -4,6 +4,7 @@ import assert from 'node:assert/strict'
 import { mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import Database from 'better-sqlite3'
 import {
   openDatabase,
   tables,
@@ -92,6 +93,64 @@ test('database connection, repositories, rollback, backup, restart and reentrant
     }
   } finally {
     connection.close()
+    await rm(root, { recursive: true, force: true })
+  }
+})
+
+test('startup logs backfill failures and keeps slug-less albums readable', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'chronoframe-slug-backfill-'))
+  const filename = join(root, 'app.sqlite3')
+  const infos: string[] = []
+  const warnings: Array<{ message: string; error: unknown }> = []
+  const logger = {
+    info: (message: string) => infos.push(message),
+    warn: (message: string, error?: unknown) =>
+      warnings.push({ message, error }),
+  }
+  try {
+    openDatabase({ filename, migrationsFolder }).close()
+
+    const raw = new Database(filename)
+    raw.prepare("INSERT INTO albums(title) VALUES('No Slug')").run()
+    raw.exec(
+      "CREATE TRIGGER fail_album_slug_insert BEFORE INSERT ON album_slugs BEGIN SELECT RAISE(ABORT, 'simulated slug failure'); END;",
+    )
+    raw.close()
+
+    const failed = openDatabase({ filename, migrationsFolder, logger })
+    try {
+      assert.equal(warnings.length, 1)
+      assert.match(warnings[0]!.message, /backfill failed/i)
+      assert.ok(warnings[0]!.error instanceof Error)
+      assert.equal(infos.length, 0)
+      const albums = await createSqliteResourceRepository(
+        failed.db,
+        DEFAULT_SITE,
+      ).listAlbums()
+      assert.equal(albums.length, 1)
+      assert.equal(albums[0]!.resource.slug, undefined)
+    } finally {
+      failed.close()
+    }
+
+    const rawAgain = new Database(filename)
+    rawAgain.exec('DROP TRIGGER fail_album_slug_insert')
+    rawAgain.close()
+
+    const recovered = openDatabase({ filename, migrationsFolder, logger })
+    try {
+      assert.equal(warnings.length, 1)
+      assert.equal(infos.length, 1)
+      assert.match(infos[0]!, /Backfilled album slugs for 1 album/)
+      const albums = await createSqliteResourceRepository(
+        recovered.db,
+        DEFAULT_SITE,
+      ).listAlbums()
+      assert.equal(albums[0]!.resource.slug, 'no-slug')
+    } finally {
+      recovered.close()
+    }
+  } finally {
     await rm(root, { recursive: true, force: true })
   }
 })
