@@ -9,7 +9,22 @@ import { publicSiteContext } from '../../../shared/platform/context'
 /** Redirect documents only; cookies and private media remain bound to the requesting Host. */
 export default defineEventHandler(async (event) => {
   const path = getRequestURL(event).pathname
-  if (path === '/api/health' || path.startsWith('/_nuxt/')) return
+  setResponseHeader(event, 'Cache-Control', 'no-store')
+  let normalizedPath: string
+  try {
+    normalizedPath = decodeURIComponent(path).toLowerCase()
+  } catch {
+    throw createError({
+      statusCode: 400,
+      statusMessage: 'Invalid request path',
+    })
+  }
+  if (
+    normalizedPath === '/api' ||
+    normalizedPath.startsWith('/api/') ||
+    path.startsWith('/_nuxt/')
+  )
+    return
   const url = platformRequestURL(event),
     runtime = useRuntimeConfig(event),
     base = runtime.public.siteBaseDomain,
@@ -37,7 +52,6 @@ export default defineEventHandler(async (event) => {
     !validSiteSlug(host.slice(0, -base.length - 1))
   )
     throw createError({ statusCode: 404 })
-  if (path.startsWith('/api/')) return
   const context = await publicSiteContext(event)
   if (!['GET', 'HEAD'].includes(event.method)) return
   setResponseHeader(event, 'Cache-Control', 'no-store')
