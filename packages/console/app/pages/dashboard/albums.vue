@@ -9,6 +9,7 @@ import {
   ALBUM_PASSWORD_MIN_LENGTH,
   isValidAlbumPasswordLength,
 } from '@chronoframe/gallery/shared/utils/album'
+import { albumPagePath } from '@chronoframe/gallery/shared/utils/albumPath'
 
 definePageMeta({
   layout: 'dashboard',
@@ -19,7 +20,7 @@ useHead({
 })
 
 interface AlbumItem extends Album {
-  slug: string | null
+  slug?: string
   photoCount?: number
   photoIds?: string[]
   coverPhoto?: Photo | null
@@ -200,18 +201,21 @@ const openCreateSlideover = () => {
 
 const openEditSlideover = async (album: AlbumItem) => {
   currentAlbum.value = album
+  formData.title = album.title
+  formData.slug = album.slug ?? ''
+  initialSlug.value = formData.slug
+  formData.description = album.description || ''
+  formData.isHidden = album.isHidden || false
+  formData.password = ''
+  formData.passwordEnabled = Boolean(album.hasPassword)
+  selectedPhotoIds.value = []
+  coverPhotoId.value = album.coverPhotoId || ''
+  formRef.value?.clear()
   try {
     const albumDetail = (await consoleApi(`/api/albums/${album.id}`)) as any
-    formData.title = album.title
-    formData.slug = album.slug ?? ''
+    formData.slug = typeof albumDetail.slug === 'string' ? albumDetail.slug : ''
     initialSlug.value = formData.slug
-    formData.description = album.description || ''
-    formData.isHidden = album.isHidden || false
-    formData.password = ''
-    formData.passwordEnabled = Boolean(album.hasPassword)
     selectedPhotoIds.value = (albumDetail.photos || []).map((p: Photo) => p.id)
-    coverPhotoId.value = album.coverPhotoId || ''
-    formRef.value?.clear()
   } catch (error) {
     console.error('Failed to load album details:', error)
     useToast().add({
@@ -640,7 +644,7 @@ const columns = computed<any[]>(() => [
 
             <template #title-cell="{ row }">
               <NuxtLink
-                :to="`/albums/${(row.original as unknown as AlbumItem).slug || row.original.id}`"
+                :to="albumPagePath(row.original as AlbumItem, true)"
                 target="_blank"
                 class="font-medium text-primary-600 dark:text-primary-400 hover:underline cursor-pointer inline-flex items-center gap-2"
               >
@@ -850,7 +854,7 @@ const columns = computed<any[]>(() => [
                   v-model:description="formData.description"
                   v-model:slug="formData.slug"
                   show-slug
-                  :current-slug="currentAlbum?.slug ?? undefined"
+                  :current-slug="currentAlbum?.slug"
                 />
 
                 <UFormField name="isHidden">
