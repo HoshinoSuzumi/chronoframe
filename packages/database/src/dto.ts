@@ -53,7 +53,7 @@ export function toPhotoDto(photo: PhotoRow): Photo {
 export function toAlbumDto(album: AlbumRow, slug: string | null): Album {
   return {
     id: album.id,
-    slug,
+    ...(slug === null ? {} : { slug }),
     title: album.title,
     description: album.description,
     coverPhotoId: album.coverPhotoId,
