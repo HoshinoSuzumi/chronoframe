@@ -10,13 +10,16 @@ const dayjs = useDayjs()
 const { user } = useUserSession()
 const { albumListPath } = useHomeView()
 const albumSegment = computed(() => String(route.params.albumId))
-const { data: resolved, error: resolveError } =
-  await useGalleryFetch<AlbumPathResolution>(
-    () => `/api/albums/resolve/${encodeURIComponent(albumSegment.value)}`,
-    {
-      watch: [albumSegment],
-    },
-  )
+const {
+  data: resolved,
+  error: resolveError,
+  status: resolveStatus,
+} = await useGalleryFetch<AlbumPathResolution>(
+  () => `/api/albums/resolve/${encodeURIComponent(albumSegment.value)}`,
+  {
+    watch: [albumSegment],
+  },
+)
 if (resolveError.value || !resolved.value)
   throw createError({ statusCode: 404, statusMessage: $t('album.notFound') })
 const canonicalAlbumRoute = computed(() => `/albums/${resolved.value?.slug}`)
@@ -30,7 +33,9 @@ if (!resolved.value.isCanonical || route.path !== canonicalAlbumRoute.value)
     redirectCode: resolved.value.redirectCode ?? 301,
     replace: true,
   })
-watch([resolved, () => route.path], ([value]) => {
+watch([resolved, () => route.path, resolveStatus], ([value]) => {
+  // Wait for the resolver to finish for the current route before redirecting.
+  if (resolveStatus.value !== 'success') return
   if (value && (!value.isCanonical || route.path !== `/albums/${value.slug}`))
     void navigateTo(canonicalAlbumTarget(value.slug), { replace: true })
 })
