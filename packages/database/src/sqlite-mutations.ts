@@ -10,6 +10,7 @@ import type {
 } from '@chronoframe/core'
 import { tables, type AppDatabase } from './connection.ts'
 import { toAlbumDto, toPhotoDto } from './dto.ts'
+import { claimAlbumSlug, getCurrentAlbumSlug } from './album-slugs.ts'
 
 /** Keep album row and membership changes inside synchronous SQLite transactions. */
 export function createSqliteAlbumWriteRepository(
@@ -33,61 +34,41 @@ export function createSqliteAlbumWriteRepository(
       )
     },
     async createFirst(data, photoIds) {
-      return db.transaction((tx) => {
-        const row = tx
-          .select({ min: min(tables.albums.position) })
-          .from(tables.albums)
-          .where(siteEq(tables.albums.siteId, site.id))
-          .get()
-        const album = tx
-          .insert(tables.albums)
-          .values({
-            ...data,
-            siteId: site.id,
-            position: (row?.min ?? 1000) - 1000,
-          })
-          .returning()
-          .get()
-        appendAlbumPhotos(tx, album.id, photoIds, site)
-        return toAlbumDto(album)
-      })
+      return db.transaction(
+        (tx) => {
+          const { slug: requestedSlug = '', ...albumData } = data
+          const row = tx
+            .select({ min: min(tables.albums.position) })
+            .from(tables.albums)
+            .where(siteEq(tables.albums.siteId, site.id))
+            .get()
+          const album = tx
+            .insert(tables.albums)
+            .values({
+              ...albumData,
+              siteId: site.id,
+              position: (row?.min ?? 1000) - 1000,
+            })
+            .returning()
+            .get()
+          appendAlbumPhotos(tx, album.id, photoIds, site)
+          const slug = claimAlbumSlug(
+            tx,
+            site,
+            album.id,
+            album.title,
+            requestedSlug,
+          )
+          return toAlbumDto(album, slug)
+        },
+        { behavior: 'immediate' },
+      )
     },
     async update(id, data, photoIds) {
-      return db.transaction((tx) => {
-        const exists = tx
-          .select({ id: tables.albums.id })
-          .from(tables.albums)
-          .where(
-            siteAnd(
-              eq(tables.albums.id, id),
-              siteEq(tables.albums.siteId, site.id),
-            ),
-          )
-          .get()
-        if (!exists) return null
-        tx.update(tables.albums)
-          .set(data)
-          .where(
-            siteAnd(
-              eq(tables.albums.id, id),
-              siteEq(tables.albums.siteId, site.id),
-            ),
-          )
-          .run()
-        if (photoIds !== undefined) {
-          tx.delete(tables.albumPhotos)
-            .where(
-              siteAnd(
-                eq(tables.albumPhotos.albumId, id),
-                siteEq(tables.albumPhotos.siteId, site.id),
-              ),
-            )
-            .run()
-          appendAlbumPhotos(tx, id, photoIds, site)
-        }
-        return toAlbumDto(
-          tx
-            .select()
+      return db.transaction(
+        (tx) => {
+          const exists = tx
+            .select({ id: tables.albums.id, title: tables.albums.title })
             .from(tables.albums)
             .where(
               siteAnd(
@@ -95,9 +76,57 @@ export function createSqliteAlbumWriteRepository(
                 siteEq(tables.albums.siteId, site.id),
               ),
             )
-            .get()!,
-        )
-      })
+            .get()
+          if (!exists) return null
+          const { slug: requestedSlug, ...albumData } = data
+          if (Object.keys(albumData).length) {
+            tx.update(tables.albums)
+              .set(albumData)
+              .where(
+                siteAnd(
+                  eq(tables.albums.id, id),
+                  siteEq(tables.albums.siteId, site.id),
+                ),
+              )
+              .run()
+          }
+          if (photoIds !== undefined) {
+            tx.delete(tables.albumPhotos)
+              .where(
+                siteAnd(
+                  eq(tables.albumPhotos.albumId, id),
+                  siteEq(tables.albumPhotos.siteId, site.id),
+                ),
+              )
+              .run()
+            appendAlbumPhotos(tx, id, photoIds, site)
+          }
+          const slug =
+            requestedSlug === undefined
+              ? getCurrentAlbumSlug(tx, site, id)
+              : claimAlbumSlug(
+                  tx,
+                  site,
+                  id,
+                  data.title ?? exists.title,
+                  requestedSlug,
+                )
+          return toAlbumDto(
+            tx
+              .select()
+              .from(tables.albums)
+              .where(
+                siteAnd(
+                  eq(tables.albums.id, id),
+                  siteEq(tables.albums.siteId, site.id),
+                ),
+              )
+              .get()!,
+            slug,
+          )
+        },
+        { behavior: 'immediate' },
+      )
     },
     async delete(id) {
       return db.transaction((tx) => {

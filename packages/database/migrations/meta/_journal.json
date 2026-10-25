@@ -141,6 +141,13 @@
       "when": 1792307737436,
       "tag": "0019_job_leases",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "6",
+      "when": 1792307738436,
+      "tag": "0020_album_slugs",
+      "breakpoints": true
     }
   ]
 }

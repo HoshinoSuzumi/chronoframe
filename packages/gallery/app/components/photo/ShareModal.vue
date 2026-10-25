@@ -1,4 +1,6 @@
 <script lang="ts" setup>
+import { isAlbumPagePath } from '@chronoframe/gallery/shared/utils/albumPath'
+
 interface Props {
   isOpen: boolean
   photo: Photo
@@ -22,7 +24,7 @@ const { returnRoute } = storeToRefs(useViewerState())
 
 const shareUrl = computed(() => {
   if (typeof window !== 'undefined') {
-    if (returnRoute.value && /^\/albums\/\d+$/.test(returnRoute.value)) {
+    if (returnRoute.value && isAlbumPagePath(returnRoute.value)) {
       return `${window.location.origin}${returnRoute.value}?photo=${encodeURIComponent(props.photo.id)}`
     }
     return `${window.location.origin}/${props.photo.id}`

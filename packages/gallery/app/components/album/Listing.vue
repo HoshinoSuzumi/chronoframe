@@ -5,6 +5,7 @@ import { motion } from 'motion-v'
 import { getAlbumListState } from '#gallery/utils/albumListState'
 import { sampleWaterfallPhotos } from '#gallery/utils/sampleWaterfallPhotos'
 import type { Album } from '@chronoframe/contracts/resources'
+import { albumPagePath } from '@chronoframe/gallery/shared/utils/albumPath'
 interface AlbumWithPhotos extends Album {
   photoIds?: string[]
 }
@@ -12,6 +13,7 @@ const appSlogan = useSettingRef('app:slogan')
 const { homeView, photoWallPath } = useHomeView()
 const { photos } = usePhotos()
 const { loggedIn } = useUserSession()
+const useSlugs = useEntryCapabilities().edition === 'self-hosted'
 const {
   data: albums,
   status,
@@ -295,7 +297,7 @@ const hoveredAlbum = ref<number | null>(null)
         <NuxtLink
           v-for="album in visibleAlbums"
           :key="album.id"
-          :to="`/albums/${album.id}`"
+          :to="albumPagePath(album, useSlugs)"
           class="block"
           @mouseenter="hoveredAlbum = album.id"
           @mouseleave="hoveredAlbum = null"
