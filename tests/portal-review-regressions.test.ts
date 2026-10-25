@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs'
 import test from 'node:test'
 import vm from 'node:vm'
 import ts from 'typescript'
+import { isAlbumPagePath } from '../packages/gallery/shared/utils/albumPath.ts'
 import { ref, reactive, computed, readonly, watch, effectScope } from 'vue'
 
 function load(
@@ -202,20 +203,36 @@ test('shuffle options react to the scoped selection without mutating another ent
 
 test('public navigation accepts case-preserving photo IDs while rejecting invalid and oversized paths', async () => {
   let context: any = { value: null }
-  const module = load('apps/site/app/middleware/site.global.ts', {
-    defineNuxtRouteMiddleware: (fn: unknown) => fn,
-    useEntryContext: () => context,
-    useRequestFetch: () => async () => ({ scope: 'public:one' }),
-    navigateTo: () => {},
-    abortNavigation: (error: unknown) => error,
-    createError: (error: unknown) => error,
-  })
-  for (const path of ['/IMG_1234', '/Mixed-Case_1', '/photos', '/albums/1'])
+  const module = load(
+    'apps/site/app/middleware/site.global.ts',
+    {
+      defineNuxtRouteMiddleware: (fn: unknown) => fn,
+      useEntryContext: () => context,
+      useRequestFetch: () => async () => ({ scope: 'public:one' }),
+      navigateTo: () => {},
+      abortNavigation: (error: unknown) => error,
+      createError: (error: unknown) => error,
+    },
+    {
+      '@chronoframe/gallery/shared/utils/albumPath': { isAlbumPagePath },
+    },
+  )
+  for (const path of [
+    '/IMG_1234',
+    '/Mixed-Case_1',
+    '/photos',
+    '/albums/1',
+    '/albums/my-gallery',
+    '/albums/' + 'a'.repeat(80),
+  ])
     assert.equal(await module.default({ path }), undefined, path)
   for (const path of [
     '/bad!',
     '/' + 'A'.repeat(129),
     '/nested/path',
+    '/albums/Mixed-Case',
+    '/albums/bad--slug',
+    '/albums/' + 'a'.repeat(81),
     '/dashboard',
   ])
     assert.equal((await module.default({ path })).statusCode, 404, path)
