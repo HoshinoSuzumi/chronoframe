@@ -1,7 +1,7 @@
 import { existsSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { openDatabase } from '@chronoframe/database'
-import { logger } from './logger'
+import { logger } from './logger.ts'
 export { tables } from '@chronoframe/database'
 export type {
   User,
