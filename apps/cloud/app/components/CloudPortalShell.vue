@@ -30,22 +30,24 @@ useCloudSiteSubscription()
               class="cf-sidebar-toggle"
               variant="ghost"
               size="icon"
-              aria-label="Open navigation"
+              :aria-label="$t('cloud.messages.openNavigation')"
               ><Menu :size="19" /></CloudButton></DialogTrigger
           ><DialogPortal
             ><DialogOverlay class="cf-sidebar-overlay" /><DialogContent
               class="cf-sidebar-drawer"
-              ><DialogTitle class="sr-only">Navigation</DialogTitle
-              ><DialogDescription class="sr-only"
-                >Your workspace and site navigation.</DialogDescription
-              >
+              ><DialogTitle class="sr-only">{{
+                $t('cloud.messages.navigation')
+              }}</DialogTitle
+              ><DialogDescription class="sr-only">{{
+                $t('cloud.messages.yourWorkspaceAndSiteNavigation')
+              }}</DialogDescription>
               <div class="cf-drawer-heading">
                 <span>ChronoFrame Cloud</span
                 ><DialogClose as-child
                   ><CloudButton
                     variant="ghost"
                     size="icon"
-                    aria-label="Close navigation"
+                    :aria-label="$t('cloud.messages.closeNavigation')"
                     ><X :size="19" /></CloudButton
                 ></DialogClose>
               </div>
@@ -56,14 +58,16 @@ useCloudSiteSubscription()
         <CloudBrand cloud />
       </div>
       <div class="cf-header-actions">
-        <CloudBadge class="cf-preview-badge">Cloud preview</CloudBadge
+        <CloudBadge class="cf-preview-badge">{{
+          $t('cloud.messages.cloudPreview')
+        }}</CloudBadge
         ><CloudThemeToggle />
       </div>
     </header>
     <div class="cf-portal-grid">
       <aside
         class="cf-sidebar"
-        aria-label="Workspace"
+        :aria-label="$t('cloud.messages.workspace')"
       >
         <CloudSidebarNavigation />
         <div class="cf-sidebar-bottom"><CloudUserMenu /></div>

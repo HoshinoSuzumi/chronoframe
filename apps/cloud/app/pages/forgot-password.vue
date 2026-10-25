@@ -1,6 +1,11 @@
 <script setup lang="ts">
+const { t } = useI18n()
+
 import { accountError } from '../utils/account-error'
-useSeoMeta({ title: 'Reset password — ChronoFrame Cloud', robots: 'noindex' })
+useSeoMeta({
+  title: t('cloud.messages.resetPasswordChronoframeCloud'),
+  robots: 'noindex',
+})
 const email = ref(''),
   busy = ref(false),
   sent = ref(false),
@@ -18,7 +23,7 @@ async function submit() {
     })
     sent.value = true
   } catch (cause) {
-    error.value = accountError(cause)
+    error.value = accountError(cause, t)
   } finally {
     busy.value = false
   }
@@ -26,24 +31,20 @@ async function submit() {
 </script>
 <template>
   <CloudAuthLayout
-    ><h1>A fresh start.</h1>
-    <p>
-      We will email you a link to reset your password. Existing email-code
-      accounts can use this to set their first password.
-    </p>
+    ><h1>{{ $t('cloud.messages.aFreshStart') }}</h1>
+    <p>{{ $t('cloud.messages.weWillEmailYouALinkToResetYour') }}</p>
     <p
       v-if="sent"
       class="cf-notice"
       role="status"
     >
-      If this address has an account, a password reset link is on its way. Check
-      your inbox.
+      {{ $t('cloud.messages.ifThisAddressHasAnAccountAPasswordReset') }}
     </p>
     <form
       v-else
       @submit.prevent="submit"
     >
-      <label for="email">Email address</label
+      <label for="email">{{ $t('cloud.messages.emailAddress') }}</label
       ><CloudInput
         id="email"
         v-model="email"
@@ -62,14 +63,14 @@ async function submit() {
       <CloudButton
         type="submit"
         :loading="busy"
-        >Send reset link</CloudButton
+        >{{ $t('cloud.messages.sendResetLink') }}</CloudButton
       >
     </form>
     <p class="cf-auth-hint">
       <NuxtLink
         to="/signin"
         class="cf-text-link"
-        >Back to sign in</NuxtLink
+        >{{ $t('cloud.messages.backToSignIn') }}</NuxtLink
       >
     </p></CloudAuthLayout
   >

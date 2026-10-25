@@ -48,15 +48,17 @@ async function unpublish() {
 <template>
   <div class="cf-site-page-header">
     <div class="cf-site-heading">
-      <h1>Overview</h1>
+      <h1>{{ $t('cloud.messages.overview') }}</h1>
       <div class="cf-site-publication">
         <CloudBadge :tone="context?.published ? 'success' : 'neutral'">{{
-          context?.published ? 'Published' : 'Private draft'
+          context?.published
+            ? $t('cloud.messages.published')
+            : $t('cloud.messages.privateDraft')
         }}</CloudBadge>
         <span>{{
           context?.published
-            ? 'Your gallery is live.'
-            : 'Only your workspace can manage this gallery.'
+            ? $t('cloud.messages.yourGalleryIsLive')
+            : $t('cloud.messages.onlyYourWorkspaceCanManageThisGallery')
         }}</span>
       </div>
     </div>
@@ -70,7 +72,7 @@ async function unpublish() {
           :href="address"
           target="_blank"
           rel="noopener noreferrer"
-          >View site<ArrowUpRight :size="14" /></a
+          >{{ $t('cloud.messages.viewSite') }}<ArrowUpRight :size="14" /></a
       ></CloudButton>
       <CloudButton
         v-if="admin"
@@ -82,7 +84,9 @@ async function unpublish() {
         :loading="busy"
         @click="context?.published ? (unpublishOpen = true) : publish(true)"
         ><Globe :size="14" />{{
-          context?.published ? 'Unpublish' : 'Publish gallery'
+          context?.published
+            ? $t('cloud.messages.unpublish')
+            : $t('cloud.messages.publishGallery')
         }}</CloudButton
       >
     </div>
@@ -92,13 +96,19 @@ async function unpublish() {
         class="cf-site-address-row"
       >
         <span class="cf-site-address-label">{{
-          context?.published ? 'Public address' : 'Reserved address'
+          context?.published
+            ? $t('cloud.messages.publicAddress')
+            : $t('cloud.messages.reservedAddress')
         }}</span>
         <span class="cf-site-address-value">{{ address }}</span>
         <CloudButton
           variant="ghost"
           size="sm"
-          :aria-label="copied ? 'Address copied' : 'Copy site address'"
+          :aria-label="
+            copied
+              ? $t('cloud.messages.addressCopied2')
+              : $t('cloud.messages.copySiteAddress')
+          "
           @click="copyAddress"
           ><Check
             v-if="copied"
@@ -106,54 +116,61 @@ async function unpublish() {
           /><Copy
             v-else
             :size="14"
-          />{{ copied ? 'Copied' : 'Copy link' }}</CloudButton
+          />{{
+            copied ? $t('cloud.messages.copied') : $t('cloud.messages.copyLink')
+          }}</CloudButton
         >
       </div>
       <p
         v-else-if="status === 'pending'"
         class="cf-draft-hint"
       >
-        Loading site address…
+        {{ $t('cloud.messages.loadingSiteAddress') }}
       </p>
       <p
         v-else-if="error"
         class="cf-draft-hint"
         role="alert"
       >
-        Site address could not be loaded.<CloudButton
+        {{ $t('cloud.messages.siteAddressCouldNotBeLoaded')
+        }}<CloudButton
           variant="ghost"
           size="sm"
           @click="refresh()"
-          >Retry</CloudButton
+          >{{ $t('cloud.messages.retry') }}</CloudButton
         >
       </p>
       <p
         v-else
         class="cf-draft-hint"
       >
-        No default address is available for this site.
+        {{ $t('cloud.messages.noDefaultAddressIsAvailableForThisSite') }}
       </p>
       <p
         v-if="!context?.published"
         class="cf-draft-hint"
       >
-        This address returns 404 until you publish your gallery.
         {{
-          loading
-            ? 'Checking photographs…'
-            : !photos.length
-              ? 'Upload a photograph and wait for processing to finish before publishing.'
-              : admin
-                ? 'Ready to share? Select Publish gallery above.'
-                : 'Ask a workspace administrator to publish this gallery.'
+          $t(
+            loading
+              ? 'cloud.ui.draftChecking'
+              : !photos.length
+                ? 'cloud.ui.draftNeedsPhoto'
+                : admin
+                  ? 'cloud.ui.draftReady'
+                  : 'cloud.ui.draftAskAdmin',
+          )
         }}
       </p>
       <p
         v-else
         class="cf-draft-hint"
       >
-        Hidden photographs stay hidden. Password-protected albums still require
-        a password.
+        {{
+          $t(
+            'cloud.messages.hiddenPhotographsStayHiddenPasswordProtectedAlbumsStillRequire',
+          )
+        }}
       </p>
       <p
         v-if="copied || copyError"
@@ -162,15 +179,17 @@ async function unpublish() {
       >
         {{
           copyError
-            ? 'Could not copy the link. Select and copy the address above.'
-            : 'Site address copied to clipboard.'
+            ? $t('cloud.messages.couldNotCopyTheLinkSelectAndCopyThe')
+            : $t('cloud.messages.siteAddressCopiedToClipboard')
         }}
       </p>
     </div>
     <UModal
       v-model:open="unpublishOpen"
-      title="Unpublish this gallery?"
-      description="Your public address and shared links will return 404. Your photographs, albums and storage will remain in your workspace. You can publish again later."
+      :title="$t('cloud.messages.unpublishThisGallery')"
+      :description="
+        $t('cloud.messages.yourPublicAddressAndSharedLinksWillReturn40')
+      "
       :dismissible="!busy"
     >
       <template
@@ -188,13 +207,13 @@ async function unpublish() {
           variant="secondary"
           :disabled="busy"
           @click="unpublishOpen = false"
-          >Cancel</CloudButton
+          >{{ $t('cloud.messages.cancel') }}</CloudButton
         >
         <CloudButton
           variant="destructive"
           :loading="busy"
           @click="unpublish"
-          >Unpublish gallery</CloudButton
+          >{{ $t('cloud.messages.unpublishGallery') }}</CloudButton
         >
       </template>
     </UModal>

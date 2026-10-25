@@ -1,4 +1,6 @@
 <script setup lang="ts">
+const { t } = useI18n()
+
 import { isValidAlbumSlug } from '@chronoframe/contracts/album-slug'
 import type { Album, Photo } from '@chronoframe/contracts/resources'
 import type { TableColumn } from '@nuxt/ui'
@@ -70,11 +72,11 @@ const chosen = computed(() =>
     .filter((p): p is Photo => !!p),
 )
 const columns: TableColumn<Album & { photoIds: string[] }>[] = [
-  { id: 'cover', header: 'Cover' },
-  { accessorKey: 'title', header: 'Title' },
-  { accessorKey: 'description', header: 'Description' },
-  { id: 'count', header: 'Photographs' },
-  { id: 'visibility', header: 'Visibility' },
+  { id: 'cover', header: t('cloud.messages.cover') },
+  { accessorKey: 'title', header: t('cloud.messages.title') },
+  { accessorKey: 'description', header: t('cloud.messages.description') },
+  { id: 'count', header: t('cloud.messages.photographs') },
+  { id: 'visibility', header: t('cloud.messages.visibility') },
   { id: 'actions', header: '' },
 ]
 function cover(album: Album & { photoIds: string[] }) {
@@ -133,7 +135,7 @@ async function edit(album: Album) {
   } catch {
     if (request === generation.value)
       toast.add({
-        title: 'Album could not be loaded. Please try again.',
+        title: t('cloud.messages.albumCouldNotBeLoadedPleaseTryAgain'),
         color: 'error',
       })
   }
@@ -164,21 +166,27 @@ async function save() {
   if (!loaded.value || saving.value || !draft.title.trim()) return
   if (draft.slug.trim() && !isValidAlbumSlug(draft.slug.trim())) {
     toast.add({
-      title:
-        'Use lowercase letters, numbers and single hyphens; the slug cannot be numeric only.',
+      title: t(
+        'cloud.messages.useLowercaseLettersNumbersAndSingleHyphensTheSlug',
+      ),
       color: 'error',
     })
     return
   }
   if (draft.passwordEnabled && !hadPassword.value && !draft.password) {
-    toast.add({ title: 'Enter an album password.', color: 'error' })
+    toast.add({
+      title: t('cloud.messages.enterAnAlbumPassword'),
+      color: 'error',
+    })
     return
   }
   if (
     hadPassword.value &&
     !draft.passwordEnabled &&
     !window.confirm(
-      'Remove password protection? Published photographs may become public.',
+      t(
+        'cloud.messages.removePasswordProtectionPublishedPhotographsMayBecomePublic',
+      ),
     )
   )
     return
@@ -217,7 +225,7 @@ async function save() {
         },
       )
       revision.value = result.revision
-    }, 'Album saved.')
+    }, t('cloud.messages.albumSaved'))
     if (ok) editor.value = false
   } finally {
     saving.value = false
@@ -235,7 +243,7 @@ async function remove() {
         method: 'POST',
         body: {},
       }),
-    'Album deleted. Photographs remain in your library.',
+    t('cloud.messages.albumDeletedPhotographsRemainInYourLibrary'),
   )
   if (ok) removeOpen.value = false
 }
@@ -251,14 +259,14 @@ async function moveAlbum(album: Album, step: number) {
         method: 'POST',
         body: { albumIds: next.map((a) => a.id) },
       }),
-    'Album order updated.',
+    t('cloud.messages.albumOrderUpdated'),
   )
 }
 function menu(album: Album) {
   return [
     [
       {
-        label: 'Edit album',
+        label: t('cloud.messages.editAlbum'),
         icon: 'i-lucide-pencil',
         disabled: !admin.value,
         onSelect: () => edit(album),
@@ -266,7 +274,7 @@ function menu(album: Album) {
     ],
     [
       {
-        label: 'Delete album',
+        label: t('cloud.messages.deleteAlbum2'),
         icon: 'i-lucide-trash-2',
         color: 'error' as const,
         disabled: !admin.value,
@@ -283,28 +291,34 @@ function menu(album: Album) {
   >
     <div class="cf-library-heading">
       <div>
-        <h2 id="albums-heading">Albums</h2>
-        <p>Organize your photographs and choose how they are shared.</p>
+        <h2 id="albums-heading">{{ $t('cloud.messages.albums') }}</h2>
+        <p>
+          {{
+            $t(
+              'cloud.messages.organizeYourPhotographsAndChooseHowTheyAreShared',
+            )
+          }}
+        </p>
       </div>
       <UButton
         v-if="admin"
         icon="i-lucide-plus"
         @click="create"
-        >Create album</UButton
+        >{{ $t('cloud.messages.createAlbum') }}</UButton
       >
     </div>
     <div class="cf-library-toolbar">
       <UInput
         v-model="search"
         icon="i-lucide-search"
-        placeholder="Search albums…"
-        aria-label="Search albums"
+        :placeholder="$t('cloud.messages.searchAlbums')"
+        :aria-label="$t('cloud.messages.searchAlbums2')"
         class="cf-library-search"
       /><UButton
         color="neutral"
         variant="ghost"
         icon="i-lucide-refresh-cw"
-        aria-label="Refresh albums"
+        :aria-label="$t('cloud.messages.refreshAlbums')"
         :loading="loading"
         @click="refreshMedia"
       />
@@ -317,7 +331,9 @@ function menu(album: Album) {
         ><template #cover-cell="{ row }"
           ><button
             class="cf-library-thumb"
-            :aria-label="`Edit ${row.original.title}`"
+            :aria-label="
+              $t('cloud.ui.editNamed', { title: row.original.title })
+            "
             :disabled="!admin"
             @click="edit(row.original)"
           >
@@ -361,10 +377,10 @@ function menu(album: Album) {
             "
             >{{
               row.original.isHidden
-                ? 'Hidden'
+                ? $t('cloud.messages.hidden')
                 : row.original.hasPassword
-                  ? 'Password'
-                  : 'Public'
+                  ? $t('cloud.messages.password')
+                  : $t('cloud.messages.public')
             }}</UBadge
           ></template
         ><template #actions-cell="{ row }"
@@ -376,7 +392,7 @@ function menu(album: Album) {
               icon="i-lucide-arrow-up"
               size="xs"
               :disabled="busy || albums[0]?.id === row.original.id"
-              :aria-label="`Move ${row.original.title} up`"
+              :aria-label="$t('cloud.ui.moveUp', { title: row.original.title })"
               @click="moveAlbum(row.original, -1)"
             /><UButton
               v-if="admin"
@@ -385,14 +401,18 @@ function menu(album: Album) {
               icon="i-lucide-arrow-down"
               size="xs"
               :disabled="busy || albums.at(-1)?.id === row.original.id"
-              :aria-label="`Move ${row.original.title} down`"
+              :aria-label="
+                $t('cloud.ui.moveDown', { title: row.original.title })
+              "
               @click="moveAlbum(row.original, 1)"
             /><UDropdownMenu :items="menu(row.original)"
               ><UButton
                 color="neutral"
                 variant="ghost"
                 icon="i-lucide-ellipsis"
-                :aria-label="`Actions for ${row.original.title}`"
+                :aria-label="
+                  $t('cloud.ui.actionsNamed', { title: row.original.title })
+                "
             /></UDropdownMenu></div></template
         ><template #empty
           ><div class="cf-library-empty">
@@ -401,14 +421,24 @@ function menu(album: Album) {
               class="size-8"
             />
             <h3>
-              {{ search ? 'No matching albums' : 'Make room for a collection' }}
+              {{
+                search
+                  ? $t('cloud.messages.noMatchingAlbums')
+                  : $t('cloud.messages.makeRoomForACollection')
+              }}
             </h3>
-            <p>Create an album to bring related photographs together.</p>
+            <p>
+              {{
+                $t(
+                  'cloud.messages.createAnAlbumToBringRelatedPhotographsTogether',
+                )
+              }}
+            </p>
             <UButton
               v-if="admin && !albums.length"
               variant="soft"
               @click="create"
-              >Create album</UButton
+              >{{ $t('cloud.messages.createAlbum') }}</UButton
             >
           </div></template
         ></ConsoleMediaTable
@@ -416,8 +446,14 @@ function menu(album: Album) {
     </div>
     <USlideover
       v-model:open="editor"
-      :title="selected === null ? 'Create album' : 'Edit album'"
-      description="Choose the photographs, cover and access for this album."
+      :title="
+        selected === null
+          ? $t('cloud.messages.createAlbum')
+          : $t('cloud.messages.editAlbum')
+      "
+      :description="
+        $t('cloud.messages.chooseThePhotographsCoverAndAccessForThisAlbum')
+      "
       :ui="{ footer: 'justify-end' }"
       ><template #body
         ><p
@@ -431,7 +467,7 @@ function menu(album: Album) {
           v-if="!loaded"
           role="status"
         >
-          Loading album…
+          {{ $t('cloud.messages.loadingAlbum') }}
         </p>
         <UForm
           v-else
@@ -449,19 +485,27 @@ function menu(album: Album) {
             "
           /><UCheckbox
             v-model="draft.isHidden"
-            label="Hide album"
-            description="Hide this album and its photographs from public browsing."
+            :label="$t('cloud.messages.hideAlbum')"
+            :description="
+              $t(
+                'cloud.messages.hideThisAlbumAndItsPhotographsFromPublicBrowsing',
+              )
+            "
           /><UCheckbox
             v-model="draft.passwordEnabled"
-            label="Password protection"
-            description="Visitors must unlock this album to view its photographs."
+            :label="$t('cloud.messages.passwordProtection')"
+            :description="
+              $t(
+                'cloud.messages.visitorsMustUnlockThisAlbumToViewItsPhotographs',
+              )
+            "
           /><UFormField
             v-if="draft.passwordEnabled"
-            label="Album password"
+            :label="$t('cloud.messages.albumPassword')"
             :hint="
               hadPassword
-                ? 'Leave blank to keep the current password.'
-                : 'Use 8–256 characters.'
+                ? $t('cloud.messages.leaveBlankToKeepTheCurrentPassword')
+                : $t('cloud.messages.use8256Characters')
             "
             ><UInput
               v-model="draft.password"
@@ -473,7 +517,13 @@ function menu(album: Album) {
           /></UFormField>
           <div class="cf-album-photo-section">
             <div class="flex items-center justify-between gap-3">
-              <h3>Photographs · {{ draft.photoIds.length }}</h3>
+              <h3>
+                {{
+                  $t('cloud.ui.photoMembershipCount', {
+                    count: draft.photoIds.length,
+                  })
+                }}
+              </h3>
               <UButton
                 color="neutral"
                 variant="outline"
@@ -481,7 +531,7 @@ function menu(album: Album) {
                 size="sm"
                 id="album-select-photographs"
                 @click="picker = !picker"
-                >Select photographs</UButton
+                >{{ $t('cloud.messages.selectPhotographs') }}</UButton
               >
             </div>
             <div
@@ -491,14 +541,14 @@ function menu(album: Album) {
             >
               <ThumbImage
                 :src="photo.thumbnailUrl || ''"
-                :alt="photo.title || 'Photograph'"
+                :alt="photo.title || $t('cloud.messages.photograph')"
               /><span>{{ photo.title }}</span
               ><UButton
                 :color="draft.coverPhotoId === photo.id ? 'primary' : 'neutral'"
                 variant="ghost"
                 icon="i-lucide-star"
                 size="xs"
-                :aria-label="`Set ${photo.title} as cover`"
+                :aria-label="$t('cloud.ui.setCover', { title: photo.title })"
                 @click="draft.coverPhotoId = photo.id"
               /><UButton
                 color="neutral"
@@ -506,7 +556,7 @@ function menu(album: Album) {
                 icon="i-lucide-arrow-up"
                 size="xs"
                 :disabled="index === 0"
-                :aria-label="`Move ${photo.title} up`"
+                :aria-label="$t('cloud.ui.moveUp', { title: photo.title })"
                 @click="movePhoto(index, -1)"
               /><UButton
                 color="neutral"
@@ -514,14 +564,16 @@ function menu(album: Album) {
                 icon="i-lucide-arrow-down"
                 size="xs"
                 :disabled="index === chosen.length - 1"
-                :aria-label="`Move ${photo.title} down`"
+                :aria-label="$t('cloud.ui.moveDown', { title: photo.title })"
                 @click="movePhoto(index, 1)"
               /><UButton
                 color="error"
                 variant="ghost"
                 icon="i-lucide-x"
                 size="xs"
-                :aria-label="`Remove ${photo.title} from album`"
+                :aria-label="
+                  $t('cloud.ui.removeFromAlbum', { title: photo.title })
+                "
                 @click="toggle(photo.id, false)"
               />
             </div>
@@ -529,7 +581,7 @@ function menu(album: Album) {
               v-if="!draft.photoIds.length"
               class="text-sm text-muted"
             >
-              Choose photographs from your library.
+              {{ $t('cloud.messages.choosePhotographsFromYourLibrary') }}
             </p>
           </div></UForm
         >
@@ -537,16 +589,18 @@ function menu(album: Album) {
           v-if="picker"
           ref="pickerPanel"
           role="region"
-          aria-label="Select photographs"
+          :aria-label="$t('cloud.messages.selectPhotographs')"
           class="cf-inline-picker"
           @keydown.esc.stop.prevent="picker = false"
         >
-          <h3 class="font-medium mb-3">Select photographs</h3>
+          <h3 class="font-medium mb-3">
+            {{ $t('cloud.messages.selectPhotographs') }}
+          </h3>
           <UInput
             v-model="photoSearch"
             icon="i-lucide-search"
-            placeholder="Search photographs…"
-            aria-label="Search photographs for album"
+            :placeholder="$t('cloud.messages.searchPhotographs')"
+            :aria-label="$t('cloud.messages.searchPhotographsForAlbum')"
             class="w-full mb-4"
           />
           <div class="cf-photo-picker">
@@ -554,14 +608,14 @@ function menu(album: Album) {
               v-for="photo in choices"
               :key="photo.id"
               class="cf-picker-photo"
-              :aria-label="photo.title || 'Photograph'"
+              :aria-label="photo.title || $t('cloud.messages.photograph')"
               :class="{ selected: draft.photoIds.includes(photo.id) }"
               :aria-pressed="draft.photoIds.includes(photo.id)"
               @click="toggle(photo.id, !draft.photoIds.includes(photo.id))"
             >
               <ThumbImage
                 :src="photo.thumbnailUrl || ''"
-                :alt="photo.title || 'Photograph'"
+                :alt="photo.title || $t('cloud.messages.photograph')"
               /><span>{{ photo.title }}</span
               ><UIcon
                 v-if="draft.photoIds.includes(photo.id)"
@@ -571,9 +625,12 @@ function menu(album: Album) {
             </button>
           </div>
           <div class="flex items-center justify-between gap-3 mt-4">
-            <span class="text-sm text-muted"
-              >{{ draft.photoIds.length }} selected</span
-            ><UButton @click="picker = false">Done</UButton>
+            <span class="text-sm text-muted">{{
+              $t('cloud.ui.selectedCount', { count: draft.photoIds.length })
+            }}</span
+            ><UButton @click="picker = false">{{
+              $t('cloud.messages.done')
+            }}</UButton>
           </div>
         </div></template
       ><template #footer
@@ -582,32 +639,34 @@ function menu(album: Album) {
           variant="outline"
           :disabled="saving"
           @click="editor = false"
-          >Cancel</UButton
+          >{{ $t('cloud.messages.cancel') }}</UButton
         ><UButton
           type="submit"
           form="cloud-album-form"
           :loading="saving"
           :disabled="!loaded || !draft.title.trim()"
-          >Save album</UButton
+          >{{ $t('cloud.messages.saveAlbum') }}</UButton
         ></template
       ></USlideover
     >
 
     <UModal
       v-model:open="removeOpen"
-      title="Delete album?"
-      description="Photographs remain in your library. They may become public if no other protected album contains them."
+      :title="$t('cloud.messages.deleteAlbum')"
+      :description="
+        $t('cloud.messages.photographsRemainInYourLibraryTheyMayBecomePublic')
+      "
       ><template #footer
         ><UButton
           color="neutral"
           variant="outline"
           @click="removeOpen = false"
-          >Cancel</UButton
+          >{{ $t('cloud.messages.cancel') }}</UButton
         ><UButton
           color="error"
           :loading="busy"
           @click="remove"
-          >Delete album</UButton
+          >{{ $t('cloud.messages.deleteAlbum2') }}</UButton
         ></template
       ></UModal
     >

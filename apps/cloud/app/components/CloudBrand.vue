@@ -8,7 +8,11 @@ const links = useCloudLinks()
     external
     class="cf-brand"
     :class="{ 'cf-brand-light': light }"
-    :aria-label="cloud ? 'ChronoFrame Cloud home' : 'ChronoFrame home'"
+    :aria-label="
+      cloud
+        ? $t('cloud.messages.chronoframeCloudHome')
+        : $t('cloud.messages.chronoframeHome')
+    "
     ><img
       src="/web-app-manifest-192x192.png"
       width="34"

@@ -1,7 +1,12 @@
 <script setup lang="ts">
+const { t } = useI18n()
+
 import { accountError } from '../utils/account-error'
 const { data: status } = await useFetch('/api/auth/status')
-useSeoMeta({ title: 'Sign in — ChronoFrame Cloud', robots: 'noindex' })
+useSeoMeta({
+  title: t('cloud.messages.signInChronoframeCloud'),
+  robots: 'noindex',
+})
 const email = ref(''),
   password = ref(''),
   code = ref('')
@@ -73,7 +78,7 @@ async function submit() {
     }
     await navigateTo('/sites', { external: true })
   } catch (cause) {
-    error.value = accountError(cause)
+    error.value = accountError(cause, t)
   } finally {
     busy.value = false
     if (step.value !== 'credentials') {
@@ -90,8 +95,7 @@ async function passkeySignIn() {
     if (result.error) throw result.error
     await navigateTo('/sites', { external: true })
   } catch {
-    error.value =
-      'Passkey sign-in was not completed. Try again or use your email.'
+    error.value = t('cloud.messages.passkeySignInWasNotCompletedTryAgainOr')
   } finally {
     busy.value = false
   }
@@ -107,7 +111,7 @@ async function resend() {
         body: { email: email.value, type: 'sign-in' },
       })
   } catch (cause) {
-    error.value = accountError(cause)
+    error.value = accountError(cause, t)
   } finally {
     busy.value = false
   }
@@ -119,35 +123,35 @@ async function resend() {
     <h1>
       {{
         step === 'second'
-          ? 'One more step.'
+          ? $t('cloud.messages.oneMoreStep')
           : step === 'code'
-            ? 'Check your inbox.'
-            : 'Welcome back.'
+            ? $t('cloud.messages.checkYourInbox')
+            : $t('cloud.messages.welcomeBack')
       }}
     </h1>
     <template v-if="status?.enabled"
       ><p>
         {{
           step === 'second'
-            ? 'Complete your second verification to continue.'
-            : 'Your photographs. Your space.'
+            ? $t('cloud.messages.completeYourSecondVerificationToContinue')
+            : $t('cloud.messages.yourPhotographsYourSpace')
         }}
       </p>
       <div
         v-if="step === 'credentials'"
         class="cf-auth-tabs"
-        aria-label="Sign-in method"
+        :aria-label="$t('cloud.messages.signInMethod')"
       >
         <CloudButton
           :variant="mode === 'password' ? 'secondary' : 'ghost'"
           :disabled="busy"
           @click="setMode('password')"
-          >Password</CloudButton
+          >{{ $t('cloud.messages.password') }}</CloudButton
         ><CloudButton
           :variant="mode === 'email' ? 'secondary' : 'ghost'"
           :disabled="busy"
           @click="setMode('email')"
-          >Email code</CloudButton
+          >{{ $t('cloud.messages.emailCode') }}</CloudButton
         >
       </div>
       <form
@@ -155,7 +159,7 @@ async function resend() {
         :aria-busy="busy"
       >
         <template v-if="step !== 'second'"
-          ><label for="email">Email address</label
+          ><label for="email">{{ $t('cloud.messages.emailAddress') }}</label
           ><CloudInput
             id="email"
             v-model="email"
@@ -165,7 +169,7 @@ async function resend() {
             required
         /></template>
         <template v-if="mode === 'password' && step === 'credentials'"
-          ><label for="password">Password</label
+          ><label for="password">{{ $t('cloud.messages.password') }}</label
           ><CloudInput
             id="password"
             v-model="password"
@@ -176,11 +180,13 @@ async function resend() {
           /><NuxtLink
             class="cf-text-link"
             to="/forgot-password"
-            >Forgot your password?</NuxtLink
+            >{{ $t('cloud.messages.forgotYourPassword') }}</NuxtLink
           ></template
         >
         <template v-if="step === 'second'"
-          ><label for="factor">Verification method</label
+          ><label for="factor">{{
+            $t('cloud.messages.verificationMethod')
+          }}</label
           ><select
             id="factor"
             v-model="factor"
@@ -191,17 +197,21 @@ async function resend() {
               v-if="!authenticatorRequired"
               value="email"
             >
-              Email code
+              {{ $t('cloud.messages.emailCode') }}
             </option>
-            <option value="totp">Authenticator code</option>
-            <option value="recovery">Recovery code</option>
+            <option value="totp">
+              {{ $t('cloud.messages.authenticatorCode') }}
+            </option>
+            <option value="recovery">
+              {{ $t('cloud.messages.recoveryCode') }}
+            </option>
           </select></template
         >
         <template v-if="step !== 'credentials'"
           ><label for="code">{{
             factor === 'recovery' && step === 'second'
-              ? 'Recovery code'
-              : 'Verification code'
+              ? $t('cloud.messages.recoveryCode')
+              : $t('cloud.messages.verificationCode')
           }}</label
           ><CloudInput
             id="code"
@@ -217,8 +227,10 @@ async function resend() {
           <p class="cf-auth-hint">
             {{
               step === 'code' || factor === 'email'
-                ? 'Enter the code from your email.'
-                : 'Use your authenticator or an unused recovery code.'
+                ? $t('cloud.messages.enterTheCodeFromYourEmail')
+                : $t(
+                    'cloud.messages.useYourAuthenticatorOrAnUnusedRecoveryCode',
+                  )
             }}
           </p></template
         >
@@ -234,8 +246,8 @@ async function resend() {
           :loading="busy"
           >{{
             mode === 'email' && step === 'credentials'
-              ? 'Send sign-in code'
-              : 'Sign in'
+              ? $t('cloud.messages.sendSignInCode')
+              : $t('cloud.messages.signIn')
           }}</CloudButton
         >
         <CloudButton
@@ -245,7 +257,7 @@ async function resend() {
           variant="ghost"
           :disabled="busy"
           @click="resend"
-          >Send a new code</CloudButton
+          >{{ $t('cloud.messages.sendANewCode') }}</CloudButton
         >
       </form>
       <CloudButton
@@ -254,14 +266,14 @@ async function resend() {
         variant="secondary"
         :disabled="busy"
         @click="passkeySignIn"
-        >Sign in with a passkey</CloudButton
+        >{{ $t('cloud.messages.signInWithAPasskey') }}</CloudButton
       >
       <p class="cf-auth-hint">
-        New here?
-        <NuxtLink
+        {{ $t('cloud.messages.newHere')
+        }}<NuxtLink
           to="/signup"
           class="cf-text-link"
-          >Create an account</NuxtLink
+          >{{ $t('cloud.messages.createAnAccount') }}</NuxtLink
         >
       </p></template
     >
@@ -269,7 +281,7 @@ async function resend() {
       v-else
       class="cf-notice"
     >
-      Email sign-in is not available on this deployment yet.
+      {{ $t('cloud.messages.emailSignInIsNotAvailableOnThisDeployment') }}
     </p></CloudAuthLayout
   >
 </template>

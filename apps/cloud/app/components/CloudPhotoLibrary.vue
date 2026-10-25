@@ -1,4 +1,6 @@
 <script setup lang="ts">
+const { t, locale } = useI18n()
+
 import type { Photo } from '@chronoframe/contracts/resources'
 import type { TableColumn } from '@nuxt/ui'
 const {
@@ -46,11 +48,11 @@ const rows = computed(() => {
 const chosen = computed(() => rows.value.filter((p) => selection.value[p.id]))
 const columns: TableColumn<Photo>[] = [
   { id: 'select', header: '', size: 32 },
-  { accessorKey: 'thumbnailUrl', header: 'Photograph' },
-  { accessorKey: 'title', header: 'Title' },
-  { accessorKey: 'tags', header: 'Tags' },
-  { accessorKey: 'dateTaken', header: 'Date taken' },
-  { accessorKey: 'fileSize', header: 'Size' },
+  { accessorKey: 'thumbnailUrl', header: t('cloud.messages.photograph') },
+  { accessorKey: 'title', header: t('cloud.messages.title') },
+  { accessorKey: 'tags', header: t('cloud.messages.tags') },
+  { accessorKey: 'dateTaken', header: t('cloud.messages.dateTaken') },
+  { accessorKey: 'fileSize', header: t('cloud.messages.size') },
   { id: 'actions', header: '' },
 ]
 const pendingJobs = computed(() =>
@@ -77,7 +79,7 @@ async function deleteChosen() {
           method: 'POST',
           body: { photoIds: chosen.value.map((p) => p.id) },
         }),
-      'Photographs deleted. Managed files are queued for cleanup.',
+      t('cloud.messages.photographsDeletedManagedFilesAreQueuedForCleanup'),
     )
     if (ok) {
       selection.value = {}
@@ -95,7 +97,7 @@ async function addToAlbum() {
         method: 'POST',
         body: { photoIds: chosen.value.map((p) => p.id) },
       }),
-    'Photographs added to album.',
+    t('cloud.messages.photographsAddedToAlbum'),
   )
   if (ok) {
     albumOpen.value = false
@@ -106,14 +108,14 @@ function actions(photo: Photo) {
   return [
     [
       {
-        label: 'Preview',
+        label: t('cloud.messages.preview'),
         icon: 'i-lucide-eye',
         onSelect: () => {
           preview.value = photo
         },
       },
       {
-        label: 'Edit details',
+        label: t('cloud.messages.editDetails'),
         icon: 'i-lucide-pencil',
         disabled: !admin.value,
         onSelect: () => edit(photo),
@@ -121,7 +123,7 @@ function actions(photo: Photo) {
     ],
     [
       {
-        label: 'Delete photograph',
+        label: t('cloud.messages.deletePhotograph'),
         icon: 'i-lucide-trash-2',
         color: 'error' as const,
         disabled: !admin.value,
@@ -147,44 +149,49 @@ watch(
   >
     <div class="cf-library-heading">
       <div>
-        <h2 id="library-heading">Photo library</h2>
+        <h2 id="library-heading">{{ $t('cloud.messages.photoLibrary') }}</h2>
         <p>
-          {{ photos.length }} photographs · {{ pendingJobs.length }} processing
+          {{
+            $t('cloud.ui.photoQueue', {
+              count: photos.length,
+              processing: pendingJobs.length,
+            })
+          }}
         </p>
       </div>
       <UButton
         v-if="admin"
         icon="i-lucide-upload"
         @click="uploadOpen = true"
-        >Upload</UButton
+        >{{ $t('cloud.messages.upload') }}</UButton
       >
     </div>
     <div class="cf-library-toolbar">
       <UInput
         v-model="search"
         icon="i-lucide-search"
-        placeholder="Search photographs…"
-        aria-label="Search photographs"
+        :placeholder="$t('cloud.messages.searchPhotographs')"
+        :aria-label="$t('cloud.messages.searchPhotographs2')"
         class="cf-library-search"
       /><UPopover
         ><UButton
           color="neutral"
           :variant="hasActiveFilters ? 'soft' : 'outline'"
           icon="i-lucide-filter"
-          >Filters</UButton
+          >{{ $t('cloud.messages.filters') }}</UButton
         ><template #content><OverlayFilterPanel /></template></UPopover
       ><UPopover
         ><UButton
           color="neutral"
           variant="outline"
           icon="i-lucide-arrow-up-down"
-          >Sort</UButton
+          >{{ $t('cloud.messages.sort') }}</UButton
         ><template #content><OverlaySortPanel /></template></UPopover
       ><UButton
         color="neutral"
         variant="ghost"
         icon="i-lucide-refresh-cw"
-        aria-label="Refresh photographs"
+        :aria-label="$t('cloud.messages.refreshPhotographs')"
         :loading="loading"
         @click="refreshMedia"
       />
@@ -193,14 +200,14 @@ watch(
       v-if="chosen.length"
       class="cf-selection-bar"
     >
-      <span>{{ chosen.length }} selected</span
+      <span>{{ $t('cloud.ui.selectedCount', { count: chosen.length }) }}</span
       ><UButton
         v-if="admin"
         size="sm"
         variant="soft"
         icon="i-lucide-folder-plus"
         @click="albumOpen = true"
-        >Add to album</UButton
+        >{{ $t('cloud.messages.addToAlbum') }}</UButton
       ><UButton
         v-if="admin"
         size="sm"
@@ -208,13 +215,13 @@ watch(
         variant="soft"
         icon="i-lucide-trash-2"
         @click="deleteOpen = true"
-        >Delete</UButton
+        >{{ $t('cloud.messages.delete') }}</UButton
       ><UButton
         color="neutral"
         size="sm"
         variant="ghost"
         @click="selection = {}"
-        >Clear</UButton
+        >{{ $t('cloud.messages.clear') }}</UButton
       >
     </div>
     <div class="cf-library-table">
@@ -226,7 +233,7 @@ watch(
         ><template #select-header
           ><UCheckbox
             :model-value="rows.length > 0 && rows.every((p) => selection[p.id])"
-            aria-label="Select all photographs"
+            :aria-label="$t('cloud.messages.selectAllPhotographs')"
             @update:model-value="
               (v) => {
                 selection = v
@@ -237,14 +244,18 @@ watch(
         ><template #select-cell="{ row }"
           ><UCheckbox
             :model-value="!!selection[row.original.id]"
-            :aria-label="`Select ${row.original.title}`"
+            :aria-label="
+              $t('cloud.ui.selectNamed', { title: row.original.title })
+            "
             @update:model-value="
               (v) => (selection[row.original.id] = !!v)
             " /></template
         ><template #thumbnailUrl-cell="{ row }"
           ><button
             class="cf-library-thumb"
-            :aria-label="`Preview ${row.original.title}`"
+            :aria-label="
+              $t('cloud.ui.previewNamed', { title: row.original.title })
+            "
             @click="preview = row.original"
           >
             <ThumbImage
@@ -253,7 +264,7 @@ watch(
             /><span
               v-if="row.original.isLivePhoto"
               class="cf-live-label"
-              >LIVE</span
+              >{{ $t('cloud.messages.live') }}</span
             >
           </button></template
         ><template #title-cell="{ row }"
@@ -283,7 +294,9 @@ watch(
         ><template #dateTaken-cell="{ row }"
           ><span class="text-xs text-muted">{{
             row.original.dateTaken
-              ? new Date(row.original.dateTaken).toLocaleDateString()
+              ? new Date(row.original.dateTaken).toLocaleDateString(
+                  locale === 'zh-Hans' ? 'zh-CN' : 'en-US',
+                )
               : '—'
           }}</span></template
         ><template #fileSize-cell="{ row }"
@@ -296,7 +309,9 @@ watch(
               color="neutral"
               variant="ghost"
               icon="i-lucide-ellipsis"
-              :aria-label="`Actions for ${row.original.title}`" /></UDropdownMenu></template
+              :aria-label="
+                $t('cloud.ui.actionsNamed', { title: row.original.title })
+              " /></UDropdownMenu></template
         ><template #empty
           ><div class="cf-library-empty">
             <UIcon
@@ -305,21 +320,25 @@ watch(
             />
             <h3>
               {{
-                search ? 'No matching photographs' : 'Your library starts here'
+                search
+                  ? $t('cloud.messages.noMatchingPhotographs')
+                  : $t('cloud.messages.yourLibraryStartsHere')
               }}
             </h3>
             <p>
               {{
                 search
-                  ? 'Try another search or clear your filters.'
-                  : 'Upload photographs to start telling your story.'
+                  ? $t('cloud.messages.tryAnotherSearchOrClearYourFilters')
+                  : $t(
+                      'cloud.messages.uploadPhotographsToStartTellingYourStory',
+                    )
               }}
             </p>
             <UButton
               v-if="admin && !photos.length"
               variant="soft"
               @click="uploadOpen = true"
-              >Upload</UButton
+              >{{ $t('cloud.messages.upload') }}</UButton
             >
           </div></template
         ></ConsoleMediaTable
@@ -328,9 +347,9 @@ watch(
     <section
       v-if="pendingJobs.length"
       class="cf-processing-panel"
-      aria-label="Processing queue"
+      :aria-label="$t('cloud.messages.processingQueue')"
     >
-      <h3>Processing queue</h3>
+      <h3>{{ $t('cloud.messages.processingQueue') }}</h3>
       <div
         v-for="job in pendingJobs"
         :key="job.id"
@@ -345,11 +364,27 @@ watch(
           :class="{ 'animate-spin': job.state === 'running' }"
         />
         <div>
-          <strong>{{ job.state.replaceAll('_', ' ') }}</strong
+          <strong>{{
+            $t(
+              [
+                'queued',
+                'running',
+                'retry_wait',
+                'failed',
+                'cancelled',
+                'succeeded',
+              ].includes(job.state)
+                ? 'cloud.ui.' + job.state
+                : 'cloud.ui.unknownJob',
+            )
+          }}</strong
           ><span
-            >Attempt {{ job.attempts
+            >{{ $t('cloud.ui.attemptCount', { count: job.attempts })
             }}<template v-if="job.error_code">
-              · {{ job.error_code.replaceAll('_', ' ') }}</template
+              ·
+              {{
+                $t('cloud.ui.processingFailure', { code: job.error_code })
+              }}</template
             ></span
           >
         </div>
@@ -366,24 +401,24 @@ watch(
                   method: 'POST',
                   body: {},
                 }),
-              'Job queued again.',
+              $t('cloud.messages.jobQueuedAgain'),
             )
           "
-          >Retry</UButton
+          >{{ $t('cloud.messages.retry') }}</UButton
         ><UButton
           v-if="admin && job.state !== 'cancelled'"
           color="error"
           variant="ghost"
           size="sm"
           @click="removePhoto(job.photo_id)"
-          >Remove</UButton
+          >{{ $t('cloud.messages.remove') }}</UButton
         >
       </div>
     </section>
     <USlideover
       v-model:open="editor"
-      title="Edit photograph"
-      description="Update the details shown in your gallery."
+      :title="$t('cloud.messages.editPhotograph')"
+      :description="$t('cloud.messages.updateTheDetailsShownInYourGallery')"
       :ui="{ footer: 'justify-end' }"
       ><template #body
         ><p
@@ -397,7 +432,7 @@ watch(
           v-if="photoLoaded !== editPhoto.id"
           role="status"
         >
-          Loading photograph…
+          {{ $t('cloud.messages.loadingPhotograph') }}
         </p>
         <UForm
           v-else
@@ -415,20 +450,20 @@ watch(
           color="neutral"
           variant="outline"
           @click="editor = false"
-          >Cancel</UButton
+          >{{ $t('cloud.messages.cancel') }}</UButton
         ><UButton
           type="submit"
           form="cloud-edit-photo"
           :loading="busy"
           :disabled="photoLoaded !== editPhoto.id || !editPhoto.title.trim()"
-          >Save changes</UButton
+          >{{ $t('cloud.messages.saveChanges') }}</UButton
         ></template
       ></USlideover
     >
     <UModal
       :open="!!preview"
-      :title="preview?.title || 'Photograph'"
-      description="Preview photograph"
+      :title="preview?.title || $t('cloud.messages.photograph')"
+      :description="$t('cloud.messages.previewPhotograph')"
       :ui="{ content: 'max-w-5xl', body: 'p-0' }"
       @update:open="
         (v) => {
@@ -453,52 +488,60 @@ watch(
     >
     <UModal
       v-model:open="deleteOpen"
-      title="Delete photographs?"
-      description="This deletes the selected photographs and queues their managed original, thumbnail and Live Photo files for cleanup."
+      :title="$t('cloud.messages.deletePhotographs')"
+      :description="
+        $t(
+          'cloud.messages.thisDeletesTheSelectedPhotographsAndQueuesTheirManaged',
+        )
+      "
       ><template #footer
         ><UButton
           color="neutral"
           variant="outline"
           @click="deleteOpen = false"
-          >Cancel</UButton
+          >{{ $t('cloud.messages.cancel') }}</UButton
         ><UButton
           color="error"
           :loading="saving"
           @click="deleteChosen"
-          >Delete {{ chosen.length }} photograph{{
-            chosen.length === 1 ? '' : 's'
+          >{{
+            $t(
+              'cloud.ui.deletePhotosCount',
+              { count: chosen.length },
+              chosen.length,
+            )
           }}</UButton
         ></template
       ></UModal
     >
     <UModal
       v-model:open="albumOpen"
-      title="Add to album"
-      description="Choose an album for the selected photographs."
+      :title="$t('cloud.messages.addToAlbum')"
+      :description="$t('cloud.messages.chooseAnAlbumForTheSelectedPhotographs')"
       ><template #body
         ><USelect
           v-model="targetAlbum"
           :items="albums.map((a) => ({ label: a.title, value: a.id }))"
-          placeholder="Choose an album"
+          :placeholder="$t('cloud.messages.chooseAnAlbum')"
           class="w-full"
         />
         <p
           v-if="!albums.length"
           class="text-sm text-muted"
         >
-          Create an album first from the Albums page.
+          {{ $t('cloud.messages.createAnAlbumFirstFromTheAlbumsPage') }}
         </p></template
       ><template #footer
         ><UButton
           color="neutral"
           variant="outline"
           @click="albumOpen = false"
-          >Cancel</UButton
+          >{{ $t('cloud.messages.cancel') }}</UButton
         ><UButton
           :disabled="!targetAlbum"
           :loading="busy"
           @click="addToAlbum"
-          >Add photographs</UButton
+          >{{ $t('cloud.messages.addPhotographs') }}</UButton
         ></template
       ></UModal
     >

@@ -1,6 +1,11 @@
 <script setup lang="ts">
+const { t } = useI18n()
+
 definePageMeta({ layout: 'portal' })
-useSeoMeta({ title: 'Overview — ChronoFrame Cloud', robots: 'noindex' })
+useSeoMeta({
+  title: t('cloud.messages.overviewChronoframeCloud'),
+  robots: 'noindex',
+})
 const site = useEntryContext().value!
 const { photos, albums, jobs, loading } = useCloudSiteMedia()
 const processingCount = computed(
@@ -19,30 +24,38 @@ const processingCount = computed(
     >
       <CloudCard
         ><div class="cf-panel-body">
-          <span class="cf-field-label">Photographs</span
+          <span class="cf-field-label">{{
+            $t('cloud.messages.photographs')
+          }}</span
           ><strong>{{ loading ? '—' : photos.length }}</strong
           ><NuxtLink
             :to="`/sites/${site.siteId}/photos`"
             class="cf-text-link"
-            >Open photo library</NuxtLink
+            >{{ $t('cloud.messages.openPhotoLibrary') }}</NuxtLink
           >
         </div></CloudCard
       ><CloudCard
         ><div class="cf-panel-body">
-          <span class="cf-field-label">Albums</span
+          <span class="cf-field-label">{{ $t('cloud.messages.albums') }}</span
           ><strong>{{ loading ? '—' : albums.length }}</strong
           ><NuxtLink
             :to="`/sites/${site.siteId}/albums`"
             class="cf-text-link"
-            >Manage albums</NuxtLink
+            >{{ $t('cloud.messages.manageAlbums') }}</NuxtLink
           >
         </div></CloudCard
       ><CloudCard
         ><div class="cf-panel-body">
-          <span class="cf-field-label">Processing</span
+          <span class="cf-field-label">{{
+            $t('cloud.messages.processing')
+          }}</span
           ><strong>{{ loading ? '—' : processingCount }}</strong>
           <p class="cf-field-hint">
-            Upload and processing details are in your photo library.
+            {{
+              $t(
+                'cloud.messages.uploadAndProcessingDetailsAreInYourPhotoLibrary',
+              )
+            }}
           </p>
         </div></CloudCard
       >

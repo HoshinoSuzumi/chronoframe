@@ -1,4 +1,6 @@
 <script setup lang="ts">
+const { t } = useI18n()
+
 const props = defineProps<{ siteId: number }>()
 const context = useEntryContext()
 const {
@@ -26,7 +28,7 @@ async function chooseIcon(event: Event) {
     !['image/png', 'image/jpeg', 'image/webp'].includes(file.type) ||
     file.size > 2 * 1024 * 1024
   ) {
-    iconError.value = 'Choose a PNG, JPEG or WebP image up to 2 MiB.'
+    iconError.value = t('cloud.messages.chooseAPngJpegOrWebpImageUpTo')
     input.value = ''
     return
   }
@@ -50,13 +52,14 @@ async function chooseIcon(event: Event) {
         128,
       )
       const value = canvas.toDataURL('image/webp', 0.85)
-      if (value.length > 65536) throw new Error('Icon too large')
+      if (value.length > 65536)
+        throw new Error(t('cloud.messages.iconTooLarge'))
       profile.avatarUrl = value
     } finally {
       image.close()
     }
   } catch {
-    iconError.value = 'This image could not be used. Try another image.'
+    iconError.value = t('cloud.messages.thisImageCouldNotBeUsedTryAnotherImage')
   } finally {
     iconBusy.value = false
     input.value = ''
@@ -98,13 +101,13 @@ async function save() {
         name: result.site.name,
         published: !!result.site.published,
       }
-    message.value = 'Site settings saved.'
+    message.value = t('cloud.messages.siteSettingsSaved')
   } catch (cause) {
     failed.value = true
     message.value =
       (cause as { statusCode?: number }).statusCode === 409
-        ? 'This site changed in another session. Reload before saving again.'
-        : 'Settings could not be saved. Check your access and try again.'
+        ? t('cloud.messages.thisSiteChangedInAnotherSessionReloadBeforeSaving')
+        : t('cloud.messages.settingsCouldNotBeSavedCheckYourAccessAnd')
   } finally {
     busy.value = false
   }
@@ -113,18 +116,19 @@ async function save() {
 <template>
   <CloudCard class="cf-site-settings">
     <div class="cf-panel-heading">
-      <h2>Gallery identity</h2>
-      <p>Use the same title, author and icon shown in your public gallery.</p>
+      <h2>{{ $t('cloud.messages.galleryIdentity') }}</h2>
+      <p>{{ $t('cloud.messages.useTheSameTitleAuthorAndIconShownIn') }}</p>
     </div>
     <div
       v-if="loadError"
       role="alert"
       class="cf-notice"
     >
-      Settings could not be loaded.<CloudButton
+      {{ $t('cloud.messages.settingsCouldNotBeLoaded')
+      }}<CloudButton
         variant="ghost"
         @click="reload"
-        >Reload settings</CloudButton
+        >{{ $t('cloud.messages.reloadSettings') }}</CloudButton
       >
     </div>
     <template v-else-if="data">
@@ -135,7 +139,9 @@ async function save() {
           @submit.prevent="save()"
         >
           <div class="cf-field">
-            <label for="settings-site-name">Workspace site name</label
+            <label for="settings-site-name">{{
+              $t('cloud.messages.workspaceSiteName')
+            }}</label
             ><CloudInput
               id="settings-site-name"
               v-model="name"
@@ -145,11 +151,16 @@ async function save() {
             />
           </div>
           <p class="cf-field-hint">
-            The workspace name identifies this site in your console. Leave the
-            public title blank to use this name.
+            {{
+              $t(
+                'cloud.messages.theWorkspaceNameIdentifiesThisSiteInYourConsole',
+              )
+            }}
           </p>
           <div class="cf-field">
-            <label for="gallery-title">Public title</label
+            <label for="gallery-title">{{
+              $t('cloud.messages.publicTitle')
+            }}</label
             ><CloudInput
               id="gallery-title"
               v-model="profile.title"
@@ -159,7 +170,7 @@ async function save() {
             />
           </div>
           <div class="cf-field">
-            <label for="gallery-slogan">Slogan</label
+            <label for="gallery-slogan">{{ $t('cloud.messages.slogan') }}</label
             ><CloudInput
               id="gallery-slogan"
               v-model="profile.slogan"
@@ -168,7 +179,7 @@ async function save() {
             />
           </div>
           <div class="cf-field">
-            <label for="gallery-author">Author</label
+            <label for="gallery-author">{{ $t('cloud.messages.author') }}</label
             ><CloudInput
               id="gallery-author"
               v-model="profile.author"
@@ -177,11 +188,13 @@ async function save() {
             />
           </div>
           <div class="cf-field">
-            <label for="gallery-icon">Gallery icon</label
+            <label for="gallery-icon">{{
+              $t('cloud.messages.galleryIcon')
+            }}</label
             ><img
               v-if="profile.avatarUrl"
               :src="profile.avatarUrl"
-              alt="Gallery icon preview"
+              :alt="$t('cloud.messages.galleryIconPreview')"
               width="64"
               height="64"
               class="cf-gallery-icon"
@@ -193,15 +206,14 @@ async function save() {
               @change="chooseIcon"
             />
             <p class="cf-field-hint">
-              PNG, JPEG or WebP, up to 2 MiB. Cropped to a square and optimized
-              automatically.
+              {{ $t('cloud.messages.pngJpegOrWebpUpTo2MibCropped') }}
             </p>
             <CloudButton
               v-if="profile.avatarUrl"
               variant="ghost"
               :disabled="busy || iconBusy"
               @click="profile.avatarUrl = ''"
-              >Remove icon</CloudButton
+              >{{ $t('cloud.messages.removeIcon') }}</CloudButton
             >
             <p
               v-if="iconError"
@@ -215,13 +227,17 @@ async function save() {
             <CloudButton
               type="submit"
               :disabled="busy || iconBusy || !name.trim()"
-              >{{ busy ? 'Saving…' : 'Save changes' }}</CloudButton
+              >{{
+                busy
+                  ? $t('cloud.messages.saving')
+                  : $t('cloud.messages.saveChanges')
+              }}</CloudButton
             ><CloudButton
               type="button"
               variant="ghost"
               :disabled="busy"
               @click="reload"
-              >Reload settings</CloudButton
+              >{{ $t('cloud.messages.reloadSettings') }}</CloudButton
             >
           </div>
         </form>
@@ -229,7 +245,11 @@ async function save() {
           v-else
           class="cf-field-hint"
         >
-          Only workspace administrators can change these settings.
+          {{
+            $t(
+              'cloud.messages.onlyWorkspaceAdministratorsCanChangeTheseSettings',
+            )
+          }}
         </p>
         <p
           v-if="message"

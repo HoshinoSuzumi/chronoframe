@@ -1,7 +1,12 @@
 <script setup lang="ts">
+const { t } = useI18n()
+
 import { Copy } from 'lucide-vue-next'
 definePageMeta({ layout: 'portal' })
-useSeoMeta({ title: 'Domains — ChronoFrame Cloud', robots: 'noindex' })
+useSeoMeta({
+  title: t('cloud.messages.domainsChronoframeCloud'),
+  robots: 'noindex',
+})
 const site = useEntryContext().value!
 const { data, error, refresh } = await useFetch(
   `/api/sites/${site.siteId}/settings`,
@@ -12,9 +17,9 @@ async function copy() {
     await navigator.clipboard.writeText(
       `https://${data.value!.site.slug}.site.chronoframe.art`,
     )
-    notice.value = 'Address copied.'
+    notice.value = t('cloud.messages.addressCopied')
   } catch {
-    notice.value = 'Could not copy. Select and copy the address above.'
+    notice.value = t('cloud.messages.couldNotCopySelectAndCopyTheAddressAbove')
   }
 }
 </script>
@@ -22,26 +27,27 @@ async function copy() {
   <div class="cf-site-settings-stack">
     <div class="cf-page-heading">
       <div>
-        <h1 class="cf-page-title">Domains</h1>
+        <h1 class="cf-page-title">{{ $t('cloud.messages.domains') }}</h1>
         <p class="cf-page-description">
-          Addresses visitors use to reach your gallery.
+          {{ $t('cloud.messages.addressesVisitorsUseToReachYourGallery') }}
         </p>
       </div>
     </div>
     <CloudCard
       ><div class="cf-panel-heading">
-        <h2>Default subdomain</h2>
-        <p>Your reserved ChronoFrame address.</p>
+        <h2>{{ $t('cloud.messages.defaultSubdomain') }}</h2>
+        <p>{{ $t('cloud.messages.yourReservedChronoframeAddress') }}</p>
       </div>
       <div class="cf-panel-body">
         <p
           v-if="error"
           role="alert"
         >
-          Could not load the address.<CloudButton
+          {{ $t('cloud.messages.couldNotLoadTheAddress')
+          }}<CloudButton
             variant="ghost"
             @click="refresh()"
-            >Retry</CloudButton
+            >{{ $t('cloud.messages.retry') }}</CloudButton
           >
         </p>
         <template v-else-if="data?.site.slug"
@@ -52,20 +58,28 @@ async function copy() {
             variant="secondary"
             size="sm"
             @click="copy"
-            ><Copy :size="14" />Copy address</CloudButton
+            ><Copy :size="14" />{{
+              $t('cloud.messages.copyAddress')
+            }}</CloudButton
           >
           <p class="cf-field-hint">
             {{
               data.site.published
-                ? 'Published. Hidden photographs and album passwords remain protected.'
-                : 'Reserved for your draft. This address returns 404 until you publish from Overview.'
+                ? $t(
+                    'cloud.messages.publishedHiddenPhotographsAndAlbumPasswordsRemainProtected',
+                  )
+                : $t(
+                    'cloud.messages.reservedForYourDraftThisAddressReturns404Until',
+                  )
             }}
           </p>
           <p class="cf-field-hint">
-            Changing the default subdomain is not available yet.
+            {{
+              $t('cloud.messages.changingTheDefaultSubdomainIsNotAvailableYet')
+            }}
           </p></template
         >
-        <p v-else>No default subdomain is assigned.</p>
+        <p v-else>{{ $t('cloud.messages.noDefaultSubdomainIsAssigned') }}</p>
         <p
           v-if="notice"
           role="status"
@@ -76,11 +90,10 @@ async function copy() {
       </div></CloudCard
     ><CloudCard
       ><div class="cf-panel-heading">
-        <h2>Custom domains</h2>
-        <CloudBadge>Coming later</CloudBadge>
+        <h2>{{ $t('cloud.messages.customDomains') }}</h2>
+        <CloudBadge>{{ $t('cloud.messages.comingLater') }}</CloudBadge>
         <p>
-          Connect your own domain in a future update. Domain ownership, DNS and
-          certificate verification will be required before activation.
+          {{ $t('cloud.messages.connectYourOwnDomainInAFutureUpdateDomain') }}
         </p>
       </div></CloudCard
     >

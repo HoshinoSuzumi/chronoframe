@@ -1,7 +1,9 @@
 <script setup lang="ts">
+const { t } = useI18n()
+
 import { accountError } from '../utils/account-error'
 useSeoMeta({
-  title: 'Create an account — ChronoFrame Cloud',
+  title: t('cloud.messages.createAnAccountChronoframeCloud'),
   robots: 'noindex',
 })
 const { data: status } = await useFetch('/api/auth/status')
@@ -35,7 +37,7 @@ async function submit() {
       await navigateTo('/sites', { external: true })
     }
   } catch (cause) {
-    error.value = accountError(cause)
+    error.value = accountError(cause, t)
   } finally {
     busy.value = false
     if (sent.value) {
@@ -54,7 +56,7 @@ async function resend() {
     })
     sent.value = true
   } catch (cause) {
-    error.value = accountError(cause)
+    error.value = accountError(cause, t)
   } finally {
     busy.value = false
   }
@@ -63,20 +65,26 @@ async function resend() {
 <template>
   <CloudAuthLayout
     ><CloudBadge>ChronoFrame Cloud</CloudBadge>
-    <h1>{{ sent ? 'Make it yours.' : 'A home for your photographs.' }}</h1>
+    <h1>
+      {{
+        sent
+          ? $t('cloud.messages.makeItYours')
+          : $t('cloud.messages.aHomeForYourPhotographs')
+      }}
+    </h1>
     <template v-if="status?.enabled"
       ><p>
         {{
           sent
-            ? 'Verify your email to finish creating your account.'
-            : 'Create your account and find your own perspective.'
+            ? $t('cloud.messages.verifyYourEmailToFinishCreatingYourAccount')
+            : $t('cloud.messages.createYourAccountAndFindYourOwnPerspective')
         }}
       </p>
       <form
         @submit.prevent="submit"
         :aria-busy="busy"
       >
-        <label for="email">Email address</label
+        <label for="email">{{ $t('cloud.messages.emailAddress') }}</label
         ><CloudInput
           id="email"
           v-model="email"
@@ -85,7 +93,7 @@ async function resend() {
           :disabled="busy || sent"
           required
         /><template v-if="!sent"
-          ><label for="password">Password</label
+          ><label for="password">{{ $t('cloud.messages.password') }}</label
           ><CloudInput
             id="password"
             v-model="password"
@@ -97,10 +105,14 @@ async function resend() {
             required
           />
           <p class="cf-auth-hint">
-            Use at least 12 characters. A unique passphrase works well.
+            {{
+              $t('cloud.messages.useAtLeast12CharactersAUniquePassphraseWorks')
+            }}
           </p></template
         ><template v-else
-          ><label for="code">Email verification code</label
+          ><label for="code">{{
+            $t('cloud.messages.emailVerificationCode')
+          }}</label
           ><CloudInput
             id="code"
             ref="codeInput"
@@ -123,23 +135,27 @@ async function resend() {
           type="submit"
           :loading="busy"
           >{{
-            sent ? 'Verify email and continue' : 'Create account'
+            sent
+              ? $t('cloud.messages.verifyEmailAndContinue')
+              : $t('cloud.messages.createAccount')
           }}</CloudButton
         ><CloudButton
           variant="ghost"
           :disabled="busy || !email"
           @click="resend"
           >{{
-            sent ? 'Send a new code' : 'Already started? Resend verification'
+            sent
+              ? $t('cloud.messages.sendANewCode')
+              : $t('cloud.messages.alreadyStartedResendVerification')
           }}</CloudButton
         >
       </form>
       <p class="cf-auth-hint">
-        Already have an account?
-        <NuxtLink
+        {{ $t('cloud.messages.alreadyHaveAnAccount')
+        }}<NuxtLink
           to="/signin"
           class="cf-text-link"
-          >Log in</NuxtLink
+          >{{ $t('cloud.messages.logIn') }}</NuxtLink
         >
       </p></template
     >
@@ -147,7 +163,7 @@ async function resend() {
       v-else
       class="cf-notice"
     >
-      Registration is not available on this deployment yet.
+      {{ $t('cloud.messages.registrationIsNotAvailableOnThisDeploymentYet') }}
     </p></CloudAuthLayout
   >
 </template>

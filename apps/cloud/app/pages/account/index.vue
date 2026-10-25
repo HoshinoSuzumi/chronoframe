@@ -1,8 +1,10 @@
 <script setup lang="ts">
+const { t } = useI18n()
+
 import { ShieldCheck } from 'lucide-vue-next'
 definePageMeta({ layout: 'portal' })
 useSeoMeta({
-  title: 'Account & security — ChronoFrame Cloud',
+  title: t('cloud.messages.accountSecurityChronoframeCloud'),
   robots: 'noindex',
 })
 const user = usePortalIdentity()
@@ -11,9 +13,11 @@ const user = usePortalIdentity()
   <div class="cf-account-page">
     <div class="cf-page-heading">
       <div>
-        <h1 class="cf-page-title">Account &amp; security</h1>
+        <h1 class="cf-page-title">
+          {{ $t('cloud.messages.accountSecurity') }}
+        </h1>
         <p class="cf-page-description">
-          Your profile, preferences and sign-in methods.
+          {{ $t('cloud.messages.yourProfilePreferencesAndSignInMethods') }}
         </p>
       </div>
     </div>
@@ -22,22 +26,24 @@ const user = usePortalIdentity()
         id="profile-heading"
         class="cf-section-title"
       >
-        Profile
+        {{ $t('cloud.messages.profile') }}
       </h2>
       <CloudCard class="cf-settings-card"
         ><div class="cf-setting-row">
           <div>
-            <h3>Email address</h3>
+            <h3>{{ $t('cloud.messages.emailAddress') }}</h3>
             <p>{{ user?.email }}</p>
           </div>
           <CloudBadge tone="success"
-            ><ShieldCheck :size="12" />Verified</CloudBadge
+            ><ShieldCheck :size="12" />{{
+              $t('cloud.messages.verified')
+            }}</CloudBadge
           >
         </div>
         <div class="cf-setting-row">
           <div>
-            <h3>Appearance</h3>
-            <p>Choose the light that suits you.</p>
+            <h3>{{ $t('cloud.messages.appearance') }}</h3>
+            <p>{{ $t('cloud.messages.chooseTheLightThatSuitsYou') }}</p>
           </div>
           <CloudThemeToggle /></div
       ></CloudCard>

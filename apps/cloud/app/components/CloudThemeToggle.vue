@@ -8,7 +8,11 @@ const dark = computed(() => mode.value === 'dark')
     ><CloudButton
       variant="ghost"
       size="icon"
-      :aria-label="dark ? 'Switch to light theme' : 'Switch to dark theme'"
+      :aria-label="
+        dark
+          ? $t('cloud.messages.switchToLightTheme')
+          : $t('cloud.messages.switchToDarkTheme')
+      "
       @click="mode.preference = dark ? 'light' : 'dark'"
       ><Sun
         v-if="dark"

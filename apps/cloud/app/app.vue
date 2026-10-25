@@ -1,12 +1,23 @@
 <script setup lang="ts">
-useHead({ bodyAttrs: { class: 'cf-cloud-body' } })
+import { en, zh_cn } from '@nuxt/ui/locale'
+const { locale } = useI18n()
+const componentLocale = computed(() =>
+  locale.value === 'zh-Hans' ? zh_cn : en,
+)
+useHead(() => ({
+  htmlAttrs: { lang: locale.value === 'zh-Hans' ? 'zh-CN' : 'en' },
+  bodyAttrs: { class: 'cf-cloud-body' },
+}))
 </script>
 <template>
-  <UApp class="cf-root">
+  <UApp
+    class="cf-root"
+    :locale="componentLocale"
+  >
     <a
       href="#main-content"
       class="cf-skip-link"
-      >Skip to content</a
+      >{{ $t('cloud.messages.skipToContent') }}</a
     ><NuxtLoadingIndicator color="var(--cf-primary)" /><NuxtLayout
       ><NuxtPage
     /></NuxtLayout>

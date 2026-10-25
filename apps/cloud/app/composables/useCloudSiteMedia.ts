@@ -4,6 +4,7 @@ export function useCloudMediaWorkspace(props: {
   siteId: number
   role?: string
 }) {
+  const { t } = useI18n()
   const entryContext = useEntryContext(),
     snapshot = entryContext.value?.scope
   const api = async <T = unknown>(
@@ -110,8 +111,10 @@ export function useCloudMediaWorkspace(props: {
       failed.value = true
       message.value =
         (error as { statusCode?: number }).statusCode === 503
-          ? 'Media services need deployment configuration. Your existing site settings are available.'
-          : 'Could not refresh media. Check your access and retry.'
+          ? t(
+              'cloud.messages.mediaServicesNeedDeploymentConfigurationYourExistingSiteSettings',
+            )
+          : t('cloud.messages.couldNotRefreshMediaCheckYourAccessAndRetry')
       canPoll.value = false
     } finally {
       if (generation === reloadGeneration) loading.value = false
@@ -139,20 +142,22 @@ export function useCloudMediaWorkspace(props: {
         ?.data?.code
       message.value =
         diagnostic === 'album_slug_conflict'
-          ? 'This album URL is already used or reserved by an older link. Choose another slug.'
+          ? t('cloud.messages.thisAlbumUrlIsAlreadyUsedOrReservedBy')
           : diagnostic && Object.hasOwn(STORAGE_CONNECTION_MESSAGES, diagnostic)
-            ? STORAGE_CONNECTION_MESSAGES[
-                diagnostic as keyof typeof STORAGE_CONNECTION_MESSAGES
-              ]
+            ? t('cloud.storageErrors.' + diagnostic)
             : code === 503
-              ? 'Media services need deployment configuration. Check the selected environment settings.'
+              ? t(
+                  'cloud.messages.mediaServicesNeedDeploymentConfigurationCheckTheSelectedEnvironment',
+                )
               : code === 409
-                ? 'This item changed. Refresh and try again.'
+                ? t('cloud.messages.thisItemChangedRefreshAndTryAgain')
                 : code === 429
-                  ? 'The preview resource limit has been reached.'
+                  ? t('cloud.messages.thePreviewResourceLimitHasBeenReached')
                   : code === 403
-                    ? 'Administrator access is required.'
-                    : 'The operation failed. Check the entered values and your connection, then retry.'
+                    ? t('cloud.messages.administratorAccessIsRequired')
+                    : t(
+                        'cloud.messages.theOperationFailedCheckTheEnteredValuesAndYour',
+                      )
       return false
     } finally {
       busy.value = false
@@ -163,7 +168,7 @@ export function useCloudMediaWorkspace(props: {
       await api(base.value + '/storage', { method: 'POST', body: storage })
       storage.accessKeyId = ''
       storage.secretAccessKey = ''
-    }, 'Storage connected and verified.')
+    }, t('cloud.messages.storageConnectedAndVerified'))
   }
   async function rotateStorage() {
     const selected = connections.value.find((c) => c.id === connectionId.value)
@@ -175,7 +180,7 @@ export function useCloudMediaWorkspace(props: {
       })
       rotation.accessKeyId = ''
       rotation.secretAccessKey = ''
-    }, 'Credentials rotated. Existing media references remain available.')
+    }, t('cloud.messages.credentialsRotatedExistingMediaReferencesRemainAvailable'))
   }
   const photoLoaded = ref('')
   let photoLoadGeneration = 0
@@ -191,7 +196,8 @@ export function useCloudMediaWorkspace(props: {
         base.value + '/photos/' + id,
       )
       if (editPhoto.id !== id || generation !== photoLoadGeneration) return
-      editPhoto.title = data.photo.title ?? 'Untitled photograph'
+      editPhoto.title =
+        data.photo.title ?? t('cloud.messages.untitledPhotograph')
       editPhoto.description = data.photo.description ?? ''
       editPhoto.tags = data.photo.tags ?? []
       editPhoto.rating =
@@ -203,8 +209,9 @@ export function useCloudMediaWorkspace(props: {
     } catch {
       if (editPhoto.id !== id || generation !== photoLoadGeneration) return
       failed.value = true
-      message.value =
-        'Could not load photograph settings. Select it again to retry.'
+      message.value = t(
+        'cloud.messages.couldNotLoadPhotographSettingsSelectItAgainTo',
+      )
     }
   }
   async function savePhoto() {
@@ -221,7 +228,7 @@ export function useCloudMediaWorkspace(props: {
             rating: editPhoto.rating,
           },
         }),
-      'Photograph updated.',
+      t('cloud.messages.photographUpdated'),
     )
     if (saved) await loadPhoto()
     return saved
@@ -281,7 +288,7 @@ export function useCloudMediaWorkspace(props: {
       localStorage.removeItem(cache)
       activeResumeKey = undefined
       activeUpload = undefined
-      throw new Error('Upload unavailable')
+      throw new Error(t('cloud.messages.uploadUnavailable'))
     }
     async function put(url: string, body: Blob, type?: string) {
       for (let attempt = 0; attempt < 3; attempt++) {
@@ -294,7 +301,7 @@ export function useCloudMediaWorkspace(props: {
           redirect: 'error',
         })
         if (response.ok) return
-        if (attempt === 2) throw new Error('Upload failed')
+        if (attempt === 2) throw new Error(t('cloud.messages.uploadFailed'))
         await new Promise((resolve) => setTimeout(resolve, 500 * 2 ** attempt))
       }
     }
@@ -346,8 +353,9 @@ export function useCloudMediaWorkspace(props: {
       files.every(isVideo)
     ) {
       failed.value = true
-      message.value =
-        'Each photograph and its matching Live Photo MOV must total at most 100 MiB. A MOV must accompany a photograph with the same filename.'
+      message.value = t(
+        'cloud.messages.eachPhotographAndItsMatchingLivePhotoMovMust',
+      )
       input.value = ''
       return
     }
@@ -364,12 +372,14 @@ export function useCloudMediaWorkspace(props: {
         progress.value = 0
         await sendFile(file, companion)
       }
-      message.value = 'Upload verified. Processing continues in the background.'
+      message.value = t(
+        'cloud.messages.uploadVerifiedProcessingContinuesInTheBackground',
+      )
     } catch {
       failed.value = true
       message.value = controller.signal.aborted
-        ? 'Upload cancelled.'
-        : 'Upload interrupted. Select the same file to resume its uploaded parts.'
+        ? t('cloud.messages.uploadCancelled')
+        : t('cloud.messages.uploadInterruptedSelectTheSameFileToResumeIts')
     } finally {
       uploading.value = false
       input.value = ''
@@ -391,7 +401,9 @@ export function useCloudMediaWorkspace(props: {
   async function removePhoto(id: string) {
     if (
       !window.confirm(
-        'Delete this photograph and its managed original, thumbnail and Live Photo files from storage?',
+        t(
+          'cloud.messages.deleteThisPhotographAndItsManagedOriginalThumbnailAnd',
+        ),
       )
     )
       return
@@ -401,7 +413,9 @@ export function useCloudMediaWorkspace(props: {
           method: 'POST',
           body: {},
         }),
-      'Photograph deleted. Managed storage files are queued for cleanup.',
+      t(
+        'cloud.messages.photographDeletedManagedStorageFilesAreQueuedForCleanup',
+      ),
     )
   }
   async function publish(value: boolean) {
@@ -420,7 +434,9 @@ export function useCloudMediaWorkspace(props: {
         if (context.value?.siteId === props.siteId)
           context.value.published = result.published
       },
-      value ? 'Gallery published.' : 'Gallery unpublished.',
+      value
+        ? t('cloud.messages.galleryPublished')
+        : t('cloud.messages.galleryUnpublished'),
     )
   }
   onMounted(() => {

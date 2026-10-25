@@ -1,4 +1,6 @@
 <script setup lang="ts">
+const { t } = useI18n()
+
 import { motion } from 'motion-v'
 import { ArrowUpRight, Images, ShieldCheck } from 'lucide-vue-next'
 const entrance = useCloudMotion()
@@ -20,7 +22,10 @@ async function prepareWorkspace() {
 onMounted(prepareWorkspace)
 
 import type { EntrySiteCatalog } from '@chronoframe/contracts/entry'
-useSeoMeta({ title: 'Your sites — ChronoFrame Cloud', robots: 'noindex' })
+useSeoMeta({
+  title: t('cloud.messages.yourSitesChronoframeCloud'),
+  robots: 'noindex',
+})
 const userId = useState<number | null>('platform-user-id', () => null)
 const catalog = useState<EntrySiteCatalog | null>(
   'platform-site-catalog',
@@ -35,26 +40,25 @@ const sites = ref(
   <motion.div v-bind="entrance">
     <div class="cf-page-heading">
       <div>
-        <h1 class="cf-page-title">Your sites</h1>
+        <h1 class="cf-page-title">{{ $t('cloud.messages.yourSites') }}</h1>
         <p class="cf-page-description">
-          Manage your galleries, settings and access.
+          {{ $t('cloud.messages.manageYourGalleriesSettingsAndAccess') }}
         </p>
       </div>
-      <CloudBadge
-        >{{ sites.length }}
-        {{ sites.length === 1 ? 'site' : 'sites' }}</CloudBadge
-      >
+      <CloudBadge>{{
+        $t('cloud.ui.siteCount', { count: sites.length }, sites.length)
+      }}</CloudBadge>
     </div>
     <div
       v-if="workspaceError"
       class="cf-notice"
       role="alert"
     >
-      Your workspace could not be opened.
-      <CloudButton
+      {{ $t('cloud.messages.yourWorkspaceCouldNotBeOpened')
+      }}<CloudButton
         variant="ghost"
         @click="prepareWorkspace"
-        >Try again</CloudButton
+        >{{ $t('cloud.messages.tryAgain') }}</CloudButton
       >
     </div>
     <CloudSiteCreate
@@ -69,7 +73,10 @@ const sites = ref(
         class="cf-site-columns"
         aria-hidden="true"
       >
-        <span>Site</span><span>Status</span><span>Role</span><span />
+        <span>{{ $t('cloud.messages.site') }}</span
+        ><span>{{ $t('cloud.messages.status') }}</span
+        ><span>{{ $t('cloud.messages.role') }}</span
+        ><span />
       </div>
       <ul class="cf-sites-list">
         <li
@@ -92,13 +99,17 @@ const sites = ref(
             >
             <span :id="`site-status-${site.siteId}`"
               ><CloudBadge :tone="site.published ? 'success' : 'neutral'">{{
-                site.published ? 'Published' : 'Draft'
+                site.published
+                  ? $t('cloud.messages.published')
+                  : $t('cloud.messages.draft')
               }}</CloudBadge></span
             >
             <span
               :id="`site-role-${site.siteId}`"
               class="cf-site-role cf-capitalize"
-              >{{ site.role }}</span
+              >{{
+                $t(site.role === 'admin' ? 'cloud.ui.admin' : 'cloud.ui.member')
+              }}</span
             ><ArrowUpRight
               :size="15"
               class="cf-row-arrow"
@@ -113,14 +124,15 @@ const sites = ref(
       class="cf-portal-empty"
       ><span class="cf-site-icon"><Images :size="20" /></span>
       <div>
-        <h2>No sites yet</h2>
-        <p>Create a draft above to reserve your gallery’s address.</p>
+        <h2>{{ $t('cloud.messages.noSitesYet') }}</h2>
+        <p>{{ $t('cloud.messages.createADraftAboveToReserveYourGalleryS') }}</p>
       </div></CloudCard
     >
     <p class="cf-catalog-note">
-      <ShieldCheck :size="14" />Only sites you belong to appear here.<a
-        href="https://docs.chronoframe.art/"
-        >View documentation<ArrowUpRight :size="12"
+      <ShieldCheck :size="14" />{{
+        $t('cloud.messages.onlySitesYouBelongToAppearHere')
+      }}<a href="https://docs.chronoframe.art/"
+        >{{ $t('cloud.messages.viewDocumentation') }}<ArrowUpRight :size="12"
       /></a>
     </p>
   </motion.div>
