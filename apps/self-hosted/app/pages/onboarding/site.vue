@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { z } from 'zod'
+import type { FieldDescriptor } from '@chronoframe/gallery/shared/types/settings'
 import type { ProviderOption } from '~/components/Wizard/ProviderSelector.vue'
 import { useWizardStore } from '~/stores/wizard'
 
@@ -20,6 +21,11 @@ const {
   loading: fetchingSchema,
   isFieldVisible,
 } = useWizardForm('app')
+
+function isTextEditable(field: FieldDescriptor) {
+  const value = state.value[field.key]
+  return field.type !== 'json' && (value === null || typeof value !== 'object')
+}
 
 const schema = z.object({
   title: z.string().min(1, $t('onboarding.site.invalidTitle')),
@@ -79,7 +85,7 @@ function onSubmit() {
           />
         </WizardFormField>
         <WizardFormField
-          v-else-if="isFieldVisible(field)"
+          v-else-if="isFieldVisible(field) && isTextEditable(field)"
           :label="$t(field.label || '')"
           :name="field.key"
           :required="field.ui.required"
