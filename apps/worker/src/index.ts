@@ -1,19 +1,15 @@
 import { randomUUID } from 'node:crypto'
+import { createWorkerGateway } from './gateway.ts'
 import { setTimeout as delay } from 'node:timers/promises'
 import { processWork, WorkerProcessingError, type WorkItem } from './process.ts'
 import type { CloudMediaResult } from '@chronoframe/core'
-const origin = process.env.CHRONOFRAME_PORTAL_ORIGIN ?? ''
-const secret = process.env.CHRONOFRAME_WORKER_SECRET ?? ''
 const workerId = process.env.CHRONOFRAME_WORKER_ID ?? randomUUID()
-if (
-  !origin ||
-  new URL(origin).protocol !== 'https:' ||
-  new URL(origin).origin !== origin ||
-  secret.length < 32
-)
-  throw new Error(
-    'Configure an HTTPS portal origin and generated worker credential',
-  )
+const rpc = createWorkerGateway({
+  origin: process.env.CHRONOFRAME_PORTAL_ORIGIN ?? '',
+  secret: process.env.CHRONOFRAME_WORKER_SECRET ?? '',
+  accessClientId: process.env.CHRONOFRAME_ACCESS_CLIENT_ID,
+  accessClientSecret: process.env.CHRONOFRAME_ACCESS_CLIENT_SECRET,
+})
 let stopping = false
 const shutdown = new AbortController()
 for (const signal of ['SIGINT', 'SIGTERM'] as const)
@@ -21,24 +17,6 @@ for (const signal of ['SIGINT', 'SIGTERM'] as const)
     stopping = true
     shutdown.abort()
   })
-async function rpc<T>(
-  action: string,
-  body: unknown,
-  signal?: AbortSignal,
-): Promise<T> {
-  const response = await fetch(origin + '/api/internal/worker/' + action, {
-    method: 'POST',
-    redirect: 'error',
-    headers: {
-      Authorization: 'Bearer ' + secret,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(body),
-    signal: signal ?? AbortSignal.timeout(30000),
-  })
-  if (!response.ok) throw new Error('portal_request_failed')
-  return response.json() as Promise<T>
-}
 while (!stopping) {
   try {
     const item = await rpc<WorkItem | { lease: null }>('claim', { workerId })

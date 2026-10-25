@@ -1,0 +1,6 @@
+# Optional overlay for a portal protected by Cloudflare Access Service Auth.
+# Keep the Cloudflare-issued credentials in a separate private file, outside Git.
+services:
+  worker:
+    env_file:
+      - ${CHRONOFRAME_WORKER_ACCESS_ENV_FILE:?Set the path to the private Access credential file}
