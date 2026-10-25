@@ -77,7 +77,7 @@ async function unpublish() {
         :variant="context?.published ? 'ghost' : 'default'"
         size="sm"
         :disabled="
-          busy || loading || !host || (!photos.length && !context?.published)
+          busy || (!context?.published && (loading || !host || !photos.length))
         "
         :loading="busy"
         @click="context?.published ? (unpublishOpen = true) : publish(true)"
