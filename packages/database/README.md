@@ -8,7 +8,7 @@ Migrations are canonical here. `server/database/migrations` remains a compatibil
 
 The default self-hosted Site is fixed by its entry, while every site repository requires an explicit existing Site. Migration creates default Workspace/Site memberships and enforces immutable ownership and same-site relationships. Settings uniqueness and caches include Site. Historical storage connection configurations are retained as immutable revisions for existing object references.
 
-Album slugs are reserved per Site after a rename or deletion. Deletion keeps a tombstone in `album_slugs` so an old URL can never identify a different album; the registry therefore grows with distinct URLs used over time. Automatic slug generation skips reserved values, and custom reuse returns a conflict.
+Current album slugs are exclusive per Site. A historical slug can be claimed by the same or another album, and deleting an album releases all its slugs. Automatic slug generation adds a suffix when a current slug conflicts; custom reuse of a current slug returns a conflict.
 
 `pnpm db:migrate` and application startup use the same journal-compatible runner. Existing files with pending migrations receive a consistent `*.pre-migration-*.sqlite3` backup before changes. Schema and journal updates share a transaction, foreign keys are checked before commit, and enforcement is restored afterwards. Keep backups with their matching application versions; restoring only an older binary does not reverse schema constraints.
 

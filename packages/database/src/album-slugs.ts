@@ -50,7 +50,7 @@ export function claimAlbumSlug(
 ): string {
   const automatic = requestedSlug.trim() === ''
   const base = automatic
-    ? generatedAlbumSlug(title)
+    ? generatedAlbumSlug(title, `album-${albumId}`)
     : validateCustomAlbumSlug(requestedSlug)
   for (let suffix = 0; suffix < 1_000_000; suffix++) {
     const slug = automatic ? suffixedAlbumSlug(base, suffix) : base
@@ -66,12 +66,10 @@ export function claimAlbumSlug(
       .get()
     if (existing) {
       if (existing.albumId === albumId && existing.isCurrent) return slug
-      if (!automatic)
-        throw new CoreError(
-          409,
-          'Album URL slug is in use or was previously used',
-        )
-      continue
+      if (existing.isCurrent) {
+        if (!automatic) throw new CoreError(409, 'Album URL slug is in use')
+        continue
+      }
     }
     db.update(tables.albumSlugs)
       .set({ isCurrent: false })
@@ -83,9 +81,20 @@ export function claimAlbumSlug(
         ),
       )
       .run()
-    db.insert(tables.albumSlugs)
-      .values({ siteId: site.id, slug, albumId, isCurrent: true })
-      .run()
+    if (existing)
+      db.update(tables.albumSlugs)
+        .set({ albumId, isCurrent: true })
+        .where(
+          and(
+            eq(tables.albumSlugs.siteId, site.id),
+            eq(tables.albumSlugs.slug, slug),
+          ),
+        )
+        .run()
+    else
+      db.insert(tables.albumSlugs)
+        .values({ siteId: site.id, slug, albumId, isCurrent: true })
+        .run()
     return slug
   }
   throw new Error('Album slug namespace exhausted')

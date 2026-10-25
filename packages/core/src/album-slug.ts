@@ -7,7 +7,7 @@ import {
 } from '@chronoframe/contracts/album-slug'
 
 /** Convert a title to a stable, URL-safe base. Persistence owns uniqueness. */
-export function generatedAlbumSlug(title: string): string {
+export function generatedAlbumSlug(title: string, fallback = 'album'): string {
   const result = slugify(title.normalize('NFKC'), {
     separator: '-',
     lowercase: true,
@@ -16,7 +16,7 @@ export function generatedAlbumSlug(title: string): string {
     .replace(/^-+|-+$/g, '')
     .slice(0, ALBUM_SLUG_MAX_LENGTH)
     .replace(/-+$/g, '')
-  if (!result) return 'album'
+  if (!result) return fallback
   return isNumericAlbumPathSegment(result)
     ? `album-${result.slice(0, ALBUM_SLUG_MAX_LENGTH - 6)}`
     : result

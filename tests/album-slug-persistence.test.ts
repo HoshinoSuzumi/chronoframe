@@ -1,5 +1,14 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
+import {
+  cpSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import Database from 'better-sqlite3'
 import { drizzle } from 'drizzle-orm/better-sqlite3'
 import { migrate } from 'drizzle-orm/better-sqlite3/migrator'
@@ -16,7 +25,7 @@ import { createSqliteAlbumWriteRepository } from '../packages/database/src/sqlit
 
 const access = { authenticated: true }
 
-test('album slugs remain unique, redirectable, and reserved after deletion', async () => {
+test('only current album slugs conflict; historical and deleted slugs are reusable', async () => {
   const statements: string[] = []
   const sqlite = new Database(':memory:', {
     verbose: (statement) => statements.push(statement),
@@ -83,9 +92,17 @@ test('album slugs remain unique, redirectable, and reserved after deletion', asy
       resolveAlbumSlug(db, DEFAULT_SITE, 'my-album')?.isCurrent,
       false,
     )
-    await assert.rejects(
-      writer.update(second.id, { slug: 'my-album' }, access),
-      (error) => error instanceof CoreError && error.statusCode === 409,
+    assert.equal(
+      (await writer.update(second.id, { slug: 'my-album' }, access)).slug,
+      'my-album',
+    )
+    assert.equal(
+      resolveAlbumSlug(db, DEFAULT_SITE, 'my-album')?.albumId,
+      second.id,
+    )
+    assert.equal(
+      resolveAlbumSlug(db, DEFAULT_SITE, 'my-album')?.isCurrent,
+      true,
     )
     assert.equal(
       (await writer.update(first.id, { title: 'Only Title' }, access)).slug,
@@ -102,48 +119,136 @@ test('album slugs remain unique, redirectable, and reserved after deletion', asy
     assert.equal(
       (await writer.update(first.id, { title: 'My Album', slug: '' }, access))
         .slug,
-      'my-album-2',
+      'my-album-1',
     )
     assert.equal(
       resolveAlbumPath(db, DEFAULT_SITE, 'my-album')?.slug,
-      'my-album-2',
+      'my-album',
     )
     assert.equal(
       resolveAlbumPath(db, DEFAULT_SITE, 'my-album')?.isCanonical,
-      false,
+      true,
     )
     assert.equal(
       resolveAlbumPath(db, DEFAULT_SITE, 'a-new-title')?.slug,
-      'my-album-2',
+      'my-album-1',
     )
 
-    await assert.rejects(
-      writer.update(second.id, { slug: 'my-album' }, access),
-      (error) => error instanceof CoreError && error.statusCode === 409,
+    assert.equal(
+      (await writer.update(first.id, { slug: 'a-new-title' }, access)).slug,
+      'a-new-title',
+    )
+    assert.equal(
+      resolveAlbumSlug(db, DEFAULT_SITE, 'a-new-title')?.isCurrent,
+      true,
     )
     await assert.rejects(
       writer.update(second.id, { slug: 'Invalid Slug' }, access),
       (error) => error instanceof CoreError && error.statusCode === 400,
     )
     await writer.delete(first.id, access)
-    assert.equal(resolveAlbumSlug(db, DEFAULT_SITE, 'my-album')?.albumId, null)
+    assert.equal(resolveAlbumSlug(db, DEFAULT_SITE, 'my-album-1'), undefined)
+    assert.equal(resolveAlbumSlug(db, DEFAULT_SITE, 'a-new-title'), undefined)
     assert.equal(
-      resolveAlbumSlug(db, DEFAULT_SITE, 'a-new-title')?.albumId,
-      null,
+      (await writer.update(second.id, { slug: 'a-new-title' }, access)).slug,
+      'a-new-title',
     )
-    await assert.rejects(
-      writer.update(second.id, { slug: 'a-new-title' }, access),
-      (error) =>
-        error instanceof CoreError &&
-        error.statusCode === 409 &&
-        /previously used/.test(error.message),
+    const replacement = await writer.create({ title: 'My Album 1' }, access)
+    assert.equal(replacement.slug, 'my-album-1')
+    assert.equal(
+      resolveAlbumSlug(db, DEFAULT_SITE, 'my-album-1')?.albumId,
+      replacement.id,
+    )
+    const reusedHistory = await writer.create({ title: 'My Album' }, access)
+    assert.equal(reusedHistory.slug, 'my-album')
+    assert.equal(
+      resolveAlbumSlug(db, DEFAULT_SITE, 'my-album')?.isCurrent,
+      true,
     )
     assert.equal(
-      (await writer.create({ title: 'My Album' }, access)).slug,
-      'my-album-3',
+      resolveAlbumSlug(db, DEFAULT_SITE, 'my-album')?.albumId,
+      reusedHistory.id,
     )
   } finally {
     sqlite.close()
+  }
+})
+
+test('untransliteratable titles use a stable album-id slug', async () => {
+  const sqlite = new Database(':memory:')
+  sqlite.pragma('foreign_keys = ON')
+  const db = drizzle(sqlite, { schema })
+  migrate(db, { migrationsFolder: './packages/database/migrations' })
+  try {
+    const writer = createAlbumWriter({
+      repository: createSqliteAlbumWriteRepository(db, DEFAULT_SITE),
+      clock: { now: () => new Date() },
+      hashPassword: async (value) => value,
+    })
+    const album = await writer.create({ title: '🎉' }, access)
+    assert.equal(album.slug, `album-${album.id}`)
+    assert.equal(
+      (await writer.update(album.id, { slug: '' }, access)).slug,
+      `album-${album.id}`,
+    )
+  } finally {
+    sqlite.close()
+  }
+})
+
+test('migration replaces tombstones and retains live slug history', () => {
+  const oldMigrations = mkdtempSync(join(tmpdir(), 'album-slugs-0020-'))
+  cpSync('./packages/database/migrations', oldMigrations, { recursive: true })
+  rmSync(join(oldMigrations, '0021_reusable_album_slugs.sql'))
+  const journalPath = join(oldMigrations, 'meta/_journal.json')
+  const journal = JSON.parse(readFileSync(journalPath, 'utf8'))
+  journal.entries.pop()
+  writeFileSync(journalPath, JSON.stringify(journal))
+  const sqlite = new Database(':memory:')
+  sqlite.pragma('foreign_keys = ON')
+  const db = drizzle(sqlite, { schema })
+  try {
+    migrate(db, { migrationsFolder: oldMigrations })
+    db.insert(schema.albums)
+      .values([{ title: 'Keep' }, { title: 'Delete' }])
+      .run()
+    sqlite.exec(`
+      INSERT INTO album_slugs (site_id, slug, album_id, is_current)
+      VALUES (1, 'keep', 1, 1), (1, 'old-keep', 1, 0), (1, 'delete', 2, 1);
+      DELETE FROM albums WHERE id = 2;
+    `)
+    assert.equal(resolveAlbumSlug(db, DEFAULT_SITE, 'delete')?.albumId, null)
+
+    migrate(db, { migrationsFolder: './packages/database/migrations' })
+    assert.equal(resolveAlbumSlug(db, DEFAULT_SITE, 'delete'), undefined)
+    assert.equal(resolveAlbumSlug(db, DEFAULT_SITE, 'keep')?.albumId, 1)
+    assert.equal(resolveAlbumSlug(db, DEFAULT_SITE, 'old-keep')?.albumId, 1)
+    assert.equal(
+      resolveAlbumSlug(db, DEFAULT_SITE, 'old-keep')?.isCurrent,
+      false,
+    )
+    const albumIdColumn = (
+      sqlite.prepare("PRAGMA table_info('album_slugs')").all() as Array<{
+        name: string
+        notnull: number
+      }>
+    ).find((column) => column.name === 'album_id')
+    assert.equal(albumIdColumn?.notnull, 1)
+    assert.ok(
+      (
+        sqlite
+          .prepare("PRAGMA foreign_key_list('album_slugs')")
+          .all() as Array<{ on_delete: string }>
+      ).some((foreignKey) => foreignKey.on_delete === 'CASCADE'),
+    )
+
+    sqlite.pragma('foreign_keys = OFF')
+    sqlite.exec('DELETE FROM albums WHERE id = 1')
+    assert.equal(resolveAlbumSlug(db, DEFAULT_SITE, 'keep'), undefined)
+    assert.equal(resolveAlbumSlug(db, DEFAULT_SITE, 'old-keep'), undefined)
+  } finally {
+    sqlite.close()
+    rmSync(oldMigrations, { recursive: true, force: true })
   }
 })
 
