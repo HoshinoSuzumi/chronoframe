@@ -4,7 +4,7 @@ import {
   isNumericAlbumPathSegment,
   isValidAlbumSlug,
 } from '@chronoframe/contracts/album-slug'
-import { and, asc, eq } from 'drizzle-orm'
+import { and, asc, eq, isNull } from 'drizzle-orm'
 import { alias } from 'drizzle-orm/sqlite-core'
 import { type AppDatabase } from './connection.ts'
 import * as tables from './schema.ts'
@@ -86,22 +86,33 @@ export function claimAlbumSlug(
   throw new Error('Album slug namespace exhausted')
 }
 
-/** Repeatable repair for old installations and rollback-created albums. */
+function albumsWithoutSlugs(db: AlbumSlugDb) {
+  return db
+    .select({
+      id: tables.albums.id,
+      siteId: tables.albums.siteId,
+      title: tables.albums.title,
+    })
+    .from(tables.albums)
+    .leftJoin(
+      tables.albumSlugs,
+      and(
+        eq(tables.albumSlugs.siteId, tables.albums.siteId),
+        eq(tables.albumSlugs.albumId, tables.albums.id),
+        eq(tables.albumSlugs.isCurrent, true),
+      ),
+    )
+    .where(isNull(tables.albumSlugs.slug))
+}
+
 export function backfillAlbumSlugs(db: AppDatabase) {
+  if (!albumsWithoutSlugs(db).limit(1).get()) return 0
   return db.transaction(
     (tx) => {
-      const albums = tx
-        .select({
-          id: tables.albums.id,
-          siteId: tables.albums.siteId,
-          title: tables.albums.title,
-        })
-        .from(tables.albums)
-        .orderBy(asc(tables.albums.siteId), asc(tables.albums.id))
-        .all()
       let created = 0
-      for (const album of albums) {
-        if (currentSlug(tx, album.siteId, album.id)) continue
+      for (const album of albumsWithoutSlugs(tx)
+        .orderBy(asc(tables.albums.siteId), asc(tables.albums.id))
+        .all()) {
         claimAlbumSlug(tx, { id: album.siteId }, album.id, album.title, '')
         created++
       }

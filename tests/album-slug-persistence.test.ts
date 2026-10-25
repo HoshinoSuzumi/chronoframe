@@ -140,7 +140,10 @@ test('album slugs remain unique, redirectable, and reserved after deletion', asy
 })
 
 test('backfill assigns deterministic slugs once for existing rows', () => {
-  const sqlite = new Database(':memory:')
+  const statements: string[] = []
+  const sqlite = new Database(':memory:', {
+    verbose: (statement) => statements.push(statement),
+  })
   const db = drizzle(sqlite, { schema })
   migrate(db, { migrationsFolder: './packages/database/migrations' })
   try {
@@ -155,7 +158,10 @@ test('backfill assigns deterministic slugs once for existing rows', () => {
       isHidden: false,
     })
     assert.equal(backfillAlbumSlugs(db), 2)
+    statements.length = 0
     assert.equal(backfillAlbumSlugs(db), 0)
+    assert.equal(statements.length, 1)
+    assert.match(statements[0]!, /^select /i)
     assert.deepEqual(
       db
         .select()
@@ -164,6 +170,9 @@ test('backfill assigns deterministic slugs once for existing rows', () => {
         .map((row) => row.slug),
       ['ni-hao', 'ni-hao-1'],
     )
+    db.insert(schema.albums).values({ title: '你好' }).run()
+    assert.equal(backfillAlbumSlugs(db), 1)
+    assert.equal(getCurrentAlbumSlug(db, DEFAULT_SITE, 3), 'ni-hao-2')
   } finally {
     sqlite.close()
   }
