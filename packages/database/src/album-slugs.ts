@@ -214,10 +214,13 @@ export function resolveAlbumPath(
         .get()
   if (!album) return null
   const isCurrent = 'isCurrent' in album && album.isCurrent === true
+  const isCanonical = isCurrent || (numeric && album.slug === null)
+  const redirectCode = isCanonical ? undefined : numeric ? 301 : 302
   return {
     albumId: album.albumId,
     slug: album.slug ?? String(album.albumId),
-    isCanonical: isCurrent || (numeric && album.slug === null),
+    isCanonical,
     isHidden: album.isHidden,
+    ...(redirectCode ? { redirectCode } : {}),
   }
 }

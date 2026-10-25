@@ -20,24 +20,19 @@ const { data: resolved, error: resolveError } =
 if (resolveError.value || !resolved.value)
   throw createError({ statusCode: 404, statusMessage: $t('album.notFound') })
 const canonicalAlbumRoute = computed(() => `/albums/${resolved.value?.slug}`)
+const canonicalAlbumTarget = (slug: string) => ({
+  path: `/albums/${slug}`,
+  query: route.query,
+  hash: route.hash,
+})
 if (!resolved.value.isCanonical || route.path !== canonicalAlbumRoute.value)
-  await navigateTo(
-    {
-      path: canonicalAlbumRoute.value,
-      query: route.query,
-      hash: route.hash,
-    },
-    {
-      redirectCode: resolved.value.redirectCode ?? 301,
-      replace: true,
-    },
-  )
+  await navigateTo(canonicalAlbumTarget(resolved.value.slug), {
+    redirectCode: resolved.value.redirectCode ?? 301,
+    replace: true,
+  })
 watch([resolved, () => route.path], ([value]) => {
   if (value && (!value.isCanonical || route.path !== `/albums/${value.slug}`))
-    void navigateTo(
-      { path: `/albums/${value.slug}`, query: route.query, hash: route.hash },
-      { replace: true },
-    )
+    void navigateTo(canonicalAlbumTarget(value.slug), { replace: true })
 })
 const albumId = computed(() => resolved.value?.albumId ?? 0)
 const requestUrl = useRequestURL()

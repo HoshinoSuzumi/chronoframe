@@ -23,7 +23,7 @@ async function unusedPort(): Promise<number> {
 }
 
 test(
-  'self-hosted album URLs redirect and enforce visibility without reusing history',
+  'self-hosted album URLs use permanent numeric and temporary historical redirects',
   { timeout: 45_000 },
   async () => {
     const temporary = await mkdtemp(join(tmpdir(), 'chronoframe-album-http-'))
@@ -67,8 +67,6 @@ test(
           isCurrent: true,
         })
         .run()
-      connection.close()
-
       const port = await unusedPort()
       const base = `http://127.0.0.1:${port}`
       const server = spawn(
@@ -131,13 +129,20 @@ test(
         )
         assert.equal((await jsonPost('/api/wizard/complete', {})).status, 200)
 
+        const slugless = connection.db
+          .insert(tables.albums)
+          .values({ title: 'Slugless Album' })
+          .returning({ id: tables.albums.id })
+          .get()
+
         const canonical = await request('/albums/visible-album')
         assert.equal(canonical.status, 200)
+        assert.equal((await request(`/albums/${slugless.id}`)).status, 200)
         const numeric = await request(`/albums/${visible.id}`)
         assert.equal(numeric.status, 301)
         assert.equal(numeric.headers.get('location'), '/albums/visible-album')
         const historical = await request('/albums/old-visible?photo=x')
-        assert.equal(historical.status, 301)
+        assert.equal(historical.status, 302)
         assert.equal(
           historical.headers.get('location'),
           '/albums/visible-album?photo=x',
@@ -167,9 +172,14 @@ test(
           headers: { cookie, 'content-type': 'application/json' },
           body: JSON.stringify({ slug: 'old-visible' }),
         })
-        assert.equal(reuse.status, 409)
-        assert.equal((await request('/albums/old-visible')).status, 301)
-        assert.equal((await request('/albums/visible-album')).status, 200)
+        assert.equal(reuse.status, 200)
+        assert.equal((await request('/albums/old-visible')).status, 200)
+        const oldCanonical = await request('/albums/visible-album')
+        assert.equal(oldCanonical.status, 302)
+        assert.equal(
+          oldCanonical.headers.get('location'),
+          '/albums/old-visible',
+        )
       } finally {
         if (server.exitCode === null) {
           server.kill('SIGINT')

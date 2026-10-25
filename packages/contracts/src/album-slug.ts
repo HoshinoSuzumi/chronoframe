@@ -5,6 +5,7 @@ export interface AlbumPathResolution {
   slug: string
   isCanonical: boolean
   isHidden: boolean
+  redirectCode?: 301 | 302
 }
 
 const albumSlugPattern = /^[a-z0-9]+(?:-[a-z0-9]+)*$/

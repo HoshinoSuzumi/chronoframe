@@ -70,19 +70,18 @@ test('only current album slugs conflict; historical and deleted slugs are reusab
       slug: 'a-new-title',
       isCanonical: false,
       isHidden: false,
+      redirectCode: 301,
     })
     assert.equal(statements.length, 1)
     statements.length = 0
-    assert.equal(
-      resolveAlbumPath(db, DEFAULT_SITE, 'a-new-title')?.isCanonical,
-      true,
-    )
+    const current = resolveAlbumPath(db, DEFAULT_SITE, 'a-new-title')
+    assert.equal(current?.isCanonical, true)
+    assert.equal(current?.redirectCode, undefined)
     assert.equal(statements.length, 1)
     statements.length = 0
-    assert.equal(
-      resolveAlbumPath(db, DEFAULT_SITE, 'my-album')?.slug,
-      'a-new-title',
-    )
+    const historical = resolveAlbumPath(db, DEFAULT_SITE, 'my-album')
+    assert.equal(historical?.slug, 'a-new-title')
+    assert.equal(historical?.redirectCode, 302)
     assert.equal(statements.length, 1)
     assert.equal(
       resolveAlbumSlug(db, DEFAULT_SITE, 'my-album')?.albumId,
