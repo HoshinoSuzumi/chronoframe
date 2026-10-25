@@ -16,7 +16,10 @@ import { createSqliteAlbumWriteRepository } from '../packages/database/src/sqlit
 const access = { authenticated: true }
 
 test('album slugs remain unique, redirectable, and reserved after deletion', async () => {
-  const sqlite = new Database(':memory:')
+  const statements: string[] = []
+  const sqlite = new Database(':memory:', {
+    verbose: (statement) => statements.push(statement),
+  })
   sqlite.pragma('foreign_keys = ON')
   const db = drizzle(sqlite, { schema })
   migrate(db, { migrationsFolder: './packages/database/migrations' })
@@ -51,16 +54,26 @@ test('album slugs remain unique, redirectable, and reserved after deletion', asy
       access,
     )
     assert.equal(renamed.slug, 'a-new-title')
+    statements.length = 0
     assert.deepEqual(resolveAlbumPath(db, DEFAULT_SITE, String(first.id)), {
       albumId: first.id,
       slug: 'a-new-title',
       isCanonical: false,
       isHidden: false,
     })
+    assert.equal(statements.length, 1)
+    statements.length = 0
     assert.equal(
       resolveAlbumPath(db, DEFAULT_SITE, 'a-new-title')?.isCanonical,
       true,
     )
+    assert.equal(statements.length, 1)
+    statements.length = 0
+    assert.equal(
+      resolveAlbumPath(db, DEFAULT_SITE, 'my-album')?.slug,
+      'a-new-title',
+    )
+    assert.equal(statements.length, 1)
     assert.equal(
       resolveAlbumSlug(db, DEFAULT_SITE, 'my-album')?.albumId,
       first.id,

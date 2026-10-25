@@ -5,6 +5,7 @@ import {
   isValidAlbumSlug,
 } from '@chronoframe/contracts/album-slug'
 import { and, asc, eq } from 'drizzle-orm'
+import { alias } from 'drizzle-orm/sqlite-core'
 import { type AppDatabase } from './connection.ts'
 import * as tables from './schema.ts'
 import {
@@ -14,6 +15,7 @@ import {
 } from './album-slug.ts'
 
 type AlbumSlugDb = Pick<AppDatabase, 'select' | 'insert' | 'update'>
+const currentAlbumSlug = alias(tables.albumSlugs, 'current_album_slug')
 
 function currentSlug(db: AlbumSlugDb, siteId: number, albumId: number) {
   return db
@@ -136,31 +138,61 @@ export function resolveAlbumPath(
   segment: string,
 ) {
   if (segment.length > ALBUM_SLUG_MAX_LENGTH) return null
-  let albumId: number | null = null
-  let isCurrent = false
-  if (isNumericAlbumPathSegment(segment)) {
-    const number = Number(segment)
-    if (Number.isSafeInteger(number) && number > 0) albumId = number
-  } else if (isValidAlbumSlug(segment)) {
-    const entry = resolveAlbumSlug(db, site, segment)
-    albumId = entry?.albumId ?? null
-    isCurrent = entry?.isCurrent ?? false
-  }
-  if (albumId === null) return null
-  const album = db
-    .select({ isHidden: tables.albums.isHidden })
-    .from(tables.albums)
-    .where(
-      and(eq(tables.albums.siteId, site.id), eq(tables.albums.id, albumId)),
-    )
-    .get()
+  const numeric = isNumericAlbumPathSegment(segment)
+  if (!numeric && !isValidAlbumSlug(segment)) return null
+  const numericId = Number(segment)
+  if (numeric && (!Number.isSafeInteger(numericId) || numericId < 1))
+    return null
+  const currentJoin = and(
+    eq(currentAlbumSlug.siteId, tables.albums.siteId),
+    eq(currentAlbumSlug.albumId, tables.albums.id),
+    eq(currentAlbumSlug.isCurrent, true),
+  )
+  const album = numeric
+    ? db
+        .select({
+          albumId: tables.albums.id,
+          slug: currentAlbumSlug.slug,
+          isHidden: tables.albums.isHidden,
+        })
+        .from(tables.albums)
+        .leftJoin(currentAlbumSlug, currentJoin)
+        .where(
+          and(
+            eq(tables.albums.siteId, site.id),
+            eq(tables.albums.id, numericId),
+          ),
+        )
+        .get()
+    : db
+        .select({
+          albumId: tables.albums.id,
+          slug: currentAlbumSlug.slug,
+          isHidden: tables.albums.isHidden,
+          isCurrent: tables.albumSlugs.isCurrent,
+        })
+        .from(tables.albumSlugs)
+        .innerJoin(
+          tables.albums,
+          and(
+            eq(tables.albums.id, tables.albumSlugs.albumId),
+            eq(tables.albums.siteId, tables.albumSlugs.siteId),
+          ),
+        )
+        .leftJoin(currentAlbumSlug, currentJoin)
+        .where(
+          and(
+            eq(tables.albumSlugs.siteId, site.id),
+            eq(tables.albumSlugs.slug, segment),
+          ),
+        )
+        .get()
   if (!album) return null
-  const slug = getCurrentAlbumSlug(db, site, albumId)
+  const isCurrent = 'isCurrent' in album && album.isCurrent === true
   return {
-    albumId,
-    slug: slug ?? String(albumId),
-    isCanonical:
-      isCurrent || (slug === null && isNumericAlbumPathSegment(segment)),
+    albumId: album.albumId,
+    slug: album.slug ?? String(album.albumId),
+    isCanonical: isCurrent || (numeric && album.slug === null),
     isHidden: album.isHidden,
   }
 }

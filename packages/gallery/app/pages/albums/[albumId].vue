@@ -18,10 +18,11 @@ const { data: resolved, error: resolveError } = await useGalleryFetch<{
 })
 if (resolveError.value || !resolved.value)
   throw createError({ statusCode: 404, statusMessage: $t('album.notFound') })
-if (!resolved.value.isCanonical)
+const canonicalAlbumRoute = computed(() => `/albums/${resolved.value?.slug}`)
+if (!resolved.value.isCanonical || route.path !== canonicalAlbumRoute.value)
   await navigateTo(
     {
-      path: `/albums/${resolved.value.slug}`,
+      path: canonicalAlbumRoute.value,
       query: route.query,
       hash: route.hash,
     },
@@ -30,15 +31,14 @@ if (!resolved.value.isCanonical)
       replace: true,
     },
   )
-watch(resolved, (value) => {
-  if (value && !value.isCanonical)
+watch([resolved, () => route.path], ([value]) => {
+  if (value && (!value.isCanonical || route.path !== `/albums/${value.slug}`))
     void navigateTo(
       { path: `/albums/${value.slug}`, query: route.query, hash: route.hash },
       { replace: true },
     )
 })
 const albumId = computed(() => resolved.value?.albumId ?? 0)
-const canonicalAlbumRoute = computed(() => `/albums/${resolved.value?.slug}`)
 const requestUrl = useRequestURL()
 useHead(() => ({
   link: [
