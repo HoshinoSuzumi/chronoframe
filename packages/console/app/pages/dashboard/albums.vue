@@ -62,6 +62,7 @@ const isDeleteConfirmOpen = ref(false)
 const isPhotoSelectorOpen = ref(false)
 
 const currentAlbum = ref<AlbumItem | null>(null)
+const initialSlug = ref('')
 
 const formData = reactive<AlbumFormState>({
   title: '',
@@ -184,6 +185,7 @@ const loadPhotos = async () => {
 
 const openCreateSlideover = () => {
   currentAlbum.value = null
+  initialSlug.value = ''
   formData.title = ''
   formData.slug = ''
   formData.description = ''
@@ -202,6 +204,7 @@ const openEditSlideover = async (album: AlbumItem) => {
     const albumDetail = (await consoleApi(`/api/albums/${album.id}`)) as any
     formData.title = album.title
     formData.slug = album.slug ?? ''
+    initialSlug.value = formData.slug
     formData.description = album.description || ''
     formData.isHidden = album.isHidden || false
     formData.password = ''
@@ -232,7 +235,9 @@ const onFormSubmit = async (event: FormSubmitEvent<AlbumFormState>) => {
         method: 'PUT',
         body: {
           title: event.data.title,
-          slug: event.data.slug,
+          ...(event.data.slug !== initialSlug.value
+            ? { slug: event.data.slug }
+            : {}),
           description: event.data.description || undefined,
           coverPhotoId: coverPhotoId.value || undefined,
           photoIds: selectedPhotoIds.value,
