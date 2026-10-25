@@ -22,6 +22,15 @@ function load(
     computed,
     readonly,
     watch,
+    useI18n: () => ({
+      t: (key: string) =>
+        key
+          .split('.')
+          .reduce(
+            (value, part) => value[part],
+            JSON.parse(readFileSync('apps/cloud/i18n/locales/en.json', 'utf8')),
+          ),
+    }),
     ...globals,
     require: (name: string) => {
       assert.ok(name in imports, name)

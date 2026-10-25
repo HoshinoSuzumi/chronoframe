@@ -1,5 +1,6 @@
 /** One logout behavior for account settings and the portal account menu. */
 export function useCloudSignOut() {
+  const { t } = useI18n()
   const nuxtApp = useNuxtApp(),
     context = useEntryContext(),
     catalog = useState('platform-site-catalog'),
@@ -27,7 +28,7 @@ export function useCloudSignOut() {
         navigateTo('/signin', { external: true }),
       )
     } catch {
-      error.value = 'We could not sign you out. Please try again.'
+      error.value = t('cloud.messages.weCouldNotSignYouOutPleaseTryAgain')
     } finally {
       busy.value = false
     }

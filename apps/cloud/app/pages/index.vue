@@ -1,4 +1,6 @@
 <script setup lang="ts">
+const { t } = useI18n()
+
 import { motion } from 'motion-v'
 import {
   ArrowUpRight,
@@ -14,9 +16,10 @@ const mobileMenuOpen = ref(false)
 const entrance = useCloudMotion()
 const links = useCloudLinks()
 useSeoMeta({
-  title: 'ChronoFrame — A home for your photography',
-  description:
-    'A thoughtful home for your photographs. Beautiful galleries, your own storage, and an open-source heart.',
+  title: t('cloud.messages.chronoframeAHomeForYourPhotography'),
+  description: t(
+    'cloud.messages.aThoughtfulHomeForYourPhotographsBeautifulGalleriesYour',
+  ),
 })
 </script>
 <template>
@@ -25,9 +28,11 @@ useSeoMeta({
       <CloudBrand />
       <nav
         class="cf-marketing-nav"
-        aria-label="Main navigation"
+        :aria-label="$t('cloud.messages.mainNavigation')"
       >
-        <a href="https://docs.chronoframe.art/">Documentation</a
+        <a href="https://docs.chronoframe.art/">{{
+          $t('cloud.messages.documentation')
+        }}</a
         ><a href="https://github.com/HoshinoSuzumi/chronoframe"
           >GitHub
           <ArrowUpRight
@@ -42,7 +47,7 @@ useSeoMeta({
           ><NuxtLink
             :to="links.signin"
             external
-            >Log in</NuxtLink
+            >{{ $t('cloud.messages.logIn') }}</NuxtLink
           ></CloudButton
         ><CloudButton
           as-child
@@ -50,7 +55,8 @@ useSeoMeta({
           ><NuxtLink
             :to="links.signup"
             external
-            >Get started <ArrowUpRight :size="14" /></NuxtLink
+            >{{ $t('cloud.messages.getStarted')
+            }}<ArrowUpRight :size="14" /></NuxtLink
         ></CloudButton>
       </nav>
       <div class="cf-mobile-header-actions">
@@ -60,7 +66,7 @@ useSeoMeta({
           ><NuxtLink
             :to="links.signup"
             external
-            >Sign up</NuxtLink
+            >{{ $t('cloud.messages.signUp') }}</NuxtLink
           ></CloudButton
         >
         <PopoverRoot v-model:open="mobileMenuOpen">
@@ -68,7 +74,7 @@ useSeoMeta({
             ><CloudButton
               variant="ghost"
               size="icon"
-              aria-label="Open navigation"
+              :aria-label="$t('cloud.messages.openNavigation')"
               ><Menu :size="20" /></CloudButton
           ></PopoverTrigger>
           <PopoverContent
@@ -76,23 +82,25 @@ useSeoMeta({
             align="end"
             :side-offset="12"
             :collision-padding="20"
-            aria-label="Navigation"
+            :aria-label="$t('cloud.messages.navigation')"
           >
-            <nav aria-label="Mobile navigation">
+            <nav :aria-label="$t('cloud.messages.mobileNavigation')">
               <NuxtLink
                 :to="links.signin"
                 external
-                >Log in <ArrowRight :size="16"
+                >{{ $t('cloud.messages.logIn') }}<ArrowRight :size="16"
               /></NuxtLink>
               <a href="https://docs.chronoframe.art/"
-                >Documentation <ArrowUpRight :size="15"
+                >{{ $t('cloud.messages.documentation')
+                }}<ArrowUpRight :size="15"
               /></a>
               <a href="https://github.com/HoshinoSuzumi/chronoframe"
                 >GitHub <ArrowUpRight :size="15"
               /></a>
             </nav>
             <div class="cf-mobile-menu-theme">
-              <span>Appearance</span><CloudThemeToggle />
+              <span>{{ $t('cloud.messages.appearance') }}</span
+              ><CloudThemeToggle />
             </div>
           </PopoverContent>
         </PopoverRoot>
@@ -104,11 +112,16 @@ useSeoMeta({
     >
       <section class="cf-hero">
         <motion.div v-bind="entrance"
-          ><p class="cf-eyebrow">YOUR PHOTOGRAPHY. YOUR PERSPECTIVE.</p>
-          <h1 class="cf-hero-title">Every frame.<br /><em>Your story.</em></h1>
+          ><p class="cf-eyebrow">
+            {{ $t('cloud.messages.yourPhotographyYourPerspective') }}
+          </p>
+          <h1 class="cf-hero-title">
+            {{ $t('cloud.messages.everyFrame') }}<br /><em>{{
+              $t('cloud.messages.yourStory')
+            }}</em>
+          </h1>
           <p class="cf-hero-copy">
-            A home for the moments you want to share. Bring your photographs
-            together in a gallery that feels entirely yours.
+            {{ $t('cloud.messages.aHomeForTheMomentsYouWantToShare') }}
           </p>
           <div class="cf-hero-actions">
             <CloudButton
@@ -117,54 +130,59 @@ useSeoMeta({
               ><NuxtLink
                 :to="links.signup"
                 external
-                >Create your account
-                <ArrowRight :size="16" /></NuxtLink></CloudButton
+                >{{ $t('cloud.messages.createYourAccount')
+                }}<ArrowRight :size="16" /></NuxtLink></CloudButton
             ><CloudButton
               as-child
               variant="secondary"
               size="lg"
               ><a href="https://docs.chronoframe.art/guide/getting-started.html"
-                >Explore Self-hosted <ArrowUpRight :size="16" /></a
+                >{{ $t('cloud.messages.exploreSelfHosted')
+                }}<ArrowUpRight :size="16" /></a
             ></CloudButton>
           </div>
           <p class="cf-small-note">
-            Self-hosted is available now. Cloud is in preview.
+            {{ $t('cloud.messages.selfHostedIsAvailableNowCloudIsInPreview') }}
           </p></motion.div
         >
         <motion.div v-bind="entrance"
           ><div
             class="cf-gallery-preview"
-            aria-label="Example photography gallery"
+            :aria-label="$t('cloud.messages.examplePhotographyGallery')"
           >
             <div class="cf-preview-top">
-              <span>FIELD NOTES</span><span>A CHRONOFRAME GALLERY</span>
+              <span>{{ $t('cloud.messages.fieldNotes') }}</span
+              ><span>{{ $t('cloud.messages.aChronoframeGallery') }}</span>
             </div>
             <div class="cf-preview-grid">
               <img
                 src="/images/mountains.jpg"
-                alt="Sunlit mountain peaks beneath a soft blue sky"
+                :alt="
+                  $t('cloud.messages.sunlitMountainPeaksBeneathASoftBlueSky')
+                "
                 width="1200"
                 height="800"
                 fetchpriority="high"
               /><img
                 src="/images/forest.jpg"
-                alt="Light falling through a quiet green forest"
+                :alt="$t('cloud.messages.lightFallingThroughAQuietGreenForest')"
                 width="800"
                 height="600"
               /><img
                 src="/images/coast.jpg"
-                alt="An ocean shore in the warm light of sunset"
+                :alt="$t('cloud.messages.anOceanShoreInTheWarmLightOfSunset')"
                 width="800"
                 height="600"
               />
             </div>
             <div class="cf-preview-caption">
-              <span>Small moments. Wide horizons.</span><span>01 — 03</span>
+              <span>{{ $t('cloud.messages.smallMomentsWideHorizons') }}</span
+              ><span>01 — 03</span>
             </div>
             <div class="cf-preview-label">
-              <Check :size="16" /><span
-                >A little space for your perspective.</span
-              >
+              <Check :size="16" /><span>{{
+                $t('cloud.messages.aLittleSpaceForYourPerspective')
+              }}</span>
             </div>
           </div></motion.div
         >
@@ -172,10 +190,14 @@ useSeoMeta({
       <section aria-labelledby="features-heading">
         <div class="cf-section-heading">
           <div>
-            <p class="cf-eyebrow">LESS BETWEEN YOU AND YOUR PHOTOGRAPHS</p>
-            <h2 id="features-heading">Thoughtfully simple. Entirely yours.</h2>
+            <p class="cf-eyebrow">
+              {{ $t('cloud.messages.lessBetweenYouAndYourPhotographs') }}
+            </p>
+            <h2 id="features-heading">
+              {{ $t('cloud.messages.thoughtfullySimpleEntirelyYours') }}
+            </h2>
           </div>
-          <CloudBadge>Open source, by nature</CloudBadge>
+          <CloudBadge>{{ $t('cloud.messages.openSourceByNature') }}</CloudBadge>
         </div>
         <div class="cf-features">
           <article>
@@ -183,10 +205,13 @@ useSeoMeta({
               :size="23"
               :stroke-width="1.5"
             />
-            <h3>Let your photographs lead.</h3>
+            <h3>{{ $t('cloud.messages.letYourPhotographsLead') }}</h3>
             <p>
-              Quiet layouts, considered details, and a dedicated viewer. Give
-              every photograph the space it deserves.
+              {{
+                $t(
+                  'cloud.messages.quietLayoutsConsideredDetailsAndADedicatedViewerGive',
+                )
+              }}
             </p>
           </article>
           <article>
@@ -194,10 +219,13 @@ useSeoMeta({
               :size="23"
               :stroke-width="1.5"
             />
-            <h3>Your images. Your storage.</h3>
+            <h3>{{ $t('cloud.messages.yourImagesYourStorage') }}</h3>
             <p>
-              Run the self-hosted edition with storage you control. Keep your
-              collection close, on your terms.
+              {{
+                $t(
+                  'cloud.messages.runTheSelfHostedEditionWithStorageYouControl',
+                )
+              }}
             </p>
           </article>
           <article>
@@ -205,10 +233,11 @@ useSeoMeta({
               :size="23"
               :stroke-width="1.5"
             />
-            <h3>Made to be made your own.</h3>
+            <h3>{{ $t('cloud.messages.madeToBeMadeYourOwn') }}</h3>
             <p>
-              Built in the open, with a shared foundation. Explore the source
-              and help shape what comes next.
+              {{
+                $t('cloud.messages.builtInTheOpenWithASharedFoundationExplore')
+              }}
             </p>
           </article>
         </div>
@@ -216,11 +245,11 @@ useSeoMeta({
     </main>
     <footer class="cf-marketing-footer">
       <span
-        >© {{ new Date().getFullYear() }} ChronoFrame. Made for the way you
-        see.</span
+        >© {{ new Date().getFullYear()
+        }}{{ $t('cloud.messages.chronoframeMadeForTheWayYouSee') }}</span
       ><a
         href="https://github.com/HoshinoSuzumi/chronoframe/blob/main/LICENSING.md"
-        >Source and licensing <ArrowUpRight :size="13"
+        >{{ $t('cloud.messages.sourceAndLicensing') }}<ArrowUpRight :size="13"
       /></a>
     </footer>
   </div>

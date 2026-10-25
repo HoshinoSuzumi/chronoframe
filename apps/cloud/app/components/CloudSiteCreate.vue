@@ -1,4 +1,6 @@
 <script setup lang="ts">
+const { t } = useI18n()
+
 import { Plus, ArrowRight, Layers } from 'lucide-vue-next'
 defineProps<{ workspaceName?: string }>()
 const open = ref(false)
@@ -39,12 +41,12 @@ async function create() {
     const status = (cause as { statusCode?: number }).statusCode
     error.value =
       status === 409
-        ? 'This address is already taken, or this request changed. Choose another address and try again.'
+        ? t('cloud.messages.thisAddressIsAlreadyTakenOrThisRequestChanged')
         : status === 400
-          ? 'Check the site name and address. This address may be reserved.'
+          ? t('cloud.messages.checkTheSiteNameAndAddressThisAddressMay')
           : status === 403
-            ? 'You cannot create another site in this workspace. The preview supports up to 10 sites.'
-            : 'Your site could not be created. Please try again.'
+            ? t('cloud.messages.youCannotCreateAnotherSiteInThisWorkspaceThe')
+            : t('cloud.messages.yourSiteCouldNotBeCreatedPleaseTryAgain')
   } finally {
     busy.value = false
   }
@@ -52,13 +54,16 @@ async function create() {
 </script>
 <template>
   <div class="cf-workspace-toolbar">
-    <span><Layers :size="15" />{{ workspaceName || 'My workspace' }}</span
+    <span
+      ><Layers :size="15" />{{
+        workspaceName || $t('cloud.messages.myWorkspace')
+      }}</span
     ><CloudButton
       v-if="!open"
       id="create-site-trigger"
       size="sm"
       @click="show"
-      ><Plus :size="15" />Create site</CloudButton
+      ><Plus :size="15" />{{ $t('cloud.messages.createSite') }}</CloudButton
     >
   </div>
   <CloudCard
@@ -66,10 +71,9 @@ async function create() {
     class="cf-create-panel"
   >
     <div class="cf-panel-heading">
-      <h2>Create a site</h2>
+      <h2>{{ $t('cloud.messages.createASite') }}</h2>
       <p>
-        Start with a private draft. Your address is reserved until publishing is
-        available.
+        {{ $t('cloud.messages.startWithAPrivateDraftYourAddressIsReserved') }}
       </p>
     </div>
     <form
@@ -78,7 +82,7 @@ async function create() {
     >
       <div class="cf-create-fields">
         <div class="cf-field">
-          <label for="site-name">Site name</label
+          <label for="site-name">{{ $t('cloud.messages.siteName') }}</label
           ><CloudInput
             id="site-name"
             v-model="name"
@@ -89,7 +93,7 @@ async function create() {
           />
         </div>
         <div class="cf-field">
-          <label for="site-slug">Site address</label
+          <label for="site-slug">{{ $t('cloud.messages.siteAddress') }}</label
           ><CloudInput
             id="site-slug"
             v-model="slug"
@@ -115,8 +119,7 @@ async function create() {
         id="site-address-help"
         class="cf-field-hint"
       >
-        Use 3–40 lowercase letters, numbers or hyphens. Some addresses are
-        reserved. The address cannot be changed here.
+        {{ $t('cloud.messages.use340LowercaseLettersNumbersOrHyphensSome') }}
       </p>
       <p
         v-if="error"
@@ -129,14 +132,17 @@ async function create() {
         <CloudButton
           type="submit"
           :disabled="busy || !name.trim() || !validSlug"
-          >{{ busy ? 'Creating…' : 'Create draft'
+          >{{
+            busy
+              ? $t('cloud.messages.creating')
+              : $t('cloud.messages.createDraft')
           }}<ArrowRight :size="14" /></CloudButton
         ><CloudButton
           type="button"
           variant="ghost"
           :disabled="busy"
           @click="cancel"
-          >Cancel</CloudButton
+          >{{ $t('cloud.messages.cancel') }}</CloudButton
         >
       </div>
     </form>

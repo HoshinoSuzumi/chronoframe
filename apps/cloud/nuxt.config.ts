@@ -8,7 +8,23 @@ export default defineNuxtConfig({
   ...sharedUi,
   modules: [...sharedUi.modules, 'shadcn-nuxt'],
   shadcn: { prefix: '', componentDir: './app/components/ui' },
-  app: { head: { htmlAttrs: { lang: 'en' } } },
+  i18n: {
+    strategy: 'no_prefix',
+    defaultLocale: 'en',
+    bundle: { onlyLocales: ['en', 'zh-Hans'] },
+    locales: [
+      { code: 'en', language: 'en', file: 'en.json' },
+      { code: 'zh-Hans', language: 'zh', file: 'zh-Hans.json' },
+    ],
+    langDir: 'locales',
+    vueI18n: 'i18n.config.ts',
+    detectBrowserLanguage: {
+      useCookie: false,
+      redirectOn: 'all',
+      fallbackLocale: 'en',
+    },
+    experimental: { localeDetector: 'localeDetector.ts' },
+  },
   devServer: { port: 3001 },
   nitro: {
     ...sharedUi.nitro,

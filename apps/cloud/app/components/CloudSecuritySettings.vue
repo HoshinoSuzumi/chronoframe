@@ -1,4 +1,6 @@
 <script setup lang="ts">
+const { t } = useI18n()
+
 import { accountError } from '../utils/account-error'
 
 const { data: security, refresh } = await useFetch<{
@@ -27,7 +29,7 @@ async function run(action: () => Promise<void>) {
     await action()
     await refresh()
   } catch (cause) {
-    error.value = accountError(cause)
+    error.value = accountError(cause, t)
   } finally {
     busy.value = false
   }
@@ -44,7 +46,9 @@ async function changePassword() {
     })
     newPassword.value = ''
     password.value = ''
-    notice.value = 'Password updated. Other sessions have been signed out.'
+    notice.value = t(
+      'cloud.messages.passwordUpdatedOtherSessionsHaveBeenSignedOut',
+    )
   })
 }
 async function enable(method: 'otp' | 'totp') {
@@ -62,9 +66,9 @@ async function enable(method: 'otp' | 'totp') {
         width: 240,
         margin: 2,
       })
-      notice.value =
-        'Scan the QR code, save your recovery codes, and enter a code to finish setup.'
-    } else notice.value = 'Email second-step verification is enabled.'
+      notice.value = t('cloud.messages.scanTheQrCodeSaveYourRecoveryCodesAnd')
+    } else
+      notice.value = t('cloud.messages.emailSecondStepVerificationIsEnabled')
   })
 }
 async function confirmAuthenticator() {
@@ -76,8 +80,9 @@ async function confirmAuthenticator() {
     code.value = ''
     qr.value = ''
     totpURI.value = ''
-    notice.value =
-      'Authenticator verified and enabled. Keep your recovery codes somewhere safe.'
+    notice.value = t(
+      'cloud.messages.authenticatorVerifiedAndEnabledKeepYourRecoveryCodesSomewhere',
+    )
   })
 }
 async function disable() {
@@ -90,7 +95,7 @@ async function disable() {
     backupCodes.value = []
     qr.value = ''
     totpURI.value = ''
-    notice.value = 'Two-step verification has been disabled.'
+    notice.value = t('cloud.messages.twoStepVerificationHasBeenDisabled')
   })
 }
 async function regenerate() {
@@ -101,19 +106,21 @@ async function regenerate() {
     )
     backupCodes.value = result.backupCodes
     password.value = ''
-    notice.value =
-      'New recovery codes generated. Your previous codes no longer work.'
+    notice.value = t(
+      'cloud.messages.newRecoveryCodesGeneratedYourPreviousCodesNoLonger',
+    )
   })
 }
 async function addPasskey() {
   await run(async () => {
     const result = await useCloudAccount().passkey.addPasskey({
-      name: passkeyName.value.trim() || 'My passkey',
+      name: passkeyName.value.trim() || t('cloud.messages.myPasskey'),
     })
     if (result.error) throw result.error
     passkeyName.value = ''
-    notice.value =
-      'Passkey created. Its private key stays on your device or password manager.'
+    notice.value = t(
+      'cloud.messages.passkeyCreatedItsPrivateKeyStaysOnYourDevice',
+    )
   })
 }
 async function deletePasskey(id: number) {
@@ -122,7 +129,7 @@ async function deletePasskey(id: number) {
       method: 'POST',
       body: { id: String(id) },
     })
-    notice.value = 'Passkey removed.'
+    notice.value = t('cloud.messages.passkeyRemoved')
   })
 }
 </script>
@@ -137,10 +144,10 @@ async function deletePasskey(id: number) {
           id="security-heading"
           class="cf-page-title"
         >
-          Security
+          {{ $t('cloud.messages.security') }}
         </h2>
         <p class="cf-page-description">
-          Manage sign-in methods for {{ security?.email }}.
+          {{ $t('cloud.ui.securityFor', { email: security?.email || '' }) }}.
         </p>
       </div>
     </div>
@@ -160,15 +167,19 @@ async function deletePasskey(id: number) {
     </p>
     <CloudCard class="cf-security-card"
       ><div class="cf-settings-intro">
-        <h2>Password</h2>
-        <p>Use a unique password with at least 12 characters.</p>
+        <h2>{{ $t('cloud.messages.password') }}</h2>
+        <p>
+          {{ $t('cloud.messages.useAUniquePasswordWithAtLeast12Characters') }}
+        </p>
       </div>
       <div class="cf-settings-body">
         <form
           v-if="security?.hasPassword"
           @submit.prevent="changePassword"
         >
-          <label for="current-password">Current password</label
+          <label for="current-password">{{
+            $t('cloud.messages.currentPassword')
+          }}</label
           ><CloudInput
             id="current-password"
             v-model="password"
@@ -176,7 +187,9 @@ async function deletePasskey(id: number) {
             autocomplete="current-password"
             :disabled="busy"
             required
-          /><label for="new-password">New password</label
+          /><label for="new-password">{{
+            $t('cloud.messages.newPassword')
+          }}</label
           ><CloudInput
             id="new-password"
             v-model="newPassword"
@@ -189,38 +202,47 @@ async function deletePasskey(id: number) {
           /><CloudButton
             type="submit"
             :loading="busy"
-            >Update password</CloudButton
+            >{{ $t('cloud.messages.updatePassword') }}</CloudButton
           >
         </form>
         <p v-else>
-          You signed in with an email code.
-          <NuxtLink
+          {{ $t('cloud.messages.youSignedInWithAnEmailCode')
+          }}<NuxtLink
             class="cf-text-link"
             to="/forgot-password"
-            >Email yourself a link to set a password</NuxtLink
-          >
-          before enabling two-step verification.
+            >{{
+              $t('cloud.messages.emailYourselfALinkToSetAPassword')
+            }}</NuxtLink
+          >{{ $t('cloud.messages.beforeEnablingTwoStepVerification') }}
         </p>
       </div></CloudCard
     >
     <CloudCard class="cf-security-card"
       ><div class="cf-settings-intro">
         <div>
-          <h2>Two-step verification</h2>
+          <h2>{{ $t('cloud.messages.twoStepVerification') }}</h2>
           <p>
-            Add a code after password sign-in. Connected authenticators also
-            protect email-code sign-in. Passkeys use device verification.
+            {{
+              $t(
+                'cloud.messages.addACodeAfterPasswordSignInConnectedAuthenticators',
+              )
+            }}
           </p>
         </div>
         <CloudBadge
           :tone="security?.twoFactorEnabled ? 'success' : 'neutral'"
-          >{{ security?.twoFactorEnabled ? 'Enabled' : 'Off' }}</CloudBadge
+          >{{
+            security?.twoFactorEnabled
+              ? $t('cloud.messages.enabled')
+              : $t('cloud.messages.off')
+          }}</CloudBadge
         >
       </div>
       <div class="cf-settings-body">
         <template v-if="security?.hasPassword"
-          ><label for="security-password"
-            >Confirm your password to change security settings</label
+          ><label for="security-password">{{
+            $t('cloud.messages.confirmYourPasswordToChangeSecuritySettings')
+          }}</label
           ><CloudInput
             id="security-password"
             v-model="password"
@@ -233,19 +255,21 @@ async function deletePasskey(id: number) {
               v-if="!security.twoFactorEnabled"
               :disabled="busy || !password"
               @click="enable('otp')"
-              >Enable email verification</CloudButton
+              >{{ $t('cloud.messages.enableEmailVerification') }}</CloudButton
             ><CloudButton
               v-if="!security.hasAuthenticator"
               variant="secondary"
               :disabled="busy || !password"
               @click="enable('totp')"
-              >Set up authenticator</CloudButton
+              >{{ $t('cloud.messages.setUpAuthenticator') }}</CloudButton
             ><CloudButton
               v-if="security.twoFactorEnabled"
               variant="destructive"
               :disabled="busy || !password"
               @click="disable"
-              >Disable two-step verification</CloudButton
+              >{{
+                $t('cloud.messages.disableTwoStepVerification')
+              }}</CloudButton
             >
           </div>
           <div
@@ -257,14 +281,20 @@ async function deletePasskey(id: number) {
               :src="qr"
               width="240"
               height="240"
-              alt="Scan this private QR code with your authenticator app"
+              :alt="
+                $t(
+                  'cloud.messages.scanThisPrivateQrCodeWithYourAuthenticatorApp',
+                )
+              "
             />
             <details>
-              <summary>Cannot scan the QR code?</summary>
+              <summary>{{ $t('cloud.messages.cannotScanTheQrCode') }}</summary>
               <p class="cf-secret-value">{{ totpURI }}</p>
             </details>
             <form @submit.prevent="confirmAuthenticator">
-              <label for="totp-code">Authenticator code</label
+              <label for="totp-code">{{
+                $t('cloud.messages.authenticatorCode')
+              }}</label
               ><CloudInput
                 id="totp-code"
                 v-model="code"
@@ -277,28 +307,37 @@ async function deletePasskey(id: number) {
               /><CloudButton
                 type="submit"
                 :loading="busy"
-                >Verify and enable</CloudButton
+                >{{ $t('cloud.messages.verifyAndEnable') }}</CloudButton
               >
             </form>
           </div>
           <div v-if="security.hasAuthenticator">
             <p>
-              Authenticator connected. Recovery codes are single use. Generating
-              new codes replaces the old ones.
+              {{
+                $t(
+                  'cloud.messages.authenticatorConnectedRecoveryCodesAreSingleUseGeneratingNew',
+                )
+              }}
             </p>
             <CloudButton
               variant="secondary"
               :disabled="busy || !password"
               @click="regenerate"
-              >Replace recovery codes</CloudButton
+              >{{ $t('cloud.messages.replaceRecoveryCodes') }}</CloudButton
             >
           </div>
           <div
             v-if="backupCodes.length"
             class="cf-notice"
           >
-            <strong>Save these recovery codes privately.</strong>
-            <p>These are only shown here. Keep them outside this browser.</p>
+            <strong>{{
+              $t('cloud.messages.saveTheseRecoveryCodesPrivately')
+            }}</strong>
+            <p>
+              {{
+                $t('cloud.messages.theseAreOnlyShownHereKeepThemOutsideThis')
+              }}
+            </p>
             <ul class="cf-recovery-codes">
               <li
                 v-for="item in backupCodes"
@@ -310,7 +349,7 @@ async function deletePasskey(id: number) {
             <CloudButton
               variant="secondary"
               @click="backupCodes = []"
-              >I have saved my codes</CloudButton
+              >{{ $t('cloud.messages.iHaveSavedMyCodes') }}</CloudButton
             >
           </div></template
         >
@@ -318,26 +357,29 @@ async function deletePasskey(id: number) {
     >
     <CloudCard class="cf-security-card"
       ><div class="cf-settings-intro">
-        <h2>Passkeys</h2>
+        <h2>{{ $t('cloud.messages.passkeys') }}</h2>
         <p>
-          Use your device lock, fingerprint or security key. Your device creates
-          the keys automatically.
+          {{
+            $t('cloud.messages.useYourDeviceLockFingerprintOrSecurityKeyYour')
+          }}
         </p>
       </div>
       <div class="cf-settings-body">
         <form @submit.prevent="addPasskey">
-          <label for="passkey-name">Passkey name</label
+          <label for="passkey-name">{{
+            $t('cloud.messages.passkeyName')
+          }}</label
           ><CloudInput
             id="passkey-name"
             v-model="passkeyName"
             maxlength="80"
             autocomplete="off"
-            placeholder="For example, my laptop"
+            :placeholder="$t('cloud.messages.forExampleMyLaptop')"
             :disabled="busy"
           /><CloudButton
             type="submit"
             :loading="busy"
-            >Create passkey</CloudButton
+            >{{ $t('cloud.messages.createPasskey') }}</CloudButton
           >
         </form>
         <ul
@@ -348,14 +390,18 @@ async function deletePasskey(id: number) {
             v-for="key in security.passkeys"
             :key="key.id"
           >
-            <span>{{ key.name || 'Passkey' }}</span
+            <span>{{ key.name || $t('cloud.messages.passkey') }}</span
             ><CloudButton
               variant="destructive"
               size="sm"
               :disabled="busy"
-              :aria-label="`Remove ${key.name || 'passkey'}`"
+              :aria-label="
+                $t('cloud.ui.removePasskey', {
+                  name: key.name || $t('cloud.messages.passkey'),
+                })
+              "
               @click="deletePasskey(key.id)"
-              >Remove</CloudButton
+              >{{ $t('cloud.messages.remove') }}</CloudButton
             >
           </li>
         </ul>
@@ -363,7 +409,7 @@ async function deletePasskey(id: number) {
           v-else
           class="cf-auth-hint"
         >
-          No passkeys yet.
+          {{ $t('cloud.messages.noPasskeysYet') }}
         </p>
       </div></CloudCard
     >

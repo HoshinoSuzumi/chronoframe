@@ -1,24 +1,32 @@
 <script setup lang="ts">
+const { t } = useI18n()
+
 definePageMeta({ layout: 'portal' })
-useSeoMeta({ title: 'Storage — ChronoFrame Cloud', robots: 'noindex' })
+useSeoMeta({
+  title: t('cloud.messages.storageChronoframeCloud'),
+  robots: 'noindex',
+})
 </script>
 <template>
   <div class="cf-site-settings-stack">
     <div class="cf-page-heading">
       <div>
-        <h1 class="cf-page-title">Storage</h1>
+        <h1 class="cf-page-title">{{ $t('cloud.messages.storage') }}</h1>
         <p class="cf-page-description">
-          Choose where your gallery’s media lives.
+          {{ $t('cloud.messages.chooseWhereYourGallerySMediaLives') }}
         </p>
       </div>
     </div>
     <CloudStorageSettings /><CloudCard
       ><div class="cf-panel-heading">
-        <h2>Platform storage</h2>
-        <CloudBadge>Coming later</CloudBadge>
+        <h2>{{ $t('cloud.messages.platformStorage') }}</h2>
+        <CloudBadge>{{ $t('cloud.messages.comingLater') }}</CloudBadge>
         <p>
-          Managed storage and plan allowances are not available yet. Connect
-          your own private S3-compatible bucket above to get started.
+          {{
+            $t(
+              'cloud.messages.managedStorageAndPlanAllowancesAreNotAvailableYet',
+            )
+          }}
         </p>
       </div></CloudCard
     >

@@ -31,8 +31,10 @@ async function dropFiles(event: DragEvent) {
 <template>
   <USlideover
     v-model:open="uploadOpen"
-    title="Upload photographs"
-    description="Add photographs to your library. JPEG, PNG, HEIC and paired Live Photos are supported."
+    :title="$t('cloud.messages.uploadPhotographs')"
+    :description="
+      $t('cloud.messages.addPhotographsToYourLibraryJpegPngHeicAnd')
+    "
     :ui="{ footer: 'justify-end' }"
     ><template #body
       ><div class="space-y-5">
@@ -44,7 +46,7 @@ async function dropFiles(event: DragEvent) {
         >
           {{ message }}
         </p>
-        <UFormField label="Storage connection"
+        <UFormField :label="$t('cloud.messages.storageConnection')"
           ><USelect
             v-model="connectionId"
             :items="
@@ -57,14 +59,13 @@ async function dropFiles(event: DragEvent) {
           v-if="!connections.length"
           class="text-sm text-muted"
         >
-          Connect your private storage in
-          <NuxtLink
+          {{ $t('cloud.messages.connectYourPrivateStorageIn')
+          }}<NuxtLink
             :to="`/sites/${context?.siteId}/storage`"
             class="underline"
             @click="uploadOpen = false"
-            >Storage</NuxtLink
-          >
-          before uploading.
+            >{{ $t('cloud.messages.storage') }}</NuxtLink
+          >{{ $t('cloud.messages.beforeUploading') }}
         </p>
         <input
           ref="input"
@@ -72,7 +73,7 @@ async function dropFiles(event: DragEvent) {
           type="file"
           multiple
           accept="image/*,.heic,.heif,.mov"
-          aria-label="Choose photographs"
+          :aria-label="$t('cloud.messages.choosePhotographs')"
           :disabled="uploading || !connectionId || !admin"
           @change="upload"
         /><button
@@ -85,13 +86,13 @@ async function dropFiles(event: DragEvent) {
           <UIcon
             name="tabler:cloud-upload"
             class="size-9"
-          /><strong>Select photographs</strong
-          ><span
-            >Drop images here, or choose images and matching .MOV files
-            together.</span
-          ><span
-            >Up to 100 MiB per photograph, including its paired video.</span
-          >
+          /><strong>{{ $t('cloud.messages.selectPhotographs') }}</strong
+          ><span>{{
+            $t('cloud.messages.dropImagesHereOrChooseImagesAndMatchingMov')
+          }}</span
+          ><span>{{
+            $t('cloud.messages.upTo100MibPerPhotographIncludingItsPaired')
+          }}</span>
         </button>
         <div
           v-if="uploading"
@@ -101,16 +102,19 @@ async function dropFiles(event: DragEvent) {
           <p class="text-sm break-all">{{ currentFile }}</p>
           <UProgress :model-value="progress" />
           <p class="text-xs text-muted">
-            {{ progress }}% · Uploading to your private bucket
+            {{ $t('cloud.ui.uploadProgress', { progress }) }}
           </p>
         </div>
         <p
           v-if="usage"
           class="text-xs text-muted"
         >
-          {{ usage.photos }} / 1,000 photographs ·
-          {{ (usage.bytes / 1073741824).toFixed(2) }} / 5 GiB uploaded in 30
-          days
+          {{
+            $t('cloud.ui.uploadUsage', {
+              photos: usage.photos,
+              bytes: (usage.bytes / 1073741824).toFixed(2),
+            })
+          }}
         </p>
       </div></template
     ><template #footer
@@ -119,13 +123,13 @@ async function dropFiles(event: DragEvent) {
         color="error"
         variant="soft"
         @click="cancel"
-        >Cancel upload</UButton
+        >{{ $t('cloud.messages.cancelUpload') }}</UButton
       ><UButton
         v-else
         color="neutral"
         variant="outline"
         @click="uploadOpen = false"
-        >Done</UButton
+        >{{ $t('cloud.messages.done') }}</UButton
       ></template
     ></USlideover
   >

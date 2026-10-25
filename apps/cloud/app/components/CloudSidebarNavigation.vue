@@ -33,26 +33,32 @@ watch(mode, (next) => {
           ><NuxtLink
             to="/sites"
             class="cf-sidebar-back"
-            ><ArrowLeft :size="15" />All sites</NuxtLink
+            ><ArrowLeft :size="15" />{{
+              $t('cloud.messages.allSites')
+            }}</NuxtLink
           >
           <div class="cf-sidebar-site">
             <span class="cf-site-icon"><Images :size="18" /></span>
             <div>
               <strong>{{ site.name }}</strong
               ><span>{{
-                site.published ? 'Published gallery' : 'Private draft'
+                site.published
+                  ? $t('cloud.messages.publishedGallery')
+                  : $t('cloud.messages.privateDraft')
               }}</span>
             </div>
           </div>
-          <p class="cf-nav-label">MANAGE SITE</p>
-          <nav aria-label="Site navigation">
+          <p class="cf-nav-label">{{ $t('cloud.messages.manageSite') }}</p>
+          <nav :aria-label="$t('cloud.messages.siteNavigation')">
             <NuxtLink
               :to="`/sites/${site.siteId}/overview`"
               :class="{ active: route.path.endsWith('/overview') }"
               :aria-current="
                 route.path.endsWith('/overview') ? 'page' : undefined
               "
-              ><LayoutDashboard :size="17" />Overview</NuxtLink
+              ><LayoutDashboard :size="17" />{{
+                $t('cloud.messages.overview')
+              }}</NuxtLink
             >
             <NuxtLink
               :to="`/sites/${site.siteId}/photos`"
@@ -60,14 +66,18 @@ watch(mode, (next) => {
               :aria-current="
                 route.path.endsWith('/photos') ? 'page' : undefined
               "
-              ><Images :size="17" />Photo library</NuxtLink
+              ><Images :size="17" />{{
+                $t('cloud.messages.photoLibrary')
+              }}</NuxtLink
             ><NuxtLink
               :to="`/sites/${site.siteId}/albums`"
               :class="{ active: route.path.endsWith('/albums') }"
               :aria-current="
                 route.path.endsWith('/albums') ? 'page' : undefined
               "
-              ><LibraryBig :size="17" />Albums</NuxtLink
+              ><LibraryBig :size="17" />{{
+                $t('cloud.messages.albums')
+              }}</NuxtLink
             >
             <NuxtLink
               :to="`/sites/${site.siteId}/information`"
@@ -75,36 +85,44 @@ watch(mode, (next) => {
               :aria-current="
                 route.path.endsWith('/information') ? 'page' : undefined
               "
-              ><Settings :size="17" />Site information</NuxtLink
+              ><Settings :size="17" />{{
+                $t('cloud.messages.siteInformation')
+              }}</NuxtLink
             >
           </nav>
-          <p class="cf-nav-label cf-nav-section">SITE RESOURCES</p>
-          <nav aria-label="Site resources">
+          <p class="cf-nav-label cf-nav-section">
+            {{ $t('cloud.messages.siteResources') }}
+          </p>
+          <nav :aria-label="$t('cloud.messages.siteResources2')">
             <NuxtLink
               :to="`/sites/${site.siteId}/domains`"
               :class="{ active: route.path.endsWith('/domains') }"
               :aria-current="
                 route.path.endsWith('/domains') ? 'page' : undefined
               "
-              ><Globe :size="17" />Domains</NuxtLink
+              ><Globe :size="17" />{{ $t('cloud.messages.domains') }}</NuxtLink
             ><NuxtLink
               :to="`/sites/${site.siteId}/storage`"
               :class="{ active: route.path.endsWith('/storage') }"
               :aria-current="
                 route.path.endsWith('/storage') ? 'page' : undefined
               "
-              ><HardDrive :size="17" />Storage</NuxtLink
+              ><HardDrive :size="17" />{{
+                $t('cloud.messages.storage')
+              }}</NuxtLink
             >
           </nav>
         </template>
         <template v-else
-          ><p class="cf-nav-label">WORKSPACE</p>
-          <nav aria-label="Portal navigation">
+          ><p class="cf-nav-label">{{ $t('cloud.messages.workspace2') }}</p>
+          <nav :aria-label="$t('cloud.messages.portalNavigation')">
             <NuxtLink
               to="/sites"
               :class="{ active: route.path === '/sites' }"
               :aria-current="route.path === '/sites' ? 'page' : undefined"
-              ><PanelsTopLeft :size="17" />Sites</NuxtLink
+              ><PanelsTopLeft :size="17" />{{
+                $t('cloud.messages.sites')
+              }}</NuxtLink
             >
           </nav></template
         >

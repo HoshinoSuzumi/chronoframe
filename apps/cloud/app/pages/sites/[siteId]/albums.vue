@@ -1,5 +1,10 @@
 <script setup lang="ts">
+const { t } = useI18n()
+
 definePageMeta({ layout: 'portal' })
-useSeoMeta({ title: 'Albums — ChronoFrame Cloud', robots: 'noindex' })
+useSeoMeta({
+  title: t('cloud.messages.albumsChronoframeCloud'),
+  robots: 'noindex',
+})
 </script>
 <template><CloudAlbumsManager /></template>

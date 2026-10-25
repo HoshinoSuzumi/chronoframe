@@ -1,4 +1,6 @@
 <script setup lang="ts">
+const { t } = useI18n()
+
 import { ChevronsUpDown, UserRound, LogOut } from 'lucide-vue-next'
 import {
   DropdownMenuRoot,
@@ -11,7 +13,8 @@ import {
 const user = usePortalIdentity(),
   { busy, error, signOut } = useCloudSignOut()
 const label = computed(
-  () => user.value?.name || user.value?.email || 'Your account',
+  () =>
+    user.value?.name || user.value?.email || t('cloud.messages.yourAccount'),
 )
 const initials = computed(() =>
   label.value
@@ -35,12 +38,14 @@ const initials = computed(() =>
       ><DropdownMenuTrigger as-child
         ><button
           class="cf-user-trigger"
-          aria-label="Open user menu"
+          :aria-label="$t('cloud.messages.openUserMenu')"
         >
           <span class="cf-user-avatar">{{ initials }}</span
           ><span class="cf-user-identity"
             ><strong>{{ label }}</strong
-            ><span>{{ user?.email || 'Account settings' }}</span></span
+            ><span>{{
+              user?.email || $t('cloud.messages.accountSettings')
+            }}</span></span
           ><ChevronsUpDown :size="15" /></button
       ></DropdownMenuTrigger>
       <DropdownMenuPortal
@@ -50,7 +55,7 @@ const initials = computed(() =>
           align="start"
           :side-offset="8"
           :collision-padding="12"
-          aria-label="User menu"
+          :aria-label="$t('cloud.messages.userMenu')"
         >
           <div class="cf-account-menu-label">
             <strong>{{ label }}</strong
@@ -59,7 +64,9 @@ const initials = computed(() =>
           <DropdownMenuSeparator class="cf-menu-separator" />
           <DropdownMenuItem as-child
             ><NuxtLink to="/account"
-              ><UserRound :size="16" />Account &amp; security</NuxtLink
+              ><UserRound :size="16" />{{
+                $t('cloud.messages.accountSecurity')
+              }}</NuxtLink
             ></DropdownMenuItem
           >
           <DropdownMenuSeparator class="cf-menu-separator" />
@@ -67,7 +74,9 @@ const initials = computed(() =>
             :disabled="busy"
             @select="signOut"
             ><LogOut :size="16" />{{
-              busy ? 'Signing out…' : 'Sign out'
+              busy
+                ? $t('cloud.messages.signingOut')
+                : $t('cloud.messages.signOut')
             }}</DropdownMenuItem
           >
         </DropdownMenuContent></DropdownMenuPortal

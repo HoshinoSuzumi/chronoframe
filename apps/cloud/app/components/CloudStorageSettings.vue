@@ -13,24 +13,35 @@ const {
 <template>
   <CloudCard
     ><div class="cf-panel-heading">
-      <h2>Storage</h2>
-      <p>Connect a private S3-compatible bucket for your photographs.</p>
+      <h2>{{ $t('cloud.messages.storage') }}</h2>
+      <p>
+        {{
+          $t(
+            'cloud.messages.connectAPrivateS3CompatibleBucketForYourPhotographs',
+          )
+        }}
+      </p>
     </div>
     <div class="cf-panel-body cf-media-controls">
       <label class="cf-field-label"
-        >Storage connection<select
+        >{{ $t('cloud.messages.storageConnection')
+        }}<select
           v-model="connectionId"
           class="cf-input"
           :disabled="!admin"
         >
-          <option value="">Choose a connection</option>
+          <option value="">{{ $t('cloud.messages.chooseAConnection') }}</option>
           <option
             v-for="connection in connections"
             :key="connection.id"
             :value="connection.id"
           >
-            {{ connection.config.bucket }} · revision
-            {{ connection.current_revision }}
+            {{
+              $t('cloud.ui.connectionRevision', {
+                bucket: connection.config.bucket,
+                revision: connection.current_revision,
+              })
+            }}
           </option>
         </select></label
       >
@@ -38,20 +49,22 @@ const {
         v-if="admin && connectionId"
         class="cf-storage-details"
       >
-        <summary>Rotate storage credentials</summary>
+        <summary>{{ $t('cloud.messages.rotateStorageCredentials') }}</summary>
         <form
           class="cf-storage-grid"
           @submit.prevent="rotateStorage"
         >
           <label
-            >New access key ID<input
+            >{{ $t('cloud.messages.newAccessKeyId')
+            }}<input
               v-model="rotation.accessKeyId"
               class="cf-input"
               autocomplete="off"
               required
           /></label>
           <label
-            >New secret access key<input
+            >{{ $t('cloud.messages.newSecretAccessKey')
+            }}<input
               v-model="rotation.secretAccessKey"
               class="cf-input"
               type="password"
@@ -62,7 +75,7 @@ const {
             type="submit"
             variant="secondary"
             :disabled="busy"
-            >Test &amp; rotate</CloudButton
+            >{{ $t('cloud.messages.testRotate') }}</CloudButton
           >
         </form>
       </details>
@@ -70,13 +83,14 @@ const {
         v-if="admin"
         class="cf-storage-details"
       >
-        <summary>Connect storage</summary>
+        <summary>{{ $t('cloud.messages.connectStorage') }}</summary>
         <form
           class="cf-storage-grid"
           @submit.prevent="saveStorage"
         >
           <label
-            >Endpoint<input
+            >{{ $t('cloud.messages.endpoint')
+            }}<input
               v-model="storage.endpoint"
               class="cf-input"
               type="url"
@@ -84,26 +98,30 @@ const {
               required
           /></label>
           <label
-            >Region<input
+            >{{ $t('cloud.messages.region')
+            }}<input
               v-model="storage.region"
               class="cf-input"
               required
           /></label>
           <label
-            >Bucket<input
+            >{{ $t('cloud.messages.bucket')
+            }}<input
               v-model="storage.bucket"
               class="cf-input"
               required
           /></label>
           <label
-            >Access key ID<input
+            >{{ $t('cloud.messages.accessKeyId')
+            }}<input
               v-model="storage.accessKeyId"
               class="cf-input"
               autocomplete="off"
               required
           /></label>
           <label
-            >Secret access key<input
+            >{{ $t('cloud.messages.secretAccessKey')
+            }}<input
               v-model="storage.secretAccessKey"
               class="cf-input"
               type="password"
@@ -111,14 +129,14 @@ const {
               required
           /></label>
           <p>
-            Use a dedicated bucket with private access. Allow this portal origin
-            in CORS for GET, PUT and HEAD; allow Content-Type and expose ETag.
-            Other endpoint hosts require operator approval.
+            {{
+              $t('cloud.messages.useADedicatedBucketWithPrivateAccessAllowThis')
+            }}
           </p>
           <CloudButton
             type="submit"
             :disabled="busy"
-            >Test &amp; connect</CloudButton
+            >{{ $t('cloud.messages.testConnect') }}</CloudButton
           >
         </form>
       </details>

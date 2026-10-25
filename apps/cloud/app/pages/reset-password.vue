@@ -1,7 +1,9 @@
 <script setup lang="ts">
+const { t } = useI18n()
+
 import { accountError } from '../utils/account-error'
 useSeoMeta({
-  title: 'Set a new password — ChronoFrame Cloud',
+  title: t('cloud.messages.setANewPasswordChronoframeCloud'),
   robots: 'noindex',
   referrer: 'no-referrer',
 })
@@ -14,7 +16,7 @@ const route = useRoute(),
 const token = typeof route.query.token === 'string' ? route.query.token : ''
 async function submit() {
   if (password.value !== confirmation.value) {
-    error.value = 'The passwords do not match.'
+    error.value = t('cloud.messages.thePasswordsDoNotMatch')
     return
   }
   busy.value = true
@@ -29,7 +31,7 @@ async function submit() {
     done.value = true
     await navigateTo('/reset-password', { replace: true })
   } catch (cause) {
-    error.value = accountError(cause)
+    error.value = accountError(cause, t)
   } finally {
     busy.value = false
   }
@@ -37,19 +39,19 @@ async function submit() {
 </script>
 <template>
   <CloudAuthLayout
-    ><h1>Set a new password.</h1>
+    ><h1>{{ $t('cloud.messages.setANewPassword') }}</h1>
     <p
       v-if="done"
       class="cf-notice"
       role="status"
     >
-      Your password has been updated. Sign in with your new password.
+      {{ $t('cloud.messages.yourPasswordHasBeenUpdatedSignInWithYour') }}
     </p>
     <form
       v-else-if="token"
       @submit.prevent="submit"
     >
-      <label for="password">New password</label
+      <label for="password">{{ $t('cloud.messages.newPassword') }}</label
       ><CloudInput
         id="password"
         v-model="password"
@@ -59,7 +61,9 @@ async function submit() {
         maxlength="128"
         required
         :disabled="busy"
-      /><label for="confirmation">Confirm password</label
+      /><label for="confirmation">{{
+        $t('cloud.messages.confirmPassword')
+      }}</label
       ><CloudInput
         id="confirmation"
         v-model="confirmation"
@@ -80,21 +84,24 @@ async function submit() {
       <CloudButton
         type="submit"
         :loading="busy"
-        >Save new password</CloudButton
+        >{{ $t('cloud.messages.saveNewPassword') }}</CloudButton
       >
     </form>
     <p
       v-else
       class="cf-notice"
     >
-      This reset link is invalid or expired.
-      <NuxtLink to="/forgot-password">Request a new link</NuxtLink>.
+      {{ $t('cloud.messages.thisResetLinkIsInvalidOrExpired')
+      }}<NuxtLink to="/forgot-password">{{
+        $t('cloud.messages.requestANewLink')
+      }}</NuxtLink
+      >.
     </p>
     <p class="cf-auth-hint">
       <NuxtLink
         to="/signin"
         class="cf-text-link"
-        >Back to sign in</NuxtLink
+        >{{ $t('cloud.messages.backToSignIn') }}</NuxtLink
       >
     </p></CloudAuthLayout
   >
