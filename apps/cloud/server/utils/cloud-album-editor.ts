@@ -1,3 +1,9 @@
+import { CoreError } from '@chronoframe/core'
+import {
+  cloudAlbumSlugConflict,
+  prepareCloudAlbumSlug,
+} from '@chronoframe/database/cloud-album-slugs'
+import type { MediaDatabase } from '@chronoframe/database/cloud-media'
 import { createError } from 'h3'
 import type { platformDatabase } from '../../../shared/platform/runtime'
 type CloudDatabase = ReturnType<typeof platformDatabase>
@@ -9,7 +15,8 @@ export async function updateCloudAlbum(
   siteId: number,
   id: number,
   body: Record<string, unknown>,
-) {
+  slugAttempt = 0,
+): Promise<{ revision: number }> {
   const revision = body.revision,
     title = body.title
   if (
@@ -84,7 +91,16 @@ export async function updateCloudAlbum(
   const guard =
     'EXISTS(SELECT 1 FROM cloud_albums WHERE site_id=? AND id=? AND revision=?)'
   const args = [siteId, String(id), Number(revision)]
-  const statements = []
+  const claim = await prepareCloudAlbumSlug(
+    db as unknown as MediaDatabase,
+    siteId,
+    String(id),
+    title.trim(),
+    body.slug,
+    guard,
+    args,
+  )
+  const statements = [...claim.statements]
   if (photoIds) {
     statements.push(
       db
@@ -139,7 +155,23 @@ export async function updateCloudAlbum(
         ...args,
       ),
   )
-  const results = await db.batch(statements)
+  let results
+  try {
+    results = await db.batch(statements)
+  } catch (error) {
+    if (!cloudAlbumSlugConflict(error)) throw error
+    if (
+      (body.slug === undefined ||
+        (typeof body.slug === 'string' && !body.slug.trim())) &&
+      slugAttempt < 3
+    )
+      return updateCloudAlbum(db, siteId, id, body, slugAttempt + 1)
+    throw new CoreError(
+      409,
+      'Album URL slug already exists',
+      'album_slug_conflict',
+    )
+  }
   if (results.at(-1)?.meta.changes !== 1) throw createError({ statusCode: 409 })
   return { revision: Number(revision) + 1 }
 }

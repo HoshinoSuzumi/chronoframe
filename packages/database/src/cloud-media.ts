@@ -1,3 +1,4 @@
+import { createCloudAlbumWithSlug } from './cloud-album-slugs.ts'
 import {
   assertSiteContext,
   CoreError,
@@ -74,23 +75,7 @@ export function createCloudMediaRepository(
       )
     },
     async createAlbum(id: string, title: string) {
-      if (!/^[1-9][0-9]*$/.test(id) || !Number.isSafeInteger(Number(id)))
-        throw new CoreError(400, 'Canonical numeric album ID required')
-      await db.batch([
-        statement(
-          'INSERT INTO cloud_albums(site_id,id,title) SELECT ?,?,? WHERE (SELECT COUNT(*) FROM cloud_albums WHERE site_id=?)<100 ON CONFLICT DO NOTHING',
-          text(id),
-          text(title),
-          siteId,
-        ),
-      ])
-      const existing = await first<{ title: string }>(
-        'SELECT title FROM cloud_albums WHERE site_id=? AND id=?',
-        id,
-      )
-      if (!existing) throw new CoreError(429, 'Album limit reached')
-      if (existing.title !== title)
-        throw new CoreError(409, 'Album identifier already used')
+      await createCloudAlbumWithSlug(db, siteId, text(id), text(title))
     },
     async addToAlbum(albumId: string, photoId: string) {
       if (

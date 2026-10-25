@@ -138,19 +138,21 @@ export function useCloudMediaWorkspace(props: {
       const diagnostic = (error as { data?: { data?: { code?: string } } }).data
         ?.data?.code
       message.value =
-        diagnostic && Object.hasOwn(STORAGE_CONNECTION_MESSAGES, diagnostic)
-          ? STORAGE_CONNECTION_MESSAGES[
-              diagnostic as keyof typeof STORAGE_CONNECTION_MESSAGES
-            ]
-          : code === 503
-            ? 'Media services need deployment configuration. Check the selected environment settings.'
-            : code === 409
-              ? 'This item changed. Refresh and try again.'
-              : code === 429
-                ? 'The preview resource limit has been reached.'
-                : code === 403
-                  ? 'Administrator access is required.'
-                  : 'The operation failed. Check the entered values and your connection, then retry.'
+        diagnostic === 'album_slug_conflict'
+          ? 'This album URL is already used or reserved by an older link. Choose another slug.'
+          : diagnostic && Object.hasOwn(STORAGE_CONNECTION_MESSAGES, diagnostic)
+            ? STORAGE_CONNECTION_MESSAGES[
+                diagnostic as keyof typeof STORAGE_CONNECTION_MESSAGES
+              ]
+            : code === 503
+              ? 'Media services need deployment configuration. Check the selected environment settings.'
+              : code === 409
+                ? 'This item changed. Refresh and try again.'
+                : code === 429
+                  ? 'The preview resource limit has been reached.'
+                  : code === 403
+                    ? 'Administrator access is required.'
+                    : 'The operation failed. Check the entered values and your connection, then retry.'
       return false
     } finally {
       busy.value = false

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { isValidAlbumSlug } from '@chronoframe/contracts/album-slug'
 import type { Album, Photo } from '@chronoframe/contracts/resources'
 import type { TableColumn } from '@nuxt/ui'
 const {
@@ -27,6 +28,7 @@ const search = ref(''),
   generation = ref(0)
 const draft = reactive({
   title: '',
+  slug: '',
   description: '',
   isHidden: false,
   passwordEnabled: false,
@@ -87,6 +89,7 @@ function create() {
   hadPassword.value = false
   Object.assign(draft, {
     title: '',
+    slug: '',
     description: '',
     isHidden: false,
     passwordEnabled: false,
@@ -118,6 +121,7 @@ async function edit(album: Album) {
     hadPassword.value = !!data.album.hasPassword
     Object.assign(draft, {
       title: data.album.title,
+      slug: data.album.slug || '',
       description: data.album.description || '',
       isHidden: !!data.album.isHidden,
       passwordEnabled: !!data.album.hasPassword,
@@ -158,6 +162,14 @@ function movePhoto(index: number, step: number) {
 }
 async function save() {
   if (!loaded.value || saving.value || !draft.title.trim()) return
+  if (draft.slug.trim() && !isValidAlbumSlug(draft.slug.trim())) {
+    toast.add({
+      title:
+        'Use lowercase letters, numbers and single hyphens; the slug cannot be numeric only.',
+      color: 'error',
+    })
+    return
+  }
   if (draft.passwordEnabled && !hadPassword.value && !draft.password) {
     toast.add({ title: 'Enter an album password.', color: 'error' })
     return
@@ -177,7 +189,7 @@ async function save() {
         const id = crypto.getRandomValues(new Uint32Array(1))[0] || 1
         await api(base.value + '/albums', {
           method: 'POST',
-          body: { id, title: draft.title, isHidden: true },
+          body: { id, title: draft.title, slug: draft.slug, isHidden: true },
         })
         selected.value = id
         revision.value = 1
@@ -189,6 +201,7 @@ async function save() {
           body: {
             revision: revision.value,
             title: draft.title,
+            slug: draft.slug,
             description: draft.description || null,
             isHidden: draft.isHidden,
             photoIds: draft.photoIds,
@@ -429,6 +442,11 @@ function menu(album: Album) {
           ><ConsoleAlbumDetailsFields
             v-model:title="draft.title"
             v-model:description="draft.description"
+            v-model:slug="draft.slug"
+            show-slug
+            :current-slug="
+              selected ? albums.find((a) => a.id === selected)?.slug : undefined
+            "
           /><UCheckbox
             v-model="draft.isHidden"
             label="Hide album"

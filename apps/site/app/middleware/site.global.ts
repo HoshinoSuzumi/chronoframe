@@ -1,3 +1,5 @@
+import { isAlbumPagePath } from '@chronoframe/gallery/shared/utils/albumPath'
+
 export default defineNuxtRouteMiddleware(async (to) => {
   const context = useEntryContext()
   if (
@@ -22,7 +24,7 @@ export default defineNuxtRouteMiddleware(async (to) => {
     !/^\/[a-zA-Z0-9_-]{1,128}$/.test(to.path) &&
     to.path !== '/' &&
     to.path !== '/albums' &&
-    !/^\/albums\/[1-9][0-9]*$/.test(to.path)
+    !isAlbumPagePath(to.path)
   )
     return abortNavigation(createError({ statusCode: 404 }))
 })

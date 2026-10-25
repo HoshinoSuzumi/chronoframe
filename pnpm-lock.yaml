@@ -348,6 +348,9 @@ importers:
       "@chronoframe/contracts":
         specifier: workspace:*
         version: link:../contracts
+      transliteration:
+        specifier: 2.6.1
+        version: 2.6.1
     devDependencies:
       typescript:
         specifier: ^5.9.3

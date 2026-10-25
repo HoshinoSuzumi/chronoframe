@@ -18,7 +18,7 @@ const status = computed(() => (loading.value ? 'pending' : 'success'))
     :photos="photos"
     :refresh="reload"
     :status="status"
-    ><CloudSiteHeader />
+  >
     <p
       v-if="message"
       :role="failed ? 'alert' : 'status'"

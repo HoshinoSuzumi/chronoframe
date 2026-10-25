@@ -77,7 +77,7 @@ const sites = ref(
           :key="site.siteId"
         >
           <NuxtLink
-            :to="`/sites/${site.siteId}/photos`"
+            :to="`/sites/${site.siteId}/overview`"
             :aria-label="site.name"
             :aria-describedby="`site-status-${site.siteId} site-role-${site.siteId}`"
             class="cf-site-row"

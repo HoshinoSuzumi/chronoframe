@@ -13,7 +13,8 @@
     "./album-slugs": "./src/album-slugs.ts",
     "./cloud-media": "./src/cloud-media.ts",
     "./cloud-execution": "./src/cloud-execution.ts",
-    "./cloud-resources": "./src/cloud-resources.ts"
+    "./cloud-resources": "./src/cloud-resources.ts",
+    "./cloud-album-slugs": "./src/cloud-album-slugs.ts"
   },
   "scripts": {
     "type-check": "tsc --noEmit"

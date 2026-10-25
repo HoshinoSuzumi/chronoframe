@@ -1,3 +1,5 @@
+import type { MediaDatabase } from '@chronoframe/database/cloud-media'
+import { createCloudAlbumWithSlug } from '@chronoframe/database/cloud-album-slugs'
 import { deleteCloudPhotos } from '../../../../utils/cloud-photo-delete'
 import { updateCloudAlbum } from '../../../../utils/cloud-album-editor'
 import { getRouterParam, createError } from 'h3'
@@ -456,16 +458,14 @@ export default definePlatformHandler(async (event) => {
     if (event.method === 'POST') {
       const albumId = String(number(body.id))
       const title = text(body.title, 80)
-      if (body.isHidden === true) {
-        const created = await raw
-          .prepare(
-            'INSERT INTO cloud_albums(site_id,id,title,hidden,created_at,updated_at) SELECT ?,?,?,1,?,? WHERE (SELECT COUNT(*) FROM cloud_albums WHERE site_id=?)<100 ON CONFLICT DO NOTHING RETURNING id',
-          )
-          .bind(siteId, albumId, title, now, now, siteId)
-          .first()
-        if (!created) throw createError({ statusCode: 409 })
-      } else await repository.createAlbum(albumId, title)
-      return { id: Number(albumId) }
+      const slug = await createCloudAlbumWithSlug(
+        raw as unknown as MediaDatabase,
+        siteId,
+        albumId,
+        title,
+        { hidden: body.isHidden === true, slug: body.slug },
+      )
+      return { id: Number(albumId), slug }
     }
   }
   if (
@@ -500,6 +500,11 @@ export default definePlatformHandler(async (event) => {
         raw
           .prepare(
             'DELETE FROM cloud_album_photos WHERE site_id=? AND album_id=?',
+          )
+          .bind(siteId, albumId),
+        raw
+          .prepare(
+            'UPDATE cloud_album_slugs SET album_id=NULL,is_current=0 WHERE site_id=? AND album_id=?',
           )
           .bind(siteId, albumId),
         raw

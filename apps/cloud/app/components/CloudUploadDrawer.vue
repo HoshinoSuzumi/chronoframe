@@ -59,10 +59,10 @@ async function dropFiles(event: DragEvent) {
         >
           Connect your private storage in
           <NuxtLink
-            :to="`/sites/${context?.siteId}/settings`"
+            :to="`/sites/${context?.siteId}/storage`"
             class="underline"
             @click="uploadOpen = false"
-            >site settings</NuxtLink
+            >Storage</NuxtLink
           >
           before uploading.
         </p>
