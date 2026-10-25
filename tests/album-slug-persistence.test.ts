@@ -196,6 +196,54 @@ test('untransliteratable titles use a stable album-id slug', async () => {
   }
 })
 
+test('editing a slug-less album claims a slug from its updated or existing title', async () => {
+  const sqlite = new Database(':memory:')
+  sqlite.pragma('foreign_keys = ON')
+  const db = drizzle(sqlite, { schema })
+  migrate(db, { migrationsFolder: './packages/database/migrations' })
+  try {
+    const writer = createAlbumWriter({
+      repository: createSqliteAlbumWriteRepository(db, DEFAULT_SITE),
+      clock: { now: () => new Date() },
+      hashPassword: async (value) => value,
+    })
+    const [first, second] = db
+      .insert(schema.albums)
+      .values([{ title: 'Old Title' }, { title: 'Existing Title' }])
+      .returning({ id: schema.albums.id })
+      .all()
+    assert.equal(getCurrentAlbumSlug(db, DEFAULT_SITE, first!.id), null)
+    assert.deepEqual(resolveAlbumPath(db, DEFAULT_SITE, String(first!.id)), {
+      albumId: first!.id,
+      slug: String(first!.id),
+      isCanonical: true,
+      isHidden: false,
+    })
+
+    const updated = await writer.update(
+      first!.id,
+      { title: 'New Title' },
+      access,
+    )
+    assert.equal(updated.slug, 'new-title')
+    assert.equal(getCurrentAlbumSlug(db, DEFAULT_SITE, first!.id), 'new-title')
+    assert.equal(
+      (await writer.update(second!.id, { description: 'Edited' }, access)).slug,
+      'existing-title',
+    )
+    assert.equal(
+      getCurrentAlbumSlug(db, DEFAULT_SITE, second!.id),
+      'existing-title',
+    )
+    assert.equal(
+      (await writer.update(first!.id, { description: 'Edited' }, access)).slug,
+      'new-title',
+    )
+  } finally {
+    sqlite.close()
+  }
+})
+
 test('migration replaces tombstones and retains live slug history', () => {
   const oldMigrations = mkdtempSync(join(tmpdir(), 'album-slugs-0020-'))
   cpSync('./packages/database/migrations', oldMigrations, { recursive: true })

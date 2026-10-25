@@ -101,7 +101,8 @@ export function createSqliteAlbumWriteRepository(
           }
           const slug =
             requestedSlug === undefined
-              ? getCurrentAlbumSlug(tx, site, id)
+              ? (getCurrentAlbumSlug(tx, site, id) ??
+                claimAlbumSlug(tx, site, id, data.title ?? exists.title, ''))
               : claimAlbumSlug(
                   tx,
                   site,
