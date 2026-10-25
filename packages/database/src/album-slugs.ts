@@ -4,6 +4,7 @@ import {
   isNumericAlbumPathSegment,
   isValidAlbumSlug,
 } from '@chronoframe/contracts/album-slug'
+import type { AlbumPathResolution } from '@chronoframe/contracts/album-slug'
 import { and, asc, eq, isNull } from 'drizzle-orm'
 import { alias } from 'drizzle-orm/sqlite-core'
 import { type AppDatabase } from './connection.ts'
@@ -151,7 +152,7 @@ export function resolveAlbumPath(
   db: AppDatabase,
   site: SiteContext,
   segment: string,
-) {
+): AlbumPathResolution | null {
   if (segment.length > ALBUM_SLUG_MAX_LENGTH) return null
   const numeric = isNumericAlbumPathSegment(segment)
   if (!numeric && !isValidAlbumSlug(segment)) return null

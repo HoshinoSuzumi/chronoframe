@@ -2,6 +2,7 @@
 const galleryApi = useGalleryApi()
 
 import { motion } from 'motion-v'
+import type { AlbumPathResolution } from '@chronoframe/contracts/album-slug'
 
 const route = useRoute()
 const router = useRouter()
@@ -9,13 +10,13 @@ const dayjs = useDayjs()
 const { user } = useUserSession()
 const { albumListPath } = useHomeView()
 const albumSegment = computed(() => String(route.params.albumId))
-const { data: resolved, error: resolveError } = await useGalleryFetch<{
-  albumId: number
-  slug: string
-  isCanonical: boolean
-}>(() => `/api/albums/resolve/${encodeURIComponent(albumSegment.value)}`, {
-  watch: [albumSegment],
-})
+const { data: resolved, error: resolveError } =
+  await useGalleryFetch<AlbumPathResolution>(
+    () => `/api/albums/resolve/${encodeURIComponent(albumSegment.value)}`,
+    {
+      watch: [albumSegment],
+    },
+  )
 if (resolveError.value || !resolved.value)
   throw createError({ statusCode: 404, statusMessage: $t('album.notFound') })
 const canonicalAlbumRoute = computed(() => `/albums/${resolved.value?.slug}`)
@@ -27,7 +28,7 @@ if (!resolved.value.isCanonical || route.path !== canonicalAlbumRoute.value)
       hash: route.hash,
     },
     {
-      redirectCode: 301,
+      redirectCode: resolved.value.redirectCode ?? 301,
       replace: true,
     },
   )

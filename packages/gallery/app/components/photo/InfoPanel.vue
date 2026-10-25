@@ -27,6 +27,7 @@ const dayjs = useDayjs()
 const router = useRouter()
 const { localizeExif } = useExifLocalization()
 
+
 const props = defineProps<Props>()
 
 // 获取照片所属的相册

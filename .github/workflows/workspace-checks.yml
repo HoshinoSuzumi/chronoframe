@@ -35,6 +35,7 @@ jobs:
       - run: pnpm test
       - run: pnpm build:deps
       - run: pnpm build
+      - run: pnpm test:album-http
 
   edge:
     env:

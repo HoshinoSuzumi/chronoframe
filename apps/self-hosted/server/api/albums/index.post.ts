@@ -1,4 +1,5 @@
 import { requireAdminSession } from '../../utils/require-admin.ts'
+import { ALBUM_SLUG_MAX_LENGTH } from '@chronoframe/contracts/album-slug'
 import z from 'zod'
 import {
   ALBUM_PASSWORD_MAX_LENGTH,
@@ -12,7 +13,7 @@ export default eventHandler(async (event) => {
     event,
     z.object({
       title: z.string().min(1).max(255),
-      slug: z.string().max(80).optional(),
+      slug: z.string().trim().max(ALBUM_SLUG_MAX_LENGTH).optional(),
       description: z.string().max(1000).optional(),
       coverPhotoId: z.string().optional(),
       photoIds: z.array(z.string()).optional(),

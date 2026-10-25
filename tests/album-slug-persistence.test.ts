@@ -3,6 +3,7 @@ import test from 'node:test'
 import Database from 'better-sqlite3'
 import { drizzle } from 'drizzle-orm/better-sqlite3'
 import { migrate } from 'drizzle-orm/better-sqlite3/migrator'
+import { asc } from 'drizzle-orm'
 import { DEFAULT_SITE, CoreError, createAlbumWriter } from '@chronoframe/core'
 import * as schema from '../packages/database/src/schema.ts'
 import {
@@ -173,6 +174,7 @@ test('backfill assigns deterministic slugs once for existing rows', () => {
       db
         .select()
         .from(schema.albumSlugs)
+        .orderBy(asc(schema.albumSlugs.slug))
         .all()
         .map((row) => row.slug),
       ['ni-hao', 'ni-hao-1'],
