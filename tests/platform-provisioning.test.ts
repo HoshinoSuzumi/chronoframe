@@ -7,6 +7,7 @@ import {
   siteIdentity,
   type PlatformD1,
 } from '../packages/platform/src/index.ts'
+import { siteProfile } from '../packages/platform/src/provisioning.ts'
 const require = createRequire(import.meta.url)
 const { Miniflare, convertV4MiniflareOptions } = createRequire(
   require.resolve('wrangler/package.json'),
@@ -78,6 +79,7 @@ test('Real D1 provisioning preserves old tenants, serializes defaults and enforc
     await migrate('0002_visitor_access.sql')
     await migrate('0003_account_security.sql')
     await migrate('0004_workspace_sites.sql')
+    await migrate('0011_site_identity.sql')
     await db
       .prepare('UPDATE platform_users SET email_verified=0 WHERE id=44')
       .run()
@@ -185,6 +187,58 @@ test('Real D1 provisioning preserves old tenants, serializes defaults and enforc
       ).published,
       0,
     )
+    const profile = {
+      title: 'Public title',
+      slogan: 'Small moments',
+      author: 'Photographer',
+      avatarUrl: 'data:image/png;base64,AA==',
+    }
+    const profiled = await store.update(42, 8, {
+      name: 'Workspace name',
+      published: false,
+      revision: 3,
+      profile,
+    })
+    assert.equal(profiled.title, profile.title)
+    assert.equal((await store.get(42, 8)).avatarUrl, profile.avatarUrl)
+    const preserved = await store.update(42, 8, {
+      name: 'Renamed workspace',
+      published: false,
+      revision: 4,
+    })
+    assert.equal(
+      preserved.title,
+      profile.title,
+      'legacy clients preserve public profile',
+    )
+    await assert.rejects(
+      store.update(42, 8, {
+        name: 'Stale',
+        published: false,
+        revision: 4,
+        profile: { ...profile, title: 'Lost update' },
+      }),
+      { statusCode: 409 },
+    )
+    await assert.rejects(
+      store.update(43, 8, {
+        name: 'Member edit',
+        published: false,
+        revision: 5,
+        profile,
+      }),
+      { statusCode: 403 },
+    )
+    await assert.rejects(
+      store.update(44, 8, {
+        name: 'Foreign',
+        published: false,
+        revision: 5,
+        profile,
+      }),
+      { statusCode: 404 },
+    )
+    assert.equal((await store.get(42, 8)).title, profile.title)
     // The pilot bound is enforced in the INSERT, including parallel writes.
     await Promise.allSettled(
       Array.from({ length: 15 }, (_, i) =>
@@ -228,4 +282,20 @@ test('Real D1 provisioning preserves old tenants, serializes defaults and enforc
   } finally {
     await mf.dispose()
   }
+})
+
+test('Gallery identity accepts bounded plain text and raster data only', () => {
+  const profile = { title: ' Gallery ', slogan: '', author: '', avatarUrl: '' }
+  assert.equal(siteProfile(profile).title, 'Gallery')
+  for (const avatarUrl of [
+    'javascript:alert(1)',
+    'https://127.0.0.1/icon',
+    'data:image/svg+xml;base64,PHN2Zz4=',
+    'x'.repeat(65537),
+  ])
+    assert.throws(() => siteProfile({ ...profile, avatarUrl }), {
+      statusCode: 400,
+    })
+  for (const title of ['x'.repeat(81), 'bad\nvalue'])
+    assert.throws(() => siteProfile({ ...profile, title }), { statusCode: 400 })
 })

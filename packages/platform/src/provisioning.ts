@@ -50,6 +50,38 @@ export function siteIdentity(name: unknown, slug: unknown) {
     throw new ProvisioningError(400, 'Invalid site address')
   return { name: name.trim(), slug }
 }
+export function siteProfile(value: unknown) {
+  if (!value || typeof value !== 'object' || Array.isArray(value))
+    throw new ProvisioningError(400, 'Invalid gallery profile')
+  const profile = value as Record<string, unknown>
+  function text(key: string, max: number) {
+    const value = profile[key]
+    if (
+      typeof value !== 'string' ||
+      value.length > max ||
+      Array.from(value).some(
+        (char) => char.charCodeAt(0) < 32 || char.charCodeAt(0) === 127,
+      )
+    )
+      throw new ProvisioningError(400, 'Invalid gallery profile')
+    return value.trim()
+  }
+  const avatarUrl = text('avatarUrl', 65536)
+  // Raster uploads only: no scripts, SVG or server-side remote image fetches.
+  if (
+    avatarUrl &&
+    !/^data:image\/(?:png|jpeg|webp);base64,[A-Za-z0-9+/]+={0,2}$/.test(
+      avatarUrl,
+    )
+  )
+    throw new ProvisioningError(400, 'Invalid gallery icon')
+  return {
+    title: text('title', 80),
+    slogan: text('slogan', 200),
+    author: text('author', 80),
+    avatarUrl,
+  }
+}
 export interface ManagedSite {
   siteId: number
   workspaceId: number
@@ -57,9 +89,13 @@ export interface ManagedSite {
   slug: string | null
   published: number
   revision: number
+  title: string
+  slogan: string
+  author: string
+  avatarUrl: string
 }
 const fields =
-  's.id AS siteId, s.workspace_id AS workspaceId, s.name, s.slug, s.published, s.revision'
+  's.id AS siteId, s.workspace_id AS workspaceId, s.name, s.slug, s.published, s.revision, s.gallery_title AS title, s.gallery_slogan AS slogan, s.gallery_author AS author, s.gallery_avatar AS avatarUrl'
 /** Transactional D1 writes retain live membership checks, including during retries. */
 export function createD1Provisioning(db: PlatformD1) {
   async function defaultWorkspace(userId: number) {
@@ -127,7 +163,7 @@ export function createD1Provisioning(db: PlatformD1) {
           SELECT ?, ?, ?, ?, ? WHERE EXISTS(SELECT 1 FROM platform_memberships WHERE workspace_id = ? AND user_id = ? AND role = 'admin')
           AND (SELECT COUNT(*) FROM platform_sites WHERE workspace_id = ?) < 10
           ON CONFLICT(workspace_id, provision_key) DO UPDATE SET provision_key = excluded.provision_key
-          RETURNING id AS siteId, workspace_id AS workspaceId, name, slug, published, revision`)
+          RETURNING id AS siteId, workspace_id AS workspaceId, name, slug, published, revision, gallery_title AS title, gallery_slogan AS slogan, gallery_author AS author, gallery_avatar AS avatarUrl`)
           .bind(
             workspace.id,
             identity.name,
@@ -160,12 +196,19 @@ export function createD1Provisioning(db: PlatformD1) {
     async update(
       userId: number,
       siteId: number,
-      input: { name: unknown; revision: unknown; published: unknown },
+      input: {
+        name: unknown
+        revision: unknown
+        published: unknown
+        profile?: unknown
+      },
     ) {
       const current = await get(userId, siteId)
       if (current.role !== 'admin')
         throw new ProvisioningError(403, 'Administrator required')
       const name = siteIdentity(input.name, current.slug ?? 'legacy-site').name
+      const profile =
+        input.profile === undefined ? current : siteProfile(input.profile)
       if (
         !Number.isSafeInteger(input.revision) ||
         typeof input.published !== 'boolean'
@@ -175,12 +218,16 @@ export function createD1Provisioning(db: PlatformD1) {
       if (input.published && !current.published)
         throw new ProvisioningError(400, 'Publishing is not available yet')
       const result = await db
-        .prepare(`UPDATE platform_sites SET name = ?, published = ?, revision = revision + 1
+        .prepare(`UPDATE platform_sites SET name = ?, published = ?, gallery_title = ?, gallery_slogan = ?, gallery_author = ?, gallery_avatar = ?, revision = revision + 1
         WHERE id = ? AND revision = ? AND EXISTS(SELECT 1 FROM platform_memberships WHERE workspace_id = platform_sites.workspace_id AND user_id = ? AND role = 'admin')
-        RETURNING id AS siteId, workspace_id AS workspaceId, name, slug, published, revision`)
+        RETURNING id AS siteId, workspace_id AS workspaceId, name, slug, published, revision, gallery_title AS title, gallery_slogan AS slogan, gallery_author AS author, gallery_avatar AS avatarUrl`)
         .bind(
           name,
           input.published ? 1 : 0,
+          profile.title,
+          profile.slogan,
+          profile.author,
+          profile.avatarUrl,
           siteId,
           input.revision as number,
           userId,

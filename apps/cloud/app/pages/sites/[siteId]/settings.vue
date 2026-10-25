@@ -1,13 +1,5 @@
 <script setup lang="ts">
 definePageMeta({ layout: 'portal' })
-useSeoMeta({ title: 'Site settings — ChronoFrame Cloud', robots: 'noindex' })
-const context = useEntryContext().value
+// The authenticated middleware redirects this legacy URL before page setup.
 </script>
-<template>
-  <div class="cf-site-settings-stack">
-    <CloudSiteSettings
-      v-if="context"
-      :site-id="context.siteId"
-    /><CloudStorageSettings />
-  </div>
-</template>
+<template><div /></template>

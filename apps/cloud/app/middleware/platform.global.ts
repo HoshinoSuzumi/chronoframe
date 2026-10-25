@@ -49,7 +49,9 @@ export default defineNuxtRouteMiddleware(async (to) => {
     }
     if (path.startsWith('/sites/')) {
       const match =
-        /^\/sites\/([1-9][0-9]*)(?:\/(?:photos|albums|settings))?$/.exec(path)
+        /^\/sites\/([1-9][0-9]*)(?:\/(?:overview|photos|albums|information|domains|storage|settings))?$/.exec(
+          path,
+        )
       if (!match)
         return abortNavigation(
           createError({ statusCode: 404, statusMessage: 'Page not found' }),
@@ -57,11 +59,17 @@ export default defineNuxtRouteMiddleware(async (to) => {
       try {
         context.value = await fetcher(`/api/sites/${match[1]}/context`)
         // Resolve legacy URLs before mounting a nested page/Suspense boundary.
-        if (path === `/sites/${match[1]}`)
-          return navigateTo(`/sites/${match[1]}/photos`, {
-            replace: true,
-            redirectCode: 302,
-          })
+        if (
+          path === `/sites/${match[1]}` ||
+          path === `/sites/${match[1]}/settings`
+        )
+          return navigateTo(
+            `/sites/${match[1]}/${path.endsWith('/settings') ? 'information' : 'overview'}`,
+            {
+              replace: true,
+              redirectCode: 302,
+            },
+          )
       } catch (error) {
         context.value = null
         return abortNavigation(error as Error)
