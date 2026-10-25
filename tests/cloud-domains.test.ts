@@ -12,13 +12,11 @@ import {
   renameDefaultDomain,
   DOMAIN_HEALTH_TTL,
 } from '../packages/platform/src/domains.ts'
-import type {
-  DomainProvider,
-  DnsState,
-} from '../packages/platform/src/domains.ts'
+import type { DomainProvider } from '../packages/platform/src/domains.ts'
 import {
   normalizeDomain,
   validSiteSlug,
+  domainClaimTarget,
 } from '../packages/contracts/src/domains.ts'
 import {
   checkDomainCname,
@@ -119,7 +117,7 @@ test('Real D1 custom domains fence claims, CNAME ownership transitions, provider
         { id: string; status: string; ssl: string }
       >(),
       routes = new Map<string, { id: string; owned: boolean }>(),
-      dns = new Map<string, DnsState>()
+      dns = new Map<string, string>()
     let creates = 0,
       routeCreates = 0,
       loseCreate = false,
@@ -167,7 +165,7 @@ test('Real D1 custom domains fence claims, CNAME ownership transitions, provider
     }
     const manager = createDomainManager(db, config, {
         provider,
-        dns: async (h) => dns.get(h) ?? 'missing',
+        dns: async (h, target) => (dns.get(h) === target ? 'ready' : 'missing'),
         id: nextId,
         now: () => time,
       }),
@@ -191,11 +189,20 @@ test('Real D1 custom domains fence claims, CNAME ownership transitions, provider
       { statusCode: 404 },
     )
     let domain = await manager.request(1, one.siteId, ' Photos.Example.com ')
+    dns.set(domain.hostname, 'cname.chronoframe.art')
+    await manager.reconcile()
+    assert.equal(
+      creates,
+      0,
+      'a claimant cannot activate when the real owner later points at the shared ingress',
+    )
+    time += 60000
+    assert.equal(domain.cnameTarget, domainClaimTarget(domain.generation))
     await assert.rejects(
       () => manager.request(2, two.siteId, domain.hostname),
       { code: 'domain_conflict' },
     )
-    dns.set(domain.hostname, 'ready')
+    dns.set(domain.hostname, domain.cnameTarget)
     await db
       .prepare(
         'UPDATE platform_domain_provider_lock SET lease_token=?,lease_until=? WHERE id=1',
@@ -284,19 +291,25 @@ test('Real D1 custom domains fence claims, CNAME ownership transitions, provider
     await manager.reconcile()
     assert.equal((await manager.list(1, one.siteId)).length, 0)
     assert.equal(hosts.size, 0)
-    dns.set('photos.example.com', 'ready')
+    dns.set('photos.example.com', domain.cnameTarget)
     let rebound = await manager.request(2, two.siteId, 'photos.example.com')
-    assert.equal(rebound.dnsStatus, 'awaiting_change')
+    assert.equal(rebound.dnsStatus, 'missing')
+    assert.notEqual(rebound.cnameTarget, domain.cnameTarget)
     await manager.reconcile()
     assert.equal(
       creates,
       1,
-      'pre-existing shared CNAME must not establish account ownership',
+      'a prior generation CNAME must not establish account ownership',
     )
-    dns.set(rebound.hostname, 'missing')
+    dns.set(rebound.hostname, 'cname.chronoframe.art')
     time += 60000
     await manager.reconcile()
-    dns.set(rebound.hostname, 'ready')
+    assert.equal(
+      creates,
+      1,
+      'a shared CNAME does not authorize the new generation',
+    )
+    dns.set(rebound.hostname, rebound.cnameTarget)
     time += 60000
     await manager.reconcile()
     rebound = (await manager.list(2, two.siteId))[0]!
@@ -320,7 +333,7 @@ test('Real D1 custom domains fence claims, CNAME ownership transitions, provider
     )
     loseCreate = true
     let lost = await manager.request(1, one.siteId, 'lost.example.com')
-    dns.set(lost.hostname, 'ready')
+    dns.set(lost.hostname, lost.cnameTarget)
     await manager.reconcile()
     assert.equal(
       (await manager.list(1, one.siteId))[0]?.error,
@@ -364,7 +377,7 @@ test('Real D1 custom domains fence claims, CNAME ownership transitions, provider
       return result
     }
     let leased = await manager.request(1, one.siteId, 'leased.example.com')
-    dns.set(leased.hostname, 'ready')
+    dns.set(leased.hostname, leased.cnameTarget)
     const pending = manager.reconcile(leased.hostname)
     await entered
     leased = (await manager.list(1, one.siteId)).find(
@@ -523,6 +536,13 @@ test('DNS validation uses fixed CNAME-only resolvers and provider credentials ne
 test('Deployment isolates named Previews and leaves customer route ownership with the domain controller', async () => {
   const { configureDomainDeployment, domainDeploymentValues } =
     await import('../scripts/domain-deployment.mjs')
+  assert.throws(
+    () =>
+      domainDeploymentValues('production', {
+        PLATFORM_DOMAIN_RESOURCE_LIMIT: '21',
+      }),
+    /between 1 and 20/,
+  )
   const config: Record<string, any> = {
     name: 'chronoframe-cloud',
     routes: [{ pattern: 'old.example.com/*' }],
@@ -645,6 +665,170 @@ test('Default-domain migration preserves reserved names and mappings owned by an
           .prepare("SELECT site_id FROM platform_site_slugs WHERE slug='cname'")
           .first()
       ).site_id,
+      1,
+    )
+  } finally {
+    await mf.dispose()
+  }
+})
+
+test('Workspace quotas preserve capacity for other tenants and audit failures roll back domain actions', async () => {
+  const mf = new Miniflare(
+    convertV4MiniflareOptions({
+      modules: true,
+      script: 'export default {fetch(){return new Response("test")}}',
+      compatibilityDate: '2026-10-22',
+      d1Databases: ['DB'],
+    }),
+  )
+  try {
+    const db = await mf.getD1Database('DB')
+    for (const file of (await readdir('packages/platform/migrations'))
+      .filter((f) => f.endsWith('.sql'))
+      .sort())
+      for (const q of (
+        await readFile('packages/platform/migrations/' + file, 'utf8')
+      )
+        .replace(/^--.*$/gm, '')
+        .split(';')
+        .map((s) => s.trim())
+        .filter(Boolean))
+        await db.prepare(q).run()
+    let time = Date.now()
+    await db
+      .prepare(
+        'INSERT INTO platform_users(id,email,name,email_verified,created_at,updated_at) VALUES(1,?,?,1,?,?),(2,?,?,1,?,?)',
+      )
+      .bind(
+        'quota@example.com',
+        'One',
+        time,
+        time,
+        'fair@example.com',
+        'Two',
+        time,
+        time,
+      )
+      .run()
+    const sites = createD1Provisioning(db),
+      claims = []
+    for (let i = 0; i < 5; i++)
+      claims.push(
+        await sites.create(1, {
+          name: 'Quota ' + i,
+          slug: 'quota-' + i,
+          requestId: crypto.randomUUID(),
+        }),
+      )
+    const other = await sites.create(2, {
+      name: 'Other',
+      slug: 'fair-other',
+      requestId: crypto.randomUUID(),
+    })
+    const provider = new Proxy(
+      {},
+      {
+        get() {
+          return () => {
+            throw new Error('Unverified claims must not allocate resources')
+          }
+        },
+      },
+    ) as DomainProvider
+    const manager = createDomainManager(
+      db,
+      {
+        baseDomain: 'chronoframe.art',
+        cnameTarget: 'cname.chronoframe.art',
+        enabled: true,
+        routingReady: true,
+        limit: 20,
+      },
+      {
+        provider,
+        dns: async () => 'missing',
+        id: () => crypto.randomUUID(),
+        now: () => time,
+      },
+    )
+    for (let i = 0; i < 4; i++)
+      await manager.request(1, claims[i]!.siteId, 'quota-' + i + '.example.com')
+    await assert.rejects(
+      () => manager.request(1, claims[4]!.siteId, 'quota-4.example.com'),
+      { code: 'domain_limit' },
+    )
+    await manager.request(2, other.siteId, 'fair.example.com')
+    const failAudit =
+      "CREATE TRIGGER fail_domain_audit BEFORE INSERT ON platform_domain_audit BEGIN SELECT RAISE(ABORT,'audit unavailable'); END"
+    await db.prepare(failAudit).run()
+    await assert.rejects(
+      () => manager.request(2, other.siteId, 'atomic.example.com'),
+      /audit unavailable/,
+    )
+    assert.equal(
+      await db
+        .prepare(
+          "SELECT hostname FROM platform_custom_domains WHERE hostname='atomic.example.com'",
+        )
+        .first(),
+      null,
+    )
+    await db.prepare('DROP TRIGGER fail_domain_audit').run()
+    const domain = await manager.request(2, other.siteId, 'atomic.example.com')
+    await db.prepare(failAudit).run()
+    await assert.rejects(
+      () =>
+        manager.mutate(
+          2,
+          other.siteId,
+          domain.hostname,
+          domain.generation,
+          domain.revision,
+          'pause',
+        ),
+      /audit unavailable/,
+    )
+    const unchanged = (await manager.list(2, other.siteId)).find(
+      (d) => d.hostname === domain.hostname,
+    )!
+    assert.equal(unchanged.status, 'pending')
+    assert.equal(unchanged.revision, domain.revision)
+    await db.prepare('DROP TRIGGER fail_domain_audit').run()
+    await manager.mutate(
+      2,
+      other.siteId,
+      domain.hostname,
+      domain.generation,
+      domain.revision,
+      'delete',
+    )
+    await db.prepare(failAudit).run()
+    await manager.reconcile(domain.hostname)
+    assert.equal(
+      (await manager.list(2, other.siteId)).find(
+        (d) => d.hostname === domain.hostname,
+      )?.status,
+      'deleting',
+      'failed removal audit must not commit deleted state',
+    )
+    await db.prepare('DROP TRIGGER fail_domain_audit').run()
+    time += 1800000
+    await manager.reconcile(domain.hostname)
+    assert.equal(
+      (await manager.list(2, other.siteId)).find(
+        (d) => d.hostname === domain.hostname,
+      ),
+      undefined,
+    )
+    assert.equal(
+      (
+        await db
+          .prepare(
+            "SELECT COUNT(*) AS n FROM platform_domain_audit WHERE hostname=? AND action='removed'",
+          )
+          .bind(domain.hostname)
+          .first()
+      ).n,
       1,
     )
   } finally {

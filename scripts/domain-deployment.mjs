@@ -27,8 +27,8 @@ export function domainDeploymentValues(environment, values = {}) {
   const worker = values.PLATFORM_DOMAIN_SITE_WORKER || 'chronoframe-site'
   const zone = values.PLATFORM_DOMAIN_ZONE_ID || ''
   const limit = Number(values.PLATFORM_DOMAIN_RESOURCE_LIMIT || 20)
-  if (!Number.isInteger(limit) || limit < 1 || limit > 100)
-    throw new Error('Domain resource limit must be between 1 and 100')
+  if (!Number.isInteger(limit) || limit < 1 || limit > 20)
+    throw new Error('Domain resource limit must be between 1 and 20')
   if (
     enabled &&
     (!/^[a-f0-9]{32}$/i.test(zone) ||

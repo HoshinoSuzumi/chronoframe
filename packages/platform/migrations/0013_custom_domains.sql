@@ -14,7 +14,6 @@ CREATE TABLE platform_custom_domains (
  revision INTEGER NOT NULL DEFAULT 1,
  state TEXT NOT NULL DEFAULT 'pending' CHECK(state IN ('pending','active','paused','deleting','deleted','expired')),
  dns_status TEXT NOT NULL DEFAULT 'missing',
- saw_absent INTEGER NOT NULL DEFAULT 0,
  provider_id TEXT,
  route_id TEXT,
  hostname_status TEXT NOT NULL DEFAULT 'unknown',

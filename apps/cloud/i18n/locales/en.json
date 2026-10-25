@@ -494,7 +494,6 @@
       "dns": "DNS",
       "provider": "Hostname status",
       "certificate": "Certificate status",
-      "resetCname": "This hostname already pointed here before this request. Remove that CNAME, check until DNS shows missing, then add it again and recheck. This prevents an existing shared CNAME from being claimed by another account.",
       "setCname": "Create a CNAME for {hostname} pointing to {target}, then check again.",
       "checked": "Last checked: {time}",
       "check": "Check status",
@@ -515,8 +514,7 @@
         "expired": "Expired"
       },
       "dnsStates": {
-        "awaiting_change": "Existing CNAME needs reset",
-        "missing": "CNAME not detected",
+        "missing": "This binding’s CNAME was not detected",
         "ready": "CNAME verified",
         "unknown": "DNS temporarily unavailable"
       },
@@ -538,7 +536,8 @@
         "domain_provider_missing": "A managed provider resource is missing or changed. Ask the operator to inspect it.",
         "domain_routing_unavailable": "The domain route needs deployment configuration before activation."
       },
-      "useDefault": "Use default address as primary"
+      "useDefault": "Use default address as primary",
+      "targetHelp": "Each binding has its own CNAME target below. Traffic enters through {target}; no additional TXT record is required."
     }
   }
 }

@@ -2,6 +2,7 @@ import {
   DEFAULT_CNAME_TARGET,
   DEFAULT_SITE_BASE,
   defaultSiteHost,
+  domainClaimTarget,
   normalizeDomain,
   validSiteSlug,
 } from '@chronoframe/contracts/domains'
@@ -47,7 +48,6 @@ interface Row {
   revision: number
   state: DomainStatus
   dns_status: CustomDomain['dnsStatus']
-  saw_absent: number
   provider_id: string | null
   route_id: string | null
   provider_attempted: number
@@ -67,11 +67,15 @@ interface Row {
   lease_until: number | null
   verified_at: number | null
 }
-export function domainDTO(row: Row): CustomDomain {
+export function domainDTO(
+  row: Row,
+  target = DEFAULT_CNAME_TARGET,
+): CustomDomain {
   return {
     hostname: row.hostname,
     siteId: row.site_id,
     generation: row.generation,
+    cnameTarget: domainClaimTarget(row.generation, target),
     revision: row.revision,
     status: row.state,
     dnsStatus: row.dns_status,
@@ -102,6 +106,8 @@ export function createDomainManager(
     db.prepare(sql).bind(...args)
   const base = normalizeDomain(config.baseDomain || DEFAULT_SITE_BASE)
   const target = normalizeDomain(config.cnameTarget || DEFAULT_CNAME_TARGET)
+  const resourceLimit = Math.max(1, Math.min(config.limit, 20))
+  const workspaceLimit = Math.min(4, Math.max(1, Math.floor(resourceLimit / 2)))
   const memberGuard = `EXISTS(SELECT 1 FROM platform_sites s JOIN platform_memberships m ON m.workspace_id=s.workspace_id WHERE s.id=? AND m.user_id=? AND m.role='admin')`
   async function authorize(userId: number, siteId: number, admin = true) {
     const row = await stmt(
@@ -119,16 +125,19 @@ export function createDomainManager(
     hostname: string,
     generation: string,
     action: string,
-    userId: number | null = null,
+    userId: number | null,
+    guard: string,
+    args: (string | number | null)[],
   ): D1Statement {
     return stmt(
-      'INSERT INTO platform_domain_audit(site_id,hostname,generation,action,user_id,created_at) VALUES(?,?,?,?,?,?)',
+      `INSERT INTO platform_domain_audit(site_id,hostname,generation,action,user_id,created_at) SELECT ?,?,?,?,?,? WHERE EXISTS(SELECT 1 FROM platform_custom_domains WHERE ${guard})`,
       siteId,
       hostname,
       generation,
       action,
       userId,
       now(),
+      ...args,
     )
   }
   async function list(userId: number, siteId: number) {
@@ -137,7 +146,9 @@ export function createDomainManager(
       `SELECT json_group_array(json_object('hostname',hostname,'site_id',site_id,'generation',generation,'revision',revision,'state',state,'dns_status',dns_status,'hostname_status',hostname_status,'ssl_status',ssl_status,'error',error,'is_primary',is_primary,'redirects',redirects,'created_at',created_at,'checked_at',checked_at,'expires_at',expires_at,'next_check_at',next_check_at)) AS items FROM (SELECT * FROM platform_custom_domains WHERE site_id=? AND state<>'deleted' ORDER BY created_at)`,
       siteId,
     ).first<{ items: string }>()
-    return (JSON.parse(rows?.items ?? '[]') as Row[]).map(domainDTO)
+    return (JSON.parse(rows?.items ?? '[]') as Row[]).map((row) =>
+      domainDTO(row, target),
+    )
   }
   async function request(userId: number, siteId: number, input: unknown) {
     await authorize(userId, siteId)
@@ -170,35 +181,51 @@ export function createDomainManager(
     if (existing && existing.state !== 'deleted') {
       if (existing.site_id !== siteId)
         throw new DomainError(409, 'domain_conflict')
-      return domainDTO(existing)
+      return domainDTO(existing, target)
     }
-    const dns = await dependencies.dns(host, target)
-    if (dns === 'unknown') throw new DomainError(503, 'domain_dns_unavailable')
-    // An already-present shared CNAME does not identify the requesting account.
     if (existing && (existing.provider_id || existing.route_id))
       throw new DomainError(409, 'domain_cleanup_pending')
     const generation = dependencies.id(),
       time = now()
     try {
-      const result = await stmt(
-        `INSERT INTO platform_custom_domains(hostname,site_id,generation,created_at,expires_at,next_check_at,dns_status,saw_absent)
-      SELECT ?,?,?,?,?,?,?,? WHERE ${memberGuard}
+      const insertion = stmt(
+        `INSERT INTO platform_custom_domains(hostname,site_id,generation,created_at,expires_at,next_check_at,dns_status)
+      SELECT ?,?,?,?,?,?,? WHERE ${memberGuard}
       AND (SELECT COUNT(*) FROM platform_custom_domains WHERE state<>'deleted')<?
+      AND (SELECT COUNT(*) FROM platform_custom_domains c JOIN platform_sites s ON s.id=c.site_id WHERE s.workspace_id=(SELECT workspace_id FROM platform_sites WHERE id=?) AND c.state<>'deleted')<?
       AND (SELECT COUNT(*) FROM platform_custom_domains WHERE site_id=? AND state<>'deleted')<2
-      ON CONFLICT(hostname) DO UPDATE SET site_id=excluded.site_id,generation=excluded.generation,revision=platform_custom_domains.revision+1,state='pending',created_at=excluded.created_at,expires_at=excluded.expires_at,next_check_at=excluded.next_check_at,dns_status=excluded.dns_status,saw_absent=excluded.saw_absent,provider_attempted=0,route_attempted=0,retry_requested=0,attempts=0,checked_at=NULL,verified_at=NULL,hostname_status='unknown',ssl_status='unknown',error=NULL,is_primary=0,redirects=0,lease_token=NULL,lease_until=NULL
-      WHERE platform_custom_domains.state='deleted' AND platform_custom_domains.provider_id IS NULL AND platform_custom_domains.route_id IS NULL RETURNING *`,
+      ON CONFLICT(hostname) DO UPDATE SET site_id=excluded.site_id,generation=excluded.generation,revision=platform_custom_domains.revision+1,state='pending',created_at=excluded.created_at,expires_at=excluded.expires_at,next_check_at=excluded.next_check_at,dns_status=excluded.dns_status,provider_attempted=0,route_attempted=0,retry_requested=0,attempts=0,checked_at=NULL,verified_at=NULL,hostname_status='unknown',ssl_status='unknown',error=NULL,is_primary=0,redirects=0,lease_token=NULL,lease_until=NULL
+      WHERE platform_custom_domains.state='deleted' AND platform_custom_domains.provider_id IS NULL AND platform_custom_domains.route_id IS NULL`,
         host,
         siteId,
         generation,
         time,
         time + CLAIM_TTL,
         time,
-        dns === 'ready' ? 'awaiting_change' : 'missing',
-        dns === 'missing' ? 1 : 0,
+        'missing',
         siteId,
         userId,
-        Math.max(1, Math.min(config.limit, 100)),
+        resourceLimit,
         siteId,
+        workspaceLimit,
+        siteId,
+      )
+      await db.batch([
+        insertion,
+        audit(
+          siteId,
+          host,
+          generation,
+          'requested',
+          userId,
+          'hostname=? AND generation=?',
+          [host, generation],
+        ),
+      ])
+      const result = await stmt(
+        'SELECT * FROM platform_custom_domains WHERE hostname=? AND generation=?',
+        host,
+        generation,
       ).first<Row>()
       if (!result) {
         const concurrent = await stmt(
@@ -210,12 +237,11 @@ export function createDomainManager(
           concurrent.site_id === siteId &&
           concurrent.state !== 'deleted'
         )
-          return domainDTO(concurrent)
+          return domainDTO(concurrent, target)
         if (concurrent) throw new DomainError(409, 'domain_conflict')
         throw new DomainError(429, 'domain_limit')
       }
-      await audit(siteId, host, generation, 'requested', userId).run()
-      return domainDTO(result)
+      return domainDTO(result, target)
     } catch (error) {
       if (String(error).includes('UNIQUE constraint'))
         throw new DomainError(409, 'domain_conflict')
@@ -258,7 +284,9 @@ export function createDomainManager(
       throw new DomainError(429, 'domain_wait')
     const guard = `hostname=? AND site_id=? AND generation=? AND revision=? AND ${memberGuard}${action === 'primary' || action === 'redirects' ? ` AND state='active' AND verified_at>=${now() - DOMAIN_HEALTH_TTL}` : ''}`
     const args = [host, siteId, generation, revision, siteId, userId]
-    const statements: D1Statement[] = []
+    const statements: D1Statement[] = [
+      audit(siteId, host, generation, action, userId, guard, args),
+    ]
     if (action === 'primary')
       statements.push(
         stmt(
@@ -280,6 +308,15 @@ export function createDomainManager(
               : action === 'redirects'
                 ? `redirects=${value ? 1 : 0}`
                 : 'error=NULL,retry_requested=1'
+    if (action === 'pause' || action === 'delete' || action === 'resume')
+      statements.push(
+        stmt(
+          `UPDATE platform_domains SET active=0 WHERE hostname=? AND site_id=? AND EXISTS(SELECT 1 FROM platform_custom_domains WHERE ${guard})`,
+          host,
+          siteId,
+          ...args,
+        ),
+      )
     statements.push(
       stmt(
         `UPDATE platform_custom_domains SET ${set},revision=revision+1,next_check_at=? WHERE ${guard}`,
@@ -287,21 +324,9 @@ export function createDomainManager(
         ...args,
       ),
     )
-    if (action === 'pause' || action === 'delete' || action === 'resume')
-      statements.push(
-        stmt(
-          `UPDATE platform_domains SET active=0 WHERE hostname=? AND site_id=? AND EXISTS(SELECT 1 FROM platform_custom_domains WHERE hostname=? AND generation=? AND revision=?)`,
-          host,
-          siteId,
-          host,
-          generation,
-          revision + 1,
-        ),
-      )
     const results = await db.batch(statements)
-    if (results[action === 'primary' ? 1 : 0]?.meta.changes !== 1)
+    if (results.at(-1)?.meta.changes !== 1)
       throw new DomainError(409, 'domain_changed')
-    await audit(siteId, host, generation, action, userId).run()
     return { ok: true }
   }
   /** Claim only a bounded due batch; API checks and scheduled checks share the lease. */
@@ -342,8 +367,23 @@ export function createDomainManager(
         if (result.meta.changes !== 1)
           throw new DomainError(409, 'domain_changed')
       }
-      const complete = async (statements: D1Statement[]) => {
-        const results = await db.batch(statements)
+      const complete = async (statements: D1Statement[], action?: string) => {
+        const results = await db.batch([
+          ...(action
+            ? [
+                audit(
+                  row.site_id,
+                  host,
+                  row.generation,
+                  action,
+                  null,
+                  guard,
+                  args,
+                ),
+              ]
+            : []),
+          ...statements,
+        ])
         if (results.at(-1)?.meta.changes !== 1)
           throw new DomainError(409, 'domain_changed')
       }
@@ -368,28 +408,33 @@ export function createDomainManager(
           }
           if (routeId) await dependencies.provider.removeRoute(routeId, host)
           if (providerId) await dependencies.provider.remove(providerId)
-          await complete([
-            stmt(
-              `DELETE FROM platform_domains WHERE hostname=? AND site_id=? AND kind='custom' AND EXISTS(SELECT 1 FROM platform_custom_domains WHERE ${guard})`,
-              host,
-              row.site_id,
-              ...args,
-            ),
-            stmt(
-              `UPDATE platform_custom_domains SET revision=revision+1,state='deleted',is_primary=0,provider_id=NULL,route_id=NULL,error=NULL,checked_at=?,next_check_at=?,lease_token=NULL,lease_until=NULL WHERE ${guard}`,
-              time,
-              time,
-              ...args,
-            ),
-          ])
-          await audit(row.site_id, host, row.generation, 'removed').run()
+          await complete(
+            [
+              stmt(
+                `DELETE FROM platform_domains WHERE hostname=? AND site_id=? AND kind='custom' AND EXISTS(SELECT 1 FROM platform_custom_domains WHERE ${guard})`,
+                host,
+                row.site_id,
+                ...args,
+              ),
+              stmt(
+                `UPDATE platform_custom_domains SET revision=revision+1,state='deleted',is_primary=0,provider_id=NULL,route_id=NULL,error=NULL,checked_at=?,next_check_at=?,lease_token=NULL,lease_until=NULL WHERE ${guard}`,
+                time,
+                time,
+                ...args,
+              ),
+            ],
+            'removed',
+          )
           checked++
           continue
         }
-        const dns = await dependencies.dns(host, target)
+        const dns = await dependencies.dns(
+          host,
+          domainClaimTarget(row.generation, target),
+        )
         if (dns === 'unknown')
           throw new DomainError(503, 'domain_dns_unavailable')
-        if (dns === 'missing' || !row.saw_absent) {
+        if (dns === 'missing') {
           await complete([
             stmt(
               `UPDATE platform_domains SET active=0 WHERE hostname=? AND site_id=? AND EXISTS(SELECT 1 FROM platform_custom_domains WHERE ${guard})`,
@@ -398,9 +443,8 @@ export function createDomainManager(
               ...args,
             ),
             stmt(
-              `UPDATE platform_custom_domains SET revision=revision+1,state='pending',is_primary=0,dns_status=?,saw_absent=?,checked_at=?,next_check_at=?,error=NULL,lease_token=NULL,lease_until=NULL WHERE ${guard}`,
-              dns === 'ready' ? 'awaiting_change' : 'missing',
-              dns === 'missing' ? 1 : 0,
+              `UPDATE platform_custom_domains SET revision=revision+1,state='pending',is_primary=0,dns_status=?,checked_at=?,next_check_at=?,error=NULL,lease_token=NULL,lease_until=NULL WHERE ${guard}`,
+              'missing',
               time,
               time + 30000,
               ...args,
@@ -427,10 +471,7 @@ export function createDomainManager(
           if (allocation.meta.changes !== 1)
             throw new DomainError(429, 'domain_wait')
           try {
-            if (
-              (await dependencies.provider.count()) >=
-              Math.max(1, Math.min(config.limit, 100))
-            )
+            if ((await dependencies.provider.count()) >= resourceLimit)
               throw new DomainError(429, 'domain_limit')
             await fenced('provider_attempted=1')
             provider = await dependencies.provider.create(host)
@@ -478,36 +519,36 @@ export function createDomainManager(
           provider.ssl === 'active' &&
           !!routeId &&
           config.routingReady
-        await complete([
-          stmt(
-            `INSERT INTO platform_domains(hostname,site_id,verified,active,kind) SELECT ?,?,1,?,'custom' WHERE EXISTS(SELECT 1 FROM platform_custom_domains WHERE ${guard}) ON CONFLICT(hostname) DO UPDATE SET active=excluded.active,verified=1,kind='custom' WHERE platform_domains.site_id=excluded.site_id`,
-            host,
-            row.site_id,
-            active ? 1 : 0,
-            ...args,
-          ),
-          stmt(
-            `UPDATE platform_custom_domains SET revision=revision+1,state=?,is_primary=CASE WHEN ?=1 THEN is_primary ELSE 0 END,error=?,attempts=CASE WHEN state='active' THEN 0 ELSE attempts+1 END,checked_at=?,verified_at=CASE WHEN ?=1 THEN ? ELSE verified_at END,next_check_at=?,lease_token=NULL,lease_until=NULL WHERE ${guard}`,
-            active ? 'active' : 'pending',
-            active ? 1 : 0,
-            config.routingReady ? null : 'domain_routing_unavailable',
-            time,
-            active ? 1 : 0,
-            time,
-            time +
-              (active
-                ? 900000
-                : Math.min(1800000, 60000 * 2 ** Math.min(row.attempts, 5))),
-            ...args,
-          ),
-        ])
-        if (active !== (row.state === 'active'))
-          await audit(
-            row.site_id,
-            host,
-            row.generation,
-            active ? 'activated' : 'pending',
-          ).run()
+        await complete(
+          [
+            stmt(
+              `INSERT INTO platform_domains(hostname,site_id,verified,active,kind) SELECT ?,?,1,?,'custom' WHERE EXISTS(SELECT 1 FROM platform_custom_domains WHERE ${guard}) ON CONFLICT(hostname) DO UPDATE SET active=excluded.active,verified=1,kind='custom' WHERE platform_domains.site_id=excluded.site_id`,
+              host,
+              row.site_id,
+              active ? 1 : 0,
+              ...args,
+            ),
+            stmt(
+              `UPDATE platform_custom_domains SET revision=revision+1,state=?,is_primary=CASE WHEN ?=1 THEN is_primary ELSE 0 END,error=?,attempts=CASE WHEN state='active' THEN 0 ELSE attempts+1 END,checked_at=?,verified_at=CASE WHEN ?=1 THEN ? ELSE verified_at END,next_check_at=?,lease_token=NULL,lease_until=NULL WHERE ${guard}`,
+              active ? 'active' : 'pending',
+              active ? 1 : 0,
+              config.routingReady ? null : 'domain_routing_unavailable',
+              time,
+              active ? 1 : 0,
+              time,
+              time +
+                (active
+                  ? 900000
+                  : Math.min(1800000, 60000 * 2 ** Math.min(row.attempts, 5))),
+              ...args,
+            ),
+          ],
+          active !== (row.state === 'active')
+            ? active
+              ? 'activated'
+              : 'pending'
+            : undefined,
+        )
         checked++
       } catch (error) {
         const code =

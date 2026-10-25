@@ -327,19 +327,9 @@ async function copy(value: string) {
               )
             }}
           </p>
-          <div class="rounded-lg border border-[var(--border)] p-3 space-y-2">
-            <p class="cf-field-label">{{ t('cloud.domains.cnameRecord') }}</p>
-            <code class="block break-all text-sm">{{ data.cnameTarget }}</code
-            ><CloudButton
-              variant="ghost"
-              size="sm"
-              @click="copy(data.cnameTarget)"
-              ><Copy :size="14" />{{
-                t('cloud.domains.copyTarget')
-              }}</CloudButton
-            >
-            <p class="cf-field-hint">{{ t('cloud.domains.dnsOnly') }}</p>
-          </div>
+          <p class="cf-field-hint">
+            {{ t('cloud.domains.targetHelp', { target: data.cnameTarget }) }}
+          </p>
           <p
             v-if="!data.domains.length"
             class="cf-field-hint"
@@ -372,6 +362,20 @@ async function copy(value: string) {
                 >{{ t('cloud.domains.states.' + domain.status) }}</CloudBadge
               >
             </div>
+            <div class="space-y-2">
+              <p class="cf-field-label">{{ t('cloud.domains.cnameRecord') }}</p>
+              <code class="block break-all text-sm">{{
+                domain.cnameTarget
+              }}</code>
+              <CloudButton
+                variant="ghost"
+                size="sm"
+                @click="copy(domain.cnameTarget)"
+                ><Copy :size="14" />{{
+                  t('cloud.domains.copyTarget')
+                }}</CloudButton
+              >
+            </div>
             <dl class="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
               <div>
                 <dt>{{ t('cloud.domains.dns') }}</dt>
@@ -391,13 +395,7 @@ async function copy(value: string) {
               </div>
             </dl>
             <p
-              v-if="domain.dnsStatus === 'awaiting_change'"
-              class="cf-notice"
-            >
-              {{ t('cloud.domains.resetCname') }}
-            </p>
-            <p
-              v-else-if="
+              v-if="
                 domain.dnsStatus === 'missing' && domain.status !== 'deleting'
               "
               class="cf-field-hint"
@@ -405,7 +403,7 @@ async function copy(value: string) {
               {{
                 t('cloud.domains.setCname', {
                   hostname: domain.hostname,
-                  target: data.cnameTarget,
+                  target: domain.cnameTarget,
                 })
               }}
             </p>

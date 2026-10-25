@@ -62,6 +62,16 @@ export function normalizeDomain(value: unknown): string {
     throw new Error('Invalid domain')
   return host
 }
+/** A generation-specific target proves control without an additional DNS record. */
+export function domainClaimTarget(
+  generation: string,
+  base = DEFAULT_CNAME_TARGET,
+): string {
+  const token = generation.replaceAll('-', '').toLowerCase()
+  if (!/^[a-f0-9]{32}$/.test(token))
+    throw new Error('Invalid domain generation')
+  return normalizeDomain(token + '.' + normalizeDomain(base))
+}
 export function defaultSiteHost(
   slug: string,
   base = DEFAULT_SITE_BASE,
@@ -80,9 +90,10 @@ export interface CustomDomain {
   hostname: string
   siteId: number
   generation: string
+  cnameTarget: string
   revision: number
   status: DomainStatus
-  dnsStatus: 'awaiting_change' | 'missing' | 'ready' | 'unknown'
+  dnsStatus: 'missing' | 'ready' | 'unknown'
   hostnameStatus: string
   sslStatus: string
   error: string | null

@@ -494,7 +494,6 @@
       "dns": "DNS",
       "provider": "域名状态",
       "certificate": "证书状态",
-      "resetCname": "此域名在申请前已指向平台。请先移除该 CNAME，检查至显示未解析后，再重新添加并检查，避免其他账户直接认领已有解析。",
       "setCname": "请为 {hostname} 添加指向 {target} 的 CNAME，然后重新检查。",
       "checked": "上次检查：{time}",
       "check": "检查状态",
@@ -515,8 +514,7 @@
         "expired": "已过期"
       },
       "dnsStates": {
-        "awaiting_change": "需要重设已有 CNAME",
-        "missing": "未检测到 CNAME",
+        "missing": "未检测到此绑定的专属 CNAME",
         "ready": "CNAME 已验证",
         "unknown": "DNS 暂不可用"
       },
@@ -538,7 +536,8 @@
         "domain_provider_missing": "托管的服务商资源缺失或发生变化，请联系平台管理员检查。",
         "domain_routing_unavailable": "启用前需要完成域名路由的部署配置。"
       },
-      "useDefault": "使用默认地址作为主域名"
+      "useDefault": "使用默认地址作为主域名",
+      "targetHelp": "请使用下方为各绑定单独生成的 CNAME 目标。流量统一经由 {target} 接入，无需额外配置 TXT 记录。"
     }
   }
 }
