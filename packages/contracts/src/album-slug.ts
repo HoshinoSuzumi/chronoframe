@@ -4,7 +4,7 @@ export interface AlbumPathResolution {
   albumId: number
   slug: string
   isCanonical: boolean
-  isHidden: boolean
+  isHidden?: boolean
   redirectCode?: 301 | 302
 }
 
