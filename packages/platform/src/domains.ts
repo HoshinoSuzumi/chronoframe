@@ -111,10 +111,10 @@ export function createDomainManager(
   const base = normalizeDomain(config.baseDomain || DEFAULT_SITE_BASE)
   const target = normalizeDomain(config.cnameTarget || DEFAULT_CNAME_TARGET)
   const resourceLimit = Math.max(1, Math.min(config.limit, 20))
-  const memberGuard = `EXISTS(SELECT 1 FROM platform_sites s JOIN platform_memberships m ON m.workspace_id=s.workspace_id WHERE s.id=? AND m.user_id=? AND m.role='admin')`
+  const memberGuard = `EXISTS(SELECT 1 FROM platform_sites s JOIN platform_memberships m ON m.workspace_id=s.workspace_id WHERE s.id=? AND s.suspended=0 AND m.user_id=? AND m.role='admin')`
   async function authorize(userId: number, siteId: number, admin = true) {
     const row = await stmt(
-      `SELECT s.id,s.slug,s.revision,m.role FROM platform_sites s JOIN platform_memberships m ON m.workspace_id=s.workspace_id WHERE s.id=? AND m.user_id=?`,
+      `SELECT s.id,s.slug,s.revision,m.role FROM platform_sites s JOIN platform_memberships m ON m.workspace_id=s.workspace_id WHERE s.id=? AND s.suspended=0 AND m.user_id=?`,
       siteId,
       userId,
     ).first<{ id: number; slug: string; revision: number; role: string }>()
@@ -638,7 +638,7 @@ export async function renameDefaultDomain(
     throw new DomainError(400, 'domain_invalid')
   const current = await db
     .prepare(
-      `SELECT s.slug,s.revision FROM platform_sites s JOIN platform_memberships m ON m.workspace_id=s.workspace_id WHERE s.id=? AND m.user_id=? AND m.role='admin'`,
+      `SELECT s.slug,s.revision FROM platform_sites s JOIN platform_memberships m ON m.workspace_id=s.workspace_id WHERE s.id=? AND s.suspended=0 AND m.user_id=? AND m.role='admin'`,
     )
     .bind(siteId, userId)
     .first<{ slug: string; revision: number }>()
@@ -648,7 +648,7 @@ export async function renameDefaultDomain(
   if (current.slug === input.slug) return { ok: true }
   const host = defaultSiteHost(input.slug, base),
     guard =
-      "EXISTS(SELECT 1 FROM platform_sites s JOIN platform_memberships m ON m.workspace_id=s.workspace_id WHERE s.id=? AND s.revision=? AND m.user_id=? AND m.role='admin')",
+      "EXISTS(SELECT 1 FROM platform_sites s JOIN platform_memberships m ON m.workspace_id=s.workspace_id WHERE s.id=? AND s.suspended=0 AND s.revision=? AND m.user_id=? AND m.role='admin')",
     args = [siteId, current.revision, userId]
   try {
     const results = await db.batch([
@@ -681,7 +681,7 @@ export async function renameDefaultDomain(
         ),
       db
         .prepare(
-          `UPDATE platform_sites SET slug=?,revision=revision+1 WHERE id=? AND revision=? AND EXISTS(SELECT 1 FROM platform_memberships WHERE workspace_id=platform_sites.workspace_id AND user_id=? AND role='admin')`,
+          `UPDATE platform_sites SET slug=?,revision=revision+1 WHERE id=? AND revision=? AND platform_sites.suspended=0 AND EXISTS(SELECT 1 FROM platform_memberships WHERE workspace_id=platform_sites.workspace_id AND user_id=? AND role='admin')`,
         )
         .bind(input.slug, ...args),
     ])

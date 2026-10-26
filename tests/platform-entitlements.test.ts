@@ -1,5 +1,6 @@
 import {
   createDomainManager,
+  renameDefaultDomain,
   type DomainProvider,
 } from '../packages/platform/src/domains.ts'
 import test from 'node:test'
@@ -169,6 +170,12 @@ test('New workspaces are free; empty galleries auto-publish; quotas and managed 
       statusCode: 403,
       code: 'domain_limit',
     })
+    await db
+      .prepare(
+        `UPDATE platform_plans SET policy_json=json_set(policy_json,'$.limits.customDomains',3) WHERE id='free'`,
+      )
+      .run()
+    const domain = await manager.request(1, one.siteId, 'existing.example.com')
     const two = await provision.create(2, {
       name: 'Two',
       slug: 'two-site',
@@ -237,6 +244,112 @@ test('New workspaces are free; empty galleries auto-publish; quotas and managed 
     assert.equal(
       await directory.getPublishedSiteByHost(one.slug + '.chronoframe.art'),
       null,
+    )
+    for (const action of [
+      'pause',
+      'resume',
+      'delete',
+      'check',
+      'primary',
+      'redirects',
+    ] as const)
+      await assert.rejects(
+        manager.mutate(
+          1,
+          one.siteId,
+          domain.hostname,
+          domain.generation,
+          domain.revision,
+          action,
+        ),
+        { statusCode: 404 },
+      )
+    await assert.rejects(manager.defaultPrimary(1, one.siteId), {
+      statusCode: 404,
+    })
+    await assert.rejects(
+      manager.request(1, one.siteId, 'blocked.example.com'),
+      { statusCode: 404 },
+    )
+    await assert.rejects(
+      renameDefaultDomain(db, 1, one.siteId, {
+        slug: 'blocked-rename',
+        revision: one.revision,
+      }),
+      { statusCode: 403 },
+    )
+    const audits = (
+      await db
+        .prepare('SELECT COUNT(*) AS n FROM platform_domain_audit')
+        .first()
+    ).n
+    const racedDb = {
+      prepare: (query: string) => db.prepare(query),
+      batch: async (statements: any[]) => {
+        await db
+          .prepare('UPDATE platform_sites SET suspended=1 WHERE id=?')
+          .bind(one.siteId)
+          .run()
+        return db.batch(statements)
+      },
+    }
+    const racedManager = createDomainManager(
+      racedDb,
+      {
+        enabled: true,
+        routingReady: true,
+        baseDomain: 'chronoframe.art',
+        cnameTarget: 'cname.chronoframe.art',
+        limit: 20,
+      },
+      {
+        dns: async () => 'ready',
+        id: () => crypto.randomUUID(),
+        provider: {} as DomainProvider,
+      },
+    )
+    await db
+      .prepare('UPDATE platform_sites SET suspended=0 WHERE id=?')
+      .bind(one.siteId)
+      .run()
+    await assert.rejects(
+      racedManager.request(1, one.siteId, 'raced.example.com'),
+    )
+    assert.equal(
+      await db
+        .prepare(
+          "SELECT hostname FROM platform_custom_domains WHERE hostname='raced.example.com'",
+        )
+        .first(),
+      null,
+    )
+    await db
+      .prepare('UPDATE platform_sites SET suspended=0 WHERE id=?')
+      .bind(one.siteId)
+      .run()
+    await assert.rejects(
+      renameDefaultDomain(racedDb, 1, one.siteId, {
+        slug: 'raced-rename',
+        revision: one.revision,
+      }),
+      { statusCode: 409 },
+    )
+    assert.equal(
+      (
+        await db
+          .prepare('SELECT slug FROM platform_sites WHERE id=?')
+          .bind(one.siteId)
+          .first()
+      ).slug,
+      one.slug,
+    )
+    assert.equal(
+      (
+        await db
+          .prepare('SELECT COUNT(*) AS n FROM platform_domain_audit')
+          .first()
+      ).n,
+      audits,
     )
     const expr = workspaceUsageSQL(one.siteId),
       now = Date.now()
