@@ -10,8 +10,9 @@ import {
   siteManagementBody,
 } from '../../../utils/site-management'
 export default definePlatformHandler(async (event) => {
-  const { userId } = await siteManagement(event, true),
+  const { userId, store } = await siteManagement(event, true),
     siteId = Number(getRouterParam(event, 'siteId'))
+  await store.get(userId, siteId)
   const body = await siteManagementBody(event),
     db = platformDatabase(event),
     { manager, config } = domainServices(db, useRuntimeConfig(event))

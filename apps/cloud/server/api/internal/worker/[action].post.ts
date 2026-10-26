@@ -1,3 +1,7 @@
+import {
+  workspaceEntitlements,
+  workspaceUsageSQL,
+} from '@chronoframe/platform/entitlements'
 import { createError, getHeader, getRequestWebStream, getRouterParam } from 'h3'
 import { createCloudExecutionRepository } from '@chronoframe/database/cloud-execution'
 import type { MediaDatabase } from '@chronoframe/database/cloud-media'
@@ -57,7 +61,12 @@ export default definePlatformHandler(async (event) => {
     if (!item) throw createError({ statusCode: 503 })
     return createCloudS3(
       { ...item.config, ...item.credentials },
-      { allowedHosts },
+      {
+        allowedHosts:
+          'poolId' in item
+            ? [...allowedHosts, new URL(item.config.endpoint).hostname]
+            : allowedHosts,
+      },
     )
   }
   if (action === 'claim') {
@@ -317,6 +326,52 @@ export default definePlatformHandler(async (event) => {
       lease.connectionId,
       lease.connectionRevision,
     )
+    const declared = body.assets as {
+      role: string
+      bytes: number
+      contentType: string
+    }[]
+    if (
+      declared.some((a) => !Number.isSafeInteger(a.bytes) || a.bytes < 1) ||
+      new Set(declared.map((a) => a.role)).size !== declared.length
+    )
+      throw createError({ statusCode: 400 })
+    const outputBytes = declared.reduce((n, a) => n + a.bytes, 0)
+    if (!Number.isSafeInteger(outputBytes))
+      throw createError({ statusCode: 400 })
+    const connection = await raw
+      .prepare(
+        'SELECT c.pool_id,s.workspace_id FROM cloud_storage_connections c JOIN platform_sites s ON s.id=c.site_id WHERE c.site_id=? AND c.id=?',
+      )
+      .bind(lease.siteId, lease.connectionId)
+      .first<{ pool_id: string | null; workspace_id: number }>()
+    if (connection?.pool_id) {
+      const plan = await workspaceEntitlements(
+        raw,
+        connection.workspace_id,
+        'platform',
+      )
+      const expression = workspaceUsageSQL(lease.siteId)
+      const reservation = await raw
+        .prepare(`UPDATE cloud_processing_jobs SET reserved_output_bytes=? WHERE site_id=? AND id=? AND attempt_id=? AND state='running' AND lease_until>?
+        AND ${expression.storage}-reserved_output_bytes+?<=? RETURNING id`)
+        .bind(
+          outputBytes,
+          lease.siteId,
+          lease.id,
+          lease.attemptId,
+          now,
+          now,
+          outputBytes,
+          plan.limits.storageBytes,
+        )
+        .first()
+      if (!reservation)
+        throw createError({
+          statusCode: 429,
+          statusMessage: 'Storage quota exceeded',
+        })
+    }
     const outputs = []
     for (const asset of body.assets as {
       role: string
@@ -348,6 +403,22 @@ export default definePlatformHandler(async (event) => {
   if (action === 'complete') {
     if (!(await queue.heartbeat(lease, now, 120000))) return { ok: false }
     const result = body.result as CloudMediaResult
+    const budget = await raw
+      .prepare(
+        `SELECT j.reserved_output_bytes,c.pool_id FROM cloud_processing_jobs j JOIN cloud_uploads u ON u.site_id=j.site_id AND u.id=j.upload_id JOIN cloud_storage_connections c ON c.site_id=u.site_id AND c.id=u.connection_id WHERE j.site_id=? AND j.id=? AND j.attempt_id=?`,
+      )
+      .bind(lease.siteId, lease.id, lease.attemptId)
+      .first<{ reserved_output_bytes: number; pool_id: string | null }>()
+    if (
+      budget?.pool_id &&
+      (!Array.isArray(result?.assets) ||
+        result.assets.some(
+          (a) => !Number.isSafeInteger(a.bytes) || a.bytes < 1,
+        ) ||
+        result.assets.reduce((n, a) => n + a.bytes, 0) >
+          budget.reserved_output_bytes)
+    )
+      throw createError({ statusCode: 409 })
     if (!result || !Array.isArray(result.assets))
       throw createError({ statusCode: 400 })
     const canonical = await raw

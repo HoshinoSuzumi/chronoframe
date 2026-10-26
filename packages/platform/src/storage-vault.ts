@@ -26,16 +26,68 @@ export function createStorageVault(
     if (!/^[a-zA-Z0-9_-]{1,128}$/.test(id))
       throw new RangeError('Invalid connection ID')
   }
+  async function managed(id: string) {
+    const row = await db
+      .prepare(`SELECT p.id,p.enabled,c.pool_revision AS revision,v.public_json,k.secret_ciphertext,p.current_revision
+      FROM cloud_storage_connections c JOIN platform_storage_pools p ON p.id=c.pool_id
+      JOIN platform_storage_pool_versions v ON v.pool_id=p.id AND v.revision=c.pool_revision
+      JOIN platform_storage_pool_versions k ON k.pool_id=p.id AND k.revision=p.current_revision
+      WHERE c.site_id=? AND c.id=?`)
+      .bind(siteId, id)
+      .first<{
+        id: string
+        enabled: number
+        revision: number
+        public_json: string
+        secret_ciphertext: string
+        current_revision: number
+      }>()
+    if (!row) return null
+    return {
+      revision: 1,
+      poolId: row.id,
+      enabled: !!row.enabled,
+      config: JSON.parse(row.public_json) as CloudStoragePublic,
+      credentials: await cipher.open(
+        row.secret_ciphertext,
+        JSON.stringify(['platform-storage', row.id, row.current_revision]),
+      ),
+    }
+  }
   return {
+    async attachPool(poolId: string, now: number) {
+      const id = 'platform-' + poolId
+      validId(id)
+      await db.batch([
+        db
+          .prepare(`INSERT INTO cloud_storage_connections(site_id,id,current_revision,healthy,checked_at,pool_id,pool_revision)
+          SELECT ?,?,1,1,?,id,current_revision FROM platform_storage_pools WHERE id=? AND enabled=1
+          ON CONFLICT(site_id,id) DO NOTHING`)
+          .bind(siteId, id, now, poolId),
+        db
+          .prepare(`INSERT INTO cloud_storage_versions(site_id,connection_id,revision,public_json,secret_ciphertext)
+          SELECT ?,?,1,'{}','managed' WHERE EXISTS(SELECT 1 FROM cloud_storage_connections WHERE site_id=? AND id=? AND pool_id=?)
+          ON CONFLICT DO NOTHING`)
+          .bind(siteId, id, siteId, id, poolId),
+      ])
+      return db
+        .prepare(
+          'SELECT id FROM cloud_storage_connections WHERE site_id=? AND id=?',
+        )
+        .bind(siteId, id)
+        .first()
+    },
     async list() {
       const result = (await db
         .prepare(
-          'SELECT c.id,c.current_revision,c.healthy,c.checked_at,v.public_json FROM cloud_storage_connections c JOIN cloud_storage_versions v ON v.site_id=c.site_id AND v.connection_id=c.id AND v.revision=c.current_revision WHERE c.site_id=? ORDER BY c.id LIMIT 20',
+          'SELECT c.id,c.current_revision,c.healthy,c.checked_at,c.pool_id,CASE WHEN c.pool_id IS NULL THEN 1 ELSE COALESCE(p.enabled,0) END AS uploads_enabled,v.public_json FROM cloud_storage_connections c JOIN cloud_storage_versions v ON v.site_id=c.site_id AND v.connection_id=c.id AND v.revision=c.current_revision LEFT JOIN platform_storage_pools p ON p.id=c.pool_id WHERE c.site_id=? ORDER BY c.id LIMIT 20',
         )
         .bind(siteId)) as unknown as { all<T>(): Promise<{ results: T[] }> }
       return (
         await result.all<{
           id: string
+          pool_id: string | null
+          uploads_enabled: number
           current_revision: number
           healthy: number
           checked_at: number | null
@@ -43,11 +95,15 @@ export function createStorageVault(
         }>()
       ).results.map(({ public_json, ...record }) => ({
         ...record,
-        config: JSON.parse(public_json) as CloudStoragePublic,
+        config: record.pool_id
+          ? { bucket: 'Platform storage' }
+          : (JSON.parse(public_json) as CloudStoragePublic),
       }))
     },
     async get(id: string, revision?: number) {
       validId(id)
+      const pool = await managed(id)
+      if (pool) return revision === undefined || revision === 1 ? pool : null
       const row = await db
         .prepare(
           `SELECT v.revision,v.public_json,v.secret_ciphertext FROM cloud_storage_versions v JOIN cloud_storage_connections c ON c.site_id=v.site_id AND c.id=v.connection_id WHERE v.site_id=? AND v.connection_id=? AND v.revision=COALESCE(?,c.current_revision)`,
@@ -71,6 +127,8 @@ export function createStorageVault(
     /** Object revisions pin bucket metadata; rotation replaces credentials for that same connection. */
     async resolve(id: string, revision?: number) {
       validId(id)
+      const pool = await managed(id)
+      if (pool) return revision === undefined || revision === 1 ? pool : null
       const row = await db
         .prepare(
           `SELECT v.revision,v.public_json,c.current_revision,k.secret_ciphertext FROM cloud_storage_connections c JOIN cloud_storage_versions v ON v.site_id=c.site_id AND v.connection_id=c.id AND v.revision=COALESCE(?,c.current_revision) JOIN cloud_storage_versions k ON k.site_id=c.site_id AND k.connection_id=c.id AND k.revision=c.current_revision WHERE c.site_id=? AND c.id=?`,
@@ -122,6 +180,8 @@ export function createStorageVault(
       now: number,
     ) {
       validId(id)
+      if (await managed(id))
+        throw new CoreError(403, 'Managed credentials cannot be changed')
       if (!Number.isSafeInteger(expectedRevision) || expectedRevision < 1)
         throw new RangeError('Revision required')
       const revision = expectedRevision + 1

@@ -20,7 +20,7 @@ export function createD1Directory(
     async getSite(id) {
       const row = await db
         .prepare(
-          'SELECT id, workspace_id AS workspaceId, published FROM platform_sites WHERE id = ?',
+          'SELECT id, workspace_id AS workspaceId, published FROM platform_sites WHERE id = ? AND suspended=0',
         )
         .bind(id)
         .first<{ id: number; workspaceId: number; published: number }>()
@@ -37,7 +37,7 @@ export function createD1Directory(
     async getPublishedSiteByHost(host) {
       const row = await db
         .prepare(
-          `SELECT s.id, s.workspace_id AS workspaceId, s.published FROM platform_domains d JOIN platform_sites s ON s.id=d.site_id LEFT JOIN platform_custom_domains cd ON cd.hostname=d.hostname WHERE d.hostname=? AND d.verified=1 AND d.active=1 AND s.published=1 AND (d.kind<>'custom' OR (cd.site_id=d.site_id AND cd.state='active' AND cd.verified_at>=?)) AND (d.kind<>'alias' OR d.redirect_until>?)`,
+          `SELECT s.id, s.workspace_id AS workspaceId, s.published FROM platform_domains d JOIN platform_sites s ON s.id=d.site_id LEFT JOIN platform_custom_domains cd ON cd.hostname=d.hostname WHERE d.hostname=? AND d.verified=1 AND d.active=1 AND s.published=1 AND s.suspended=0 AND (d.kind<>'custom' OR (cd.site_id=d.site_id AND cd.state='active' AND cd.verified_at>=?)) AND (d.kind<>'alias' OR d.redirect_until>?)`,
         )
         .bind(host, now() - DOMAIN_HEALTH_TTL, now())
         .first<{ id: number; workspaceId: number; published: number }>()

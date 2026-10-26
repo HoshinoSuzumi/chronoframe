@@ -110,7 +110,7 @@
       "sites": "Sites",
       "createSite": "Create site",
       "createASite": "Create a site",
-      "startWithAPrivateDraftYourAddressIsReserved": "Start with a private draft. Your address is reserved until publishing is available.",
+      "startWithAPrivateDraftYourAddressIsReserved": "Your site is published immediately after creation. No photographs or storage setup are required.",
       "siteName": "Site name",
       "siteAddress": "Site address",
       "use340LowercaseLettersNumbersOrHyphensSome": "Use 3–40 lowercase letters, numbers or hyphens. Some addresses are reserved. The address cannot be changed here.",
@@ -250,7 +250,7 @@
       "status": "Status",
       "role": "Role",
       "noSitesYet": "No sites yet",
-      "createADraftAboveToReserveYourGalleryS": "Create a draft above to reserve your gallery’s address.",
+      "createADraftAboveToReserveYourGalleryS": "Create your first gallery. Empty galleries are published automatically.",
       "onlySitesYouBelongToAppearHere": "Only sites you belong to appear here.",
       "viewDocumentation": "View documentation",
       "cover": "Cover",
@@ -310,7 +310,7 @@
       "photographUpdated": "Photograph updated.",
       "uploadUnavailable": "Upload unavailable",
       "uploadFailed": "Upload failed",
-      "eachPhotographAndItsMatchingLivePhotoMovMust": "Each photograph and its matching Live Photo MOV must total at most 100 MiB. A MOV must accompany a photograph with the same filename.",
+      "eachPhotographAndItsMatchingLivePhotoMovMust": "Each photograph and its paired video must fit within your plan’s file limit.",
       "uploadVerifiedProcessingContinuesInTheBackground": "Upload verified. Processing continues in the background.",
       "uploadCancelled": "Upload cancelled.",
       "uploadInterruptedSelectTheSameFileToResumeIts": "Upload interrupted. Select the same file to resume its uploaded parts.",
@@ -436,7 +436,7 @@
       "photoMembershipCount": "Photographs · {count}",
       "securityFor": "Manage sign-in methods for {email}.",
       "uploadProgress": "{progress}% · Uploading to your private bucket",
-      "uploadUsage": "{photos} / 1,000 photographs · {bytes} / 5 GiB uploaded in 30 days",
+      "uploadUsage": "Workspace: {photos} / {photoLimit} photographs · {bytes} / {uploadLimit} GiB uploaded in 30 days",
       "connectionRevision": "{bucket} · revision {revision}",
       "admin": "Admin",
       "member": "Member",
@@ -451,7 +451,7 @@
       "processingFailure": "Processing could not finish ({code}). Retry or contact the operator.",
       "draftChecking": "This address returns 404 until you publish your gallery. Checking photographs…",
       "draftNeedsPhoto": "This address returns 404 until you publish your gallery. Upload a photograph and wait for processing to finish before publishing.",
-      "draftReady": "This address returns 404 until you publish your gallery. Ready to share? Select Publish gallery above.",
+      "draftReady": "Ready to publish, even without photographs.",
       "draftAskAdmin": "This address returns 404 until you publish your gallery. Ask a workspace administrator to publish this gallery.",
       "passwordSetupGuidance": "You signed in with an email code. {link} before enabling two-step verification.",
       "connectStorageGuidance": "Connect your private storage in {link} before uploading.",
@@ -569,6 +569,13 @@
       "removingHelp": "Public access has stopped. We are removing this connection.",
       "expiredHelp": "This request expired before verification. Remove it and add the domain again.",
       "checksPaused": "Checks are paused for this domain."
+    },
+    "storageAllowance": {
+      "description": "Storage is provided by your plan. Empty galleries are published automatically; uploading photographs is optional.",
+      "fileLimit": "Up to {size} MiB per photograph, including its paired video.",
+      "noCustomDomains": "Your plan does not include custom domains. Your default site address remains available.",
+      "unavailable": "Platform uploads are temporarily unavailable. Your site remains published; no custom storage setup is required.",
+      "managedHelp": "Your plan includes platform storage. No bucket setup is needed."
     }
   }
 }

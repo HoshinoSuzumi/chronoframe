@@ -285,13 +285,19 @@ async function copy(value: string) {
           <CloudButton
             v-if="data.admin"
             size="sm"
-            :disabled="busy || !data.enabled"
+            :disabled="busy || !data.enabled || !data.customDomainLimit"
             @click="beginAdd"
             ><Plus :size="14" />{{ t('cloud.domains.add') }}</CloudButton
           >
         </div>
         <p
-          v-if="!data.enabled"
+          v-if="!data.customDomainLimit"
+          class="cf-notice"
+        >
+          {{ t('cloud.storageAllowance.noCustomDomains') }}
+        </p>
+        <p
+          v-else-if="!data.enabled"
           class="cf-notice"
         >
           {{ t('cloud.domains.disabled') }}

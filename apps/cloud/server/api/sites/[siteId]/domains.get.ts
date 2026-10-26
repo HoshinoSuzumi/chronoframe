@@ -1,3 +1,4 @@
+import { workspaceEntitlements } from '@chronoframe/platform/entitlements'
 import { getRouterParam } from 'h3'
 import {
   definePlatformHandler,
@@ -22,6 +23,8 @@ export default definePlatformHandler(async (event) => {
     config.baseDomain,
   )
   return {
+    customDomainLimit: (await workspaceEntitlements(db, site.workspaceId))
+      .limits.customDomains,
     defaultHostname,
     legacyHostname: await legacySiteHost(db, siteId),
     baseDomain: config.baseDomain,

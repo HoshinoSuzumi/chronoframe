@@ -208,6 +208,9 @@ test('D1 directory never maps unverified/inactive domains or unrelated Workspace
           'utf8',
         ),
       )
+    sqlite.exec(
+      'ALTER TABLE platform_sites ADD COLUMN suspended INTEGER NOT NULL DEFAULT 0',
+    )
     const access = createPlatformAccess(createD1Directory(db), () => 100)
     const session = { userId: 1, expiresAt: 200 }
     assert.equal((await access.authorizeSite(session, 1, 'manage')).site.id, 1)
