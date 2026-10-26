@@ -436,7 +436,7 @@
       "photoMembershipCount": "照片 · {count}",
       "securityFor": "管理 {email} 的登录方式。",
       "uploadProgress": "{progress}% · 正在上传到你的私有存储桶",
-      "uploadUsage": "{photos} / {photoLimit} 张照片 · 30 天上传 {bytes} / {uploadLimit} GiB",
+      "uploadUsage": "工作空间：{photos} / {photoLimit} 张照片 · 30 天上传 {bytes} / {uploadLimit} GiB",
       "connectionRevision": "{bucket} · 凭证版本 {revision}",
       "admin": "管理员",
       "member": "成员",

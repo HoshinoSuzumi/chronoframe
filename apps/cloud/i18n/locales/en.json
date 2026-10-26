@@ -436,7 +436,7 @@
       "photoMembershipCount": "Photographs · {count}",
       "securityFor": "Manage sign-in methods for {email}.",
       "uploadProgress": "{progress}% · Uploading to your private bucket",
-      "uploadUsage": "{photos} / {photoLimit} photographs · {bytes} / {uploadLimit} GiB uploaded in 30 days",
+      "uploadUsage": "Workspace: {photos} / {photoLimit} photographs · {bytes} / {uploadLimit} GiB uploaded in 30 days",
       "connectionRevision": "{bucket} · revision {revision}",
       "admin": "Admin",
       "member": "Member",

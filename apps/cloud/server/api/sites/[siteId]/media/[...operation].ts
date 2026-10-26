@@ -142,11 +142,11 @@ export default definePlatformHandler(async (event) => {
       .first<{ bytes: number }>()
     const usage = (
       await sql<{ photos: number; pending: number; bytes: number }>(
-        `SELECT (SELECT COUNT(*) FROM cloud_photos WHERE site_id=? AND deleted=0) AS photos,(SELECT COUNT(*) FROM cloud_uploads WHERE site_id=? AND state='pending' AND expires_at>?) AS pending,COALESCE((SELECT SUM(bytes) FROM cloud_usage_events WHERE site_id=? AND created_at>?),0) AS bytes`,
-        siteId,
-        siteId,
+        `SELECT (SELECT COUNT(*) FROM cloud_photos WHERE site_id IN(SELECT id FROM platform_sites WHERE workspace_id=?) AND deleted=0) AS photos,(SELECT COUNT(*) FROM cloud_uploads WHERE site_id IN(SELECT id FROM platform_sites WHERE workspace_id=?) AND state='pending' AND expires_at>?) AS pending,COALESCE((SELECT SUM(bytes) FROM cloud_usage_events WHERE site_id IN(SELECT id FROM platform_sites WHERE workspace_id=?) AND created_at>?),0) AS bytes`,
+        site.workspaceId,
+        site.workspaceId,
         now,
-        siteId,
+        site.workspaceId,
         now - 30 * 86400000,
       )
     )[0]
