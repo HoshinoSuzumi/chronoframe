@@ -62,3 +62,6 @@ logs
 apps/self-hosted/data
 .env.*
 !.env.example
+
+# Private optional platform administration application
+apps/admin
