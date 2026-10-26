@@ -256,6 +256,7 @@ test('Real D1 provisioning preserves old tenants, serializes defaults and enforc
     )
     for (const presentation of [
       { homeHeaderLayout: 'invalid', socialLinks: { links: [] } },
+      { homeHeaderLayout: ['fixed'], socialLinks: { links: [] } },
       {
         homeHeaderLayout: 'fixed',
         socialLinks: { links: ['javascript:alert(1)'] },

@@ -53,7 +53,7 @@ export function parseGalleryPresentation(value: unknown): GalleryPresentation {
     Object.keys(data).some(
       (k) => !['homeHeaderLayout', 'socialLinks'].includes(k),
     ) ||
-    !['embedded', 'fixed'].includes(String(data.homeHeaderLayout))
+    (data.homeHeaderLayout !== 'embedded' && data.homeHeaderLayout !== 'fixed')
   )
     throw new Error('Invalid home header layout')
   return {
