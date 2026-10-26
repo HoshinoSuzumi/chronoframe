@@ -18,7 +18,9 @@ const {
       <p>
         {{
           $t(
-            'cloud.messages.connectAPrivateS3CompatibleBucketForYourPhotographs',
+            allowance?.byosLimits.byos
+              ? 'cloud.messages.connectAPrivateS3CompatibleBucketForYourPhotographs'
+              : 'cloud.storageAllowance.managedHelp',
           )
         }}
       </p>
@@ -42,10 +44,12 @@ const {
             "
           >
             {{
-              $t('cloud.ui.connectionRevision', {
-                bucket: connection.config.bucket,
-                revision: connection.current_revision,
-              })
+              connection.pool_id
+                ? $t('cloud.messages.platformStorage')
+                : $t('cloud.ui.connectionRevision', {
+                    bucket: connection.config.bucket,
+                    revision: connection.current_revision,
+                  })
             }}
           </option>
         </select></label

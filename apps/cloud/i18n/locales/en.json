@@ -574,7 +574,8 @@
       "description": "Storage is provided by your plan. Empty galleries are published automatically; uploading photographs is optional.",
       "fileLimit": "Up to {size} MiB per photograph, including its paired video.",
       "noCustomDomains": "Your plan does not include custom domains. Your default site address remains available.",
-      "unavailable": "Platform uploads are temporarily unavailable. Your site remains published; no custom storage setup is required."
+      "unavailable": "Platform uploads are temporarily unavailable. Your site remains published; no custom storage setup is required.",
+      "managedHelp": "Your plan includes platform storage. No bucket setup is needed."
     }
   }
 }

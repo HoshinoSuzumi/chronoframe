@@ -58,7 +58,12 @@ async function dropFiles(event: DragEvent) {
                     c.uploads_enabled !== 0 &&
                     (c.pool_id || allowance?.byosLimits.byos),
                 )
-                .map((c) => ({ label: c.config.bucket, value: c.id }))
+                .map((c) => ({
+                  label: c.pool_id
+                    ? $t('cloud.messages.platformStorage')
+                    : c.config.bucket,
+                  value: c.id,
+                }))
             "
             class="w-full"
             :disabled="uploading"
