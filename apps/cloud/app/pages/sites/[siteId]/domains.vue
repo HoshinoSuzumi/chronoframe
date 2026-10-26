@@ -29,6 +29,15 @@ const addOpen = ref(false),
   renameOpen = ref(false),
   removal = shallowRef<CustomDomain | null>(null),
   expandedHost = ref('')
+watch([addOpen, renameOpen, () => !!removal.value], (current, previous) => {
+  if (
+    failure.value &&
+    current.some((open, index) => previous[index] && !open)
+  ) {
+    failure.value = false
+    notice.value = ''
+  }
+})
 watch(result, (value) => {
   if (value) data.value = value
 })
