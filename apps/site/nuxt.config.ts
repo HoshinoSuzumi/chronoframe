@@ -1,7 +1,10 @@
+import { galleryFontFamilies } from '../../packages/gallery/fonts'
 import { SITE_CAPABILITIES } from '../../packages/contracts/src/entry'
 import { sharedUi } from '../nuxt.shared'
 export default defineNuxtConfig({
   ...sharedUi,
+  modules: [...sharedUi.modules, '@nuxt/fonts'],
+  fonts: { families: galleryFontFamilies },
   devServer: { port: 3002 },
   app: { head: { htmlAttrs: { lang: 'en' } } },
   nitro: {

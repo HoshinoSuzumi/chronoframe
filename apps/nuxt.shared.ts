@@ -1,3 +1,4 @@
+import { SOCIAL_LINK_ICONS } from '../packages/contracts/src/social-links'
 import type { NuxtConfig } from 'nuxt/schema'
 import { createRequire } from 'node:module'
 import { fileURLToPath } from 'node:url'
@@ -54,6 +55,7 @@ export const sharedUi = {
   ui: { fonts: false },
   icon: {
     clientBundle: {
+      icons: SOCIAL_LINK_ICONS,
       scan: {
         globInclude: [
           fileURLToPath(

@@ -1,3 +1,7 @@
+import {
+  parseGalleryPresentation,
+  type GalleryPresentation,
+} from '@chronoframe/contracts/gallery-settings'
 import { workspaceEntitlements } from './entitlements.ts'
 import { validSiteSlug, defaultSiteHost } from '@chronoframe/contracts/domains'
 import type { PlatformD1 } from './index.ts'
@@ -56,6 +60,7 @@ export function siteProfile(value: unknown) {
   }
 }
 export interface ManagedSite {
+  presentation: GalleryPresentation
   siteId: number
   workspaceId: number
   name: string
@@ -68,7 +73,18 @@ export interface ManagedSite {
   avatarUrl: string
 }
 const fields =
-  's.id AS siteId, s.workspace_id AS workspaceId, s.name, s.slug, s.published, s.revision, s.gallery_title AS title, s.gallery_slogan AS slogan, s.gallery_author AS author, s.gallery_avatar AS avatarUrl'
+  's.id AS siteId, s.workspace_id AS workspaceId, s.name, s.slug, s.published, s.revision, s.gallery_title AS title, s.gallery_slogan AS slogan, s.gallery_author AS author, s.gallery_avatar AS avatarUrl, s.gallery_presentation AS presentation'
+type StoredManagedSite = Omit<ManagedSite, 'presentation'> & {
+  presentation: string
+}
+function decodedSite<T extends { presentation: string }>(
+  row: T,
+): Omit<T, 'presentation'> & { presentation: GalleryPresentation } {
+  return {
+    ...row,
+    presentation: parseGalleryPresentation(JSON.parse(row.presentation)),
+  }
+}
 /** Transactional D1 writes retain live membership checks, including during retries. */
 export function createD1Provisioning(
   db: PlatformD1,
@@ -104,9 +120,9 @@ export function createD1Provisioning(
       JOIN platform_memberships m ON m.workspace_id = s.workspace_id
       WHERE s.id = ? AND s.suspended=0 AND m.user_id = ? AND m.role IN ('admin','member')`)
       .bind(siteId, userId)
-      .first<ManagedSite & { role: string }>()
+      .first<StoredManagedSite & { role: string }>()
     if (!site) throw new ProvisioningError(404, 'Site not found')
-    return site
+    return decodedSite(site)
   }
   return {
     defaultWorkspace,
@@ -127,11 +143,11 @@ export function createD1Provisioning(
         JOIN platform_memberships m ON m.workspace_id = s.workspace_id
         WHERE s.workspace_id = ? AND s.provision_key = ? AND m.user_id = ? AND m.role = 'admin'`)
         .bind(workspace.id, input.requestId, userId)
-        .first<ManagedSite>()
+        .first<StoredManagedSite>()
       if (existing) {
         if (existing.name !== identity.name || existing.slug !== identity.slug)
           throw new ProvisioningError(409, 'Request identifier already used')
-        return existing
+        return decodedSite(existing)
       }
       const entitlement = await workspaceEntitlements(db, workspace.id)
       try {
@@ -173,7 +189,7 @@ export function createD1Provisioning(
             `SELECT ${fields} FROM platform_sites s WHERE workspace_id=? AND provision_key=?`,
           )
           .bind(workspace.id, input.requestId)
-          .first<ManagedSite>()
+          .first<StoredManagedSite>()
         if (!site)
           throw new ProvisioningError(
             403,
@@ -181,7 +197,7 @@ export function createD1Provisioning(
           )
         if (site.name !== identity.name || site.slug !== identity.slug)
           throw new ProvisioningError(409, 'Request identifier already used')
-        return site
+        return decodedSite(site)
       } catch (error) {
         if (
           String(error).includes(
@@ -203,6 +219,7 @@ export function createD1Provisioning(
         revision: unknown
         published: unknown
         profile?: unknown
+        presentation?: unknown
       },
     ) {
       const current = await get(userId, siteId)
@@ -211,15 +228,23 @@ export function createD1Provisioning(
       const name = siteIdentity(input.name, current.slug ?? 'legacy-site').name
       const profile =
         input.profile === undefined ? current : siteProfile(input.profile)
+      let presentation = current.presentation
+      if (input.presentation !== undefined) {
+        try {
+          presentation = parseGalleryPresentation(input.presentation)
+        } catch {
+          throw new ProvisioningError(400, 'Invalid gallery presentation')
+        }
+      }
       if (
         !Number.isSafeInteger(input.revision) ||
         typeof input.published !== 'boolean'
       )
         throw new ProvisioningError(400, 'Invalid site settings')
       const result = await db
-        .prepare(`UPDATE platform_sites SET name = ?, published = ?, gallery_title = ?, gallery_slogan = ?, gallery_author = ?, gallery_avatar = ?, revision = revision + 1
+        .prepare(`UPDATE platform_sites SET name = ?, published = ?, gallery_title = ?, gallery_slogan = ?, gallery_author = ?, gallery_avatar = ?, gallery_presentation = ?, revision = revision + 1
         WHERE id = ? AND revision = ? AND EXISTS(SELECT 1 FROM platform_memberships WHERE workspace_id = platform_sites.workspace_id AND user_id = ? AND role = 'admin')
-        RETURNING id AS siteId, workspace_id AS workspaceId, name, slug, published, revision, gallery_title AS title, gallery_slogan AS slogan, gallery_author AS author, gallery_avatar AS avatarUrl`)
+        RETURNING id AS siteId, workspace_id AS workspaceId, name, slug, published, revision, gallery_title AS title, gallery_slogan AS slogan, gallery_author AS author, gallery_avatar AS avatarUrl, gallery_presentation AS presentation`)
         .bind(
           name,
           input.published ? 1 : 0,
@@ -227,14 +252,15 @@ export function createD1Provisioning(
           profile.slogan,
           profile.author,
           profile.avatarUrl,
+          JSON.stringify(presentation),
           siteId,
           input.revision as number,
           userId,
         )
-        .first<ManagedSite>()
+        .first<StoredManagedSite>()
       if (!result)
         throw new ProvisioningError(409, 'Site changed; reload before saving')
-      return result
+      return decodedSite(result)
     },
   }
 }

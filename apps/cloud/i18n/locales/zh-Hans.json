@@ -584,6 +584,18 @@
       "holdSite": "站点访问已暂停，域服务将停用。",
       "holdAccount": "工作空间账号已暂停，域服务将停用。",
       "cleanup": "正在清理域服务；完成前将保留此记录并自动重试。"
+    },
+    "presentation": {
+      "layout": "首页头部布局",
+      "layoutHelp": "选择个人信息在照片墙中的展示方式。",
+      "embedded": "嵌入照片墙",
+      "fixed": "固定在顶部",
+      "social": "社交链接",
+      "socialHelp": "最多添加 {max} 个 HTTPS 个人主页链接，自动识别图标，空白项不显示。",
+      "slot": "链接 {number}",
+      "clear": "清空链接 {number}",
+      "invalid": "请输入有效的 HTTPS 个人主页链接。",
+      "duplicate": "该个人主页已添加。"
     }
   }
 }

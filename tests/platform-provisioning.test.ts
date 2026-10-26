@@ -88,6 +88,7 @@ test('Real D1 provisioning preserves old tenants, serializes defaults and enforc
       '0009_cloud_usage_events.sql',
       '0014_entitlements.sql',
       '0015_lifecycle.sql',
+      '0016_gallery_presentation.sql',
     ])
       await migrate(migration)
     await db
@@ -220,6 +221,21 @@ test('Real D1 provisioning preserves old tenants, serializes defaults and enforc
       published: false,
       revision: 3,
       profile,
+      presentation: {
+        homeHeaderLayout: 'fixed',
+        socialLinks: {
+          links: [
+            'https://github.com/example',
+            'https://example.com/portfolio',
+          ],
+        },
+      },
+    })
+    assert.deepEqual(profiled.presentation, {
+      homeHeaderLayout: 'fixed',
+      socialLinks: {
+        links: ['https://github.com/example', 'https://example.com/portfolio'],
+      },
     })
     assert.equal(profiled.title, profile.title)
     assert.equal((await store.get(42, 8)).avatarUrl, profile.avatarUrl)
@@ -233,6 +249,40 @@ test('Real D1 provisioning preserves old tenants, serializes defaults and enforc
       profile.title,
       'legacy clients preserve public profile',
     )
+    assert.deepEqual(
+      preserved.presentation,
+      profiled.presentation,
+      'legacy updates retain gallery presentation',
+    )
+    for (const presentation of [
+      { homeHeaderLayout: 'invalid', socialLinks: { links: [] } },
+      {
+        homeHeaderLayout: 'fixed',
+        socialLinks: { links: ['javascript:alert(1)'] },
+      },
+      {
+        homeHeaderLayout: 'fixed',
+        socialLinks: {
+          links: ['https://github.com/example', 'https://github.com/example/'],
+        },
+      },
+      {
+        homeHeaderLayout: 'fixed',
+        socialLinks: { links: Array(5).fill('https://example.com') },
+      },
+    ]) {
+      await assert.rejects(
+        store.update(42, 8, {
+          name: 'Must not change',
+          published: true,
+          revision: 5,
+          presentation,
+        }),
+        { statusCode: 400 },
+      )
+    }
+    assert.equal((await store.get(42, 8)).name, preserved.name)
+
     await assert.rejects(
       store.update(42, 8, {
         name: 'Stale',

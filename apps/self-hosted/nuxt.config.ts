@@ -1,3 +1,4 @@
+import { galleryFontFamilies } from '../../packages/gallery/fonts'
 import { SELF_HOSTED_CAPABILITIES } from '../../packages/contracts/src/entry'
 import pkg from '../../package.json'
 import type { AnalyticsConfig } from './shared/types/config'
@@ -256,10 +257,7 @@ export default defineNuxtConfig({
   },
 
   fonts: {
-    families: [
-      { name: 'Rubik', weights: [400, 500, 600, 700], global: true },
-      { name: 'Noto Sans SC', weights: [400, 500, 600, 700], global: true },
-    ],
+    families: galleryFontFamilies,
   },
 
   dayjs: {

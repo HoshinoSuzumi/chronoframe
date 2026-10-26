@@ -2792,3 +2792,51 @@ a.cf-domain-address:hover {
   white-space: normal;
   margin-top: 4px;
 }
+
+.cf-gallery-presentation {
+  border-top: 1px solid var(--border);
+  padding-top: 20px;
+  display: grid;
+  gap: 12px;
+}
+.cf-gallery-presentation h3 {
+  font-size: 14px;
+  font-weight: 600;
+  margin: 0;
+}
+.cf-gallery-presentation fieldset {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  border: 0;
+  padding: 0;
+  margin: 0;
+}
+.cf-layout-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 12px;
+  cursor: pointer;
+  font-size: 13px;
+}
+.cf-layout-option:has(input:checked) {
+  border-color: var(--primary);
+  background: var(--secondary);
+}
+.cf-layout-option input {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--primary);
+}
+.cf-social-input-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.cf-social-input-row > input {
+  min-width: 0;
+  flex: 1;
+}

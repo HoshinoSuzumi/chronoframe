@@ -37,6 +37,7 @@
     "@chronoframe/database": "workspace:*",
     "@chronoframe/storage": "workspace:*",
     "@chronoframe/contracts": "workspace:*",
-    "nuxt-gtag": "4.1.0"
+    "nuxt-gtag": "4.1.0",
+    "@nuxt/fonts": "0.14.0"
   }
 }
