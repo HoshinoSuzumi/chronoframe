@@ -1,3 +1,4 @@
+import { DomainError } from '../../../packages/platform/src/domains.ts'
 import { StorageConnectionError } from '@chronoframe/storage/connection-probe'
 import {
   createError,
@@ -78,6 +79,43 @@ export function definePlatformHandler<T>(
     try {
       return await handler(event)
     } catch (error) {
+      if (error instanceof DomainError) {
+        const allowed = [
+          'domain_invalid',
+          'domain_reserved',
+          'domain_conflict',
+          'domain_changed',
+          'domain_admin_required',
+          'domain_not_found',
+          'domain_limit',
+          'domain_wait',
+          'domain_cleanup_pending',
+          'domain_not_ready',
+          'domain_unavailable',
+          'domain_dns_unavailable',
+          'domain_provider_unavailable',
+          'domain_provider_conflict',
+          'domain_provider_missing',
+          'domain_routing_unavailable',
+        ]
+        const code = allowed.includes(error.code)
+          ? error.code
+          : 'domain_unavailable'
+        const statusCode = [400, 403, 404, 409, 429, 503].includes(
+          error.statusCode,
+        )
+          ? error.statusCode
+          : 503
+        return sendError(
+          event,
+          createError({
+            statusCode,
+            statusMessage: 'Domain operation unavailable',
+            data: { code },
+          }),
+          false,
+        )
+      }
       if (error instanceof StorageConnectionError) {
         setResponseHeader(event, 'Cache-Control', 'no-store')
         return sendError(

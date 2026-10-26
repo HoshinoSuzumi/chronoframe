@@ -1,5 +1,6 @@
 <script setup lang="ts">
 const { t } = useI18n()
+const siteBaseDomain = useRuntimeConfig().public.siteBaseDomain
 
 import { Plus, ArrowRight, Layers } from 'lucide-vue-next'
 defineProps<{ workspaceName?: string }>()
@@ -113,7 +114,7 @@ async function create() {
         id="site-address-preview"
         class="cf-address-preview"
       >
-        {{ slug || 'your-site' }}.site.chronoframe.art
+        {{ slug || 'your-site' }}.{{ siteBaseDomain }}
       </p>
       <p
         id="site-address-help"

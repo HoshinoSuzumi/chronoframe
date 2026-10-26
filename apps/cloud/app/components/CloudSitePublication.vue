@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { ArrowUpRight, Globe, Copy, Check } from 'lucide-vue-next'
+const defaultDomainsReady =
+  String(useRuntimeConfig().public.defaultDomainsReady) === 'true'
 const activeContext = useEntryContext()
 const context = shallowRef(activeContext.value)
 // Preserve the outgoing header, while accepting live updates for this Site only.
@@ -9,10 +11,16 @@ watch(activeContext, (next) => {
 const { admin, busy, photos, loading, failed, message, publish } =
   useCloudSiteMedia()
 const { data, status, error, refresh } = useFetch<{
-  site: { slug: string | null }
+  site: {
+    slug: string | null
+    defaultHostname?: string | null
+    legacyHostname?: string | null
+  }
 }>(`/api/sites/${context.value?.siteId}/settings`)
 const host = computed(() =>
-  data.value?.site.slug ? `${data.value.site.slug}.site.chronoframe.art` : '',
+  defaultDomainsReady
+    ? (data.value?.site.defaultHostname ?? '')
+    : (data.value?.site.legacyHostname ?? ''),
 )
 const address = computed(() => (host.value ? `https://${host.value}` : ''))
 const copied = ref(false),
@@ -79,7 +87,9 @@ async function unpublish() {
         :variant="context?.published ? 'ghost' : 'default'"
         size="sm"
         :disabled="
-          busy || (!context?.published && (loading || !host || !photos.length))
+          busy ||
+          (!context?.published &&
+            (!defaultDomainsReady || loading || !host || !photos.length))
         "
         :loading="busy"
         @click="context?.published ? (unpublishOpen = true) : publish(true)"
@@ -90,6 +100,12 @@ async function unpublish() {
         }}</CloudButton
       >
     </div>
+    <p
+      v-if="!defaultDomainsReady"
+      class="cf-field-hint"
+    >
+      {{ $t('cloud.domains.routingPending') }}
+    </p>
     <div class="cf-site-address-block">
       <div
         v-if="address"

@@ -1,3 +1,4 @@
+import { validSiteSlug, defaultSiteHost } from '@chronoframe/contracts/domains'
 import type { PlatformD1 } from './index.ts'
 
 export class ProvisioningError extends Error {
@@ -7,31 +8,6 @@ export class ProvisioningError extends Error {
     this.statusCode = statusCode
   }
 }
-const reserved = new Set([
-  'www',
-  'app',
-  'api',
-  'admin',
-  'account',
-  'auth',
-  'cloud',
-  'site',
-  'sites',
-  'staging',
-  'preview',
-  'production',
-  'mail',
-  'email',
-  'noreply',
-  'support',
-  'help',
-  'docs',
-  'status',
-  'assets',
-  'static',
-  'cdn',
-  'chronoframe',
-])
 export function siteIdentity(name: unknown, slug: unknown) {
   if (
     typeof name !== 'string' ||
@@ -42,11 +18,7 @@ export function siteIdentity(name: unknown, slug: unknown) {
     )
   )
     throw new ProvisioningError(400, 'Invalid site name')
-  if (
-    typeof slug !== 'string' ||
-    !/^[a-z0-9](?:[a-z0-9-]{1,38}[a-z0-9])$/.test(slug) ||
-    reserved.has(slug)
-  )
+  if (!validSiteSlug(slug))
     throw new ProvisioningError(400, 'Invalid site address')
   return { name: name.trim(), slug }
 }
@@ -97,7 +69,10 @@ export interface ManagedSite {
 const fields =
   's.id AS siteId, s.workspace_id AS workspaceId, s.name, s.slug, s.published, s.revision, s.gallery_title AS title, s.gallery_slogan AS slogan, s.gallery_author AS author, s.gallery_avatar AS avatarUrl'
 /** Transactional D1 writes retain live membership checks, including during retries. */
-export function createD1Provisioning(db: PlatformD1) {
+export function createD1Provisioning(
+  db: PlatformD1,
+  baseDomain = 'chronoframe.art',
+) {
   async function defaultWorkspace(userId: number) {
     await db.batch([
       db
@@ -158,22 +133,43 @@ export function createD1Provisioning(db: PlatformD1) {
         return existing
       }
       try {
-        const site = await db
-          .prepare(`INSERT INTO platform_sites(workspace_id, name, slug, created_at, provision_key)
+        await db.batch([
+          db
+            .prepare(`INSERT INTO platform_sites(workspace_id, name, slug, created_at, provision_key)
           SELECT ?, ?, ?, ?, ? WHERE EXISTS(SELECT 1 FROM platform_memberships WHERE workspace_id = ? AND user_id = ? AND role = 'admin')
           AND (SELECT COUNT(*) FROM platform_sites WHERE workspace_id = ?) < 10
-          ON CONFLICT(workspace_id, provision_key) DO UPDATE SET provision_key = excluded.provision_key
-          RETURNING id AS siteId, workspace_id AS workspaceId, name, slug, published, revision, gallery_title AS title, gallery_slogan AS slogan, gallery_author AS author, gallery_avatar AS avatarUrl`)
-          .bind(
-            workspace.id,
-            identity.name,
-            identity.slug,
-            Date.now(),
-            input.requestId,
-            workspace.id,
-            userId,
-            workspace.id,
+          ON CONFLICT(workspace_id, provision_key) DO UPDATE SET provision_key = excluded.provision_key`)
+            .bind(
+              workspace.id,
+              identity.name,
+              identity.slug,
+              Date.now(),
+              input.requestId,
+              workspace.id,
+              userId,
+              workspace.id,
+            ),
+          db
+            .prepare(`INSERT INTO platform_site_slugs(slug,site_id)
+            SELECT slug,id FROM platform_sites WHERE workspace_id=? AND provision_key=? AND slug=?
+            ON CONFLICT(slug) DO UPDATE SET site_id=CASE WHEN platform_site_slugs.site_id=excluded.site_id THEN platform_site_slugs.site_id ELSE NULL END`)
+            .bind(workspace.id, input.requestId, identity.slug),
+          db
+            .prepare(`INSERT INTO platform_domains(hostname,site_id,verified,active,kind)
+            SELECT ?,id,1,1,'default' FROM platform_sites WHERE workspace_id=? AND provision_key=? AND slug=?
+            ON CONFLICT(hostname) DO UPDATE SET site_id=CASE WHEN platform_domains.site_id=excluded.site_id THEN platform_domains.site_id ELSE NULL END`)
+            .bind(
+              defaultSiteHost(identity.slug, baseDomain),
+              workspace.id,
+              input.requestId,
+              identity.slug,
+            ),
+        ])
+        const site = await db
+          .prepare(
+            `SELECT ${fields} FROM platform_sites s WHERE workspace_id=? AND provision_key=?`,
           )
+          .bind(workspace.id, input.requestId)
           .first<ManagedSite>()
         if (!site)
           throw new ProvisioningError(
@@ -187,6 +183,9 @@ export function createD1Provisioning(db: PlatformD1) {
         if (
           String(error).includes(
             'UNIQUE constraint failed: platform_sites.slug',
+          ) ||
+          /NOT NULL constraint failed: platform_(?:site_slugs|domains)\.site_id/.test(
+            String(error),
           )
         )
           throw new ProvisioningError(409, 'Site address is already taken')

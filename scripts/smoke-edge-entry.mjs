@@ -127,7 +127,12 @@ try {
     }
   } else {
     assert.equal((await fetch(base + '/albums')).status, 503)
-    assert.equal((await fetch(base + '/dashboard')).status, 404)
+    // Administrative redirects require a published Host and configured platform data.
+    for (const path of ['/dashboard', '/admin'])
+      assert.equal(
+        (await fetch(base + path, { redirect: 'manual' })).status,
+        503,
+      )
   }
   console.log(
     `PASS ${entry}: actual workerd SSR, entry routes, unavailable platform APIs, and Self-hosted session isolation`,

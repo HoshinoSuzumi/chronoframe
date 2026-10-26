@@ -1,3 +1,5 @@
+import { DomainError } from '@chronoframe/platform/domains'
+import { defaultSiteHost, validSiteSlug } from '@chronoframe/contracts/domains'
 import type { MediaDatabase } from '@chronoframe/database/cloud-media'
 import { createCloudAlbumWithSlug } from '@chronoframe/database/cloud-album-slugs'
 import { deleteCloudPhotos } from '../../../../utils/cloud-photo-delete'
@@ -661,13 +663,24 @@ export default definePlatformHandler(async (event) => {
     if (!site.slug) throw createError({ statusCode: 400 })
     const revision = number(body.revision),
       published = body.published === true
+    if (
+      published &&
+      (!validSiteSlug(site.slug) ||
+        String(useRuntimeConfig(event).public.defaultDomainsReady) !== 'true')
+    )
+      throw new DomainError(503, 'domain_routing_unavailable')
     if (published && !(await ctx.resources.listPhotos()).length)
       throw createError({ statusCode: 400 })
-    const hostname = site.slug + '.site.chronoframe.art'
+    const hostname = validSiteSlug(site.slug)
+      ? defaultSiteHost(
+          site.slug,
+          useRuntimeConfig(event).public.siteBaseDomain,
+        )
+      : site.slug + '.site.chronoframe.art'
     const changes = await raw.batch([
       raw
         .prepare(
-          `INSERT INTO platform_domains(hostname,site_id,verified,active) SELECT ?,id,1,? FROM platform_sites WHERE id=? AND revision=? AND EXISTS(SELECT 1 FROM platform_memberships WHERE workspace_id=platform_sites.workspace_id AND user_id=? AND role='admin') ON CONFLICT(hostname) DO UPDATE SET active=excluded.active WHERE platform_domains.site_id=excluded.site_id`,
+          `INSERT INTO platform_domains(hostname,site_id,verified,active,kind) SELECT ?,id,1,?,'default' FROM platform_sites WHERE id=? AND revision=? AND EXISTS(SELECT 1 FROM platform_memberships WHERE workspace_id=platform_sites.workspace_id AND user_id=? AND role='admin') ON CONFLICT(hostname) DO UPDATE SET active=excluded.active WHERE platform_domains.site_id=excluded.site_id`,
         )
         .bind(hostname, published ? 1 : 0, siteId, revision, userId),
       raw

@@ -16,9 +16,16 @@ export default defineNuxtConfig({
     ...sharedUi.runtimeConfig,
     public: {
       ...sharedUi.runtimeConfig.public,
+      siteBaseDomain: 'chronoframe.art',
+      defaultDomainsReady: false,
       capabilities: SITE_CAPABILITIES,
     },
     session: { name: 'chronoframe-site' },
-    platform: { secret: '', storageSecret: '', s3EndpointHosts: '' },
+    platform: {
+      secret: '',
+      storageSecret: '',
+      s3EndpointHosts: '',
+      portalOrigin: 'https://app.chronoframe.art',
+    },
   },
 })

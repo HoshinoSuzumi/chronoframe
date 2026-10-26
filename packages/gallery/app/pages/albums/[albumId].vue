@@ -41,11 +41,12 @@ watch([resolved, () => route.path, resolveStatus], ([value]) => {
 })
 const albumId = computed(() => resolved.value?.albumId ?? 0)
 const requestUrl = useRequestURL()
+const entryContext = useEntryContext()
 useHead(() => ({
   link: [
     {
       rel: 'canonical',
-      href: `${requestUrl.origin}${canonicalAlbumRoute.value}`,
+      href: `${entryContext.value?.canonicalOrigin ?? requestUrl.origin}${canonicalAlbumRoute.value}`,
     },
   ],
 }))

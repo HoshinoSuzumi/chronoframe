@@ -14,7 +14,10 @@ export async function siteManagement(event: H3Event, mutation = false) {
   const session = await requirePlatformSession(event, config)
   return {
     userId: session.userId,
-    store: createD1Provisioning(platformDatabase(event)),
+    store: createD1Provisioning(
+      platformDatabase(event),
+      useRuntimeConfig(event).public.siteBaseDomain,
+    ),
   }
 }
 export async function siteManagementBody(event: H3Event, limit = 4096) {

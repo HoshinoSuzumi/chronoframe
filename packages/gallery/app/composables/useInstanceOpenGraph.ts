@@ -12,6 +12,7 @@ export async function useInstanceOpenGraph(photos: ComputedRef<Photo[]>) {
   const route = useRoute()
   const nuxtApp = useNuxtApp()
   const requestURL = useRequestURL()
+  const entryContext = useEntryContext()
   const { loggedIn } = useUserSession()
   const i18n = useShareI18n()
 
@@ -79,7 +80,10 @@ export async function useInstanceOpenGraph(photos: ComputedRef<Photo[]>) {
       (homeView.value === 'photos' && route.path === '/photos')
         ? '/'
         : route.path
-    return new URL(path, requestURL.origin).href
+    return new URL(
+      path,
+      entryContext.value?.canonicalOrigin ?? requestURL.origin,
+    ).href
   })
 
   useHead({ link: [{ rel: 'canonical', href: canonicalUrl }] })
