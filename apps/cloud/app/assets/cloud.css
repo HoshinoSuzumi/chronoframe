@@ -3087,6 +3087,14 @@ a.cf-domain-address:hover {
   font-size: 11px;
   color: var(--muted-foreground);
 }
+.cf-portal .cf-quota-card small.cf-error-message {
+  display: block;
+  padding: 0;
+  margin: 0;
+  border: 0;
+  background: transparent;
+  color: var(--destructive);
+}
 .cf-quota-track {
   height: 4px;
   border-radius: 4px;

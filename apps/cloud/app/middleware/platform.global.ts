@@ -9,7 +9,7 @@ export default defineNuxtRouteMiddleware(async (to) => {
     'platform-site-catalog',
     () => null,
   )
-  if (path === '/' && useRequestURL().hostname === 'app.chronoframe.art')
+  if (path === '/' && useCloudRequestURL().hostname === 'app.chronoframe.art')
     return navigateTo('/sites', { redirectCode: 302 })
   if (path === '/dashboard' || path.startsWith('/dashboard/'))
     return navigateTo('/sites', { redirectCode: 302 })
@@ -22,7 +22,7 @@ export default defineNuxtRouteMiddleware(async (to) => {
   }
   if (
     (path === '/pricing' &&
-      (useRequestURL().hostname === 'app.chronoframe.art' ||
+      (useCloudRequestURL().hostname === 'app.chronoframe.art' ||
         to.query.portal === '1')) ||
     path === '/account' ||
     path.startsWith('/account/') ||

@@ -278,6 +278,12 @@ export async function redeemActivation(
     )
     .bind(userId, input.requestId as string)
     .first<{ workspace_id: number; receipt_json: string }>()
-  if (!result || result.workspace_id !== workspaceId) invalid()
+  if (!result) {
+    const latest = await resolveSubscription(db, workspaceId, now)
+    if (latest.assignment_revision !== Number(input.revision))
+      throw new SubscriptionError(409, 'subscription_changed')
+    invalid()
+  }
+  if (result.workspace_id !== workspaceId) invalid()
   return JSON.parse(result.receipt_json)
 }

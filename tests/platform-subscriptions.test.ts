@@ -209,7 +209,7 @@ test('Real D1 defaults, live expiry, activation races/idempotency and workspace 
       },
       now,
     )
-    assert.equal(result.grant.expiresAt, addMonths(addMonths(now, 1), 1))
+    assert.equal(result.grant.expiresAt, addMonths(now, 2))
     assert.equal(result.grant.startsAt, now)
     const shared = await code(1)
     const a = await previewActivation(db, 2, two.id, shared.code, now),
@@ -467,6 +467,99 @@ test('Real D1 defaults, live expiry, activation races/idempotency and workspace 
     assert.equal(route, false)
     const quota = (await resolveSubscription(db, one.id, now)).quotaPeriod
     assert.equal(quota.start, now - 1)
+    // A plan disabled before its paid expiry must retain a current quota anchor.
+    await db
+      .prepare(
+        "UPDATE platform_billing_settings SET expiry_plan_id='free' WHERE id=1",
+      )
+      .run()
+    await db
+      .prepare(
+        "UPDATE platform_workspace_plans SET plan_id='pro',starts_at=?,expires_at=?,source='activation',revision=revision+1 WHERE workspace_id=?",
+      )
+      .bind(now, addMonths(now, 3), one.id)
+      .run()
+    await db.prepare("UPDATE platform_plans SET active=0 WHERE id='pro'").run()
+    const disabled = await resolveSubscription(db, one.id, now)
+    assert.equal(disabled.id, 'free')
+    assert.equal(disabled.quotaPeriod.start, now)
+    assert.equal(
+      (await workspaceBilling(db, 1, one.id, now)).usage.monthlyBytes,
+      123,
+    )
+    await reconcileSubscriptions(db, now)
+    assert.equal(
+      (await resolveSubscription(db, one.id, now)).quotaPeriod.start,
+      now,
+    )
+    assert.equal(
+      (await workspaceBilling(db, 1, one.id, now)).usage.monthlyBytes,
+      123,
+    )
+    // Even a manually corrupted inactive fallback cannot monopolize the bounded queue.
+    await db.prepare("UPDATE platform_plans SET active=0 WHERE id='free'").run()
+    await reconcileSubscriptions(db, now)
+    assert.equal((await reconcileSubscriptions(db, now)).changed, 0)
+    await db
+      .prepare("UPDATE platform_plans SET active=1 WHERE id='starter'")
+      .run()
+    const genuine = await db
+      .prepare(
+        "INSERT INTO platform_workspaces(name) VALUES('Genuinely expired') RETURNING id",
+      )
+      .first<{ id: number }>()
+    await db
+      .prepare(
+        "INSERT INTO platform_workspace_plans(workspace_id,plan_id,starts_at,expires_at,source) VALUES(?,'starter',?,?,'manual')",
+      )
+      .bind(genuine!.id, now - 1000, now - 1)
+      .run()
+    assert.equal((await reconcileSubscriptions(db, now, 1)).changed, 1)
+    assert.equal(
+      (await resolveSubscription(db, genuine!.id, now)).subscription.source,
+      'default',
+    )
+    await db.prepare("UPDATE platform_plans SET active=1 WHERE id='free'").run()
+    // Change the assignment after preflight but before the atomic claim statement.
+    await db.prepare("UPDATE platform_plans SET active=1 WHERE id='pro'").run()
+    const racedCode = await code(null),
+      stale = await resolveSubscription(db, one.id, now)
+    const racingDb = {
+      prepare: db.prepare.bind(db),
+      batch: async (statements: any[]) => {
+        await db
+          .prepare(
+            'UPDATE platform_workspace_plans SET revision=revision+1 WHERE workspace_id=?',
+          )
+          .bind(one.id)
+          .run()
+        return db.batch(statements)
+      },
+    }
+    await assert.rejects(
+      () =>
+        redeemActivation(
+          racingDb,
+          1,
+          one.id,
+          {
+            code: racedCode.code,
+            revision: stale.assignment_revision,
+            requestId: crypto.randomUUID(),
+          },
+          now,
+        ),
+      { code: 'subscription_changed' },
+    )
+    assert.equal(
+      (
+        await db
+          .prepare('SELECT uses FROM platform_activation_codes WHERE id=?')
+          .bind(racedCode.id)
+          .first()
+      ).uses,
+      0,
+    )
     const rateWindow = now + 9000000
     for (let i = 0; i < 20; i++)
       await assert.rejects(

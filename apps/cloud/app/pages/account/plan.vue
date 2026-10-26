@@ -3,8 +3,18 @@ import { BILLING_LIMITS, allowance } from '../../utils/billing-format'
 definePageMeta({ layout: 'portal' })
 const { t, locale } = useI18n(),
   links = useCloudLinks(),
-  { workspaces, selected, data, error, listError, status, refresh } =
-    await useWorkspaceBilling()
+  {
+    workspaces,
+    selected,
+    data,
+    error,
+    listError,
+    status,
+    refresh,
+    retry,
+    ready,
+  } = useWorkspaceBilling()
+await ready
 useSeoMeta({
   title: t('cloud.billing.plan') + ' — ChronoFrame Cloud',
   robots: 'noindex',
@@ -54,7 +64,7 @@ const date = (time: number) => new Date(time).toLocaleString(locale.value)
       v-if="error || listError"
       role="alert"
       ><p>{{ $t('cloud.billing.failed') }}</p>
-      <CloudButton @click="refresh">{{
+      <CloudButton @click="retry">{{
         $t('cloud.billing.retry')
       }}</CloudButton></CloudCard
     ><template v-else-if="data"

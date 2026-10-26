@@ -1,7 +1,7 @@
 <script setup lang="ts">
 const route = useRoute(),
   portal =
-    useRequestURL().hostname === 'app.chronoframe.art' ||
+    useCloudRequestURL().hostname === 'app.chronoframe.art' ||
     route.query.portal === '1',
   { t } = useI18n()
 definePageMeta({ layout: false })

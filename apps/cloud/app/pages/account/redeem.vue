@@ -2,14 +2,15 @@
 import { billingError } from '../../utils/billing-format'
 definePageMeta({ layout: 'portal' })
 const { t, locale } = useI18n(),
-  { workspaces, selected, error, listError, refresh } =
-    await useWorkspaceBilling(true),
+  { workspaces, selected, error, listError, refresh, ready } =
+    useWorkspaceBilling(true),
   code = ref(''),
   preview = ref<any>(null),
   busy = ref(false),
   failure = ref(''),
   receipt = ref<any>(null),
   requestId = ref('')
+await ready
 useSeoMeta({
   title: t('cloud.billing.redeem') + ' — ChronoFrame Cloud',
   robots: 'noindex',
@@ -59,7 +60,13 @@ async function redeem() {
   } catch (error: any) {
     failure.value = billingError(error, t)
     const code = error?.data?.data?.code ?? error?.data?.code
-    if (['subscription_changed', 'redemption_changed'].includes(code)) {
+    if (
+      [
+        'subscription_changed',
+        'redemption_changed',
+        'invalid_activation_code',
+      ].includes(code)
+    ) {
       preview.value = null
       requestId.value = ''
     }
