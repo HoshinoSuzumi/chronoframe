@@ -538,6 +538,37 @@
       },
       "useDefault": "Use default address as primary",
       "targetHelp": "Each binding has its own CNAME target below. Traffic enters through {target}; no additional TXT record is required."
+    },
+    "domainFlow": {
+      "dnsStep": "DNS configuration",
+      "certificateStep": "SSL certificate",
+      "readyStep": "Ready",
+      "actions": "Actions for {hostname}",
+      "needsDns": "DNS setup required",
+      "issuingCertificate": "Issuing certificate",
+      "preparingRoute": "Preparing connection",
+      "connectedHelp": "Your domain is connected and secured with HTTPS.",
+      "pausedHelp": "Public access is paused. Resume to verify and reconnect this domain.",
+      "dnsHelp": "Add the record below with your DNS provider, then verify the configuration.",
+      "certificateHelp": "DNS is verified. We are securing your domain automatically; no certificate upload is needed.",
+      "routeHelp": "The certificate is ready. We are preparing the secure connection to your gallery.",
+      "hideDetails": "Hide setup details",
+      "details": "Setup details",
+      "retryIn": "Retry in {seconds}s",
+      "progress": "Domain connection progress",
+      "recordType": "Type",
+      "recordName": "Name",
+      "recordValue": "Value",
+      "automaticChecks": "Status is checked automatically.",
+      "technical": "Technical details",
+      "customHelp": "Connect a domain you own. DNS, certificates and connection status are shown together.",
+      "emptyHelp": "Add your domain to receive its DNS record and follow the connection progress.",
+      "previousAddress": "Previous site address",
+      "addDescription": "Enter your domain. You will receive a unique CNAME record to connect it securely.",
+      "continue": "Continue",
+      "removingHelp": "Public access has stopped. We are removing this connection.",
+      "expiredHelp": "This request expired before verification. Remove it and add the domain again.",
+      "checksPaused": "Checks are paused for this domain."
     }
   }
 }

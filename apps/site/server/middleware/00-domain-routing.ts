@@ -20,6 +20,9 @@ export default defineEventHandler(async (event) => {
     })
   }
   if (
+    // Nuxt renders errors through an internal request without Worker bindings.
+    // Let its renderer preserve the original status instead of resolving the Site again.
+    normalizedPath === '/__nuxt_error' ||
     normalizedPath === '/api' ||
     normalizedPath.startsWith('/api/') ||
     path.startsWith('/_nuxt/')

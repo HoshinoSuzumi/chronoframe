@@ -3,8 +3,8 @@ import type {
   CustomDomain,
   DomainOverview,
 } from '@chronoframe/contracts/domains'
-import { Copy, Globe, RefreshCw, Plus, ExternalLink } from 'lucide-vue-next'
-const { t, te, locale } = useI18n()
+import { Copy, Globe, RefreshCw, Plus, Pencil } from 'lucide-vue-next'
+const { t } = useI18n()
 definePageMeta({ layout: 'portal' })
 useSeoMeta({
   title: () => t('cloud.messages.domainsChronoframeCloud'),
@@ -25,6 +25,19 @@ const data = ref(result.value),
   busy = ref(false),
   hostname = ref(''),
   slug = ref('')
+const addOpen = ref(false),
+  renameOpen = ref(false),
+  removal = shallowRef<CustomDomain | null>(null),
+  expandedHost = ref('')
+watch([addOpen, renameOpen, () => !!removal.value], (current, previous) => {
+  if (
+    failure.value &&
+    current.some((open, index) => previous[index] && !open)
+  ) {
+    failure.value = false
+    notice.value = ''
+  }
+})
 watch(result, (value) => {
   if (value) data.value = value
 })
@@ -33,7 +46,7 @@ const { data: settings, refresh: refreshSettings } = await useFetch<{
 }>(base + '/settings')
 slug.value = settings.value?.site.slug ?? ''
 let mounted = true
-const clock = ref(Date.now())
+const clock = useState<number>(base + '/domains/clock', () => Date.now())
 let timer: ReturnType<typeof setInterval> | undefined,
   poll: ReturnType<typeof setInterval> | undefined
 onMounted(() => {
@@ -45,9 +58,8 @@ onMounted(() => {
       mounted &&
       document.visibilityState === 'visible' &&
       data.value?.enabled &&
-      data.value.domains.some((d) =>
-        ['pending', 'deleting'].includes(d.status),
-      ) &&
+      data.value.domains.length > 0 &&
+      status.value !== 'pending' &&
       !busy.value
     )
       void refresh()
@@ -58,21 +70,48 @@ onBeforeUnmount(() => {
   if (timer) clearInterval(timer)
   if (poll) clearInterval(poll)
 })
-const canCheck = (domain: CustomDomain) =>
-  domain.nextCheckAt <= clock.value + 30000
+function beginRename() {
+  slug.value = settings.value?.site.slug ?? ''
+  notice.value = ''
+  failure.value = false
+  renameOpen.value = true
+}
+function beginAdd() {
+  notice.value = ''
+  failure.value = false
+  addOpen.value = true
+}
+function beginRemove(domain: CustomDomain) {
+  notice.value = ''
+  failure.value = false
+  removal.value = domain
+}
+async function refreshAll() {
+  await Promise.all([refresh(), refreshSettings()])
+}
 async function run(body: Record<string, unknown>) {
   if (busy.value || !data.value?.admin) return
   busy.value = true
   notice.value = ''
   failure.value = false
   try {
-    await $fetch(base + '/domains', { method: 'POST', body })
-    if (!mounted) return
+    const response = await $fetch<{ domain?: CustomDomain }>(
+      base + '/domains',
+      { method: 'POST', body },
+    )
+    if (!mounted) return false
     await Promise.all([refresh(), refreshSettings()])
     notice.value = t('cloud.domains.saved')
-    if (body.action === 'add') hostname.value = ''
+    if (body.action === 'add') {
+      expandedHost.value = response.domain?.hostname ?? String(body.hostname)
+      hostname.value = ''
+      addOpen.value = false
+    }
+    if (body.action === 'rename') renameOpen.value = false
+    if (body.action === 'delete') removal.value = null
+    return true
   } catch (cause) {
-    if (!mounted) return
+    if (!mounted) return false
     const code = (cause as { data?: { data?: { code?: string } } }).data?.data
       ?.code
     failure.value = true
@@ -94,6 +133,7 @@ async function run(body: Record<string, unknown>) {
       'domain_provider_missing',
       'domain_routing_unavailable',
     ]
+    if (code === 'domain_changed') await refreshAll()
     notice.value = t(
       code && allowed.includes(code)
         ? 'cloud.domains.errors.' + code
@@ -104,24 +144,21 @@ async function run(body: Record<string, unknown>) {
   }
 }
 async function action(domain: CustomDomain, operation: string, value = false) {
-  if (
-    operation === 'delete' &&
-    !window.confirm(
-      t('cloud.domains.removeConfirm', { hostname: domain.hostname }),
-    )
-  )
-    return
+  const current =
+    data.value?.domains.find(
+      (d) =>
+        d.hostname === domain.hostname && d.generation === domain.generation,
+    ) ?? domain
   await run({
     action: operation,
     hostname: domain.hostname,
     generation: domain.generation,
-    revision: domain.revision,
+    revision: current.revision,
     value,
   })
 }
 async function rename() {
-  if (!settings.value || !window.confirm(t('cloud.domains.renameConfirm')))
-    return
+  if (!settings.value) return
   await run({
     action: 'rename',
     slug: slug.value,
@@ -140,7 +177,7 @@ async function copy(value: string) {
 }
 </script>
 <template>
-  <div class="cf-site-settings-stack">
+  <div class="cf-site-settings-stack cf-domain-page">
     <div class="cf-page-heading">
       <div>
         <h1 class="cf-page-title">{{ t('cloud.messages.domains') }}</h1>
@@ -152,7 +189,7 @@ async function copy(value: string) {
         variant="ghost"
         size="sm"
         :disabled="busy || status === 'pending'"
-        @click="refresh()"
+        @click="refreshAll()"
         ><RefreshCw :size="15" />{{ t('cloud.domains.refresh') }}</CloudButton
       >
     </div>
@@ -164,12 +201,12 @@ async function copy(value: string) {
       {{ t('cloud.domains.loadFailed')
       }}<CloudButton
         variant="ghost"
-        @click="refresh()"
+        @click="refreshAll()"
         >{{ t('cloud.messages.retry') }}</CloudButton
       >
     </p>
     <p
-      v-if="notice"
+      v-if="notice && !addOpen && !renameOpen && !removal"
       :role="failure ? 'alert' : 'status'"
       class="cf-notice"
       :class="{ 'cf-notice-error': failure }"
@@ -178,326 +215,273 @@ async function copy(value: string) {
     </p>
     <template v-if="data">
       <CloudCard
-        ><div class="cf-panel-heading">
-          <h2>{{ t('cloud.messages.defaultSubdomain') }}</h2>
-          <p>{{ t('cloud.domains.defaultHelp') }}</p>
-        </div>
-        <div class="cf-panel-body space-y-3">
-          <template v-if="data.defaultHostname"
-            ><p class="cf-address-preview">
-              https://{{ data.defaultHostname }}
-            </p>
-            <div class="flex flex-wrap gap-2">
-              <CloudButton
-                variant="secondary"
-                size="sm"
-                @click="copy('https://' + data.defaultHostname)"
-                ><Copy :size="14" />{{
-                  t('cloud.messages.copyAddress')
-                }}</CloudButton
-              ><CloudButton
-                v-if="site.published && data.defaultReady"
-                as-child
-                variant="ghost"
-                size="sm"
-                ><a
-                  :href="'https://' + data.defaultHostname"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  ><ExternalLink :size="14" />{{
-                    t('cloud.messages.viewSite')
-                  }}</a
-                ></CloudButton
-              >
-            </div></template
-          >
-          <p
-            v-else
-            class="cf-notice cf-notice-error"
-          >
-            {{ t('cloud.domains.defaultConflict') }}
-          </p>
-          <form
+        ><div class="cf-panel-heading cf-domain-section-heading">
+          <div>
+            <h2>{{ t('cloud.messages.defaultSubdomain') }}</h2>
+            <p>{{ t('cloud.domains.defaultHelp') }}</p>
+          </div>
+          <CloudButton
             v-if="data.admin"
-            class="space-y-2"
-            @submit.prevent="rename"
+            variant="ghost"
+            size="sm"
+            :disabled="busy || !data.defaultReady"
+            @click="beginRename"
+            ><Pencil :size="13" />{{
+              t('cloud.domains.changeAddress')
+            }}</CloudButton
           >
-            <label
-              class="cf-field-label"
-              for="site-domain-slug"
-              >{{ t('cloud.domains.changeAddress') }}</label
-            ><CloudInput
-              id="site-domain-slug"
-              v-model="slug"
-              autocomplete="off"
-              :disabled="busy"
-              minlength="3"
-              maxlength="40"
-              required
-            />
-            <p class="cf-field-hint">
-              {{ t('cloud.domains.slugHint', { base: data.baseDomain }) }}
-            </p>
-            <CloudButton
-              type="submit"
-              size="sm"
-              variant="secondary"
-              :disabled="
-                busy || !data.defaultReady || slug === settings?.site.slug
-              "
-              >{{ t('cloud.messages.saveChanges') }}</CloudButton
-            >
-          </form>
+        </div>
+        <div class="cf-domain-default-row">
+          <Globe :size="18" />
+          <a
+            v-if="data.defaultHostname && data.defaultReady && site.published"
+            class="cf-domain-address"
+            :href="'https://' + data.defaultHostname"
+            target="_blank"
+            rel="noopener noreferrer"
+            ><code>{{ data.defaultHostname }}</code></a
+          >
+          <code
+            v-else-if="data.defaultHostname"
+            class="cf-domain-address"
+            >{{ data.defaultHostname }}</code
+          >
+          <span v-else>{{ t('cloud.domains.defaultConflict') }}</span>
+          <CloudButton
+            v-if="data.defaultHostname"
+            variant="ghost"
+            size="icon"
+            :aria-label="t('cloud.messages.copyAddress')"
+            @click="copy('https://' + data.defaultHostname)"
+            ><Copy :size="14"
+          /></CloudButton>
+        </div>
+        <div
+          v-if="!data.defaultReady || data.domains.some((d) => d.primary)"
+          class="cf-domain-default-footer"
+        >
           <p
             v-if="!data.defaultReady"
-            class="cf-notice"
+            class="cf-field-hint"
           >
             {{ t('cloud.domains.routingPending') }}
           </p>
           <CloudButton
             v-if="data.admin && data.domains.some((d) => d.primary)"
-            variant="secondary"
+            variant="ghost"
             size="sm"
             :disabled="busy"
             @click="run({ action: 'default' })"
             >{{ t('cloud.domains.useDefault') }}</CloudButton
           >
-          <p class="cf-field-hint">{{ t('cloud.domains.aliasPolicy') }}</p>
-          <p
-            v-if="data.legacyHostname"
-            class="cf-field-hint break-all"
-          >
-            {{ t('cloud.domains.legacy', { hostname: data.legacyHostname }) }}
-          </p>
-        </div></CloudCard
-      >
-      <CloudCard
-        ><div class="cf-panel-heading">
-          <h2>{{ t('cloud.messages.customDomains') }}</h2>
-          <p>{{ t('cloud.domains.intro') }}</p>
         </div>
-        <div class="cf-panel-body space-y-4">
-          <p
-            v-if="!data.enabled"
-            class="cf-notice"
-          >
-            {{ t('cloud.domains.disabled') }}
-          </p>
-          <p
-            v-else-if="!data.routingReady"
-            class="cf-notice"
-          >
-            {{ t('cloud.domains.routingPending') }}
-          </p>
-          <form
+      </CloudCard>
+      <section class="cf-domain-custom-section">
+        <div class="cf-domain-section-heading">
+          <div>
+            <h2>{{ t('cloud.messages.customDomains') }}</h2>
+            <p class="cf-field-hint">{{ t('cloud.domainFlow.customHelp') }}</p>
+          </div>
+          <CloudButton
             v-if="data.admin"
-            class="space-y-2"
-            @submit.prevent="run({ action: 'add', hostname })"
+            size="sm"
+            :disabled="busy || !data.enabled"
+            @click="beginAdd"
+            ><Plus :size="14" />{{ t('cloud.domains.add') }}</CloudButton
           >
-            <label
-              class="cf-field-label"
-              for="custom-domain"
-              >{{ t('cloud.domains.hostname') }}</label
-            ><CloudInput
-              id="custom-domain"
-              v-model="hostname"
-              :disabled="busy || !data.enabled"
-              placeholder="photos.example.com"
-              autocomplete="off"
-              autocapitalize="none"
-              spellcheck="false"
-              maxlength="253"
-              required
-            />
-            <p class="cf-field-hint">{{ t('cloud.domains.addHint') }}</p>
-            <CloudButton
-              type="submit"
-              size="sm"
-              :disabled="busy || !data.enabled || !hostname.trim()"
-              ><Plus :size="14" />{{ t('cloud.domains.add') }}</CloudButton
-            >
-          </form>
-          <p
-            v-if="!data.admin"
-            class="cf-field-hint"
-          >
-            {{
-              t(
-                'cloud.messages.onlyWorkspaceAdministratorsCanChangeTheseSettings',
-              )
-            }}
-          </p>
-          <p class="cf-field-hint">
-            {{ t('cloud.domains.targetHelp', { target: data.cnameTarget }) }}
-          </p>
-          <p
-            v-if="!data.domains.length"
-            class="cf-field-hint"
-          >
-            {{ t('cloud.domains.empty') }}
-          </p>
-          <article
-            v-for="domain in data.domains"
-            :key="domain.hostname + domain.generation"
-            class="rounded-lg border border-[var(--border)] p-3 space-y-3"
-          >
-            <div class="flex items-start justify-between gap-2">
-              <div class="min-w-0">
-                <h3 class="font-semibold text-sm break-all">
-                  <Globe
-                    :size="14"
-                    class="inline-block"
-                  />
-                  {{ domain.hostname }}
-                </h3>
-                <p
-                  v-if="domain.primary"
-                  class="cf-field-hint"
-                >
-                  {{ t('cloud.domains.primary') }}
-                </p>
-              </div>
-              <CloudBadge
-                :tone="domain.status === 'active' ? 'success' : 'neutral'"
-                >{{ t('cloud.domains.states.' + domain.status) }}</CloudBadge
-              >
-            </div>
-            <div class="space-y-2">
-              <p class="cf-field-label">{{ t('cloud.domains.cnameRecord') }}</p>
-              <code class="block break-all text-sm">{{
-                domain.cnameTarget
-              }}</code>
-              <CloudButton
-                variant="ghost"
-                size="sm"
-                @click="copy(domain.cnameTarget)"
-                ><Copy :size="14" />{{
-                  t('cloud.domains.copyTarget')
-                }}</CloudButton
-              >
-            </div>
-            <dl class="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
-              <div>
-                <dt>{{ t('cloud.domains.dns') }}</dt>
-                <dd>{{ t('cloud.domains.dnsStates.' + domain.dnsStatus) }}</dd>
-              </div>
-              <div>
-                <dt>{{ t('cloud.domains.provider') }}</dt>
-                <dd class="break-all">
-                  <code>{{ domain.hostnameStatus }}</code>
-                </dd>
-              </div>
-              <div>
-                <dt>{{ t('cloud.domains.certificate') }}</dt>
-                <dd class="break-all">
-                  <code>{{ domain.sslStatus }}</code>
-                </dd>
-              </div>
-            </dl>
-            <p
-              v-if="
-                domain.dnsStatus === 'missing' && domain.status !== 'deleting'
-              "
-              class="cf-field-hint break-all"
-            >
-              {{
-                t('cloud.domains.setCname', {
-                  hostname: domain.hostname,
-                  target: domain.cnameTarget,
-                })
-              }}
-            </p>
-            <p
-              v-if="domain.error"
-              class="cf-notice cf-notice-error"
-              role="alert"
-            >
-              {{
-                t(
-                  te('cloud.domains.errors.' + domain.error)
-                    ? 'cloud.domains.errors.' + domain.error
-                    : 'cloud.domains.failed',
-                )
-              }}
-            </p>
-            <p
-              v-if="domain.checkedAt"
-              class="cf-field-hint"
-            >
-              {{
-                t('cloud.domains.checked', {
-                  time: new Date(domain.checkedAt).toLocaleString(
-                    locale === 'zh-Hans' ? 'zh-CN' : 'en-US',
-                  ),
-                })
-              }}
-            </p>
-            <div
-              v-if="data.admin"
-              class="flex flex-wrap gap-2"
-            >
-              <CloudButton
-                variant="secondary"
-                size="sm"
-                :disabled="
-                  busy ||
-                  !data.enabled ||
-                  !canCheck(domain) ||
-                  ['paused', 'deleting'].includes(domain.status)
-                "
-                @click="action(domain, 'check')"
-                >{{ t('cloud.domains.check') }}</CloudButton
-              ><CloudButton
-                v-if="domain.status === 'active' && !domain.primary"
-                variant="secondary"
-                size="sm"
-                :disabled="busy"
-                @click="action(domain, 'primary')"
-                >{{ t('cloud.domains.makePrimary') }}</CloudButton
-              ><CloudButton
-                v-if="domain.primary"
-                variant="secondary"
-                size="sm"
-                :disabled="busy"
-                @click="action(domain, 'redirects', !domain.redirects)"
-                >{{
-                  t(
-                    domain.redirects
-                      ? 'cloud.domains.disableRedirects'
-                      : 'cloud.domains.enableRedirects',
-                  )
-                }}</CloudButton
-              ><CloudButton
-                v-if="domain.status !== 'deleting'"
-                variant="ghost"
-                size="sm"
-                :disabled="
-                  busy || (domain.status === 'paused' && !data.enabled)
-                "
-                @click="
-                  action(
-                    domain,
-                    domain.status === 'paused' ? 'resume' : 'pause',
-                  )
-                "
-                >{{
-                  t(
-                    domain.status === 'paused'
-                      ? 'cloud.domains.resume'
-                      : 'cloud.domains.pause',
-                  )
-                }}</CloudButton
-              ><CloudButton
-                variant="ghost"
-                size="sm"
-                :disabled="busy"
-                @click="action(domain, 'delete')"
-                >{{ t('cloud.domains.remove') }}</CloudButton
-              >
-            </div>
-          </article>
-        </div></CloudCard
+        </div>
+        <p
+          v-if="!data.enabled"
+          class="cf-notice"
+        >
+          {{ t('cloud.domains.disabled') }}
+        </p>
+        <p
+          v-else-if="!data.routingReady"
+          class="cf-notice"
+        >
+          {{ t('cloud.domains.routingPending') }}
+        </p>
+        <div
+          v-if="!data.domains.length"
+          class="cf-domain-empty"
+        >
+          <Globe :size="24" />
+          <h3>{{ t('cloud.domains.empty') }}</h3>
+          <p>{{ t('cloud.domainFlow.emptyHelp') }}</p>
+        </div>
+        <CloudDomainCard
+          v-for="domain in data.domains"
+          :key="domain.hostname + domain.generation"
+          :domain="domain"
+          :admin="data.admin"
+          :published="site.published"
+          :enabled="data.enabled"
+          :busy="busy"
+          :retry-seconds="
+            Math.max(0, Math.ceil((domain.nextCheckAt - 30000 - clock) / 1000))
+          "
+          :expanded="expandedHost === domain.hostname"
+          @copy="copy"
+          @action="action"
+          @remove="beginRemove"
+        />
+        <p
+          v-if="!data.admin"
+          class="cf-field-hint"
+        >
+          {{
+            t(
+              'cloud.messages.onlyWorkspaceAdministratorsCanChangeTheseSettings',
+            )
+          }}
+        </p>
+      </section>
+      <details
+        v-if="data.legacyHostname"
+        class="cf-domain-technical"
       >
+        <summary>{{ t('cloud.domainFlow.previousAddress') }}</summary>
+        <p class="cf-field-hint">
+          {{ t('cloud.domains.legacy', { hostname: data.legacyHostname }) }}
+        </p>
+      </details>
     </template>
+    <UModal
+      v-model:open="addOpen"
+      :title="t('cloud.domains.add')"
+      :description="t('cloud.domainFlow.addDescription')"
+      :dismissible="!busy"
+      ><template #body
+        ><form
+          class="cf-form"
+          @submit.prevent="run({ action: 'add', hostname })"
+        >
+          <label
+            class="cf-field-label"
+            for="custom-domain"
+            >{{ t('cloud.domains.hostname') }}</label
+          ><CloudInput
+            id="custom-domain"
+            v-model="hostname"
+            :disabled="busy"
+            placeholder="photos.example.com"
+            autocomplete="off"
+            autocapitalize="none"
+            spellcheck="false"
+            maxlength="253"
+            required
+          />
+          <p class="cf-field-hint">{{ t('cloud.domains.addHint') }}</p>
+          <p
+            v-if="failure"
+            role="alert"
+            class="cf-notice cf-notice-error"
+          >
+            {{ notice }}
+          </p>
+          <div class="cf-domain-modal-actions">
+            <CloudButton
+              variant="secondary"
+              :disabled="busy"
+              @click="addOpen = false"
+              >{{ t('cloud.messages.cancel') }}</CloudButton
+            ><CloudButton
+              type="submit"
+              :disabled="busy || !hostname.trim()"
+              :loading="busy"
+              >{{ t('cloud.domainFlow.continue') }}</CloudButton
+            >
+          </div>
+        </form></template
+      ></UModal
+    >
+    <UModal
+      v-model:open="renameOpen"
+      :title="t('cloud.domains.changeAddress')"
+      :description="t('cloud.domains.aliasPolicy')"
+      :dismissible="!busy"
+      ><template #body
+        ><form
+          class="cf-form"
+          @submit.prevent="rename"
+        >
+          <label
+            class="cf-field-label"
+            for="site-domain-slug"
+            >{{ t('cloud.domains.changeAddress') }}</label
+          >
+          <div class="cf-domain-slug-field">
+            <CloudInput
+              id="site-domain-slug"
+              v-model="slug"
+              :disabled="busy"
+              minlength="3"
+              maxlength="40"
+              required
+            /><span>.{{ data?.baseDomain }}</span>
+          </div>
+          <p class="cf-field-hint">
+            {{ t('cloud.domains.slugHint', { base: data?.baseDomain }) }}
+          </p>
+          <p
+            v-if="failure"
+            role="alert"
+            class="cf-notice cf-notice-error"
+          >
+            {{ notice }}
+          </p>
+          <div class="cf-domain-modal-actions">
+            <CloudButton
+              variant="secondary"
+              :disabled="busy"
+              @click="renameOpen = false"
+              >{{ t('cloud.messages.cancel') }}</CloudButton
+            ><CloudButton
+              type="submit"
+              :disabled="busy || slug === settings?.site.slug || !slug.trim()"
+              :loading="busy"
+              >{{ t('cloud.messages.saveChanges') }}</CloudButton
+            >
+          </div>
+        </form></template
+      ></UModal
+    >
+    <UModal
+      :open="!!removal"
+      :title="t('cloud.domains.remove')"
+      :description="
+        t('cloud.domains.removeConfirm', { hostname: removal?.hostname ?? '' })
+      "
+      :dismissible="!busy"
+      @update:open="
+        (value) => {
+          if (!value && !busy) removal = null
+        }
+      "
+      ><template #body
+        ><p
+          v-if="failure"
+          role="alert"
+          class="cf-notice cf-notice-error"
+        >
+          {{ notice }}
+        </p>
+        <div class="cf-domain-modal-actions">
+          <CloudButton
+            variant="secondary"
+            :disabled="busy"
+            @click="removal = null"
+            >{{ t('cloud.messages.cancel') }}</CloudButton
+          ><CloudButton
+            variant="destructive"
+            :disabled="busy"
+            :loading="busy"
+            @click="removal && action(removal, 'delete')"
+            >{{ t('cloud.domains.remove') }}</CloudButton
+          >
+        </div></template
+      ></UModal
+    >
   </div>
 </template>

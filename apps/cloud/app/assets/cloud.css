@@ -1404,7 +1404,8 @@
 
 /* Keep native pinch zoom available; 16px controls avoid iOS focus magnification. */
 @media (max-width: 700px), (pointer: coarse) {
-  .cf-root :is(input, select, textarea) {
+  .cf-root :is(input, select, textarea),
+  .cf-cloud-body :is(input, select, textarea) {
     font-size: 16px;
   }
 }
@@ -2473,4 +2474,307 @@
   max-width: 100%;
   min-width: 0;
   font-size: 12px;
+}
+
+.cf-domain-section-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+.cf-domain-section-heading h2 {
+  font-size: 14px;
+  font-weight: 600;
+}
+.cf-domain-default-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 20px;
+  min-width: 0;
+}
+.cf-domain-default-row > code {
+  overflow-wrap: anywhere;
+  font-size: 13px;
+}
+.cf-domain-default-footer {
+  border-top: 1px solid var(--border);
+  padding: 10px 20px;
+}
+.cf-domain-custom-section {
+  display: grid;
+  gap: 12px;
+}
+.cf-domain-empty {
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  padding: 32px 20px;
+  text-align: center;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius);
+  color: var(--muted-foreground);
+}
+.cf-domain-empty h3 {
+  color: var(--foreground);
+  font-size: 14px;
+  font-weight: 550;
+}
+.cf-domain-card {
+  min-width: 0;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.cf-domain-card-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 16px 18px 6px;
+}
+.cf-domain-icon {
+  flex-shrink: 0;
+  color: var(--muted-foreground);
+}
+.cf-domain-card-identity {
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.cf-domain-card-identity h3 {
+  font-size: 13px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.cf-domain-primary {
+  color: var(--muted-foreground);
+  font-size: 11px;
+}
+.cf-domain-guidance {
+  padding: 0 18px;
+}
+.cf-domain-card-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 10px 12px;
+}
+.cf-domain-inline-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.cf-domain-details {
+  display: grid;
+  gap: 14px;
+  border-top: 1px solid var(--border);
+  padding: 18px;
+  min-width: 0;
+}
+.cf-domain-steps {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  gap: 10px;
+}
+.cf-domain-steps li {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 11px;
+  color: var(--muted-foreground);
+}
+.cf-domain-step-number {
+  display: flex;
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  font-size: 10px;
+}
+.cf-domain-steps .is-complete {
+  color: var(--primary);
+}
+.cf-domain-steps .is-complete .cf-domain-step-number {
+  background: var(--primary);
+  color: var(--primary-foreground);
+  border-color: var(--primary);
+}
+.cf-domain-steps .is-current {
+  color: var(--foreground);
+  font-weight: 600;
+}
+.cf-domain-steps .is-current .cf-domain-step-number {
+  border-color: var(--primary);
+}
+.cf-domain-dns-record {
+  display: grid;
+  grid-template-columns: 65px minmax(0, 1fr);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+  font-size: 12px;
+}
+.cf-domain-dns-record > div {
+  display: grid;
+  align-content: start;
+  gap: 5px;
+  padding: 10px 12px;
+  min-width: 0;
+}
+.cf-domain-dns-record > div > span {
+  font-size: 11px;
+  color: var(--muted-foreground);
+}
+.cf-domain-dns-record code {
+  overflow-wrap: anywhere;
+  white-space: normal;
+  font-size: 12px;
+}
+.cf-domain-dns-record .cf-domain-record-value {
+  position: relative;
+  grid-column: 1/-1;
+  padding-right: 42px;
+  border-top: 1px solid var(--border);
+  background: var(--background);
+}
+.cf-domain-record-value .cf-button {
+  position: absolute;
+  top: 12px;
+  right: 8px;
+}
+.cf-domain-verification-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  color: var(--muted-foreground);
+  font-size: 11px;
+}
+.cf-domain-verification-status > span:last-child {
+  margin-left: auto;
+}
+.cf-domain-technical {
+  min-width: 0;
+  color: var(--muted-foreground);
+  font-size: 11px;
+}
+.cf-domain-technical summary {
+  cursor: pointer;
+  width: fit-content;
+  padding: 4px 0;
+}
+.cf-domain-technical dl {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin: 8px 0 0;
+}
+.cf-domain-technical dd {
+  margin: 3px 0 0;
+  overflow-wrap: anywhere;
+  color: var(--foreground);
+}
+.cf-domain-card > .cf-notice {
+  margin: 0 18px 14px;
+}
+.cf-domain-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 8px;
+}
+.cf-domain-slug-field {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.cf-domain-slug-field input {
+  min-width: 0;
+}
+.cf-domain-slug-field > span {
+  font-size: 12px;
+  color: var(--muted-foreground);
+  overflow-wrap: anywhere;
+}
+@media (max-width: 480px) {
+  .cf-domain-section-heading {
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  .cf-domain-card-header {
+    flex-wrap: wrap;
+    padding: 14px 14px 6px;
+  }
+  .cf-domain-card-identity {
+    flex-basis: calc(100% - 32px);
+  }
+  .cf-domain-card-header > .cf-badge {
+    margin-left: 28px;
+  }
+  .cf-domain-card-header > .cf-button {
+    margin-left: auto;
+  }
+  .cf-domain-guidance {
+    padding: 0 14px;
+  }
+  .cf-domain-details {
+    padding: 14px;
+  }
+  .cf-domain-steps {
+    gap: 7px;
+  }
+  .cf-domain-steps li {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 5px;
+  }
+  .cf-domain-technical dl {
+    grid-template-columns: 1fr;
+    gap: 7px;
+  }
+  .cf-domain-verification-status > span:last-child {
+    flex-basis: 100%;
+    margin-left: 0;
+  }
+  .cf-domain-default-row {
+    padding: 12px 16px;
+    flex-wrap: wrap;
+  }
+  .cf-domain-default-row > code {
+    flex: 1;
+    min-width: 0;
+  }
+}
+
+.cf-domain-address {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-size: 13px;
+}
+a.cf-domain-address:hover {
+  text-decoration: underline;
+}
+@media (max-width: 480px) {
+  .cf-domain-default-row > .cf-button {
+    width: 28px;
+    height: 28px;
+    padding: 4px;
+    flex-shrink: 0;
+  }
 }

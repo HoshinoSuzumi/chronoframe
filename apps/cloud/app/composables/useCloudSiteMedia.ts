@@ -76,7 +76,8 @@ export function useCloudMediaWorkspace(props: {
     activeUpload: string | undefined,
     activeResumeKey: string | undefined
   const canPoll = ref(true)
-  const loading = ref(false),
+  const ready = ref(false)
+  const loading = ref(true),
     uploadOpen = ref(false)
   let reloadGeneration = 0
   async function reload() {
@@ -101,6 +102,7 @@ export function useCloudMediaWorkspace(props: {
       photos.value = p.photos
       jobs.value = p.jobs
       albums.value = a.albums
+      ready.value = true
       if (!connectionId.value) connectionId.value = s.connections[0]?.id ?? ''
     } catch (error) {
       if (
@@ -483,6 +485,7 @@ export function useCloudMediaWorkspace(props: {
     base,
     api,
     loading,
+    ready,
     uploadOpen,
   }
 }
