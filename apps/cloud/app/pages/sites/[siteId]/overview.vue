@@ -7,7 +7,7 @@ useSeoMeta({
   robots: 'noindex',
 })
 const site = useEntryContext().value!
-const { photos, albums, jobs, loading } = useCloudSiteMedia()
+const { photos, albums, jobs, loading, ready } = useCloudSiteMedia()
 const processingCount = computed(
   () =>
     jobs.value.filter((job: { state: string }) =>
@@ -27,7 +27,7 @@ const processingCount = computed(
           <span class="cf-field-label">{{
             $t('cloud.messages.photographs')
           }}</span
-          ><strong>{{ loading ? '—' : photos.length }}</strong
+          ><strong>{{ ready ? photos.length : '—' }}</strong
           ><NuxtLink
             :to="`/sites/${site.siteId}/photos`"
             class="cf-text-link"
@@ -37,7 +37,7 @@ const processingCount = computed(
       ><CloudCard
         ><div class="cf-panel-body">
           <span class="cf-field-label">{{ $t('cloud.messages.albums') }}</span
-          ><strong>{{ loading ? '—' : albums.length }}</strong
+          ><strong>{{ ready ? albums.length : '—' }}</strong
           ><NuxtLink
             :to="`/sites/${site.siteId}/albums`"
             class="cf-text-link"
@@ -49,7 +49,7 @@ const processingCount = computed(
           <span class="cf-field-label">{{
             $t('cloud.messages.processing')
           }}</span
-          ><strong>{{ loading ? '—' : processingCount }}</strong>
+          ><strong>{{ ready ? processingCount : '—' }}</strong>
           <p class="cf-field-hint">
             {{
               $t(

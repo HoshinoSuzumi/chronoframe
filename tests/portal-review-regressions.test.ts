@@ -246,3 +246,65 @@ test('public navigation accepts case-preserving photo IDs while rejecting invali
   ])
     assert.equal((await module.default({ path })).statusCode, 404, path)
 })
+
+test('Overview data stays unknown before the first response and retains counts during background refresh failures', async () => {
+  let release: (() => void) | undefined
+  let gate = new Promise<void>((resolve) => {
+    release = resolve
+  })
+  let fail = false
+  const module = load(
+    'apps/cloud/app/composables/useCloudSiteMedia.ts',
+    {
+      useEntryContext: () => ({ value: { scope: 'site:1:user:1', siteId: 1 } }),
+      onMounted: () => {},
+      onBeforeUnmount: () => {},
+      AbortController,
+      crypto,
+      setTimeout,
+      setInterval,
+      clearInterval,
+      $fetch: async (path: string) => {
+        await gate
+        if (fail) throw new Error('Temporary network failure')
+        if (path.endsWith('/photos'))
+          return {
+            photos: [{ id: 'one' }, { id: 'two' }],
+            jobs: [{ state: 'queued' }],
+          }
+        if (path.endsWith('/albums')) return { albums: [{ id: 1 }] }
+        if (path.endsWith('/storage')) return { connections: [] }
+        return { usage: { photos: 2, pending: 1, bytes: 1024 } }
+      },
+    },
+    {
+      '@chronoframe/contracts/storage-diagnostics': {
+        STORAGE_CONNECTION_MESSAGES: {},
+      },
+    },
+  )
+  const media = module.useCloudMediaWorkspace({ siteId: 1, role: 'admin' })
+  assert.equal(media.ready.value, false)
+  assert.equal(media.loading.value, true)
+  const initial = media.reload()
+  release!()
+  await initial
+  assert.equal(media.ready.value, true)
+  assert.equal(media.photos.value.length, 2)
+  assert.equal(media.albums.value.length, 1)
+  gate = new Promise<void>((resolve) => {
+    release = resolve
+  })
+  fail = true
+  const refresh = media.reload()
+  assert.equal(media.loading.value, true)
+  assert.equal(media.ready.value, true)
+  assert.equal(media.photos.value.length, 2)
+  assert.equal(media.jobs.value.length, 1)
+  release!()
+  await refresh
+  assert.equal(media.loading.value, false)
+  assert.equal(media.ready.value, true)
+  assert.equal(media.photos.value.length, 2)
+  assert.equal(media.albums.value.length, 1)
+})
