@@ -380,7 +380,7 @@ export function createDomainManager(
   async function reconcile(onlyHost?: string, batchSize = 5) {
     if (!config.enabled) return { checked: 0 }
     const rows = await stmt(
-      `SELECT json_group_array(hostname) AS items FROM (SELECT hostname FROM platform_custom_domains WHERE (state IN ('pending','active','deleting','expired') OR (state='paused' AND ((hold_reason IS NOT NULL AND hold_reason<>'manual') OR provider_attempted=1 OR route_attempted=1 OR (verified_at IS NULL AND expires_at<=?)))) AND next_check_at<=? AND (lease_until IS NULL OR lease_until<?) ${onlyHost ? 'AND hostname=?' : ''} ORDER BY CASE WHEN ${HAS_PROVIDER} THEN 0 WHEN next_check_at=0 THEN 1 WHEN state='pending' THEN 2 ELSE 3 END,next_check_at,hostname LIMIT ?)`,
+      `SELECT json_group_array(hostname) AS items FROM (SELECT hostname FROM platform_custom_domains WHERE (state IN ('pending','active','deleting','expired') OR (state='deleted' AND purge_requested=1) OR (state='paused' AND ((hold_reason IS NOT NULL AND hold_reason<>'manual') OR provider_attempted=1 OR route_attempted=1 OR (verified_at IS NULL AND expires_at<=?)))) AND next_check_at<=? AND (lease_until IS NULL OR lease_until<?) ${onlyHost ? 'AND hostname=?' : ''} ORDER BY CASE WHEN ${HAS_PROVIDER} THEN 0 WHEN next_check_at=0 THEN 1 WHEN state='pending' THEN 2 ELSE 3 END,next_check_at,hostname LIMIT ?)`,
       now(),
       now(),
       now(),
@@ -392,7 +392,7 @@ export function createDomainManager(
       const token = dependencies.id(),
         time = now()
       const row = await stmt(
-        `UPDATE platform_custom_domains SET lease_token=?,lease_until=? WHERE hostname=? AND (lease_until IS NULL OR lease_until<?) AND next_check_at<=? AND (state IN ('pending','active','deleting','expired') OR (state='paused' AND ((hold_reason IS NOT NULL AND hold_reason<>'manual') OR provider_attempted=1 OR route_attempted=1 OR (verified_at IS NULL AND expires_at<=?)))) RETURNING *`,
+        `UPDATE platform_custom_domains SET lease_token=?,lease_until=? WHERE hostname=? AND (lease_until IS NULL OR lease_until<?) AND next_check_at<=? AND (state IN ('pending','active','deleting','expired') OR (state='deleted' AND purge_requested=1) OR (state='paused' AND ((hold_reason IS NOT NULL AND hold_reason<>'manual') OR provider_attempted=1 OR route_attempted=1 OR (verified_at IS NULL AND expires_at<=?)))) RETURNING *`,
         token,
         time + 300000,
         host,
@@ -453,9 +453,30 @@ export function createDomainManager(
           time >= row.expires_at &&
           !row.verified_at
         const deleting =
-          row.state === 'deleting' || row.state === 'expired' || expired
+          row.state === 'deleting' ||
+          (row.state === 'deleted' && row.purge_requested === 1) ||
+          row.state === 'expired' ||
+          expired
         const hold = row.user_paused ? 'manual' : eligibility.reason
         if (deleting || hold) {
+          if (
+            !deleting &&
+            row.state === 'paused' &&
+            row.hold_reason === hold &&
+            !row.provider_id &&
+            !row.route_id &&
+            !row.provider_attempted &&
+            !row.route_attempted &&
+            !row.is_primary
+          ) {
+            await fenced(
+              'checked_at=?,next_check_at=?,lease_token=NULL,lease_until=NULL',
+              time,
+              time + 1800000,
+            )
+            checked++
+            continue
+          }
           // Delete only resources owned by this claim, recovering IDs after uncertain writes.
           let providerId = row.provider_id,
             routeId = row.route_id
@@ -483,7 +504,9 @@ export function createDomainManager(
                 deleting ? 1 : 0,
                 deleting ? null : hold,
                 time,
-                time + 86400000,
+                deleting && row.purge_requested
+                  ? time
+                  : time + (deleting ? 86400000 : 1800000),
                 ...args,
               ),
             ],

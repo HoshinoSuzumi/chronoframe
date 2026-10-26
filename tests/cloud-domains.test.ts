@@ -272,6 +272,30 @@ test('Real D1 custom domains fence claims, CNAME ownership transitions, provider
     assert.equal(hosts.size, 0)
     assert.equal(routes.size, 0)
     assert.equal(held.generation, claimGeneration)
+    const heldRevision = held.revision
+    const suspendedAudits = (await db
+      .prepare(
+        "SELECT COUNT(*) AS n FROM platform_domain_audit WHERE hostname=? AND action='suspended'",
+      )
+      .bind(domain.hostname)
+      .first())!.n
+    time += 1800001
+    await manager.reconcile(domain.hostname)
+    assert.equal(
+      (await manager.list(1, one.siteId))[0]!.revision,
+      heldRevision,
+      'unchanged holds only heartbeat, without revision churn',
+    )
+    assert.equal(
+      (await db
+        .prepare(
+          "SELECT COUNT(*) AS n FROM platform_domain_audit WHERE hostname=? AND action='suspended'",
+        )
+        .bind(domain.hostname)
+        .first())!.n,
+      suspendedAudits,
+      'unchanged holds do not duplicate audit entries',
+    )
     await db
       .prepare(
         "UPDATE platform_plans SET policy_json=json_set(policy_json,'$.limits.customDomains',4) WHERE id='free'",
@@ -544,6 +568,23 @@ test('Real D1 custom domains fence claims, CNAME ownership transitions, provider
         .first(),
     )
     time += 1800001
+    await db
+      .prepare(
+        "CREATE TRIGGER fail_purge BEFORE DELETE ON platform_custom_domains BEGIN SELECT RAISE(ABORT,'forced purge failure'); END",
+      )
+      .run()
+    await manager.reconcile(lost.hostname)
+    assert.equal(
+      (
+        await db
+          .prepare('SELECT state FROM platform_custom_domains WHERE hostname=?')
+          .bind(lost.hostname)
+          .first()
+      )?.state,
+      'deleted',
+      'confirmed upstream removal survives a failed final database purge',
+    )
+    await db.prepare('DROP TRIGGER fail_purge').run()
     await manager.reconcile(lost.hostname)
     assert.equal(hosts.has(lost.hostname), false)
     assert.equal(
