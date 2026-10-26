@@ -129,7 +129,7 @@ export function createCloudS3(
       if (
         !Number.isSafeInteger(bytes) ||
         bytes < 1 ||
-        bytes > 100 * 1024 * 1024
+        bytes > 1024 * 1024 * 1024
       )
         throw new Error('Invalid upload size')
       return getSignedUrl(

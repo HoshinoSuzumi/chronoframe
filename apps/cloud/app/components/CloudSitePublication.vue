@@ -8,8 +8,7 @@ const context = shallowRef(activeContext.value)
 watch(activeContext, (next) => {
   if (next?.scope === context.value?.scope) context.value = next
 })
-const { admin, busy, photos, loading, failed, message, publish } =
-  useCloudSiteMedia()
+const { admin, busy, failed, message, publish } = useCloudSiteMedia()
 const { data, status, error, refresh } = useFetch<{
   site: {
     slug: string | null
@@ -87,9 +86,7 @@ async function unpublish() {
         :variant="context?.published ? 'ghost' : 'default'"
         size="sm"
         :disabled="
-          busy ||
-          (!context?.published &&
-            (!defaultDomainsReady || loading || !host || !photos.length))
+          busy || (!context?.published && (!defaultDomainsReady || !host))
         "
         :loading="busy"
         @click="context?.published ? (unpublishOpen = true) : publish(true)"
@@ -166,17 +163,7 @@ async function unpublish() {
         v-if="!context?.published"
         class="cf-draft-hint"
       >
-        {{
-          $t(
-            loading
-              ? 'cloud.ui.draftChecking'
-              : !photos.length
-                ? 'cloud.ui.draftNeedsPhoto'
-                : admin
-                  ? 'cloud.ui.draftReady'
-                  : 'cloud.ui.draftAskAdmin',
-          )
-        }}
+        {{ $t(admin ? 'cloud.ui.draftReady' : 'cloud.ui.draftAskAdmin') }}
       </p>
       <p
         v-else

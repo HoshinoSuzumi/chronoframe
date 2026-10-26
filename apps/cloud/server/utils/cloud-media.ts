@@ -52,11 +52,12 @@ export async function cloudMedia(event: H3Event, mutation = false) {
       throw createError({ statusCode: 429 })
   }
   const cfg = useRuntimeConfig(event).platform
-  const vault = createStorageVault(
-    raw,
-    siteId,
-    await createStorageCipher(cfg.storageSecret),
-  )
+  const vault = createStorageVault(raw, siteId, {
+    seal: async (value, context) =>
+      (await createStorageCipher(cfg.storageSecret)).seal(value, context),
+    open: async (value, context) =>
+      (await createStorageCipher(cfg.storageSecret)).open(value, context),
+  })
   const allowedHosts = cfg.s3EndpointHosts
     .split(',')
     .map((h) => h.trim())
@@ -68,7 +69,12 @@ export async function cloudMedia(event: H3Event, mutation = false) {
       revision: item.revision,
       s3: createCloudS3(
         { ...item.config, ...item.credentials },
-        { allowedHosts },
+        {
+          allowedHosts:
+            'poolId' in item
+              ? [...allowedHosts, new URL(item.config.endpoint).hostname]
+              : allowedHosts,
+        },
       ),
     }
   }

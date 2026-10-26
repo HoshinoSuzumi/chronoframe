@@ -1,3 +1,4 @@
+import { workspaceEntitlements } from './entitlements.ts'
 import { validSiteSlug, defaultSiteHost } from '@chronoframe/contracts/domains'
 import type { PlatformD1 } from './index.ts'
 
@@ -76,10 +77,10 @@ export function createD1Provisioning(
   async function defaultWorkspace(userId: number) {
     await db.batch([
       db
-        .prepare(`INSERT INTO platform_workspaces(name, owner_user_id)
-        SELECT 'My workspace', id FROM platform_users WHERE id = ? AND email_verified = 1
+        .prepare(`INSERT INTO platform_workspaces(name, owner_user_id, created_at)
+        SELECT 'My workspace', id, ? FROM platform_users WHERE id = ? AND email_verified = 1
         ON CONFLICT(owner_user_id) DO NOTHING`)
-        .bind(userId),
+        .bind(Date.now(), userId),
       // Only the transaction that created the workspace grants its initial membership.
       // A later read must never restore a membership that was explicitly revoked.
       db
@@ -101,7 +102,7 @@ export function createD1Provisioning(
     const site = await db
       .prepare(`SELECT ${fields}, m.role FROM platform_sites s
       JOIN platform_memberships m ON m.workspace_id = s.workspace_id
-      WHERE s.id = ? AND m.user_id = ? AND m.role IN ('admin','member')`)
+      WHERE s.id = ? AND s.suspended=0 AND m.user_id = ? AND m.role IN ('admin','member')`)
       .bind(siteId, userId)
       .first<ManagedSite & { role: string }>()
     if (!site) throw new ProvisioningError(404, 'Site not found')
@@ -132,12 +133,13 @@ export function createD1Provisioning(
           throw new ProvisioningError(409, 'Request identifier already used')
         return existing
       }
+      const entitlement = await workspaceEntitlements(db, workspace.id)
       try {
         await db.batch([
           db
-            .prepare(`INSERT INTO platform_sites(workspace_id, name, slug, created_at, provision_key)
-          SELECT ?, ?, ?, ?, ? WHERE EXISTS(SELECT 1 FROM platform_memberships WHERE workspace_id = ? AND user_id = ? AND role = 'admin')
-          AND (SELECT COUNT(*) FROM platform_sites WHERE workspace_id = ?) < 10
+            .prepare(`INSERT INTO platform_sites(workspace_id, name, slug, created_at, provision_key, published)
+          SELECT ?, ?, ?, ?, ?, 1 WHERE EXISTS(SELECT 1 FROM platform_memberships WHERE workspace_id = ? AND user_id = ? AND role = 'admin')
+          AND (SELECT COUNT(*) FROM platform_sites WHERE workspace_id = ?) < ?
           ON CONFLICT(workspace_id, provision_key) DO UPDATE SET provision_key = excluded.provision_key`)
             .bind(
               workspace.id,
@@ -148,6 +150,7 @@ export function createD1Provisioning(
               workspace.id,
               userId,
               workspace.id,
+              entitlement.limits.sites,
             ),
           db
             .prepare(`INSERT INTO platform_site_slugs(slug,site_id)
@@ -213,9 +216,6 @@ export function createD1Provisioning(
         typeof input.published !== 'boolean'
       )
         throw new ProvisioningError(400, 'Invalid site settings')
-      // Publishing new galleries stays gated until media/storage and default routing are ready.
-      if (input.published && !current.published)
-        throw new ProvisioningError(400, 'Publishing is not available yet')
       const result = await db
         .prepare(`UPDATE platform_sites SET name = ?, published = ?, gallery_title = ?, gallery_slogan = ?, gallery_author = ?, gallery_avatar = ?, revision = revision + 1
         WHERE id = ? AND revision = ? AND EXISTS(SELECT 1 FROM platform_memberships WHERE workspace_id = platform_sites.workspace_id AND user_id = ? AND role = 'admin')

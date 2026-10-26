@@ -63,7 +63,7 @@ test('One S3 implementation rejects SSRF/redirect destinations and signs bounded
   assert.equal(url.pathname, '/test-bucket/chronoframe/1/originals/image')
   assert(!url.href.includes(config.secretAccessKey))
   await assert.rejects(s3.signPut('../outside', 42, 'image/jpeg'))
-  await assert.rejects(s3.signPut('valid', 101 * 1024 * 1024, 'image/jpeg'))
+  await assert.rejects(s3.signPut('valid', 1025 * 1024 * 1024, 'image/jpeg'))
   let redirect: string | undefined
   const transport = createCloudS3(config, {
     fetch: async (input, init) => {
@@ -91,7 +91,8 @@ test('Credential vault authenticates Site/revision, keeps old objects usable and
     const db = raw as PlatformD1
     for (const sql of [
       'CREATE TABLE platform_sites(id INTEGER PRIMARY KEY)',
-      'CREATE TABLE platform_users(id INTEGER PRIMARY KEY)',
+      'CREATE TABLE platform_users(id INTEGER PRIMARY KEY,created_at INTEGER)',
+      'CREATE TABLE platform_workspaces(id INTEGER PRIMARY KEY,owner_user_id INTEGER)',
       'INSERT INTO platform_sites VALUES(1),(2)',
     ])
       await raw.prepare(sql).run()
@@ -100,6 +101,7 @@ test('Credential vault authenticates Site/revision, keeps old objects usable and
       '0006_cloud_execution.sql',
       '0007_cloud_storage.sql',
       '0009_cloud_usage_events.sql',
+      '0014_entitlements.sql',
     ]) {
       const migration = await readFile(
         new URL('../packages/platform/migrations/' + name, import.meta.url),

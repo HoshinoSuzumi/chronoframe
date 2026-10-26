@@ -1,3 +1,7 @@
+import {
+  workspaceEntitlements,
+  workspaceUsageSQL,
+} from '@chronoframe/platform/entitlements'
 import { DomainError } from '@chronoframe/platform/domains'
 import { defaultSiteHost, validSiteSlug } from '@chronoframe/contracts/domains'
 import type { MediaDatabase } from '@chronoframe/database/cloud-media'
@@ -49,8 +53,36 @@ export default definePlatformHandler(async (event) => {
   const body = mutation ? await siteManagementBody(event, 131072) : {}
   const now = Date.now()
   if (kind === 'storage' && !id) {
-    if (event.method === 'GET') return { connections: await vault.list() }
+    if (event.method === 'GET') {
+      const available = await raw
+        .prepare(
+          'SELECT id,name FROM platform_storage_pools WHERE enabled=1 ORDER BY id LIMIT 1',
+        )
+        .first<{ id: string; name: string }>()
+      const plan = await workspaceEntitlements(
+        raw,
+        site.workspaceId,
+        'platform',
+      )
+      let connections = await vault.list()
+      if (available && !connections.some((c) => c.pool_id === available.id)) {
+        await vault.attachPool(available.id, now)
+        connections = await vault.list()
+      }
+      return {
+        connections,
+        platformAvailable: !!available,
+        plan,
+      }
+    }
     if (event.method !== 'POST') throw createError({ statusCode: 405 })
+    if (
+      !(await workspaceEntitlements(raw, site.workspaceId, 'byos')).limits.byos
+    )
+      throw createError({
+        statusCode: 403,
+        statusMessage: 'Your plan does not include custom storage',
+      })
     if ((await vault.list()).length >= 20)
       throw createError({ statusCode: 429 })
     const config = {
@@ -83,6 +115,11 @@ export default definePlatformHandler(async (event) => {
   ) {
     const old = await vault.get(ID(id))
     if (!old) throw createError({ statusCode: 404 })
+    if (
+      'poolId' in old ||
+      !(await workspaceEntitlements(raw, site.workspaceId, 'byos')).limits.byos
+    )
+      throw createError({ statusCode: 403 })
     const credentials = {
       accessKeyId: text(body.accessKeyId, 256),
       secretAccessKey: text(body.secretAccessKey, 256),
@@ -97,6 +134,12 @@ export default definePlatformHandler(async (event) => {
     return { ok: true }
   }
   if (kind === 'usage' && event.method === 'GET') {
+    const plan = await workspaceEntitlements(raw, site.workspaceId, 'platform')
+    const expression = workspaceUsageSQL(siteId)
+    const storageUsage = await raw
+      .prepare(`SELECT ${expression.storage} AS bytes`)
+      .bind(now)
+      .first<{ bytes: number }>()
     const usage = (
       await sql<{ photos: number; pending: number; bytes: number }>(
         `SELECT (SELECT COUNT(*) FROM cloud_photos WHERE site_id=? AND deleted=0) AS photos,(SELECT COUNT(*) FROM cloud_uploads WHERE site_id=? AND state='pending' AND expires_at>?) AS pending,COALESCE((SELECT SUM(bytes) FROM cloud_usage_events WHERE site_id=? AND created_at>?),0) AS bytes`,
@@ -109,7 +152,11 @@ export default definePlatformHandler(async (event) => {
     )[0]
     return {
       usage,
-      limits: { fileBytes: 104857600, photos: 1000, monthlyBytes: 5368709120 },
+      limits: plan.limits,
+      byosLimits: (await workspaceEntitlements(raw, site.workspaceId, 'byos'))
+        .limits,
+      plan: { id: plan.id, name: plan.name },
+      storageBytes: storageUsage?.bytes ?? 0,
     }
   }
   if (kind === 'uploads' && !id && event.method === 'POST') {
@@ -131,19 +178,36 @@ export default definePlatformHandler(async (event) => {
       throw createError({ statusCode: 400 })
     const ext = fileName.split('.').pop()?.toLowerCase() ?? '',
       contentType = types[ext]
-    if (!contentType || bytes + videoBytes > 104857600)
+    const storedConnection = await vault.get(connectionId)
+    if (!storedConnection) throw createError({ statusCode: 404 })
+    const managed = 'poolId' in storedConnection
+    const entitlement = await workspaceEntitlements(
+      raw,
+      site.workspaceId,
+      managed ? 'platform' : 'byos',
+    )
+    if (!managed && !entitlement.limits.byos)
+      throw createError({
+        statusCode: 403,
+        statusMessage: 'Your plan does not include custom storage',
+      })
+    if (managed && !storedConnection.enabled)
+      throw createError({
+        statusCode: 503,
+        statusMessage: 'Platform uploads temporarily unavailable',
+      })
+    if (!contentType || bytes + videoBytes > entitlement.limits.fileBytes)
       throw createError({ statusCode: 400 })
     let upload = await repository.upload(uploadId, userId)
     if (!upload) {
-      const stored = await vault.get(connectionId)
-      if (!stored) throw createError({ statusCode: 404 })
+      const stored = storedConnection
+      const expression = workspaceUsageSQL(siteId)
       const objectKey = `chronoframe/${siteId}/originals/${uploadId}/1/source.${ext}`
       await db.batch([
         db
-          .prepare(`INSERT INTO cloud_uploads(site_id,id,owner_id,photo_id,source_version,connection_id,connection_revision,object_key,expected_bytes,expires_at,content_type,file_name,expected_video_bytes,video_key)
-     SELECT ?,?,?,?,'1',?,?,?,?,?,?,?,?,? WHERE
-     (SELECT COUNT(*) FROM cloud_photos WHERE site_id=? AND deleted=0)+(SELECT COUNT(*) FROM cloud_uploads WHERE site_id=? AND state='pending' AND expires_at>?)<1000 AND
-     COALESCE((SELECT SUM(bytes) FROM cloud_usage_events WHERE site_id=? AND created_at>?),0)+COALESCE((SELECT SUM(expected_bytes+expected_video_bytes) FROM cloud_uploads WHERE site_id=? AND state='pending' AND expires_at>?),0)+?<=5368709120
+          .prepare(`INSERT INTO cloud_uploads(site_id,id,owner_id,photo_id,source_version,connection_id,connection_revision,object_key,expected_bytes,expires_at,content_type,file_name,expected_video_bytes,video_key,reserved_storage_bytes)
+     SELECT ?,?,?,?,'1',?,?,?,?,?,?,?,?,?,? WHERE
+     ${expression.photos}<? AND ${expression.monthly}+?<=? AND (?=0 OR ${expression.storage}+?<=?)
      ON CONFLICT DO NOTHING`)
           .bind(
             siteId,
@@ -161,14 +225,17 @@ export default definePlatformHandler(async (event) => {
             liveVideo
               ? `chronoframe/${siteId}/originals/${uploadId}/1/source.MOV`
               : null,
-            siteId,
-            siteId,
+            managed ? bytes + videoBytes : 0,
             now,
-            siteId,
+            entitlement.limits.photos,
             now - 30 * 86400000,
-            siteId,
             now,
             bytes + videoBytes,
+            entitlement.limits.monthlyBytes,
+            managed ? 1 : 0,
+            now,
+            bytes + videoBytes,
+            entitlement.limits.storageBytes,
           ),
       ])
       upload = await repository.upload(uploadId, userId)
@@ -669,8 +736,6 @@ export default definePlatformHandler(async (event) => {
         String(useRuntimeConfig(event).public.defaultDomainsReady) !== 'true')
     )
       throw new DomainError(503, 'domain_routing_unavailable')
-    if (published && !(await ctx.resources.listPhotos()).length)
-      throw createError({ statusCode: 400 })
     const hostname = validSiteSlug(site.slug)
       ? defaultSiteHost(
           site.slug,

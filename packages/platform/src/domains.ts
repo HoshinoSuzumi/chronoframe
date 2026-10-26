@@ -1,3 +1,4 @@
+import { workspaceEntitlements } from './entitlements.ts'
 import {
   DEFAULT_CNAME_TARGET,
   DEFAULT_SITE_BASE,
@@ -110,7 +111,6 @@ export function createDomainManager(
   const base = normalizeDomain(config.baseDomain || DEFAULT_SITE_BASE)
   const target = normalizeDomain(config.cnameTarget || DEFAULT_CNAME_TARGET)
   const resourceLimit = Math.max(1, Math.min(config.limit, 20))
-  const workspaceLimit = Math.min(4, Math.max(1, Math.floor(resourceLimit / 2)))
   const memberGuard = `EXISTS(SELECT 1 FROM platform_sites s JOIN platform_memberships m ON m.workspace_id=s.workspace_id WHERE s.id=? AND m.user_id=? AND m.role='admin')`
   async function authorize(userId: number, siteId: number, admin = true) {
     const row = await stmt(
@@ -188,6 +188,12 @@ export function createDomainManager(
     }
     if (existing && (existing.provider_id || existing.route_id))
       throw new DomainError(409, 'domain_cleanup_pending')
+    const workspace = await stmt(
+      'SELECT workspace_id FROM platform_sites WHERE id=?',
+      siteId,
+    ).first<{ workspace_id: number }>()
+    const plan = await workspaceEntitlements(db, workspace!.workspace_id)
+    if (!plan.limits.customDomains) throw new DomainError(403, 'domain_limit')
     const generation = dependencies.id(),
       time = now()
     try {
@@ -197,7 +203,6 @@ export function createDomainManager(
       AND (SELECT COUNT(*) FROM platform_custom_domains WHERE state<>'deleted' AND NOT ${HAS_PROVIDER})<?
       AND (SELECT COUNT(*) FROM platform_custom_domains WHERE state<>'deleted')<?
       AND (SELECT COUNT(*) FROM platform_custom_domains c JOIN platform_sites s ON s.id=c.site_id WHERE s.workspace_id=(SELECT workspace_id FROM platform_sites WHERE id=?) AND c.state<>'deleted')<?
-      AND (SELECT COUNT(*) FROM platform_custom_domains WHERE site_id=? AND state<>'deleted')<2
       ON CONFLICT(hostname) DO UPDATE SET site_id=excluded.site_id,generation=excluded.generation,revision=platform_custom_domains.revision+1,state='pending',created_at=excluded.created_at,expires_at=excluded.expires_at,next_check_at=excluded.next_check_at,dns_status=excluded.dns_status,provider_attempted=0,route_attempted=0,retry_requested=0,attempts=0,checked_at=NULL,verified_at=NULL,hostname_status='unknown',ssl_status='unknown',error=NULL,is_primary=0,redirects=0,lease_token=NULL,lease_until=NULL
       WHERE platform_custom_domains.state='deleted' AND platform_custom_domains.provider_id IS NULL AND platform_custom_domains.route_id IS NULL`,
         host,
@@ -212,8 +217,7 @@ export function createDomainManager(
         PENDING_LIMIT,
         resourceLimit + PENDING_LIMIT,
         siteId,
-        workspaceLimit,
-        siteId,
+        plan.limits.customDomains,
       )
       await db.batch([
         insertion,

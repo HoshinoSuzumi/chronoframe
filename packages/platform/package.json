@@ -6,7 +6,8 @@
   "license": "AGPL-3.0-only",
   "exports": {
     ".": "./src/index.ts",
-    "./domains": "./src/domains.ts"
+    "./domains": "./src/domains.ts",
+    "./entitlements": "./src/entitlements.ts"
   },
   "scripts": {
     "type-check": "tsc --noEmit"

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 const { t } = useI18n()
+const { allowance } = useCloudSiteMedia()
 
 definePageMeta({ layout: 'portal' })
 useSeoMeta({
@@ -20,13 +21,11 @@ useSeoMeta({
     <CloudStorageSettings /><CloudCard
       ><div class="cf-panel-heading">
         <h2>{{ $t('cloud.messages.platformStorage') }}</h2>
-        <CloudBadge>{{ $t('cloud.messages.comingLater') }}</CloudBadge>
-        <p>
-          {{
-            $t(
-              'cloud.messages.managedStorageAndPlanAllowancesAreNotAvailableYet',
-            )
-          }}
+        <CloudBadge>{{ allowance?.plan.name ?? '—' }}</CloudBadge>
+        <p>{{ $t('cloud.storageAllowance.description') }}</p>
+        <p v-if="allowance">
+          {{ (allowance.storageBytes / 1048576).toFixed(1) }} MiB /
+          {{ (allowance.limits.storageBytes! / 1048576).toFixed(0) }} MiB
         </p>
       </div></CloudCard
     >

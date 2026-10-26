@@ -111,7 +111,11 @@ export async function privateMedia(
   const s3 = createCloudS3(
     { ...stored.config, ...stored.credentials },
     {
-      allowedHosts: config.s3EndpointHosts
+      allowedHosts: (
+        ('poolId' in stored
+          ? new URL(stored.config.endpoint).hostname + ','
+          : '') + config.s3EndpointHosts
+      )
         .split(',')
         .map((v: string) => v.trim())
         .filter(Boolean),

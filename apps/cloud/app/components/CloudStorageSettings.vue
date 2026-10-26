@@ -1,6 +1,7 @@
 <script setup lang="ts">
 const {
   connections,
+  allowance,
   connectionId,
   storage,
   rotation,
@@ -35,6 +36,10 @@ const {
             v-for="connection in connections"
             :key="connection.id"
             :value="connection.id"
+            :disabled="
+              connection.uploads_enabled === 0 ||
+              (!connection.pool_id && !allowance?.byosLimits.byos)
+            "
           >
             {{
               $t('cloud.ui.connectionRevision', {
@@ -46,7 +51,11 @@ const {
         </select></label
       >
       <details
-        v-if="admin && connectionId"
+        v-if="
+          admin &&
+          connectionId &&
+          !connections.find((c) => c.id === connectionId)?.pool_id
+        "
         class="cf-storage-details"
       >
         <summary>{{ $t('cloud.messages.rotateStorageCredentials') }}</summary>
@@ -80,7 +89,7 @@ const {
         </form>
       </details>
       <details
-        v-if="admin"
+        v-if="admin && allowance?.byosLimits.byos"
         class="cf-storage-details"
       >
         <summary>{{ $t('cloud.messages.connectStorage') }}</summary>

@@ -78,6 +78,12 @@ test('Live Photo validation rejects the combined size before reserving any uploa
   )
   const media = module.useCloudMediaWorkspace({ siteId: 1, role: 'admin' })
   media.connectionId.value = 'storage'
+  media.allowance.value = {
+    limits: { fileBytes: 100 * 1024 * 1024 },
+    byosLimits: { fileBytes: 100 * 1024 * 1024, byos: 1 },
+    plan: { id: 'test', name: 'Test' },
+    storageBytes: 0,
+  }
   const mib = 1024 * 1024
   for (const files of [
     [
@@ -90,7 +96,7 @@ test('Live Photo validation rejects the combined size before reserving any uploa
     const input = { files, value: 'chosen' }
     await media.upload({ target: input })
     assert.equal(media.failed.value, true)
-    assert.match(media.message.value, /100 MiB/)
+    assert.match(media.message.value, /plan/)
     assert.equal(input.value, '')
     assert.equal(requests.length, 0)
   }

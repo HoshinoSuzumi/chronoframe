@@ -110,7 +110,7 @@
       "sites": "站点",
       "createSite": "创建站点",
       "createASite": "创建站点",
-      "startWithAPrivateDraftYourAddressIsReserved": "先创建一个私密草稿，发布前会为你保留站点地址。",
+      "startWithAPrivateDraftYourAddressIsReserved": "创建后站点会立即发布，无需先上传照片或配置存储。",
       "siteName": "站点名称",
       "siteAddress": "站点地址",
       "use340LowercaseLettersNumbersOrHyphensSome": "使用 3–40 个小写字母、数字或连字符。部分地址已被保留，此处暂不支持修改地址。",
@@ -250,7 +250,7 @@
       "status": "状态",
       "role": "角色",
       "noSitesYet": "暂无站点",
-      "createADraftAboveToReserveYourGalleryS": "在上方创建草稿，预留图库地址。",
+      "createADraftAboveToReserveYourGalleryS": "创建你的第一个图库。空图库也会自动发布。",
       "onlySitesYouBelongToAppearHere": "此处仅显示你加入的站点。",
       "viewDocumentation": "查看文档",
       "cover": "封面",
@@ -310,7 +310,7 @@
       "photographUpdated": "照片已更新。",
       "uploadUnavailable": "无法上传",
       "uploadFailed": "上传失败",
-      "eachPhotographAndItsMatchingLivePhotoMovMust": "每张照片及其配对的实况 MOV 视频总大小不能超过 100 MiB。MOV 文件必须与同名照片一起上传。",
+      "eachPhotographAndItsMatchingLivePhotoMovMust": "每张照片及配对视频必须在套餐的单文件上限内。",
       "uploadVerifiedProcessingContinuesInTheBackground": "上传已验证，正在后台继续处理。",
       "uploadCancelled": "上传已取消。",
       "uploadInterruptedSelectTheSameFileToResumeIts": "上传已中断，重新选择同一文件即可继续上传剩余部分。",
@@ -436,7 +436,7 @@
       "photoMembershipCount": "照片 · {count}",
       "securityFor": "管理 {email} 的登录方式。",
       "uploadProgress": "{progress}% · 正在上传到你的私有存储桶",
-      "uploadUsage": "{photos} / 1,000 张照片 · {bytes} / 5 GiB（近 30 天上传量）",
+      "uploadUsage": "{photos} / {photoLimit} 张照片 · 30 天上传 {bytes} / {uploadLimit} GiB",
       "connectionRevision": "{bucket} · 凭证版本 {revision}",
       "admin": "管理员",
       "member": "成员",
@@ -451,7 +451,7 @@
       "processingFailure": "处理未能完成（{code}），请重试或联系平台管理员。",
       "draftChecking": "发布图库之前，访问此地址将返回 404。正在检查照片…",
       "draftNeedsPhoto": "发布图库之前，访问此地址将返回 404。请先上传照片，等待处理完成后再发布。",
-      "draftReady": "发布图库之前，访问此地址将返回 404。准备好分享了吗？点击上方的“发布图库”。",
+      "draftReady": "随时可以发布，即使图库中还没有照片。",
       "draftAskAdmin": "发布图库之前，访问此地址将返回 404。请联系工作区管理员发布此图库。",
       "passwordSetupGuidance": "你使用邮箱验证码登录。请先{link}，再启用两步验证。",
       "connectStorageGuidance": "上传前，请先在{link}中连接私有存储。",
@@ -569,6 +569,12 @@
       "removingHelp": "已停止公开访问，正在移除此连接。",
       "expiredHelp": "此申请在完成验证前已过期，请移除后重新添加域名。",
       "checksPaused": "已暂停此域名的状态检查。"
+    },
+    "storageAllowance": {
+      "description": "按套餐提供平台存储。创建站点后自动发布，上传照片不是发布前置条件。",
+      "fileLimit": "每张照片最大 {size} MiB（包含配对视频）",
+      "noCustomDomains": "当前套餐不包含自定义域名，你仍可使用站点的默认地址。",
+      "unavailable": "平台上传暂不可用。你的站点仍已发布，无需配置自定义存储。"
     }
   }
 }

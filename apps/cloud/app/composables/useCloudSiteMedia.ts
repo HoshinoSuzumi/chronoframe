@@ -30,6 +30,8 @@ export function useCloudMediaWorkspace(props: {
         id: string
         current_revision: number
         healthy: number
+        uploads_enabled?: number
+        pool_id?: string | null
         config: { bucket: string }
       }[]
     >([]),
@@ -47,6 +49,12 @@ export function useCloudMediaWorkspace(props: {
   const usage = ref<{ photos: number; pending: number; bytes: number } | null>(
     null,
   )
+  const allowance = ref<{
+    plan: { id: string; name: string }
+    limits: Record<string, number>
+    byosLimits: Record<string, number>
+    storageBytes: number
+  } | null>(null)
   const rotation = reactive({ accessKeyId: '', secretAccessKey: '' })
   const editPhoto = reactive({
     id: '',
@@ -71,6 +79,13 @@ export function useCloudMediaWorkspace(props: {
     secretAccessKey: '',
   })
   const admin = computed(() => props.role === 'admin')
+  const fileLimit = computed(
+    () =>
+      (connections.value.find((c) => c.id === connectionId.value)?.pool_id
+        ? allowance.value?.limits
+        : allowance.value?.byosLimits
+      )?.fileBytes ?? 0,
+  )
   let timer: ReturnType<typeof setInterval> | undefined,
     controller: AbortController | undefined,
     activeUpload: string | undefined,
@@ -90,7 +105,13 @@ export function useCloudMediaWorkspace(props: {
           base.value + '/photos',
         ),
         api<{ albums: typeof albums.value }>(base.value + '/albums'),
-        api<{ usage: NonNullable<typeof usage.value> }>(base.value + '/usage'),
+        api<{
+          usage: NonNullable<typeof usage.value>
+          plan: { id: string; name: string }
+          limits: Record<string, number>
+          byosLimits: Record<string, number>
+          storageBytes: number
+        }>(base.value + '/usage'),
       ])
       if (
         generation !== reloadGeneration ||
@@ -98,12 +119,27 @@ export function useCloudMediaWorkspace(props: {
       )
         return
       usage.value = u.usage
+      allowance.value = {
+        plan: u.plan,
+        limits: u.limits,
+        byosLimits: u.byosLimits,
+        storageBytes: u.storageBytes,
+      }
       connections.value = s.connections
       photos.value = p.photos
       jobs.value = p.jobs
       albums.value = a.albums
       ready.value = true
-      if (!connectionId.value) connectionId.value = s.connections[0]?.id ?? ''
+      if (
+        !connectionId.value ||
+        connections.value.find((c) => c.id === connectionId.value)
+          ?.uploads_enabled === 0 ||
+        (!u.byosLimits?.byos &&
+          !s.connections.find((c) => c.id === connectionId.value)?.pool_id)
+      )
+        connectionId.value =
+          s.connections.find((c) => c.pool_id && c.uploads_enabled !== 0)?.id ??
+          (u.byosLimits?.byos ? (s.connections[0]?.id ?? '') : '')
     } catch (error) {
       if (
         generation !== reloadGeneration ||
@@ -346,11 +382,11 @@ export function useCloudMediaWorkspace(props: {
             photo.name.replace(/\.[^.]+$/, '').toLowerCase(),
       )
     if (
-      files.some((f) => f.size > 100 * 1024 * 1024) ||
+      files.some((f) => f.size > fileLimit.value) ||
       files.some(
         (file) =>
           !isVideo(file) &&
-          file.size + (companionFor(file)?.size ?? 0) > 100 * 1024 * 1024,
+          file.size + (companionFor(file)?.size ?? 0) > fileLimit.value,
       ) ||
       files.every(isVideo)
     ) {
@@ -459,6 +495,8 @@ export function useCloudMediaWorkspace(props: {
     jobs,
     connections,
     usage,
+    allowance,
+    fileLimit,
     rotation,
     editPhoto,
     connectionId,

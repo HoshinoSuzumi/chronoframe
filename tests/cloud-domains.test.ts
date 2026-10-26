@@ -100,6 +100,11 @@ test('Real D1 custom domains fence claims, CNAME ownership transitions, provider
         time,
       )
       .run()
+    await db
+      .prepare(
+        `UPDATE platform_plans SET policy_json=json_set(policy_json,'$.limits.sites',10,'$.limits.customDomains',4,'$.limits.byos',1) WHERE id='free'`,
+      )
+      .run()
     const sites = createD1Provisioning(db)
     const one = await sites.create(1, {
       name: 'One',
@@ -708,6 +713,11 @@ test('Workspace quotas preserve capacity for other tenants and audit failures ro
         'Two',
         time,
         time,
+      )
+      .run()
+    await db
+      .prepare(
+        `UPDATE platform_plans SET policy_json=json_set(policy_json,'$.limits.sites',10,'$.limits.customDomains',4,'$.limits.byos',1) WHERE id='free'`,
       )
       .run()
     const sites = createD1Provisioning(db),

@@ -11,6 +11,8 @@ const {
   currentFile,
   cancel,
   usage,
+  allowance,
+  fileLimit,
   admin,
 } = useCloudSiteMedia()
 const context = useEntryContext().value,
@@ -50,13 +52,19 @@ async function dropFiles(event: DragEvent) {
           ><USelect
             v-model="connectionId"
             :items="
-              connections.map((c) => ({ label: c.config.bucket, value: c.id }))
+              connections
+                .filter(
+                  (c) =>
+                    c.uploads_enabled !== 0 &&
+                    (c.pool_id || allowance?.byosLimits.byos),
+                )
+                .map((c) => ({ label: c.config.bucket, value: c.id }))
             "
             class="w-full"
             :disabled="uploading"
         /></UFormField>
         <i18n-t
-          v-if="!connections.length"
+          v-if="!connections.length && allowance?.byosLimits.byos"
           keypath="cloud.ui.connectStorageGuidance"
           tag="p"
           scope="global"
@@ -71,6 +79,12 @@ async function dropFiles(event: DragEvent) {
             ></template
           >
         </i18n-t>
+        <p
+          v-if="!connections.length && !allowance?.byosLimits.byos"
+          class="text-sm text-muted"
+        >
+          {{ $t('cloud.storageAllowance.unavailable') }}
+        </p>
         <input
           ref="input"
           class="sr-only"
@@ -95,7 +109,9 @@ async function dropFiles(event: DragEvent) {
             $t('cloud.messages.dropImagesHereOrChooseImagesAndMatchingMov')
           }}</span
           ><span>{{
-            $t('cloud.messages.upTo100MibPerPhotographIncludingItsPaired')
+            $t('cloud.storageAllowance.fileLimit', {
+              size: (fileLimit / 1048576).toFixed(0),
+            })
           }}</span>
         </button>
         <div
@@ -117,6 +133,10 @@ async function dropFiles(event: DragEvent) {
             $t('cloud.ui.uploadUsage', {
               photos: usage.photos,
               bytes: (usage.bytes / 1073741824).toFixed(2),
+              photoLimit: allowance?.limits.photos ?? '—',
+              uploadLimit: (
+                (allowance?.limits.monthlyBytes ?? 0) / 1073741824
+              ).toFixed(2),
             })
           }}
         </p>

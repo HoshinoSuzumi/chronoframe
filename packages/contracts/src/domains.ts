@@ -105,6 +105,7 @@ export interface CustomDomain {
   nextCheckAt: number
 }
 export interface DomainOverview {
+  customDomainLimit?: number
   defaultHostname: string | null
   legacyHostname: string | null
   baseDomain: string

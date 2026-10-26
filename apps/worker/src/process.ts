@@ -36,7 +36,7 @@ export async function boundedDownload(
   signal: AbortSignal,
   etag?: string,
 ) {
-  if (!Number.isSafeInteger(expected) || expected < 1 || expected > 104857600)
+  if (!Number.isSafeInteger(expected) || expected < 1 || expected > 1073741824)
     throw new WorkerProcessingError('invalid_source_size', false)
   const parsed = new URL(url)
   if (parsed.protocol !== 'https:')
@@ -147,7 +147,7 @@ export async function processWork(
               : contentType === 'video/mp4'
                 ? 'live-video'
                 : null
-        if (!role || buffer.length > 104857600)
+        if (!role || buffer.length > 1073741824)
           throw new Error('invalid_derivative')
         derivatives.push({
           role,

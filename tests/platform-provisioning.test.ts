@@ -81,6 +81,19 @@ test('Real D1 provisioning preserves old tenants, serializes defaults and enforc
     await migrate('0004_workspace_sites.sql')
     await migrate('0011_site_identity.sql')
     await migrate('0013_custom_domains.sql')
+    for (const migration of [
+      '0005_media_catalog.sql',
+      '0006_cloud_execution.sql',
+      '0007_cloud_storage.sql',
+      '0009_cloud_usage_events.sql',
+      '0014_entitlements.sql',
+    ])
+      await migrate(migration)
+    await db
+      .prepare(
+        `UPDATE platform_plans SET policy_json=json_set(policy_json,'$.limits.sites',10) WHERE id='free'`,
+      )
+      .run()
     await db
       .prepare('UPDATE platform_users SET email_verified=0 WHERE id=44')
       .run()
@@ -115,7 +128,7 @@ test('Real D1 provisioning preserves old tenants, serializes defaults and enforc
       requestId: crypto.randomUUID(),
     }
     const first = await store.create(42, input)
-    assert.equal(first.published, 0)
+    assert.equal(first.published, 1)
     assert.equal((await store.create(42, input)).siteId, first.siteId)
     await assert.rejects(store.create(42, { ...input, name: 'Changed' }), {
       statusCode: 409,
@@ -147,13 +160,15 @@ test('Real D1 provisioning preserves old tenants, serializes defaults and enforc
       }),
       { statusCode: 409 },
     )
-    await assert.rejects(
-      store.update(42, first.siteId, {
-        name: 'Renamed',
-        published: true,
-        revision: 2,
-      }),
-      { statusCode: 400 },
+    assert.equal(
+      (
+        await store.update(42, first.siteId, {
+          name: 'Renamed',
+          published: true,
+          revision: 2,
+        })
+      ).published,
+      1,
     )
     const races = await Promise.allSettled(
       [42, 43].map((id) =>
@@ -165,7 +180,7 @@ test('Real D1 provisioning preserves old tenants, serializes defaults and enforc
       ),
     )
     assert.equal(races.filter((r) => r.status === 'fulfilled').length, 1)
-    // Draft reservations never expose a public gallery or alter the existing published gallery.
+    // Newly created empty galleries publish without changing existing gallery settings.
     assert.equal(
       (
         await db
@@ -174,7 +189,7 @@ test('Real D1 provisioning preserves old tenants, serializes defaults and enforc
           )
           .first()
       ).n,
-      0,
+      2,
     )
     assert.equal((await store.get(42, 8)).published, 1)
     const oldUpdated = await store.update(42, 8, {
