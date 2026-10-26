@@ -19,6 +19,8 @@ test('Site domain middleware leaves Nuxt error rendering independent of unavaila
     defineEventHandler: (fn: unknown) => fn,
     useRuntimeConfig: () => ({ public: { siteBaseDomain: 'chronoframe.art' } }),
     require: (name: string) => {
+      if (name.endsWith('/domain-policy'))
+        return { domainEligibility: async () => ({ allowed: true }) }
       if (name === 'h3')
         return {
           getRequestURL: (e: any) => new URL(e.url),

@@ -1,3 +1,4 @@
+import type { PlatformD1 } from '@chronoframe/platform'
 import 'reflect-metadata'
 import { betterAuth, type BetterAuthOptions } from 'better-auth'
 import { APIError } from 'better-auth/api'
@@ -25,6 +26,28 @@ export function accountAuthOptions(
   }
   return {
     appName: 'ChronoFrame Cloud',
+    databaseHooks: {
+      session: {
+        create: {
+          before: async (session) => {
+            const control = await (database as unknown as PlatformD1)
+              .prepare(
+                'SELECT suspended,public_reason FROM platform_account_controls WHERE user_id=?',
+              )
+              .bind(Number(session.userId))
+              .first<{ suspended: number; public_reason: string }>()
+            if (control?.suspended)
+              throw new APIError('FORBIDDEN', {
+                code: 'ACCOUNT_SUSPENDED',
+                message:
+                  control.public_reason ||
+                  'Account access has been suspended. Contact support.',
+              })
+            return { data: session }
+          },
+        },
+      },
+    },
     baseURL: origin.origin,
     basePath: '/api/auth',
     secret: config.secret,

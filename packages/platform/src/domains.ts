@@ -1,3 +1,4 @@
+import { domainEligibility } from './domain-policy.ts'
 import { workspaceEntitlements } from './entitlements.ts'
 import {
   DEFAULT_CNAME_TARGET,
@@ -70,6 +71,10 @@ interface Row {
   retry_requested: number
   lease_until: number | null
   verified_at: number | null
+  user_paused: number
+  hold_reason: string | null
+  purge_requested: number
+  restore_primary: number
 }
 export function domainDTO(
   row: Row,
@@ -92,6 +97,15 @@ export function domainDTO(
     checkedAt: row.checked_at,
     expiresAt: row.expires_at,
     nextCheckAt: row.next_check_at,
+    holdReason: row.hold_reason as CustomDomain['holdReason'],
+    cleanupPending:
+      !!(
+        row.provider_id ||
+        row.route_id ||
+        row.provider_attempted ||
+        row.route_attempted
+      ) &&
+      (row.state === 'paused' || row.state === 'deleting'),
   }
 }
 /** Domain transitions retain their generation and database lease through external retries. */
@@ -146,11 +160,30 @@ export function createDomainManager(
   async function list(userId: number, siteId: number) {
     await authorize(userId, siteId, false)
     const rows = await stmt(
-      `SELECT json_group_array(json_object('hostname',hostname,'site_id',site_id,'generation',generation,'revision',revision,'state',state,'dns_status',dns_status,'hostname_status',hostname_status,'ssl_status',ssl_status,'error',error,'is_primary',is_primary,'redirects',redirects,'created_at',created_at,'checked_at',checked_at,'expires_at',expires_at,'next_check_at',next_check_at)) AS items FROM (SELECT * FROM platform_custom_domains WHERE site_id=? AND state<>'deleted' ORDER BY created_at)`,
+      `SELECT json_group_array(json_object('hostname',hostname,'site_id',site_id,'generation',generation,'revision',revision,'state',state,'dns_status',dns_status,'hostname_status',hostname_status,'ssl_status',ssl_status,'error',error,'is_primary',is_primary,'redirects',redirects,'created_at',created_at,'checked_at',checked_at,'expires_at',expires_at,'next_check_at',next_check_at,'user_paused',user_paused,'hold_reason',hold_reason,'provider_attempted',provider_attempted,'route_attempted',route_attempted,'provider_id',provider_id,'route_id',route_id)) AS items FROM (SELECT * FROM platform_custom_domains WHERE site_id=? AND state<>'deleted' ORDER BY created_at)`,
       siteId,
     ).first<{ items: string }>()
-    return (JSON.parse(rows?.items ?? '[]') as Row[]).map((row) =>
-      domainDTO(row, target),
+    return Promise.all(
+      (JSON.parse(rows?.items ?? '[]') as Row[]).map(async (row) => {
+        const eligibility = await domainEligibility(db, row.hostname)
+        const dto = domainDTO(row, target)
+        if (!['deleting', 'expired'].includes(row.state)) {
+          dto.holdReason = row.user_paused ? 'manual' : eligibility.reason
+          if (!eligibility.allowed || row.user_paused) {
+            dto.status = 'paused'
+            dto.cleanupPending = !!(
+              row.provider_id ||
+              row.route_id ||
+              row.provider_attempted ||
+              row.route_attempted
+            )
+          } else if (row.state === 'paused') {
+            dto.status = 'pending'
+            dto.holdReason = null
+          }
+        }
+        return dto
+      }),
     )
   }
   async function request(userId: number, siteId: number, input: unknown) {
@@ -200,10 +233,10 @@ export function createDomainManager(
       const insertion = stmt(
         `INSERT INTO platform_custom_domains(hostname,site_id,generation,created_at,expires_at,next_check_at,dns_status)
       SELECT ?,?,?,?,?,?,? WHERE ${memberGuard}
-      AND (SELECT COUNT(*) FROM platform_custom_domains WHERE state<>'deleted' AND NOT ${HAS_PROVIDER})<?
-      AND (SELECT COUNT(*) FROM platform_custom_domains WHERE state<>'deleted')<?
+      AND (SELECT COUNT(*) FROM platform_custom_domains WHERE state NOT IN('deleted','paused') AND NOT ${HAS_PROVIDER})<?
+      AND (SELECT COUNT(*) FROM platform_custom_domains WHERE state<>'deleted' AND (state<>'paused' OR ${HAS_PROVIDER}))<?
       AND (SELECT COUNT(*) FROM platform_custom_domains c JOIN platform_sites s ON s.id=c.site_id WHERE s.workspace_id=(SELECT workspace_id FROM platform_sites WHERE id=?) AND c.state<>'deleted')<?
-      ON CONFLICT(hostname) DO UPDATE SET site_id=excluded.site_id,generation=excluded.generation,revision=platform_custom_domains.revision+1,state='pending',created_at=excluded.created_at,expires_at=excluded.expires_at,next_check_at=excluded.next_check_at,dns_status=excluded.dns_status,provider_attempted=0,route_attempted=0,retry_requested=0,attempts=0,checked_at=NULL,verified_at=NULL,hostname_status='unknown',ssl_status='unknown',error=NULL,is_primary=0,redirects=0,lease_token=NULL,lease_until=NULL
+      ON CONFLICT(hostname) DO UPDATE SET site_id=excluded.site_id,generation=excluded.generation,revision=platform_custom_domains.revision+1,state='pending',created_at=excluded.created_at,expires_at=excluded.expires_at,next_check_at=excluded.next_check_at,dns_status=excluded.dns_status,provider_attempted=0,route_attempted=0,retry_requested=0,attempts=0,checked_at=NULL,verified_at=NULL,hostname_status='unknown',ssl_status='unknown',error=NULL,is_primary=0,redirects=0,lease_token=NULL,lease_until=NULL,user_paused=0,hold_reason=NULL,purge_requested=0,restore_primary=0
       WHERE platform_custom_domains.state='deleted' AND platform_custom_domains.provider_id IS NULL AND platform_custom_domains.route_id IS NULL`,
         host,
         siteId,
@@ -287,6 +320,11 @@ export function createDomainManager(
       throw new DomainError(409, 'domain_not_ready')
     if (row.state === 'deleting' && action !== 'delete')
       throw new DomainError(409, 'domain_cleanup_pending')
+    if (
+      ['resume', 'primary', 'redirects'].includes(action) &&
+      !(await domainEligibility(db, host)).allowed
+    )
+      throw new DomainError(403, 'domain_limit')
     if (action === 'resume' && row.state !== 'paused')
       throw new DomainError(409, 'domain_changed')
     if (action === 'check' && row.next_check_at > now() + 30000)
@@ -299,7 +337,7 @@ export function createDomainManager(
     if (action === 'primary')
       statements.push(
         stmt(
-          `UPDATE platform_custom_domains SET is_primary=0 WHERE site_id=? AND hostname<>? AND EXISTS(SELECT 1 FROM platform_custom_domains WHERE ${guard})`,
+          `UPDATE platform_custom_domains SET is_primary=0,restore_primary=0 WHERE site_id=? AND hostname<>? AND EXISTS(SELECT 1 FROM platform_custom_domains WHERE ${guard})`,
           siteId,
           host,
           ...args,
@@ -307,13 +345,13 @@ export function createDomainManager(
       )
     let set =
       action === 'pause'
-        ? "state='paused',is_primary=0"
+        ? "state='paused',is_primary=0,user_paused=1,hold_reason='manual',restore_primary=0"
         : action === 'delete'
-          ? "state='deleting',is_primary=0"
+          ? "state='deleting',is_primary=0,restore_primary=0"
           : action === 'resume'
-            ? "state='pending',is_primary=0"
+            ? "state='pending',is_primary=0,user_paused=0,hold_reason=NULL"
             : action === 'primary'
-              ? 'is_primary=1'
+              ? 'is_primary=1,restore_primary=0'
               : action === 'redirects'
                 ? `redirects=${value ? 1 : 0}`
                 : 'error=NULL,retry_requested=1'
@@ -342,7 +380,7 @@ export function createDomainManager(
   async function reconcile(onlyHost?: string, batchSize = 5) {
     if (!config.enabled) return { checked: 0 }
     const rows = await stmt(
-      `SELECT json_group_array(hostname) AS items FROM (SELECT hostname FROM platform_custom_domains WHERE (state IN ('pending','active','deleting','expired') OR (state='paused' AND verified_at IS NULL AND expires_at<=?)) AND next_check_at<=? AND (lease_until IS NULL OR lease_until<?) ${onlyHost ? 'AND hostname=?' : ''} ORDER BY next_check_at LIMIT ?)`,
+      `SELECT json_group_array(hostname) AS items FROM (SELECT hostname FROM platform_custom_domains WHERE (state IN ('pending','active','deleting','expired') OR (state='paused' AND ((hold_reason IS NOT NULL AND hold_reason<>'manual') OR provider_attempted=1 OR route_attempted=1 OR (verified_at IS NULL AND expires_at<=?)))) AND next_check_at<=? AND (lease_until IS NULL OR lease_until<?) ${onlyHost ? 'AND hostname=?' : ''} ORDER BY CASE WHEN ${HAS_PROVIDER} THEN 0 WHEN next_check_at=0 THEN 1 WHEN state='pending' THEN 2 ELSE 3 END,next_check_at,hostname LIMIT ?)`,
       now(),
       now(),
       now(),
@@ -354,7 +392,7 @@ export function createDomainManager(
       const token = dependencies.id(),
         time = now()
       const row = await stmt(
-        `UPDATE platform_custom_domains SET lease_token=?,lease_until=? WHERE hostname=? AND (lease_until IS NULL OR lease_until<?) AND next_check_at<=? AND (state IN ('pending','active','deleting','expired') OR (state='paused' AND verified_at IS NULL AND expires_at<=?)) RETURNING *`,
+        `UPDATE platform_custom_domains SET lease_token=?,lease_until=? WHERE hostname=? AND (lease_until IS NULL OR lease_until<?) AND next_check_at<=? AND (state IN ('pending','active','deleting','expired') OR (state='paused' AND ((hold_reason IS NOT NULL AND hold_reason<>'manual') OR provider_attempted=1 OR route_attempted=1 OR (verified_at IS NULL AND expires_at<=?)))) RETURNING *`,
         token,
         time + 300000,
         host,
@@ -363,9 +401,19 @@ export function createDomainManager(
         time,
       ).first<Row>()
       if (!row) continue
+      const epoch = await stmt(
+        'SELECT revision FROM platform_policy_epoch WHERE id=1',
+      ).first<{ revision: number }>()
       const guard =
-        'hostname=? AND generation=? AND lease_token=? AND revision=? AND state=?'
-      const args = [host, row.generation, token, row.revision, row.state]
+        'hostname=? AND generation=? AND lease_token=? AND revision=? AND state=? AND (SELECT revision FROM platform_policy_epoch WHERE id=1)=?'
+      const args = [
+        host,
+        row.generation,
+        token,
+        row.revision,
+        row.state,
+        epoch!.revision,
+      ]
       const fenced = async (
         sql: string,
         ...values: (string | number | null)[]
@@ -399,14 +447,16 @@ export function createDomainManager(
           throw new DomainError(409, 'domain_changed')
       }
       try {
-        if (
-          row.state === 'deleting' ||
-          row.state === 'expired' ||
-          ((row.state === 'pending' || row.state === 'paused') &&
-            time >= row.expires_at &&
-            !row.verified_at)
-        ) {
-          // Resource identity is never inferred unless this generation previously attempted creation.
+        const eligibility = await domainEligibility(db, host)
+        const expired =
+          (row.state === 'pending' || row.state === 'paused') &&
+          time >= row.expires_at &&
+          !row.verified_at
+        const deleting =
+          row.state === 'deleting' || row.state === 'expired' || expired
+        const hold = row.user_paused ? 'manual' : eligibility.reason
+        if (deleting || hold) {
+          // Delete only resources owned by this claim, recovering IDs after uncertain writes.
           let providerId = row.provider_id,
             routeId = row.route_id
           if (!providerId && row.provider_attempted)
@@ -428,17 +478,27 @@ export function createDomainManager(
                 ...args,
               ),
               stmt(
-                `UPDATE platform_custom_domains SET revision=revision+1,state='deleted',is_primary=0,provider_id=NULL,route_id=NULL,error=NULL,checked_at=?,next_check_at=?,lease_token=NULL,lease_until=NULL WHERE ${guard}`,
+                `UPDATE platform_custom_domains SET revision=revision+1,state=?,restore_primary=CASE WHEN ?=0 AND user_paused=0 THEN MAX(restore_primary,is_primary) ELSE 0 END,is_primary=0,provider_id=NULL,route_id=NULL,provider_attempted=0,route_attempted=0,hold_reason=?,hostname_status='removed',ssl_status='removed',error=NULL,checked_at=?,next_check_at=?,lease_token=NULL,lease_until=NULL WHERE ${guard}`,
+                deleting ? 'deleted' : 'paused',
+                deleting ? 1 : 0,
+                deleting ? null : hold,
                 time,
-                time,
+                time + 86400000,
                 ...args,
               ),
             ],
-            'removed',
+            deleting ? 'removed' : 'suspended',
           )
+          if (deleting && row.purge_requested)
+            await stmt(
+              "DELETE FROM platform_custom_domains WHERE hostname=? AND generation=? AND state='deleted' AND provider_id IS NULL AND route_id IS NULL AND provider_attempted=0 AND route_attempted=0",
+              host,
+              row.generation,
+            ).run()
           checked++
           continue
         }
+        if (row.state === 'deleted') continue
         const dns = await dependencies.dns(
           host,
           domainClaimTarget(row.generation, target),
@@ -469,8 +529,14 @@ export function createDomainManager(
           : await dependencies.provider.find(host)
         if (!row.provider_id && provider && !row.provider_attempted)
           throw new DomainError(409, 'domain_provider_conflict')
-        if (row.provider_id && !provider)
-          throw new DomainError(409, 'domain_provider_missing')
+        if (row.provider_id && !provider) {
+          if (row.route_id)
+            await dependencies.provider.removeRoute(row.route_id, host)
+          await fenced('provider_id=NULL,route_id=NULL,route_attempted=0')
+          row.route_id = null
+          row.route_attempted = 0
+          row.provider_id = null
+        }
         if (!provider) {
           const allocationToken = dependencies.id()
           const allocation = await stmt(
@@ -547,7 +613,7 @@ export function createDomainManager(
               ...args,
             ),
             stmt(
-              `UPDATE platform_custom_domains SET revision=revision+1,state=?,is_primary=CASE WHEN ?=1 THEN is_primary ELSE 0 END,error=?,attempts=CASE WHEN state='active' THEN 0 ELSE attempts+1 END,checked_at=?,verified_at=CASE WHEN ?=1 THEN ? ELSE verified_at END,next_check_at=?,lease_token=NULL,lease_until=NULL WHERE ${guard}`,
+              `UPDATE platform_custom_domains SET revision=revision+1,state=?,is_primary=CASE WHEN ?=1 THEN CASE WHEN restore_primary=1 AND NOT EXISTS(SELECT 1 FROM platform_custom_domains other WHERE other.site_id=platform_custom_domains.site_id AND other.hostname<>platform_custom_domains.hostname AND other.is_primary=1) THEN 1 ELSE is_primary END ELSE 0 END,hold_reason=NULL,error=?,attempts=CASE WHEN state='active' THEN 0 ELSE attempts+1 END,checked_at=?,verified_at=CASE WHEN ?=1 THEN ? ELSE verified_at END,next_check_at=?,lease_token=NULL,lease_until=NULL WHERE ${guard}`,
               active ? 'active' : 'pending',
               active ? 1 : 0,
               config.routingReady ? null : 'domain_routing_unavailable',
@@ -556,7 +622,7 @@ export function createDomainManager(
               time,
               time +
                 (active
-                  ? 900000
+                  ? 1800000
                   : Math.min(1800000, 60000 * 2 ** Math.min(row.attempts, 5))),
               ...args,
             ),
@@ -585,7 +651,7 @@ export function createDomainManager(
             time - DOMAIN_HEALTH_TTL,
           ),
           stmt(
-            `UPDATE platform_custom_domains SET revision=revision+1,state=CASE WHEN state IN ('deleting','expired') THEN state WHEN ?=1 OR verified_at IS NULL OR verified_at<? THEN 'pending' ELSE state END,is_primary=CASE WHEN ?=1 OR verified_at IS NULL OR verified_at<? THEN 0 ELSE is_primary END,error=?,attempts=attempts+1,checked_at=?,next_check_at=?,lease_token=NULL,lease_until=NULL WHERE ${guard}`,
+            `UPDATE platform_custom_domains SET revision=revision+1,state=CASE WHEN state IN ('deleting','expired','paused') THEN state WHEN ?=1 OR verified_at IS NULL OR verified_at<? THEN 'pending' ELSE state END,is_primary=CASE WHEN ?=1 OR verified_at IS NULL OR verified_at<? THEN 0 ELSE is_primary END,error=?,attempts=attempts+1,checked_at=?,next_check_at=?,lease_token=NULL,lease_until=NULL WHERE ${guard}`,
             terminal ? 1 : 0,
             time - DOMAIN_HEALTH_TTL,
             terminal ? 1 : 0,
@@ -604,7 +670,7 @@ export function createDomainManager(
     const site = await authorize(userId, siteId)
     await db.batch([
       stmt(
-        `UPDATE platform_custom_domains SET is_primary=0,redirects=0,revision=revision+1 WHERE site_id=? AND ${memberGuard}`,
+        `UPDATE platform_custom_domains SET is_primary=0,restore_primary=0,redirects=0,revision=revision+1 WHERE site_id=? AND ${memberGuard}`,
         siteId,
         siteId,
         userId,

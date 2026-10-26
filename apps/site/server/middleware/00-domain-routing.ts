@@ -1,3 +1,4 @@
+import { domainEligibility } from '../../../../packages/platform/src/domain-policy'
 import { createError, getRequestURL, sendRedirect, setResponseHeader } from 'h3'
 import { validSiteSlug } from '@chronoframe/contracts/domains'
 import {
@@ -83,7 +84,11 @@ export default defineEventHandler(async (event) => {
     )
     .bind(context.site.id, Date.now() - 3600000)
     .first<{ hostname: string }>()
-  if (primary && primary.hostname !== host)
+  if (
+    primary &&
+    primary.hostname !== host &&
+    (await domainEligibility(db, primary.hostname)).allowed
+  )
     return sendRedirect(
       event,
       'https://' + primary.hostname + url.pathname + url.search,

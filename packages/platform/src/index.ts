@@ -1,3 +1,4 @@
+import { domainEligibility } from './domain-policy.ts'
 import { DOMAIN_HEALTH_TTL } from './domains.ts'
 import type { EmailCodeStore } from '@chronoframe/core'
 import type { PlatformDirectory, PlatformSession } from '@chronoframe/core'
@@ -37,11 +38,22 @@ export function createD1Directory(
     async getPublishedSiteByHost(host) {
       const row = await db
         .prepare(
-          `SELECT s.id, s.workspace_id AS workspaceId, s.published FROM platform_domains d JOIN platform_sites s ON s.id=d.site_id LEFT JOIN platform_custom_domains cd ON cd.hostname=d.hostname WHERE d.hostname=? AND d.verified=1 AND d.active=1 AND s.published=1 AND s.suspended=0 AND (d.kind<>'custom' OR (cd.site_id=d.site_id AND cd.state='active' AND cd.verified_at>=?)) AND (d.kind<>'alias' OR d.redirect_until>?)`,
+          `SELECT s.id, s.workspace_id AS workspaceId, s.published, d.kind FROM platform_domains d JOIN platform_sites s ON s.id=d.site_id LEFT JOIN platform_custom_domains cd ON cd.hostname=d.hostname WHERE d.hostname=? AND d.verified=1 AND d.active=1 AND s.published=1 AND s.suspended=0 AND NOT EXISTS(SELECT 1 FROM platform_workspaces w JOIN platform_account_controls ac ON ac.user_id=w.owner_user_id WHERE w.id=s.workspace_id AND ac.suspended=1) AND (d.kind<>'custom' OR (cd.site_id=d.site_id AND cd.state='active' AND cd.verified_at>=?)) AND (d.kind<>'alias' OR d.redirect_until>?)`,
         )
         .bind(host, now() - DOMAIN_HEALTH_TTL, now())
-        .first<{ id: number; workspaceId: number; published: number }>()
-      return row ? { ...row, published: row.published === 1 } : null
+        .first<{
+          id: number
+          workspaceId: number
+          published: number
+          kind: string
+        }>()
+      if (
+        !row ||
+        (row.kind === 'custom' && !(await domainEligibility(db, host)).allowed)
+      )
+        return null
+      const { kind: _kind, ...site } = row
+      return { ...site, published: row.published === 1 }
     },
   }
 }
@@ -145,6 +157,8 @@ export function createD1Sessions(db: PlatformD1) {
 }
 
 export interface PlatformSiteSummary {
+  suspended: boolean
+  suspensionReason: string
   siteId: number
   workspaceId: number
   name: string
@@ -160,8 +174,8 @@ export function createD1SiteCatalog(db: PlatformD1) {
       const row = await db
         .prepare(`SELECT json_group_array(json_object(
         'siteId', id, 'workspaceId', workspace_id, 'name', name,
-        'published', published, 'role', role)) AS items FROM (
-        SELECT s.id, s.workspace_id, s.name, s.published, m.role
+        'published', published, 'role', role,'suspended',suspended,'suspensionReason',suspension_reason)) AS items FROM (
+        SELECT s.id, s.workspace_id, s.name, s.published, m.role,s.suspended,s.suspension_reason
         FROM platform_sites s JOIN platform_memberships m ON m.workspace_id = s.workspace_id
         WHERE m.user_id = ? AND m.role IN ('admin', 'member') ORDER BY s.id
       )`)
@@ -170,9 +184,13 @@ export function createD1SiteCatalog(db: PlatformD1) {
       return (
         JSON.parse(row?.items ?? '[]') as (Omit<
           PlatformSiteSummary,
-          'published'
-        > & { published: number })[]
-      ).map((site) => ({ ...site, published: site.published === 1 }))
+          'published' | 'suspended'
+        > & { published: number; suspended: number })[]
+      ).map((site) => ({
+        ...site,
+        suspended: site.suspended === 1,
+        published: site.published === 1,
+      }))
     },
     /** Read a name after the caller has independently authorized or resolved the Site. */
     async name(siteId: number): Promise<string> {

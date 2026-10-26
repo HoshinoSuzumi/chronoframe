@@ -576,6 +576,14 @@
       "noCustomDomains": "Your plan does not include custom domains. Your default site address remains available.",
       "unavailable": "Platform uploads are temporarily unavailable. Your site remains published; no custom storage setup is required.",
       "managedHelp": "Your plan includes platform storage. No bucket setup is needed."
+    },
+    "enforcement": {
+      "accountSuspended": "Your account has been suspended.",
+      "siteSuspended": "Suspended",
+      "holdPlan": "Your plan does not include this domain. Its hosted domain service is being removed or has been removed; it will be restored automatically when your plan allows it.",
+      "holdSite": "This site is suspended. Its hosted domain service will be removed.",
+      "holdAccount": "Workspace account access is suspended. Its hosted domain service will be removed.",
+      "cleanup": "Domain resources are being removed. This record remains until cleanup completes and will retry automatically."
     }
   }
 }

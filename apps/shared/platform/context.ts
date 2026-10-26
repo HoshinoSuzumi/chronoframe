@@ -1,3 +1,4 @@
+import { domainEligibility } from '../../../packages/platform/src/domain-policy'
 import {
   defaultSiteHost,
   validSiteSlug,
@@ -74,7 +75,11 @@ export async function siteContextDTO(
           .bind(candidate, context.site.id)
           .first()
       : null
-    const host = primary?.hostname ?? (owned ? candidate! : context.host)
+    const primaryHost =
+      primary && (await domainEligibility(db, primary.hostname)).allowed
+        ? primary.hostname
+        : null
+    const host = primaryHost ?? (owned ? candidate! : context.host)
     canonicalOrigin = 'https://' + host
   }
   return {

@@ -1,9 +1,8 @@
 <script setup lang="ts">
 const { t } = useI18n()
 
-import { motion } from 'motion-v'
 import { ArrowUpRight, Images, ShieldCheck } from 'lucide-vue-next'
-const entrance = useCloudMotion()
+const siteLink = resolveComponent('NuxtLink')
 definePageMeta({ layout: 'portal' })
 const workspace = ref<{ name: string } | null>(null)
 const workspaceError = ref(false)
@@ -37,7 +36,7 @@ const sites = ref(
 )
 </script>
 <template>
-  <motion.div v-bind="entrance">
+  <div>
     <div class="cf-page-heading">
       <div>
         <h1 class="cf-page-title">{{ $t('cloud.messages.yourSites') }}</h1>
@@ -83,8 +82,11 @@ const sites = ref(
           v-for="site in sites"
           :key="site.siteId"
         >
-          <NuxtLink
-            :to="`/sites/${site.siteId}/overview`"
+          <component
+            :is="site.suspended ? 'div' : siteLink"
+            :to="site.suspended ? undefined : `/sites/${site.siteId}/overview`"
+            :aria-disabled="site.suspended || undefined"
+            :data-disabled="site.suspended || undefined"
             :aria-label="site.name"
             :aria-describedby="`site-status-${site.siteId} site-role-${site.siteId}`"
             class="cf-site-row"
@@ -94,15 +96,31 @@ const sites = ref(
               ><span
                 class="cf-site-name"
                 :title="site.name"
-                >{{ site.name }}</span
+                >{{ site.name
+                }}<small
+                  v-if="site.suspended && site.suspensionReason"
+                  class="cf-suspension-reason"
+                  >{{ site.suspensionReason }}</small
+                ></span
               ></span
             >
             <span :id="`site-status-${site.siteId}`"
-              ><CloudBadge :tone="site.published ? 'success' : 'neutral'">{{
-                site.published
-                  ? $t('cloud.messages.published')
-                  : $t('cloud.messages.draft')
-              }}</CloudBadge></span
+              ><CloudBadge
+                :tone="
+                  site.suspended
+                    ? 'neutral'
+                    : site.published
+                      ? 'success'
+                      : 'neutral'
+                "
+                >{{
+                  site.suspended
+                    ? $t('cloud.enforcement.siteSuspended')
+                    : site.published
+                      ? $t('cloud.messages.published')
+                      : $t('cloud.messages.draft')
+                }}</CloudBadge
+              ></span
             >
             <span
               :id="`site-role-${site.siteId}`"
@@ -111,11 +129,12 @@ const sites = ref(
                 $t(site.role === 'admin' ? 'cloud.ui.admin' : 'cloud.ui.member')
               }}</span
             ><ArrowUpRight
+              v-if="!site.suspended"
               :size="15"
               class="cf-row-arrow"
               aria-hidden="true"
             />
-          </NuxtLink>
+          </component>
         </li>
       </ul>
     </div>
@@ -135,5 +154,5 @@ const sites = ref(
         >{{ $t('cloud.messages.viewDocumentation') }}<ArrowUpRight :size="12"
       /></a>
     </p>
-  </motion.div>
+  </div>
 </template>
