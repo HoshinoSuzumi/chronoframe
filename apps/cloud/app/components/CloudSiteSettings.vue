@@ -1,4 +1,10 @@
 <script setup lang="ts">
+import {
+  MAX_SOCIAL_LINKS,
+  parseSocialLinks,
+  socialLinkIdentity,
+  resolveSocialPlatform,
+} from '@chronoframe/contracts/social-links'
 const { t } = useI18n()
 
 const props = defineProps<{ siteId: number }>()
@@ -17,6 +23,36 @@ const profile = reactive({
   author: data.value?.site.author ?? '',
   avatarUrl: data.value?.site.avatarUrl ?? '',
 })
+const homeHeaderLayout = ref<'embedded' | 'fixed'>(
+  data.value?.site.presentation.homeHeaderLayout ?? 'embedded',
+)
+const socialDraft = ref(
+  Array.from(
+    { length: MAX_SOCIAL_LINKS },
+    (_, i) => data.value?.site.presentation.socialLinks.links[i] ?? '',
+  ),
+)
+const socialErrors = computed(() => {
+  const seen = new Set<string>()
+  return socialDraft.value.map((value) => {
+    if (!value.trim()) return ''
+    try {
+      const identity = socialLinkIdentity(value.trim())
+      if (seen.has(identity)) return t('cloud.presentation.duplicate')
+      seen.add(identity)
+      return ''
+    } catch {
+      return t('cloud.presentation.invalid')
+    }
+  })
+})
+function socialLabel(value: string) {
+  try {
+    return resolveSocialPlatform(value.trim()).label
+  } catch {
+    return ''
+  }
+}
 const iconError = ref(''),
   iconBusy = ref(false)
 async function chooseIcon(event: Event) {
@@ -77,10 +113,22 @@ async function reload() {
     author: data.value?.site.author ?? '',
     avatarUrl: data.value?.site.avatarUrl ?? '',
   })
+  homeHeaderLayout.value =
+    data.value?.site.presentation.homeHeaderLayout ?? 'embedded'
+  socialDraft.value = Array.from(
+    { length: MAX_SOCIAL_LINKS },
+    (_, i) => data.value?.site.presentation.socialLinks.links[i] ?? '',
+  )
   message.value = ''
 }
 async function save() {
-  if (!data.value || busy.value || iconBusy.value) return
+  if (
+    !data.value ||
+    busy.value ||
+    iconBusy.value ||
+    socialErrors.value.some(Boolean)
+  )
+    return
   busy.value = true
   message.value = ''
   failed.value = false
@@ -92,6 +140,14 @@ async function save() {
         revision: data.value.site.revision,
         published: !!data.value.site.published,
         profile: { ...profile },
+        presentation: {
+          homeHeaderLayout: homeHeaderLayout.value,
+          socialLinks: {
+            links: parseSocialLinks({
+              links: socialDraft.value.map((v) => v.trim()).filter(Boolean),
+            }),
+          },
+        },
       },
     })
     data.value = { site: { ...result.site, role: data.value.site.role } }
@@ -223,10 +279,85 @@ async function save() {
               {{ iconError }}
             </p>
           </div>
+          <section class="cf-gallery-presentation">
+            <h3>{{ $t('cloud.presentation.layout') }}</h3>
+            <p class="cf-field-hint">
+              {{ $t('cloud.presentation.layoutHelp') }}
+            </p>
+            <fieldset :disabled="busy">
+              <legend class="sr-only">
+                {{ $t('cloud.presentation.layout') }}
+              </legend>
+              <label
+                v-for="option in ['embedded', 'fixed'] as const"
+                :key="option"
+                class="cf-layout-option"
+                ><input
+                  v-model="homeHeaderLayout"
+                  type="radio"
+                  name="home-header-layout"
+                  :value="option"
+                /><span>{{ $t('cloud.presentation.' + option) }}</span></label
+              >
+            </fieldset>
+          </section>
+          <section class="cf-gallery-presentation">
+            <h3>{{ $t('cloud.presentation.social') }}</h3>
+            <p class="cf-field-hint">
+              {{
+                $t('cloud.presentation.socialHelp', { max: MAX_SOCIAL_LINKS })
+              }}
+            </p>
+            <div
+              v-for="(_, index) in socialDraft"
+              :key="index"
+              class="cf-field"
+            >
+              <label :for="'social-link-' + index"
+                >{{ $t('cloud.presentation.slot', { number: index + 1 })
+                }}<small v-if="socialDraft[index] && !socialErrors[index]">
+                  · {{ socialLabel(socialDraft[index]!) }}</small
+                ></label
+              >
+              <div class="cf-social-input-row">
+                <CloudInput
+                  :id="'social-link-' + index"
+                  v-model="socialDraft[index]"
+                  type="url"
+                  placeholder="https://…"
+                  maxlength="2048"
+                  :disabled="busy"
+                  :aria-invalid="!!socialErrors[index]"
+                  :aria-describedby="
+                    socialErrors[index] ? 'social-error-' + index : undefined
+                  "
+                /><CloudButton
+                  type="button"
+                  variant="ghost"
+                  :disabled="busy || !socialDraft[index]"
+                  :aria-label="
+                    $t('cloud.presentation.clear', { number: index + 1 })
+                  "
+                  @click="socialDraft[index] = ''"
+                  >×</CloudButton
+                >
+              </div>
+              <p
+                v-if="socialErrors[index]"
+                :id="'social-error-' + index"
+                role="alert"
+                class="cf-error-message"
+              >
+                {{ socialErrors[index] }}
+              </p>
+            </div>
+          </section>
           <div class="cf-site-actions">
             <CloudButton
               type="submit"
-              :disabled="busy || iconBusy || !name.trim()"
+              :disabled="
+                busy || iconBusy || !name.trim() || socialErrors.some(Boolean)
+              "
               >{{
                 busy
                   ? $t('cloud.messages.saving')

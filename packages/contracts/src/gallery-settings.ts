@@ -1,3 +1,4 @@
+import { parseSocialLinks } from './social-links.ts'
 /** Shared public defaults for both gallery editions. Never includes credentials or private settings. */
 export const PUBLIC_GALLERY_DEFAULTS = {
   app: {
@@ -39,3 +40,25 @@ export const PUBLIC_GALLERY_DEFAULTS = {
     bodyScripts: '',
   },
 } as const
+
+export interface GalleryPresentation {
+  homeHeaderLayout: 'embedded' | 'fixed'
+  socialLinks: { links: string[] }
+}
+export function parseGalleryPresentation(value: unknown): GalleryPresentation {
+  if (!value || typeof value !== 'object' || Array.isArray(value))
+    throw new Error('Invalid gallery presentation')
+  const data = value as Record<string, unknown>
+  if (
+    Object.keys(data).some(
+      (k) => !['homeHeaderLayout', 'socialLinks'].includes(k),
+    ) ||
+    (data.homeHeaderLayout !== 'embedded' && data.homeHeaderLayout !== 'fixed')
+  )
+    throw new Error('Invalid home header layout')
+  return {
+    homeHeaderLayout:
+      data.homeHeaderLayout as GalleryPresentation['homeHeaderLayout'],
+    socialLinks: { links: parseSocialLinks(data.socialLinks) },
+  }
+}

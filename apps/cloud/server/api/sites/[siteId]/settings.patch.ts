@@ -13,6 +13,7 @@ export default definePlatformHandler(async (event) => {
       revision: body.revision,
       published: body.published,
       profile: body.profile,
+      presentation: body.presentation,
     }),
   }
 })

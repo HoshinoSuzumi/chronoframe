@@ -584,6 +584,18 @@
       "holdSite": "This site is suspended. Its hosted domain service will be removed.",
       "holdAccount": "Workspace account access is suspended. Its hosted domain service will be removed.",
       "cleanup": "Domain resources are being removed. This record remains until cleanup completes and will retry automatically."
+    },
+    "presentation": {
+      "layout": "Home header layout",
+      "layoutHelp": "Choose how your identity appears on the photo wall.",
+      "embedded": "Embedded in photo wall",
+      "fixed": "Fixed at top",
+      "social": "Social links",
+      "socialHelp": "Add up to {max} HTTPS profile links. Icons are detected automatically; empty slots stay hidden.",
+      "slot": "Link {number}",
+      "clear": "Clear link {number}",
+      "invalid": "Enter a valid HTTPS profile URL.",
+      "duplicate": "This profile is already listed."
     }
   }
 }

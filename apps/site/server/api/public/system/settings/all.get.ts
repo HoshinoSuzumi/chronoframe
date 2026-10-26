@@ -1,4 +1,7 @@
-import { PUBLIC_GALLERY_DEFAULTS } from '@chronoframe/contracts/gallery-settings'
+import {
+  PUBLIC_GALLERY_DEFAULTS,
+  parseGalleryPresentation,
+} from '@chronoframe/contracts/gallery-settings'
 import {
   platformDatabase,
   definePlatformHandler,
@@ -15,7 +18,7 @@ export default definePlatformHandler(async (event) => {
   >
   const profile = await platformDatabase(event)
     .prepare(
-      'SELECT gallery_title AS title, gallery_slogan AS slogan, gallery_author AS author, gallery_avatar AS avatarUrl FROM platform_sites WHERE id = ?',
+      'SELECT gallery_title AS title, gallery_slogan AS slogan, gallery_author AS author, gallery_avatar AS avatarUrl, gallery_presentation AS presentation FROM platform_sites WHERE id = ?',
     )
     .bind(context.siteId)
     .first<{
@@ -23,10 +26,18 @@ export default definePlatformHandler(async (event) => {
       slogan: string
       author: string
       avatarUrl: string
+      presentation: string
     }>()
   data.app!.title = profile?.title || context.name
   data.app!.slogan = profile?.slogan || ''
   data.app!.author = profile?.author || ''
   data.app!.avatarUrl = profile?.avatarUrl || ''
+  if (profile) {
+    const presentation = parseGalleryPresentation(
+      JSON.parse(profile.presentation),
+    )
+    data.app!['appearance.homeHeaderLayout'] = presentation.homeHeaderLayout
+    data.app!.socialLinks = presentation.socialLinks
+  }
   return { timestamp: Date.now(), data }
 })

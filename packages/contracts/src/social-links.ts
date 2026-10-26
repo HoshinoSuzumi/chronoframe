@@ -208,3 +208,8 @@ export function resolveSocialPlatform(value: string): {
     ? { label: platform.label, icon: platform.icon }
     : { label: hostname.replace(/^www\./, ''), icon: 'tabler:link' }
 }
+
+/** Icons used by profile links, available for static gallery bundles. */
+export const SOCIAL_LINK_ICONS = [
+  ...new Set([...platforms.map((platform) => platform.icon), 'tabler:link']),
+]
