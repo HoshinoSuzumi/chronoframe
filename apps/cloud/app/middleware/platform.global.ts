@@ -21,6 +21,9 @@ export default defineNuxtRouteMiddleware(async (to) => {
       return navigateTo('/sites', { redirectCode: 302 })
   }
   if (
+    (path === '/pricing' &&
+      (useRequestURL().hostname === 'app.chronoframe.art' ||
+        to.query.portal === '1')) ||
     path === '/account' ||
     path.startsWith('/account/') ||
     path === '/sites' ||

@@ -1,3 +1,4 @@
+import { reconcileSubscriptions } from '../../../../packages/platform/src/subscriptions'
 import { domainServices } from '../../../shared/platform/domains'
 import type { PlatformD1 } from '@chronoframe/platform'
 /** A maximum of 20 provider reservations plus 10 unverified claims bounds this one-host-per-minute queue. */
@@ -5,6 +6,7 @@ export default defineNitroPlugin((app) => {
   app.hooks.hook('cloudflare:scheduled', async ({ env }) => {
     const db = env.DB as PlatformD1 | undefined
     if (!db) return
+    await reconcileSubscriptions(db)
     const runtime = {
       public: {
         siteBaseDomain: String(

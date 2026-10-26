@@ -8,5 +8,7 @@ export function useCloudLinks() {
     website: 'https://chronoframe.art/',
     signin: portal + '/signin',
     signup: portal + '/signup',
+    redeem: portal + '/account/redeem',
+    portalPricing: portal ? portal + '/pricing' : '/pricing?portal=1',
   }
 }

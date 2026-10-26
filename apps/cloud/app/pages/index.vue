@@ -9,10 +9,7 @@ import {
   HardDrive,
   Code2,
   Check,
-  Menu,
 } from 'lucide-vue-next'
-import { PopoverRoot, PopoverTrigger, PopoverContent } from 'reka-ui'
-const mobileMenuOpen = ref(false)
 const entrance = useCloudMotion()
 const links = useCloudLinks()
 useSeoMeta({
@@ -24,88 +21,7 @@ useSeoMeta({
 </script>
 <template>
   <div class="cf-marketing">
-    <header class="cf-marketing-header">
-      <CloudBrand />
-      <nav
-        class="cf-marketing-nav"
-        :aria-label="$t('cloud.messages.mainNavigation')"
-      >
-        <a href="https://docs.chronoframe.art/">{{
-          $t('cloud.messages.documentation')
-        }}</a
-        ><a href="https://github.com/HoshinoSuzumi/chronoframe"
-          >GitHub
-          <ArrowUpRight
-            :size="12"
-            aria-hidden="true"
-            class="cf-inline-icon" /></a
-        ><CloudThemeToggle />
-        <CloudButton
-          as-child
-          variant="secondary"
-          size="sm"
-          ><NuxtLink
-            :to="links.signin"
-            external
-            >{{ $t('cloud.messages.logIn') }}</NuxtLink
-          ></CloudButton
-        ><CloudButton
-          as-child
-          size="sm"
-          ><NuxtLink
-            :to="links.signup"
-            external
-            >{{ $t('cloud.messages.getStarted')
-            }}<ArrowUpRight :size="14" /></NuxtLink
-        ></CloudButton>
-      </nav>
-      <div class="cf-mobile-header-actions">
-        <CloudButton
-          as-child
-          size="sm"
-          ><NuxtLink
-            :to="links.signup"
-            external
-            >{{ $t('cloud.messages.signUp') }}</NuxtLink
-          ></CloudButton
-        >
-        <PopoverRoot v-model:open="mobileMenuOpen">
-          <PopoverTrigger as-child
-            ><CloudButton
-              variant="ghost"
-              size="icon"
-              :aria-label="$t('cloud.messages.openNavigation')"
-              ><Menu :size="20" /></CloudButton
-          ></PopoverTrigger>
-          <PopoverContent
-            class="cf-mobile-menu"
-            align="end"
-            :side-offset="12"
-            :collision-padding="20"
-            :aria-label="$t('cloud.messages.navigation')"
-          >
-            <nav :aria-label="$t('cloud.messages.mobileNavigation')">
-              <NuxtLink
-                :to="links.signin"
-                external
-                >{{ $t('cloud.messages.logIn') }}<ArrowRight :size="16"
-              /></NuxtLink>
-              <a href="https://docs.chronoframe.art/"
-                >{{ $t('cloud.messages.documentation')
-                }}<ArrowUpRight :size="15"
-              /></a>
-              <a href="https://github.com/HoshinoSuzumi/chronoframe"
-                >GitHub <ArrowUpRight :size="15"
-              /></a>
-            </nav>
-            <div class="cf-mobile-menu-theme">
-              <span>{{ $t('cloud.messages.appearance') }}</span
-              ><CloudThemeToggle />
-            </div>
-          </PopoverContent>
-        </PopoverRoot>
-      </div>
-    </header>
+    <CloudMarketingHeader />
     <main
       id="main-content"
       tabindex="-1"

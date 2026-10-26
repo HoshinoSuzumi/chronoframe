@@ -71,11 +71,7 @@ export function configureDomainDeployment(
   delete config.routes
   delete config.route
   delete config.triggers
-  if (
-    environment === 'production' &&
-    entry === 'cloud' &&
-    vars.NUXT_PLATFORM_DOMAIN_ENABLED === 'true'
-  )
+  if (environment === 'production' && entry === 'cloud')
     config.triggers = { crons: ['* * * * *'] }
   return config
 }

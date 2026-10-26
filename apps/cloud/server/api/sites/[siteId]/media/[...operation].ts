@@ -142,12 +142,12 @@ export default definePlatformHandler(async (event) => {
       .first<{ bytes: number }>()
     const usage = (
       await sql<{ photos: number; pending: number; bytes: number }>(
-        `SELECT (SELECT COUNT(*) FROM cloud_photos WHERE site_id IN(SELECT id FROM platform_sites WHERE workspace_id=?) AND deleted=0) AS photos,(SELECT COUNT(*) FROM cloud_uploads WHERE site_id IN(SELECT id FROM platform_sites WHERE workspace_id=?) AND state='pending' AND expires_at>?) AS pending,COALESCE((SELECT SUM(bytes) FROM cloud_usage_events WHERE site_id IN(SELECT id FROM platform_sites WHERE workspace_id=?) AND created_at>?),0) AS bytes`,
+        `SELECT (SELECT COUNT(*) FROM cloud_photos WHERE site_id IN(SELECT id FROM platform_sites WHERE workspace_id=?) AND deleted=0) AS photos,(SELECT COUNT(*) FROM cloud_uploads WHERE site_id IN(SELECT id FROM platform_sites WHERE workspace_id=?) AND state='pending' AND expires_at>?) AS pending,COALESCE((SELECT SUM(bytes) FROM cloud_usage_events WHERE site_id IN(SELECT id FROM platform_sites WHERE workspace_id=?) AND created_at>=?),0) AS bytes`,
         site.workspaceId,
         site.workspaceId,
         now,
         site.workspaceId,
-        now - 30 * 86400000,
+        plan.quotaPeriod.start,
       )
     )[0]
     return {
@@ -156,6 +156,8 @@ export default definePlatformHandler(async (event) => {
       byosLimits: (await workspaceEntitlements(raw, site.workspaceId, 'byos'))
         .limits,
       plan: { id: plan.id, name: plan.name },
+      quotaPeriod: plan.quotaPeriod,
+      subscription: plan.subscription,
       storageBytes: storageUsage?.bytes ?? 0,
     }
   }
@@ -228,7 +230,7 @@ export default definePlatformHandler(async (event) => {
             managed ? bytes + videoBytes : 0,
             now,
             entitlement.limits.photos,
-            now - 30 * 86400000,
+            entitlement.quotaPeriod.start,
             now,
             bytes + videoBytes,
             entitlement.limits.monthlyBytes,

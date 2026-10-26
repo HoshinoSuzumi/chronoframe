@@ -745,6 +745,10 @@ test('Deployment isolates named Previews and leaves customer route ownership wit
     PLATFORM_DOMAIN_ZONE_ID: 'a'.repeat(32),
     PLATFORM_DOMAIN_PROVIDER_TOKEN: 'fake-provider-token-'.repeat(2),
   })
+  assert.deepEqual(
+    configureDomainDeployment({}, 'cloud', 'production', {}).triggers,
+    { crons: ['* * * * *'] },
+  )
   assert.equal('routes' in config, false)
   assert.deepEqual(config.triggers, { crons: ['* * * * *'] })
   assert.equal(
