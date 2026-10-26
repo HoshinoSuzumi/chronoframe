@@ -8,5 +8,6 @@
   "rules": {
     "no-empty-object-type": "off",
     "no-explicit-any": "off"
-  }
+  },
+  "ignorePatterns": ["apps/admin/**"]
 }
