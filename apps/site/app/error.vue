@@ -12,7 +12,13 @@ useHead({
     <h1>
       {{ error.statusCode === 404 ? 'Page not found' : 'Service unavailable' }}
     </h1>
-    <p>Please try again later.</p>
+    <p>
+      {{
+        error.statusCode === 404
+          ? 'This page is unavailable or the gallery has not been published.'
+          : 'Please try again later.'
+      }}
+    </p>
   </main>
 </template>
 <style scoped>
