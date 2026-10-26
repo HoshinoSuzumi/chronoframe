@@ -538,6 +538,37 @@
       },
       "useDefault": "使用默认地址作为主域名",
       "targetHelp": "请使用下方为各绑定单独生成的 CNAME 目标。流量统一经由 {target} 接入，无需额外配置 TXT 记录。"
+    },
+    "domainFlow": {
+      "dnsStep": "DNS 配置",
+      "certificateStep": "SSL 证书",
+      "readyStep": "连接就绪",
+      "actions": "{hostname} 的操作",
+      "needsDns": "需要配置 DNS",
+      "issuingCertificate": "正在签发证书",
+      "preparingRoute": "正在建立连接",
+      "connectedHelp": "域名已连接，并已启用 HTTPS 安全访问。",
+      "pausedHelp": "已暂停公开访问。恢复后将重新验证并连接此域名。",
+      "dnsHelp": "在你的 DNS 服务商处添加下方记录，然后检查配置。",
+      "certificateHelp": "DNS 已验证，正在自动为域名签发证书，无需手动上传。",
+      "routeHelp": "证书已就绪，正在建立域名与图库之间的安全连接。",
+      "hideDetails": "收起配置详情",
+      "details": "配置详情",
+      "retryIn": "{seconds} 秒后可重试",
+      "progress": "域名连接进度",
+      "recordType": "类型",
+      "recordName": "名称",
+      "recordValue": "记录值",
+      "automaticChecks": "状态会自动检查更新。",
+      "technical": "技术详情",
+      "customHelp": "连接你拥有的域名，在此查看 DNS、证书及连接进度。",
+      "emptyHelp": "添加域名后，即可获取专属 DNS 记录并查看连接进度。",
+      "previousAddress": "之前的站点地址",
+      "addDescription": "输入你的域名，随后获取专属 CNAME 记录以建立安全连接。",
+      "continue": "继续",
+      "removingHelp": "已停止公开访问，正在移除此连接。",
+      "expiredHelp": "此申请在完成验证前已过期，请移除后重新添加域名。",
+      "checksPaused": "已暂停此域名的状态检查。"
     }
   }
 }
