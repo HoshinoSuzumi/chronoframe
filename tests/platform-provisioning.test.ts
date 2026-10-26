@@ -87,6 +87,7 @@ test('Real D1 provisioning preserves old tenants, serializes defaults and enforc
       '0007_cloud_storage.sql',
       '0009_cloud_usage_events.sql',
       '0014_entitlements.sql',
+      '0015_lifecycle.sql',
     ])
       await migrate(migration)
     await db

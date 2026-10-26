@@ -99,6 +99,26 @@ const guidance = computed(() =>
     class="cf-domain-card"
     :id="'domain-' + domain.generation"
   >
+    <p
+      v-if="domain.holdReason && domain.holdReason !== 'manual'"
+      class="cf-notice"
+    >
+      {{
+        t(
+          'cloud.enforcement.' +
+            { plan: 'holdPlan', site: 'holdSite', account: 'holdAccount' }[
+              domain.holdReason
+            ],
+        )
+      }}
+    </p>
+    <p
+      v-if="domain.cleanupPending"
+      class="cf-field-hint"
+      role="status"
+    >
+      {{ t('cloud.enforcement.cleanup') }}
+    </p>
     <div class="cf-domain-card-header">
       <Globe
         :size="18"
@@ -155,7 +175,11 @@ const guidance = computed(() =>
             </template>
             <DropdownMenuItem
               v-if="!['deleting', 'expired'].includes(domain.status)"
-              :disabled="domain.status === 'paused' && !enabled"
+              :disabled="
+                domain.status === 'paused' &&
+                (!enabled ||
+                  (!!domain.holdReason && domain.holdReason !== 'manual'))
+              "
               @select="
                 emit(
                   'action',

@@ -69,6 +69,8 @@ export function entryRequestPath(
 }
 
 export interface EntrySiteSummary {
+  suspended?: boolean
+  suspensionReason?: string
   siteId: number
   workspaceId: number
   name: string

@@ -211,6 +211,9 @@ test('D1 directory never maps unverified/inactive domains or unrelated Workspace
     sqlite.exec(
       'ALTER TABLE platform_sites ADD COLUMN suspended INTEGER NOT NULL DEFAULT 0',
     )
+    sqlite.exec(
+      'CREATE TABLE platform_account_controls(user_id INTEGER,suspended INTEGER)',
+    )
     const access = createPlatformAccess(createD1Directory(db), () => 100)
     const session = { userId: 1, expiresAt: 200 }
     assert.equal((await access.authorizeSite(session, 1, 'manage')).site.id, 1)
@@ -380,6 +383,9 @@ test('D1 Site catalog lists only current memberships, including unpublished owne
       INSERT INTO platform_workspaces VALUES(1,'one'),(2,'two');
       INSERT INTO platform_sites VALUES(1,1,'one-public',1),(2,2,'two-private',0),(3,1,'one-draft',0);
       INSERT INTO platform_memberships VALUES(1,1,'admin'),(2,2,'member');`)
+    sqlite.exec(
+      "ALTER TABLE platform_sites ADD COLUMN suspended INTEGER NOT NULL DEFAULT 0;ALTER TABLE platform_sites ADD COLUMN suspension_reason TEXT NOT NULL DEFAULT '';",
+    )
     assert.deepEqual(
       (await createD1SiteCatalog(db).list(1)).map((s) => s.siteId),
       [1, 3],

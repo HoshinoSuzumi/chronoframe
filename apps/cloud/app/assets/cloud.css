@@ -2778,3 +2778,17 @@ a.cf-domain-address:hover {
     flex-shrink: 0;
   }
 }
+
+.cf-site-row[data-disabled] {
+  cursor: default;
+  background: var(--muted);
+  color: var(--muted-foreground);
+}
+.cf-suspension-reason {
+  display: block;
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--muted-foreground);
+  white-space: normal;
+  margin-top: 4px;
+}

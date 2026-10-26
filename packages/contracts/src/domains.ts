@@ -87,6 +87,8 @@ export type DomainStatus =
   | 'deleted'
   | 'expired'
 export interface CustomDomain {
+  holdReason?: 'plan' | 'site' | 'account' | 'manual' | null
+  cleanupPending?: boolean
   hostname: string
   siteId: number
   generation: string

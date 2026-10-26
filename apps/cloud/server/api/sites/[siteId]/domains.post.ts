@@ -56,7 +56,7 @@ export default definePlatformHandler(async (event) => {
       | 'redirects',
     body.value === true,
   )
-  if (['check', 'resume', 'delete'].includes(String(body.action)))
+  if (['check', 'resume', 'delete', 'pause'].includes(String(body.action)))
     await manager.reconcile(body.hostname)
   return result
 })

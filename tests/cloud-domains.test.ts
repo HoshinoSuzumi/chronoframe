@@ -5,6 +5,7 @@ import { createRequire } from 'node:module'
 import {
   createD1Provisioning,
   createD1Directory,
+  createD1SiteCatalog,
 } from '../packages/platform/src/index.ts'
 import {
   createDomainManager,
@@ -242,6 +243,95 @@ test('Real D1 custom domains fence claims, CNAME ownership transitions, provider
     )
     domain = (await manager.list(1, one.siteId))[0]!
     assert.equal(domain.primary, true)
+    // Downgrades block traffic before the next provider reconciliation.
+    const claimGeneration = domain.generation,
+      claimTarget = domain.cnameTarget
+    await db
+      .prepare(
+        "UPDATE platform_plans SET policy_json=json_set(policy_json,'$.limits.customDomains',0) WHERE id='free'",
+      )
+      .run()
+    assert.equal(await directory.getPublishedSiteByHost(domain.hostname), null)
+    let held = (await manager.list(1, one.siteId))[0]!
+    assert.equal(held.holdReason, 'plan')
+    assert.equal(held.status, 'paused')
+    assert.equal(held.cleanupPending, true)
+    failDelete = true
+    time += 1800001
+    await manager.reconcile(domain.hostname)
+    assert.equal(
+      hosts.size,
+      1,
+      'failed cleanup retains the upstream reference for retry',
+    )
+    assert.equal(await directory.getPublishedSiteByHost(domain.hostname), null)
+    time += 1800001
+    await manager.reconcile(domain.hostname)
+    held = (await manager.list(1, one.siteId))[0]!
+    assert.equal(held.cleanupPending, false)
+    assert.equal(hosts.size, 0)
+    assert.equal(routes.size, 0)
+    assert.equal(held.generation, claimGeneration)
+    const heldRevision = held.revision
+    const suspendedAudits = (await db
+      .prepare(
+        "SELECT COUNT(*) AS n FROM platform_domain_audit WHERE hostname=? AND action='suspended'",
+      )
+      .bind(domain.hostname)
+      .first())!.n
+    time += 1800001
+    await manager.reconcile(domain.hostname)
+    assert.equal(
+      (await manager.list(1, one.siteId))[0]!.revision,
+      heldRevision,
+      'unchanged holds only heartbeat, without revision churn',
+    )
+    assert.equal(
+      (await db
+        .prepare(
+          "SELECT COUNT(*) AS n FROM platform_domain_audit WHERE hostname=? AND action='suspended'",
+        )
+        .bind(domain.hostname)
+        .first())!.n,
+      suspendedAudits,
+      'unchanged holds do not duplicate audit entries',
+    )
+    await db
+      .prepare(
+        "UPDATE platform_plans SET policy_json=json_set(policy_json,'$.limits.customDomains',4) WHERE id='free'",
+      )
+      .run()
+    await db.prepare('UPDATE platform_custom_domains SET next_check_at=0').run()
+    await manager.reconcile(domain.hostname)
+    domain = (await manager.list(1, one.siteId))[0]!
+    assert.equal(domain.status, 'active')
+    assert.equal(domain.primary, true)
+    assert.equal(domain.cnameTarget, claimTarget)
+    // Owner and site moderation block all public routes immediately.
+    await db
+      .prepare(
+        "INSERT INTO platform_account_controls(user_id,suspended,public_reason) VALUES(1,1,'Account under review')",
+      )
+      .run()
+    assert.equal(
+      await directory.getPublishedSiteByHost('timo.chronoframe.art'),
+      null,
+    )
+    assert.equal(await directory.getPublishedSiteByHost(domain.hostname), null)
+    await db.prepare('UPDATE platform_account_controls SET suspended=0').run()
+    await db
+      .prepare(
+        "UPDATE platform_sites SET suspended=1,suspension_reason='Site under review' WHERE id=?",
+      )
+      .bind(one.siteId)
+      .run()
+    const catalog = await createD1SiteCatalog(db).list(1)
+    assert.equal(catalog[0]?.suspended, true)
+    assert.equal(catalog[0]?.suspensionReason, 'Site under review')
+    await db
+      .prepare('UPDATE platform_sites SET suspended=0 WHERE id=?')
+      .bind(one.siteId)
+      .run()
     await manager.mutate(
       1,
       one.siteId,
@@ -303,7 +393,7 @@ test('Real D1 custom domains fence claims, CNAME ownership transitions, provider
     await manager.reconcile()
     assert.equal(
       creates,
-      1,
+      2,
       'a prior generation CNAME must not establish account ownership',
     )
     dns.set(rebound.hostname, 'cname.chronoframe.art')
@@ -311,7 +401,7 @@ test('Real D1 custom domains fence claims, CNAME ownership transitions, provider
     await manager.reconcile()
     assert.equal(
       creates,
-      1,
+      2,
       'a shared CNAME does not authorize the new generation',
     )
     dns.set(rebound.hostname, rebound.cnameTarget)
@@ -413,6 +503,101 @@ test('Real D1 custom domains fence claims, CNAME ownership transitions, provider
     await manager.reconcile(leased.hostname)
     assert.equal(hosts.has(leased.hostname), false)
     provider.create = originalCreate
+    let releasePolicy!: () => void, enteredPolicy!: () => void
+    const policyGate = new Promise<void>((r) => (releasePolicy = r)),
+      policyStarted = new Promise<void>((r) => (enteredPolicy = r))
+    provider.create = async (host) => {
+      const result = await originalCreate(host)
+      if (host === 'policy-race.example.com') {
+        enteredPolicy()
+        await policyGate
+      }
+      return result
+    }
+    const racing = await manager.request(
+      1,
+      one.siteId,
+      'policy-race.example.com',
+    )
+    dns.set(racing.hostname, racing.cnameTarget)
+    const work = manager.reconcile(racing.hostname)
+    await policyStarted
+    await db.batch([
+      db.prepare(
+        "UPDATE platform_plans SET policy_json=json_set(policy_json,'$.limits.customDomains',0) WHERE id='free'",
+      ),
+      db.prepare(
+        'UPDATE platform_policy_epoch SET revision=revision+1 WHERE id=1',
+      ),
+    ])
+    releasePolicy()
+    await work
+    assert.equal(await directory.getPublishedSiteByHost(racing.hostname), null)
+    assert.equal(
+      routes.has(racing.hostname),
+      false,
+      'old policy cannot finish publishing a route',
+    )
+    time += 300001
+    await manager.reconcile(racing.hostname)
+    assert.equal(
+      hosts.has(racing.hostname),
+      false,
+      'uncertain provider create is recovered and reclaimed',
+    )
+    await db
+      .prepare(
+        "UPDATE platform_plans SET policy_json=json_set(policy_json,'$.limits.customDomains',4) WHERE id='free'",
+      )
+      .run()
+    // A queued permanent removal is not finalized until upstream deletion succeeds.
+    await db
+      .prepare(
+        "UPDATE platform_custom_domains SET state='deleting',purge_requested=1,next_check_at=0 WHERE hostname=?",
+      )
+      .bind(lost.hostname)
+      .run()
+    failDelete = true
+    await manager.reconcile(lost.hostname)
+    assert.ok(
+      await db
+        .prepare(
+          'SELECT hostname FROM platform_custom_domains WHERE hostname=?',
+        )
+        .bind(lost.hostname)
+        .first(),
+    )
+    time += 1800001
+    await db
+      .prepare(
+        "CREATE TRIGGER fail_purge BEFORE DELETE ON platform_custom_domains BEGIN SELECT RAISE(ABORT,'forced purge failure'); END",
+      )
+      .run()
+    await manager.reconcile(lost.hostname)
+    assert.equal(
+      (
+        await db
+          .prepare('SELECT state FROM platform_custom_domains WHERE hostname=?')
+          .bind(lost.hostname)
+          .first()
+      )?.state,
+      'deleted',
+      'confirmed upstream removal survives a failed final database purge',
+    )
+    await db.prepare('DROP TRIGGER fail_purge').run()
+    await manager.reconcile(lost.hostname)
+    assert.equal(hosts.has(lost.hostname), false)
+    assert.equal(
+      await db
+        .prepare(
+          'SELECT hostname FROM platform_custom_domains WHERE hostname=?',
+        )
+        .bind(lost.hostname)
+        .first(),
+      null,
+    )
+    provider.create = originalCreate
+
     await renameDefaultDomain(
       db,
       1,

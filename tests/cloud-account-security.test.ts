@@ -46,6 +46,11 @@ test('Cloud account migration preserves identities and enforces verified registr
       .run()
     await migration('0002_visitor_access.sql')
     await migration('0003_account_security.sql')
+    await db
+      .prepare(
+        "CREATE TABLE platform_account_controls(user_id INTEGER PRIMARY KEY,suspended INTEGER NOT NULL DEFAULT 0,public_reason TEXT NOT NULL DEFAULT '')",
+      )
+      .run()
     assert.equal(
       (await db.prepare('SELECT user_id FROM platform_memberships').first())
         .user_id,
@@ -443,6 +448,40 @@ test('Cloud account migration preserves identities and enforces verified registr
       'setting a first password does not replace a migrated identity',
     )
     await call('/sign-out', {})
+    await db
+      .prepare(
+        "INSERT INTO platform_account_controls(user_id,suspended,public_reason) VALUES(42,1,'Account suspended for review. Contact support.')",
+      )
+      .run()
+    const wrong = await call('/sign-in/email', {
+      email: 'existing@example.com',
+      password: 'wrong-password',
+    })
+    assert.ok(wrong.response.status >= 400)
+    assert.ok(!JSON.stringify(wrong.data).includes('suspended for review'))
+    const banned = await call('/sign-in/email', {
+      email: 'existing@example.com',
+      password: existingPassword,
+    })
+    assert.equal(banned.response.status, 403)
+    assert.equal(banned.data.code, 'ACCOUNT_SUSPENDED')
+    assert.match(banned.data.message, /suspended for review/)
+    await call('/email-otp/send-verification-otp', {
+      email: 'existing@example.com',
+      type: 'sign-in',
+    })
+    const bannedCode = messages.at(-1)!.text.match(/\b[0-9]{6}\b/)![0]
+    const bannedOtp = await call('/sign-in/email-otp', {
+      email: 'existing@example.com',
+      otp: bannedCode,
+    })
+    assert.equal(bannedOtp.response.status, 403)
+    assert.equal((await call('/get-session')).data, null)
+    await db
+      .prepare(
+        'UPDATE platform_account_controls SET suspended=0 WHERE user_id=42',
+      )
+      .run()
     const before = messages.length
     await call('/email-otp/send-verification-otp', {
       email: 'unknown@example.com',

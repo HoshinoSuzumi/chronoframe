@@ -19,6 +19,32 @@ watch(
   },
 )
 useCloudSiteSubscription()
+const content = ref<HTMLElement>()
+const reduced = usePreferredReducedMotion()
+let entrance: Animation | undefined,
+  lastPath = ''
+function animatePage() {
+  if (!content.value || route.path === lastPath) return
+  lastPath = route.path
+  entrance?.cancel()
+  if (reduced.value !== 'reduce')
+    entrance = content.value.animate(
+      [
+        { opacity: 0, transform: 'translateY(8px)' },
+        { opacity: 1, transform: 'translateY(0)' },
+      ],
+      { duration: 220, easing: 'cubic-bezier(.2,.7,.2,1)' },
+    )
+}
+const removeEntranceHook = useNuxtApp().hook('page:finish', animatePage)
+onMounted(animatePage)
+watch(reduced, () => {
+  if (reduced.value === 'reduce') entrance?.cancel()
+})
+onBeforeUnmount(() => {
+  removeEntranceHook()
+  entrance?.cancel()
+})
 </script>
 <template>
   <div class="cf-portal">
@@ -77,7 +103,10 @@ useCloudSiteSubscription()
         class="cf-portal-main"
         tabindex="-1"
       >
-        <div class="cf-portal-content">
+        <div
+          ref="content"
+          class="cf-portal-content"
+        >
           <slot />
         </div>
       </main>

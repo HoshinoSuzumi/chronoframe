@@ -6,7 +6,13 @@ export function accountError(cause: unknown, t: (key: string) => string) {
   }
   if (error.statusCode === 429)
     return t('cloud.messages.tooManyAttemptsPleaseWaitBeforeTryingAgain')
-  const code = error.data?.code ?? ''
+  const code = error.data?.code ?? (cause as { code?: string }).code ?? ''
+  if (code === 'ACCOUNT_SUSPENDED')
+    return (
+      t('cloud.enforcement.accountSuspended') +
+      ' ' +
+      (error.data?.message ?? (cause as { message?: string }).message ?? '')
+    )
   if (code === 'AUTHENTICATOR_REQUIRED')
     return t('cloud.messages.useYourAuthenticatorOrAnUnusedRecoveryCodeTo')
   if (code.includes('PASSWORD_TOO_SHORT'))

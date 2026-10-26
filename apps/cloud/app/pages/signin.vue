@@ -94,8 +94,8 @@ async function passkeySignIn() {
     const result = await useCloudAccount().signIn.passkey()
     if (result.error) throw result.error
     await navigateTo('/sites', { external: true })
-  } catch {
-    error.value = t('cloud.messages.passkeySignInWasNotCompletedTryAgainOr')
+  } catch (cause) {
+    error.value = accountError(cause, t)
   } finally {
     busy.value = false
   }
