@@ -1,6 +1,6 @@
 import { domainServices } from '../../../shared/platform/domains'
 import type { PlatformD1 } from '@chronoframe/platform'
-/** Production Cron and explicit checks use the same bounded, leased reconciliation path. */
+/** A maximum of 20 provider reservations plus 10 unverified claims bounds this one-host-per-minute queue. */
 export default defineNitroPlugin((app) => {
   app.hooks.hook('cloudflare:scheduled', async ({ env }) => {
     const db = env.DB as PlatformD1 | undefined

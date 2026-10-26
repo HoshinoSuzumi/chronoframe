@@ -757,6 +757,21 @@ test('Workspace quotas preserve capacity for other tenants and audit failures ro
       () => manager.request(1, claims[4]!.siteId, 'quota-4.example.com'),
       { code: 'domain_limit' },
     )
+    // Filled provider reservations do not consume the separate unverified queue.
+    for (let i = 0; i < 20; i++)
+      await db
+        .prepare(
+          "INSERT INTO platform_custom_domains(hostname,site_id,generation,state,provider_attempted,created_at,expires_at,next_check_at) VALUES(?,?,?,'paused',1,?,?,?)",
+        )
+        .bind(
+          'existing-' + i + '.example.com',
+          claims[0]!.siteId,
+          crypto.randomUUID(),
+          time,
+          time + 86400000,
+          time,
+        )
+        .run()
     await manager.request(2, other.siteId, 'fair.example.com')
     const failAudit =
       "CREATE TRIGGER fail_domain_audit BEFORE INSERT ON platform_domain_audit BEGIN SELECT RAISE(ABORT,'audit unavailable'); END"
@@ -830,6 +845,52 @@ test('Workspace quotas preserve capacity for other tenants and audit failures ro
           .first()
       ).n,
       1,
+    )
+    for (let i = 0; i < 5; i++)
+      await db
+        .prepare(
+          'INSERT INTO platform_custom_domains(hostname,site_id,generation,state,created_at,expires_at,next_check_at) VALUES(?,?,?,?,?,?,?)',
+        )
+        .bind(
+          'pending-' + i + '.example.com',
+          claims[0]!.siteId,
+          crypto.randomUUID(),
+          i === 0 ? 'expired' : 'pending',
+          time,
+          time - 1,
+          time,
+        )
+        .run()
+    await assert.rejects(
+      () => manager.request(2, other.siteId, 'queue-full.example.com'),
+      { code: 'domain_limit' },
+    )
+    await db
+      .prepare(
+        "UPDATE platform_custom_domains SET state='deleted' WHERE hostname='pending-0.example.com'",
+      )
+      .run()
+    const pausedClaim = await manager.request(
+      2,
+      other.siteId,
+      'queue-full.example.com',
+    )
+    await manager.mutate(
+      2,
+      other.siteId,
+      pausedClaim.hostname,
+      pausedClaim.generation,
+      pausedClaim.revision,
+      'pause',
+    )
+    time += 49 * 3600000
+    await manager.reconcile(pausedClaim.hostname)
+    assert.equal(
+      (await manager.list(2, other.siteId)).find(
+        (d) => d.hostname === pausedClaim.hostname,
+      ),
+      undefined,
+      'pausing an unverified claim cannot retain queue capacity beyond its expiry',
     )
   } finally {
     await mf.dispose()

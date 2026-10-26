@@ -40,6 +40,9 @@ export interface DomainConfig {
   limit: number
 }
 export const DOMAIN_HEALTH_TTL = 60 * 60 * 1000
+const PENDING_LIMIT = 10
+const HAS_PROVIDER =
+  '(provider_attempted=1 OR provider_id IS NOT NULL OR route_attempted=1 OR route_id IS NOT NULL)'
 const CLAIM_TTL = 48 * 60 * 60 * 1000
 interface Row {
   hostname: string
@@ -191,6 +194,7 @@ export function createDomainManager(
       const insertion = stmt(
         `INSERT INTO platform_custom_domains(hostname,site_id,generation,created_at,expires_at,next_check_at,dns_status)
       SELECT ?,?,?,?,?,?,? WHERE ${memberGuard}
+      AND (SELECT COUNT(*) FROM platform_custom_domains WHERE state<>'deleted' AND NOT ${HAS_PROVIDER})<?
       AND (SELECT COUNT(*) FROM platform_custom_domains WHERE state<>'deleted')<?
       AND (SELECT COUNT(*) FROM platform_custom_domains c JOIN platform_sites s ON s.id=c.site_id WHERE s.workspace_id=(SELECT workspace_id FROM platform_sites WHERE id=?) AND c.state<>'deleted')<?
       AND (SELECT COUNT(*) FROM platform_custom_domains WHERE site_id=? AND state<>'deleted')<2
@@ -205,7 +209,8 @@ export function createDomainManager(
         'missing',
         siteId,
         userId,
-        resourceLimit,
+        PENDING_LIMIT,
+        resourceLimit + PENDING_LIMIT,
         siteId,
         workspaceLimit,
         siteId,
@@ -333,7 +338,8 @@ export function createDomainManager(
   async function reconcile(onlyHost?: string, batchSize = 5) {
     if (!config.enabled) return { checked: 0 }
     const rows = await stmt(
-      `SELECT json_group_array(hostname) AS items FROM (SELECT hostname FROM platform_custom_domains WHERE state IN ('pending','active','deleting','expired') AND next_check_at<=? AND (lease_until IS NULL OR lease_until<?) ${onlyHost ? 'AND hostname=?' : ''} ORDER BY next_check_at LIMIT ?)`,
+      `SELECT json_group_array(hostname) AS items FROM (SELECT hostname FROM platform_custom_domains WHERE (state IN ('pending','active','deleting','expired') OR (state='paused' AND verified_at IS NULL AND expires_at<=?)) AND next_check_at<=? AND (lease_until IS NULL OR lease_until<?) ${onlyHost ? 'AND hostname=?' : ''} ORDER BY next_check_at LIMIT ?)`,
+      now(),
       now(),
       now(),
       ...(onlyHost ? [onlyHost] : []),
@@ -344,10 +350,11 @@ export function createDomainManager(
       const token = dependencies.id(),
         time = now()
       const row = await stmt(
-        `UPDATE platform_custom_domains SET lease_token=?,lease_until=? WHERE hostname=? AND (lease_until IS NULL OR lease_until<?) AND next_check_at<=? AND state IN ('pending','active','deleting','expired') RETURNING *`,
+        `UPDATE platform_custom_domains SET lease_token=?,lease_until=? WHERE hostname=? AND (lease_until IS NULL OR lease_until<?) AND next_check_at<=? AND (state IN ('pending','active','deleting','expired') OR (state='paused' AND verified_at IS NULL AND expires_at<=?)) RETURNING *`,
         token,
         time + 300000,
         host,
+        time,
         time,
         time,
       ).first<Row>()
@@ -391,7 +398,7 @@ export function createDomainManager(
         if (
           row.state === 'deleting' ||
           row.state === 'expired' ||
-          (row.state === 'pending' &&
+          ((row.state === 'pending' || row.state === 'paused') &&
             time >= row.expires_at &&
             !row.verified_at)
         ) {
@@ -471,7 +478,14 @@ export function createDomainManager(
           if (allocation.meta.changes !== 1)
             throw new DomainError(429, 'domain_wait')
           try {
-            if ((await dependencies.provider.count()) >= resourceLimit)
+            const reserved = await stmt(
+              `SELECT COUNT(*) AS n FROM platform_custom_domains WHERE state<>'deleted' AND hostname<>? AND ${HAS_PROVIDER}`,
+              host,
+            ).first<{ n: number }>()
+            if (
+              (reserved?.n ?? resourceLimit) >= resourceLimit ||
+              (await dependencies.provider.count()) >= resourceLimit
+            )
               throw new DomainError(429, 'domain_limit')
             await fenced('provider_attempted=1')
             provider = await dependencies.provider.create(host)

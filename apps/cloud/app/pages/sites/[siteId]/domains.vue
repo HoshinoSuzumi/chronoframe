@@ -398,7 +398,7 @@ async function copy(value: string) {
               v-if="
                 domain.dnsStatus === 'missing' && domain.status !== 'deleting'
               "
-              class="cf-field-hint"
+              class="cf-field-hint break-all"
             >
               {{
                 t('cloud.domains.setCname', {
