@@ -218,6 +218,17 @@ export default defineNuxtConfig({
     },
     plugins: [
       {
+        name: 'vite-optimize-vue-devtools-agent',
+        apply: 'serve',
+        configEnvironment(name, config) {
+          if (name !== 'client') return
+          // Vue DevTools loads this CommonJS dependency lazily in the browser.
+          config.optimizeDeps ??= {}
+          config.optimizeDeps.include ??= []
+          config.optimizeDeps.include.push('safe-stable-stringify')
+        },
+      },
+      {
         apply: 'build',
         name: 'vite-plugin-ignore-sourcemap-warnings',
         configResolved(config) {

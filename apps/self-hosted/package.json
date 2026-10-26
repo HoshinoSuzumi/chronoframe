@@ -71,5 +71,8 @@
     "@chronoframe/console": "workspace:*",
     "@nuxtjs/color-mode": "4.0.1",
     "nuxt-site-config": "4.2.3"
+  },
+  "devDependencies": {
+    "safe-stable-stringify": "2.5.0"
   }
 }
