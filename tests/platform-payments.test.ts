@@ -1565,6 +1565,9 @@ test('Automatic catalog sync publishes month/quarter products, updates rights an
       )
       .first<any>()
     const original = p.products.get(mapping.product_id)
+    const originalPlan = await f.db
+      .prepare("SELECT * FROM platform_plans WHERE id='pro'")
+      .first<any>()
     assert.ok(original.description.includes('Platform storage'))
     assert.equal(original.billing_period, 'every-month')
     const checkout = await createPaymentCheckout(
@@ -1656,6 +1659,25 @@ test('Automatic catalog sync publishes month/quarter products, updates rights an
     const calls = p.calls.length
     await syncPaymentProducts(f.db, root, p.transport, f.now + 4, 20)
     assert.equal(p.calls.length, calls)
+    // Returning to an older quote may reuse a previously edited idempotent product.
+    await f.db
+      .prepare(
+        "UPDATE platform_plans SET name=?,policy_json=?,monthly_price=1200,revision=revision+1 WHERE id='pro'",
+      )
+      .bind(originalPlan.name, originalPlan.policy_json)
+      .run()
+    await syncPaymentProducts(f.db, root, p.transport, f.now + 5, 20)
+    const reverted = await f.db
+      .prepare(
+        "SELECT product_id FROM platform_payment_products WHERE plan_id='pro' AND interval=1",
+      )
+      .first<any>()
+    assert.equal(reverted.product_id, mapping.product_id)
+    assert.equal(
+      p.products.get(reverted.product_id).description,
+      original.description,
+    )
+    assert.equal(p.products.get(reverted.product_id).name, original.name)
     assert.ok(
       (await paymentProductSyncStatus(f.db))
         .filter((r) => r.plan_id === 'free')

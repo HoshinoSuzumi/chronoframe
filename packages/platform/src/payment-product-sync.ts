@@ -251,7 +251,7 @@ export async function syncPaymentProducts(
             throw new SubscriptionError(502, 'payment_product_response_invalid')
           productId = created.id
         }
-        const actual = await creemRequest(
+        let actual = await creemRequest(
           credentials,
           '/v1/products?product_id=' + encodeURIComponent(productId!),
           undefined,
@@ -269,6 +269,39 @@ export async function syncPaymentProducts(
           actual.usage_prices?.length
         )
           throw new SubscriptionError(422, 'payment_product_mismatch')
+        // An idempotent create can return a product whose description was edited later.
+        if (
+          actual.name !== body.name ||
+          actual.description !== body.description
+        ) {
+          await creemRequest(
+            credentials,
+            '/v1/products/' + encodeURIComponent(productId!),
+            { name: body.name, description: body.description },
+            transport,
+            { method: 'PATCH' },
+          )
+          actual = await creemRequest(
+            credentials,
+            '/v1/products?product_id=' + encodeURIComponent(productId!),
+            undefined,
+            transport,
+          )
+          if (
+            actual.id !== productId ||
+            actual.mode !== 'test' ||
+            actual.price !== body.price ||
+            actual.currency !== body.currency ||
+            actual.billing_type !== 'recurring' ||
+            actual.billing_period !== body.billing_period ||
+            (actual.status && actual.status !== 'active') ||
+            Number(actual.trial_period_days ?? 0) > 0 ||
+            actual.usage_prices?.length ||
+            actual.name !== body.name ||
+            actual.description !== body.description
+          )
+            throw new SubscriptionError(422, 'payment_product_mismatch')
+        }
       }
       if (!productId)
         throw new SubscriptionError(502, 'payment_product_response_invalid')
