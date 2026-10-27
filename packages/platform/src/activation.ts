@@ -14,10 +14,16 @@ function invalid(): never {
 const uuid = (v: unknown) =>
   typeof v === 'string' &&
   /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(v)
+export function normalizeActivationCode(value: unknown) {
+  if (typeof value !== 'string' || value.length > 256) invalid()
+  const code = value.trim().toUpperCase()
+  if (!code || code.length > 128 || /[\p{Cc}\p{Cf}]/u.test(code)) invalid()
+  // Keep the digest identity of previously issued formatted codes.
+  const legacy = code.replace(/[-\s]/g, '')
+  return /^CF[0-9A-F]{32}$/.test(legacy) ? legacy : code
+}
 export async function activationHash(value: unknown) {
-  if (typeof value !== 'string' || value.length > 128) invalid()
-  const code = value.trim().toUpperCase().replace(/[-\s]/g, '')
-  if (!/^CF[0-9A-F]{32}$/.test(code)) invalid()
+  const code = normalizeActivationCode(value)
   const hash = await crypto.subtle.digest(
     'SHA-256',
     new TextEncoder().encode(code),
@@ -25,6 +31,17 @@ export async function activationHash(value: unknown) {
   return [...new Uint8Array(hash)]
     .map((n) => n.toString(16).padStart(2, '0'))
     .join('')
+}
+function randomCode() {
+  const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
+  let code = ''
+  while (code.length < 12) {
+    for (const byte of crypto.getRandomValues(new Uint8Array(24))) {
+      if (byte < 252) code += alphabet[byte % 36]
+      if (code.length === 12) break
+    }
+  }
+  return code
 }
 /** Raw codes are returned only to the generating operator; only digests are stored. */
 export async function generateActivationCodes(
@@ -34,6 +51,7 @@ export async function generateActivationCodes(
     duration: unknown
     redeemUntil?: unknown
     maxUses?: unknown
+    code?: unknown
   },
   actor: number,
   now = Date.now(),
@@ -44,6 +62,12 @@ export async function generateActivationCodes(
     Number(input.count) > 500 ||
     typeof input.planId !== 'string'
   )
+    throw new SubscriptionError(400, 'invalid_code_batch')
+  const custom =
+    input.code === undefined || input.code === ''
+      ? null
+      : normalizeActivationCode(input.code)
+  if (custom && input.count !== 1)
     throw new SubscriptionError(400, 'invalid_code_batch')
   const term = duration(input.duration),
     until = input.redeemUntil ?? null,
@@ -58,19 +82,27 @@ export async function generateActivationCodes(
   )
     throw new SubscriptionError(400, 'invalid_code_batch')
   const batchId = crypto.randomUUID(),
-    codes = []
+    codes: {
+      id: string
+      code: string
+      hash: string
+      display: string
+      batchId: string
+      planId: string
+      duration: Duration
+      redeemUntil: number | null
+      maxUses: number | null
+      createdAt: number
+      createdBy: number
+    }[] = []
   for (let i = 0; i < Number(input.count); i++) {
-    const bytes = crypto.getRandomValues(new Uint8Array(16)),
-      hex = [...bytes]
-        .map((n) => n.toString(16).padStart(2, '0'))
-        .join('')
-        .toUpperCase(),
-      raw = 'CF-' + hex.match(/.{4}/g)!.join('-')
+    let raw = custom ?? randomCode()
+    while (codes.some((c) => c.code === raw)) raw = randomCode()
     codes.push({
       id: crypto.randomUUID(),
       code: raw,
       hash: await activationHash(raw),
-      display: 'CF-…-' + hex.slice(-4),
+      display: raw.length >= 8 ? '…' + raw.slice(-4) : '…',
       batchId,
       planId: input.planId,
       duration: term,
@@ -95,7 +127,7 @@ async function attempt(db: PlatformD1, userId: number, now: number) {
   const window = Math.floor(now / 900000) * 900000
   const row = await db
     .prepare(
-      'INSERT INTO platform_activation_attempts(user_id,window_start,attempts) VALUES(?,?,1) ON CONFLICT(user_id,window_start) DO UPDATE SET attempts=attempts+1 WHERE attempts<20 RETURNING attempts',
+      'INSERT INTO platform_activation_attempts(user_id,window_start,attempts) VALUES(?,?,1) ON CONFLICT(user_id,window_start) DO UPDATE SET attempts=attempts+1 WHERE attempts<3 RETURNING attempts',
     )
     .bind(userId, window)
     .first()

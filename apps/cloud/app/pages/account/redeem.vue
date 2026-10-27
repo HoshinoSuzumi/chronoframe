@@ -74,6 +74,9 @@ async function redeem() {
     busy.value = false
   }
 }
+watch(code, (value) => {
+  if (value !== value.toUpperCase()) code.value = value.toUpperCase()
+})
 const date = (time: number) => new Date(time).toLocaleString(locale.value)
 </script>
 <template>
@@ -111,7 +114,7 @@ const date = (time: number) => new Date(time).toLocaleString(locale.value)
             maxlength="128"
             autocomplete="off"
             spellcheck="false"
-            placeholder="CF-…"
+            placeholder="RB6CQ4TAE5GL"
             :disabled="busy || !!receipt"
         /></label>
         <p class="cf-field-hint">{{ $t('cloud.billing.codeHelp') }}</p>

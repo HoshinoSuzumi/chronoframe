@@ -20,8 +20,10 @@ import {
 } from '../packages/platform/src/subscriptions.ts'
 import {
   generateActivationCodes,
-  previewActivation,
-  redeemActivation,
+  activationHash,
+  normalizeActivationCode,
+  previewActivation as previewWithLimit,
+  redeemActivation as redeemWithLimit,
 } from '../packages/platform/src/activation.ts'
 import {
   pricingCatalog,
@@ -31,6 +33,72 @@ const require = createRequire(import.meta.url),
   { Miniflare, convertV4MiniflareOptions } = createRequire(
     require.resolve('wrangler/package.json'),
   )('miniflare')
+// Each business scenario gets an isolated rate budget; the limiter itself is
+// exercised separately below against real concurrent D1 requests.
+async function previewActivation(db: any, userId: number, ...args: any[]) {
+  await db
+    .prepare('DELETE FROM platform_activation_attempts WHERE user_id=?')
+    .bind(userId)
+    .run()
+  return (previewWithLimit as any)(db, userId, ...args)
+}
+async function redeemActivation(db: any, userId: number, ...args: any[]) {
+  await db
+    .prepare('DELETE FROM platform_activation_attempts WHERE user_id=?')
+    .bind(userId)
+    .run()
+  return (redeemWithLimit as any)(db, userId, ...args)
+}
+test('Activation codes generate 12 alphanumeric characters and normalize custom and legacy identities', async () => {
+  const batch = await generateActivationCodes(
+    { count: 500, planId: 'free', duration: { unit: 'days', value: 1 } },
+    1,
+  )
+  assert.equal(new Set(batch.codes.map((c) => c.code)).size, 500)
+  assert.ok(batch.codes.every((c) => /^[A-Z0-9]{12}$/.test(c.code)))
+  const custom = await generateActivationCodes(
+    {
+      count: 1,
+      planId: 'free',
+      duration: { unit: 'days', value: 1 },
+      code: ' launch-春,2026! ',
+    },
+    1,
+  )
+  assert.equal(custom.codes[0]!.code, 'LAUNCH-春,2026!')
+  assert.equal(
+    await activationHash(' launch-春,2026! '),
+    await activationHash('LAUNCH-春,2026!'),
+  )
+  const canonical = 'CF' + 'A1'.repeat(16),
+    formatted = 'CF-' + 'a1'.repeat(16).match(/.{4}/g)!.join('-')
+  const legacyDigest = await crypto.subtle.digest(
+    'SHA-256',
+    new TextEncoder().encode(canonical),
+  )
+  assert.equal(
+    await activationHash(formatted),
+    Array.from(new Uint8Array(legacyDigest), (n) =>
+      n.toString(16).padStart(2, '0'),
+    ).join(''),
+  )
+  assert.equal(normalizeActivationCode('a-b'), 'A-B')
+  assert.notEqual(await activationHash('A-B'), await activationHash('AB'))
+  await assert.rejects(
+    generateActivationCodes(
+      {
+        count: 2,
+        planId: 'free',
+        duration: { unit: 'days', value: 1 },
+        code: 'Manual',
+      },
+      1,
+    ),
+    { code: 'invalid_code_batch' },
+  )
+  assert.throws(() => normalizeActivationCode('a\nb'))
+  assert.throws(() => normalizeActivationCode('a'.repeat(129)))
+})
 test('Calendar subscription periods clamp UTC month ends without multiplying stock quotas', () => {
   const jan = Date.UTC(2024, 0, 31, 12)
   assert.equal(addMonths(jan, 1), Date.UTC(2024, 1, 29, 12))
@@ -578,19 +646,39 @@ test('Real D1 defaults, live expiry, activation races/idempotency and workspace 
       0,
     )
     const rateWindow = now + 9000000
-    for (let i = 0; i < 20; i++)
+    for (let i = 0; i < 3; i++)
       await assert.rejects(
-        () => previewActivation(db, 1, one.id, 'invalid-code', rateWindow),
+        () => previewWithLimit(db, 1, one.id, 'invalid-code', rateWindow),
         (error: any) => error.code === 'invalid_activation_code',
       )
     await assert.rejects(
-      () => previewActivation(db, 1, one.id, 'invalid-code', rateWindow),
+      () => previewWithLimit(db, 1, one.id, 'invalid-code', rateWindow),
       (error: any) => error.code === 'activation_rate_limit',
     )
     await assert.rejects(
       () =>
-        previewActivation(db, 1, one.id, 'invalid-code', rateWindow + 900000),
+        previewWithLimit(db, 1, one.id, 'invalid-code', rateWindow + 900000),
       (error: any) => error.code === 'invalid_activation_code',
+    )
+    const parallel = await Promise.allSettled(
+      Array.from({ length: 6 }, () =>
+        previewWithLimit(db, 1, one.id, 'invalid-code', rateWindow + 1800000),
+      ),
+    )
+    assert.equal(
+      parallel.filter((r: any) => r.reason?.code === 'invalid_activation_code')
+        .length,
+      3,
+    )
+    assert.equal(
+      parallel.filter((r: any) => r.reason?.code === 'activation_rate_limit')
+        .length,
+      3,
+    )
+    assert.deepEqual(
+      await redeemWithLimit(db, 1, one.id, input, rateWindow + 1800000),
+      duplicate[0],
+      'a successful receipt retry does not consume the exhausted budget',
     )
   } finally {
     await mf.dispose()
