@@ -22,7 +22,10 @@ const amount = (plan: any) =>
 const action = (plan: any) =>
   !props.portal && plan.id === data.value?.newPlanId
     ? links.signup
-    : links.redeem
+    : links.redeem +
+      (props.portal && billing?.selected.value
+        ? '?workspaceId=' + billing.selected.value
+        : '')
 </script>
 <template>
   <div class="cf-pricing">
@@ -129,6 +132,14 @@ const action = (plan: any) =>
             }}
           </p>
           <CloudButton
+            v-if="portal && billing?.data.value?.workspace.role !== 'admin'"
+            disabled
+            :title="$t('cloud.billing.adminOnly')"
+            :variant="plan.featured ? 'default' : 'secondary'"
+            >{{ $t('cloud.billing.redeem') }}</CloudButton
+          >
+          <CloudButton
+            v-else
             as-child
             :variant="plan.featured ? 'default' : 'secondary'"
             ><NuxtLink
