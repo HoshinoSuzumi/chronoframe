@@ -22,6 +22,8 @@ export default defineEventHandler((event) => {
       '/api/billing/workspaces',
       '/api/billing/plan',
       '/api/billing/redeem',
+      '/api/billing/payments',
+      '/api/webhooks/creem',
       '/api/workspaces/default',
     ].includes(path) ||
     /^\/api\/sites\/[1-9][0-9]*\/(?:context|events|settings|domains)$/.test(

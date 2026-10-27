@@ -1,3 +1,4 @@
+import { closeAccountPayments } from '../../../../packages/platform/src/payments'
 import {
   scanAccounts,
   lifecycleStages,
@@ -49,6 +50,12 @@ export default defineNitroPlugin((app) => {
             await purgeAccounts(
               db,
               {
+                billing: (userId) =>
+                  closeAccountPayments(
+                    db,
+                    String(env.NUXT_PLATFORM_STORAGE_SECRET || ''),
+                    userId,
+                  ),
                 async domains(siteId) {
                   await db
                     .prepare(

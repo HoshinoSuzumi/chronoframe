@@ -232,13 +232,31 @@ export async function redeemActivation(
       throw new SubscriptionError(409, 'redemption_changed')
     return JSON.parse(previous.receipt_json)
   }
+  async function completedReceipt() {
+    const row = await db
+      .prepare(
+        'SELECT workspace_id,receipt_json FROM platform_activation_redemptions WHERE user_id=? AND request_id=?',
+      )
+      .bind(userId, input.requestId as string)
+      .first<{ workspace_id: number; receipt_json: string }>()
+    if (row && row.workspace_id !== workspaceId)
+      throw new SubscriptionError(409, 'redemption_changed')
+    return row ? JSON.parse(row.receipt_json) : null
+  }
   await attempt(db, userId, now)
   const hash = await activationHash(input.code),
     code = await available(db, hash, userId, now)
-  if (!code) invalid()
+  if (!code) {
+    const receipt = await completedReceipt()
+    if (receipt) return receipt
+    invalid()
+  }
   const current = await resolveSubscription(db, workspaceId, now)
-  if (current.assignment_revision !== input.revision)
+  if (current.assignment_revision !== input.revision) {
+    const receipt = await completedReceipt()
+    if (receipt) return receipt
     throw new SubscriptionError(409, 'subscription_changed')
+  }
   const grant = effect(code, current, now),
     eventId = crypto.randomUUID(),
     receipt = {
@@ -277,7 +295,7 @@ export async function redeemActivation(
         .bind(code.id, eventId),
       db
         .prepare(
-          `INSERT INTO platform_workspace_plans(workspace_id,plan_id,starts_at,expires_at,source,billing_interval) SELECT ?,?,?,?,'activation',NULL WHERE EXISTS(SELECT 1 FROM platform_activation_redemptions WHERE claim_id=?) ON CONFLICT(workspace_id) DO UPDATE SET plan_id=excluded.plan_id,starts_at=excluded.starts_at,expires_at=excluded.expires_at,source='activation',billing_interval=NULL,revision=platform_workspace_plans.revision+1`,
+          `INSERT INTO platform_workspace_plans(workspace_id,plan_id,starts_at,expires_at,source,billing_interval) SELECT ?,?,?,?,'activation',NULL WHERE EXISTS(SELECT 1 FROM platform_activation_redemptions WHERE claim_id=?) ON CONFLICT(workspace_id) DO UPDATE SET plan_id=excluded.plan_id,starts_at=excluded.starts_at,expires_at=excluded.expires_at,source='activation',billing_interval=NULL,payment_subscription_id=NULL,revision=platform_workspace_plans.revision+1`,
         )
         .bind(
           workspaceId,

@@ -90,7 +90,12 @@ const date = (time: number) => new Date(time).toLocaleString(locale.value)
           >
             {{ $t('cloud.billing.signupOffer') }}
           </p>
-          <p class="cf-field-hint">{{ $t('cloud.billing.noRenewal') }}</p>
+          <p
+            v-if="data.subscription.source !== 'payment'"
+            class="cf-field-hint"
+          >
+            {{ $t('cloud.billing.noRenewal') }}
+          </p>
         </div>
         <CloudButton
           v-if="data.workspace.role === 'admin'"
@@ -100,6 +105,7 @@ const date = (time: number) => new Date(time).toLocaleString(locale.value)
           }}</NuxtLink></CloudButton
         ></CloudCard
       >
+      <CloudPaymentsPanel :workspace-id="selected" />
       <section>
         <div class="cf-plan-section-heading">
           <div>

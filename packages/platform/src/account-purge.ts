@@ -1,6 +1,7 @@
 import type { PlatformD1 } from './index.ts'
 import { allRows } from './subscriptions.ts'
 export interface AccountCleanup {
+  billing?(userId: number): Promise<boolean>
   domains(siteId: number): Promise<boolean>
   storage(
     siteId: number,
@@ -31,6 +32,14 @@ export async function purgeAccounts(
   if (!lock) return
   const id = row.user_id
   try {
+    const billing = await db
+      .prepare(
+        "SELECT s.id FROM platform_payment_subscriptions s JOIN platform_workspaces w ON w.id=s.workspace_id JOIN platform_payment_checkouts c ON c.id=s.checkout_id WHERE (w.owner_user_id=? OR c.user_id=?) AND s.status NOT IN('canceled','expired') UNION ALL SELECT c.id FROM platform_payment_checkouts c JOIN platform_workspaces w ON w.id=c.workspace_id WHERE (w.owner_user_id=? OR c.user_id=?) AND c.state IN('creating','open','uncertain') LIMIT 1",
+      )
+      .bind(id, id, id, id)
+      .first()
+    if (billing && (!cleanup.billing || !(await cleanup.billing(id))))
+      throw new Error('Payment cancellation required')
     // A purging account cannot be restored; all existing leases are fenced before external cleanup.
     await db
       .prepare(
@@ -188,6 +197,34 @@ export async function purgeAccounts(
         )
         .bind(id, id),
     )
+    // Payment resources were closed upstream. Retain other owners' ledgers without the erased purchaser identity.
+    statements.push(
+      db
+        .prepare(
+          `DELETE FROM platform_payment_events WHERE reference_id IN(SELECT id FROM platform_payment_checkouts WHERE workspace_id IN(${workspaces})) OR object_id IN(SELECT provider_id FROM platform_payment_checkouts WHERE workspace_id IN(${workspaces})) OR object_id IN(SELECT id FROM platform_payment_subscriptions WHERE workspace_id IN(${workspaces}))`,
+        )
+        .bind(id, id, id),
+      db
+        .prepare(
+          `DELETE FROM platform_payment_subscriptions WHERE workspace_id IN(${workspaces})`,
+        )
+        .bind(id),
+      db
+        .prepare(
+          `DELETE FROM platform_payment_checkouts WHERE workspace_id IN(${workspaces})`,
+        )
+        .bind(id),
+      db
+        .prepare(
+          'UPDATE platform_payment_checkouts SET user_id=NULL WHERE user_id=?',
+        )
+        .bind(id),
+      db
+        .prepare(
+          `DELETE FROM platform_payment_locks WHERE workspace_id IN(${workspaces})`,
+        )
+        .bind(id),
+    )
     statements.push(
       db
         .prepare('DELETE FROM platform_workspaces WHERE owner_user_id=?')
@@ -201,6 +238,7 @@ export async function purgeAccounts(
       'platform_two_factors',
       'platform_auth_sessions',
       'platform_activation_attempts',
+      'platform_payment_requests',
       'platform_account_controls',
       'platform_mail_outbox',
       'platform_purge_storage_done',

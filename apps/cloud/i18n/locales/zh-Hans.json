@@ -676,6 +676,27 @@
       "event_signup_promotion": "注册活动套餐已开通",
       "event_signup_default": "注册默认套餐已分配",
       "signupOffer": "注册促销权益已生效，有效期见上方到期时间。"
+    },
+    "payments": {
+      "billing": "订阅账单",
+      "test": "测试环境",
+      "testHelp": "使用 Creem 测试付款，不产生真实扣费。",
+      "failed": "暂时无法完成支付操作，请刷新账单状态后重试。",
+      "pending": "正在等待渠道确认付款，请勿重复订阅。",
+      "manage": "管理账单与订阅",
+      "resume": "继续付款",
+      "subscribe": "测试订阅",
+      "manageExisting": "已有订阅，请前往账单管理",
+      "status": {
+        "active": "有效",
+        "trialing": "试用中",
+        "scheduled_cancel": "周期结束后取消",
+        "past_due": "付款逾期",
+        "expired": "已到期",
+        "paused": "已暂停",
+        "canceled": "已取消",
+        "unpaid": "未付款"
+      }
     }
   }
 }
