@@ -1,0 +1,11 @@
+ALTER TABLE platform_payment_settings ADD COLUMN auto_sync INTEGER NOT NULL DEFAULT 1 CHECK(auto_sync IN(0,1));
+ALTER TABLE platform_payment_settings ADD COLUMN catalog_revision INTEGER NOT NULL DEFAULT 1;
+ALTER TABLE platform_payment_settings ADD COLUMN payload_retention_days INTEGER NOT NULL DEFAULT 30 CHECK(payload_retention_days BETWEEN 1 AND 365);
+ALTER TABLE platform_payment_products ADD COLUMN sync_hash TEXT;
+CREATE TABLE platform_payment_event_payloads(event_id TEXT PRIMARY KEY REFERENCES platform_payment_events(id) ON DELETE CASCADE,ciphertext TEXT NOT NULL,received_at INTEGER NOT NULL);
+CREATE INDEX platform_payment_payload_retention ON platform_payment_event_payloads(received_at);
+CREATE TABLE platform_payment_product_sync(plan_id TEXT NOT NULL REFERENCES platform_plans(id) ON DELETE CASCADE,interval INTEGER NOT NULL CHECK(interval IN(1,3)),desired_revision INTEGER NOT NULL,catalog_revision INTEGER NOT NULL DEFAULT 1,state TEXT NOT NULL DEFAULT 'pending' CHECK(state IN('pending','syncing','synced','failed','disabled')),attempts INTEGER NOT NULL DEFAULT 0,available_at INTEGER NOT NULL DEFAULT 0,lease_token TEXT,lease_until INTEGER,product_id TEXT,sync_hash TEXT,error TEXT,updated_at INTEGER NOT NULL DEFAULT 0,PRIMARY KEY(plan_id,interval));
+CREATE INDEX platform_payment_product_sync_due ON platform_payment_product_sync(state,available_at);
+CREATE TABLE platform_payment_product_versions(product_id TEXT PRIMARY KEY,plan_id TEXT NOT NULL REFERENCES platform_plans(id),interval INTEGER NOT NULL,price INTEGER NOT NULL,currency TEXT NOT NULL,snapshot_json TEXT NOT NULL,sync_hash TEXT NOT NULL,created_at INTEGER NOT NULL,updated_at INTEGER NOT NULL);
+INSERT INTO platform_payment_product_sync(plan_id,interval,desired_revision) SELECT id,1,revision FROM platform_plans;
+INSERT INTO platform_payment_product_sync(plan_id,interval,desired_revision) SELECT id,3,revision FROM platform_plans;

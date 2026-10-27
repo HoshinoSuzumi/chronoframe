@@ -676,7 +676,14 @@
       "event_signup_promotion": "Registration promotion activated",
       "event_signup_default": "Registration plan assigned",
       "signupOffer": "Your registration promotion is active until the expiration shown above.",
-      "event_payment": "Subscription billing updated"
+      "event_payment": "Subscription billing updated",
+      "choosePlan": "Choose your plan",
+      "optionsHelp": "Compare current plans. Existing subscriptions keep their billing price.",
+      "subscriptionStatus": "Subscription status",
+      "includedPlan": "Included plan",
+      "recommended": "Recommended",
+      "noCharge": "No payment required",
+      "monthlyBilling": "Monthly billing"
     },
     "payments": {
       "billing": "Subscription billing",
@@ -697,7 +704,15 @@
         "paused": "Paused",
         "canceled": "Canceled",
         "unpaid": "Unpaid"
-      }
+      },
+      "waiting": "Waiting for confirmation",
+      "checkingStatus": "Checking subscription…",
+      "return_checking": "Confirming your payment and updating your plan…",
+      "return_pending": "Your payment is still being confirmed. You can check again; do not start another checkout.",
+      "return_completed": "Payment confirmed. Your plan and allowances are up to date.",
+      "return_failed": "We could not verify this checkout. Check your account or try again.",
+      "return_expired": "This checkout has expired. You can start a new one from the plans below.",
+      "checkAgain": "Check payment status"
     }
   }
 }

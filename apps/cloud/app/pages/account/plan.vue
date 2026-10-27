@@ -3,17 +3,26 @@ import { BILLING_LIMITS, allowance } from '../../utils/billing-format'
 definePageMeta({ layout: 'portal' })
 const { t, locale } = useI18n(),
   links = useCloudLinks(),
-  {
-    workspaces,
-    selected,
-    data,
-    error,
-    listError,
-    status,
-    refresh,
-    retry,
-    ready,
-  } = useWorkspaceBilling()
+  billing = useWorkspaceBilling()
+const { selected, data, error, listError, status, refresh, retry, ready } =
+  billing
+const payments = useCloudPayments(() => selected.value)
+const returned = useCheckoutReturn(
+  () => selected.value,
+  async () => {
+    await Promise.all([refresh(), payments.refresh()])
+    if (error.value || payments.error.value)
+      throw new Error('billing_refresh_failed')
+  },
+)
+const latestSubscription = computed(() => {
+  const rows = payments.data.value?.subscriptions ?? []
+  return (
+    rows.find((s: any) => !['expired', 'canceled'].includes(s.status)) ??
+    rows[0]
+  )
+})
+const quotaKeys = BILLING_LIMITS.filter((key) => key !== 'byos')
 await ready
 useSeoMeta({
   title: t('cloud.billing.plan') + ' — ChronoFrame Cloud',
@@ -41,26 +50,21 @@ const date = (time: number) => new Date(time).toLocaleString(locale.value)
         <h1 class="cf-page-title">{{ $t('cloud.billing.plan') }}</h1>
         <p class="cf-page-description">{{ $t('cloud.billing.planHelp') }}</p>
       </div>
-      <CloudButton
-        as-child
-        variant="secondary"
-        ><NuxtLink :to="links.portalPricing">{{
-          $t('cloud.billing.compare')
-        }}</NuxtLink></CloudButton
-      >
     </div>
-    <label class="cf-workspace-picker"
-      >{{ $t('cloud.billing.workspace')
-      }}<select v-model="selected">
-        <option
-          v-for="w in workspaces"
-          :key="w.id"
-          :value="w.id"
-        >
-          {{ w.name }}
-        </option>
-      </select></label
-    ><CloudCard
+    <p
+      v-if="returned.state.value !== 'idle'"
+      class="cf-notice"
+      role="status"
+    >
+      {{ $t('cloud.payments.return_' + returned.state.value) }}
+      <CloudButton
+        v-if="['pending', 'failed'].includes(returned.state.value)"
+        variant="ghost"
+        @click="returned.retry"
+        >{{ $t('cloud.payments.checkAgain') }}</CloudButton
+      >
+    </p>
+    <CloudCard
       v-if="error || listError"
       role="alert"
       ><p>{{ $t('cloud.billing.failed') }}</p>
@@ -68,44 +72,67 @@ const date = (time: number) => new Date(time).toLocaleString(locale.value)
         $t('cloud.billing.retry')
       }}</CloudButton></CloudCard
     ><template v-else-if="data"
-      ><CloudCard class="cf-current-plan"
-        ><div>
+      ><CloudCard class="cf-subscription-overview">
+        <div>
           <span class="cf-eyebrow">{{ $t('cloud.billing.current') }}</span>
           <h2>{{ data.plan.name }}</h2>
+          <p v-if="data.subscription.source === 'promotion'">
+            {{ $t('cloud.billing.signupOffer') }}
+          </p>
+        </div>
+        <div>
+          <span class="cf-field-hint">{{
+            $t('cloud.billing.subscriptionStatus')
+          }}</span>
+          <p>
+            {{
+              latestSubscription
+                ? $t('cloud.payments.status.' + latestSubscription.status)
+                : $t(
+                    data.subscription.source === 'payment'
+                      ? 'cloud.payments.checkingStatus'
+                      : 'cloud.billing.includedPlan',
+                  )
+            }}
+          </p>
+        </div>
+        <div>
+          <span class="cf-field-hint">{{ $t('cloud.billing.expiry') }}</span>
           <p>
             {{
               data.subscription.expiresAt
-                ? $t('cloud.billing.expires', {
-                    date: date(data.subscription.expiresAt),
-                  })
+                ? date(data.subscription.expiresAt)
                 : $t('cloud.billing.noExpiry')
             }}
           </p>
-          <p
-            v-if="
-              data.subscription.source === 'promotion' &&
-              data.subscription.expiresAt !== null
-            "
-            class="cf-field-hint"
-          >
-            {{ $t('cloud.billing.signupOffer') }}
-          </p>
-          <p
-            v-if="data.subscription.source !== 'payment'"
-            class="cf-field-hint"
-          >
-            {{ $t('cloud.billing.noRenewal') }}
-          </p>
         </div>
-        <CloudButton
-          v-if="data.workspace.role === 'admin'"
-          as-child
-          ><NuxtLink :to="links.redeem + '?workspaceId=' + selected">{{
-            $t('cloud.billing.redeem')
-          }}</NuxtLink></CloudButton
-        ></CloudCard
-      >
-      <CloudPaymentsPanel :workspace-id="selected" />
+        <div class="cf-plan-management">
+          <CloudButton
+            v-if="
+              payments.data.value?.canManage &&
+              payments.data.value.subscriptions.length
+            "
+            :loading="payments.busy.value"
+            @click="payments.portal"
+            >{{ $t('cloud.payments.manage') }}</CloudButton
+          >
+          <CloudButton
+            v-if="data.workspace.role === 'admin'"
+            as-child
+            variant="secondary"
+            ><NuxtLink :to="links.redeem">{{
+              $t('cloud.billing.redeem')
+            }}</NuxtLink></CloudButton
+          >
+        </div>
+        <p
+          v-if="payments.error.value"
+          class="cf-error-message"
+          role="alert"
+        >
+          {{ payments.error.value }}
+        </p>
+      </CloudCard>
       <section>
         <div class="cf-plan-section-heading">
           <div>
@@ -128,24 +155,12 @@ const date = (time: number) => new Date(time).toLocaleString(locale.value)
         </div>
         <div class="cf-quota-grid">
           <article
-            v-for="key in BILLING_LIMITS"
+            v-for="key in quotaKeys"
             :key="key"
             class="cf-quota-card"
           >
             <h3>{{ $t('cloud.billing.' + key) }}</h3>
-            <template v-if="key === 'byos'"
-              ><p>
-                <strong>{{
-                  data.plan.limits.byos
-                    ? $t('cloud.billing.yes')
-                    : $t('cloud.billing.no')
-                }}</strong>
-              </p>
-              <small>{{
-                $t('cloud.billing.connectionCount', { count: data.usage.byos })
-              }}</small></template
-            >
-            <p v-else-if="used(key) === null">
+            <p v-if="used(key) === null">
               <strong>{{
                 allowance(key, data.plan.limits[key], locale)
               }}</strong
@@ -192,6 +207,26 @@ const date = (time: number) => new Date(time).toLocaleString(locale.value)
         </div>
         <p class="cf-field-hint">{{ $t('cloud.billing.usageHelp') }}</p>
       </section>
+      <p class="cf-field-hint">
+        {{ $t('cloud.billing.byos') }}:
+        {{
+          data.plan.limits.byos
+            ? $t('cloud.billing.yes')
+            : $t('cloud.billing.no')
+        }}
+        · {{ $t('cloud.billing.connectionCount', { count: data.usage.byos }) }}
+      </p>
+      <section
+        id="plans"
+        class="cf-plan-options"
+      >
+        <CloudPricing
+          portal
+          embedded
+          :workspace-billing="billing"
+          :payment-controller="payments"
+        />
+      </section>
       <details class="cf-billing-details">
         <summary>{{ $t('cloud.billing.byosAllowances') }}</summary>
         <dl>
@@ -205,8 +240,11 @@ const date = (time: number) => new Date(time).toLocaleString(locale.value)
           >
         </dl>
       </details>
-      <section v-if="data.history.length">
-        <h2>{{ $t('cloud.billing.history') }}</h2>
+      <details
+        v-if="data.history.length"
+        class="cf-billing-details"
+      >
+        <summary>{{ $t('cloud.billing.history') }}</summary>
         <ol class="cf-subscription-history">
           <li
             v-for="(event, index) in data.history"
@@ -216,7 +254,7 @@ const date = (time: number) => new Date(time).toLocaleString(locale.value)
             ><time>{{ date(event.created_at) }}</time>
           </li>
         </ol>
-      </section></template
+      </details></template
     >
     <div
       v-else

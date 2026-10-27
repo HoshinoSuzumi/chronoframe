@@ -1,47 +1,31 @@
 export function useWorkspaceBilling(adminOnly = false) {
-  const route = useRoute(),
-    user = usePortalIdentity(),
-    fetcher = useRequestFetch(),
-    requested = Number(route.query.workspaceId) || 0,
-    selected = ref(requested)
-  type Workspace = { id: number; name: string; role: string }
-  // A stable payload key covers both steps: the selected workspace is resolved
-  // by the server before hydration, rather than changing the async-data key mid-fetch.
+  const user = usePortalIdentity(),
+    fetcher = useRequestFetch()
+  type Workspace = { id: number; name: string; role: string; owned?: number }
   const billing = useAsyncData(
-    `workspace-billing-${user.value?.id}-${adminOnly ? 'admin' : 'all'}-${requested}`,
+    `workspace-billing-${user.value?.id}`,
     async () => {
       const list = await fetcher<{ workspaces: Workspace[] }>(
         '/api/billing/workspaces',
       )
-      const workspaces = list.workspaces.filter(
-        (w) => !adminOnly || w.role === 'admin',
-      )
-      const id = workspaces.some((w) => w.id === selected.value)
-        ? selected.value
-        : (workspaces[0]?.id ?? 0)
+      const primary = list.workspaces.find((w) => w.owned) ?? list.workspaces[0]
+      const id = primary?.id ?? 0
       const plan = id
         ? await fetcher<any>('/api/billing/plan', {
             query: { workspaceId: id },
           })
         : null
       return {
-        workspaces,
+        workspaces: primary ? [primary] : [],
         membershipCount: list.workspaces.length,
         selected: id,
         plan,
       }
     },
   )
-  watch(
-    billing.data,
-    (value) => {
-      if (value) selected.value = value.selected
-    },
-    { immediate: true, flush: 'sync' },
+  const permitted = computed(
+    () => !adminOnly || billing.data.value?.plan?.workspace.role === 'admin',
   )
-  watch(selected, (id) => {
-    if (id !== billing.data.value?.selected) void billing.refresh()
-  })
   onMounted(async () => {
     await billing
     if (billing.data.value?.membershipCount === 0 && !billing.error.value) {
@@ -54,13 +38,13 @@ export function useWorkspaceBilling(adminOnly = false) {
     }
   })
   return {
-    workspaces: computed(() => billing.data.value?.workspaces ?? []),
-    selected,
-    data: computed(() =>
-      billing.data.value?.selected === selected.value
-        ? billing.data.value.plan
-        : null,
+    workspaces: computed(() =>
+      permitted.value ? (billing.data.value?.workspaces ?? []) : [],
     ),
+    selected: computed(() =>
+      permitted.value ? (billing.data.value?.selected ?? 0) : 0,
+    ),
+    data: computed(() => (permitted.value ? billing.data.value?.plan : null)),
     error: billing.error,
     listError: billing.error,
     status: billing.status,

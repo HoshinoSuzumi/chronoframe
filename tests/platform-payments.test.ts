@@ -1,4 +1,13 @@
 import {
+  paymentEventPage,
+  paymentEventPayload,
+  expirePaymentEventPayloads,
+} from '../packages/platform/src/payment-events.ts'
+import {
+  syncPaymentProducts,
+  paymentProductSyncStatus,
+} from '../packages/platform/src/payment-product-sync.ts'
+import {
   activationHash,
   redeemActivation,
 } from '../packages/platform/src/activation.ts'
@@ -26,6 +35,7 @@ import {
   closeAccountPayments,
   validatePaymentProduct,
   reconcilePayments,
+  refreshPaymentCheckout,
 } from '../packages/platform/src/payments.ts'
 import {
   resolveSubscription,
@@ -63,8 +73,7 @@ async function fixture() {
       )
     )
       .replace(/^--.*$/gm, '')
-      .split(';')
-      .filter((s) => s.trim()))
+      .match(/\s*CREATE TRIGGER[\s\S]+?END;|[^;]+;/g) ?? [])
       await db.prepare(sql).run()
   }
   await db
@@ -97,7 +106,7 @@ async function fixture() {
     .run()
   await db
     .prepare(
-      "UPDATE platform_payment_settings SET enabled=1,workspace_ids_json='[1]',credentials_ciphertext=?",
+      "UPDATE platform_payment_settings SET auto_sync=0,enabled=1,workspace_ids_json='[1]',credentials_ciphertext=?",
     )
     .bind(await sealPaymentSecrets(root, credentials))
     .run()
@@ -1279,5 +1288,416 @@ test('Abandoned sandbox attempts cannot grant access through late callbacks or b
     assert.ok(retry.url)
   } finally {
     await f.mf.dispose()
+  }
+})
+
+test('Checkout return reconciliation verifies provider truth and ownership without trusting the browser return', async () => {
+  const f = await fixture()
+  try {
+    const checkout = await createPaymentCheckout(
+      f.db,
+      root,
+      1,
+      f.input,
+      'https://app.chronoframe.art',
+      f.transport,
+      f.now,
+    )
+    assert.deepEqual(
+      await refreshPaymentCheckout(
+        f.db,
+        root,
+        1,
+        1,
+        checkout.checkoutId,
+        f.transport,
+        f.now + 1,
+      ),
+      { state: 'pending' },
+    )
+    assert.equal((await resolveSubscription(f.db, 1, f.now + 1)).id, 'free')
+    await assert.rejects(
+      refreshPaymentCheckout(
+        f.db,
+        root,
+        2,
+        2,
+        checkout.checkoutId,
+        f.transport,
+        f.now + 1,
+      ),
+      { statusCode: 404 },
+    )
+    await assert.rejects(
+      refreshPaymentCheckout(
+        f.db,
+        root,
+        3,
+        1,
+        checkout.checkoutId,
+        f.transport,
+        f.now + 1,
+      ),
+      { statusCode: 403 },
+    )
+    await f.complete()
+    assert.deepEqual(
+      await refreshPaymentCheckout(
+        f.db,
+        root,
+        1,
+        1,
+        checkout.checkoutId,
+        f.transport,
+        f.now + 2,
+      ),
+      { state: 'completed' },
+    )
+    assert.equal((await resolveSubscription(f.db, 1, f.now + 2)).id, 'pro')
+    const revision = (await resolveSubscription(f.db, 1, f.now + 2))
+      .assignment_revision
+    const calls = f.calls.length
+    await refreshPaymentCheckout(
+      f.db,
+      root,
+      1,
+      1,
+      checkout.checkoutId,
+      f.transport,
+      f.now + 3,
+    )
+    assert.equal(f.calls.length, calls)
+    assert.equal(
+      (await resolveSubscription(f.db, 1, f.now + 3)).assignment_revision,
+      revision,
+    )
+    await (
+      await f.event(
+        'evt_delayed_return',
+        'checkout.completed',
+        f.checkouts.get('chk_1'),
+        f.now + 4,
+      )
+    ).receive()
+    await processPaymentEvents(f.db, root, f.transport, f.now + 4)
+    assert.equal(
+      (await resolveSubscription(f.db, 1, f.now + 4)).assignment_revision,
+      revision,
+    )
+  } finally {
+    await f.mf.dispose()
+  }
+})
+
+test('Signed webhook payloads are encrypted, bound to their event, paginated and expired without losing the inbox', async () => {
+  const f = await fixture()
+  try {
+    for (let i = 0; i < 56; i++)
+      await (
+        await f.event(
+          'evt_page_' + String(i).padStart(3, '0'),
+          'refund.created',
+          {
+            id: 'refund_' + i,
+            mode: 'test',
+            customer: { email: 'private-customer@example.com' },
+            note: i === 0 ? 'x'.repeat(50000) : 'original',
+          },
+        )
+      ).receive()
+    const first = await paymentEventPage(f.db),
+      second = await paymentEventPage(f.db, first.nextCursor!),
+      third = await paymentEventPage(f.db, second.nextCursor!)
+    assert.equal(first.events.length, 25)
+    assert.equal(second.events.length, 25)
+    assert.equal(third.events.length, 6)
+    assert.equal(third.nextCursor, null)
+    assert.equal(
+      new Set(
+        [...first.events, ...second.events, ...third.events].map((r) => r.id),
+      ).size,
+      56,
+    )
+    await assert.rejects(paymentEventPage(f.db, 'invalid-cursor'), {
+      statusCode: 400,
+    })
+    const payload = await paymentEventPayload(f.db, root, 'evt_page_000', f.now)
+    assert.equal(
+      payload.payload.object.customer.email,
+      'private-customer@example.com',
+    )
+    assert.equal(payload.payload.object.note.length, 50000)
+    const cipher = await f.db
+      .prepare(
+        "SELECT ciphertext FROM platform_payment_event_payloads WHERE event_id='evt_page_000'",
+      )
+      .first<any>()
+    assert.ok(!cipher.ciphertext.includes('private-customer'))
+    await assert.rejects(
+      paymentEventPayload(
+        f.db,
+        'different-root-'.repeat(4),
+        'evt_page_000',
+        f.now,
+      ),
+      { statusCode: 503 },
+    )
+    await (
+      await f.event('evt_page_000', 'refund.created', {
+        id: 'refund_0',
+        mode: 'test',
+        note: 'duplicate',
+      })
+    ).receive()
+    assert.equal(
+      (await paymentEventPayload(f.db, root, 'evt_page_000', f.now)).payload
+        .object.note.length,
+      50000,
+    )
+    assert.equal(
+      (
+        await paymentEventPayload(
+          f.db,
+          root,
+          'evt_page_000',
+          f.now + 31 * 86400000,
+        )
+      ).available,
+      false,
+    )
+    await expirePaymentEventPayloads(f.db, f.now + 31 * 86400000)
+    assert.equal(
+      (
+        await f.db
+          .prepare('SELECT COUNT(*) n FROM platform_payment_event_payloads')
+          .first<any>()
+      ).n,
+      0,
+    )
+    assert.equal(
+      (
+        await f.db
+          .prepare('SELECT COUNT(*) n FROM platform_payment_events')
+          .first<any>()
+      ).n,
+      56,
+    )
+  } finally {
+    await f.mf.dispose()
+  }
+})
+
+function productTransport(f: any) {
+  const products = new Map<string, any>(),
+    keys = new Map<string, string>(),
+    calls: string[] = []
+  let loseOnce = false,
+    changeDuringCreate = false
+  const transport = async (url: any, init: any = {}) => {
+    const u = new URL(String(url)),
+      method = init.method ?? 'GET'
+    if (!u.pathname.startsWith('/v1/products')) return f.transport(url, init)
+    calls.push(method + ' ' + u.pathname)
+    if (method === 'POST') {
+      const b = JSON.parse(init.body),
+        key = init.headers['Idempotency-Key']
+      assert.match(key, /^cfp_[a-f0-9]{64}$/)
+      let id = keys.get(key)
+      if (!id) {
+        id = 'prod_auto_' + (products.size + 1)
+        keys.set(key, id)
+        products.set(id, { ...b, id, mode: 'test', status: 'active' })
+      }
+      if (changeDuringCreate) {
+        changeDuringCreate = false
+        await f.db
+          .prepare(
+            "UPDATE platform_plans SET monthly_price=1900,revision=revision+1 WHERE id='pro'",
+          )
+          .run()
+      }
+      if (loseOnce) {
+        loseOnce = false
+        throw new DOMException('Response lost after creation', 'TimeoutError')
+      }
+      return Response.json(products.get(id))
+    }
+    const id = u.searchParams.get('product_id') ?? u.pathname.split('/').at(-1)!
+    if (method === 'PATCH') {
+      assert.ok(!('price' in JSON.parse(init.body)))
+      products.set(id, { ...products.get(id), ...JSON.parse(init.body) })
+      return Response.json(products.get(id))
+    }
+    return products.has(id)
+      ? Response.json(products.get(id))
+      : Response.json({}, { status: 404 })
+  }
+  return {
+    transport,
+    products,
+    calls,
+    loseNext() {
+      loseOnce = true
+    },
+    changeNext() {
+      changeDuringCreate = true
+    },
+  }
+}
+
+test('Automatic catalog sync publishes month/quarter products, updates rights and preserves existing billed prices', async () => {
+  const f = await fixture(),
+    p = productTransport(f)
+  try {
+    await f.db.prepare('DELETE FROM platform_payment_products').run()
+    await f.db
+      .prepare(
+        'UPDATE platform_payment_settings SET auto_sync=1,revision=revision+1',
+      )
+      .run()
+    assert.equal((await paymentStatus(f.db, 1, 1)).offers.length, 0)
+    await syncPaymentProducts(f.db, root, p.transport, f.now, 20)
+    assert.equal(p.products.size, 2)
+    assert.equal((await paymentStatus(f.db, 1, 1)).offers.length, 2)
+    const mapping = await f.db
+      .prepare(
+        "SELECT product_id FROM platform_payment_products WHERE plan_id='pro' AND interval=1",
+      )
+      .first<any>()
+    const original = p.products.get(mapping.product_id)
+    assert.ok(original.description.includes('Platform storage'))
+    assert.equal(original.billing_period, 'every-month')
+    const checkout = await createPaymentCheckout(
+      f.db,
+      root,
+      1,
+      f.input,
+      'https://app.chronoframe.art',
+      p.transport,
+      f.now,
+    )
+    const subscription = await f.complete()
+    await (
+      await f.event(
+        'evt_auto_paid',
+        'checkout.completed',
+        f.checkouts.get('chk_1'),
+      )
+    ).receive()
+    await processPaymentEvents(f.db, root, p.transport, f.now)
+    const policy = JSON.parse(
+      (
+        await f.db
+          .prepare("SELECT policy_json FROM platform_plans WHERE id='pro'")
+          .first<any>()
+      ).policy_json,
+    )
+    policy.limits.storageBytes = 2 * 1024 ** 3
+    await f.db
+      .prepare(
+        "UPDATE platform_plans SET name='Updated Pro',policy_json=?,revision=revision+1 WHERE id='pro'",
+      )
+      .bind(JSON.stringify(policy))
+      .run()
+    assert.equal((await paymentStatus(f.db, 1, 1)).offers.length, 0)
+    await syncPaymentProducts(f.db, root, p.transport, f.now + 1, 20)
+    assert.equal(p.products.size, 2)
+    assert.ok(p.products.get(mapping.product_id).description.includes('2 GiB'))
+    assert.ok(p.calls.some((c) => c.startsWith('PATCH')))
+    await f.db
+      .prepare(
+        "UPDATE platform_plans SET monthly_price=1500,revision=revision+1 WHERE id='pro'",
+      )
+      .run()
+    await syncPaymentProducts(f.db, root, p.transport, f.now + 2, 20)
+    assert.equal(p.products.size, 3)
+    assert.equal(p.products.get(mapping.product_id).price, 1200)
+    assert.notEqual(
+      (
+        await f.db
+          .prepare(
+            "SELECT product_id FROM platform_payment_products WHERE plan_id='pro' AND interval=1",
+          )
+          .first<any>()
+      ).product_id,
+      mapping.product_id,
+    )
+    subscription.updated_at = new Date(f.now + 3).toISOString()
+    subscription.current_period_end_date = new Date(
+      f.now + 60 * 86400000,
+    ).toISOString()
+    await (
+      await f.event(
+        'evt_old_price_renewal',
+        'subscription.paid',
+        subscription,
+        f.now + 3,
+      )
+    ).receive()
+    await processPaymentEvents(f.db, root, p.transport, f.now + 3)
+    assert.equal((await resolveSubscription(f.db, 1, f.now + 3)).id, 'pro')
+    assert.equal(
+      (
+        await f.db
+          .prepare('SELECT price FROM platform_payment_checkouts WHERE id=?')
+          .bind(checkout.checkoutId)
+          .first<any>()
+      ).price,
+      1200,
+    )
+    assert.equal(
+      (
+        await f.db
+          .prepare('SELECT product_id FROM platform_payment_subscriptions')
+          .first<any>()
+      ).product_id,
+      mapping.product_id,
+    )
+    const calls = p.calls.length
+    await syncPaymentProducts(f.db, root, p.transport, f.now + 4, 20)
+    assert.equal(p.calls.length, calls)
+    assert.ok(
+      (await paymentProductSyncStatus(f.db))
+        .filter((r) => r.plan_id === 'free')
+        .every((r) => r.state === 'disabled'),
+    )
+  } finally {
+    await f.mf.dispose()
+  }
+})
+
+test('Product creation retries are idempotent and a concurrent plan edit cannot publish an outdated product', async () => {
+  for (const kind of ['timeout', 'edit']) {
+    const f = await fixture(),
+      p = productTransport(f)
+    try {
+      await f.db.prepare('DELETE FROM platform_payment_products').run()
+      await f.db
+        .prepare(
+          'UPDATE platform_payment_settings SET auto_sync=1,revision=revision+1',
+        )
+        .run()
+      if (kind === 'timeout') p.loseNext()
+      else p.changeNext()
+      await syncPaymentProducts(f.db, root, p.transport, f.now, 20)
+      const month = await f.db
+        .prepare(
+          "SELECT * FROM platform_payment_products WHERE plan_id='pro' AND interval=1",
+        )
+        .first<any>()
+      assert.equal(month, null)
+      await syncPaymentProducts(f.db, root, p.transport, f.now + 120000, 20)
+      const current = await f.db
+        .prepare(
+          "SELECT * FROM platform_payment_products WHERE plan_id='pro' AND interval=1",
+        )
+        .first<any>()
+      assert.ok(current)
+      assert.equal(current.price, kind === 'edit' ? 1900 : 1200)
+      if (kind === 'timeout') assert.equal(p.products.size, 2)
+      assert.equal((await paymentStatus(f.db, 1, 1)).offers.length, 2)
+    } finally {
+      await f.mf.dispose()
+    }
   }
 })

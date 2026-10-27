@@ -197,6 +197,14 @@ export async function purgeAccounts(
         )
         .bind(id, id),
     )
+    // Callback bodies can contain the erased purchaser's personal data even on another owner's workspace.
+    statements.push(
+      db
+        .prepare(
+          'DELETE FROM platform_payment_event_payloads WHERE event_id IN(SELECT e.id FROM platform_payment_events e WHERE e.reference_id IN(SELECT id FROM platform_payment_checkouts WHERE user_id=?) OR e.object_id IN(SELECT provider_id FROM platform_payment_checkouts WHERE user_id=?) OR e.object_id IN(SELECT s.id FROM platform_payment_subscriptions s JOIN platform_payment_checkouts c ON c.id=s.checkout_id WHERE c.user_id=?))',
+        )
+        .bind(id, id, id),
+    )
     // Payment resources were closed upstream. Retain other owners' ledgers without the erased purchaser identity.
     statements.push(
       db

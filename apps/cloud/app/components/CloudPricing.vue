@@ -5,13 +5,25 @@ import {
   price,
   conditionText,
 } from '../utils/billing-format'
-const props = withDefaults(defineProps<{ portal?: boolean }>(), {
-    portal: false,
-  }),
-  { t, locale } = useI18n(),
+const props = withDefaults(
+  defineProps<{
+    portal?: boolean
+    embedded?: boolean
+    workspaceBilling?: ReturnType<typeof useWorkspaceBilling>
+    paymentController?: ReturnType<typeof useCloudPayments>
+  }>(),
+  { portal: false, embedded: false },
+)
+const { t, locale } = useI18n(),
   links = useCloudLinks(),
-  interval = ref<1 | 3>(1),
-  billing = props.portal ? useWorkspaceBilling() : null
+  interval = ref<1 | 3>(1)
+const billing = props.portal
+  ? (props.workspaceBilling ?? useWorkspaceBilling())
+  : null
+const payments = props.portal
+  ? (props.paymentController ??
+    useCloudPayments(() => billing?.selected.value ?? 0))
+  : null
 const { data, error, refresh } = await useFetch<any>('/api/billing/catalog', {
   key: 'public-pricing-catalog',
 })
@@ -26,37 +38,25 @@ const action = (plan: any) =>
       (props.portal && billing?.selected.value
         ? '?workspaceId=' + billing.selected.value
         : '')
-const payment = ref<any>(),
+const payment = computed(() => payments?.data.value),
   paying = ref(''),
   paymentError = ref('')
-let paymentGeneration = 0,
-  mounted = true
-async function loadPayments() {
-  const id = billing?.selected.value,
-    generation = ++paymentGeneration
-  if (!id) return
-  try {
-    const result = await $fetch('/api/billing/payments', {
-      query: { workspaceId: id },
-    })
-    if (mounted && generation === paymentGeneration) payment.value = result
-  } catch {
-    if (mounted && generation === paymentGeneration) payment.value = null
-  }
-}
-onMounted(() => {
-  if (props.portal) void loadPayments()
-})
-if (billing)
-  watch(billing.selected, () => {
-    payment.value = null
-    paymentError.value = ''
-    void loadPayments()
-  })
+let mounted = true
 onBeforeUnmount(() => {
   mounted = false
-  paymentGeneration++
 })
+watch(
+  () => payment.value?.pending?.interval,
+  (n) => {
+    if (n === 1 || n === 3) interval.value = n
+  },
+  { immediate: true },
+)
+const pendingFor = (plan: any) => payment.value?.pending?.planId === plan.id
+async function resume() {
+  if (payment.value?.pending?.url)
+    await navigateTo(payment.value.pending.url, { external: true })
+}
 const offer = (plan: any) =>
   payment.value?.enabled &&
   payment.value?.canManage &&
@@ -90,7 +90,7 @@ async function checkout(plan: any) {
   } catch {
     if (mounted) {
       paymentError.value = t('cloud.payments.failed')
-      await loadPayments()
+      await payments?.refresh()
     }
   } finally {
     paying.value = ''
@@ -99,10 +99,24 @@ async function checkout(plan: any) {
 </script>
 <template>
   <div class="cf-pricing">
-    <div class="cf-pricing-heading">
-      <p class="cf-eyebrow">ChronoFrame Cloud</p>
-      <h1>{{ $t('cloud.billing.pricing') }}</h1>
-      <p>{{ $t('cloud.billing.pricingHelp') }}</p>
+    <div :class="embedded ? 'cf-plan-options-heading' : 'cf-pricing-heading'">
+      <p
+        v-if="!embedded"
+        class="cf-eyebrow"
+      >
+        ChronoFrame Cloud
+      </p>
+      <h2 v-if="embedded">{{ $t('cloud.billing.choosePlan') }}</h2>
+      <h1 v-else>{{ $t('cloud.billing.pricing') }}</h1>
+      <p>
+        {{
+          $t(
+            embedded
+              ? 'cloud.billing.optionsHelp'
+              : 'cloud.billing.pricingHelp',
+          )
+        }}
+      </p>
       <fieldset class="cf-billing-toggle">
         <legend class="sr-only">{{ $t('cloud.billing.interval') }}</legend>
         <label
@@ -113,6 +127,7 @@ async function checkout(plan: any) {
             v-model="interval"
             type="radio"
             name="billing-interval"
+            :disabled="portal && !!payment?.pending"
             :value="n"
           /><span>{{
             $t('cloud.billing.' + (n === 1 ? 'monthly' : 'quarterly'))
@@ -134,23 +149,7 @@ async function checkout(plan: any) {
         {{ paymentError }}
       </p>
     </div>
-    <CloudPaymentsPanel
-      v-if="portal && billing?.selected.value"
-      :workspace-id="billing.selected.value"
-    />
-    <template v-if="billing">
-      <label class="cf-workspace-picker"
-        >{{ $t('cloud.billing.workspace')
-        }}<select v-model="billing.selected.value">
-          <option
-            v-for="workspace in billing.workspaces.value"
-            :key="workspace.id"
-            :value="workspace.id"
-          >
-            {{ workspace.name }}
-          </option>
-        </select></label
-      >
+    <template v-if="billing && !embedded">
       <p
         v-if="billing.error.value"
         role="alert"
@@ -183,12 +182,18 @@ async function checkout(plan: any) {
           v-for="plan in data.plans"
           :key="plan.id"
           class="cf-pricing-card"
-          :class="{ 'is-featured': plan.featured }"
+          :class="{
+            'is-featured': plan.featured && !embedded,
+            'is-current': portal && plan.id === currentPlan,
+          }"
         >
           <div class="cf-plan-card-heading">
             <h2>{{ plan.name }}</h2>
             <CloudBadge v-if="portal && plan.id === currentPlan">{{
               $t('cloud.billing.current')
+            }}</CloudBadge
+            ><CloudBadge v-else-if="embedded && plan.featured">{{
+              $t('cloud.billing.recommended')
             }}</CloudBadge>
           </div>
           <p class="cf-plan-description">
@@ -215,28 +220,66 @@ async function checkout(plan: any) {
                     price(amount(plan)! / 3, plan.currency, locale) +
                     ' / ' +
                     $t('cloud.billing.month')
-                  : $t('cloud.billing.noCheckout')
+                  : $t(
+                      portal
+                        ? amount(plan) === 0
+                          ? 'cloud.billing.noCharge'
+                          : 'cloud.billing.monthlyBilling'
+                        : 'cloud.billing.noCheckout',
+                    )
             }}
           </p>
           <CloudButton
-            v-if="portal && offer(plan)"
+            v-if="portal && !payment"
+            disabled
+            variant="secondary"
+            >{{ $t('cloud.billing.loading') }}</CloudButton
+          >
+          <CloudButton
+            v-else-if="portal && pendingFor(plan)"
+            :disabled="!payment.pending.url || !!paying"
+            @click="resume"
+          >
+            {{
+              $t(
+                payment.pending.url
+                  ? 'cloud.payments.resume'
+                  : 'cloud.payments.waiting',
+              )
+            }}
+          </CloudButton>
+          <CloudButton
+            v-else-if="portal && plan.id === currentPlan"
+            disabled
+            variant="secondary"
+            >{{ $t('cloud.billing.current') }}</CloudButton
+          >
+          <CloudButton
+            v-else-if="portal && subscriptionActive && amount(plan) !== 0"
+            :disabled="
+              !payment.canManage || !!payment.pending || payments?.busy.value
+            "
+            variant="secondary"
+            @click="payments?.portal()"
+            >{{ $t('cloud.payments.manage') }}</CloudButton
+          >
+          <CloudButton
+            v-else-if="portal && offer(plan)"
             :loading="paying === plan.id + ':' + interval"
-            :disabled="!!paying || !!payment.pending || subscriptionActive"
+            :disabled="!!paying || !!payment.pending"
             :variant="plan.featured ? 'default' : 'secondary'"
             @click="checkout(plan)"
-            >{{
-              subscriptionActive
-                ? $t('cloud.payments.manageExisting')
-                : $t('cloud.payments.subscribe')
-            }}</CloudButton
+            >{{ $t('cloud.payments.subscribe') }}</CloudButton
           >
           <CloudButton
             v-else-if="
-              portal && billing?.data.value?.workspace.role !== 'admin'
+              portal &&
+              (billing?.data.value?.workspace.role !== 'admin' ||
+                !!payment?.pending)
             "
             disabled
             :title="$t('cloud.billing.adminOnly')"
-            :variant="plan.featured ? 'default' : 'secondary'"
+            variant="secondary"
             >{{ $t('cloud.billing.redeem') }}</CloudButton
           >
           <CloudButton
@@ -296,7 +339,7 @@ async function checkout(plan: any) {
         {{ $t('cloud.billing.noPlans') }}
       </div>
       <section
-        v-else
+        v-else-if="!embedded"
         class="cf-plan-comparison"
       >
         <h2>{{ $t('cloud.billing.compare') }}</h2>
