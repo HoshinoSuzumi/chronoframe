@@ -14,6 +14,16 @@ const fail = (status: number, code: string): never => {
 const identifier = (v: unknown) =>
   typeof v === 'string' && /^[a-zA-Z0-9_-]{1,160}$/.test(v)
 const objectId = (v: any): string => (typeof v === 'string' ? v : v?.id)
+// Either echoed field can bind the response; conflicting supplied fields never pass.
+function checkoutBound(value: any, id: string) {
+  const request = value?.request_id,
+    metadata = value?.metadata?.chronoframe_checkout_id
+  return (
+    (request == null || request === id) &&
+    (metadata == null || metadata === id) &&
+    (request === id || metadata === id)
+  )
+}
 const time = (v: unknown) =>
   typeof v === 'string' && Number.isFinite(Date.parse(v)) ? Date.parse(v) : 0
 export type PaymentFetch = typeof fetch
@@ -120,8 +130,15 @@ export async function creemRequest(
       redirect: 'manual',
       signal: AbortSignal.timeout(10000),
     })
-  } catch {
-    return fail(502, 'payment_provider_unavailable')
+  } catch (error) {
+    return fail(
+      502,
+      ['TimeoutError', 'AbortError'].includes(
+        String((error as { name?: string })?.name),
+      )
+        ? 'payment_provider_timeout'
+        : 'payment_provider_unavailable',
+    )
   }
   if (!response.ok)
     throw Object.assign(
@@ -447,13 +464,29 @@ export async function createPaymentCheckout(
         },
         transport,
       )
-      if (
-        !identifier(checkout.id) ||
-        checkout.mode !== 'test' ||
-        checkout.request_id !== id ||
-        objectId(checkout.product) !== mapping.product_id
-      )
+      if (!checkout || typeof checkout !== 'object' || !identifier(checkout.id))
         fail(502, 'payment_checkout_response_invalid')
+      // Retain a returned identifier even if a later field or redirect check fails.
+      // Recovery still verifies the original immutable binding before trusting it.
+      await db
+        .prepare(
+          "UPDATE platform_payment_checkouts SET provider_id=? WHERE id=? AND state='creating'",
+        )
+        .bind(checkout.id, id)
+        .run()
+      if (checkout.mode !== 'test')
+        fail(
+          502,
+          checkout.mode === 'sandbox'
+            ? 'payment_checkout_mode_sandbox'
+            : checkout.mode === 'prod'
+              ? 'payment_checkout_mode_prod'
+              : 'payment_checkout_mode_invalid',
+        )
+      if (!checkoutBound(checkout, id))
+        fail(502, 'payment_checkout_request_invalid')
+      if (objectId(checkout.product) !== mapping.product_id)
+        fail(502, 'payment_checkout_product_invalid')
       const url = paymentURL(checkout.checkout_url)
       await db
         .prepare(
@@ -481,12 +514,38 @@ export async function createPaymentCheckout(
           .run()
         throw error
       }
+      const codes = [
+        'payment_provider_timeout',
+        'payment_provider_unavailable',
+        'payment_provider_request_failed',
+        'payment_provider_response_invalid',
+        'payment_checkout_response_invalid',
+        'payment_checkout_mode_sandbox',
+        'payment_checkout_mode_prod',
+        'payment_checkout_mode_invalid',
+        'payment_checkout_request_invalid',
+        'payment_checkout_product_invalid',
+        'payment_redirect_invalid',
+      ]
+      const cause =
+        error instanceof SubscriptionError && codes.includes(error.code)
+          ? error.code
+          : 'payment_checkout_create_failed'
+      const status = Number(
+        (error as { providerStatus?: number })?.providerStatus,
+      )
+      const diagnostic =
+        cause +
+        (Number.isInteger(status) && status >= 100 && status <= 599
+          ? ':' + status
+          : '')
       // Never repeat an ambiguous provider create: the provider may have created a payable session.
+      // Persist only bounded codes/status, never provider bodies, keys, customer data or URLs.
       await db
         .prepare(
-          "UPDATE platform_payment_checkouts SET state='uncertain',error='payment_confirmation_pending',updated_at=? WHERE id=? AND state='creating'",
+          "UPDATE platform_payment_checkouts SET state='uncertain',error=?,updated_at=? WHERE id=? AND state='creating'",
         )
-        .bind(now, id)
+        .bind(diagnostic, now, id)
         .run()
       return fail(502, 'payment_confirmation_pending')
     }
@@ -626,7 +685,13 @@ async function synchronizePayment(
     )
     checkout = await db
       .prepare('SELECT * FROM platform_payment_checkouts WHERE id=?')
-      .bind(String(providerCheckout.request_id ?? ''))
+      .bind(
+        String(
+          providerCheckout.request_id ??
+            providerCheckout.metadata?.chronoframe_checkout_id ??
+            '',
+        ),
+      )
       .first<any>()
     subscriptionId = objectId(providerCheckout.subscription)
   } else {
@@ -658,10 +723,20 @@ async function synchronizePayment(
       .first<any>()
     subscriptionId = event.object_id
   }
-  if (!checkout || !checkout.user_id) return 'ignored'
+  if (
+    !checkout ||
+    !checkout.user_id ||
+    checkout.error === 'payment_test_abandoned'
+  )
+    return 'ignored'
   if (!identifier(subscriptionId)) fail(409, 'payment_confirmation_pending')
   const token = await acquireWorkspace(db, checkout.workspace_id, now)
   try {
+    const currentCheckout = await db
+      .prepare('SELECT error FROM platform_payment_checkouts WHERE id=?')
+      .bind(checkout.id)
+      .first<any>()
+    if (currentCheckout?.error === 'payment_test_abandoned') return 'ignored'
     if (
       await db
         .prepare('SELECT id FROM platform_subscription_events WHERE id=?')
@@ -688,7 +763,7 @@ async function synchronizePayment(
     if (
       providerCheckout.mode !== 'test' ||
       providerCheckout.status !== 'completed' ||
-      providerCheckout.request_id !== checkout.id ||
+      !checkoutBound(providerCheckout, checkout.id) ||
       objectId(providerCheckout.product) !== checkout.product_id ||
       objectId(providerCheckout.subscription) !== subscriptionId ||
       s.id !== subscriptionId ||
@@ -1033,7 +1108,7 @@ export async function reconcilePayments(
         undefined,
         transport,
       )
-      if (checkout.mode !== 'test' || checkout.request_id !== row.id) continue
+      if (checkout.mode !== 'test' || !checkoutBound(checkout, row.id)) continue
       if (checkout.status === 'expired')
         await db
           .prepare(
@@ -1090,7 +1165,7 @@ export async function recoverPaymentCheckout(
   if (
     c.id !== providerId ||
     c.mode !== 'test' ||
-    c.request_id !== row.id ||
+    !checkoutBound(c, row.id) ||
     objectId(c.product) !== row.product_id
   )
     fail(422, 'payment_binding_invalid')
@@ -1176,7 +1251,7 @@ export async function closeAccountPayments(
     )
     if (
       c.mode !== 'test' ||
-      c.request_id !== row.id ||
+      !checkoutBound(c, row.id) ||
       objectId(c.product) !== row.product_id
     )
       return false
