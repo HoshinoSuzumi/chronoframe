@@ -108,7 +108,7 @@ export default defineNitroPlugin((app) => {
         outbox: async () => {
           await db
             .prepare(
-              "DELETE FROM platform_mail_outbox WHERE state IN('sent','cancelled') AND available_at<?",
+              "DELETE FROM platform_mail_outbox WHERE state IN('sent','cancelled','failed') AND available_at<?",
             )
             .bind(now - 30 * 86400000)
             .run()

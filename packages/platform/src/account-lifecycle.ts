@@ -428,10 +428,17 @@ export async function deliverLifecycleMail(
   now = Date.now(),
 ) {
   const s = await lifecycleSettings(db)
+  // A worker may die after claiming the final attempt; reclaiming must not send a fourth time.
+  await db
+    .prepare(
+      "UPDATE platform_mail_outbox SET state='failed',error='email_delivery_exhausted',lease_token=NULL,lease_until=NULL WHERE state='pending' AND attempts>=3 AND (lease_until IS NULL OR lease_until<?)",
+    )
+    .bind(now)
+    .run()
   const rows = await allRows<any>(
     db
       .prepare(
-        "SELECT * FROM platform_mail_outbox WHERE state='pending' AND available_at<=? AND (lease_until IS NULL OR lease_until<?) ORDER BY available_at,id LIMIT 10",
+        "SELECT * FROM platform_mail_outbox WHERE state='pending' AND attempts<3 AND available_at<=? AND (lease_until IS NULL OR lease_until<?) ORDER BY available_at,id LIMIT 10",
       )
       .bind(now, now),
   )
@@ -439,10 +446,10 @@ export async function deliverLifecycleMail(
     const token = crypto.randomUUID(),
       claimed = await db
         .prepare(
-          "UPDATE platform_mail_outbox SET lease_token=?,lease_until=? WHERE id=? AND state='pending' AND (lease_until IS NULL OR lease_until<?) RETURNING id",
+          "UPDATE platform_mail_outbox SET lease_token=?,lease_until=?,attempts=attempts+1 WHERE id=? AND state='pending' AND attempts<3 AND available_at<=? AND (lease_until IS NULL OR lease_until<?) RETURNING attempts",
         )
-        .bind(token, now + 120000, row.id, now)
-        .first()
+        .bind(token, now + 120000, row.id, now, now)
+        .first<{ attempts: number }>()
     if (!claimed) continue
     try {
       const p = JSON.parse(row.payload_json),
@@ -491,10 +498,16 @@ export async function deliverLifecycleMail(
     } catch {
       await db
         .prepare(
-          "UPDATE platform_mail_outbox SET attempts=attempts+1,available_at=?,error='email_delivery_failed',lease_token=NULL,lease_until=NULL WHERE id=? AND lease_token=?",
+          'UPDATE platform_mail_outbox SET state=?,available_at=?,error=?,lease_token=NULL,lease_until=NULL WHERE id=? AND lease_token=?',
         )
         .bind(
-          now + Math.min(3600000, 60000 * 2 ** Math.min(row.attempts, 6)),
+          claimed.attempts >= 3 ? 'failed' : 'pending',
+          claimed.attempts >= 3
+            ? now
+            : now + 60000 * 2 ** (claimed.attempts - 1),
+          claimed.attempts >= 3
+            ? 'email_delivery_exhausted'
+            : 'email_delivery_failed',
           row.id,
           token,
         )
