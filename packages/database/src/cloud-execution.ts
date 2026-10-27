@@ -22,7 +22,8 @@ function leaseDuration(value: number) {
     throw new CoreError(400, 'Invalid lease duration')
   return value
 }
-/** Source existence/version and deletion are checked on every worker mutation. */
+/** Source identity and live site eligibility are checked on every worker mutation. */
+const activeSite = `EXISTS(SELECT 1 FROM platform_sites s WHERE s.id=cloud_processing_jobs.site_id AND s.suspended=0)`
 const currentSource = `EXISTS(SELECT 1 FROM cloud_photos p WHERE p.site_id=cloud_processing_jobs.site_id AND p.id=cloud_processing_jobs.photo_id AND p.source_version=cloud_processing_jobs.source_version AND p.deleted=0)`
 
 /** Database polling is intentional: job creation and enqueue are the same D1
@@ -42,7 +43,7 @@ export function createCloudExecutionRepository(
     identifier(lease.attemptId)
     identifier(lease.workerId)
   }
-  const valid = `site_id=? AND id=? AND attempt_id=? AND worker_id=? AND state='running' AND lease_until>? AND ${currentSource}`
+  const valid = `site_id=? AND id=? AND attempt_id=? AND worker_id=? AND state='running' AND lease_until>? AND ${currentSource} AND ${activeSite}`
   const validValues = (lease: CloudLease, now: number) =>
     [lease.id, lease.attemptId, lease.workerId, positive(now)] as const
   async function changed(s: MediaStatement) {
@@ -58,13 +59,13 @@ export function createCloudExecutionRepository(
         throw new CoreError(400, 'Invalid lease expiry')
       await db.batch([
         stmt(
-          `UPDATE cloud_processing_jobs SET state='failed',error_code='attempts_exhausted',lease_until=NULL WHERE site_id=? AND state='running' AND lease_until<=? AND attempts>=max_attempts`,
+          `UPDATE cloud_processing_jobs SET state='failed',error_code='attempts_exhausted',lease_until=NULL WHERE site_id=? AND state='running' AND lease_until<=? AND attempts>=max_attempts AND ${activeSite}`,
           siteId,
           now,
         ),
         stmt(
           `UPDATE cloud_processing_jobs SET state='running',worker_id=?,attempt_id=?,lease_until=?,attempts=attempts+1,error_code=NULL
-          WHERE site_id=? AND id=(SELECT id FROM cloud_processing_jobs WHERE site_id=? AND attempts<max_attempts AND ${currentSource}
+          WHERE site_id=? AND ${activeSite} AND id=(SELECT id FROM cloud_processing_jobs WHERE site_id=? AND attempts<max_attempts AND ${currentSource}
           AND ((state IN ('queued','retry_wait') AND available_at<=?) OR (state='running' AND lease_until<=?)) AND NOT EXISTS(SELECT 1 FROM cloud_processing_jobs active WHERE active.site_id=? AND active.state='running' AND active.lease_until>?) ORDER BY created_at,id LIMIT 1)`,
           workerId,
           attemptId,
