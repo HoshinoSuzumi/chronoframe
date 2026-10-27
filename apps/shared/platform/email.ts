@@ -7,6 +7,7 @@ export interface PlatformEmailBinding {
     to: string
     subject: string
     text: string
+    html?: string
   }): Promise<{ messageId: string }>
 }
 

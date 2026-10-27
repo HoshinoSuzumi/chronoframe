@@ -1,3 +1,4 @@
+import { sendMail } from '../../../../packages/platform/src/mail.ts'
 import { signupOfferForRegistration } from '../../../../packages/platform/src/subscriptions.ts'
 import type { PlatformD1 } from '@chronoframe/platform'
 import { createD1Provisioning } from '../../../../packages/platform/src/provisioning.ts'
@@ -23,9 +24,7 @@ export function accountAuthOptions(
   defer?: (task: Promise<unknown>) => void,
 ) {
   const origin = new URL(config.portalOrigin)
-  const send = async (to: string, subject: string, text: string) => {
-    await email.send({ from: config.emailFrom, to, subject, text })
-  }
+  const db = database as unknown as PlatformD1
   return {
     appName: 'ChronoFrame Cloud',
     databaseHooks: {
@@ -71,6 +70,25 @@ export function accountAuthOptions(
                 Number(session.userId),
               )
             return { data: session }
+          },
+          after: async (session) => {
+            const updated = await db
+              .prepare(
+                'UPDATE platform_users SET last_login_at=? WHERE id=? AND NOT EXISTS(SELECT 1 FROM platform_account_deletions WHERE user_id=platform_users.id) RETURNING id',
+              )
+              .bind(Date.now(), Number(session.userId))
+              .first()
+            if (!updated) {
+              await db
+                .prepare('DELETE FROM platform_auth_sessions WHERE id=?')
+                .bind(Number(session.id))
+                .run()
+              throw new APIError('FORBIDDEN', {
+                code: 'ACCOUNT_DELETED',
+                message:
+                  'This account has been deleted. Contact support@chronoframe.art to request restoration.',
+              })
+            }
           },
         },
       },
@@ -171,10 +189,13 @@ export function accountAuthOptions(
       revokeSessionsOnPasswordReset: true,
       resetPasswordTokenExpiresIn: 30 * 60,
       async sendResetPassword({ user, url }) {
-        await send(
+        await sendMail(
+          db,
+          email,
+          'password-reset',
           user.email,
-          'Reset your ChronoFrame Cloud password',
-          `Use this link to set a new password:\n\n${url}\n\nThis link expires in 30 minutes and can only be used once. If you did not request it, ignore this email.`,
+          { name: user.name, minutes: '30' },
+          url,
         )
       },
     },
@@ -198,10 +219,14 @@ export function accountAuthOptions(
         async sendVerificationOTP({ email: to, otp, type }) {
           const purpose =
             type === 'email-verification' ? 'verify your email' : 'sign in'
-          await send(
+          await sendMail(
+            db,
+            email,
+            'verification',
             to,
-            'Your ChronoFrame Cloud verification code',
-            `Your code to ${purpose} is ${otp}. It expires in 10 minutes. Never share this code.`,
+            { code: otp, purpose, minutes: '10' },
+            undefined,
+            config.emailFrom,
           )
         },
       }),
@@ -228,11 +253,10 @@ export function accountAuthOptions(
               ]),
           },
           async sendOTP({ user, otp }) {
-            await send(
-              user.email,
-              'Complete your ChronoFrame Cloud sign-in',
-              `Your second-step verification code is ${otp}. It expires in 3 minutes. Never share this code.`,
-            )
+            await sendMail(db, email, 'second-factor', user.email, {
+              code: otp,
+              minutes: '3',
+            })
           },
         },
         accountLockout: {

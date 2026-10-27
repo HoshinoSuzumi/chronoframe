@@ -10,7 +10,7 @@ export default defineEventHandler(async (event) => {
     origin === config.portalOrigin &&
     platformEmailReady(
       event.context.cloudflare?.env?.EMAIL,
-      config.emailFrom,
+      'verify@noreply.chronoframe.art',
     ) &&
     config.secret.length >= 32 &&
     !!event.context.cloudflare?.env?.DB
