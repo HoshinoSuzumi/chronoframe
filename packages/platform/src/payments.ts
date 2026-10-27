@@ -668,7 +668,26 @@ export async function receivePaymentEvent(
     )
   const ref =
     event.object.request_id || event.object.metadata?.chronoframe_checkout_id
-  const payload = await sealPaymentEventPayload(rootKey, event.id, body)
+  let reference = identifier(ref) ? ref : null
+  let retainPayload = true
+  if (!supported) {
+    const sub = objectId(event.object.subscription)
+    const association = await db
+      .prepare(
+        'SELECT c.id FROM platform_payment_checkouts c LEFT JOIN platform_payment_subscriptions s ON s.checkout_id=c.id WHERE c.user_id IS NOT NULL AND (c.id=? OR c.provider_id=? OR s.id=?) LIMIT 1',
+      )
+      .bind(
+        reference ?? '',
+        event.object.id,
+        identifier(sub) ? sub : event.object.id,
+      )
+      .first<{ id: string }>()
+    reference = association?.id ?? null
+    retainPayload = !!association
+  }
+  const payload = retainPayload
+    ? await sealPaymentEventPayload(rootKey, event.id, body)
+    : null
   await db.batch([
     db
       .prepare(
@@ -678,16 +697,20 @@ export async function receivePaymentEvent(
         event.id,
         type,
         event.object.id,
-        identifier(ref) ? ref : null,
+        reference,
         event.created_at,
         supported ? 'pending' : 'ignored',
         now,
       ),
-    db
-      .prepare(
-        'INSERT OR IGNORE INTO platform_payment_event_payloads(event_id,ciphertext,received_at) SELECT ?,?,? WHERE changes()=1',
-      )
-      .bind(event.id, payload, now),
+    ...(payload
+      ? [
+          db
+            .prepare(
+              'INSERT OR IGNORE INTO platform_payment_event_payloads(event_id,ciphertext,received_at) SELECT ?,?,? WHERE changes()=1 AND (?=1 OR EXISTS(SELECT 1 FROM platform_payment_checkouts WHERE id=? AND user_id IS NOT NULL))',
+            )
+            .bind(event.id, payload, now, supported ? 1 : 0, reference),
+        ]
+      : []),
   ])
   return { received: true }
 }
@@ -1378,6 +1401,23 @@ export async function refreshPaymentCheckout(
     objectId(checkout.product) !== row.product_id
   )
     fail(422, 'payment_binding_invalid')
+  if (checkout.status === 'expired') {
+    await db
+      .prepare(
+        "UPDATE platform_payment_checkouts SET state='expired',updated_at=?,error=NULL WHERE id=? AND state IN('open','uncertain')",
+      )
+      .bind(now, row.id)
+      .run()
+    const current = await db
+      .prepare('SELECT state FROM platform_payment_checkouts WHERE id=?')
+      .bind(row.id)
+      .first<any>()
+    return {
+      state: ['expired', 'completed'].includes(current?.state)
+        ? current.state
+        : 'pending',
+    }
+  }
   if (checkout.status !== 'completed') return { state: 'pending' }
   const eventId = 'return_' + row.id
   await db

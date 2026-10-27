@@ -848,6 +848,22 @@ test('Paid checkout snapshots survive price edits; actual purchasers qualify wit
     ).receive()
     await processPaymentEvents(f.db, root, f.transport, f.now)
     assert.equal((await resolveSubscription(f.db, 1, f.now)).id, 'pro')
+    const localCheckout = await f.db
+      .prepare('SELECT id FROM platform_payment_checkouts')
+      .first<any>()
+    await (
+      await f.event('evt_refund_associated', 'refund.created', {
+        id: 'refund_associated',
+        mode: 'test',
+        metadata: { chronoframe_checkout_id: localCheckout.id },
+        customer: { email: 'owner@example.com' },
+      })
+    ).receive()
+    assert.equal(
+      (await paymentEventPayload(f.db, root, 'evt_refund_associated', f.now))
+        .available,
+      true,
+    )
     await f.db
       .prepare(
         "INSERT INTO platform_users(id,email,name,email_verified,created_at,updated_at) VALUES(4,'new-owner@example.com','New owner',1,?,?)",
@@ -931,6 +947,29 @@ test('Paid checkout snapshots survive price edits; actual purchasers qualify wit
     assert.equal(
       (await paymentEventPayload(f.db, root, 'evt_saved_quote', f.now))
         .available,
+      false,
+    )
+    assert.equal(
+      (await paymentEventPayload(f.db, root, 'evt_refund_associated', f.now))
+        .available,
+      false,
+    )
+    await (
+      await f.event('evt_late_refund_associated', 'refund.created', {
+        id: 'refund_late',
+        mode: 'test',
+        metadata: { chronoframe_checkout_id: localCheckout.id },
+      })
+    ).receive()
+    assert.equal(
+      (
+        await paymentEventPayload(
+          f.db,
+          root,
+          'evt_late_refund_associated',
+          f.now,
+        )
+      ).available,
       false,
     )
     assert.equal((await resolveSubscription(f.db, 1, f.now)).id, 'free')
@@ -1454,6 +1493,15 @@ test('Checkout return reconciliation verifies provider truth and ownership witho
 test('Signed webhook payloads are encrypted, bound to their event, paginated and expired without losing the inbox', async () => {
   const f = await fixture()
   try {
+    const association = await createPaymentCheckout(
+      f.db,
+      root,
+      1,
+      f.input,
+      'https://app.chronoframe.art',
+      f.transport,
+      f.now,
+    )
     for (let i = 0; i < 56; i++)
       await (
         await f.event(
@@ -1462,6 +1510,7 @@ test('Signed webhook payloads are encrypted, bound to their event, paginated and
           {
             id: 'refund_' + i,
             mode: 'test',
+            metadata: { chronoframe_checkout_id: association.checkoutId },
             customer: { email: 'private-customer@example.com' },
             note: i === 0 ? 'x'.repeat(50000) : 'original',
           },
@@ -1553,6 +1602,28 @@ test('Signed webhook payloads are encrypted, bound to their event, paginated and
           .first<any>()
       ).n,
       56,
+    )
+    await (
+      await f.event('evt_unassociated_refund', 'refund.created', {
+        id: 'refund_unknown',
+        mode: 'test',
+        customer: { email: 'unlinked@example.com' },
+      })
+    ).receive()
+    assert.equal(
+      (await paymentEventPayload(f.db, root, 'evt_unassociated_refund', f.now))
+        .available,
+      false,
+    )
+    assert.equal(
+      (
+        await f.db
+          .prepare(
+            "SELECT state FROM platform_payment_events WHERE id='evt_unassociated_refund'",
+          )
+          .first<any>()
+      ).state,
+      'ignored',
     )
   } finally {
     await f.mf.dispose()
@@ -1793,5 +1864,54 @@ test('Product creation retries are idempotent and a concurrent plan edit cannot 
     } finally {
       await f.mf.dispose()
     }
+  }
+})
+
+test('An authoritative expired checkout return releases the pending checkout without waiting for cron', async () => {
+  const f = await fixture()
+  try {
+    const first = await createPaymentCheckout(
+      f.db,
+      root,
+      1,
+      f.input,
+      'https://app.chronoframe.art',
+      f.transport,
+      f.now,
+    )
+    f.checkouts.get('chk_1').status = 'expired'
+    assert.deepEqual(
+      await refreshPaymentCheckout(
+        f.db,
+        root,
+        1,
+        1,
+        first.checkoutId,
+        f.transport,
+        f.now + 1,
+      ),
+      { state: 'expired' },
+    )
+    assert.equal(
+      (
+        await f.db
+          .prepare('SELECT state FROM platform_payment_checkouts WHERE id=?')
+          .bind(first.checkoutId)
+          .first<any>()
+      ).state,
+      'expired',
+    )
+    const next = await createPaymentCheckout(
+      f.db,
+      root,
+      1,
+      { ...f.input, requestId: 'after_expiry' },
+      'https://app.chronoframe.art',
+      f.transport,
+      f.now + 2,
+    )
+    assert.ok(next.url)
+  } finally {
+    await f.mf.dispose()
   }
 })
