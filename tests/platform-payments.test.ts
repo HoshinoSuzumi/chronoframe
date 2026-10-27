@@ -1,4 +1,8 @@
 import {
+  activationHash,
+  redeemActivation,
+} from '../packages/platform/src/activation.ts'
+import {
   accountExemption,
   DEFAULT_EXEMPTIONS,
 } from '../packages/platform/src/lifecycle-exemptions.ts'
@@ -593,7 +597,7 @@ test('Manual grants supersede late renewals; expiry reconciliation can safely re
     )
     await f.db
       .prepare(
-        "UPDATE platform_workspace_plans SET plan_id='free',source='manual',payment_subscription_id=NULL,revision=revision+1 WHERE workspace_id=1",
+        "UPDATE platform_workspace_plans SET plan_id='free',source='manual',revision=revision+1 WHERE workspace_id=1",
       )
       .run()
     await (
@@ -956,6 +960,158 @@ test('Owned account erasure removes dependent payment rows only after cancellati
       ).n,
       0,
     )
+  } finally {
+    await f.mf.dispose()
+  }
+})
+
+test('Unchanged reconciliation does not churn grants, and an expiring activation preserves paid subscription recovery', async () => {
+  const f = await fixture()
+  try {
+    await createPaymentCheckout(
+      f.db,
+      root,
+      1,
+      f.input,
+      'https://app.chronoframe.art',
+      f.transport,
+      f.now,
+    )
+    const sub = await f.complete()
+    await (
+      await f.event(
+        'evt_initial_link',
+        'checkout.completed',
+        f.checkouts.get('chk_1'),
+      )
+    ).receive()
+    await processPaymentEvents(f.db, root, f.transport, f.now)
+    const before = await f.db
+      .prepare(
+        'SELECT revision FROM platform_workspace_plans WHERE workspace_id=1',
+      )
+      .first<any>()
+    const count = await f.db
+      .prepare('SELECT COUNT(*) n FROM platform_subscription_events')
+      .first<any>()
+    const subBefore = await f.db
+      .prepare('SELECT revision FROM platform_payment_subscriptions')
+      .first<any>()
+    await reconcilePayments(f.db, root, f.transport, f.now + 1000000)
+    assert.equal(
+      (
+        await f.db
+          .prepare(
+            'SELECT revision FROM platform_workspace_plans WHERE workspace_id=1',
+          )
+          .first<any>()
+      ).revision,
+      before.revision,
+    )
+    assert.equal(
+      (
+        await f.db
+          .prepare('SELECT COUNT(*) n FROM platform_subscription_events')
+          .first<any>()
+      ).n,
+      count.n,
+    )
+    assert.equal(
+      (
+        await f.db
+          .prepare('SELECT revision FROM platform_payment_subscriptions')
+          .first<any>()
+      ).revision,
+      subBefore.revision,
+    )
+    await f.db
+      .prepare(
+        "INSERT INTO platform_activation_codes(id,code_hash,display,batch_id,plan_id,duration_unit,duration_value,created_at,created_by) VALUES('temporary',?,'TEMP','batch','free','days',1,?,1)",
+      )
+      .bind(await activationHash('TEMPORARY'), f.now)
+      .run()
+    await redeemActivation(
+      f.db,
+      1,
+      1,
+      {
+        code: 'TEMPORARY',
+        requestId: crypto.randomUUID(),
+        revision: before.revision,
+      },
+      f.now + 1000001,
+    )
+    assert.equal(
+      (
+        await f.db
+          .prepare(
+            'SELECT payment_subscription_id FROM platform_workspace_plans WHERE workspace_id=1',
+          )
+          .first<any>()
+      ).payment_subscription_id,
+      sub.id,
+    )
+    await (
+      await f.event('evt_while_activation', 'subscription.paid', sub)
+    ).receive()
+    await processPaymentEvents(f.db, root, f.transport, f.now + 1000002)
+    assert.equal(
+      (await resolveSubscription(f.db, 1, f.now + 1000002)).subscription.source,
+      'activation',
+    )
+    const expiry = (await resolveSubscription(f.db, 1, f.now + 1000002))
+      .subscription.expiresAt!
+    await reconcileSubscriptions(f.db, expiry + 1)
+    await reconcilePayments(f.db, root, f.transport, expiry + 1)
+    const restored = await resolveSubscription(f.db, 1, expiry + 1)
+    assert.equal(restored.id, 'pro')
+    assert.equal(restored.subscription.source, 'payment')
+  } finally {
+    await f.mf.dispose()
+  }
+})
+
+test('First past-due confirmation stores a real boundary without inventing a paid entitlement', async () => {
+  const f = await fixture()
+  try {
+    await createPaymentCheckout(
+      f.db,
+      root,
+      1,
+      f.input,
+      'https://app.chronoframe.art',
+      f.transport,
+      f.now,
+    )
+    const sub = await f.complete()
+    sub.status = 'past_due'
+    await (
+      await f.event(
+        'evt_first_due',
+        'checkout.completed',
+        f.checkouts.get('chk_1'),
+      )
+    ).receive()
+    await processPaymentEvents(f.db, root, f.transport, f.now)
+    assert.equal((await resolveSubscription(f.db, 1, f.now)).id, 'free')
+    const stored = await f.db
+      .prepare('SELECT period_end FROM platform_payment_subscriptions')
+      .first<any>()
+    assert.ok(
+      stored.period_end > Date.UTC(2020, 0, 1) && stored.period_end <= f.now,
+    )
+    await reconcilePayments(f.db, root, f.transport, f.now + 120000)
+    assert.equal(
+      (await resolveSubscription(f.db, 1, f.now + 120000)).id,
+      'free',
+    )
+    sub.status = 'active'
+    sub.updated_at = new Date(f.now + 120001).toISOString()
+    await (
+      await f.event('evt_due_paid', 'subscription.paid', sub, f.now + 120001)
+    ).receive()
+    await processPaymentEvents(f.db, root, f.transport, f.now + 120001)
+    assert.equal((await resolveSubscription(f.db, 1, f.now + 120001)).id, 'pro')
   } finally {
     await f.mf.dispose()
   }

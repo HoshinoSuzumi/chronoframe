@@ -295,7 +295,7 @@ export async function redeemActivation(
         .bind(code.id, eventId),
       db
         .prepare(
-          `INSERT INTO platform_workspace_plans(workspace_id,plan_id,starts_at,expires_at,source,billing_interval) SELECT ?,?,?,?,'activation',NULL WHERE EXISTS(SELECT 1 FROM platform_activation_redemptions WHERE claim_id=?) ON CONFLICT(workspace_id) DO UPDATE SET plan_id=excluded.plan_id,starts_at=excluded.starts_at,expires_at=excluded.expires_at,source='activation',billing_interval=NULL,payment_subscription_id=NULL,revision=platform_workspace_plans.revision+1`,
+          `INSERT INTO platform_workspace_plans(workspace_id,plan_id,starts_at,expires_at,source,billing_interval) SELECT ?,?,?,?,'activation',NULL WHERE EXISTS(SELECT 1 FROM platform_activation_redemptions WHERE claim_id=?) ON CONFLICT(workspace_id) DO UPDATE SET plan_id=excluded.plan_id,starts_at=excluded.starts_at,expires_at=excluded.expires_at,source='activation',billing_interval=NULL,revision=platform_workspace_plans.revision+1`,
         )
         .bind(
           workspaceId,

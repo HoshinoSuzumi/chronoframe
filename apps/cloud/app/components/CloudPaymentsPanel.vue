@@ -14,7 +14,10 @@ async function load() {
     const result = await $fetch('/api/billing/payments', {
       query: { workspaceId: id },
     })
-    if (alive && current === generation) state.value = result
+    if (alive && current === generation) {
+      state.value = result
+      error.value = ''
+    }
   } catch {
     if (alive && current === generation)
       error.value = t('cloud.payments.failed')

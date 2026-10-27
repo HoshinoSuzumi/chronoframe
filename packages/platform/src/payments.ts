@@ -786,8 +786,49 @@ async function synchronizePayment(
       'past_due',
     ].includes(s.status)
     const until =
-      s.status === 'past_due' ? Math.min(end, known?.period_end ?? 0) : end
+      s.status === 'past_due'
+        ? Math.min(end, known?.period_end ?? Math.min(start, now))
+        : end
     const active = entitled && until > now
+    const anchor =
+      known && known.plan_id === planId ? known.quota_anchor : start
+    const assignmentNeedsWrite =
+      canAssign &&
+      (prior?.source !== (active ? 'payment' : 'expired_default') ||
+        (active &&
+          (prior.plan_id !== planId ||
+            prior.starts_at !== anchor ||
+            prior.expires_at !== until ||
+            prior.billing_interval !== interval)))
+    // A reconciliation heartbeat is not a new payment or a new entitlement revision.
+    // Still restore a linked paid subscription after a temporary grant expires.
+    if (
+      known &&
+      updated === known.provider_updated_at &&
+      known.status === s.status &&
+      known.product_id === objectId(s.product) &&
+      known.plan_id === planId &&
+      known.interval === interval &&
+      known.period_start === start &&
+      known.period_end === until &&
+      !assignmentNeedsWrite
+    ) {
+      await db
+        .prepare(
+          'UPDATE platform_payment_subscriptions SET checked_at=?,next_check_at=?,error=? WHERE id=? AND EXISTS(SELECT 1 FROM platform_payment_locks WHERE workspace_id=? AND token=? AND expires_at>?)',
+        )
+        .bind(
+          now,
+          Math.max(now + 60000, Math.min(now + 900000, until)),
+          canAssign ? null : 'payment_grant_superseded',
+          subscriptionId,
+          checkout.workspace_id,
+          token,
+          now,
+        )
+        .run()
+      return 'done'
+    }
     const eventId = 'creem:' + event.id
     const fence =
       'EXISTS(SELECT 1 FROM platform_payment_locks WHERE workspace_id=? AND token=? AND expires_at>?)'
@@ -801,8 +842,6 @@ async function synchronizePayment(
       subscriptionId,
       environment: 'test',
     }
-    const anchor =
-      known && known.plan_id === planId ? known.quota_anchor : start
     const statements = [
       db
         .prepare(
