@@ -2840,3 +2840,361 @@ a.cf-domain-address:hover {
   min-width: 0;
   flex: 1;
 }
+.cf-pricing {
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 44px 24px 80px;
+}
+.cf-pricing-heading {
+  text-align: center;
+  max-width: 720px;
+  margin: 0 auto 36px;
+}
+.cf-pricing-heading h1 {
+  font-size: clamp(30px, 4vw, 48px);
+  letter-spacing: -0.045em;
+  line-height: 1.15;
+  margin: 12px 0;
+}
+.cf-pricing-heading > p {
+  color: var(--muted-foreground);
+  margin: 12px 0;
+}
+.cf-billing-toggle {
+  display: inline-flex;
+  margin: 18px 0 4px;
+  padding: 4px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--secondary);
+  gap: 4px;
+}
+.cf-billing-toggle label {
+  position: relative;
+  padding: 8px 18px;
+  border-radius: 7px;
+  cursor: pointer;
+  font-size: 13px;
+}
+.cf-billing-toggle label.active {
+  background: var(--card);
+  box-shadow: 0 1px 4px #00000012;
+  color: var(--foreground);
+}
+.cf-billing-toggle input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+.cf-billing-toggle label:has(input:focus-visible) {
+  outline: 2px solid var(--ring);
+}
+.cf-pricing-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
+  gap: 18px;
+}
+.cf-pricing-card {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  background: var(--card);
+  padding: 26px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+}
+.cf-pricing-card.is-default {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 1px var(--primary);
+}
+.cf-plan-card-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.cf-plan-card-heading h2 {
+  font-size: 19px;
+}
+.cf-plan-description {
+  font-size: 13px;
+  color: var(--muted-foreground);
+  min-height: 40px;
+  line-height: 1.6;
+}
+.cf-plan-price strong {
+  font-size: 35px;
+  font-weight: 600;
+  letter-spacing: -0.04em;
+  overflow-wrap: anywhere;
+}
+.cf-plan-price > span {
+  font-size: 12px;
+  margin-left: 5px;
+  color: var(--muted-foreground);
+}
+.cf-price-caption {
+  font-size: 11px;
+  color: var(--muted-foreground);
+  min-height: 30px;
+}
+.cf-plan-features {
+  display: grid;
+  gap: 12px;
+  list-style: none;
+  padding: 16px 0 0;
+  border-top: 1px solid var(--border);
+}
+.cf-plan-features li {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 12px;
+}
+.cf-plan-features li span {
+  color: var(--muted-foreground);
+}
+.cf-plan-features strong {
+  white-space: nowrap;
+  font-weight: 550;
+}
+.cf-rule-details {
+  border-top: 1px solid var(--border);
+  padding-top: 14px;
+  font-size: 12px;
+  color: var(--muted-foreground);
+}
+.cf-rule-details summary {
+  cursor: pointer;
+  color: var(--foreground);
+}
+.cf-rule-details p {
+  margin-top: 12px;
+}
+.cf-plan-comparison {
+  margin-top: 48px;
+}
+.cf-plan-comparison h2,
+.cf-plan-section-heading h2,
+.cf-plan-page section > h2 {
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+.cf-table-scroll {
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  margin-top: 18px;
+  background: var(--card);
+}
+.cf-table-scroll table {
+  width: 100%;
+  border-collapse: collapse;
+  white-space: nowrap;
+  text-align: left;
+}
+.cf-table-scroll th,
+.cf-table-scroll td {
+  font-size: 12px;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--border);
+}
+.cf-table-scroll th {
+  font-weight: 550;
+}
+.cf-table-scroll thead {
+  background: var(--secondary);
+}
+.cf-plan-page {
+  display: grid;
+  gap: 26px;
+}
+.cf-plan-page .cf-page-heading {
+  margin-bottom: 0;
+}
+.cf-workspace-picker {
+  display: grid;
+  gap: 7px;
+  font-size: 12px;
+  max-width: 360px;
+}
+.cf-plan-page select,
+.cf-redeem-page select {
+  font: inherit;
+  border: 1px solid var(--border);
+  background: var(--card);
+  color: var(--foreground);
+  padding: 9px 12px;
+  border-radius: 7px;
+  max-width: 100%;
+}
+.cf-current-plan {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+  padding: 24px;
+}
+.cf-current-plan h2 {
+  font-size: 26px;
+  font-weight: 600;
+  margin: 6px 0;
+}
+.cf-current-plan p {
+  font-size: 13px;
+  color: var(--muted-foreground);
+}
+.cf-plan-section-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 15px;
+  margin-bottom: 16px;
+}
+.cf-quota-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr));
+  gap: 12px;
+}
+.cf-quota-card {
+  border: 1px solid var(--border);
+  background: var(--card);
+  border-radius: 10px;
+  padding: 18px;
+}
+.cf-quota-card h3 {
+  font-size: 12px;
+  color: var(--muted-foreground);
+  font-weight: 500;
+  margin: 0 0 12px;
+}
+.cf-quota-card p {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.cf-quota-card strong {
+  font-size: 23px;
+  letter-spacing: -0.035em;
+  font-weight: 550;
+}
+.cf-quota-card p > span,
+.cf-quota-card small {
+  font-size: 11px;
+  color: var(--muted-foreground);
+}
+.cf-portal .cf-quota-card small.cf-error-message {
+  display: block;
+  padding: 0;
+  margin: 0;
+  border: 0;
+  background: transparent;
+  color: var(--destructive);
+}
+.cf-quota-track {
+  height: 4px;
+  border-radius: 4px;
+  background: var(--secondary);
+  overflow: hidden;
+  margin: 14px 0 8px;
+}
+.cf-quota-track > span {
+  display: block;
+  height: 100%;
+  background: var(--primary);
+}
+.cf-quota-track .is-over {
+  background: var(--destructive);
+}
+.cf-billing-details {
+  font-size: 13px;
+  border-top: 1px solid var(--border);
+  padding-top: 20px;
+}
+.cf-billing-details summary {
+  cursor: pointer;
+}
+.cf-billing-details dl,
+.cf-redemption-preview dl {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 10px;
+  font-size: 12px;
+  margin: 18px 0;
+}
+.cf-billing-details dd,
+.cf-redemption-preview dd {
+  margin: 0;
+  text-align: right;
+}
+.cf-subscription-history {
+  list-style: none;
+  padding: 0;
+}
+.cf-subscription-history li {
+  display: flex;
+  justify-content: space-between;
+  gap: 15px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 12px;
+}
+.cf-subscription-history time {
+  color: var(--muted-foreground);
+}
+.cf-redeem-page {
+  max-width: 650px;
+}
+.cf-redeem-page > .cf-card {
+  padding: 24px;
+}
+.cf-redemption-preview {
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border);
+}
+.cf-redemption-preview h2 {
+  font-size: 17px;
+}
+.cf-redemption-preview p {
+  font-size: 12px;
+  color: var(--muted-foreground);
+  margin-bottom: 18px;
+}
+.cf-redeem-page .cf-error-message {
+  margin-top: 14px;
+}
+@media (max-width: 640px) {
+  .cf-pricing {
+    padding: 28px 16px 50px;
+  }
+  .cf-pricing-card {
+    padding: 20px;
+  }
+  .cf-current-plan {
+    align-items: flex-start;
+    flex-direction: column;
+    padding: 18px;
+  }
+  .cf-plan-section-heading {
+    align-items: flex-start;
+  }
+  .cf-plan-page select,
+  .cf-redeem-page select {
+    font-size: 16px;
+  }
+  .cf-subscription-history li {
+    flex-direction: column;
+    gap: 3px;
+  }
+  .cf-pricing-heading {
+    text-align: left;
+  }
+  .cf-redeem-page > .cf-card {
+    padding: 18px;
+  }
+}

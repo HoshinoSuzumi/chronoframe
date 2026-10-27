@@ -1,7 +1,13 @@
 <script setup lang="ts">
 const { t } = useI18n()
 
-import { ChevronsUpDown, UserRound, LogOut } from 'lucide-vue-next'
+import {
+  ChevronsUpDown,
+  UserRound,
+  LogOut,
+  CreditCard,
+  Ticket,
+} from 'lucide-vue-next'
 import {
   DropdownMenuRoot,
   DropdownMenuTrigger,
@@ -67,6 +73,15 @@ const initials = computed(() =>
               ><UserRound :size="16" />{{
                 $t('cloud.messages.accountSecurity')
               }}</NuxtLink
+            ></DropdownMenuItem
+          >
+          <DropdownMenuItem as-child
+            ><NuxtLink to="/account/plan"
+              ><CreditCard :size="16" />{{ $t('cloud.billing.plan') }}</NuxtLink
+            ></DropdownMenuItem
+          ><DropdownMenuItem as-child
+            ><NuxtLink to="/account/redeem"
+              ><Ticket :size="16" />{{ $t('cloud.billing.redeem') }}</NuxtLink
             ></DropdownMenuItem
           >
           <DropdownMenuSeparator class="cf-menu-separator" />

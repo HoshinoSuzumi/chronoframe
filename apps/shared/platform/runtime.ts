@@ -1,3 +1,4 @@
+import { SubscriptionError } from '../../../packages/platform/src/subscriptions.ts'
 import { DomainError } from '../../../packages/platform/src/domains.ts'
 import { StorageConnectionError } from '@chronoframe/storage/connection-probe'
 import {
@@ -79,6 +80,12 @@ export function definePlatformHandler<T>(
     try {
       return await handler(event)
     } catch (error) {
+      if (error instanceof SubscriptionError)
+        throw createError({
+          statusCode: error.statusCode,
+          statusMessage: 'Subscription request could not be completed',
+          data: { code: error.code },
+        })
       if (error instanceof DomainError) {
         const allowed = [
           'domain_invalid',

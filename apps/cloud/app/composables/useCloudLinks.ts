@@ -1,6 +1,6 @@
 /** Production actions cross to the portal; preview/local auth stays on its own isolated origin. */
 export function useCloudLinks() {
-  const hostname = useRequestURL().hostname
+  const hostname = useCloudRequestURL().hostname
   const portal = ['chronoframe.art', 'app.chronoframe.art'].includes(hostname)
     ? 'https://app.chronoframe.art'
     : ''
@@ -8,5 +8,7 @@ export function useCloudLinks() {
     website: 'https://chronoframe.art/',
     signin: portal + '/signin',
     signup: portal + '/signup',
+    redeem: portal + '/account/redeem',
+    portalPricing: portal ? portal + '/pricing' : '/pricing?portal=1',
   }
 }

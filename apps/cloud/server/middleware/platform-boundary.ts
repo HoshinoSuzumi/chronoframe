@@ -18,6 +18,10 @@ export default defineEventHandler((event) => {
       '/api/auth/logout',
       '/api/auth/security',
       '/api/sites',
+      '/api/billing/catalog',
+      '/api/billing/workspaces',
+      '/api/billing/plan',
+      '/api/billing/redeem',
       '/api/workspaces/default',
     ].includes(path) ||
     /^\/api\/sites\/[1-9][0-9]*\/(?:context|events|settings|domains)$/.test(

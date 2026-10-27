@@ -1,3 +1,4 @@
+import { ensureDefaultSubscription } from './subscriptions.ts'
 import {
   parseGalleryPresentation,
   type GalleryPresentation,
@@ -112,6 +113,7 @@ export function createD1Provisioning(
       .bind(userId, userId)
       .first<{ id: number; name: string; role: string }>()
     if (!workspace) throw new ProvisioningError(403, 'Workspace unavailable')
+    await ensureDefaultSubscription(db, workspace.id)
     return workspace
   }
   async function get(userId: number, siteId: number) {

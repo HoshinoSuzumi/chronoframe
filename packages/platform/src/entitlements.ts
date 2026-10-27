@@ -1,3 +1,4 @@
+import { resolveSubscription } from './subscriptions.ts'
 import type { PlatformD1 } from './index.ts'
 
 export const LIMIT_KEYS = [
@@ -137,27 +138,14 @@ export async function workspaceEntitlements(
   db: PlatformD1,
   workspaceId: number,
   storageMode: 'platform' | 'byos' = 'platform',
+  now = Date.now(),
 ) {
-  const row = await db
-    .prepare(`SELECT p.id,p.name,p.revision,p.policy_json,w.owner_user_id,
-    w.created_at AS created_at,COALESCE(u.email_verified,0) AS email_verified
-    FROM platform_workspaces w LEFT JOIN platform_users u ON u.id=w.owner_user_id
-    JOIN platform_plans p ON p.id=COALESCE((SELECT plan_id FROM platform_workspace_plans WHERE workspace_id=w.id),'free') WHERE w.id=?`)
-    .bind(workspaceId)
-    .first<{
-      id: string
-      name: string
-      revision: number
-      policy_json: string
-      created_at: number
-      email_verified: number
-    }>()
-  if (!row) throw new Error('Workspace plan unavailable')
+  const row = await resolveSubscription(db, workspaceId, now)
   const context: PolicyContext = {
     storageMode,
     workspaceAgeDays: Math.max(
       0,
-      Math.floor((Date.now() - Number(row.created_at)) / 86400000),
+      Math.floor((now - Number(row.created_at)) / 86400000),
     ),
     emailVerified: !!row.email_verified,
   }
@@ -165,6 +153,8 @@ export async function workspaceEntitlements(
     id: row.id,
     name: row.name,
     revision: row.revision,
+    subscription: row.subscription,
+    quotaPeriod: row.quotaPeriod,
     limits: evaluatePolicy(
       validatePolicy(JSON.parse(row.policy_json)),
       context,
@@ -179,7 +169,7 @@ export function workspaceUsageSQL(siteId: number) {
   const sites = `SELECT id FROM platform_sites WHERE workspace_id=(SELECT workspace_id FROM platform_sites WHERE id=${siteId})`
   return {
     photos: `(SELECT COUNT(*) FROM cloud_photos WHERE site_id IN (${sites}) AND deleted=0)+(SELECT COUNT(*) FROM cloud_uploads WHERE site_id IN (${sites}) AND state='pending' AND expires_at>?)`,
-    monthly: `COALESCE((SELECT SUM(bytes) FROM cloud_usage_events WHERE site_id IN (${sites}) AND created_at>?),0)+COALESCE((SELECT SUM(expected_bytes+expected_video_bytes) FROM cloud_uploads WHERE site_id IN (${sites}) AND state='pending' AND expires_at>?),0)`,
+    monthly: `COALESCE((SELECT SUM(bytes) FROM cloud_usage_events WHERE site_id IN (${sites}) AND created_at>=?),0)+COALESCE((SELECT SUM(expected_bytes+expected_video_bytes) FROM cloud_uploads WHERE site_id IN (${sites}) AND state='pending' AND expires_at>?),0)`,
     storage: `COALESCE((SELECT SUM(u.expected_bytes+u.expected_video_bytes) FROM cloud_uploads u JOIN cloud_photos p ON p.site_id=u.site_id AND p.id=u.photo_id JOIN cloud_storage_connections c ON c.site_id=u.site_id AND c.id=u.connection_id WHERE u.site_id IN (${sites}) AND u.state='completed' AND p.deleted=0 AND c.pool_id IS NOT NULL),0)
       +COALESCE((SELECT SUM(a.bytes) FROM cloud_media_assets a JOIN cloud_photos p ON p.site_id=a.site_id AND p.id=a.photo_id JOIN cloud_storage_connections c ON c.site_id=a.site_id AND c.id=a.connection_id WHERE a.site_id IN (${sites}) AND p.deleted=0 AND c.pool_id IS NOT NULL),0)
       +COALESCE((SELECT SUM(reserved_storage_bytes) FROM cloud_uploads WHERE site_id IN (${sites}) AND state='pending' AND expires_at>?),0)

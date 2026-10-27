@@ -89,6 +89,7 @@ test('Real D1 provisioning preserves old tenants, serializes defaults and enforc
       '0014_entitlements.sql',
       '0015_lifecycle.sql',
       '0016_gallery_presentation.sql',
+      '0017_subscriptions.sql',
     ])
       await migrate(migration)
     await db
