@@ -66,7 +66,7 @@ export function validateExemptions(value: unknown): LifecycleExemptions {
     })),
   }
 }
-/** Grants belong to owned workspaces. Merely joining another subscriber's workspace cannot exempt an account. */
+/** Owned grants and personally purchased recurring subscriptions qualify; borrowed membership alone never does. */
 export async function accountExemption(
   db: PlatformD1,
   userId: number,
@@ -80,6 +80,15 @@ export async function accountExemption(
         'SELECT p.*,plan.active FROM platform_workspace_plans p JOIN platform_workspaces w ON w.id=p.workspace_id JOIN platform_plans plan ON plan.id=p.plan_id WHERE w.owner_user_id=?',
       )
       .bind(userId),
+  )
+  current.push(
+    ...(await allRows<any>(
+      db
+        .prepare(
+          "SELECT s.plan_id,'payment' AS source,s.period_start AS starts_at,s.period_end AS expires_at,CASE WHEN p.active=1 AND s.status IN('active','trialing','scheduled_cancel','past_due') THEN 1 ELSE 0 END AS active FROM platform_payment_subscriptions s JOIN platform_payment_checkouts c ON c.id=s.checkout_id JOIN platform_plans p ON p.id=s.plan_id WHERE c.user_id=?",
+        )
+        .bind(userId),
+    )),
   )
   const events = config.rules.some((r) => r.kind === 'ever-subscribed')
     ? await allRows<any>(

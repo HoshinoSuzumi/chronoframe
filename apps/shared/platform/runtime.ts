@@ -166,6 +166,7 @@ export function definePlatformHandler<T>(
         404: 'Site not found',
         405: 'Method not allowed',
         409: 'Site address or settings conflict; reload and try again',
+        413: 'Request body too large',
         429: 'Please wait before trying again',
         503: 'Platform service unavailable',
       }

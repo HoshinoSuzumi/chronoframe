@@ -26,6 +26,76 @@ const action = (plan: any) =>
       (props.portal && billing?.selected.value
         ? '?workspaceId=' + billing.selected.value
         : '')
+const payment = ref<any>(),
+  paying = ref(''),
+  paymentError = ref('')
+let paymentGeneration = 0,
+  mounted = true
+async function loadPayments() {
+  const id = billing?.selected.value,
+    generation = ++paymentGeneration
+  if (!id) return
+  try {
+    const result = await $fetch('/api/billing/payments', {
+      query: { workspaceId: id },
+    })
+    if (mounted && generation === paymentGeneration) payment.value = result
+  } catch {
+    if (mounted && generation === paymentGeneration) payment.value = null
+  }
+}
+onMounted(() => {
+  if (props.portal) void loadPayments()
+})
+if (billing)
+  watch(billing.selected, () => {
+    payment.value = null
+    paymentError.value = ''
+    void loadPayments()
+  })
+onBeforeUnmount(() => {
+  mounted = false
+  paymentGeneration++
+})
+const offer = (plan: any) =>
+  payment.value?.enabled &&
+  payment.value?.canManage &&
+  payment.value.offers.some(
+    (v: any) => v.plan_id === plan.id && v.interval === interval.value,
+  )
+const subscriptionActive = computed(() =>
+  payment.value?.subscriptions.some(
+    (v: any) => !['expired', 'canceled'].includes(v.status),
+  ),
+)
+async function checkout(plan: any) {
+  if (paying.value || !billing?.selected.value) return
+  const workspaceId = billing.selected.value,
+    key = plan.id + ':' + interval.value
+  paying.value = key
+  paymentError.value = ''
+  try {
+    const result = await $fetch<{ url: string }>('/api/billing/payments', {
+      method: 'POST',
+      body: {
+        action: 'checkout',
+        workspaceId,
+        planId: plan.id,
+        interval: interval.value,
+        requestId: crypto.randomUUID(),
+      },
+    })
+    if (mounted && workspaceId === billing.selected.value)
+      await navigateTo(result.url, { external: true })
+  } catch {
+    if (mounted) {
+      paymentError.value = t('cloud.payments.failed')
+      await loadPayments()
+    }
+  } finally {
+    paying.value = ''
+  }
+}
 </script>
 <template>
   <div class="cf-pricing">
@@ -49,8 +119,25 @@ const action = (plan: any) =>
           }}</span></label
         >
       </fieldset>
-      <p class="cf-field-hint">{{ $t('cloud.billing.paymentsPlanned') }}</p>
+      <p class="cf-field-hint">
+        {{
+          payment?.enabled
+            ? $t('cloud.payments.testHelp')
+            : $t('cloud.billing.paymentsPlanned')
+        }}
+      </p>
+      <p
+        v-if="paymentError"
+        class="cf-error-message"
+        role="alert"
+      >
+        {{ paymentError }}
+      </p>
     </div>
+    <CloudPaymentsPanel
+      v-if="portal && billing?.selected.value"
+      :workspace-id="billing.selected.value"
+    />
     <template v-if="billing">
       <label class="cf-workspace-picker"
         >{{ $t('cloud.billing.workspace')
@@ -132,7 +219,21 @@ const action = (plan: any) =>
             }}
           </p>
           <CloudButton
-            v-if="portal && billing?.data.value?.workspace.role !== 'admin'"
+            v-if="portal && offer(plan)"
+            :loading="paying === plan.id + ':' + interval"
+            :disabled="!!paying || !!payment.pending || subscriptionActive"
+            :variant="plan.featured ? 'default' : 'secondary'"
+            @click="checkout(plan)"
+            >{{
+              subscriptionActive
+                ? $t('cloud.payments.manageExisting')
+                : $t('cloud.payments.subscribe')
+            }}</CloudButton
+          >
+          <CloudButton
+            v-else-if="
+              portal && billing?.data.value?.workspace.role !== 'admin'
+            "
             disabled
             :title="$t('cloud.billing.adminOnly')"
             :variant="plan.featured ? 'default' : 'secondary'"

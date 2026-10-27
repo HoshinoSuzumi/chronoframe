@@ -675,7 +675,29 @@
       "connectionCount": "{count} existing storage connections",
       "event_signup_promotion": "Registration promotion activated",
       "event_signup_default": "Registration plan assigned",
-      "signupOffer": "Your registration promotion is active until the expiration shown above."
+      "signupOffer": "Your registration promotion is active until the expiration shown above.",
+      "event_payment": "Subscription billing updated"
+    },
+    "payments": {
+      "billing": "Subscription billing",
+      "test": "Test mode",
+      "testHelp": "Creem sandbox checkout. No real charges.",
+      "failed": "The billing action could not be completed. Refresh billing status before retrying.",
+      "pending": "Waiting for provider confirmation. Do not start another subscription.",
+      "manage": "Manage billing and subscription",
+      "resume": "Resume checkout",
+      "subscribe": "Subscribe in test mode",
+      "manageExisting": "Manage your existing subscription",
+      "status": {
+        "active": "Active",
+        "trialing": "Trialing",
+        "scheduled_cancel": "Cancels at period end",
+        "past_due": "Past due",
+        "expired": "Expired",
+        "paused": "Paused",
+        "canceled": "Canceled",
+        "unpaid": "Unpaid"
+      }
     }
   }
 }

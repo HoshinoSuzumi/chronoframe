@@ -1,0 +1,17 @@
+CREATE TABLE platform_payment_settings(id INTEGER PRIMARY KEY CHECK(id=1),enabled INTEGER NOT NULL DEFAULT 0 CHECK(enabled IN(0,1)),environment TEXT NOT NULL DEFAULT 'test' CHECK(environment='test'),workspace_ids_json TEXT NOT NULL DEFAULT '[]',credentials_ciphertext TEXT,revision INTEGER NOT NULL DEFAULT 1,updated_at INTEGER NOT NULL DEFAULT 0);
+INSERT INTO platform_payment_settings(id) VALUES(1);
+CREATE TABLE platform_payment_products(plan_id TEXT NOT NULL REFERENCES platform_plans(id),interval INTEGER NOT NULL CHECK(interval IN(1,3)),product_id TEXT NOT NULL UNIQUE,price INTEGER NOT NULL,currency TEXT NOT NULL,enabled INTEGER NOT NULL DEFAULT 1 CHECK(enabled IN(0,1)),revision INTEGER NOT NULL DEFAULT 1,PRIMARY KEY(plan_id,interval));
+CREATE TABLE platform_payment_checkouts(id TEXT PRIMARY KEY,workspace_id INTEGER NOT NULL REFERENCES platform_workspaces(id),user_id INTEGER REFERENCES platform_users(id) ON DELETE SET NULL,request_id TEXT NOT NULL,plan_id TEXT NOT NULL REFERENCES platform_plans(id),interval INTEGER NOT NULL CHECK(interval IN(1,3)),product_id TEXT NOT NULL,price INTEGER NOT NULL,currency TEXT NOT NULL,assignment_revision INTEGER NOT NULL,provider_id TEXT UNIQUE,checkout_url TEXT,state TEXT NOT NULL CHECK(state IN('creating','open','completed','expired','uncertain')),created_at INTEGER NOT NULL,updated_at INTEGER NOT NULL,error TEXT,UNIQUE(user_id,request_id));
+CREATE UNIQUE INDEX platform_payment_checkout_pending ON platform_payment_checkouts(workspace_id) WHERE state IN('creating','open','uncertain');
+CREATE TABLE platform_payment_subscriptions(id TEXT PRIMARY KEY,workspace_id INTEGER NOT NULL REFERENCES platform_workspaces(id),checkout_id TEXT NOT NULL UNIQUE REFERENCES platform_payment_checkouts(id),customer_id TEXT NOT NULL,product_id TEXT NOT NULL,plan_id TEXT NOT NULL REFERENCES platform_plans(id),interval INTEGER NOT NULL,quota_anchor INTEGER NOT NULL,status TEXT NOT NULL,period_start INTEGER NOT NULL,period_end INTEGER NOT NULL,provider_updated_at INTEGER NOT NULL,checked_at INTEGER NOT NULL,next_check_at INTEGER NOT NULL DEFAULT 0,error TEXT,revision INTEGER NOT NULL DEFAULT 1);
+CREATE INDEX platform_payment_subscription_due ON platform_payment_subscriptions(next_check_at);
+CREATE TABLE platform_payment_events(id TEXT PRIMARY KEY,type TEXT NOT NULL,object_id TEXT NOT NULL,reference_id TEXT,created_at INTEGER NOT NULL,state TEXT NOT NULL DEFAULT 'pending' CHECK(state IN('pending','done','ignored','failed')),attempts INTEGER NOT NULL DEFAULT 0,available_at INTEGER NOT NULL,error TEXT,lease_token TEXT,lease_until INTEGER);
+CREATE INDEX platform_payment_events_due ON platform_payment_events(state,available_at);
+CREATE TABLE platform_payment_locks(workspace_id INTEGER PRIMARY KEY REFERENCES platform_workspaces(id),token TEXT NOT NULL,expires_at INTEGER NOT NULL);
+ALTER TABLE platform_workspace_plans ADD COLUMN payment_subscription_id TEXT;
+CREATE TABLE platform_payment_requests(user_id INTEGER NOT NULL REFERENCES platform_users(id) ON DELETE CASCADE,window_start INTEGER NOT NULL,attempts INTEGER NOT NULL,PRIMARY KEY(user_id,window_start));
+
+CREATE INDEX platform_payment_event_object ON platform_payment_events(object_id);
+CREATE INDEX platform_payment_event_reference ON platform_payment_events(reference_id);
+CREATE INDEX platform_payment_subscription_workspace ON platform_payment_subscriptions(workspace_id,checked_at);
+CREATE INDEX platform_payment_subscription_customer ON platform_payment_subscriptions(customer_id);
