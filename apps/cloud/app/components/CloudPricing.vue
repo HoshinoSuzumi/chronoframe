@@ -10,16 +10,22 @@ const props = withDefaults(defineProps<{ portal?: boolean }>(), {
   }),
   { t, locale } = useI18n(),
   links = useCloudLinks(),
-  interval = ref<1 | 3>(1)
+  interval = ref<1 | 3>(1),
+  billing = props.portal ? useWorkspaceBilling() : null
 const { data, error, refresh } = await useFetch<any>('/api/billing/catalog', {
   key: 'public-pricing-catalog',
 })
+if (billing) await billing.ready
+const currentPlan = computed(() => billing?.data.value?.plan.id)
 const amount = (plan: any) =>
   interval.value === 1 ? plan.monthlyPrice : plan.quarterlyPrice
 const action = (plan: any) =>
   !props.portal && plan.id === data.value?.newPlanId
     ? links.signup
-    : links.redeem
+    : links.redeem +
+      (props.portal && billing?.selected.value
+        ? '?workspaceId=' + billing.selected.value
+        : '')
 </script>
 <template>
   <div class="cf-pricing">
@@ -45,6 +51,38 @@ const action = (plan: any) =>
       </fieldset>
       <p class="cf-field-hint">{{ $t('cloud.billing.paymentsPlanned') }}</p>
     </div>
+    <template v-if="billing">
+      <label class="cf-workspace-picker"
+        >{{ $t('cloud.billing.workspace')
+        }}<select v-model="billing.selected.value">
+          <option
+            v-for="workspace in billing.workspaces.value"
+            :key="workspace.id"
+            :value="workspace.id"
+          >
+            {{ workspace.name }}
+          </option>
+        </select></label
+      >
+      <p
+        v-if="billing.error.value"
+        role="alert"
+        class="cf-notice"
+      >
+        {{ $t('cloud.billing.failed') }}
+        <CloudButton
+          variant="ghost"
+          @click="billing.retry"
+          >{{ $t('cloud.billing.retry') }}</CloudButton
+        >
+      </p>
+      <p
+        v-else-if="billing.data.value"
+        class="cf-field-hint cf-pricing-current"
+      >
+        {{ $t('cloud.billing.current') }}: {{ billing.data.value.plan.name }}
+      </p>
+    </template>
     <CloudCard
       v-if="error"
       role="alert"
@@ -58,12 +96,12 @@ const action = (plan: any) =>
           v-for="plan in data.plans"
           :key="plan.id"
           class="cf-pricing-card"
-          :class="{ 'is-default': plan.id === data.newPlanId }"
+          :class="{ 'is-featured': plan.featured }"
         >
           <div class="cf-plan-card-heading">
             <h2>{{ plan.name }}</h2>
-            <CloudBadge v-if="plan.id === data.newPlanId">{{
-              $t('cloud.billing.defaultTier')
+            <CloudBadge v-if="portal && plan.id === currentPlan">{{
+              $t('cloud.billing.current')
             }}</CloudBadge>
           </div>
           <p class="cf-plan-description">
@@ -94,8 +132,16 @@ const action = (plan: any) =>
             }}
           </p>
           <CloudButton
+            v-if="portal && billing?.data.value?.workspace.role !== 'admin'"
+            disabled
+            :title="$t('cloud.billing.adminOnly')"
+            :variant="plan.featured ? 'default' : 'secondary'"
+            >{{ $t('cloud.billing.redeem') }}</CloudButton
+          >
+          <CloudButton
+            v-else
             as-child
-            :variant="plan.id === data.newPlanId ? 'default' : 'secondary'"
+            :variant="plan.featured ? 'default' : 'secondary'"
             ><NuxtLink
               :to="action(plan)"
               :external="!portal"

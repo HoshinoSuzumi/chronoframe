@@ -141,6 +141,23 @@ test('Real D1 defaults, live expiry, activation races/idempotency and workspace 
       .run()
     const catalog = await pricingCatalog(db)
     assert.equal(catalog.paymentAvailable, false)
+    assert.ok(catalog.plans.every((p) => p.featured === false))
+    await db
+      .prepare("UPDATE platform_plans SET featured=1 WHERE id='pro'")
+      .run()
+    assert.equal(
+      (await pricingCatalog(db)).plans.find((p) => p.featured)!.id,
+      'pro',
+    )
+    await assert.rejects(
+      db
+        .prepare("UPDATE platform_plans SET featured=1 WHERE id='starter'")
+        .run(),
+      /UNIQUE/,
+    )
+    await db
+      .prepare("UPDATE platform_plans SET featured=0 WHERE id='pro'")
+      .run()
     assert.equal(
       catalog.plans.find((p) => p.id === 'pro')!.quarterlyPrice,
       2400,
