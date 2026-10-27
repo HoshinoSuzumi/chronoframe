@@ -675,7 +675,8 @@
       "connectionCount": "已有 {count} 个存储连接",
       "event_signup_promotion": "注册活动套餐已开通",
       "event_signup_default": "注册默认套餐已分配",
-      "signupOffer": "注册促销权益已生效，有效期见上方到期时间。"
+      "signupOffer": "注册促销权益已生效，有效期见上方到期时间。",
+      "event_payment": "订阅账单已更新"
     },
     "payments": {
       "billing": "订阅账单",
