@@ -52,6 +52,26 @@ test('Signup promotions snapshot eligibility at actual registration, grant once 
       )
       .bind(free.policy_json)
       .run()
+    for (const [unit, value] of [
+      ['days', null],
+      ['days', 0],
+      ['days', -1],
+      ['days', 36501],
+      ['days', 1.5],
+      ['months', null],
+      ['months', 1201],
+      ['permanent', 14],
+    ]) {
+      await assert.rejects(
+        db
+          .prepare(
+            "INSERT INTO platform_signup_promotions(id,name,plan_id,ends_at,duration_unit,duration_value,created_at) VALUES('invalid','Invalid','trial',?,?,?,?)",
+          )
+          .bind(now + day, unit, value, now)
+          .run(),
+        /CHECK constraint failed/,
+      )
+    }
     await db
       .prepare(
         "INSERT INTO platform_signup_promotions(id,name,plan_id,starts_at,ends_at,duration_unit,duration_value,priority,enabled,created_at) VALUES('before','Before cutoff','trial',NULL,?,'days',7,0,1,?),('trial14','14-day Trial','trial',?,?,'days',14,10,1,?),('off','Disabled','trial',NULL,?,'days',99,100,0,?)",

@@ -82,7 +82,10 @@ const date = (time: number) => new Date(time).toLocaleString(locale.value)
             }}
           </p>
           <p
-            v-if="data.subscription.source === 'promotion'"
+            v-if="
+              data.subscription.source === 'promotion' &&
+              data.subscription.expiresAt !== null
+            "
             class="cf-field-hint"
           >
             {{ $t('cloud.billing.signupOffer') }}
