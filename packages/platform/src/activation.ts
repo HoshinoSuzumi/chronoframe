@@ -127,7 +127,7 @@ async function attempt(db: PlatformD1, userId: number, now: number) {
   const window = Math.floor(now / 900000) * 900000
   const row = await db
     .prepare(
-      'INSERT INTO platform_activation_attempts(user_id,window_start,attempts) VALUES(?,?,1) ON CONFLICT(user_id,window_start) DO UPDATE SET attempts=attempts+1 WHERE attempts<20 RETURNING attempts',
+      'INSERT INTO platform_activation_attempts(user_id,window_start,attempts) VALUES(?,?,1) ON CONFLICT(user_id,window_start) DO UPDATE SET attempts=attempts+1 WHERE attempts<3 RETURNING attempts',
     )
     .bind(userId, window)
     .first()
