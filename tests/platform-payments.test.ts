@@ -140,8 +140,7 @@ async function fixture() {
         id,
         mode: 'test',
         status: 'pending',
-        request_id: b.request_id,
-        product: b.product_id,
+        product: { id: b.product_id },
         metadata: b.metadata,
         customer: { id: 'cust_fixture' },
         checkout_url: 'https://checkout.creem.io/' + id,
@@ -1112,6 +1111,172 @@ test('First past-due confirmation stores a real boundary without inventing a pai
     ).receive()
     await processPaymentEvents(f.db, root, f.transport, f.now + 120001)
     assert.equal((await resolveSubscription(f.db, 1, f.now + 120001)).id, 'pro')
+  } finally {
+    await f.mf.dispose()
+  }
+})
+
+test('Ambiguous checkout diagnostics preserve safe causes and recoverable provider identifiers', async () => {
+  for (const scenario of [
+    'redirect',
+    'mode',
+    'request',
+    'product',
+    'metadata',
+    'unbound',
+    'timeout',
+    'server',
+    'invalid',
+  ]) {
+    const f = await fixture()
+    try {
+      const transport = async (url: any, init: any = {}) => {
+        if (
+          init.method !== 'POST' ||
+          new URL(String(url)).pathname !== '/v1/checkouts'
+        )
+          return f.transport(url, init)
+        if (scenario === 'timeout')
+          throw new DOMException(
+            'Sensitive provider key must never be persisted',
+            'TimeoutError',
+          )
+        if (scenario === 'server')
+          return new Response('Sensitive provider body', { status: 503 })
+        const response = await f.transport(url, init),
+          value = await response.json()
+        if (scenario === 'redirect')
+          value.checkout_url = 'https://foreign.example/private?secret=hidden'
+        if (scenario === 'mode') value.mode = 'sandbox'
+        if (scenario === 'request') value.request_id = 'wrong-request'
+        if (scenario === 'product') value.product = 'wrong-product'
+        if (scenario === 'metadata') {
+          value.request_id = JSON.parse(init.body).request_id
+          value.metadata = { chronoframe_checkout_id: 'wrong-checkout' }
+        }
+        if (scenario === 'unbound') delete value.metadata
+        if (scenario === 'invalid') return Response.json(null)
+        return Response.json(value)
+      }
+      await assert.rejects(
+        createPaymentCheckout(
+          f.db,
+          root,
+          1,
+          f.input,
+          'https://app.chronoframe.art',
+          transport,
+          f.now,
+        ),
+        { code: 'payment_confirmation_pending' },
+      )
+      const row = await f.db
+        .prepare('SELECT * FROM platform_payment_checkouts')
+        .first<any>()
+      const codes = {
+        redirect: 'payment_redirect_invalid',
+        mode: 'payment_checkout_mode_sandbox',
+        request: 'payment_checkout_request_invalid',
+        product: 'payment_checkout_product_invalid',
+        metadata: 'payment_checkout_request_invalid',
+        unbound: 'payment_checkout_request_invalid',
+        timeout: 'payment_provider_timeout',
+        server: 'payment_provider_request_failed:503',
+        invalid: 'payment_checkout_response_invalid',
+      }
+      assert.equal(row.error, codes[scenario as keyof typeof codes])
+      assert.equal(row.state, 'uncertain')
+      assert.equal(row.checkout_url, null)
+      assert.equal(
+        row.provider_id,
+        ['timeout', 'server', 'invalid'].includes(scenario) ? null : 'chk_1',
+      )
+      assert.ok(!JSON.stringify(row).includes('Sensitive'))
+      assert.ok(!JSON.stringify(row).includes('foreign.example'))
+      if (row.provider_id) {
+        await recoverPaymentCheckout(
+          f.db,
+          root,
+          row.id,
+          row.provider_id,
+          f.transport,
+          f.now + 1,
+        )
+        assert.equal(
+          (
+            await f.db
+              .prepare('SELECT state FROM platform_payment_checkouts')
+              .first<any>()
+          ).state,
+          'open',
+        )
+      }
+      assert.equal((await resolveSubscription(f.db, 1, f.now)).id, 'free')
+    } finally {
+      await f.mf.dispose()
+    }
+  }
+})
+
+test('Abandoned sandbox attempts cannot grant access through late callbacks or block a fresh checkout', async () => {
+  const f = await fixture()
+  try {
+    f.setUncertain(true)
+    await assert.rejects(
+      createPaymentCheckout(
+        f.db,
+        root,
+        1,
+        f.input,
+        'https://app.chronoframe.art',
+        f.transport,
+        f.now,
+      ),
+    )
+    await f.db
+      .prepare(
+        "UPDATE platform_payment_checkouts SET state='expired',error='payment_test_abandoned'",
+      )
+      .run()
+    await f.complete()
+    await (
+      await f.event(
+        'evt_abandoned',
+        'checkout.completed',
+        f.checkouts.get('chk_1'),
+      )
+    ).receive()
+    await processPaymentEvents(f.db, root, f.transport, f.now)
+    assert.equal((await resolveSubscription(f.db, 1, f.now)).id, 'free')
+    assert.equal(
+      (
+        await f.db
+          .prepare(
+            "SELECT state FROM platform_payment_events WHERE id='evt_abandoned'",
+          )
+          .first<any>()
+      ).state,
+      'ignored',
+    )
+    assert.equal(
+      (
+        await f.db
+          .prepare('SELECT COUNT(*) n FROM platform_payment_subscriptions')
+          .first<any>()
+      ).n,
+      0,
+    )
+    f.setUncertain(false)
+    const retry = await createPaymentCheckout(
+      f.db,
+      root,
+      1,
+      { ...f.input, requestId: 'new_test_attempt' },
+      'https://app.chronoframe.art',
+      f.transport,
+      f.now + 1,
+    )
+    assert.ok(retry.url)
   } finally {
     await f.mf.dispose()
   }
