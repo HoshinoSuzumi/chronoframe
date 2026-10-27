@@ -968,6 +968,24 @@ test('Owned account erasure removes dependent payment rows only after cancellati
       ).n,
       0,
     )
+    await (
+      await f.event(
+        'evt_after_erasure',
+        'checkout.completed',
+        f.checkouts.get('chk_1'),
+      )
+    ).receive()
+    await processPaymentEvents(f.db, root, f.transport, f.now + 16 * 86400000)
+    assert.equal(
+      (
+        await f.db
+          .prepare(
+            "SELECT COUNT(*) n FROM platform_payment_event_payloads WHERE event_id='evt_after_erasure'",
+          )
+          .first<any>()
+      ).n,
+      0,
+    )
   } finally {
     await f.mf.dispose()
   }
@@ -1274,6 +1292,26 @@ test('Abandoned sandbox attempts cannot grant access through late callbacks or b
           .first<any>()
       ).n,
       0,
+    )
+    assert.equal(
+      (await paymentEventPayload(f.db, root, 'evt_abandoned', f.now)).available,
+      true,
+    )
+    await f.db
+      .prepare('UPDATE platform_payment_checkouts SET user_id=NULL')
+      .run()
+    await (
+      await f.event(
+        'evt_abandoned_no_payer',
+        'checkout.completed',
+        f.checkouts.get('chk_1'),
+      )
+    ).receive()
+    await processPaymentEvents(f.db, root, f.transport, f.now)
+    assert.equal(
+      (await paymentEventPayload(f.db, root, 'evt_abandoned_no_payer', f.now))
+        .available,
+      false,
     )
     f.setUncertain(false)
     const retry = await createPaymentCheckout(

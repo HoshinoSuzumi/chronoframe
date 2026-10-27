@@ -230,7 +230,13 @@ async function checkout(plan: any) {
             }}
           </p>
           <CloudButton
-            v-if="portal && !payment"
+            v-if="portal && !payment && payments?.error.value"
+            variant="secondary"
+            @click="payments?.refresh()"
+            >{{ $t('cloud.messages.retry') }}</CloudButton
+          >
+          <CloudButton
+            v-else-if="portal && !payment"
             disabled
             variant="secondary"
             >{{ $t('cloud.billing.loading') }}</CloudButton

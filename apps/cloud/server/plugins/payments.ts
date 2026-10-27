@@ -9,8 +9,10 @@ export default defineNitroPlugin((app) => {
       await syncPaymentProducts(
         db,
         String(env.NUXT_PLATFORM_STORAGE_SECRET || ''),
-      ).catch(() => undefined)
-      await expirePaymentEventPayloads(db)
+      ).catch(() => console.error('payment_product_sync_failed'))
+      await expirePaymentEventPayloads(db).catch(() =>
+        console.error('payment_payload_expiry_failed'),
+      )
       await reconcilePayments(
         db,
         String(env.NUXT_PLATFORM_STORAGE_SECRET || ''),

@@ -8,7 +8,10 @@ export function useWorkspaceBilling(adminOnly = false) {
       const list = await fetcher<{ workspaces: Workspace[] }>(
         '/api/billing/workspaces',
       )
-      const primary = list.workspaces.find((w) => w.owned) ?? list.workspaces[0]
+      const primary =
+        list.workspaces.find((w) => w.owned) ??
+        list.workspaces.find((w) => w.role === 'admin') ??
+        list.workspaces[0]
       const id = primary?.id ?? 0
       const plan = id
         ? await fetcher<any>('/api/billing/plan', {

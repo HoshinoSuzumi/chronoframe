@@ -748,12 +748,14 @@ async function synchronizePayment(
       .first<any>()
     subscriptionId = event.object_id
   }
-  if (
-    !checkout ||
-    !checkout.user_id ||
-    checkout.error === 'payment_test_abandoned'
-  )
+  if (!checkout || !checkout.user_id) {
+    await db
+      .prepare('DELETE FROM platform_payment_event_payloads WHERE event_id=?')
+      .bind(event.id)
+      .run()
     return 'ignored'
+  }
+  if (checkout.error === 'payment_test_abandoned') return 'ignored'
   if (!identifier(subscriptionId)) fail(409, 'payment_confirmation_pending')
   const token = await acquireWorkspace(db, checkout.workspace_id, now)
   try {
