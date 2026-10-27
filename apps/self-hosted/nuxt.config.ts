@@ -217,6 +217,22 @@ export default defineNuxtConfig({
       },
     },
     plugins: [
+      // Prebundle safe-stable-stringify for the Vite client. vite-plugin-vue-devtools@9.0.0-rc.2
+      // (via @nuxt/devtools@4.0.0-beta.7) dynamically imports @vue/devtools-agent/devframe,
+      // whose ESM wrapper default-imports that package's CommonJS build.
+      // Remove this plugin and the direct devDependency on the next @nuxt/devtools bump
+      // if a cold dev session no longer logs "[vue-devtools] Failed to register agent tools"
+      // for safe-stable-stringify.
+      {
+        name: 'vite-optimize-vue-devtools-agent',
+        apply: 'serve',
+        configEnvironment(name, config) {
+          if (name !== 'client') return
+          config.optimizeDeps ??= {}
+          config.optimizeDeps.include ??= []
+          config.optimizeDeps.include.push('safe-stable-stringify')
+        },
+      },
       {
         apply: 'build',
         name: 'vite-plugin-ignore-sourcemap-warnings',
