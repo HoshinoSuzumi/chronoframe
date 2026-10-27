@@ -498,6 +498,50 @@ test('Templates escape content, validate headers, preserve auth requirements and
       now + 59999,
     )
     assert.equal(calls, 1)
+    await deliverLifecycleMail(
+      db,
+      failing,
+      'https://app.chronoframe.art',
+      now + 60000,
+    )
+    assert.equal(calls, 2)
+    assert.equal(
+      (
+        await db
+          .prepare('SELECT available_at FROM platform_mail_outbox')
+          .first()
+      ).available_at,
+      now + 180000,
+    )
+    await deliverLifecycleMail(
+      db,
+      failing,
+      'https://app.chronoframe.art',
+      now + 179999,
+    )
+    assert.equal(calls, 2)
+    await deliverLifecycleMail(
+      db,
+      failing,
+      'https://app.chronoframe.art',
+      now + 180000,
+    )
+    assert.equal(calls, 3)
+    const exhausted = await db
+      .prepare('SELECT attempts,state,error FROM platform_mail_outbox')
+      .first()
+    assert.deepEqual(exhausted, {
+      attempts: 3,
+      state: 'failed',
+      error: 'email_delivery_exhausted',
+    })
+    await deliverLifecycleMail(
+      db,
+      failing,
+      'https://app.chronoframe.art',
+      now + DAY,
+    )
+    assert.equal(calls, 3)
     const auth = createAccountAuth(
       db,
       {
@@ -1150,4 +1194,275 @@ test('Versioned S3 cleanup batches 1000 scoped versions and surfaces partial del
   remaining = true
   fail = true
   await assert.rejects(s3.purgeTenant(8), /batch removal incomplete/)
+})
+test('Delivery attempts are reserved atomically, capped across worker crashes and counted on success', async () => {
+  const { mf, db } = await fixture()
+  try {
+    const now = Date.now()
+    for (let id = 1; id <= 4; id++)
+      await db
+        .prepare(
+          'INSERT INTO platform_users(id,email,created_at,last_login_at,email_verified) VALUES(?,?,?,?,1)',
+        )
+        .bind(id, `budget${id}@example.com`, now, now)
+        .run()
+    await markAccount(
+      db,
+      1,
+      'Concurrent delivery attempt budget',
+      'manual',
+      null,
+      now,
+    )
+    let calls = 0
+    const failure = {
+      send: async () => {
+        calls++
+        throw new Error('failed')
+      },
+    }
+    for (const delta of [0, 60000, 180000])
+      await Promise.all(
+        Array.from({ length: 4 }, () =>
+          deliverLifecycleMail(
+            db,
+            failure,
+            'https://app.chronoframe.art',
+            now + delta,
+          ),
+        ),
+      )
+    assert.equal(calls, 3)
+    assert.equal(
+      (
+        await db
+          .prepare('SELECT state FROM platform_mail_outbox WHERE user_id=1')
+          .first()
+      ).state,
+      'failed',
+    )
+    await markAccount(
+      db,
+      2,
+      'Interrupted final delivery attempt',
+      'manual',
+      null,
+      now,
+    )
+    await db
+      .prepare(
+        "UPDATE platform_mail_outbox SET attempts=3,lease_token='interrupted',lease_until=? WHERE user_id=2",
+      )
+      .bind(now + 120000)
+      .run()
+    await deliverLifecycleMail(
+      db,
+      failure,
+      'https://app.chronoframe.art',
+      now + 60000,
+    )
+    assert.equal(
+      (
+        await db
+          .prepare('SELECT state FROM platform_mail_outbox WHERE user_id=2')
+          .first()
+      ).state,
+      'pending',
+    )
+    await deliverLifecycleMail(
+      db,
+      failure,
+      'https://app.chronoframe.art',
+      now + 120001,
+    )
+    assert.equal(
+      (
+        await db
+          .prepare('SELECT state FROM platform_mail_outbox WHERE user_id=2')
+          .first()
+      ).state,
+      'failed',
+    )
+    assert.equal(calls, 3)
+    await markAccount(
+      db,
+      3,
+      'Successful final delivery attempt',
+      'manual',
+      null,
+      now,
+    )
+    let successCalls = 0
+    const eventually = {
+      send: async () => {
+        if (++successCalls < 3) throw new Error('failed')
+        return { messageId: 'delivered' }
+      },
+    }
+    for (const delta of [0, 60000, 180000])
+      await deliverLifecycleMail(
+        db,
+        eventually,
+        'https://app.chronoframe.art',
+        now + delta,
+      )
+    assert.deepEqual(
+      await db
+        .prepare(
+          'SELECT state,attempts FROM platform_mail_outbox WHERE user_id=3',
+        )
+        .first(),
+      { state: 'sent', attempts: 3 },
+    )
+    await deliverLifecycleMail(
+      db,
+      eventually,
+      'https://app.chronoframe.art',
+      now + DAY,
+    )
+    assert.equal(successCalls, 3)
+    await markAccount(
+      db,
+      4,
+      'Stale concurrent worker respects backoff',
+      'manual',
+      null,
+      now,
+    )
+    let reads = 0,
+      claims = 0,
+      raceCalls = 0
+    let releaseReads!: () => void, releaseFailure!: () => void
+    const bothRead = new Promise<void>((resolve) => {
+        releaseReads = resolve
+      }),
+      firstFailed = new Promise<void>((resolve) => {
+        releaseFailure = resolve
+      })
+    const wrap = (statement: any, sql: string): any => ({
+      bind(...values: any[]) {
+        return wrap(statement.bind(...values), sql)
+      },
+      async all() {
+        const result = await statement.all()
+        if (
+          sql.startsWith(
+            "SELECT * FROM platform_mail_outbox WHERE state='pending'",
+          )
+        ) {
+          if (++reads === 2) releaseReads()
+          await bothRead
+        }
+        return result
+      },
+      async first() {
+        if (sql.includes('attempts=attempts+1') && ++claims === 2)
+          await firstFailed
+        return statement.first()
+      },
+      async run() {
+        const result = await statement.run()
+        if (sql.includes('SET state=?,available_at=?')) releaseFailure()
+        return result
+      },
+    })
+    const raced = {
+      prepare: (sql: string) => wrap(db.prepare(sql), sql),
+      batch: db.batch.bind(db),
+    }
+    const raceFailure = {
+      send: async () => {
+        raceCalls++
+        throw new Error('failed')
+      },
+    }
+    await Promise.all([
+      deliverLifecycleMail(
+        raced as any,
+        raceFailure,
+        'https://app.chronoframe.art',
+        now,
+      ),
+      deliverLifecycleMail(
+        raced as any,
+        raceFailure,
+        'https://app.chronoframe.art',
+        now,
+      ),
+    ])
+    assert.equal(raceCalls, 1)
+    assert.deepEqual(
+      await db
+        .prepare(
+          'SELECT attempts,available_at FROM platform_mail_outbox WHERE user_id=4',
+        )
+        .first(),
+      { attempts: 1, available_at: now + 60000 },
+    )
+  } finally {
+    await mf.dispose()
+  }
+})
+test('Retry-budget migration preserves delivery history and terminates already-exhausted messages', async () => {
+  const mf = new Miniflare(
+    convertV4MiniflareOptions({
+      modules: true,
+      compatibilityDate: '2026-10-26',
+      script: 'export default {fetch(){return new Response("ok")}}',
+      d1Databases: ['DB'],
+    }),
+  )
+  try {
+    const db = await mf.getD1Database('DB')
+    for (const name of (
+      await readdir(
+        new URL('../packages/platform/migrations/', import.meta.url),
+      )
+    )
+      .filter((f) => f.endsWith('.sql'))
+      .sort()) {
+      if (name.startsWith('0021'))
+        await db
+          .prepare(
+            "INSERT INTO platform_mail_outbox(id,user_id,kind,cycle,to_email,payload_json,available_at,attempts,state) VALUES('old-pending',1,'account-deleted','a','legacy@example.com','{}',0,5,'pending'),('old-sent',1,'account-deleted','b','legacy@example.com','{}',0,2,'sent'),('old-retry',1,'account-deleted','c','legacy@example.com','{}',0,2,'pending')",
+          )
+          .run()
+      for (const sql of (
+        await readFile(
+          new URL('../packages/platform/migrations/' + name, import.meta.url),
+          'utf8',
+        )
+      )
+        .replace(/^--.*$/gm, '')
+        .split(';')
+        .filter((s) => s.trim()))
+        await db.prepare(sql).run()
+    }
+    assert.deepEqual(
+      await db
+        .prepare(
+          "SELECT state,attempts,error FROM platform_mail_outbox WHERE id='old-pending'",
+        )
+        .first(),
+      { state: 'failed', attempts: 5, error: 'email_delivery_exhausted' },
+    )
+    assert.deepEqual(
+      await db
+        .prepare(
+          "SELECT state,attempts FROM platform_mail_outbox WHERE id='old-sent'",
+        )
+        .first(),
+      { state: 'sent', attempts: 3 },
+    )
+    assert.deepEqual(
+      await db
+        .prepare(
+          "SELECT state,attempts FROM platform_mail_outbox WHERE id='old-retry'",
+        )
+        .first(),
+      { state: 'pending', attempts: 2 },
+    )
+  } finally {
+    await mf.dispose()
+  }
 })
