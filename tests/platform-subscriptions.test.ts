@@ -20,6 +20,8 @@ import {
 } from '../packages/platform/src/subscriptions.ts'
 import {
   generateActivationCodes,
+  activationHash,
+  normalizeActivationCode,
   previewActivation,
   redeemActivation,
 } from '../packages/platform/src/activation.ts'
@@ -31,6 +33,56 @@ const require = createRequire(import.meta.url),
   { Miniflare, convertV4MiniflareOptions } = createRequire(
     require.resolve('wrangler/package.json'),
   )('miniflare')
+test('Activation codes generate 12 alphanumeric characters and normalize custom and legacy identities', async () => {
+  const batch = await generateActivationCodes(
+    { count: 500, planId: 'free', duration: { unit: 'days', value: 1 } },
+    1,
+  )
+  assert.equal(new Set(batch.codes.map((c) => c.code)).size, 500)
+  assert.ok(batch.codes.every((c) => /^[A-Z0-9]{12}$/.test(c.code)))
+  const custom = await generateActivationCodes(
+    {
+      count: 1,
+      planId: 'free',
+      duration: { unit: 'days', value: 1 },
+      code: ' launch-春,2026! ',
+    },
+    1,
+  )
+  assert.equal(custom.codes[0]!.code, 'LAUNCH-春,2026!')
+  assert.equal(
+    await activationHash(' launch-春,2026! '),
+    await activationHash('LAUNCH-春,2026!'),
+  )
+  const canonical = 'CF' + 'A1'.repeat(16),
+    formatted = 'CF-' + 'a1'.repeat(16).match(/.{4}/g)!.join('-')
+  const legacyDigest = await crypto.subtle.digest(
+    'SHA-256',
+    new TextEncoder().encode(canonical),
+  )
+  assert.equal(
+    await activationHash(formatted),
+    Array.from(new Uint8Array(legacyDigest), (n) =>
+      n.toString(16).padStart(2, '0'),
+    ).join(''),
+  )
+  assert.equal(normalizeActivationCode('a-b'), 'A-B')
+  assert.notEqual(await activationHash('A-B'), await activationHash('AB'))
+  await assert.rejects(
+    generateActivationCodes(
+      {
+        count: 2,
+        planId: 'free',
+        duration: { unit: 'days', value: 1 },
+        code: 'Manual',
+      },
+      1,
+    ),
+    { code: 'invalid_code_batch' },
+  )
+  assert.throws(() => normalizeActivationCode('a\nb'))
+  assert.throws(() => normalizeActivationCode('a'.repeat(129)))
+})
 test('Calendar subscription periods clamp UTC month ends without multiplying stock quotas', () => {
   const jan = Date.UTC(2024, 0, 31, 12)
   assert.equal(addMonths(jan, 1), Date.UTC(2024, 1, 29, 12))
