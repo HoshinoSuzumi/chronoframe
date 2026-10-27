@@ -16,12 +16,12 @@ CREATE TABLE platform_mail_outbox_next (
 );
 INSERT INTO platform_mail_outbox_next
  SELECT id,user_id,kind,cycle,to_email,payload_json,available_at,
- attempts+CASE WHEN state='sent' THEN 1 ELSE 0 END,
- CASE WHEN state='pending' AND attempts>=3 THEN 'failed' ELSE state END,
- CASE WHEN state='pending' AND attempts>=3 THEN NULL ELSE lease_token END,
- CASE WHEN state='pending' AND attempts>=3 THEN NULL ELSE lease_until END,
- CASE WHEN state='pending' AND attempts>=3 THEN 'email_delivery_exhausted' ELSE error END
- FROM platform_mail_outbox;
+ total_attempts,
+ CASE WHEN state='pending' AND total_attempts>=3 THEN 'failed' ELSE state END,
+ CASE WHEN state='pending' AND total_attempts>=3 THEN NULL ELSE lease_token END,
+ CASE WHEN state='pending' AND total_attempts>=3 THEN NULL ELSE lease_until END,
+ CASE WHEN state='pending' AND total_attempts>=3 THEN 'email_delivery_exhausted' ELSE error END
+ FROM (SELECT *,attempts+CASE WHEN state='sent' OR (state='pending' AND lease_token IS NOT NULL) THEN 1 ELSE 0 END AS total_attempts FROM platform_mail_outbox);
 DROP TABLE platform_mail_outbox;
 ALTER TABLE platform_mail_outbox_next RENAME TO platform_mail_outbox;
 CREATE INDEX platform_mail_pending ON platform_mail_outbox(state,available_at);

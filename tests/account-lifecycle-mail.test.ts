@@ -1421,12 +1421,18 @@ test('Retry-budget migration preserves delivery history and terminates already-e
     )
       .filter((f) => f.endsWith('.sql'))
       .sort()) {
-      if (name.startsWith('0021'))
+      if (name.startsWith('0021')) {
         await db
           .prepare(
             "INSERT INTO platform_mail_outbox(id,user_id,kind,cycle,to_email,payload_json,available_at,attempts,state) VALUES('old-pending',1,'account-deleted','a','legacy@example.com','{}',0,5,'pending'),('old-sent',1,'account-deleted','b','legacy@example.com','{}',0,2,'sent'),('old-retry',1,'account-deleted','c','legacy@example.com','{}',0,2,'pending')",
           )
           .run()
+        await db
+          .prepare(
+            "INSERT INTO platform_mail_outbox(id,user_id,kind,cycle,to_email,payload_json,available_at,attempts,state,lease_token,lease_until) VALUES('old-inflight',1,'account-deleted','d','legacy@example.com','{}',0,2,'pending','worker',9999999999999)",
+          )
+          .run()
+      }
       for (const sql of (
         await readFile(
           new URL('../packages/platform/migrations/' + name, import.meta.url),
@@ -1461,6 +1467,14 @@ test('Retry-budget migration preserves delivery history and terminates already-e
         )
         .first(),
       { state: 'pending', attempts: 2 },
+    )
+    assert.deepEqual(
+      await db
+        .prepare(
+          "SELECT state,attempts,lease_token FROM platform_mail_outbox WHERE id='old-inflight'",
+        )
+        .first(),
+      { state: 'failed', attempts: 3, lease_token: null },
     )
   } finally {
     await mf.dispose()
