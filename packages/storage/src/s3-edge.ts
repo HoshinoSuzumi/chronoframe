@@ -4,6 +4,7 @@ import {
   GetObjectCommand,
   HeadObjectCommand,
   DeleteObjectCommand,
+  DeleteObjectsCommand,
   CreateMultipartUploadCommand,
   UploadPartCommand,
   CompleteMultipartUploadCommand,
@@ -11,6 +12,9 @@ import {
   GetBucketCorsCommand,
   ListPartsCommand,
   ListMultipartUploadsCommand,
+  ListObjectsV2Command,
+  GetBucketVersioningCommand,
+  ListObjectVersionsCommand,
 } from '@aws-sdk/client-s3'
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 import { FetchHttpHandler } from '@smithy/fetch-http-handler'
@@ -152,6 +156,106 @@ export function createCloudS3(
         contentType: r.ContentType ?? '',
         etag: r.ETag ?? '',
       }
+    },
+    /** Bounded tenant-prefix cleanup, never a bucket-wide delete. Repeat until empty. */
+    async purgeTenant(siteId: number) {
+      if (!Number.isSafeInteger(siteId) || siteId < 1)
+        throw new Error('Invalid site')
+      const prefix = `chronoframe/${siteId}/`
+      let versioned = false
+      try {
+        const status = await client.send(
+          new GetBucketVersioningCommand({ Bucket }),
+        )
+        versioned = status.Status === 'Enabled' || status.Status === 'Suspended'
+      } catch (error) {
+        // R2 has no object-versioning API. Other providers must explicitly confirm their state.
+        const e = error as {
+          name?: string
+          $metadata?: { httpStatusCode?: number }
+        }
+        if (
+          !/^[a-f0-9]{32}(?:\.(?:eu|fedramp))?\.r2\.cloudflarestorage\.com$/.test(
+            new URL(endpoint).hostname,
+          ) ||
+          !(e.name === 'NotImplemented' || e.$metadata?.httpStatusCode === 501)
+        )
+          throw error
+      }
+      const deadline = Date.now() + 15000
+      async function removeBatch(
+        entries: { Key: string; VersionId?: string }[],
+      ) {
+        for (const entry of entries)
+          if (!entry.Key.startsWith(prefix))
+            throw new Error('Invalid object scope')
+        if (!entries.length) return
+        const result = await client.send(
+          new DeleteObjectsCommand({
+            Bucket,
+            Delete: { Objects: entries, Quiet: true },
+          }),
+        )
+        if (result.Errors?.length)
+          throw new Error('Object batch removal incomplete')
+      }
+      for (let page = 0; page < 4 && Date.now() < deadline; page++) {
+        // Read the first remaining page after deletion, so retries cannot skip shifted keys.
+        if (versioned) {
+          const versions = await client.send(
+            new ListObjectVersionsCommand({
+              Bucket,
+              Prefix: prefix,
+              MaxKeys: 1000,
+            }),
+          )
+          const entries = [
+            ...(versions.Versions ?? []),
+            ...(versions.DeleteMarkers ?? []),
+          ].map((v) => {
+            if (!v.Key?.startsWith(prefix) || !v.VersionId)
+              throw new Error('Invalid version scope')
+            return { Key: v.Key, VersionId: v.VersionId }
+          })
+          await removeBatch(entries)
+          if (entries.length || versions.IsTruncated) continue
+        }
+        const uploads = await client.send(
+          new ListMultipartUploadsCommand({
+            Bucket,
+            Prefix: prefix,
+            MaxUploads: 10,
+          }),
+        )
+        for (const upload of uploads.Uploads ?? []) {
+          if (!upload.Key?.startsWith(prefix) || !upload.UploadId)
+            throw new Error('Invalid multipart scope')
+          await client.send(
+            new AbortMultipartUploadCommand({
+              Bucket,
+              Key: upload.Key,
+              UploadId: upload.UploadId,
+            }),
+          )
+        }
+        const objects = await client.send(
+          new ListObjectsV2Command({ Bucket, Prefix: prefix, MaxKeys: 1000 }),
+        )
+        const entries = (objects.Contents ?? []).map((o) => {
+          if (!o.Key?.startsWith(prefix))
+            throw new Error('Invalid object scope')
+          return { Key: o.Key }
+        })
+        await removeBatch(entries)
+        if (
+          !entries.length &&
+          !objects.IsTruncated &&
+          !uploads.Uploads?.length &&
+          !uploads.IsTruncated
+        )
+          return true
+      }
+      return false
     },
     async remove(key: string) {
       await client.send(new DeleteObjectCommand({ Bucket, Key: safeKey(key) }))

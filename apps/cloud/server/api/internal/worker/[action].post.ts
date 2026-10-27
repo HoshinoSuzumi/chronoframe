@@ -78,7 +78,7 @@ export default definePlatformHandler(async (event) => {
     const candidates = (
       await db
         .prepare(
-          `SELECT j.site_id,MIN(j.created_at) oldest FROM cloud_processing_jobs j LEFT JOIN cloud_site_dispatch d ON d.site_id=j.site_id WHERE ((state IN ('queued','retry_wait') AND available_at<=?) OR (state='running' AND lease_until<=?)) AND NOT EXISTS(SELECT 1 FROM cloud_processing_jobs active WHERE active.site_id=j.site_id AND active.state='running' AND active.lease_until>?) GROUP BY j.site_id ORDER BY COALESCE(d.last_claim_at,0),oldest,j.site_id LIMIT 10`,
+          `SELECT j.site_id,MIN(j.created_at) oldest FROM cloud_processing_jobs j JOIN platform_sites s ON s.id=j.site_id AND s.suspended=0 LEFT JOIN cloud_site_dispatch d ON d.site_id=j.site_id WHERE ((state IN ('queued','retry_wait') AND available_at<=?) OR (state='running' AND lease_until<=?)) AND NOT EXISTS(SELECT 1 FROM cloud_processing_jobs active WHERE active.site_id=j.site_id AND active.state='running' AND active.lease_until>?) GROUP BY j.site_id ORDER BY COALESCE(d.last_claim_at,0),oldest,j.site_id LIMIT 10`,
         )
         .bind(now, now, now)
         .all<{ site_id: number }>()
@@ -88,6 +88,14 @@ export default definePlatformHandler(async (event) => {
         id: candidate.site_id,
       }).claim(body.workerId, crypto.randomUUID(), now, 120000)
       if (!lease) continue
+      // A deletion mark may race the candidate query. Do not issue fresh transport capabilities.
+      if (
+        !(await db
+          .prepare('SELECT id FROM platform_sites WHERE id=? AND suspended=0')
+          .bind(lease.siteId)
+          .first())
+      )
+        continue
       const s3 = await storage(
         lease.siteId,
         lease.connectionId,

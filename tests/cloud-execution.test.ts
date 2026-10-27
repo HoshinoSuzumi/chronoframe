@@ -24,9 +24,9 @@ test('D1 queue serializes claims, fences expired attempts, retries and refuses d
   try {
     const db = await mf.getD1Database('DB')
     for (const sql of [
-      'CREATE TABLE platform_sites(id INTEGER PRIMARY KEY)',
+      'CREATE TABLE platform_sites(id INTEGER PRIMARY KEY,suspended INTEGER NOT NULL DEFAULT 0)',
       'CREATE TABLE platform_users(id INTEGER PRIMARY KEY)',
-      'INSERT INTO platform_sites VALUES(1),(2)',
+      'INSERT INTO platform_sites(id) VALUES(1),(2)',
       'INSERT INTO platform_users VALUES(1)',
     ])
       await db.prepare(sql).run()
@@ -171,6 +171,50 @@ test('D1 queue serializes claims, fences expired attempts, retries and refuses d
         1000,
       ),
       { statusCode: 403 },
+    )
+    await enqueue('paused-race')
+    await db.prepare('UPDATE platform_sites SET suspended=1 WHERE id=1').run()
+    assert.equal(
+      await queue.claim('worker', 'paused-attempt', 9000, 1000),
+      null,
+    )
+    assert.equal(
+      (
+        await db
+          .prepare(
+            "SELECT attempts FROM cloud_processing_jobs WHERE id='paused-race'",
+          )
+          .first()
+      ).attempts,
+      0,
+    )
+    await db.prepare('UPDATE platform_sites SET suspended=0 WHERE id=1').run()
+    const paused = (await queue.claim(
+      'worker',
+      'unpaused-attempt',
+      9100,
+      1000,
+    ))!
+    assert.equal(paused.attempts, 1)
+    // Simulate a request that captured its clock before the deletion mark's lease expiry.
+    await db.prepare('UPDATE platform_sites SET suspended=1 WHERE id=1').run()
+    await db
+      .prepare(
+        "UPDATE cloud_processing_jobs SET lease_until=9500 WHERE id='paused-race'",
+      )
+      .run()
+    assert.equal(await queue.heartbeat(paused, 9200, 1000), false)
+    assert.equal(await queue.complete(paused, result(paused), 9200), false)
+    assert.equal(await queue.fail(paused, 'network_error', true, 9200), false)
+    assert.equal(
+      (
+        await db
+          .prepare(
+            "SELECT attempts FROM cloud_processing_jobs WHERE id='paused-race'",
+          )
+          .first()
+      ).attempts,
+      1,
     )
   } finally {
     await mf.dispose()
