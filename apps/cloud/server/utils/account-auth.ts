@@ -1,5 +1,6 @@
 import { signupOfferForRegistration } from '../../../../packages/platform/src/subscriptions.ts'
-import { createD1Provisioning, type PlatformD1 } from '@chronoframe/platform'
+import type { PlatformD1 } from '@chronoframe/platform'
+import { createD1Provisioning } from '../../../../packages/platform/src/provisioning.ts'
 import 'reflect-metadata'
 import { betterAuth, type BetterAuthOptions } from 'better-auth'
 import { APIError } from 'better-auth/api'
