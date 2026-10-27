@@ -81,6 +81,12 @@ const date = (time: number) => new Date(time).toLocaleString(locale.value)
                 : $t('cloud.billing.noExpiry')
             }}
           </p>
+          <p
+            v-if="data.subscription.source === 'promotion'"
+            class="cf-field-hint"
+          >
+            {{ $t('cloud.billing.signupOffer') }}
+          </p>
           <p class="cf-field-hint">{{ $t('cloud.billing.noRenewal') }}</p>
         </div>
         <CloudButton

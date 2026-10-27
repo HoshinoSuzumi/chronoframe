@@ -672,7 +672,10 @@
       "adminOnly": "仅工作空间管理员可以兑换激活码。",
       "failed": "无法读取或保存订阅信息，请重试。",
       "retry": "重试",
-      "connectionCount": "已有 {count} 个存储连接"
+      "connectionCount": "已有 {count} 个存储连接",
+      "event_signup_promotion": "注册活动套餐已开通",
+      "event_signup_default": "注册默认套餐已分配",
+      "signupOffer": "注册促销权益已生效，有效期见上方到期时间。"
     }
   }
 }
