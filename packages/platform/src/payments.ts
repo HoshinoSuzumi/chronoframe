@@ -685,7 +685,7 @@ export async function receivePaymentEvent(
       ),
     db
       .prepare(
-        'INSERT OR IGNORE INTO platform_payment_event_payloads(event_id,ciphertext,received_at) VALUES(?,?,?)',
+        'INSERT OR IGNORE INTO platform_payment_event_payloads(event_id,ciphertext,received_at) SELECT ?,?,? WHERE changes()=1',
       )
       .bind(event.id, payload, now),
   ])

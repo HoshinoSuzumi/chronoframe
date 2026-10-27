@@ -909,6 +909,30 @@ test('Paid checkout snapshots survive price edits; actual purchasers qualify wit
       ).user_id,
       null,
     )
+    assert.equal(
+      (await paymentEventPayload(f.db, root, 'evt_saved_quote', f.now))
+        .available,
+      false,
+    )
+    assert.ok(
+      await f.db
+        .prepare(
+          "SELECT id FROM platform_payment_events WHERE id='evt_saved_quote'",
+        )
+        .first(),
+    )
+    await (
+      await f.event(
+        'evt_saved_quote',
+        'checkout.completed',
+        f.checkouts.get('chk_1'),
+      )
+    ).receive()
+    assert.equal(
+      (await paymentEventPayload(f.db, root, 'evt_saved_quote', f.now))
+        .available,
+      false,
+    )
     assert.equal((await resolveSubscription(f.db, 1, f.now)).id, 'free')
   } finally {
     await f.mf.dispose()
@@ -1511,6 +1535,16 @@ test('Signed webhook payloads are encrypted, bound to their event, paginated and
           .first<any>()
       ).n,
       0,
+    )
+    await (
+      await f.event('evt_page_000', 'refund.created', {
+        id: 'refund_0',
+        mode: 'test',
+      })
+    ).receive()
+    assert.equal(
+      (await paymentEventPayload(f.db, root, 'evt_page_000', f.now)).available,
+      false,
     )
     assert.equal(
       (
