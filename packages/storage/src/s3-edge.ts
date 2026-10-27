@@ -4,6 +4,7 @@ import {
   GetObjectCommand,
   HeadObjectCommand,
   DeleteObjectCommand,
+  DeleteObjectsCommand,
   CreateMultipartUploadCommand,
   UploadPartCommand,
   CompleteMultipartUploadCommand,
@@ -181,63 +182,80 @@ export function createCloudS3(
         )
           throw error
       }
-      if (versioned) {
-        const versions = await client.send(
-          new ListObjectVersionsCommand({
+      const deadline = Date.now() + 15000
+      async function removeBatch(
+        entries: { Key: string; VersionId?: string }[],
+      ) {
+        for (const entry of entries)
+          if (!entry.Key.startsWith(prefix))
+            throw new Error('Invalid object scope')
+        if (!entries.length) return
+        const result = await client.send(
+          new DeleteObjectsCommand({
             Bucket,
-            Prefix: prefix,
-            MaxKeys: 20,
+            Delete: { Objects: entries, Quiet: true },
           }),
         )
-        const entries = [
-          ...(versions.Versions ?? []),
-          ...(versions.DeleteMarkers ?? []),
-        ]
-        for (const entry of entries) {
-          if (!entry.Key?.startsWith(prefix) || !entry.VersionId)
-            throw new Error('Invalid version scope')
-          await client.send(
-            new DeleteObjectCommand({
+        if (result.Errors?.length)
+          throw new Error('Object batch removal incomplete')
+      }
+      for (let page = 0; page < 4 && Date.now() < deadline; page++) {
+        // Read the first remaining page after deletion, so retries cannot skip shifted keys.
+        if (versioned) {
+          const versions = await client.send(
+            new ListObjectVersionsCommand({
               Bucket,
-              Key: entry.Key,
-              VersionId: entry.VersionId,
+              Prefix: prefix,
+              MaxKeys: 1000,
+            }),
+          )
+          const entries = [
+            ...(versions.Versions ?? []),
+            ...(versions.DeleteMarkers ?? []),
+          ].map((v) => {
+            if (!v.Key?.startsWith(prefix) || !v.VersionId)
+              throw new Error('Invalid version scope')
+            return { Key: v.Key, VersionId: v.VersionId }
+          })
+          await removeBatch(entries)
+          if (entries.length || versions.IsTruncated) continue
+        }
+        const uploads = await client.send(
+          new ListMultipartUploadsCommand({
+            Bucket,
+            Prefix: prefix,
+            MaxUploads: 10,
+          }),
+        )
+        for (const upload of uploads.Uploads ?? []) {
+          if (!upload.Key?.startsWith(prefix) || !upload.UploadId)
+            throw new Error('Invalid multipart scope')
+          await client.send(
+            new AbortMultipartUploadCommand({
+              Bucket,
+              Key: upload.Key,
+              UploadId: upload.UploadId,
             }),
           )
         }
-        if (entries.length || versions.IsTruncated) return false
-      }
-      const uploads = await client.send(
-        new ListMultipartUploadsCommand({
-          Bucket,
-          Prefix: prefix,
-          MaxUploads: 10,
-        }),
-      )
-      for (const upload of uploads.Uploads ?? []) {
-        if (!upload.Key?.startsWith(prefix) || !upload.UploadId)
-          throw new Error('Invalid multipart scope')
-        await client.send(
-          new AbortMultipartUploadCommand({
-            Bucket,
-            Key: upload.Key,
-            UploadId: upload.UploadId,
-          }),
+        const objects = await client.send(
+          new ListObjectsV2Command({ Bucket, Prefix: prefix, MaxKeys: 1000 }),
         )
+        const entries = (objects.Contents ?? []).map((o) => {
+          if (!o.Key?.startsWith(prefix))
+            throw new Error('Invalid object scope')
+          return { Key: o.Key }
+        })
+        await removeBatch(entries)
+        if (
+          !entries.length &&
+          !objects.IsTruncated &&
+          !uploads.Uploads?.length &&
+          !uploads.IsTruncated
+        )
+          return true
       }
-      const objects = await client.send(
-        new ListObjectsV2Command({ Bucket, Prefix: prefix, MaxKeys: 20 }),
-      )
-      for (const object of objects.Contents ?? []) {
-        if (!object.Key?.startsWith(prefix))
-          throw new Error('Invalid object scope')
-        await client.send(new DeleteObjectCommand({ Bucket, Key: object.Key }))
-      }
-      return !(
-        uploads.Uploads?.length ||
-        uploads.IsTruncated ||
-        objects.Contents?.length ||
-        objects.IsTruncated
-      )
+      return false
     },
     async remove(key: string) {
       await client.send(new DeleteObjectCommand({ Bucket, Key: safeKey(key) }))

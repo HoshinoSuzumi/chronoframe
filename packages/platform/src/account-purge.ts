@@ -16,7 +16,7 @@ export async function purgeAccounts(
 ) {
   const row = await db
     .prepare(
-      'SELECT * FROM platform_account_deletions WHERE purge_at<=? AND next_attempt_at<=? AND (lease_until IS NULL OR lease_until<?) ORDER BY purge_at,user_id LIMIT 1',
+      'SELECT * FROM platform_account_deletions WHERE purge_at<=? AND next_attempt_at<=? AND (lease_until IS NULL OR lease_until<?) ORDER BY next_attempt_at,purge_at,user_id LIMIT 1',
     )
     .bind(now, now, now)
     .first<any>()
@@ -80,7 +80,7 @@ export async function purgeAccounts(
         .prepare(
           'UPDATE platform_account_deletions SET lease_token=NULL,lease_until=NULL,next_attempt_at=?,error=NULL WHERE user_id=? AND lease_token=?',
         )
-        .bind(now + 60000, id, token)
+        .bind(now + 1000, id, token)
         .run()
       return
     }
@@ -210,9 +210,25 @@ export async function purgeAccounts(
     statements.push(
       db
         .prepare(
-          'DELETE FROM platform_verifications WHERE instr(identifier,(SELECT email FROM platform_users WHERE id=?))>0',
+          "DELETE FROM platform_verifications WHERE identifier IN ('email-verification-otp-' || (SELECT email FROM platform_users WHERE id=?), 'sign-in-otp-' || (SELECT email FROM platform_users WHERE id=?), 'forget-password-otp-' || (SELECT email FROM platform_users WHERE id=?))",
         )
-        .bind(id),
+        .bind(id, id, id),
+    )
+    const factorKeys =
+      "SELECT identifier FROM platform_verifications WHERE value=? AND identifier LIKE '2fa-%' AND identifier NOT LIKE '2fa-otp-%' AND identifier NOT LIKE '2fa-attempts-%'"
+    statements.push(
+      db
+        .prepare(
+          `DELETE FROM platform_verifications WHERE identifier IN(SELECT '2fa-attempts-'||identifier FROM (${factorKeys})) OR identifier IN(SELECT '2fa-otp-'||identifier FROM (${factorKeys}))`,
+        )
+        .bind(String(id), String(id)),
+    )
+    statements.push(
+      db
+        .prepare(
+          "DELETE FROM platform_verifications WHERE value=? AND (identifier LIKE 'reset-password:%' OR identifier LIKE 'trust-device-%' OR (identifier LIKE '2fa-%' AND identifier NOT LIKE '2fa-otp-%' AND identifier NOT LIKE '2fa-attempts-%'))",
+        )
+        .bind(String(id)),
     )
     statements.push(
       db

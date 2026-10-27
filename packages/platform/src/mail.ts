@@ -39,13 +39,13 @@ const content: Record<MailKind, [string, string, string, string]> = {
   'deletion-warning': [
     'Your ChronoFrame Cloud account is scheduled for deletion',
     'Keep your account',
-    '{{reason}} Your account will be marked as deleted and sign-in disabled on {{deletionAt}}. All owned workspaces, sites, domains and files will be permanently removed on {{purgeAt}}. {{action}} Contact support@chronoframe.art if you need help.',
+    '{{reason}} Your account will be marked as deleted and sign-in disabled on {{deletionAt}}. Permanent cleanup of all owned workspaces, sites, domains and files will begin on {{purgeAt}}. {{action}} Contact support@chronoframe.art if you need help.',
     'Open ChronoFrame Cloud',
   ],
   'account-deleted': [
     'Your ChronoFrame Cloud account has been deleted',
     'Your account has been marked as deleted',
-    '{{reason}} Sign-in is now disabled. After the {{retentionDays}}-day recovery period, all owned workspaces, sites, domains and files will be permanently removed on {{purgeAt}}. Until then, contact support@chronoframe.art to request restoration.',
+    '{{reason}} Sign-in is now disabled. After the {{retentionDays}}-day recovery period, permanent cleanup of all owned workspaces, sites, domains and files will begin on {{purgeAt}}. Until then, contact support@chronoframe.art to request restoration.',
     'Contact support',
   ],
 }

@@ -25,6 +25,28 @@ export function accountAuthOptions(
 ) {
   const origin = new URL(config.portalOrigin)
   const db = database as unknown as PlatformD1
+  const recordSessionActivity = async (session: {
+    userId: string
+    id: string
+  }) => {
+    const updated = await db
+      .prepare(
+        'UPDATE platform_users SET last_login_at=? WHERE id=? AND NOT EXISTS(SELECT 1 FROM platform_account_deletions WHERE user_id=platform_users.id) RETURNING id',
+      )
+      .bind(Date.now(), Number(session.userId))
+      .first()
+    if (!updated) {
+      await db
+        .prepare('DELETE FROM platform_auth_sessions WHERE id=?')
+        .bind(Number(session.id))
+        .run()
+      throw new APIError('FORBIDDEN', {
+        code: 'ACCOUNT_DELETED',
+        message:
+          'This account has been deleted. Contact support@chronoframe.art to request restoration.',
+      })
+    }
+  }
   return {
     appName: 'ChronoFrame Cloud',
     databaseHooks: {
@@ -71,26 +93,9 @@ export function accountAuthOptions(
               )
             return { data: session }
           },
-          after: async (session) => {
-            const updated = await db
-              .prepare(
-                'UPDATE platform_users SET last_login_at=? WHERE id=? AND NOT EXISTS(SELECT 1 FROM platform_account_deletions WHERE user_id=platform_users.id) RETURNING id',
-              )
-              .bind(Date.now(), Number(session.userId))
-              .first()
-            if (!updated) {
-              await db
-                .prepare('DELETE FROM platform_auth_sessions WHERE id=?')
-                .bind(Number(session.id))
-                .run()
-              throw new APIError('FORBIDDEN', {
-                code: 'ACCOUNT_DELETED',
-                message:
-                  'This account has been deleted. Contact support@chronoframe.art to request restoration.',
-              })
-            }
-          },
+          after: recordSessionActivity,
         },
+        update: { after: recordSessionActivity },
       },
     },
     baseURL: origin.origin,

@@ -79,10 +79,10 @@ export function deletionDeadline(
     user.lifecycle_grace_until ?? 0,
   )
 }
-export const automaticReason = (verified: boolean) =>
+export const automaticReason = (verified: boolean, days: number) =>
   verified
-    ? 'No recent sign-in was recorded within the inactivity period.'
-    : 'Your email address has not been verified within the verification period.'
+    ? `No sign-in has been recorded for ${days} days.`
+    : `Your email address is still unverified ${days} days after registration.`
 const date = (v: number) =>
   new Date(v).toISOString().replace('T', ' ').replace('.000Z', ' UTC')
 export async function markAccount(
@@ -275,6 +275,41 @@ export async function restoreAccount(
     .bind(id)
     .first())
 }
+export async function lifecycleFailure(
+  db: PlatformD1,
+  scope: string,
+  now: number,
+  userId: number | null = null,
+) {
+  console.error('account-lifecycle stage failed', scope)
+  try {
+    await db
+      .prepare(
+        "INSERT INTO platform_lifecycle_errors(scope,user_id,error,updated_at) VALUES(?,?,'lifecycle_stage_failed',?) ON CONFLICT(scope) DO UPDATE SET error=excluded.error,updated_at=excluded.updated_at",
+      )
+      .bind(scope, userId, now)
+      .run()
+  } catch {
+    /* A database outage must not prevent independent stages from running. */
+  }
+}
+export async function lifecycleStages(
+  db: PlatformD1,
+  stages: Record<string, () => Promise<unknown>>,
+  now = Date.now(),
+) {
+  for (const [scope, run] of Object.entries(stages)) {
+    try {
+      await run()
+      await db
+        .prepare('DELETE FROM platform_lifecycle_errors WHERE scope=?')
+        .bind(scope)
+        .run()
+    } catch {
+      await lifecycleFailure(db, scope, now)
+    }
+  }
+}
 export async function scanAccounts(
   db: PlatformD1,
   now = Date.now(),
@@ -293,13 +328,13 @@ export async function scanAccounts(
       )
       .bind(state?.value ?? 0, limit),
   )
-  for (const u of users) {
+  const scanUser = async (u: any) => {
     if (await accountExemption(db, u.id, s.exemptions!, now)) {
       await db
         .prepare('UPDATE platform_users SET lifecycle_was_exempt=1 WHERE id=?')
         .bind(u.id)
         .run()
-      continue
+      return
     }
     if (u.lifecycle_was_exempt) {
       u.lifecycle_grace_until = Math.max(
@@ -314,7 +349,10 @@ export async function scanAccounts(
         .run()
     }
     const deadline = deletionDeadline(u, s),
-      reason = automaticReason(!!u.email_verified)
+      reason = automaticReason(
+        !!u.email_verified,
+        u.email_verified ? s.inactiveDays : s.unverifiedDays,
+      )
     if (deadline <= now) {
       await markAccount(
         db,
@@ -329,7 +367,7 @@ export async function scanAccounts(
           settingsRevision: s.revision,
         },
       )
-      continue
+      return
     }
     const warning = s.warningDays.find(
       (days, index) =>
@@ -361,6 +399,18 @@ export async function scanAccounts(
         )
         .run()
   }
+  for (const u of users) {
+    const scope = 'scan-user:' + u.id
+    try {
+      await scanUser(u)
+      await db
+        .prepare('DELETE FROM platform_lifecycle_errors WHERE scope=?')
+        .bind(scope)
+        .run()
+    } catch {
+      await lifecycleFailure(db, scope, now, u.id)
+    }
+  }
   await db
     .prepare('UPDATE platform_lifecycle_cursor SET value=? WHERE id=1')
     .bind(users.length === limit ? users.at(-1).id : 0)
@@ -389,34 +439,34 @@ export async function deliverLifecycleMail(
         .bind(token, now + 120000, row.id, now)
         .first()
     if (!claimed) continue
-    const p = JSON.parse(row.payload_json),
-      u = await db
-        .prepare('SELECT * FROM platform_users WHERE id=?')
-        .bind(row.user_id)
-        .first<any>(),
-      marked = await db
-        .prepare('SELECT * FROM platform_account_deletions WHERE user_id=?')
-        .bind(row.user_id)
-        .first<any>()
-    const valid =
-      u &&
-      (row.kind === 'account-deleted'
-        ? marked?.generation === row.cycle
-        : s.enabled &&
-          !marked &&
-          !(await accountExemption(db, row.user_id, s.exemptions!, now)) &&
-          deletionDeadline(u, s) === p.deadline &&
-          p.deadline > now)
-    if (!valid) {
-      await db
-        .prepare(
-          "UPDATE platform_mail_outbox SET state='cancelled',lease_token=NULL,lease_until=NULL WHERE id=? AND lease_token=?",
-        )
-        .bind(row.id, token)
-        .run()
-      continue
-    }
     try {
+      const p = JSON.parse(row.payload_json),
+        u = await db
+          .prepare('SELECT * FROM platform_users WHERE id=?')
+          .bind(row.user_id)
+          .first<any>(),
+        marked = await db
+          .prepare('SELECT * FROM platform_account_deletions WHERE user_id=?')
+          .bind(row.user_id)
+          .first<any>()
+      const valid =
+        u &&
+        (row.kind === 'account-deleted'
+          ? marked?.generation === row.cycle
+          : s.enabled &&
+            !marked &&
+            !(await accountExemption(db, row.user_id, s.exemptions!, now)) &&
+            deletionDeadline(u, s) === p.deadline &&
+            p.deadline > now)
+      if (!valid) {
+        await db
+          .prepare(
+            "UPDATE platform_mail_outbox SET state='cancelled',lease_token=NULL,lease_until=NULL WHERE id=? AND lease_token=?",
+          )
+          .bind(row.id, token)
+          .run()
+        continue
+      }
       await sendMail(
         db,
         email,

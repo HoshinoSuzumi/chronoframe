@@ -299,6 +299,17 @@ test('Lifecycle notices, current-login race, restore, retained deadline and retr
       ).suspended,
       1,
     )
+    await db
+      .prepare(
+        "INSERT INTO platform_verifications(identifier,value,expires_at,created_at,updated_at) VALUES('sign-in-otp-user3@example.com','own',?,?,?),('sign-in-otp-xuser3@example.com','other',?,?,?)",
+      )
+      .bind(now + DAY, now, now, now + DAY, now, now)
+      .run()
+    await db
+      .prepare(
+        "INSERT INTO platform_verifications(identifier,value,expires_at,created_at,updated_at) VALUES('reset-password:own','3',9999999999999,0,0),('reset-password:other','13',9999999999999,0,0),('2fa-own','3',9999999999999,0,0),('2fa-attempts-2fa-own','0',9999999999999,0,0),('2fa-otp-2fa-own','hash',9999999999999,0,0),('trust-device-own','3',9999999999999,0,0)",
+      )
+      .run()
     let domainReady = false,
       storageReady = false,
       storageCalls = 0
@@ -347,6 +358,39 @@ test('Lifecycle notices, current-login race, restore, retained deadline and retr
     )
     assert.ok(
       await db.prepare('SELECT id FROM cloud_photos WHERE site_id=2').first(),
+    )
+    assert.ok(
+      await db
+        .prepare(
+          "SELECT id FROM platform_verifications WHERE identifier='sign-in-otp-xuser3@example.com'",
+        )
+        .first(),
+    )
+    assert.equal(
+      await db
+        .prepare(
+          "SELECT id FROM platform_verifications WHERE identifier='sign-in-otp-user3@example.com'",
+        )
+        .first(),
+      null,
+    )
+
+    assert.equal(
+      (
+        await db
+          .prepare(
+            "SELECT COUNT(*) AS n FROM platform_verifications WHERE identifier IN('reset-password:own','2fa-own','2fa-attempts-2fa-own','2fa-otp-2fa-own','trust-device-own')",
+          )
+          .first()
+      ).n,
+      0,
+    )
+    assert.ok(
+      await db
+        .prepare(
+          "SELECT id FROM platform_verifications WHERE identifier='reset-password:other'",
+        )
+        .first(),
     )
     assert.equal(
       (
@@ -510,6 +554,19 @@ test('S3 cleanup lists and deletes only the exact tenant prefix, including unfin
             { headers: { 'content-type': 'application/xml' } },
           )
         }
+        if (url.searchParams.has('delete')) {
+          assert.equal(method, 'POST')
+          const body =
+            input instanceof Request
+              ? await input.clone().text()
+              : await new Response(init?.body as BodyInit).text()
+          assert.ok(body.includes('<Key>chronoframe/7/original.jpg</Key>'))
+          removed.push('chronoframe/7/original.jpg')
+          objects = false
+          return new Response('<DeleteResult/>', {
+            headers: { 'content-type': 'application/xml' },
+          })
+        }
         assert.equal(method, 'DELETE')
         assert.ok(url.pathname.startsWith('/photos/chronoframe/7/'))
         if (url.searchParams.has('uploadId')) {
@@ -523,7 +580,7 @@ test('S3 cleanup lists and deletes only the exact tenant prefix, including unfin
       }) as typeof fetch,
     },
   )
-  assert.equal(await s3.purgeTenant(7), false)
+  assert.equal(await s3.purgeTenant(7), true)
   assert.equal(await s3.purgeTenant(7), true)
   assert.equal(removed.length, 1)
   assert.equal(aborted.length, 1)
@@ -750,4 +807,325 @@ test('Subscription exemptions match live/expired history, sources, tiers and com
   } finally {
     await mf.dispose()
   }
+})
+test('Migration retains known sign-in timestamps and safely enrolls existing accounts with unknown history', async () => {
+  const mf = new Miniflare(
+    convertV4MiniflareOptions({
+      modules: true,
+      compatibilityDate: '2026-10-26',
+      script: 'export default {fetch(){return new Response("ok")}}',
+      d1Databases: ['DB'],
+    }),
+  )
+  try {
+    const db = await mf.getD1Database('DB'),
+      now = Date.now()
+    for (const name of (
+      await readdir(
+        new URL('../packages/platform/migrations/', import.meta.url),
+      )
+    )
+      .filter((f) => f.endsWith('.sql'))
+      .sort()) {
+      if (name.startsWith('0020')) {
+        await db
+          .prepare(
+            "INSERT INTO platform_users(id,email,created_at) VALUES(1,'unknown@example.com',?),(2,'known@example.com',?)",
+          )
+          .bind(now - 200 * DAY, now - 200 * DAY)
+          .run()
+        await db
+          .prepare(
+            "INSERT INTO platform_auth_sessions(token,user_id,created_at,updated_at,expires_at) VALUES('known',2,?,?,?)",
+          )
+          .bind(new Date(now - 20 * DAY).toISOString(), now, now + DAY)
+          .run()
+      }
+      for (const sql of (
+        await readFile(
+          new URL('../packages/platform/migrations/' + name, import.meta.url),
+          'utf8',
+        )
+      )
+        .replace(/^--.*$/gm, '')
+        .split(';')
+        .filter((s) => s.trim()))
+        await db.prepare(sql).run()
+    }
+    const known = await db
+        .prepare('SELECT last_login_at FROM platform_users WHERE id=2')
+        .first(),
+      unknown = await db
+        .prepare('SELECT last_login_at FROM platform_users WHERE id=1')
+        .first()
+    assert.ok(Math.abs(known.last_login_at - (now - 20 * DAY)) < 1000)
+    assert.ok(
+      unknown.last_login_at >= now - 1000 &&
+        unknown.last_login_at <= Date.now(),
+    )
+  } finally {
+    await mf.dispose()
+  }
+})
+test('Malformed subscription history cannot starve scanning or independent lifecycle stages', async () => {
+  const { lifecycleStages } =
+    await import('../packages/platform/src/account-lifecycle.ts')
+  const { mf, db } = await fixture()
+  try {
+    const now = Date.now(),
+      exemptions = {
+        enabled: true,
+        match: 'any',
+        rules: [{ kind: 'ever-subscribed', sources: ['manual'], planIds: [] }],
+      }
+    await db
+      .prepare(
+        'UPDATE platform_lifecycle_settings SET activated_at=?,exemptions_json=?',
+      )
+      .bind(now - 200 * DAY, JSON.stringify(exemptions))
+      .run()
+    await db
+      .prepare(
+        "INSERT INTO platform_users(id,email,email_verified,created_at,last_login_at) VALUES(1,'bad@example.com',1,?,?),(2,'good@example.com',1,?,?)",
+      )
+      .bind(now - 100 * DAY, now - 100 * DAY, now - 100 * DAY, now - 100 * DAY)
+      .run()
+    await db
+      .prepare(
+        "INSERT INTO platform_workspaces(id,name,owner_user_id) VALUES(1,'Bad history',1)",
+      )
+      .run()
+    await db
+      .prepare(
+        "INSERT INTO platform_subscription_events(id,workspace_id,kind,before_json,after_json,created_at) VALUES('invalid',1,'assigned','not-json','null',?)",
+      )
+      .bind(now)
+      .run()
+    await scanAccounts(db, now, 1)
+    assert.equal(
+      (await db.prepare('SELECT value FROM platform_lifecycle_cursor').first())
+        .value,
+      1,
+    )
+    assert.ok(
+      await db
+        .prepare(
+          "SELECT scope FROM platform_lifecycle_errors WHERE scope='scan-user:1'",
+        )
+        .first(),
+    )
+    await scanAccounts(db, now, 1)
+    assert.ok(
+      await db
+        .prepare(
+          'SELECT user_id FROM platform_account_deletions WHERE user_id=2',
+        )
+        .first(),
+    )
+    const ran: string[] = []
+    await lifecycleStages(
+      db,
+      {
+        scan: async () => {
+          throw new Error('sensitive failure must not be logged')
+        },
+        mail: async () => {
+          ran.push('mail')
+        },
+        purge: async () => {
+          ran.push('purge')
+        },
+        outbox: async () => {
+          ran.push('outbox')
+        },
+      },
+      now,
+    )
+    assert.deepEqual(ran, ['mail', 'purge', 'outbox'])
+    assert.equal(
+      (
+        await db
+          .prepare(
+            "SELECT error FROM platform_lifecycle_errors WHERE scope='scan'",
+          )
+          .first()
+      ).error,
+      'lifecycle_stage_failed',
+    )
+  } finally {
+    await mf.dispose()
+  }
+})
+test('Actual rolling session refresh records activity and prevents an active account from aging out', async () => {
+  const { mf, db } = await fixture()
+  try {
+    const now = Date.now(),
+      messages: string[] = [],
+      portal = 'https://app.chronoframe.art'
+    const auth = createAccountAuth(
+      db,
+      {
+        portalOrigin: portal,
+        secret:
+          '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ-_',
+        emailFrom: 'verify@noreply.chronoframe.art',
+      },
+      {
+        send: async (m: any) => {
+          messages.push(m.text)
+          return { messageId: 'test' }
+        },
+      },
+    )
+    const call = (path: string, body?: any, cookie?: string) =>
+      auth.handler(
+        new Request(portal + '/api/auth' + path, {
+          method: body ? 'POST' : 'GET',
+          headers: {
+            origin: portal,
+            'content-type': 'application/json',
+            'cf-connecting-ip': '192.0.2.51',
+            ...(cookie ? { cookie } : {}),
+          },
+          ...(body ? { body: JSON.stringify(body) } : {}),
+        }),
+      )
+    assert.equal(
+      (
+        await call('/sign-up/email', {
+          email: 'active@example.com',
+          name: 'Active',
+          password: 'Strong-example-password-123',
+        })
+      ).status,
+      200,
+    )
+    const verified = await call('/email-otp/verify-email', {
+      email: 'active@example.com',
+      otp: messages.at(-1)!.match(/\b\d{6}\b/)![0],
+    })
+    assert.equal(verified.status, 200)
+    const cookie = verified.headers
+      .getSetCookie()
+      .find((c) => c.startsWith('__Host-chronoframe-auth='))!
+      .split(';')[0]!
+    const user = await db
+      .prepare("SELECT id FROM platform_users WHERE email='active@example.com'")
+      .first()
+    await db
+      .prepare('UPDATE platform_users SET last_login_at=? WHERE id=?')
+      .bind(now - 100 * DAY, user.id)
+      .run()
+    await db
+      .prepare(
+        'UPDATE platform_auth_sessions SET updated_at=?,expires_at=? WHERE user_id=?',
+      )
+      .bind(
+        new Date(now - 2 * DAY).toISOString(),
+        new Date(now + 5 * DAY).toISOString(),
+        user.id,
+      )
+      .run()
+    const response = await call('/get-session', undefined, cookie)
+    assert.equal(response.status, 200, await response.clone().text())
+    assert.ok(
+      (
+        await db
+          .prepare('SELECT last_login_at FROM platform_users WHERE id=?')
+          .bind(user.id)
+          .first()
+      ).last_login_at >= now,
+    )
+    await db
+      .prepare('UPDATE platform_lifecycle_settings SET activated_at=?')
+      .bind(now - 200 * DAY)
+      .run()
+    await scanAccounts(db, now + 1000)
+    assert.equal(
+      await db
+        .prepare(
+          'SELECT user_id FROM platform_account_deletions WHERE user_id=?',
+        )
+        .bind(user.id)
+        .first(),
+      null,
+    )
+  } finally {
+    await mf.dispose()
+  }
+})
+test('Versioned S3 cleanup batches 1000 scoped versions and surfaces partial deletion errors', async () => {
+  const { createCloudS3 } = await import('../packages/storage/src/s3-edge.ts')
+  let remaining = true,
+    batches = 0,
+    fail = false
+  const keys = Array.from({ length: 1000 }, (_, i) => `chronoframe/8/p${i}`)
+  const s3 = createCloudS3(
+    {
+      endpoint: 'https://s3.us-east-1.amazonaws.com',
+      region: 'us-east-1',
+      bucket: 'photos',
+      accessKeyId: 'fake',
+      secretAccessKey: 'fake',
+    },
+    {
+      fetch: (async (input, init) => {
+        const url = new URL(
+          input instanceof Request ? input.url : String(input),
+        )
+        if (url.searchParams.has('versioning'))
+          return new Response(
+            '<VersioningConfiguration><Status>Enabled</Status></VersioningConfiguration>',
+            { headers: { 'content-type': 'application/xml' } },
+          )
+        if (url.searchParams.has('versions')) {
+          assert.equal(url.searchParams.get('max-keys'), '1000')
+          return new Response(
+            '<ListVersionsResult>' +
+              (remaining
+                ? keys
+                    .map(
+                      (k, i) =>
+                        `<Version><Key>${k}</Key><VersionId>v${i}</VersionId></Version>`,
+                    )
+                    .join('')
+                : '') +
+              '<IsTruncated>false</IsTruncated></ListVersionsResult>',
+            { headers: { 'content-type': 'application/xml' } },
+          )
+        }
+        if (url.searchParams.has('delete')) {
+          const body =
+            input instanceof Request
+              ? await input.clone().text()
+              : await new Response(init?.body as BodyInit).text()
+          assert.equal((body.match(/<Object>/g) ?? []).length, 1000)
+          assert.equal((body.match(/<VersionId>/g) ?? []).length, 1000)
+          assert.ok(body.includes('<Key>chronoframe/8/p999</Key>'))
+          batches++
+          remaining = false
+          return new Response(
+            fail
+              ? '<DeleteResult><Error><Key>chronoframe/8/p0</Key><Code>AccessDenied</Code><Message>blocked</Message></Error></DeleteResult>'
+              : '<DeleteResult/>',
+            { headers: { 'content-type': 'application/xml' } },
+          )
+        }
+        if (url.searchParams.has('uploads'))
+          return new Response(
+            '<ListMultipartUploadsResult><IsTruncated>false</IsTruncated></ListMultipartUploadsResult>',
+            { headers: { 'content-type': 'application/xml' } },
+          )
+        return new Response(
+          '<ListBucketResult><IsTruncated>false</IsTruncated></ListBucketResult>',
+          { headers: { 'content-type': 'application/xml' } },
+        )
+      }) as typeof fetch,
+    },
+  )
+  assert.equal(await s3.purgeTenant(8), true)
+  assert.equal(batches, 1)
+  remaining = true
+  fail = true
+  await assert.rejects(s3.purgeTenant(8), /batch removal incomplete/)
 })
