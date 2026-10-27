@@ -21,6 +21,7 @@ export function validatePricing(value: unknown) {
     !p ||
     !CURRENCIES.includes(p.currency as (typeof CURRENCIES)[number]) ||
     typeof p.listed !== 'boolean' ||
+    (p.featured !== undefined && typeof p.featured !== 'boolean') ||
     typeof p.description !== 'string' ||
     p.description.length > 500 ||
     !Number.isSafeInteger(p.sortOrder) ||
@@ -41,6 +42,7 @@ export function validatePricing(value: unknown) {
     monthlyPrice: p.monthlyPrice as number | null,
     quarterlyPrice: p.quarterlyPrice as number | null,
     listed: p.listed,
+    featured: p.featured as boolean | undefined,
     description: p.description,
     sortOrder: Number(p.sortOrder),
   }
@@ -54,9 +56,10 @@ export async function pricingCatalog(db: PlatformD1) {
     monthly_price: number | null
     quarterly_price: number | null
     description: string
+    featured: number
   }>(
     db.prepare(
-      'SELECT id,name,policy_json,currency,monthly_price,quarterly_price,description FROM platform_plans WHERE active=1 AND listed=1 ORDER BY sort_order,id',
+      'SELECT id,name,policy_json,currency,monthly_price,quarterly_price,description,featured FROM platform_plans WHERE active=1 AND listed=1 ORDER BY sort_order,id',
     ),
   )
   const settings = await db
@@ -66,8 +69,9 @@ export async function pricingCatalog(db: PlatformD1) {
     paymentAvailable: false,
     newPlanId: settings?.new_plan_id ?? 'free',
     plans: rows.map(
-      ({ policy_json, monthly_price, quarterly_price, ...row }) => ({
+      ({ policy_json, monthly_price, quarterly_price, featured, ...row }) => ({
         ...row,
+        featured: !!featured,
         monthlyPrice: monthly_price,
         quarterlyPrice: quarterly_price,
         policy: validatePolicy(JSON.parse(policy_json)),

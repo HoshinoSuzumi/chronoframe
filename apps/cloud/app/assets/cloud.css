@@ -2904,7 +2904,7 @@ a.cf-domain-address:hover {
   border: 1px solid var(--border);
   border-radius: 14px;
 }
-.cf-pricing-card.is-default {
+.cf-pricing-card.is-featured {
   border-color: var(--primary);
   box-shadow: 0 0 0 1px var(--primary);
 }
@@ -3197,4 +3197,11 @@ a.cf-domain-address:hover {
   .cf-redeem-page > .cf-card {
     padding: 18px;
   }
+}
+
+.cf-pricing > .cf-workspace-picker {
+  margin-bottom: 12px;
+}
+.cf-pricing-current {
+  margin-bottom: 24px;
 }
