@@ -1,4 +1,6 @@
+import { signupOfferForRegistration } from '../../../../packages/platform/src/subscriptions.ts'
 import type { PlatformD1 } from '@chronoframe/platform'
+import { createD1Provisioning } from '../../../../packages/platform/src/provisioning.ts'
 import 'reflect-metadata'
 import { betterAuth, type BetterAuthOptions } from 'better-auth'
 import { APIError } from 'better-auth/api'
@@ -27,6 +29,20 @@ export function accountAuthOptions(
   return {
     appName: 'ChronoFrame Cloud',
     databaseHooks: {
+      user: {
+        create: {
+          before: async (user) => {
+            const registeredAt = Date.now()
+            const signupOffer = await signupOfferForRegistration(
+              database as unknown as PlatformD1,
+              registeredAt,
+            )
+            return {
+              data: { ...user, createdAt: new Date(registeredAt), signupOffer },
+            }
+          },
+        },
+      },
       session: {
         create: {
           before: async (session) => {
@@ -43,6 +59,17 @@ export function accountAuthOptions(
                   control.public_reason ||
                   'Account access has been suspended. Contact support.',
               })
+            const db = database as unknown as PlatformD1
+            const initialWorkspace = await db
+              .prepare(
+                'SELECT id FROM platform_users WHERE id=? AND email_verified=1 AND signup_offer IS NOT NULL AND NOT EXISTS(SELECT 1 FROM platform_workspaces WHERE owner_user_id=platform_users.id)',
+              )
+              .bind(Number(session.userId))
+              .first()
+            if (initialWorkspace)
+              await createD1Provisioning(db).defaultWorkspace(
+                Number(session.userId),
+              )
             return { data: session }
           },
         },
@@ -72,6 +99,15 @@ export function accountAuthOptions(
     },
     user: {
       modelName: 'platform_users',
+      additionalFields: {
+        signupOffer: {
+          type: 'string',
+          fieldName: 'signup_offer',
+          required: false,
+          input: false,
+          returned: false,
+        },
+      },
       fields: {
         emailVerified: 'email_verified',
         createdAt: 'created_at',

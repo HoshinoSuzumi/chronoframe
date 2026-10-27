@@ -672,7 +672,10 @@
       "adminOnly": "Only workspace administrators can redeem activation codes.",
       "failed": "Could not load or save subscription information. Try again.",
       "retry": "Try again",
-      "connectionCount": "{count} existing storage connections"
+      "connectionCount": "{count} existing storage connections",
+      "event_signup_promotion": "Registration promotion activated",
+      "event_signup_default": "Registration plan assigned",
+      "signupOffer": "Your registration promotion is active until the expiration shown above."
     }
   }
 }

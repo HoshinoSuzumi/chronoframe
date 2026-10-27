@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 import { createRequire } from 'node:module'
 import { createHmac } from 'node:crypto'
-import { readFile } from 'node:fs/promises'
+import { readFile, readdir } from 'node:fs/promises'
 import { createAccountAuth } from '../apps/cloud/server/utils/account-auth.ts'
 
 const require = createRequire(import.meta.url)
@@ -46,11 +46,14 @@ test('Cloud account migration preserves identities and enforces verified registr
       .run()
     await migration('0002_visitor_access.sql')
     await migration('0003_account_security.sql')
-    await db
-      .prepare(
-        "CREATE TABLE platform_account_controls(user_id INTEGER PRIMARY KEY,suspended INTEGER NOT NULL DEFAULT 0,public_reason TEXT NOT NULL DEFAULT '')",
+    for (const name of (
+      await readdir(
+        new URL('../packages/platform/migrations/', import.meta.url),
       )
-      .run()
+    )
+      .filter((n) => n.endsWith('.sql') && n > '0003_account_security.sql')
+      .sort())
+      await migration(name)
     assert.equal(
       (await db.prepare('SELECT user_id FROM platform_memberships').first())
         .user_id,

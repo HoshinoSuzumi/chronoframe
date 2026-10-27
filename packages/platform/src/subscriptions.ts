@@ -89,16 +89,127 @@ export const EXPIRY_PLAN_SQL =
   "COALESCE((SELECT p.id FROM platform_billing_settings b JOIN platform_plans p ON p.id=b.expiry_plan_id AND p.active=1 WHERE b.id=1),'free')"
 export const NEW_PLAN_SQL =
   "COALESCE((SELECT p.id FROM platform_billing_settings b JOIN platform_plans p ON p.id=b.new_plan_id AND p.active=1 WHERE b.id=1),'free')"
+export function validateSignupPromotion(value: unknown) {
+  const p = value as Record<string, unknown>
+  if (
+    !p ||
+    typeof p.name !== 'string' ||
+    !p.name.trim() ||
+    p.name.trim().length > 120 ||
+    typeof p.planId !== 'string' ||
+    !p.planId ||
+    typeof p.enabled !== 'boolean' ||
+    !Number.isSafeInteger(p.endsAt) ||
+    Number(p.endsAt) < 0 ||
+    (p.startsAt !== null &&
+      (!Number.isSafeInteger(p.startsAt) ||
+        Number(p.startsAt) < 0 ||
+        Number(p.startsAt) >= Number(p.endsAt))) ||
+    !Number.isSafeInteger(p.priority) ||
+    Math.abs(Number(p.priority)) > 10000
+  )
+    throw new SubscriptionError(400, 'invalid_signup_promotion')
+  return {
+    name: p.name.trim(),
+    planId: p.planId,
+    enabled: p.enabled,
+    startsAt: p.startsAt as number | null,
+    endsAt: Number(p.endsAt),
+    priority: Number(p.priority),
+    duration: duration(p.duration),
+  }
+}
+/** Captured before the user insert and persisted with that row, never accepted from signup input. */
+export async function signupOfferForRegistration(
+  db: PlatformD1,
+  registeredAt: number,
+) {
+  const offer = await db
+    .prepare(
+      `SELECT p.id,p.name,COALESCE(p.plan_id,${NEW_PLAN_SQL}) AS plan_id,p.duration_unit,p.duration_value,p.revision FROM (SELECT 1) seed LEFT JOIN platform_signup_promotions p ON p.id=(SELECT candidate.id FROM platform_signup_promotions candidate JOIN platform_plans plan ON plan.id=candidate.plan_id AND plan.active=1 WHERE candidate.enabled=1 AND candidate.created_at<=? AND (candidate.starts_at IS NULL OR candidate.starts_at<=?) AND candidate.ends_at>? ORDER BY candidate.priority DESC,candidate.created_at DESC,candidate.id LIMIT 1)`,
+    )
+    .bind(registeredAt, registeredAt, registeredAt)
+    .first<{
+      id: string | null
+      name: string | null
+      plan_id: string
+      duration_unit: Duration['unit'] | null
+      duration_value: number | null
+      revision: number | null
+    }>()
+  if (!offer) throw new SubscriptionError(503, 'signup_offer_unavailable')
+  const term: Duration = offer.id
+    ? {
+        unit: offer.duration_unit!,
+        ...(offer.duration_value === null
+          ? {}
+          : { value: offer.duration_value }),
+      }
+    : { unit: 'permanent' }
+  return JSON.stringify({
+    promotionId: offer.id,
+    promotionName: offer.name,
+    promotionRevision: offer.revision,
+    planId: offer.plan_id,
+    startsAt: registeredAt,
+    expiresAt: durationEnd(registeredAt, term),
+    source: offer.id ? 'promotion' : 'default',
+  })
+}
 export async function ensureDefaultSubscription(
   db: PlatformD1,
   workspaceId: number,
 ) {
-  await db
+  const owner = await db
     .prepare(
-      `INSERT OR IGNORE INTO platform_workspace_plans(workspace_id,plan_id,starts_at,source) SELECT id,${NEW_PLAN_SQL},created_at,'default' FROM platform_workspaces WHERE id=?`,
+      'SELECT u.signup_offer FROM platform_workspaces w JOIN platform_users u ON u.id=w.owner_user_id WHERE w.id=?',
     )
     .bind(workspaceId)
-    .run()
+    .first<{ signup_offer: string | null }>()
+  if (owner?.signup_offer) {
+    const offer = JSON.parse(owner.signup_offer) as {
+      planId: string
+      startsAt: number
+      expiresAt: number | null
+      source: string
+      promotionId: string | null
+    }
+    const id = crypto.randomUUID()
+    await db.batch([
+      db
+        .prepare(
+          "INSERT INTO platform_subscription_events(id,workspace_id,kind,before_json,after_json,created_at) SELECT ?,?,?,'null',?,? WHERE NOT EXISTS(SELECT 1 FROM platform_workspace_plans WHERE workspace_id=?)",
+        )
+        .bind(
+          id,
+          workspaceId,
+          offer.promotionId ? 'signup_promotion' : 'signup_default',
+          owner.signup_offer,
+          offer.startsAt,
+          workspaceId,
+        ),
+      db
+        .prepare(
+          'INSERT OR IGNORE INTO platform_workspace_plans(workspace_id,plan_id,starts_at,expires_at,source) SELECT ?,?,?,?,? WHERE EXISTS(SELECT 1 FROM platform_subscription_events WHERE id=?)',
+        )
+        .bind(
+          workspaceId,
+          offer.planId,
+          offer.startsAt,
+          offer.expiresAt,
+          offer.source,
+          id,
+        ),
+    ])
+  } else {
+    // Legacy accounts receive the ordinary default, never a retroactive promotion.
+    await db
+      .prepare(
+        `INSERT OR IGNORE INTO platform_workspace_plans(workspace_id,plan_id,starts_at,source) SELECT id,${NEW_PLAN_SQL},created_at,'default' FROM platform_workspaces WHERE id=?`,
+      )
+      .bind(workspaceId)
+      .run()
+  }
 }
 export async function resolveSubscription(
   db: PlatformD1,
