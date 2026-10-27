@@ -280,6 +280,18 @@ test('Lifecycle notices, current-login race, restore, retained deadline and retr
         "INSERT INTO platform_domains(hostname,site_id,verified,active) VALUES('mine.example.com',1,1,1)",
       )
       .run()
+    await db
+      .prepare(
+        "INSERT INTO cloud_uploads(site_id,id,owner_id,photo_id,source_version,connection_id,object_key,expected_bytes,expires_at,state) VALUES(1,'processing-upload',3,'p','1','s3','chronoframe/1/original.jpg',10,?,'completed')",
+      )
+      .bind(now + DAY)
+      .run()
+    await db
+      .prepare(
+        "INSERT INTO cloud_processing_jobs(site_id,id,upload_id,photo_id,source_version,pipeline_version,state,created_at,attempt_id,worker_id,lease_until) VALUES(1,'processing-job','processing-upload','p','1','1','running',?,'attempt','worker',?)",
+      )
+      .bind(now, now + 120000)
+      .run()
     assert.equal(
       await markAccount(
         db,
@@ -298,6 +310,16 @@ test('Lifecycle notices, current-login race, restore, retained deadline and retr
           .first()
       ).suspended,
       1,
+    )
+    assert.equal(
+      (
+        await db
+          .prepare(
+            "SELECT lease_until FROM cloud_processing_jobs WHERE id='processing-job'",
+          )
+          .first()
+      ).lease_until,
+      now,
     )
     await db
       .prepare(

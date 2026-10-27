@@ -163,6 +163,11 @@ export async function markAccount(
       .bind(userId, ...args),
     db
       .prepare(
+        `UPDATE cloud_processing_jobs SET lease_until=? WHERE state='running' AND site_id IN(SELECT site_id FROM platform_deletion_sites WHERE user_id=?) AND ${guard}`,
+      )
+      .bind(now, userId, ...args),
+    db
+      .prepare(
         `DELETE FROM platform_auth_sessions WHERE user_id=? AND ${guard}`,
       )
       .bind(userId, ...args),
