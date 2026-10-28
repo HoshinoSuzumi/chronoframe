@@ -4,7 +4,10 @@ Date: 2026-10-29 (Asia/Hong_Kong)
 
 ## Visual truth and scope
 
-- Approved reference: `C:/Users/timothy/.codex/generated_images/01a182fb-0bd7-7ac2-a376-ea46471eb8de/exec-1d1a67d2-23b7-4272-8944-5a6874ef77fc.png`.
+- Approved direction: the generated 1672 × 941 px workspace concept shared in
+  the design discussion: graphite surfaces, restrained amber accents, compact
+  controls, and a composition for one to three sites. The concept image is not
+  included in this repository; the implementation criteria are recorded below.
 - Scope: implement the approved overall direction in the existing production app,
   keep the user's request for restrained controls and one-site composition, and
   establish a reusable Cloud/Admin foundation. This is not a static mock clone.

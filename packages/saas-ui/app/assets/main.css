@@ -1,7 +1,7 @@
 @import 'tailwindcss';
 @import '@nuxt/ui';
 @import './tokens.css';
-@import './primitives.css';
+@import './primitives.css' layer(components);
 @import './shell.css';
 
 @source '../components';
@@ -14,7 +14,6 @@
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
-  --color-muted: var(--muted);
   --color-muted-foreground: var(--muted-foreground);
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);

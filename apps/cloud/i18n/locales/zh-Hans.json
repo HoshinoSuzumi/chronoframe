@@ -718,7 +718,6 @@
       "return_superseded": "付款已确认，当前套餐由其他授权管理。如需帮助，请联系客服。"
     },
     "dashboard": {
-      "manageGallery": "管理站点",
       "workspaceOverview": "工作区概览",
       "workspaceHelp": "在这里查看站点、资源用量与下一步操作。",
       "resources": "工作区资源",

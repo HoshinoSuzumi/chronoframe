@@ -2799,16 +2799,6 @@ a.cf-domain-address:hover {
   }
 }
 
-/* Nuxt UI text utilities share names with background-oriented theme colors. */
-.cf-cloud-body .text-muted,
-.cf-cloud-body .text-dimmed {
-  color: var(--muted-foreground);
-}
-.cf-cloud-body .text-default,
-.cf-cloud-body .text-toned,
-.cf-cloud-body .text-highlighted {
-  color: var(--foreground);
-}
 .cf-site-page-header {
   border-bottom: 0;
   padding: 20px;

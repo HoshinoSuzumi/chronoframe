@@ -718,7 +718,6 @@
       "return_superseded": "Payment confirmed. Your current plan is controlled by another entitlement; contact support if you need help."
     },
     "dashboard": {
-      "manageGallery": "Manage site",
       "workspaceOverview": "Workspace overview",
       "workspaceHelp": "Your galleries, resources and next steps in one place.",
       "resources": "Workspace resources",

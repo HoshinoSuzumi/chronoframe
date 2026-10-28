@@ -54,7 +54,9 @@ Open `http://localhost:3001/signin`. The setup command creates missing app-local
 `developer@localhost.test` account, a workspace, a Free subscription and an
 unpublished sample site. Read the generated password in
 `apps/cloud/.data/local-account.json`. Re-running setup applies new migrations
-without resetting existing credentials, edited site settings or other local data.
+and synchronizes the local account password with that credentials file without
+resetting edited site settings or other local data. If the credentials file is
+missing, setup generates a new password and updates the existing local account.
 Existing `.env` values are preserved; ensure `NUXT_PLATFORM_PORTAL_ORIGIN` is
 `http://localhost:3001` and session/platform secrets contain at least 32 characters.
 Restart the development server after changing `.env`.

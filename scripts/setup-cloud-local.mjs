@@ -93,7 +93,7 @@ try {
     db
       .prepare(`INSERT INTO platform_accounts(account_id,provider_id,user_id,password,created_at,updated_at)
       SELECT CAST(id AS TEXT),'credential',id,?,?,? FROM platform_users WHERE email=?
-      ON CONFLICT(provider_id,account_id) DO NOTHING`)
+      ON CONFLICT(provider_id,account_id) DO UPDATE SET password=excluded.password,updated_at=excluded.updated_at`)
       .bind(password, now, now, credentials.email),
     db
       .prepare(`INSERT INTO platform_workspaces(name,owner_user_id,created_at)
