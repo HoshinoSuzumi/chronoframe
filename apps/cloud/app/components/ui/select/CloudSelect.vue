@@ -1,5 +1,9 @@
 <script setup lang="ts">
-const props = defineProps<{ value?: string | number | boolean | null }>()
+// Keep an omitted Boolean-union prop distinct from an explicitly controlled false.
+const props = withDefaults(
+  defineProps<{ value?: string | number | boolean | null }>(),
+  { value: undefined },
+)
 const model = defineModel<string | number | boolean | null>()
 // Preserve native controlled-value forms as well as v-model consumers.
 const selected = computed({
