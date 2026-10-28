@@ -31,3 +31,37 @@ export function quotaGate(
     limit,
   }
 }
+
+export type UploadConnection = {
+  id: string
+  pool_id?: string | null
+  uploads_enabled?: number
+}
+/** Prefer the current target, but never hide another connection with available allowance. */
+export function uploadQuotaGate(
+  data: any,
+  connections: UploadConnection[],
+  selected = '',
+) {
+  const candidates = connections
+    .filter((c) => c.uploads_enabled !== 0)
+    .sort((a, b) => Number(b.id === selected) - Number(a.id === selected))
+  const targets = candidates.length
+    ? candidates
+    : [{ id: '', pool_id: 'platform' }]
+  const gates = targets.map((connection) => {
+    const mode = connection.pool_id ? 'platform' : 'byos'
+    const resources: QuotaResource[] =
+      mode === 'byos'
+        ? ['byos', 'photos', 'monthlyBytes', 'fileBytes']
+        : ['photos', 'storageBytes', 'monthlyBytes', 'fileBytes']
+    const denied = resources
+      .map((resource) => quotaGate(data, resource, mode))
+      .find((gate) => !gate.allowed)
+    return {
+      ...(denied ?? { allowed: true, reason: '' }),
+      connectionId: connection.id,
+    }
+  })
+  return gates.find((gate) => gate.allowed) ?? gates[0]!
+}

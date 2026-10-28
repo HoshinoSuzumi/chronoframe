@@ -20,7 +20,7 @@ const activeContext = useEntryContext(),
 watch(activeContext, (next) => {
   if (next?.scope === site.value.scope) site.value = next
 })
-const { photos, albums, jobs, loading, ready, connections, connectionId } =
+const { photos, albums, jobs, loading, ready, connections, loadError } =
   useCloudSiteMedia()
 const processing = computed(
   () =>
@@ -31,8 +31,8 @@ const processing = computed(
 const failed = computed(
   () => jobs.value.filter((job) => job.state === 'failed').length,
 )
-const connection = computed(() =>
-  connections.value.find((item) => item.id === connectionId.value),
+const connection = computed(
+  () => connections.value.find((item) => item.pool_id) ?? connections.value[0],
 )
 const actions = computed(() => [
   {
@@ -77,8 +77,8 @@ const actions = computed(() => [
     >
       <CloudStatCard
         :label="$t('cloud.messages.photographs')"
-        :value="photos.length"
-        :loading="!ready"
+        :value="ready ? photos.length : undefined"
+        :loading="!ready && !loadError"
         ><NuxtLink
           :to="`/sites/${site.siteId}/photos`"
           class="cf-text-link"
@@ -87,8 +87,8 @@ const actions = computed(() => [
       ></CloudStatCard>
       <CloudStatCard
         :label="$t('cloud.messages.albums')"
-        :value="albums.length"
-        :loading="!ready"
+        :value="ready ? albums.length : undefined"
+        :loading="!ready && !loadError"
         ><NuxtLink
           :to="`/sites/${site.siteId}/albums`"
           class="cf-text-link"
@@ -97,8 +97,8 @@ const actions = computed(() => [
       ></CloudStatCard>
       <CloudStatCard
         :label="$t('cloud.messages.processing')"
-        :value="processing"
-        :loading="!ready"
+        :value="ready ? processing : undefined"
+        :loading="!ready && !loadError"
         :detail="
           failed
             ? $t('cloud.dashboard.failedJobs', { count: failed })
@@ -129,11 +129,11 @@ const actions = computed(() => [
       <CloudCard class="cf-dashboard-panel"
         ><h2>{{ $t('cloud.dashboard.siteHealth') }}</h2>
         <CloudSkeleton
-          v-if="!ready"
+          v-if="!ready && !loadError"
           class="h-32 w-full"
         />
         <ul
-          v-else
+          v-else-if="ready"
           class="cf-site-health-list"
         >
           <li>

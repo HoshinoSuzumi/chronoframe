@@ -8,6 +8,7 @@ import {
   Trash2 as ButtonIconTrash2,
   Upload as ButtonIconUpload,
 } from 'lucide-vue-next'
+import { uploadQuotaGate } from '../utils/quota-gate'
 const { t, locale } = useI18n()
 
 import type { Photo } from '@chronoframe/contracts/resources'
@@ -38,22 +39,20 @@ const {
 const quota = useCloudQuota(useEntryContext().value?.workspaceId)
 const uploadAdmission = computed(() => {
   if (!ready.value) return { allowed: false, reason: 'checking' }
-  const connection = connections.value.find((c) => c.id === connectionId.value)
-  const mode = !connection || connection.pool_id ? 'platform' : 'byos'
-  const resources =
-    mode === 'byos'
-      ? (['byos', 'photos', 'monthlyBytes', 'fileBytes'] as const)
-      : (['photos', 'storageBytes', 'monthlyBytes', 'fileBytes'] as const)
-  return (
-    resources
-      .map((resource) => quota.gate(resource, mode))
-      .find((gate) => !gate.allowed) ?? { allowed: true, reason: '' }
+  return uploadQuotaGate(
+    quota.data.value,
+    connections.value,
+    connectionId.value,
   )
 })
 async function openUpload() {
   await quota.refresh()
-  if (uploadAdmission.value.allowed && !quota.error.value)
+  if (uploadAdmission.value.allowed && !quota.error.value) {
+    const target = uploadAdmission.value
+    if ('connectionId' in target && target.connectionId)
+      connectionId.value = target.connectionId
     uploadOpen.value = true
+  }
 }
 const search = ref(''),
   selection = ref<Record<string, boolean>>({}),

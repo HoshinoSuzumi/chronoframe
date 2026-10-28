@@ -552,8 +552,8 @@ function menu(album: Album) {
                 :alt="photo.title || $t('cloud.messages.photograph')"
               /><span>{{ photo.title }}</span
               ><CloudButton
-                :color="draft.coverPhotoId === photo.id ? 'primary' : 'neutral'"
-                variant="ghost"
+                :variant="draft.coverPhotoId === photo.id ? 'soft' : 'ghost'"
+                :aria-pressed="draft.coverPhotoId === photo.id"
                 :icon="ButtonIconStar"
                 size="sm"
                 :aria-label="$t('cloud.ui.setCover', { title: photo.title })"
