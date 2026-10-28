@@ -2,6 +2,7 @@
   "name": "@chronoframe/media",
   "version": "0.1.0",
   "private": true,
+  "license": "AGPL-3.0-only",
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
@@ -18,19 +19,18 @@
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
-    "sharp": "^0.35.5",
-    "@vingle/bmp-js": "^0.2.5",
-    "heic-convert": "^2.1.0",
-    "exiftool-vendored": "^35.21.0",
-    "es-toolkit": "^1.52.0",
-    "thumbhash": "^0.1.1",
     "@chronoframe/contracts": "workspace:*",
-    "@chronoframe/storage": "workspace:*"
+    "@chronoframe/storage": "workspace:*",
+    "@vingle/bmp-js": "^0.2.5",
+    "es-toolkit": "^1.52.0",
+    "exiftool-vendored": "^35.21.0",
+    "heic-convert": "^2.1.0",
+    "sharp": "^0.35.5",
+    "thumbhash": "^0.1.1"
   },
   "devDependencies": {
-    "@types/node": "^22.20.5",
     "@types/heic-convert": "^2.1.1",
+    "@types/node": "^22.20.5",
     "typescript": "^5.9.3"
-  },
-  "license": "AGPL-3.0-only"
+  }
 }

@@ -2,6 +2,7 @@
   "name": "@chronoframe/processing",
   "version": "0.1.0",
   "private": true,
+  "license": "AGPL-3.0-only",
   "type": "module",
   "exports": {
     ".": "./src/index.ts"
@@ -11,13 +12,12 @@
   },
   "dependencies": {
     "@chronoframe/contracts": "workspace:*",
+    "@chronoframe/geocoding": "workspace:*",
     "@chronoframe/media": "workspace:*",
-    "@chronoframe/storage": "workspace:*",
-    "@chronoframe/geocoding": "workspace:*"
+    "@chronoframe/storage": "workspace:*"
   },
   "devDependencies": {
-    "typescript": "^5.9.3",
-    "@types/node": "^22.20.5"
-  },
-  "license": "AGPL-3.0-only"
+    "@types/node": "^22.20.5",
+    "typescript": "^5.9.3"
+  }
 }

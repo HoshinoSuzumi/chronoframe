@@ -2,18 +2,18 @@
   "name": "@chronoframe/worker",
   "version": "0.1.0",
   "private": true,
-  "type": "module",
   "license": "AGPL-3.0-only",
+  "type": "module",
   "scripts": {
     "start": "node --experimental-strip-types src/index.ts",
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
-    "@chronoframe/core": "workspace:*",
     "@chronoframe/contracts": "workspace:*",
+    "@chronoframe/core": "workspace:*",
+    "@chronoframe/media": "workspace:*",
     "@chronoframe/processing": "workspace:*",
     "@chronoframe/storage": "workspace:*",
-    "@chronoframe/media": "workspace:*",
     "exiftool-vendored": "^35.21.0",
     "sharp": "^0.35.5"
   },

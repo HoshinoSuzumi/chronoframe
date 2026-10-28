@@ -2,6 +2,7 @@
   "name": "@chronoframe/contracts",
   "version": "0.1.0",
   "private": true,
+  "license": "MIT",
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
@@ -28,6 +29,5 @@
   },
   "devDependencies": {
     "typescript": "^5.9.3"
-  },
-  "license": "MIT"
+  }
 }

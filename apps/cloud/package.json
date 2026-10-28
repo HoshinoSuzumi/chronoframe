@@ -2,8 +2,8 @@
   "name": "@chronoframe/cloud",
   "version": "0.0.0",
   "private": true,
-  "type": "module",
   "license": "AGPL-3.0-only",
+  "type": "module",
   "scripts": {
     "dev": "node ../../scripts/saas-entry.mjs cloud dev",
     "build": "node ../../scripts/saas-entry.mjs cloud build",
@@ -16,8 +16,10 @@
     "@chronoframe/console": "workspace:*",
     "@chronoframe/contracts": "workspace:*",
     "@chronoframe/core": "workspace:*",
+    "@chronoframe/database": "workspace:*",
     "@chronoframe/gallery": "workspace:*",
     "@chronoframe/platform": "workspace:*",
+    "@chronoframe/storage": "workspace:*",
     "@nuxt/icon": "2.5.1",
     "@nuxt/ui": "^4.11.3",
     "@nuxtjs/color-mode": "4.0.1",
@@ -34,6 +36,7 @@
     "motion-v": "^2.6.0",
     "nuxt": "^4.6.1",
     "nuxt-auth-utils": "0.5.31",
+    "nuxt-gtag": "4.1.0",
     "nuxt-mapbox": "1.6.4",
     "nuxt-maplibre": "^1.2.2",
     "nuxt-og-image": "6.10.3",
@@ -44,9 +47,6 @@
     "reka-ui": "^2.11.0",
     "shadcn-nuxt": "^2.8.2",
     "tailwind-merge": "^3.7.0",
-    "vue": "^3.5.43",
-    "@chronoframe/database": "workspace:*",
-    "@chronoframe/storage": "workspace:*",
-    "nuxt-gtag": "4.1.0"
+    "vue": "^3.5.43"
   }
 }

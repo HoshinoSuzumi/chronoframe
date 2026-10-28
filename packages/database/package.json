@@ -2,6 +2,7 @@
   "name": "@chronoframe/database",
   "version": "0.1.0",
   "private": true,
+  "license": "AGPL-3.0-only",
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
@@ -31,6 +32,5 @@
     "@types/better-sqlite3": "^9.6.0",
     "@types/node": "^22.20.5",
     "typescript": "^5.9.3"
-  },
-  "license": "AGPL-3.0-only"
+  }
 }

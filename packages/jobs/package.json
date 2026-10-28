@@ -2,6 +2,7 @@
   "name": "@chronoframe/jobs",
   "version": "0.1.0",
   "private": true,
+  "license": "AGPL-3.0-only",
   "type": "module",
   "exports": {
     ".": "./src/index.ts"
@@ -10,11 +11,10 @@
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
-    "@chronoframe/core": "workspace:*",
-    "@chronoframe/contracts": "workspace:*"
+    "@chronoframe/contracts": "workspace:*",
+    "@chronoframe/core": "workspace:*"
   },
   "devDependencies": {
     "typescript": "^5.9.3"
-  },
-  "license": "AGPL-3.0-only"
+  }
 }

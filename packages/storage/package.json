@@ -2,6 +2,7 @@
   "name": "@chronoframe/storage",
   "version": "0.1.0",
   "private": true,
+  "license": "AGPL-3.0-only",
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
@@ -29,8 +30,7 @@
   },
   "devDependencies": {
     "@types/node": "^22.20.5",
-    "typescript": "^5.9.3",
-    "esbuild": "0.28.0"
-  },
-  "license": "AGPL-3.0-only"
+    "esbuild": "0.28.0",
+    "typescript": "^5.9.3"
+  }
 }
