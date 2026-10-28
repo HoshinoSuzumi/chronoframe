@@ -22,7 +22,9 @@ const quota = useCloudQuota(context?.workspaceId)
 const selectedAdmission = computed(() =>
   uploadQuotaGate(
     quota.data.value,
-    connections.value.filter((c) => c.id === connectionId.value),
+    connectionId.value
+      ? connections.value.filter((c) => c.id === connectionId.value)
+      : connections.value,
     connectionId.value,
   ),
 )
@@ -109,9 +111,7 @@ async function dropFiles(event: DragEvent) {
           {{ $t('cloud.storageAllowance.unavailable') }}
         </p>
         <CloudQuotaNotice
-          v-if="
-            connectionId && (!selectedAdmission.allowed || quota.error.value)
-          "
+          v-if="!selectedAdmission.allowed || quota.error.value"
           :reason="selectedAdmission.reason"
           :error="!!quota.error.value"
           @retry="quota.refresh()"

@@ -105,5 +105,9 @@ test('Upload preflight denies stale or disabled explicit targets while retaining
       .reason,
     'storage',
   )
+  assert.equal(
+    uploadQuotaGate(data, [{ id: 'disabled', uploads_enabled: 0 }]).reason,
+    'storage',
+  )
   assert.equal(uploadQuotaGate(data, []).allowed, true)
 })
