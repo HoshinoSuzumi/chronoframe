@@ -245,6 +245,34 @@ test('Credential vault authenticates Site/revision, keeps old objects usable and
         .run(),
       /storage_connection_unavailable/,
     )
+    await vault.create(
+      'replacement',
+      publicConfig,
+      { accessKeyId, secretAccessKey },
+      4,
+    )
+    assert.equal((await vault.list()).length, 21)
+    assert.equal(
+      (await vault.list()).filter((c) => c.uploads_enabled !== 0).length,
+      20,
+    )
+    assert.equal(
+      await vault.rotate(
+        'storage',
+        2,
+        { accessKeyId, secretAccessKey: 'replacement-read-secret' },
+        5,
+      ),
+      true,
+    )
+    assert.equal(
+      (await vault.list()).find((c) => c.id === 'storage')?.uploads_enabled,
+      0,
+    )
+    assert.equal(
+      (await vault.get('storage', 1))?.credentials.secretAccessKey,
+      secretAccessKey,
+    )
   } finally {
     await mf.dispose()
   }

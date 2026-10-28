@@ -224,8 +224,10 @@ export function useCloudMediaWorkspace(props: {
       storage.secretAccessKey = ''
     }, t('cloud.messages.storageConnectedAndVerified'))
   }
-  async function rotateStorage() {
-    const selected = connections.value.find((c) => c.id === connectionId.value)
+  async function rotateStorage(targetId?: string) {
+    const selected = connections.value.find(
+      (c) => c.id === (targetId ?? connectionId.value),
+    )
     if (!selected) return
     await action(async () => {
       await api(base.value + '/storage/' + selected.id + '/rotate', {

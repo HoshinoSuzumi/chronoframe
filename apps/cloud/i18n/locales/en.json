@@ -474,7 +474,7 @@
       "refresh": "Refresh",
       "saved": "Domain settings updated.",
       "failed": "The domain operation failed. Refresh and try again.",
-      "loadFailed": "Domain settings could not be loaded.",
+      "loadFailed": "Could not load domain settings. Retry to confirm the primary address.",
       "defaultHelp": "Your default address remains available when a custom domain is paused or removed.",
       "defaultConflict": "This default address is reserved or conflicts with another binding. Choose a new site address.",
       "changeAddress": "Change site address",

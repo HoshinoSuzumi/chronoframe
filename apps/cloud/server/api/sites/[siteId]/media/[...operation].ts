@@ -131,7 +131,7 @@ export default definePlatformHandler(async (event) => {
         statusCode: 403,
         statusMessage: 'Your plan does not include custom storage',
       })
-    if ((await vault.list()).length >= 20)
+    if ((await vault.list()).filter((c) => c.retired !== 1).length >= 20)
       throw createError({ statusCode: 429 })
     const config = {
       endpoint: text(body.endpoint, 512),
@@ -163,11 +163,7 @@ export default definePlatformHandler(async (event) => {
   ) {
     const old = await vault.get(ID(id))
     if (!old) throw createError({ statusCode: 404 })
-    if (
-      'poolId' in old ||
-      !(await workspaceEntitlements(raw, site.workspaceId, 'byos')).limits.byos
-    )
-      throw createError({ statusCode: 403 })
+    if ('poolId' in old) throw createError({ statusCode: 403 })
     const credentials = {
       accessKeyId: text(body.accessKeyId, 256),
       secretAccessKey: text(body.secretAccessKey, 256),

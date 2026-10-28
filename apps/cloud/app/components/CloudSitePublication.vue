@@ -17,9 +17,11 @@ const { data, status, error, refresh } = useFetch<{
     legacyHostname?: string | null
   }
 }>(`/api/sites/${context.value?.siteId}/settings`)
-const { data: domainOverview } = useFetch<DomainOverview>(
-  `/api/sites/${context.value?.siteId}/domains`,
-)
+const {
+  data: domainOverview,
+  error: domainError,
+  refresh: refreshDomains,
+} = useFetch<DomainOverview>(`/api/sites/${context.value?.siteId}/domains`)
 const customHost = computed(() => {
   if (!domainOverview.value?.enabled || !domainOverview.value.routingReady)
     return undefined
@@ -27,7 +29,7 @@ const customHost = computed(() => {
     domainOverview.value?.domains.filter(
       (d) => d.status === 'active' && !d.holdReason && !d.cleanupPending,
     ) ?? []
-  return (eligible.find((d) => d.primary) ?? eligible[0])?.hostname
+  return eligible.find((d) => d.primary)?.hostname
 })
 const host = computed(
   () =>
@@ -118,6 +120,17 @@ async function unpublish() {
     >
       {{ $t('cloud.domains.routingPending') }}
     </p>
+    <CloudAlert
+      v-if="domainError"
+      tone="error"
+      >{{ $t('cloud.domains.loadFailed')
+      }}<CloudButton
+        size="sm"
+        variant="secondary"
+        @click="refreshDomains()"
+        >{{ $t('cloud.messages.retry') }}</CloudButton
+      ></CloudAlert
+    >
     <div class="cf-site-address-block">
       <div
         v-if="address"

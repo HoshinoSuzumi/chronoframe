@@ -474,7 +474,7 @@
       "refresh": "刷新",
       "saved": "域名设置已更新。",
       "failed": "域名操作失败，请刷新后重试。",
-      "loadFailed": "无法加载域名设置。",
+      "loadFailed": "无法加载域名设置，请重试以确认主地址。",
       "defaultHelp": "自定义域名暂停或移除后，默认地址仍然可用。",
       "defaultConflict": "此默认地址已被保留或存在绑定冲突，请选择新的站点地址。",
       "changeAddress": "更改站点地址",

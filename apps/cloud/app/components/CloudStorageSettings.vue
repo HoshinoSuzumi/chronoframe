@@ -18,6 +18,11 @@ const {
 const quota = useCloudQuota(useEntryContext().value?.workspaceId)
 const { t } = useI18n()
 const removal = ref<string | null>(null)
+const rotationId = ref('')
+watch(rotationId, () => {
+  rotation.accessKeyId = ''
+  rotation.secretAccessKey = ''
+})
 async function selectStorage(id: string) {
   const saved = await action(
     () =>
@@ -95,7 +100,7 @@ const byosAdmission = computed(() => quota.gate('byos'))
           </div>
           <div
             class="cf-storage-option-actions"
-            v-if="admin && !connection.retired"
+            v-if="admin"
           >
             <CloudButton
               size="sm"
@@ -106,11 +111,20 @@ const byosAdmission = computed(() => quota.gate('byos'))
                 connection.uploads_enabled === 0 ||
                 (!connection.pool_id && !allowance?.byosLimits.byos)
               "
+              v-if="!connection.retired"
               @click="selectStorage(connection.id)"
               >{{ $t('cloud.storageManager.use') }}</CloudButton
             >
             <CloudButton
               v-if="!connection.pool_id"
+              size="sm"
+              variant="secondary"
+              :disabled="busy"
+              @click="rotationId = connection.id"
+              >{{ $t('cloud.messages.rotateStorageCredentials') }}</CloudButton
+            >
+            <CloudButton
+              v-if="!connection.pool_id && !connection.retired"
               size="sm"
               variant="ghost"
               :disabled="busy"
@@ -149,17 +163,17 @@ const byosAdmission = computed(() => quota.gate('byos'))
         ></UModal
       >
       <details
-        v-if="
-          admin &&
-          connectionId &&
-          !connections.find((c) => c.id === connectionId)?.pool_id
-        "
+        v-if="admin && rotationId"
+        open
         class="cf-storage-details"
       >
         <summary>{{ $t('cloud.messages.rotateStorageCredentials') }}</summary>
+        <p class="cf-field-hint">
+          {{ connections.find((c) => c.id === rotationId)?.config.bucket }}
+        </p>
         <form
           class="cf-storage-grid"
-          @submit.prevent="rotateStorage"
+          @submit.prevent="rotateStorage(rotationId)"
         >
           <label
             >{{ $t('cloud.messages.newAccessKeyId')
