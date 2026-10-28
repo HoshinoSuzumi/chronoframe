@@ -1,3 +1,4 @@
+import { splitSqlQuery } from './helpers/sql.ts'
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import { createRequire } from 'node:module'
@@ -25,9 +26,7 @@ test('Cloud account migration preserves identities and enforces verified registr
         new URL('../packages/platform/migrations/' + name, import.meta.url),
         'utf8',
       )
-      for (const statement of sql
-        .replace(/^--.*$/gm, '')
-        .split(';')
+      for (const statement of splitSqlQuery(sql.replace(/^--.*$/gm, ''))
         .map((s) => s.trim())
         .filter(Boolean))
         await db.prepare(statement).run()

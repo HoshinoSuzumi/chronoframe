@@ -1,3 +1,4 @@
+import { splitSqlQuery } from './helpers/sql.ts'
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { readdir, readFile } from 'node:fs/promises'
@@ -31,15 +32,14 @@ test('Signup promotions snapshot eligibility at actual registration, grant once 
     )
       .filter((n) => n.endsWith('.sql'))
       .sort())
-      for (const sql of (
-        await readFile(
-          new URL('../packages/platform/migrations/' + file, import.meta.url),
-          'utf8',
-        )
-      )
-        .replace(/^--.*$/gm, '')
-        .split(';')
-        .filter((s) => s.trim()))
+      for (const sql of splitSqlQuery(
+        (
+          await readFile(
+            new URL('../packages/platform/migrations/' + file, import.meta.url),
+            'utf8',
+          )
+        ).replace(/^--.*$/gm, ''),
+      ).filter((s) => s.trim()))
         await db.prepare(sql).run()
     const now = Date.now(),
       day = 86400000

@@ -1,3 +1,4 @@
+import { splitSqlQuery } from './helpers/sql.ts'
 import {
   createDomainManager,
   renameDefaultDomain,
@@ -105,11 +106,12 @@ test('New workspaces are free; empty galleries auto-publish; quotas and managed 
     for (const f of (await readdir('packages/platform/migrations'))
       .filter((f) => f.endsWith('.sql'))
       .sort())
-      for (const q of (
-        await readFile('packages/platform/migrations/' + f, 'utf8')
+      for (const q of splitSqlQuery(
+        (await readFile('packages/platform/migrations/' + f, 'utf8')).replace(
+          /^--.*$/gm,
+          '',
+        ),
       )
-        .replace(/^--.*$/gm, '')
-        .split(';')
         .map((v) => v.trim())
         .filter(Boolean))
         await db.prepare(q).run()

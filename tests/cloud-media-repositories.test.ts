@@ -1,3 +1,4 @@
+import { splitSqlQuery } from './helpers/sql.ts'
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import { createRequire } from 'node:module'
@@ -76,9 +77,7 @@ for (const backend of ['SQLite', 'D1'] as const) {
           new URL('../packages/platform/migrations/' + file, import.meta.url),
           'utf8',
         )
-        for (const part of sql
-          .replace(/^--.*$/gm, '')
-          .split(';')
+        for (const part of splitSqlQuery(sql.replace(/^--.*$/gm, ''))
           .map((s) => s.trim())
           .filter(Boolean))
           await run(part)
@@ -106,9 +105,7 @@ for (const backend of ['SQLite', 'D1'] as const) {
           ),
           'utf8',
         ))
-      for (const part of migration
-        .replace(/^--.*$/gm, '')
-        .split(';')
+      for (const part of splitSqlQuery(migration.replace(/^--.*$/gm, ''))
         .map((s) => s.trim())
         .filter(Boolean)) {
         if (part.startsWith('ALTER TABLE cloud_uploads'))
@@ -125,9 +122,7 @@ for (const backend of ['SQLite', 'D1'] as const) {
           new URL('../packages/platform/migrations/' + file, import.meta.url),
           'utf8',
         )
-        for (const part of sql
-          .replace(/^--.*$/gm, '')
-          .split(';')
+        for (const part of splitSqlQuery(sql.replace(/^--.*$/gm, ''))
           .map((s) => s.trim())
           .filter(Boolean))
           await run(part)
@@ -302,9 +297,7 @@ test('D1 media sessions and queued jobs survive a workerd restart', async () => 
         ),
         'utf8',
       ))
-    for (const sql of migration
-      .replace(/^--.*$/gm, '')
-      .split(';')
+    for (const sql of splitSqlQuery(migration.replace(/^--.*$/gm, ''))
       .map((s) => s.trim())
       .filter(Boolean))
       await db.prepare(sql).run()

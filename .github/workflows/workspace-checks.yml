@@ -33,6 +33,7 @@ jobs:
       - run: pnpm check:packages
       - run: pnpm lint
       - run: pnpm test
+        timeout-minutes: 10
       - run: pnpm build:deps
       - run: pnpm build
       - run: pnpm test:album-http

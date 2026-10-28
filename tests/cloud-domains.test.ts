@@ -1,3 +1,4 @@
+import { splitSqlQuery } from './helpers/sql.ts'
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import { readFile, readdir } from 'node:fs/promises'
@@ -77,9 +78,7 @@ test('Real D1 custom domains fence claims, CNAME ownership transitions, provider
       .filter((f) => f.endsWith('.sql'))
       .sort()) {
       const sql = await readFile('packages/platform/migrations/' + file, 'utf8')
-      for (const q of sql
-        .replace(/^--.*$/gm, '')
-        .split(';')
+      for (const q of splitSqlQuery(sql.replace(/^--.*$/gm, ''))
         .map((s) => s.trim())
         .filter(Boolean))
         await db.prepare(q).run()
@@ -792,11 +791,11 @@ test('Default-domain migration preserves reserved names and mappings owned by an
   try {
     const db = await mf.getD1Database('DB')
     const apply = async (file: string) => {
-      for (const q of (
-        await readFile('packages/platform/migrations/' + file, 'utf8')
+      for (const q of splitSqlQuery(
+        (
+          await readFile('packages/platform/migrations/' + file, 'utf8')
+        ).replace(/^--.*$/gm, ''),
       )
-        .replace(/^--.*$/gm, '')
-        .split(';')
         .map((s) => s.trim())
         .filter(Boolean))
         await db.prepare(q).run()
@@ -880,11 +879,11 @@ test('Workspace quotas preserve capacity for other tenants and audit failures ro
     for (const file of (await readdir('packages/platform/migrations'))
       .filter((f) => f.endsWith('.sql'))
       .sort())
-      for (const q of (
-        await readFile('packages/platform/migrations/' + file, 'utf8')
+      for (const q of splitSqlQuery(
+        (
+          await readFile('packages/platform/migrations/' + file, 'utf8')
+        ).replace(/^--.*$/gm, ''),
       )
-        .replace(/^--.*$/gm, '')
-        .split(';')
         .map((s) => s.trim())
         .filter(Boolean))
         await db.prepare(q).run()

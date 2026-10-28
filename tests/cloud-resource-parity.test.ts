@@ -1,3 +1,4 @@
+import { splitSqlQuery } from './helpers/sql.ts'
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import { createRequire } from 'node:module'
@@ -34,9 +35,7 @@ test('Cloud D1 and Self-hosted SQLite share ordering, visibility and protected-a
       .filter((n) => n.endsWith('.sql'))
       .sort()) {
       const sql = await readFile('packages/platform/migrations/' + name, 'utf8')
-      for (const statement of sql
-        .replace(/^--.*$/gm, '')
-        .split(';')
+      for (const statement of splitSqlQuery(sql.replace(/^--.*$/gm, ''))
         .map((s) => s.trim())
         .filter(Boolean))
         await db.prepare(statement).run()

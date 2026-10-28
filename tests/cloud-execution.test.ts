@@ -1,3 +1,4 @@
+import { splitSqlQuery } from './helpers/sql.ts'
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import { createRequire } from 'node:module'
@@ -40,9 +41,7 @@ test('D1 queue serializes claims, fences expired attempts, retries and refuses d
         new URL('../packages/platform/migrations/' + name, import.meta.url),
         'utf8',
       )
-      for (const sql of migration
-        .replace(/^--.*$/gm, '')
-        .split(';')
+      for (const sql of splitSqlQuery(migration.replace(/^--.*$/gm, ''))
         .map((s) => s.trim())
         .filter(Boolean))
         await db.prepare(sql).run()
