@@ -715,6 +715,103 @@ export async function receivePaymentEvent(
   return { received: true }
 }
 
+async function paymentRecordId(prefix: string, providerId: string) {
+  const hash = await crypto.subtle.digest('SHA-256', enc.encode(providerId))
+  return (
+    prefix +
+    '_' +
+    [...new Uint8Array(hash)]
+      .map((v) => v.toString(16).padStart(2, '0'))
+      .join('')
+  )
+}
+/** A portal repurchase is a new immutable checkout, linked to a proven prior subscription. */
+async function portalResubscriptionCheckout(
+  db: PlatformD1,
+  origin: any,
+  c: any,
+  s: any,
+  credentials: PaymentSecrets,
+  transport: PaymentFetch,
+  now: number,
+) {
+  const predecessorId = c.metadata?.resubscribed_from_subscription_id
+  if (
+    origin.state !== 'completed' ||
+    !origin.provider_id ||
+    !identifier(predecessorId) ||
+    s.metadata?.resubscribed_from_subscription_id !== predecessorId ||
+    s.metadata?.chronoframe_checkout_id !== origin.id ||
+    !checkoutBound(c, origin.id)
+  )
+    fail(422, 'payment_binding_invalid')
+  const predecessor = await db
+    .prepare(
+      'SELECT s.*,c.origin_checkout_id,c.user_id FROM platform_payment_subscriptions s JOIN platform_payment_checkouts c ON c.id=s.checkout_id WHERE s.id=?',
+    )
+    .bind(predecessorId)
+    .first<any>()
+  if (
+    !predecessor ||
+    predecessor.workspace_id !== origin.workspace_id ||
+    predecessor.user_id !== origin.user_id ||
+    ![predecessor.checkout_id, predecessor.origin_checkout_id].includes(
+      origin.id,
+    ) ||
+    predecessor.customer_id !== objectId(c.customer) ||
+    predecessor.customer_id !== objectId(s.customer)
+  )
+    fail(422, 'payment_binding_invalid')
+  await paymentMember(db, origin.user_id, origin.workspace_id, true)
+  const old = await creemRequest(
+    credentials,
+    '/v1/subscriptions?subscription_id=' + encodeURIComponent(predecessorId),
+    undefined,
+    transport,
+  )
+  if (
+    old.id !== predecessorId ||
+    old.mode !== 'test' ||
+    !['canceled', 'expired'].includes(old.status) ||
+    objectId(old.customer) !== predecessor.customer_id
+  )
+    fail(422, 'payment_binding_invalid')
+  const mapping = await db
+    .prepare(
+      'SELECT * FROM platform_payment_products WHERE product_id=? AND enabled=1',
+    )
+    .bind(objectId(c.product))
+    .first<any>()
+  if (!mapping || objectId(s.product) !== mapping.product_id)
+    fail(422, 'payment_product_unavailable')
+  const quote = await validatePaymentProduct(
+    db,
+    credentials,
+    mapping.plan_id,
+    mapping.interval,
+    mapping.product_id,
+    transport,
+  )
+  return {
+    ...origin,
+    id: await paymentRecordId('resub', c.id),
+    origin_checkout_id: origin.id,
+    predecessor_subscription_id: predecessorId,
+    provider_id: c.id,
+    request_id: 'portal_' + crypto.randomUUID(),
+    plan_id: mapping.plan_id,
+    interval: mapping.interval,
+    product_id: mapping.product_id,
+    price: quote.price,
+    currency: quote.currency,
+    checkout_url: null,
+    state: 'completed',
+    error: null,
+    created_at: now,
+    updated_at: now,
+  }
+}
+
 async function synchronizePayment(
   db: PlatformD1,
   rootKey: string,
@@ -723,7 +820,10 @@ async function synchronizePayment(
   now: number,
 ) {
   const credentials = await paymentSecrets(db, rootKey)
-  let checkout: any, providerCheckout: any, subscriptionId: string
+  let checkout: any,
+    providerCheckout: any,
+    subscriptionId: string,
+    awaitingPortalCheckout = false
   if (event.type === 'checkout.completed') {
     providerCheckout = await creemRequest(
       credentials,
@@ -731,16 +831,26 @@ async function synchronizePayment(
       undefined,
       transport,
     )
-    checkout = await db
-      .prepare('SELECT * FROM platform_payment_checkouts WHERE id=?')
-      .bind(
-        String(
-          providerCheckout.request_id ??
-            providerCheckout.metadata?.chronoframe_checkout_id ??
-            '',
-        ),
-      )
-      .first<any>()
+    if (
+      providerCheckout.id !== event.object_id ||
+      providerCheckout.mode !== 'test'
+    )
+      fail(422, 'payment_binding_invalid')
+    checkout =
+      (await db
+        .prepare('SELECT * FROM platform_payment_checkouts WHERE provider_id=?')
+        .bind(providerCheckout.id)
+        .first<any>()) ??
+      (await db
+        .prepare('SELECT * FROM platform_payment_checkouts WHERE id=?')
+        .bind(
+          String(
+            providerCheckout.request_id ??
+              providerCheckout.metadata?.chronoframe_checkout_id ??
+              '',
+          ),
+        )
+        .first<any>())
     subscriptionId = objectId(providerCheckout.subscription)
   } else {
     const known = await db
@@ -769,6 +879,10 @@ async function synchronizePayment(
         ),
       )
       .first<any>()
+    // The new subscription's metadata identifies the origin, not its new checkout ID.
+    // Wait for checkout.completed (or an authenticated return) to prove that checkout.
+    awaitingPortalCheckout =
+      !known && !!probe?.metadata?.resubscribed_from_subscription_id
     subscriptionId = event.object_id
   }
   if (!checkout || !checkout.user_id) {
@@ -779,6 +893,7 @@ async function synchronizePayment(
     return 'ignored'
   }
   if (checkout.error === 'payment_test_abandoned') return 'ignored'
+  if (awaitingPortalCheckout) fail(409, 'payment_confirmation_pending')
   if (!identifier(subscriptionId)) fail(409, 'payment_confirmation_pending')
   const token = await acquireWorkspace(db, checkout.workspace_id, now)
   try {
@@ -810,16 +925,54 @@ async function synchronizePayment(
         transport,
       )
     }
+    const stored = await db
+      .prepare('SELECT * FROM platform_payment_checkouts WHERE provider_id=?')
+      .bind(providerCheckout.id)
+      .first<any>()
+    if (stored) {
+      if (
+        stored.workspace_id !== checkout.workspace_id ||
+        stored.user_id !== checkout.user_id
+      )
+        fail(422, 'payment_binding_invalid')
+      checkout = stored
+    }
     if (
+      !identifier(providerCheckout.id) ||
+      (event.type === 'checkout.completed' &&
+        providerCheckout.id !== event.object_id) ||
       providerCheckout.mode !== 'test' ||
       providerCheckout.status !== 'completed' ||
-      !checkoutBound(providerCheckout, checkout.id) ||
-      objectId(providerCheckout.product) !== checkout.product_id ||
       objectId(providerCheckout.subscription) !== subscriptionId ||
       s.id !== subscriptionId ||
       s.mode !== 'test' ||
       objectId(s.customer) !== objectId(providerCheckout.customer) ||
       !identifier(objectId(s.customer))
+    )
+      fail(422, 'payment_binding_invalid')
+    const materialize = providerCheckout.id !== checkout.provider_id
+    if (materialize)
+      checkout = await portalResubscriptionCheckout(
+        db,
+        checkout,
+        providerCheckout,
+        s,
+        credentials,
+        transport,
+        now,
+      )
+    if (
+      !checkoutBound(
+        providerCheckout,
+        checkout.origin_checkout_id ?? checkout.id,
+      ) ||
+      objectId(providerCheckout.product) !== checkout.product_id ||
+      (checkout.predecessor_subscription_id &&
+        (providerCheckout.metadata?.resubscribed_from_subscription_id !==
+          checkout.predecessor_subscription_id ||
+          s.metadata?.resubscribed_from_subscription_id !==
+            checkout.predecessor_subscription_id ||
+          s.metadata?.chronoframe_checkout_id !== checkout.origin_checkout_id))
     )
       fail(422, 'payment_binding_invalid')
     const known = await db
@@ -901,9 +1054,13 @@ async function synchronizePayment(
     const canAssign = known
       ? prior?.payment_subscription_id === subscriptionId &&
         ['payment', 'expired_default'].includes(prior.source)
-      : (prior?.revision ?? 0) === checkout.assignment_revision ||
-        (prior?.source === 'expired_default' &&
-          prior.revision === checkout.assignment_revision + 1)
+      : checkout.predecessor_subscription_id
+        ? prior?.payment_subscription_id ===
+            checkout.predecessor_subscription_id &&
+          ['payment', 'expired_default'].includes(prior.source)
+        : (prior?.revision ?? 0) === checkout.assignment_revision ||
+          (prior?.source === 'expired_default' &&
+            prior.revision === checkout.assignment_revision + 1)
     const entitled = [
       'active',
       'trialing',
@@ -968,6 +1125,34 @@ async function synchronizePayment(
       environment: 'test',
     }
     const statements = [
+      ...(materialize
+        ? [
+            db
+              .prepare(
+                `INSERT OR IGNORE INTO platform_payment_checkouts(id,workspace_id,user_id,request_id,plan_id,interval,product_id,price,currency,assignment_revision,provider_id,checkout_url,state,created_at,updated_at,origin_checkout_id,predecessor_subscription_id) SELECT ?,?,?,?,?,?,?,?,?,?,?,NULL,'completed',?,?,?,? WHERE ${fence}`,
+              )
+              .bind(
+                checkout.id,
+                checkout.workspace_id,
+                checkout.user_id,
+                checkout.request_id,
+                checkout.plan_id,
+                checkout.interval,
+                checkout.product_id,
+                checkout.price,
+                checkout.currency,
+                prior?.revision ?? 0,
+                checkout.provider_id,
+                now,
+                now,
+                checkout.origin_checkout_id,
+                checkout.predecessor_subscription_id,
+                checkout.workspace_id,
+                token,
+                now,
+              ),
+          ]
+        : []),
       db
         .prepare(
           `INSERT INTO platform_subscription_events(id,workspace_id,kind,before_json,after_json,created_at) SELECT ?,?,'payment',?,?,? WHERE ${fence}`,
@@ -1048,7 +1233,8 @@ async function synchronizePayment(
       )
     }
     const results = await db.batch(statements)
-    if (!results[0]?.meta.changes) fail(409, 'payment_lease_lost')
+    if (!results[materialize ? 1 : 0]?.meta.changes)
+      fail(409, 'payment_lease_lost')
     return 'done'
   } finally {
     await releaseWorkspace(db, checkout.workspace_id, token)
@@ -1375,9 +1561,16 @@ export async function refreshPaymentCheckout(
   checkoutId: string,
   transport: PaymentFetch = fetch,
   now = Date.now(),
+  hints: { providerCheckoutId?: string; subscriptionId?: string } = {},
 ) {
   await paymentMember(db, userId, workspaceId, true)
-  if (!identifier(checkoutId)) fail(400, 'payment_checkout_invalid')
+  if (
+    !identifier(checkoutId) ||
+    (hints.providerCheckoutId !== undefined &&
+      !identifier(hints.providerCheckoutId)) ||
+    (hints.subscriptionId !== undefined && !identifier(hints.subscriptionId))
+  )
+    fail(400, 'payment_checkout_invalid')
   await paymentRequestBudget(db, userId, now)
   const row = await db
     .prepare(
@@ -1386,50 +1579,73 @@ export async function refreshPaymentCheckout(
     .bind(checkoutId, workspaceId, userId)
     .first<any>()
   if (!row) fail(404, 'payment_checkout_unavailable')
-  if (['completed', 'expired'].includes(row.state)) return { state: row.state }
-  if (!row.provider_id) return { state: 'pending' }
+  const providerId = hints.providerCheckoutId ?? row.provider_id
+  if (!providerId) return { state: 'pending' }
+  if (row.state === 'expired' && providerId === row.provider_id)
+    return { state: 'expired' }
   const checkout = await creemRequest(
     await paymentSecrets(db, rootKey),
-    '/v1/checkouts?checkout_id=' + encodeURIComponent(row.provider_id),
+    '/v1/checkouts?checkout_id=' + encodeURIComponent(providerId),
     undefined,
     transport,
   )
   if (
-    checkout.id !== row.provider_id ||
+    checkout.id !== providerId ||
     checkout.mode !== 'test' ||
-    !checkoutBound(checkout, row.id) ||
-    objectId(checkout.product) !== row.product_id
+    !checkoutBound(checkout, row.origin_checkout_id ?? row.id) ||
+    (providerId === row.provider_id &&
+      objectId(checkout.product) !== row.product_id) ||
+    (hints.subscriptionId !== undefined &&
+      objectId(checkout.subscription) !== hints.subscriptionId)
   )
     fail(422, 'payment_binding_invalid')
   if (checkout.status === 'expired') {
-    await db
-      .prepare(
-        "UPDATE platform_payment_checkouts SET state='expired',updated_at=?,error=NULL WHERE id=? AND state IN('open','uncertain')",
-      )
-      .bind(now, row.id)
-      .run()
+    if (providerId === row.provider_id)
+      await db
+        .prepare(
+          "UPDATE platform_payment_checkouts SET state='expired',updated_at=?,error=NULL WHERE id=? AND state IN('open','uncertain')",
+        )
+        .bind(now, row.id)
+        .run()
     const current = await db
       .prepare('SELECT state FROM platform_payment_checkouts WHERE id=?')
       .bind(row.id)
       .first<any>()
     return {
-      state: ['expired', 'completed'].includes(current?.state)
-        ? current.state
-        : 'pending',
+      state:
+        providerId === row.provider_id && current?.state === 'completed'
+          ? 'pending'
+          : 'expired',
     }
   }
   if (checkout.status !== 'completed') return { state: 'pending' }
-  const eventId = 'return_' + row.id
+  // Bounded authenticated reads reconcile current provider truth, including historical returns.
+  const eventId = 'return_' + crypto.randomUUID()
   await db
     .prepare(
-      "INSERT OR IGNORE INTO platform_payment_events(id,type,object_id,reference_id,created_at,available_at) VALUES(?,'checkout.completed',?,?,?,?)",
+      "INSERT INTO platform_payment_events(id,type,object_id,reference_id,created_at,available_at) VALUES(?,'checkout.completed',?,?,?,?)",
     )
-    .bind(eventId, row.provider_id, row.id, now, now)
+    .bind(eventId, providerId, row.id, now, now)
     .run()
   await processPaymentEvents(db, rootKey, transport, now, 1, eventId)
   const current = await db
-    .prepare('SELECT state FROM platform_payment_checkouts WHERE id=?')
-    .bind(row.id)
+    .prepare(
+      'SELECT s.id,s.status,s.period_end,p.payment_subscription_id,p.source FROM platform_payment_subscriptions s JOIN platform_payment_checkouts c ON c.id=s.checkout_id JOIN platform_workspace_plans p ON p.workspace_id=s.workspace_id WHERE c.provider_id=? AND c.workspace_id=? AND c.user_id=?',
+    )
+    .bind(providerId, workspaceId, userId)
     .first<any>()
-  return { state: current?.state === 'completed' ? 'completed' : 'pending' }
+  if (!current) return { state: 'pending' }
+  if (
+    !['active', 'trialing', 'scheduled_cancel', 'past_due'].includes(
+      current.status,
+    ) ||
+    current.period_end <= now
+  )
+    return { state: 'inactive' }
+  if (
+    current.payment_subscription_id !== current.id ||
+    current.source !== 'payment'
+  )
+    return { state: 'superseded' }
+  return { state: 'completed' }
 }

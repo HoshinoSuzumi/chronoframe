@@ -37,6 +37,16 @@ export default definePlatformHandler(async (event) => {
       user.userId,
       Number(b.workspaceId),
       String(b.checkoutId),
+      undefined,
+      undefined,
+      {
+        providerCheckoutId:
+          b.providerCheckoutId === undefined
+            ? undefined
+            : String(b.providerCheckoutId),
+        subscriptionId:
+          b.subscriptionId === undefined ? undefined : String(b.subscriptionId),
+      },
     )
   if (b.action === 'portal')
     return createPaymentPortal(

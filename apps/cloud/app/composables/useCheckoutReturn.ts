@@ -5,7 +5,14 @@ export function useCheckoutReturn(
 ) {
   const route = useRoute(),
     state = ref<
-      'idle' | 'checking' | 'pending' | 'completed' | 'failed' | 'expired'
+      | 'idle'
+      | 'checking'
+      | 'pending'
+      | 'completed'
+      | 'failed'
+      | 'expired'
+      | 'inactive'
+      | 'superseded'
     >(typeof route.query.checkout === 'string' ? 'checking' : 'idle')
   let generation = 0,
     alive = true,
@@ -28,14 +35,26 @@ export function useCheckoutReturn(
           '/api/billing/payments',
           {
             method: 'POST',
-            body: { action: 'refresh', workspaceId: id, checkoutId },
+            body: {
+              action: 'refresh',
+              workspaceId: id,
+              checkoutId,
+              providerCheckoutId:
+                typeof route.query.checkout_id === 'string'
+                  ? route.query.checkout_id
+                  : undefined,
+              subscriptionId:
+                typeof route.query.subscription_id === 'string'
+                  ? route.query.subscription_id
+                  : undefined,
+            },
           },
         )
         if (!alive || current !== generation) return
         await refresh()
         if (!alive || current !== generation) return
-        if (result.state === 'completed') {
-          state.value = 'completed'
+        if (['completed', 'inactive', 'superseded'].includes(result.state)) {
+          state.value = result.state as 'completed' | 'inactive' | 'superseded'
           return
         }
         if (result.state === 'expired') {
@@ -44,7 +63,7 @@ export function useCheckoutReturn(
         }
       } catch (e: any) {
         if (!alive || current !== generation) return
-        if ([400, 401, 403, 404].includes(e?.statusCode ?? e?.status)) {
+        if ([400, 401, 403, 404, 422].includes(e?.statusCode ?? e?.status)) {
           state.value = 'failed'
           return
         }
@@ -59,7 +78,12 @@ export function useCheckoutReturn(
   }
   onMounted(() => {
     watch(
-      () => [route.query.checkout, toValue(workspaceId)],
+      () => [
+        route.query.checkout,
+        route.query.checkout_id,
+        route.query.subscription_id,
+        toValue(workspaceId),
+      ],
       () => void check(),
       { immediate: true },
     )

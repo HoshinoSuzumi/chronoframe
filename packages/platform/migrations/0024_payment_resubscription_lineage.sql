@@ -1,0 +1,3 @@
+ALTER TABLE platform_payment_checkouts ADD COLUMN origin_checkout_id TEXT REFERENCES platform_payment_checkouts(id);
+ALTER TABLE platform_payment_checkouts ADD COLUMN predecessor_subscription_id TEXT REFERENCES platform_payment_subscriptions(id) ON DELETE SET NULL;
+CREATE INDEX platform_payment_checkout_origin ON platform_payment_checkouts(origin_checkout_id);
