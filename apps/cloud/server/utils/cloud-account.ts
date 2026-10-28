@@ -12,7 +12,7 @@ export function cloudAccount(event: H3Event) {
       | undefined
     event.context.cloudAccountAuth = createAccountAuth(
       platformDatabase(event) as unknown as BetterAuthOptions['database'],
-      config,
+      { ...config, localDevelopment: import.meta.dev },
       event.context.cloudflare?.env?.EMAIL as PlatformEmailBinding,
       execution ? (task) => execution.waitUntil(task) : undefined,
     )

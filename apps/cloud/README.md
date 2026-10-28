@@ -41,6 +41,39 @@ Images ship locally so core UI has no runtime image-host dependency.
 
 ## Running and deployment boundaries
 
+### Local portal development
+
+From the repository root:
+
+```powershell
+pnpm install --frozen-lockfile
+pnpm build:deps
+pnpm setup:cloud
+pnpm dev:cloud
+```
+
+Open `http://localhost:3001/signin`. The setup command creates missing app-local
+`.env` values, applies all platform migrations to local D1, and seeds a verified
+`developer@localhost.test` account, a workspace, a Free subscription and an
+unpublished sample site. Read the generated password in
+`apps/cloud/.data/local-account.json`. Re-running setup applies new migrations
+without resetting existing credentials, edited site settings or other local data.
+Existing `.env` values are preserved; ensure `NUXT_PLATFORM_PORTAL_ORIGIN` is
+`http://localhost:3001` and session/platform secrets contain at least 32 characters.
+Restart the development server after changing `.env`.
+
+During `dev:cloud`, a development-only Nitro plugin supplies local D1 and captures
+email in the terminal and `apps/cloud/.data/mail.jsonl`, including verification
+codes and reset links. No email is delivered. Database files live under
+`apps/cloud/.wrangler/state/v3`; both directories and `.env` are ignored by Git.
+`wrangler.local.json` contains only a dummy local database ID, with remote bindings
+disabled. The plugin is excluded from production builds.
+
+This supports account, workspace, site settings and billing UI development.
+The sample site has no photos or configured object storage. Uploads, processing,
+public domain routing and live payments require their respective services;
+setup does not provision them or connect to production.
+
 Run `pnpm build:deps` followed by `pnpm dev:cloud` or `pnpm build:cloud` at the
 repository root. The launcher uses the Cloud app directory and its optional `.env`,
 never the Self-hosted root `.env`. Generated output is local to this app.

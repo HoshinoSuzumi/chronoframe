@@ -466,6 +466,19 @@ test('Templates escape content, validate headers, preserve auth requirements and
   )
   assert.throws(() => renderMail(template, {}, 'javascript:alert(1)'))
   assert.throws(() =>
+    renderMail(template, {}, 'http://localhost:3001/reset-password'),
+  )
+  assert.doesNotThrow(() =>
+    renderMail(template, {}, 'http://localhost:3001/reset-password', true),
+  )
+  for (const url of [
+    'http://example.com/reset',
+    'http://localhost.example.com/reset',
+    'http://user@localhost/reset',
+    'javascript:alert(1)',
+  ])
+    assert.throws(() => renderMail(template, {}, url, true))
+  assert.throws(() =>
     validateLifecycleSettings({
       enabled: true,
       unverifiedDays: 14,

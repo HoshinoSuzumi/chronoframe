@@ -1,6 +1,7 @@
 import { CLOUD_CAPABILITIES } from '../../packages/contracts/src/entry'
 import { sharedUi } from '../nuxt.shared'
 import { fileURLToPath } from 'node:url'
+import { mkdirSync } from 'node:fs'
 const galleryPages = fileURLToPath(
   new URL('../../packages/gallery/app/pages/', import.meta.url),
 )
@@ -70,6 +71,37 @@ export default defineNuxtConfig({
   },
   css: ['~/assets/console-tailwind.css', '~/assets/cloud.css'],
   hooks: {
+    'nitro:config'(config) {
+      if (config.dev) {
+        const temporary = fileURLToPath(
+          new URL('./.wrangler/tmp', import.meta.url),
+        )
+        if (process.platform === 'win32') {
+          mkdirSync(temporary, { recursive: true })
+          process.env.TMP = temporary
+          process.env.TEMP = temporary
+        }
+        config.cloudflare ||= {}
+        config.cloudflare.dev = {
+          configPath: fileURLToPath(
+            new URL('./wrangler.local.json', import.meta.url),
+          ),
+          persistDir: fileURLToPath(
+            new URL('./.wrangler/state/v3', import.meta.url),
+          ),
+        }
+        config.runtimeConfig ||= {}
+        config.runtimeConfig.cloudLocalMailDirectory = fileURLToPath(
+          new URL('./.data', import.meta.url),
+        )
+        config.plugins ||= []
+        config.plugins.push(
+          fileURLToPath(
+            new URL('../../scripts/cloud-local-runtime.ts', import.meta.url),
+          ),
+        )
+      }
+    },
     'pages:extend'(pages) {
       // The portal shares console capabilities, not the public gallery route tree.
       for (let index = pages.length - 1; index >= 0; index--) {

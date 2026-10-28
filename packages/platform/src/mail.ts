@@ -167,11 +167,32 @@ export function renderMail(
   template: MailTemplate,
   variables: Record<string, string>,
   url?: string,
+  allowLocalLinks = false,
 ) {
   const t = validateMailTemplate(template),
     fill = (s: string) =>
       s.replace(/{{\s*([^{}]+?)\s*}}/g, (_, k) => variables[k] ?? '')
-  if (url && !/^(https:\/\/|mailto:support@chronoframe\.art$)/.test(url))
+  const localLink =
+    url &&
+    allowLocalLinks &&
+    (() => {
+      try {
+        const parsed = new URL(url)
+        return (
+          parsed.protocol === 'http:' &&
+          parsed.hostname === 'localhost' &&
+          !parsed.username &&
+          !parsed.password
+        )
+      } catch {
+        return false
+      }
+    })()
+  if (
+    url &&
+    !localLink &&
+    !/^(https:\/\/|mailto:support@chronoframe\.art$)/.test(url)
+  )
     throw new Error('Unsafe mail link')
   const subject = fill(t.subject).replace(/[\r\n]/g, ' '),
     heading = fill(t.heading),
@@ -201,11 +222,12 @@ export async function sendMail(
   variables: Record<string, string>,
   url?: string,
   fallback?: string,
+  allowLocalLinks = false,
 ) {
   if (!binding?.send) throw new Error('Email service unavailable')
   const { template } = await mailTemplate(db, kind, fallback)
   const result = await binding.send({
-    ...renderMail(template, variables, url),
+    ...renderMail(template, variables, url, allowLocalLinks),
     to,
   })
   if (!result?.messageId) throw new Error('Email delivery failed')

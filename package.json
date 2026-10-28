@@ -39,6 +39,7 @@
     "check:ui": "node scripts/check-ui-boundaries.mjs",
     "prepare": "node scripts/self-hosted.mjs prepare",
     "dev:cloud": "node scripts/saas-entry.mjs cloud dev",
+    "setup:cloud": "node scripts/setup-cloud-local.mjs",
     "build:cloud": "node scripts/saas-entry.mjs cloud build",
     "prepare:cloud": "node scripts/saas-entry.mjs cloud prepare",
     "dev:site": "node scripts/saas-entry.mjs site dev",
