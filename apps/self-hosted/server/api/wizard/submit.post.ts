@@ -2,7 +2,7 @@ import { toUserSummary } from '~~/server/utils/dto'
 import { defineWizardHandler } from '../../utils/wizard-handler'
 import { z } from 'zod'
 import { settingsManager } from '~~/server/services/settings/settingsManager'
-import { storageConfigSchema } from '~~/shared/types/storage'
+import { storageConfigSchema } from '#shared/types/storage'
 import { useDB, tables, eq } from '~~/server/utils/db'
 
 export default defineWizardHandler(async (event) => {

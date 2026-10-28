@@ -1,7 +1,7 @@
 import { completeLocalUpload } from '@chronoframe/core'
 import { mutationResponse } from '../../../utils/resource-writer'
 import { open, stat, rm } from 'node:fs/promises'
-import { UPLOAD_CHUNK_SIZE } from '../../../../shared/utils/upload'
+import { UPLOAD_CHUNK_SIZE } from '#shared/utils/upload'
 import { logUpload } from '../../../utils/upload-log'
 import {
   chunkUploads,

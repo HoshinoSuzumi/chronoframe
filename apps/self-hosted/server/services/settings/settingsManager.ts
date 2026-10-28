@@ -8,7 +8,7 @@ import type {
   SettingConfig,
   SettingType,
   SettingValue,
-} from '~~/shared/types/settings'
+} from '#shared/types/settings'
 import type { SettingKey, SettingNamespace } from './contants'
 import { validateSettingWrite, createStorageResolver } from '@chronoframe/core'
 

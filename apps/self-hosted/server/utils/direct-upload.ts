@@ -3,7 +3,7 @@ import type {
   DirectUploadSetup,
   StorageProvider,
 } from '../services/storage/interfaces'
-import type { UploadPlan } from '../../shared/types/upload'
+import type { UploadPlan } from '#shared/types/upload'
 import { createChunkUpload } from './chunk-upload'
 import { logUpload } from './upload-log'
 

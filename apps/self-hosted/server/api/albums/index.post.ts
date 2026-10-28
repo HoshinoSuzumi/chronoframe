@@ -4,7 +4,7 @@ import z from 'zod'
 import {
   ALBUM_PASSWORD_MAX_LENGTH,
   ALBUM_PASSWORD_MIN_LENGTH,
-} from '~~/shared/utils/album'
+} from '#shared/utils/album'
 import { useAlbumWriter, mutationResponse } from '../../utils/resource-writer'
 
 export default eventHandler(async (event) => {

@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { tourIds } from '~~/shared/types/tours'
+import { tourIds } from '#shared/types/tours'
 import { settingsManager } from '~~/server/services/settings/settingsManager'
 export default eventHandler(async (event) => {
   const session = await requireUserSession(event)
