@@ -57,7 +57,7 @@ test('Shared buttons preserve form semantics and a single pending polymorphic li
     { asChild: true, loading: true },
     () => h('a', { href: '/sites' }, 'Sites'),
   )
-  assert.match(pending, /^(?:<!--[\s\S]*?-->)*<a\b/)
+  assert.equal(pending.match(/<([a-z][a-z0-9]*)\b/i)?.[1], 'a')
   assert.match(pending, /aria-busy="true"/)
   assert.match(pending, /aria-disabled="true"/)
   assert.match(pending, /tabindex="-1"/)
