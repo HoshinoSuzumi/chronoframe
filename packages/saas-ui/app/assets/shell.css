@@ -1,0 +1,256 @@
+/* One layout contract for both SaaS applications; no product state or routes. */
+.cf-portal {
+  display: grid;
+  grid-template-columns: var(--cf-sidebar-width) minmax(0, 1fr);
+  grid-template-rows: var(--cf-header-height) minmax(0, 1fr);
+  min-height: 100dvh;
+  font-size: 13px;
+  line-height: 1.55;
+}
+.cf-shell-brand {
+  position: sticky;
+  top: 0;
+  z-index: 31;
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  padding: 0 18px;
+  background: var(--sidebar);
+  border-right: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+.cf-portal-header {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  height: var(--cf-header-height);
+  padding-inline: 28px;
+  background: var(--background);
+  border-bottom: 1px solid var(--border);
+}
+.cf-shell-location,
+.cf-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+.cf-shell-location {
+  color: var(--muted-foreground);
+  font-size: 12px;
+}
+.cf-shell-location a:hover {
+  color: var(--foreground);
+}
+.cf-shell-location svg {
+  flex-shrink: 0;
+}
+.cf-header-location {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cf-sidebar {
+  position: sticky;
+  top: var(--cf-header-height);
+  align-self: start;
+  height: calc(100dvh - var(--cf-header-height));
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px 10px 10px;
+  background: var(--sidebar);
+  border-right: 1px solid var(--border);
+}
+.cf-sidebar-viewport {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+.cf-sidebar-panel {
+  width: 100%;
+}
+.cf-nav-label {
+  padding: 4px 10px 8px;
+  font-size: 11px;
+  color: var(--muted-foreground);
+}
+.cf-nav-section {
+  margin-top: 20px;
+}
+.cf-sidebar-panel nav {
+  display: grid;
+  gap: 3px;
+}
+.cf-sidebar-panel nav a,
+.cf-sidebar-back {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-height: 34px;
+  padding: 7px 10px;
+  border-radius: 5px;
+  color: var(--muted-foreground);
+  font-size: 12px;
+}
+.cf-sidebar-panel nav svg,
+.cf-sidebar-back svg {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+.cf-sidebar-panel nav a:hover,
+.cf-sidebar-back:hover {
+  background: var(--secondary);
+  color: var(--foreground);
+}
+.cf-sidebar-panel nav a.active {
+  background: var(--secondary);
+  color: var(--foreground);
+}
+.cf-sidebar-panel nav a.active::before {
+  content: '';
+  position: absolute;
+  inset-inline-start: 0;
+  top: 9px;
+  bottom: 9px;
+  width: 2px;
+  border-radius: 1px;
+  background: var(--accent);
+}
+.cf-sidebar-back {
+  margin-bottom: 12px;
+}
+.cf-sidebar-site {
+  display: flex;
+  gap: 9px;
+  padding: 4px 10px 12px;
+  align-items: center;
+  min-width: 0;
+}
+.cf-sidebar-site > div {
+  min-width: 0;
+}
+.cf-sidebar-site strong,
+.cf-sidebar-site > div > span {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cf-sidebar-site strong {
+  font-size: 12px;
+  font-weight: 550;
+}
+.cf-sidebar-site > div > span {
+  font-size: 11px;
+  color: var(--muted-foreground);
+  margin-top: 2px;
+}
+.cf-sidebar-bottom {
+  margin-top: auto;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+}
+.cf-portal-main {
+  min-width: 0;
+  padding: 28px 32px 48px;
+}
+.cf-portal-content {
+  max-width: var(--cf-content-width);
+  margin-inline: auto;
+}
+.cf-page-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+.cf-page-title {
+  font-size: 24px;
+  font-weight: 550;
+  line-height: 1.3;
+  letter-spacing: -0.025em;
+  overflow-wrap: anywhere;
+}
+.cf-page-description {
+  margin-top: 6px !important;
+  color: var(--muted-foreground);
+  font-size: 13px;
+  line-height: 1.6;
+  max-width: 720px;
+}
+.cf-sidebar-toggle {
+  display: none;
+}
+.cf-sidebar-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  background: #0009;
+}
+.cf-sidebar-drawer {
+  position: fixed;
+  inset: 0 auto 0 0;
+  z-index: 70;
+  width: min(280px, calc(100vw - 36px));
+  display: flex;
+  flex-direction: column;
+  padding: 14px 10px;
+  background: var(--sidebar);
+  color: var(--foreground);
+  border-right: 1px solid var(--border);
+}
+.cf-drawer-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+  padding-left: 8px;
+}
+@media (max-width: 899px) {
+  .cf-portal {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .cf-shell-brand,
+  .cf-sidebar {
+    display: none;
+  }
+  .cf-sidebar-toggle {
+    display: inline-flex;
+  }
+  .cf-portal-header {
+    padding-inline: 12px;
+    gap: 8px;
+  }
+  .cf-portal-main {
+    padding: 22px 16px 32px;
+  }
+  .cf-preview-badge {
+    display: none;
+  }
+}
+@media (pointer: coarse) {
+  .cf-sidebar-panel nav a,
+  .cf-sidebar-back {
+    min-height: 44px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cf-sidebar-viewport *,
+  .cf-sidebar-viewport {
+    transition: none !important;
+    animation: none !important;
+  }
+}

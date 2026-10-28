@@ -68,14 +68,14 @@ const actions = computed(() => [
 ])
 </script>
 <template>
-  <div class="cf-dashboard grid gap-6">
+  <div class="cf-dashboard cf-site-dashboard">
     <CloudSitePublication />
     <section
       class="cf-dashboard-metrics"
       :aria-busy="loading"
       :aria-label="$t('cloud.dashboard.contentOverview')"
     >
-      <CloudStatCard
+      <CfStatCard
         :label="$t('cloud.messages.photographs')"
         :value="ready ? photos.length : undefined"
         :loading="!ready && !loadError"
@@ -84,8 +84,8 @@ const actions = computed(() => [
           class="cf-text-link"
           >{{ $t('cloud.messages.openPhotoLibrary')
           }}<ArrowUpRight :size="12" /></NuxtLink
-      ></CloudStatCard>
-      <CloudStatCard
+      ></CfStatCard>
+      <CfStatCard
         :label="$t('cloud.messages.albums')"
         :value="ready ? albums.length : undefined"
         :loading="!ready && !loadError"
@@ -94,8 +94,8 @@ const actions = computed(() => [
           class="cf-text-link"
           >{{ $t('cloud.messages.manageAlbums')
           }}<ArrowUpRight :size="12" /></NuxtLink
-      ></CloudStatCard>
-      <CloudStatCard
+      ></CfStatCard>
+      <CfStatCard
         :label="$t('cloud.messages.processing')"
         :value="ready ? processing : undefined"
         :loading="!ready && !loadError"
@@ -107,12 +107,12 @@ const actions = computed(() => [
       />
     </section>
     <div class="cf-dashboard-columns">
-      <CloudCard class="cf-dashboard-panel"
+      <CfCard class="cf-dashboard-panel"
         ><div class="cf-dashboard-section-heading">
           <h2>{{ $t('cloud.dashboard.manageGallery') }}</h2>
           <span class="cf-field-hint">{{ site.name }}</span>
         </div>
-        <div class="grid gap-5">
+        <div class="cf-site-actions-list">
           <NuxtLink
             v-for="action in actions"
             :key="action.path"
@@ -125,10 +125,10 @@ const actions = computed(() => [
               ><small>{{ action.help }}</small></span
             ><ArrowUpRight :size="15"
           /></NuxtLink></div
-      ></CloudCard>
-      <CloudCard class="cf-dashboard-panel"
+      ></CfCard>
+      <CfCard class="cf-dashboard-panel"
         ><h2>{{ $t('cloud.dashboard.siteHealth') }}</h2>
-        <CloudSkeleton
+        <CfSkeleton
           v-if="!ready && !loadError"
           class="h-32 w-full"
         />
@@ -186,7 +186,7 @@ const actions = computed(() => [
               <p>{{ $t('cloud.dashboard.publicationHelp') }}</p>
             </div>
           </li>
-        </ul></CloudCard
+        </ul></CfCard
       >
     </div>
   </div>

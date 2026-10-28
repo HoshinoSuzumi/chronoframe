@@ -1,0 +1,12 @@
+{
+  "name": "chronoframe-cloud-local",
+  "compatibility_date": "2026-10-22",
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "chronoframe-cloud-local",
+      "database_id": "00000000-0000-0000-0000-000000000001",
+      "remote": false
+    }
+  ]
+}

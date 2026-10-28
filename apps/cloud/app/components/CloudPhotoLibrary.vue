@@ -193,12 +193,12 @@ watch(
           }}
         </p>
       </div>
-      <CloudButton
+      <CfButton
         v-if="admin"
         :icon="ButtonIconUpload"
         :disabled="!uploadAdmission.allowed || !!quota.error.value"
         @click="openUpload"
-        >{{ $t('cloud.messages.upload') }}</CloudButton
+        >{{ $t('cloud.messages.upload') }}</CfButton
       >
     </div>
     <CloudQuotaNotice
@@ -215,18 +215,18 @@ watch(
         :aria-label="$t('cloud.messages.searchPhotographs2')"
         class="cf-library-search"
       /><UPopover
-        ><CloudButton
+        ><CfButton
           :variant="hasActiveFilters ? 'soft' : 'secondary'"
           :icon="ButtonIconFilter"
-          >{{ $t('cloud.messages.filters') }}</CloudButton
+          >{{ $t('cloud.messages.filters') }}</CfButton
         ><template #content><OverlayFilterPanel /></template></UPopover
       ><UPopover
-        ><CloudButton
+        ><CfButton
           variant="secondary"
           :icon="ButtonIconArrowUpDown"
-          >{{ $t('cloud.messages.sort') }}</CloudButton
+          >{{ $t('cloud.messages.sort') }}</CfButton
         ><template #content><OverlaySortPanel /></template></UPopover
-      ><CloudButton
+      ><CfButton
         variant="ghost"
         :icon="ButtonIconRefreshCw"
         :aria-label="$t('cloud.messages.refreshPhotographs')"
@@ -239,25 +239,25 @@ watch(
       class="cf-selection-bar"
     >
       <span>{{ $t('cloud.ui.selectedCount', { count: chosen.length }) }}</span
-      ><CloudButton
+      ><CfButton
         v-if="admin"
         size="sm"
         variant="soft"
         :icon="ButtonIconFolderPlus"
         @click="albumOpen = true"
-        >{{ $t('cloud.messages.addToAlbum') }}</CloudButton
-      ><CloudButton
+        >{{ $t('cloud.messages.addToAlbum') }}</CfButton
+      ><CfButton
         variant="destructive"
         v-if="admin"
         size="sm"
         :icon="ButtonIconTrash2"
         @click="deleteOpen = true"
-        >{{ $t('cloud.messages.delete') }}</CloudButton
-      ><CloudButton
+        >{{ $t('cloud.messages.delete') }}</CfButton
+      ><CfButton
         size="sm"
         variant="ghost"
         @click="selection = {}"
-        >{{ $t('cloud.messages.clear') }}</CloudButton
+        >{{ $t('cloud.messages.clear') }}</CfButton
       >
     </div>
     <div class="cf-library-table">
@@ -341,7 +341,7 @@ watch(
           }}</span></template
         ><template #actions-cell="{ row }"
           ><UDropdownMenu :items="actions(row.original)"
-            ><CloudButton
+            ><CfButton
               variant="ghost"
               :icon="ButtonIconEllipsis"
               :aria-label="
@@ -369,12 +369,12 @@ watch(
                     )
               }}
             </p>
-            <CloudButton
+            <CfButton
               v-if="admin && !photos.length"
               variant="soft"
               :disabled="!uploadAdmission.allowed || !!quota.error.value"
               @click="openUpload"
-              >{{ $t('cloud.messages.upload') }}</CloudButton
+              >{{ $t('cloud.messages.upload') }}</CfButton
             >
           </div></template
         ></ConsoleMediaTable
@@ -424,7 +424,7 @@ watch(
             ></span
           >
         </div>
-        <CloudButton
+        <CfButton
           v-if="admin && job.state === 'failed'"
           variant="secondary"
           size="sm"
@@ -439,13 +439,13 @@ watch(
               $t('cloud.messages.jobQueuedAgain'),
             )
           "
-          >{{ $t('cloud.messages.retry') }}</CloudButton
-        ><CloudButton
+          >{{ $t('cloud.messages.retry') }}</CfButton
+        ><CfButton
           variant="destructive"
           v-if="admin && job.state !== 'cancelled'"
           size="sm"
           @click="removePhoto(job.photo_id)"
-          >{{ $t('cloud.messages.remove') }}</CloudButton
+          >{{ $t('cloud.messages.remove') }}</CfButton
         >
       </div>
     </section>
@@ -480,16 +480,16 @@ watch(
             v-model:tags="editPhoto.tags"
             v-model:rating="editPhoto.rating" /></UForm></template
       ><template #footer
-        ><CloudButton
+        ><CfButton
           variant="secondary"
           @click="editor = false"
-          >{{ $t('cloud.messages.cancel') }}</CloudButton
-        ><CloudButton
+          >{{ $t('cloud.messages.cancel') }}</CfButton
+        ><CfButton
           type="submit"
           form="cloud-edit-photo"
           :loading="busy"
           :disabled="photoLoaded !== editPhoto.id || !editPhoto.title.trim()"
-          >{{ $t('cloud.messages.saveChanges') }}</CloudButton
+          >{{ $t('cloud.messages.saveChanges') }}</CfButton
         ></template
       ></USlideover
     >
@@ -528,11 +528,11 @@ watch(
         )
       "
       ><template #footer
-        ><CloudButton
+        ><CfButton
           variant="secondary"
           @click="deleteOpen = false"
-          >{{ $t('cloud.messages.cancel') }}</CloudButton
-        ><CloudButton
+          >{{ $t('cloud.messages.cancel') }}</CfButton
+        ><CfButton
           variant="destructive"
           :loading="saving"
           @click="deleteChosen"
@@ -542,7 +542,7 @@ watch(
               { count: chosen.length },
               chosen.length,
             )
-          }}</CloudButton
+          }}</CfButton
         ></template
       ></UModal
     >
@@ -564,15 +564,15 @@ watch(
           {{ $t('cloud.messages.createAnAlbumFirstFromTheAlbumsPage') }}
         </p></template
       ><template #footer
-        ><CloudButton
+        ><CfButton
           variant="secondary"
           @click="albumOpen = false"
-          >{{ $t('cloud.messages.cancel') }}</CloudButton
-        ><CloudButton
+          >{{ $t('cloud.messages.cancel') }}</CfButton
+        ><CfButton
           :disabled="!targetAlbum"
           :loading="busy"
           @click="addToAlbum"
-          >{{ $t('cloud.messages.addPhotographs') }}</CloudButton
+          >{{ $t('cloud.messages.addPhotographs') }}</CfButton
         ></template
       ></UModal
     >

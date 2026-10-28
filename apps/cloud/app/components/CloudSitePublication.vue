@@ -74,11 +74,11 @@ async function unpublish() {
     <div class="cf-site-heading">
       <h1>{{ $t('cloud.messages.overview') }}</h1>
       <div class="cf-site-publication">
-        <CloudBadge :tone="context?.published ? 'success' : 'neutral'">{{
+        <CfBadge :tone="context?.published ? 'success' : 'neutral'">{{
           context?.published
             ? $t('cloud.messages.published')
             : $t('cloud.messages.privateDraft')
-        }}</CloudBadge>
+        }}</CfBadge>
         <span>{{
           context?.published
             ? $t('cloud.messages.yourGalleryIsLive')
@@ -87,7 +87,7 @@ async function unpublish() {
       </div>
     </div>
     <div class="cf-site-page-actions">
-      <CloudButton
+      <CfButton
         v-if="context?.published && address"
         as-child
         variant="secondary"
@@ -97,8 +97,8 @@ async function unpublish() {
           target="_blank"
           rel="noopener noreferrer"
           >{{ $t('cloud.messages.viewSite') }}<ArrowUpRight :size="14" /></a
-      ></CloudButton>
-      <CloudButton
+      ></CfButton>
+      <CfButton
         v-if="admin"
         :variant="context?.published ? 'ghost' : 'default'"
         size="sm"
@@ -111,7 +111,7 @@ async function unpublish() {
           context?.published
             ? $t('cloud.messages.unpublish')
             : $t('cloud.messages.publishGallery')
-        }}</CloudButton
+        }}</CfButton
       >
     </div>
     <p
@@ -120,16 +120,16 @@ async function unpublish() {
     >
       {{ $t('cloud.domains.routingPending') }}
     </p>
-    <CloudAlert
+    <CfAlert
       v-if="domainError"
       tone="error"
       >{{ $t('cloud.domains.loadFailed')
-      }}<CloudButton
+      }}<CfButton
         size="sm"
         variant="secondary"
         @click="refreshDomains()"
-        >{{ $t('cloud.messages.retry') }}</CloudButton
-      ></CloudAlert
+        >{{ $t('cloud.messages.retry') }}</CfButton
+      ></CfAlert
     >
     <div class="cf-site-address-block">
       <div
@@ -142,7 +142,7 @@ async function unpublish() {
             : $t('cloud.messages.reservedAddress')
         }}</span>
         <span class="cf-site-address-value">{{ address }}</span>
-        <CloudButton
+        <CfButton
           variant="ghost"
           size="sm"
           :aria-label="
@@ -159,7 +159,7 @@ async function unpublish() {
             :size="14"
           />{{
             copied ? $t('cloud.messages.copied') : $t('cloud.messages.copyLink')
-          }}</CloudButton
+          }}</CfButton
         >
       </div>
       <p
@@ -174,11 +174,11 @@ async function unpublish() {
         role="alert"
       >
         {{ $t('cloud.messages.siteAddressCouldNotBeLoaded')
-        }}<CloudButton
+        }}<CfButton
           variant="ghost"
           size="sm"
           @click="refresh()"
-          >{{ $t('cloud.messages.retry') }}</CloudButton
+          >{{ $t('cloud.messages.retry') }}</CfButton
         >
       </p>
       <p
@@ -224,17 +224,17 @@ async function unpublish() {
         </p></template
       >
       <template #footer>
-        <CloudButton
+        <CfButton
           variant="secondary"
           :disabled="busy"
           @click="unpublishOpen = false"
-          >{{ $t('cloud.messages.cancel') }}</CloudButton
+          >{{ $t('cloud.messages.cancel') }}</CfButton
         >
-        <CloudButton
+        <CfButton
           variant="destructive"
           :loading="busy"
           @click="unpublish"
-          >{{ $t('cloud.messages.unpublishGallery') }}</CloudButton
+          >{{ $t('cloud.messages.unpublishGallery') }}</CfButton
         >
       </template>
     </UModal>

@@ -12,6 +12,7 @@ import { passkey } from '@better-auth/passkey'
 import type { PlatformEmailBinding } from '../../../shared/platform/email.ts'
 
 export interface AccountAuthConfig {
+  localDevelopment?: boolean
   portalOrigin: string
   secret: string
   emailFrom: string
@@ -201,6 +202,8 @@ export function accountAuthOptions(
           user.email,
           { name: user.name, minutes: '30' },
           url,
+          undefined,
+          config.localDevelopment === true,
         )
       },
     },

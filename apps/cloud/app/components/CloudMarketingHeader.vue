@@ -26,7 +26,7 @@ const mobileMenuOpen = ref(false),
           aria-hidden="true"
           class="cf-inline-icon" /></a
       ><CloudThemeToggle />
-      <CloudButton
+      <CfButton
         as-child
         variant="secondary"
         size="sm"
@@ -34,8 +34,8 @@ const mobileMenuOpen = ref(false),
           :to="links.signin"
           external
           >{{ $t('cloud.messages.logIn') }}</NuxtLink
-        ></CloudButton
-      ><CloudButton
+        ></CfButton
+      ><CfButton
         as-child
         size="sm"
         ><NuxtLink
@@ -43,25 +43,25 @@ const mobileMenuOpen = ref(false),
           external
           >{{ $t('cloud.messages.getStarted')
           }}<ArrowUpRight :size="14" /></NuxtLink
-      ></CloudButton>
+      ></CfButton>
     </nav>
     <div class="cf-mobile-header-actions">
-      <CloudButton
+      <CfButton
         as-child
         size="sm"
         ><NuxtLink
           :to="links.signup"
           external
           >{{ $t('cloud.messages.signUp') }}</NuxtLink
-        ></CloudButton
+        ></CfButton
       >
       <PopoverRoot v-model:open="mobileMenuOpen">
         <PopoverTrigger as-child
-          ><CloudButton
+          ><CfButton
             variant="ghost"
             size="icon"
             :aria-label="$t('cloud.messages.openNavigation')"
-            ><Menu :size="20" /></CloudButton
+            ><Menu :size="20" /></CfButton
         ></PopoverTrigger>
         <PopoverContent
           class="cf-mobile-menu"

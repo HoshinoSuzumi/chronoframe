@@ -87,14 +87,14 @@ const date = (time: number) => new Date(time).toLocaleString(locale.value)
         <p class="cf-page-description">{{ $t('cloud.billing.redeemHelp') }}</p>
       </div>
     </div>
-    <CloudCard
+    <CfCard
       ><form
         class="cf-form"
         @submit.prevent="inspect"
       >
         <label class="cf-field"
           >{{ $t('cloud.billing.code')
-          }}<CloudInput
+          }}<CfInput
             v-model="code"
             required
             maxlength="128"
@@ -104,13 +104,13 @@ const date = (time: number) => new Date(time).toLocaleString(locale.value)
             :disabled="busy || !!receipt"
         /></label>
         <p class="cf-field-hint">{{ $t('cloud.billing.codeHelp') }}</p>
-        <CloudButton
+        <CfButton
           v-if="!preview && !receipt"
           type="submit"
           :disabled="busy || !selected || !code.trim()"
           >{{
             busy ? $t('cloud.billing.loading') : $t('cloud.billing.checkCode')
-          }}</CloudButton
+          }}</CfButton
         >
         <p
           v-if="!workspaces.length"
@@ -149,15 +149,15 @@ const date = (time: number) => new Date(time).toLocaleString(locale.value)
             )
           }}
         </p>
-        <CloudButton
+        <CfButton
           :disabled="busy"
           @click="redeem"
-          >{{ $t('cloud.billing.confirmRedeem') }}</CloudButton
-        ><CloudButton
+          >{{ $t('cloud.billing.confirmRedeem') }}</CfButton
+        ><CfButton
           variant="ghost"
           :disabled="busy"
           @click="preview = null"
-          >{{ $t('cloud.billing.cancel') }}</CloudButton
+          >{{ $t('cloud.billing.cancel') }}</CfButton
         >
       </div>
       <div
@@ -191,7 +191,7 @@ const date = (time: number) => new Date(time).toLocaleString(locale.value)
         class="cf-error-message"
       >
         {{ failure }}
-      </p></CloudCard
+      </p></CfCard
     >
   </div>
 </template>

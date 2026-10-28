@@ -189,12 +189,12 @@ async function copy(value: string) {
           {{ t('cloud.messages.addressesVisitorsUseToReachYourGallery') }}
         </p>
       </div>
-      <CloudButton
+      <CfButton
         variant="ghost"
         size="sm"
         :disabled="busy || status === 'pending'"
         @click="refreshAll()"
-        ><RefreshCw :size="15" />{{ t('cloud.domains.refresh') }}</CloudButton
+        ><RefreshCw :size="15" />{{ t('cloud.domains.refresh') }}</CfButton
       >
     </div>
     <p
@@ -203,10 +203,10 @@ async function copy(value: string) {
       role="alert"
     >
       {{ t('cloud.domains.loadFailed')
-      }}<CloudButton
+      }}<CfButton
         variant="ghost"
         @click="refreshAll()"
-        >{{ t('cloud.messages.retry') }}</CloudButton
+        >{{ t('cloud.messages.retry') }}</CfButton
       >
     </p>
     <p
@@ -218,13 +218,13 @@ async function copy(value: string) {
       {{ notice }}
     </p>
     <template v-if="data">
-      <CloudCard
+      <CfCard
         ><div class="cf-panel-heading cf-domain-section-heading">
           <div>
             <h2>{{ t('cloud.messages.defaultSubdomain') }}</h2>
             <p>{{ t('cloud.domains.defaultHelp') }}</p>
           </div>
-          <CloudButton
+          <CfButton
             v-if="data.admin"
             variant="ghost"
             size="sm"
@@ -232,7 +232,7 @@ async function copy(value: string) {
             @click="beginRename"
             ><Pencil :size="13" />{{
               t('cloud.domains.changeAddress')
-            }}</CloudButton
+            }}</CfButton
           >
         </div>
         <div class="cf-domain-default-row">
@@ -251,14 +251,14 @@ async function copy(value: string) {
             >{{ data.defaultHostname }}</code
           >
           <span v-else>{{ t('cloud.domains.defaultConflict') }}</span>
-          <CloudButton
+          <CfButton
             v-if="data.defaultHostname"
             variant="ghost"
             size="icon"
             :aria-label="t('cloud.messages.copyAddress')"
             @click="copy('https://' + data.defaultHostname)"
             ><Copy :size="14"
-          /></CloudButton>
+          /></CfButton>
         </div>
         <div
           v-if="!data.defaultReady || data.domains.some((d) => d.primary)"
@@ -270,30 +270,30 @@ async function copy(value: string) {
           >
             {{ t('cloud.domains.routingPending') }}
           </p>
-          <CloudButton
+          <CfButton
             v-if="data.admin && data.domains.some((d) => d.primary)"
             variant="ghost"
             size="sm"
             :disabled="busy"
             @click="run({ action: 'default' })"
-            >{{ t('cloud.domains.useDefault') }}</CloudButton
+            >{{ t('cloud.domains.useDefault') }}</CfButton
           >
         </div>
-      </CloudCard>
+      </CfCard>
       <section class="cf-domain-custom-section">
         <div class="cf-domain-section-heading">
           <div>
             <h2>{{ t('cloud.messages.customDomains') }}</h2>
             <p class="cf-field-hint">{{ t('cloud.domainFlow.customHelp') }}</p>
           </div>
-          <CloudButton
+          <CfButton
             v-if="data.admin"
             size="sm"
             :disabled="
               busy || !data.enabled || !admission.allowed || !!quota.error.value
             "
             @click="beginAdd"
-            ><Plus :size="14" />{{ t('cloud.domains.add') }}</CloudButton
+            ><Plus :size="14" />{{ t('cloud.domains.add') }}</CfButton
           >
         </div>
         <CloudQuotaNotice
@@ -373,7 +373,7 @@ async function copy(value: string) {
             class="cf-field-label"
             for="custom-domain"
             >{{ t('cloud.domains.hostname') }}</label
-          ><CloudInput
+          ><CfInput
             id="custom-domain"
             v-model="hostname"
             :disabled="busy"
@@ -393,12 +393,12 @@ async function copy(value: string) {
             {{ notice }}
           </p>
           <div class="cf-domain-modal-actions">
-            <CloudButton
+            <CfButton
               variant="secondary"
               :disabled="busy"
               @click="addOpen = false"
-              >{{ t('cloud.messages.cancel') }}</CloudButton
-            ><CloudButton
+              >{{ t('cloud.messages.cancel') }}</CfButton
+            ><CfButton
               type="submit"
               :disabled="
                 busy ||
@@ -407,7 +407,7 @@ async function copy(value: string) {
                 !!quota.error.value
               "
               :loading="busy"
-              >{{ t('cloud.domainFlow.continue') }}</CloudButton
+              >{{ t('cloud.domainFlow.continue') }}</CfButton
             >
           </div>
         </form></template
@@ -429,7 +429,7 @@ async function copy(value: string) {
             >{{ t('cloud.domains.changeAddress') }}</label
           >
           <div class="cf-domain-slug-field">
-            <CloudInput
+            <CfInput
               id="site-domain-slug"
               v-model="slug"
               :disabled="busy"
@@ -449,16 +449,16 @@ async function copy(value: string) {
             {{ notice }}
           </p>
           <div class="cf-domain-modal-actions">
-            <CloudButton
+            <CfButton
               variant="secondary"
               :disabled="busy"
               @click="renameOpen = false"
-              >{{ t('cloud.messages.cancel') }}</CloudButton
-            ><CloudButton
+              >{{ t('cloud.messages.cancel') }}</CfButton
+            ><CfButton
               type="submit"
               :disabled="busy || slug === settings?.site.slug || !slug.trim()"
               :loading="busy"
-              >{{ t('cloud.messages.saveChanges') }}</CloudButton
+              >{{ t('cloud.messages.saveChanges') }}</CfButton
             >
           </div>
         </form></template
@@ -485,17 +485,17 @@ async function copy(value: string) {
           {{ notice }}
         </p>
         <div class="cf-domain-modal-actions">
-          <CloudButton
+          <CfButton
             variant="secondary"
             :disabled="busy"
             @click="removal = null"
-            >{{ t('cloud.messages.cancel') }}</CloudButton
-          ><CloudButton
+            >{{ t('cloud.messages.cancel') }}</CfButton
+          ><CfButton
             variant="destructive"
             :disabled="busy"
             :loading="busy"
             @click="removal && action(removal, 'delete')"
-            >{{ t('cloud.domains.remove') }}</CloudButton
+            >{{ t('cloud.domains.remove') }}</CfButton
           >
         </div></template
       ></UModal

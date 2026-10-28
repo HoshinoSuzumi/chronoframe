@@ -133,19 +133,19 @@ const guidance = computed(() =>
           >{{ t('cloud.domains.primary') }}</span
         >
       </div>
-      <CloudBadge :tone="domain.status === 'active' ? 'success' : 'neutral'">{{
+      <CfBadge :tone="domain.status === 'active' ? 'success' : 'neutral'">{{
         statusLabel
-      }}</CloudBadge>
+      }}</CfBadge>
       <DropdownMenuRoot v-if="admin && domain.status !== 'deleting'"
         ><DropdownMenuTrigger as-child
-          ><CloudButton
+          ><CfButton
             size="icon"
             variant="ghost"
             :aria-label="
               t('cloud.domainFlow.actions', { hostname: domain.hostname })
             "
             :disabled="busy"
-            ><MoreHorizontal :size="17" /></CloudButton
+            ><MoreHorizontal :size="17" /></CfButton
         ></DropdownMenuTrigger>
         <DropdownMenuPortal
           ><DropdownMenuContent
@@ -206,7 +206,7 @@ const guidance = computed(() =>
     </div>
     <p class="cf-field-hint cf-domain-guidance">{{ guidance }}</p>
     <div class="cf-domain-card-toolbar">
-      <CloudButton
+      <CfButton
         variant="ghost"
         size="sm"
         :aria-expanded="open"
@@ -216,9 +216,9 @@ const guidance = computed(() =>
         }}<ChevronDown
           :size="14"
           :class="{ 'rotate-180': open }"
-      /></CloudButton>
+      /></CfButton>
       <div class="cf-domain-inline-actions">
-        <CloudButton
+        <CfButton
           v-if="domain.status === 'active' && published"
           as-child
           size="sm"
@@ -228,8 +228,8 @@ const guidance = computed(() =>
             target="_blank"
             rel="noopener noreferrer"
             >{{ t('cloud.messages.viewSite') }}<ExternalLink :size="13" /></a
-        ></CloudButton>
-        <CloudButton
+        ></CfButton>
+        <CfButton
           v-if="
             admin && !['paused', 'deleting', 'expired'].includes(domain.status)
           "
@@ -247,7 +247,7 @@ const guidance = computed(() =>
                 : 'cloud.domains.check',
               { seconds: retrySeconds },
             )
-          }}</CloudButton
+          }}</CfButton
         >
       </div>
     </div>
@@ -288,13 +288,13 @@ const guidance = computed(() =>
         <div class="cf-domain-record-value">
           <span>{{ t('cloud.domainFlow.recordValue') }}</span
           ><code>{{ domain.cnameTarget }}</code
-          ><CloudButton
+          ><CfButton
             size="icon"
             variant="ghost"
             :aria-label="t('cloud.domains.copyTarget')"
             @click="emit('copy', domain.cnameTarget)"
             ><Copy :size="14"
-          /></CloudButton>
+          /></CfButton>
         </div>
       </div>
       <p class="cf-field-hint">{{ t('cloud.domains.dnsOnly') }}</p>

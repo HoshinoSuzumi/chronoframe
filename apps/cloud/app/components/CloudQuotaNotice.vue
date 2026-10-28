@@ -3,7 +3,7 @@ defineProps<{ reason: string; error?: boolean; resource?: string }>()
 const emit = defineEmits<{ retry: [] }>()
 </script>
 <template>
-  <CloudAlert
+  <CfAlert
     v-if="reason || error"
     class="cf-quota-notice"
     :tone="error ? 'error' : 'info'"
@@ -17,20 +17,20 @@ const emit = defineEmits<{ retry: [] }>()
       }}</strong>
       <p v-if="reason === 'upgrade'">{{ $t('cloud.dashboard.quotaHelp') }}</p>
     </div>
-    <CloudButton
+    <CfButton
       v-if="error"
       variant="secondary"
       size="sm"
       @click="emit('retry')"
-      >{{ $t('cloud.messages.retry') }}</CloudButton
-    ><CloudButton
+      >{{ $t('cloud.messages.retry') }}</CfButton
+    ><CfButton
       v-else-if="reason === 'upgrade'"
       as-child
       variant="secondary"
       size="sm"
       ><NuxtLink to="/account/plan#plans">{{
         $t('cloud.dashboard.viewPlans')
-      }}</NuxtLink></CloudButton
-    ></CloudAlert
+      }}</NuxtLink></CfButton
+    ></CfAlert
   >
 </template>

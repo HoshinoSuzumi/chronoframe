@@ -313,11 +313,11 @@ function menu(album: Album) {
           }}
         </p>
       </div>
-      <CloudButton
+      <CfButton
         v-if="admin"
         :icon="ButtonIconPlus"
         @click="create"
-        >{{ $t('cloud.messages.createAlbum') }}</CloudButton
+        >{{ $t('cloud.messages.createAlbum') }}</CfButton
       >
     </div>
     <div class="cf-library-toolbar">
@@ -327,7 +327,7 @@ function menu(album: Album) {
         :placeholder="$t('cloud.messages.searchAlbums')"
         :aria-label="$t('cloud.messages.searchAlbums2')"
         class="cf-library-search"
-      /><CloudButton
+      /><CfButton
         variant="ghost"
         :icon="ButtonIconRefreshCw"
         :aria-label="$t('cloud.messages.refreshAlbums')"
@@ -397,7 +397,7 @@ function menu(album: Album) {
           ></template
         ><template #actions-cell="{ row }"
           ><div class="flex items-center gap-1">
-            <CloudButton
+            <CfButton
               v-if="admin"
               variant="ghost"
               :icon="ButtonIconArrowUp"
@@ -405,7 +405,7 @@ function menu(album: Album) {
               :disabled="busy || albums[0]?.id === row.original.id"
               :aria-label="$t('cloud.ui.moveUp', { title: row.original.title })"
               @click="moveAlbum(row.original, -1)"
-            /><CloudButton
+            /><CfButton
               v-if="admin"
               variant="ghost"
               :icon="ButtonIconArrowDown"
@@ -416,7 +416,7 @@ function menu(album: Album) {
               "
               @click="moveAlbum(row.original, 1)"
             /><UDropdownMenu :items="menu(row.original)"
-              ><CloudButton
+              ><CfButton
                 variant="ghost"
                 :icon="ButtonIconEllipsis"
                 :aria-label="
@@ -443,11 +443,11 @@ function menu(album: Album) {
                 )
               }}
             </p>
-            <CloudButton
+            <CfButton
               v-if="admin && !albums.length"
               variant="soft"
               @click="create"
-              >{{ $t('cloud.messages.createAlbum') }}</CloudButton
+              >{{ $t('cloud.messages.createAlbum') }}</CfButton
             >
           </div></template
         ></ConsoleMediaTable
@@ -533,13 +533,13 @@ function menu(album: Album) {
                   })
                 }}
               </h3>
-              <CloudButton
+              <CfButton
                 variant="secondary"
                 :icon="ButtonIconImagePlus"
                 size="sm"
                 id="album-select-photographs"
                 @click="picker = !picker"
-                >{{ $t('cloud.messages.selectPhotographs') }}</CloudButton
+                >{{ $t('cloud.messages.selectPhotographs') }}</CfButton
               >
             </div>
             <div
@@ -551,28 +551,28 @@ function menu(album: Album) {
                 :src="photo.thumbnailUrl || ''"
                 :alt="photo.title || $t('cloud.messages.photograph')"
               /><span>{{ photo.title }}</span
-              ><CloudButton
+              ><CfButton
                 :variant="draft.coverPhotoId === photo.id ? 'soft' : 'ghost'"
                 :aria-pressed="draft.coverPhotoId === photo.id"
                 :icon="ButtonIconStar"
                 size="sm"
                 :aria-label="$t('cloud.ui.setCover', { title: photo.title })"
                 @click="draft.coverPhotoId = photo.id"
-              /><CloudButton
+              /><CfButton
                 variant="ghost"
                 :icon="ButtonIconArrowUp"
                 size="sm"
                 :disabled="index === 0"
                 :aria-label="$t('cloud.ui.moveUp', { title: photo.title })"
                 @click="movePhoto(index, -1)"
-              /><CloudButton
+              /><CfButton
                 variant="ghost"
                 :icon="ButtonIconArrowDown"
                 size="sm"
                 :disabled="index === chosen.length - 1"
                 :aria-label="$t('cloud.ui.moveDown', { title: photo.title })"
                 @click="movePhoto(index, 1)"
-              /><CloudButton
+              /><CfButton
                 variant="destructive"
                 :icon="ButtonIconX"
                 size="sm"
@@ -633,23 +633,23 @@ function menu(album: Album) {
             <span class="text-sm text-muted">{{
               $t('cloud.ui.selectedCount', { count: draft.photoIds.length })
             }}</span
-            ><CloudButton @click="picker = false">{{
+            ><CfButton @click="picker = false">{{
               $t('cloud.messages.done')
-            }}</CloudButton>
+            }}</CfButton>
           </div>
         </div></template
       ><template #footer
-        ><CloudButton
+        ><CfButton
           variant="secondary"
           :disabled="saving"
           @click="editor = false"
-          >{{ $t('cloud.messages.cancel') }}</CloudButton
-        ><CloudButton
+          >{{ $t('cloud.messages.cancel') }}</CfButton
+        ><CfButton
           type="submit"
           form="cloud-album-form"
           :loading="saving"
           :disabled="!loaded || !draft.title.trim()"
-          >{{ $t('cloud.messages.saveAlbum') }}</CloudButton
+          >{{ $t('cloud.messages.saveAlbum') }}</CfButton
         ></template
       ></USlideover
     >
@@ -661,15 +661,15 @@ function menu(album: Album) {
         $t('cloud.messages.photographsRemainInYourLibraryTheyMayBecomePublic')
       "
       ><template #footer
-        ><CloudButton
+        ><CfButton
           variant="secondary"
           @click="removeOpen = false"
-          >{{ $t('cloud.messages.cancel') }}</CloudButton
-        ><CloudButton
+          >{{ $t('cloud.messages.cancel') }}</CfButton
+        ><CfButton
           variant="destructive"
           :loading="busy"
           @click="remove"
-          >{{ $t('cloud.messages.deleteAlbum2') }}</CloudButton
+          >{{ $t('cloud.messages.deleteAlbum2') }}</CfButton
         ></template
       ></UModal
     >

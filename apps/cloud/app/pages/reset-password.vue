@@ -52,7 +52,7 @@ async function submit() {
       @submit.prevent="submit"
     >
       <label for="password">{{ $t('cloud.messages.newPassword') }}</label
-      ><CloudInput
+      ><CfInput
         id="password"
         v-model="password"
         type="password"
@@ -64,7 +64,7 @@ async function submit() {
       /><label for="confirmation">{{
         $t('cloud.messages.confirmPassword')
       }}</label
-      ><CloudInput
+      ><CfInput
         id="confirmation"
         v-model="confirmation"
         type="password"
@@ -81,10 +81,10 @@ async function submit() {
       >
         {{ error }}
       </p>
-      <CloudButton
+      <CfButton
         type="submit"
         :loading="busy"
-        >{{ $t('cloud.messages.saveNewPassword') }}</CloudButton
+        >{{ $t('cloud.messages.saveNewPassword') }}</CfButton
       >
     </form>
     <p

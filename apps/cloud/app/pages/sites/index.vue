@@ -1,8 +1,8 @@
 <script setup lang="ts">
+import { NuxtLink } from '#components'
 const { t } = useI18n()
 
 import { ArrowUpRight, Images, ShieldCheck } from 'lucide-vue-next'
-const siteLink = resolveComponent('NuxtLink')
 definePageMeta({ layout: 'portal' })
 const workspace = ref<{ id: number; name: string } | null>(null)
 const workspaceError = ref(false)
@@ -47,9 +47,9 @@ const sites = ref(
           {{ $t('cloud.messages.manageYourGalleriesSettingsAndAccess') }}
         </p>
       </div>
-      <CloudBadge>{{
+      <CfBadge>{{
         $t('cloud.ui.siteCount', { count: sites.length }, sites.length)
-      }}</CloudBadge>
+      }}</CfBadge>
     </div>
     <div
       v-if="workspaceError"
@@ -57,10 +57,10 @@ const sites = ref(
       role="alert"
     >
       {{ $t('cloud.messages.yourWorkspaceCouldNotBeOpened')
-      }}<CloudButton
+      }}<CfButton
         variant="ghost"
         @click="prepareWorkspace"
-        >{{ $t('cloud.messages.tryAgain') }}</CloudButton
+        >{{ $t('cloud.messages.tryAgain') }}</CfButton
       >
     </div>
     <CloudSiteCreate
@@ -87,7 +87,7 @@ const sites = ref(
           :key="site.siteId"
         >
           <component
-            :is="site.suspended ? 'div' : siteLink"
+            :is="site.suspended ? 'div' : NuxtLink"
             :to="site.suspended ? undefined : `/sites/${site.siteId}/overview`"
             :aria-disabled="site.suspended || undefined"
             :data-disabled="site.suspended || undefined"
@@ -109,7 +109,7 @@ const sites = ref(
               ></span
             >
             <span :id="`site-status-${site.siteId}`"
-              ><CloudBadge
+              ><CfBadge
                 :tone="
                   site.suspended
                     ? 'neutral'
@@ -123,7 +123,7 @@ const sites = ref(
                     : site.published
                       ? $t('cloud.messages.published')
                       : $t('cloud.messages.draft')
-                }}</CloudBadge
+                }}</CfBadge
               ></span
             >
             <span
@@ -142,14 +142,14 @@ const sites = ref(
         </li>
       </ul>
     </div>
-    <CloudCard
+    <CfCard
       v-else
       class="cf-portal-empty"
       ><span class="cf-site-icon"><Images :size="20" /></span>
       <div>
         <h2>{{ $t('cloud.messages.noSitesYet') }}</h2>
         <p>{{ $t('cloud.messages.createADraftAboveToReserveYourGalleryS') }}</p>
-      </div></CloudCard
+      </div></CfCard
     >
     <p class="cf-catalog-note">
       <ShieldCheck :size="14" />{{

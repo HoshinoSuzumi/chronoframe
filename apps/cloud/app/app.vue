@@ -10,16 +10,15 @@ useHead(() => ({
 }))
 </script>
 <template>
-  <UApp
-    class="cf-root"
-    :locale="componentLocale"
-  >
-    <a
-      href="#main-content"
-      class="cf-skip-link"
-      >{{ $t('cloud.messages.skipToContent') }}</a
-    ><NuxtLoadingIndicator color="var(--cf-primary)" /><NuxtLayout
-      ><NuxtPage
-    /></NuxtLayout>
+  <UApp :locale="componentLocale">
+    <div class="cf-root">
+      <a
+        href="#main-content"
+        class="cf-skip-link"
+        >{{ $t('cloud.messages.skipToContent') }}</a
+      ><NuxtLoadingIndicator color="var(--cf-primary)" /><NuxtLayout
+        ><NuxtPage
+      /></NuxtLayout>
+    </div>
   </UApp>
 </template>

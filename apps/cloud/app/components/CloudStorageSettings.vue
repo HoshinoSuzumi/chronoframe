@@ -51,7 +51,7 @@ async function removeStorage() {
 const byosAdmission = computed(() => quota.gate('byos'))
 </script>
 <template>
-  <CloudCard
+  <CfCard
     ><div class="cf-panel-heading">
       <h2>{{ $t('cloud.messages.storage') }}</h2>
       <p>
@@ -102,7 +102,7 @@ const byosAdmission = computed(() => quota.gate('byos'))
             class="cf-storage-option-actions"
             v-if="admin"
           >
-            <CloudButton
+            <CfButton
               size="sm"
               variant="secondary"
               :disabled="
@@ -113,23 +113,23 @@ const byosAdmission = computed(() => quota.gate('byos'))
               "
               v-if="!connection.retired"
               @click="selectStorage(connection.id)"
-              >{{ $t('cloud.storageManager.use') }}</CloudButton
+              >{{ $t('cloud.storageManager.use') }}</CfButton
             >
-            <CloudButton
+            <CfButton
               v-if="!connection.pool_id"
               size="sm"
               variant="secondary"
               :disabled="busy"
               @click="rotationId = connection.id"
-              >{{ $t('cloud.messages.rotateStorageCredentials') }}</CloudButton
+              >{{ $t('cloud.messages.rotateStorageCredentials') }}</CfButton
             >
-            <CloudButton
+            <CfButton
               v-if="!connection.pool_id && !connection.retired"
               size="sm"
               variant="ghost"
               :disabled="busy"
               @click="removal = connection.id"
-              >{{ $t('cloud.messages.delete') }}</CloudButton
+              >{{ $t('cloud.messages.delete') }}</CfButton
             >
           </div>
         </article>
@@ -147,18 +147,18 @@ const byosAdmission = computed(() => quota.gate('byos'))
         ><template
           v-if="failed"
           #body
-          ><CloudAlert tone="error">{{ message }}</CloudAlert></template
+          ><CfAlert tone="error">{{ message }}</CfAlert></template
         ><template #footer
-          ><CloudButton
+          ><CfButton
             variant="secondary"
             :disabled="busy"
             @click="removal = null"
-            >{{ $t('cloud.messages.cancel') }}</CloudButton
-          ><CloudButton
+            >{{ $t('cloud.messages.cancel') }}</CfButton
+          ><CfButton
             variant="destructive"
             :loading="busy"
             @click="removeStorage"
-            >{{ $t('cloud.messages.delete') }}</CloudButton
+            >{{ $t('cloud.messages.delete') }}</CfButton
           ></template
         ></UModal
       >
@@ -192,11 +192,11 @@ const byosAdmission = computed(() => quota.gate('byos'))
               autocomplete="new-password"
               required
           /></label>
-          <CloudButton
+          <CfButton
             type="submit"
             variant="secondary"
             :disabled="busy"
-            >{{ $t('cloud.messages.testRotate') }}</CloudButton
+            >{{ $t('cloud.messages.testRotate') }}</CfButton
           >
         </form>
       </details>
@@ -254,13 +254,13 @@ const byosAdmission = computed(() => quota.gate('byos'))
               $t('cloud.messages.useADedicatedBucketWithPrivateAccessAllowThis')
             }}
           </p>
-          <CloudButton
+          <CfButton
             type="submit"
             :disabled="busy"
-            >{{ $t('cloud.messages.testConnect') }}</CloudButton
+            >{{ $t('cloud.messages.testConnect') }}</CfButton
           >
         </form>
       </details>
-    </div></CloudCard
+    </div></CfCard
   >
 </template>

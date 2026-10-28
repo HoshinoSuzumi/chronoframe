@@ -45,7 +45,7 @@ async function submit() {
       @submit.prevent="submit"
     >
       <label for="email">{{ $t('cloud.messages.emailAddress') }}</label
-      ><CloudInput
+      ><CfInput
         id="email"
         v-model="email"
         type="email"
@@ -60,10 +60,10 @@ async function submit() {
       >
         {{ error }}
       </p>
-      <CloudButton
+      <CfButton
         type="submit"
         :loading="busy"
-        >{{ $t('cloud.messages.sendResetLink') }}</CloudButton
+        >{{ $t('cloud.messages.sendResetLink') }}</CfButton
       >
     </form>
     <p class="cf-auth-hint">
