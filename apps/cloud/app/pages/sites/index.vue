@@ -1,8 +1,8 @@
 <script setup lang="ts">
+import { NuxtLink } from '#components'
 const { t } = useI18n()
 
 import { ArrowUpRight, Images, ShieldCheck } from 'lucide-vue-next'
-const siteLink = resolveComponent('NuxtLink')
 definePageMeta({ layout: 'portal' })
 const workspace = ref<{ id: number; name: string } | null>(null)
 const workspaceError = ref(false)
@@ -87,7 +87,7 @@ const sites = ref(
           :key="site.siteId"
         >
           <component
-            :is="site.suspended ? 'div' : siteLink"
+            :is="site.suspended ? 'div' : NuxtLink"
             :to="site.suspended ? undefined : `/sites/${site.siteId}/overview`"
             :aria-disabled="site.suspended || undefined"
             :data-disabled="site.suspended || undefined"

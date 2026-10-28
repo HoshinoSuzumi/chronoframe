@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { NuxtLink } from '#components'
 import { ArrowUpRight, Images, SlidersHorizontal } from 'lucide-vue-next'
 import type { EntrySiteCatalog } from '@chronoframe/contracts/entry'
 import { allowance } from '../utils/billing-format'
@@ -113,7 +114,7 @@ useSeoMeta({
             :key="site.siteId"
           >
             <component
-              :is="site.suspended ? 'div' : resolveComponent('NuxtLink')"
+              :is="site.suspended ? 'div' : NuxtLink"
               :to="
                 site.suspended ? undefined : `/sites/${site.siteId}/overview`
               "
