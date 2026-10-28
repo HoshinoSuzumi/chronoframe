@@ -85,3 +85,25 @@ test('Upload preflight finds an eligible alternative without trapping users on a
   delete connections[1]!.uploads_enabled
   assert.equal(uploadQuotaGate(data, connections, 'pool').allowed, false)
 })
+
+test('Upload preflight denies stale or disabled explicit targets while retaining unconfigured storage guidance', () => {
+  const data = {
+    workspace: { role: 'admin' },
+    plan: {
+      limits: {
+        photos: 10,
+        storageBytes: 100,
+        monthlyBytes: 100,
+        fileBytes: 10,
+      },
+    },
+    usage: {},
+  }
+  assert.equal(uploadQuotaGate(data, [], 'removed-target').allowed, false)
+  assert.equal(
+    uploadQuotaGate(data, [{ id: 'disabled', uploads_enabled: 0 }], 'disabled')
+      .reason,
+    'storage',
+  )
+  assert.equal(uploadQuotaGate(data, []).allowed, true)
+})

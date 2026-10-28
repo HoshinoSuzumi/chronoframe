@@ -46,6 +46,8 @@ export function uploadQuotaGate(
   const candidates = connections
     .filter((c) => c.uploads_enabled !== 0)
     .sort((a, b) => Number(b.id === selected) - Number(a.id === selected))
+  if (selected && !candidates.length)
+    return { allowed: false, reason: 'storage', connectionId: '' }
   const targets = candidates.length
     ? candidates
     : [{ id: '', pool_id: 'platform' }]

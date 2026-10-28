@@ -748,7 +748,8 @@
       "processingHealthy": "媒体处理状态正常",
       "storagePending": "尚未连接存储",
       "publicationHelp": "无需先上传照片或配置存储，即可发布站点。",
-      "actions": "操作"
+      "actions": "操作",
+      "quota_storage": "暂无可用于上传的存储连接，请检查站点的存储设置。"
     }
   }
 }

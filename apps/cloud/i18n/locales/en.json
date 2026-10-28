@@ -748,7 +748,8 @@
       "processingHealthy": "Media processing is up to date",
       "storagePending": "Storage not connected",
       "publicationHelp": "Publishing does not require photographs or a storage connection.",
-      "actions": "Actions"
+      "actions": "Actions",
+      "quota_storage": "No upload-enabled storage connection is available. Review your site’s storage settings."
     }
   }
 }

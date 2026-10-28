@@ -136,16 +136,13 @@ export function useCloudMediaWorkspace(props: {
         message.value = ''
       }
       loadError.value = ''
-      if (
-        !connectionId.value ||
-        connections.value.find((c) => c.id === connectionId.value)
-          ?.uploads_enabled === 0 ||
-        (!u.byosLimits?.byos &&
-          !s.connections.find((c) => c.id === connectionId.value)?.pool_id)
+      canPoll.value = true
+      const uploadTargets = s.connections.filter(
+        (c) => c.uploads_enabled !== 0 && (c.pool_id || u.byosLimits?.byos),
       )
+      if (!uploadTargets.some((c) => c.id === connectionId.value))
         connectionId.value =
-          s.connections.find((c) => c.pool_id && c.uploads_enabled !== 0)?.id ??
-          (u.byosLimits?.byos ? (s.connections[0]?.id ?? '') : '')
+          uploadTargets.find((c) => c.pool_id)?.id ?? uploadTargets[0]?.id ?? ''
     } catch (error) {
       if (
         generation !== reloadGeneration ||

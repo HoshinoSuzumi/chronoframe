@@ -21,12 +21,12 @@ const status = computed(() => (loading.value ? 'pending' : 'success'))
     :status="status"
   >
     <CloudAlert
-      v-if="message"
-      :tone="failed ? 'error' : 'info'"
+      class="mb-4"
+      v-if="loadError"
+      tone="error"
     >
-      {{ message
+      {{ loadError
       }}<CloudButton
-        v-if="loadError"
         size="sm"
         variant="secondary"
         :loading="loading"
@@ -34,6 +34,12 @@ const status = computed(() => (loading.value ? 'pending' : 'success'))
         >{{ $t('cloud.messages.retry') }}</CloudButton
       >
     </CloudAlert>
+    <CloudAlert
+      class="mb-4"
+      v-if="message && message !== loadError"
+      :tone="failed ? 'error' : 'info'"
+      >{{ message }}</CloudAlert
+    >
     <slot /><CloudUploadDrawer
   /></PhotosProvider>
 </template>
