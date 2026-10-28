@@ -1467,7 +1467,7 @@ test('Checkout return reconciliation verifies provider truth and ownership witho
       f.transport,
       f.now + 3,
     )
-    assert.equal(f.calls.length, calls)
+    assert.ok(f.calls.length > calls)
     assert.equal(
       (await resolveSubscription(f.db, 1, f.now + 3)).assignment_revision,
       revision,
@@ -1911,6 +1911,616 @@ test('An authoritative expired checkout return releases the pending checkout wit
       f.now + 2,
     )
     assert.ok(next.url)
+  } finally {
+    await f.mf.dispose()
+  }
+})
+
+test('Customer portal resubscription keeps the canceled purchase and binds a new paid subscription', async () => {
+  const f = await fixture()
+  try {
+    await createPaymentCheckout(
+      f.db,
+      root,
+      1,
+      f.input,
+      'https://app.chronoframe.art',
+      f.transport,
+      f.now,
+    )
+    const first = await f.complete()
+    await (
+      await f.event(
+        'evt_portal_first',
+        'checkout.completed',
+        f.checkouts.get('chk_1'),
+      )
+    ).receive()
+    await processPaymentEvents(f.db, root, f.transport, f.now)
+    first.status = 'canceled'
+    first.updated_at = new Date(f.now + 1000).toISOString()
+    await (
+      await f.event(
+        'evt_portal_canceled',
+        'subscription.canceled',
+        first,
+        f.now + 1000,
+      )
+    ).receive()
+    await processPaymentEvents(f.db, root, f.transport, f.now + 1000)
+    assert.equal((await resolveSubscription(f.db, 1, f.now + 1000)).id, 'free')
+    const original = f.checkouts.get('chk_1'),
+      metadata = {
+        ...original.metadata,
+        resubscribed_from_subscription_id: first.id,
+      }
+    const replacement = {
+      ...first,
+      id: 'sub_portal_replacement',
+      status: 'active',
+      metadata,
+      current_period_start_date: new Date(f.now + 2000).toISOString(),
+      current_period_end_date: new Date(f.now + 31 * 86400000).toISOString(),
+      updated_at: new Date(f.now + 2000).toISOString(),
+    }
+    const checkout = {
+      ...original,
+      id: 'chk_portal_replacement',
+      metadata,
+      subscription: replacement.id,
+    }
+    f.checkouts.set(checkout.id, checkout)
+    f.subscriptions.set(replacement.id, replacement)
+    await (
+      await f.event(
+        'evt_portal_paid',
+        'subscription.paid',
+        replacement,
+        f.now + 2000,
+      )
+    ).receive()
+    await processPaymentEvents(f.db, root, f.transport, f.now + 2000)
+    await (
+      await f.event(
+        'evt_portal_completed',
+        'checkout.completed',
+        checkout,
+        f.now + 2001,
+      )
+    ).receive()
+    await processPaymentEvents(f.db, root, f.transport, f.now + 2001)
+    const errors = (
+      await f.db
+        .prepare(
+          'SELECT type,error FROM platform_payment_events WHERE error IS NOT NULL',
+        )
+        .all<any>()
+    ).results
+    assert.equal(
+      (await resolveSubscription(f.db, 1, f.now + 2001)).id,
+      'pro',
+      JSON.stringify(errors),
+    )
+    const rows = (
+      await f.db
+        .prepare(
+          'SELECT id,checkout_id,status FROM platform_payment_subscriptions ORDER BY id',
+        )
+        .all<any>()
+    ).results
+    assert.equal(rows.length, 2)
+    assert.notEqual(rows[0].checkout_id, rows[1].checkout_id)
+    assert.equal(
+      rows.find((row: any) => row.id === first.id).status,
+      'canceled',
+    )
+    assert.equal(
+      rows.find((row: any) => row.id === replacement.id).status,
+      'active',
+    )
+  } finally {
+    await f.mf.dispose()
+  }
+})
+
+async function portalCase() {
+  const f = await fixture()
+  try {
+    const local = await createPaymentCheckout(
+      f.db,
+      root,
+      1,
+      f.input,
+      'https://app.chronoframe.art',
+      f.transport,
+      f.now,
+    )
+    const old = await f.complete()
+    await (
+      await f.event(
+        'evt_base_paid',
+        'checkout.completed',
+        f.checkouts.get('chk_1'),
+      )
+    ).receive()
+    await processPaymentEvents(f.db, root, f.transport, f.now)
+    old.status = 'canceled'
+    old.updated_at = new Date(f.now + 1000).toISOString()
+    await (
+      await f.event(
+        'evt_base_cancel',
+        'subscription.canceled',
+        old,
+        f.now + 1000,
+      )
+    ).receive()
+    await processPaymentEvents(f.db, root, f.transport, f.now + 1000)
+    const metadata = {
+      ...old.metadata,
+      resubscribed_from_subscription_id: old.id,
+    }
+    const subscription = {
+      ...old,
+      id: 'sub_repurchase',
+      metadata,
+      status: 'active',
+      current_period_start_date: new Date(f.now + 2000).toISOString(),
+      current_period_end_date: new Date(f.now + 31 * 86400000).toISOString(),
+      updated_at: new Date(f.now + 2000).toISOString(),
+    }
+    const checkout = {
+      ...f.checkouts.get('chk_1'),
+      id: 'chk_repurchase',
+      metadata,
+      subscription: subscription.id,
+    }
+    f.subscriptions.set(subscription.id, subscription)
+    f.checkouts.set(checkout.id, checkout)
+    return { ...f, local, old, subscription, checkout, at: f.now + 2001 }
+  } catch (error) {
+    await f.mf.dispose()
+    throw error
+  }
+}
+
+test('Portal return verifies the new checkout before webhooks and historical canceled returns stay inactive', async () => {
+  const f = await portalCase()
+  try {
+    assert.deepEqual(
+      await refreshPaymentCheckout(
+        f.db,
+        root,
+        1,
+        1,
+        f.local.checkoutId,
+        f.transport,
+        f.at,
+      ),
+      { state: 'inactive' },
+    )
+    assert.deepEqual(
+      await refreshPaymentCheckout(
+        f.db,
+        root,
+        1,
+        1,
+        f.local.checkoutId,
+        f.transport,
+        f.at,
+        {
+          providerCheckoutId: f.checkout.id,
+          subscriptionId: f.subscription.id,
+        },
+      ),
+      { state: 'completed' },
+    )
+    assert.equal((await resolveSubscription(f.db, 1, f.at)).id, 'pro')
+    assert.equal(
+      (
+        await f.db
+          .prepare(
+            'SELECT provider_id FROM platform_payment_checkouts WHERE id=?',
+          )
+          .bind(f.local.checkoutId)
+          .first<any>()
+      ).provider_id,
+      'chk_1',
+    )
+    await assert.rejects(
+      refreshPaymentCheckout(
+        f.db,
+        root,
+        1,
+        1,
+        f.local.checkoutId,
+        f.transport,
+        f.at,
+        { providerCheckoutId: f.checkout.id, subscriptionId: 'sub_wrong' },
+      ),
+      { code: 'payment_binding_invalid' },
+    )
+    await assert.rejects(
+      refreshPaymentCheckout(
+        f.db,
+        root,
+        2,
+        1,
+        f.local.checkoutId,
+        f.transport,
+        f.at,
+        { providerCheckoutId: f.checkout.id },
+      ),
+      { statusCode: 403 },
+    )
+  } finally {
+    await f.mf.dispose()
+  }
+})
+
+test('Portal replay and late predecessor cancellation cannot downgrade the replacement or duplicate grants', async () => {
+  for (const paidFirst of [true, false]) {
+    const f = await portalCase()
+    try {
+      const paid = await f.event(
+          'evt_new_paid',
+          'subscription.paid',
+          f.subscription,
+          f.at,
+        ),
+        completed = await f.event(
+          'evt_new_checkout',
+          'checkout.completed',
+          f.checkout,
+          f.at,
+        )
+      await (paidFirst ? paid : completed).receive()
+      await processPaymentEvents(f.db, root, f.transport, f.at)
+      if (paidFirst)
+        assert.equal(
+          (
+            await f.db
+              .prepare(
+                "SELECT error FROM platform_payment_events WHERE id='evt_new_paid'",
+              )
+              .first<any>()
+          ).error,
+          'payment_confirmation_pending',
+        )
+      await (paidFirst ? completed : paid).receive()
+      await processPaymentEvents(f.db, root, f.transport, f.at + 1)
+      await processPaymentEvents(f.db, root, f.transport, f.at + 31000)
+      const before = await resolveSubscription(f.db, 1, f.at + 31000)
+      assert.equal(before.id, 'pro')
+      const revision = before.subscription.revision
+      await completed.receive()
+      await paid.receive()
+      f.old.updated_at = new Date(f.at + 32000).toISOString()
+      await (
+        await f.event(
+          'evt_old_cancel_late',
+          'subscription.canceled',
+          f.old,
+          f.at + 32000,
+        )
+      ).receive()
+      await (
+        await f.event(
+          'evt_new_paid_duplicate',
+          'subscription.paid',
+          f.subscription,
+          f.at + 32000,
+        )
+      ).receive()
+      await Promise.all([
+        processPaymentEvents(f.db, root, f.transport, f.at + 32000),
+        processPaymentEvents(f.db, root, f.transport, f.at + 32000),
+      ])
+      await processPaymentEvents(f.db, root, f.transport, f.at + 100000)
+      const after = await resolveSubscription(f.db, 1, f.at + 100000)
+      assert.equal(after.id, 'pro')
+      assert.equal(after.subscription.revision, revision)
+      assert.equal(
+        (
+          await f.db
+            .prepare('SELECT COUNT(*) AS n FROM platform_payment_checkouts')
+            .first<any>()
+        ).n,
+        2,
+      )
+      assert.equal(
+        (
+          await f.db
+            .prepare('SELECT COUNT(*) AS n FROM platform_payment_subscriptions')
+            .first<any>()
+        ).n,
+        2,
+      )
+    } finally {
+      await f.mf.dispose()
+    }
+  }
+})
+
+test('Portal lineage rejects foreign customers, conflicting metadata, active predecessors and unavailable products', async () => {
+  for (const scenario of [
+    'customer',
+    'marker',
+    'origin',
+    'predecessor',
+    'active',
+    'disabled',
+    'unlisted',
+    'member',
+    'future',
+    'request',
+  ]) {
+    const f = await portalCase()
+    try {
+      if (scenario === 'customer') {
+        f.checkout.customer = { id: 'cust_other' }
+        f.subscription.customer = { id: 'cust_other' }
+      }
+      if (scenario === 'marker')
+        f.subscription.metadata = {
+          ...f.subscription.metadata,
+          resubscribed_from_subscription_id: 'sub_other',
+        }
+      if (scenario === 'origin')
+        f.subscription.metadata = {
+          ...f.subscription.metadata,
+          chronoframe_checkout_id: 'other_origin',
+        }
+      if (scenario === 'predecessor') {
+        f.checkout.metadata = {
+          ...f.checkout.metadata,
+          resubscribed_from_subscription_id: 'sub_missing',
+        }
+        f.subscription.metadata = f.checkout.metadata
+      }
+      if (scenario === 'active') f.old.status = 'active'
+      if (scenario === 'disabled')
+        await f.db
+          .prepare('UPDATE platform_payment_products SET enabled=0')
+          .run()
+      if (scenario === 'unlisted')
+        await f.db
+          .prepare("UPDATE platform_plans SET listed=0 WHERE id='pro'")
+          .run()
+      if (scenario === 'member')
+        await f.db
+          .prepare(
+            "UPDATE platform_memberships SET role='member' WHERE workspace_id=1 AND user_id=1",
+          )
+          .run()
+      if (scenario === 'future')
+        f.subscription.current_period_start_date = new Date(
+          f.at + 86400000,
+        ).toISOString()
+      if (scenario === 'request')
+        f.checkout.request_id = 'contradicting_request'
+      await (
+        await f.event('evt_bad_portal', 'checkout.completed', f.checkout, f.at)
+      ).receive()
+      await processPaymentEvents(f.db, root, f.transport, f.at)
+      assert.equal(
+        (await resolveSubscription(f.db, 1, f.at)).id,
+        'free',
+        scenario,
+      )
+      assert.equal(
+        (
+          await f.db
+            .prepare('SELECT COUNT(*) AS n FROM platform_payment_subscriptions')
+            .first<any>()
+        ).n,
+        1,
+        scenario,
+      )
+      assert.equal(
+        (
+          await f.db
+            .prepare('SELECT COUNT(*) AS n FROM platform_payment_checkouts')
+            .first<any>()
+        ).n,
+        1,
+        scenario,
+      )
+      const event = await f.db
+        .prepare(
+          "SELECT state,error FROM platform_payment_events WHERE id='evt_bad_portal'",
+        )
+        .first<any>()
+      assert.ok(event.error || event.state === 'ignored', scenario)
+    } finally {
+      await f.mf.dispose()
+    }
+  }
+})
+
+test('Portal replacement records payment without overriding a later manual grant', async () => {
+  const f = await portalCase()
+  try {
+    await f.db
+      .prepare(
+        "UPDATE platform_workspace_plans SET plan_id='free',source='manual',payment_subscription_id=NULL,revision=revision+1 WHERE workspace_id=1",
+      )
+      .run()
+    assert.deepEqual(
+      await refreshPaymentCheckout(
+        f.db,
+        root,
+        1,
+        1,
+        f.local.checkoutId,
+        f.transport,
+        f.at,
+        {
+          providerCheckoutId: f.checkout.id,
+          subscriptionId: f.subscription.id,
+        },
+      ),
+      { state: 'superseded' },
+    )
+    const current = await resolveSubscription(f.db, 1, f.at)
+    assert.equal(current.id, 'free')
+    assert.equal(current.subscription.source, 'manual')
+    assert.equal(
+      (
+        await f.db
+          .prepare(
+            'SELECT error FROM platform_payment_subscriptions WHERE id=?',
+          )
+          .bind(f.subscription.id)
+          .first<any>()
+      ).error,
+      'payment_grant_superseded',
+    )
+  } finally {
+    await f.mf.dispose()
+  }
+})
+
+test('Portal subscription chains preserve origin history and remain removable by account erasure', async () => {
+  const f = await portalCase()
+  try {
+    await (
+      await f.event('evt_chain_first', 'checkout.completed', f.checkout, f.at)
+    ).receive()
+    await processPaymentEvents(f.db, root, f.transport, f.at)
+    f.subscription.status = 'canceled'
+    f.subscription.updated_at = new Date(f.at + 1000).toISOString()
+    await (
+      await f.event(
+        'evt_chain_cancel',
+        'subscription.canceled',
+        f.subscription,
+        f.at + 1000,
+      )
+    ).receive()
+    await processPaymentEvents(f.db, root, f.transport, f.at + 1000)
+    const metadata = {
+      ...f.checkout.metadata,
+      resubscribed_from_subscription_id: f.subscription.id,
+    }
+    const next = {
+      ...f.subscription,
+      id: 'sub_repurchase_again',
+      status: 'active',
+      metadata,
+      updated_at: new Date(f.at + 2000).toISOString(),
+    }
+    const checkout = {
+      ...f.checkout,
+      id: 'chk_repurchase_again',
+      metadata,
+      subscription: next.id,
+    }
+    f.subscriptions.set(next.id, next)
+    f.checkouts.set(checkout.id, checkout)
+    await (
+      await f.event(
+        'evt_chain_second',
+        'checkout.completed',
+        checkout,
+        f.at + 2000,
+      )
+    ).receive()
+    await processPaymentEvents(f.db, root, f.transport, f.at + 2000)
+    assert.equal((await resolveSubscription(f.db, 1, f.at + 2000)).id, 'pro')
+    assert.equal(
+      (
+        await f.db
+          .prepare('SELECT COUNT(*) AS n FROM platform_payment_subscriptions')
+          .first<any>()
+      ).n,
+      3,
+    )
+    await markAccount(
+      f.db,
+      1,
+      'Requested account erasure',
+      'admin',
+      null,
+      f.at + 3000,
+    )
+    await purgeAccounts(
+      f.db,
+      {
+        billing: (id) => closeAccountPayments(f.db, root, id, f.transport),
+        domains: async () => true,
+        storage: async () => true,
+      },
+      f.at + 16 * 86400000,
+    )
+    assert.equal(
+      await f.db.prepare('SELECT id FROM platform_users WHERE id=1').first(),
+      null,
+    )
+    assert.equal(
+      (
+        await f.db
+          .prepare(
+            'SELECT COUNT(*) AS n FROM platform_payment_checkouts WHERE workspace_id=1',
+          )
+          .first<any>()
+      ).n,
+      0,
+    )
+  } finally {
+    await f.mf.dispose()
+  }
+})
+
+test('A late portal repurchase cannot replace a newer independently purchased subscription', async () => {
+  const f = await portalCase()
+  try {
+    await createPaymentCheckout(
+      f.db,
+      root,
+      1,
+      { ...f.input, requestId: 'client_new_purchase' },
+      'https://app.chronoframe.art',
+      f.transport,
+      f.at,
+    )
+    const newer = await f.complete('chk_3')
+    newer.current_period_start_date = new Date(f.at).toISOString()
+    newer.updated_at = new Date(f.at).toISOString()
+    await (
+      await f.event(
+        'evt_newer_independent',
+        'checkout.completed',
+        f.checkouts.get('chk_3'),
+        f.at,
+      )
+    ).receive()
+    await processPaymentEvents(f.db, root, f.transport, f.at)
+    await (
+      await f.event(
+        'evt_late_portal',
+        'checkout.completed',
+        f.checkout,
+        f.at + 1,
+      )
+    ).receive()
+    await processPaymentEvents(f.db, root, f.transport, f.at + 1)
+    const assignment = await f.db
+      .prepare(
+        'SELECT payment_subscription_id FROM platform_workspace_plans WHERE workspace_id=1',
+      )
+      .first<any>()
+    assert.equal(assignment.payment_subscription_id, newer.id)
+    assert.equal(
+      (
+        await f.db
+          .prepare(
+            'SELECT error FROM platform_payment_subscriptions WHERE id=?',
+          )
+          .bind(f.subscription.id)
+          .first<any>()
+      ).error,
+      'payment_grant_superseded',
+    )
   } finally {
     await f.mf.dispose()
   }

@@ -712,7 +712,9 @@
       "return_completed": "付款已确认，套餐与额度已更新。",
       "return_failed": "无法核验这笔付款，请检查登录账号或重试。",
       "return_expired": "这笔付款已过期，可以在下方选择套餐重新发起。",
-      "checkAgain": "检查付款状态"
+      "checkAgain": "检查付款状态",
+      "return_inactive": "此订阅已不再生效。当前套餐与用量如下。",
+      "return_superseded": "付款已确认，当前套餐由其他授权管理。如需帮助，请联系客服。"
     },
     "dashboard": {
       "workspaceOverview": "工作区概览",

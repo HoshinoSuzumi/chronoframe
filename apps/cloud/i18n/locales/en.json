@@ -712,7 +712,9 @@
       "return_completed": "Payment confirmed. Your plan and allowances are up to date.",
       "return_failed": "We could not verify this checkout. Check your account or try again.",
       "return_expired": "This checkout has expired. You can start a new one from the plans below.",
-      "checkAgain": "Check payment status"
+      "checkAgain": "Check payment status",
+      "return_inactive": "This subscription is no longer active. Your current plan and usage are shown below.",
+      "return_superseded": "Payment confirmed. Your current plan is controlled by another entitlement; contact support if you need help."
     },
     "dashboard": {
       "workspaceOverview": "Workspace overview",
