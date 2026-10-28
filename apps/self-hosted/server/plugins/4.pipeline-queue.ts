@@ -3,7 +3,7 @@ import { closeDB } from '../utils/db'
 import type {} from '../types/worker'
 import { WorkerPool } from '../services/pipeline-queue'
 import { settingsManager } from '../services/settings/settingsManager'
-import { DEFAULT_QUEUE_WORKER_COUNT } from '~~/shared/utils/queue-config'
+import { DEFAULT_QUEUE_WORKER_COUNT } from '#shared/utils/queue-config'
 
 export default defineNitroPlugin(async (nitroApp) => {
   const _logger = logger.dynamic('queue')

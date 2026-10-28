@@ -1,5 +1,5 @@
 import i18nOptions from '@chronoframe/gallery/i18n/i18n.options'
-import type { FieldUIConfig } from '~~/shared/types/settings'
+import type { FieldUIConfig } from '#shared/types/settings'
 
 /**
  * Extended settings configuration with UI descriptions

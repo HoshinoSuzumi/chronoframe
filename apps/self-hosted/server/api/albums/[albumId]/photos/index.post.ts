@@ -5,7 +5,7 @@ import {
   readValidatedBody,
 } from 'h3'
 import { z } from 'zod'
-import { MAX_ALBUM_PHOTOS_PER_REQUEST } from '../../../../../shared/utils/album'
+import { MAX_ALBUM_PHOTOS_PER_REQUEST } from '#shared/utils/album'
 import { addExistingPhotosToAlbum } from '../../../../utils/album-photos-add'
 import { useDB } from '../../../../utils/db'
 import { requireAdminSession } from '../../../../utils/require-admin.ts'

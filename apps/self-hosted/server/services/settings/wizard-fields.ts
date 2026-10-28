@@ -1,4 +1,4 @@
-import type { SettingConfig } from '~~/shared/types/settings'
+import type { SettingConfig } from '#shared/types/settings'
 
 /**
  * The setup wizard only renders scalar settings. JSON settings (objects or

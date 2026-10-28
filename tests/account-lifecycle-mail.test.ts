@@ -1,3 +1,4 @@
+import { splitSqlQuery } from './helpers/sql.ts'
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { readdir, readFile } from 'node:fs/promises'
@@ -33,21 +34,27 @@ async function fixture() {
       }),
     ),
     db = await mf.getD1Database('DB')
-  for (const file of (
-    await readdir(new URL('../packages/platform/migrations/', import.meta.url))
-  )
-    .filter((f) => f.endsWith('.sql'))
-    .sort())
-    for (const sql of (
-      await readFile(
-        new URL('../packages/platform/migrations/' + file, import.meta.url),
-        'utf8',
+  try {
+    for (const file of (
+      await readdir(
+        new URL('../packages/platform/migrations/', import.meta.url),
       )
     )
-      .replace(/^--.*$/gm, '')
-      .split(';')
-      .filter((s) => s.trim()))
-      await db.prepare(sql).run()
+      .filter((f) => f.endsWith('.sql'))
+      .sort())
+      for (const sql of splitSqlQuery(
+        (
+          await readFile(
+            new URL('../packages/platform/migrations/' + file, import.meta.url),
+            'utf8',
+          )
+        ).replace(/^--.*$/gm, ''),
+      ).filter((s) => s.trim()))
+        await db.prepare(sql).run()
+  } catch (error) {
+    await mf.dispose()
+    throw error
+  }
   return { mf, db }
 }
 test('Lifecycle notices, current-login race, restore, retained deadline and retryable external purge', async () => {
@@ -907,15 +914,14 @@ test('Migration retains known sign-in timestamps and safely enrolls existing acc
           .bind(new Date(now - 20 * DAY).toISOString(), now, now + DAY)
           .run()
       }
-      for (const sql of (
-        await readFile(
-          new URL('../packages/platform/migrations/' + name, import.meta.url),
-          'utf8',
-        )
-      )
-        .replace(/^--.*$/gm, '')
-        .split(';')
-        .filter((s) => s.trim()))
+      for (const sql of splitSqlQuery(
+        (
+          await readFile(
+            new URL('../packages/platform/migrations/' + name, import.meta.url),
+            'utf8',
+          )
+        ).replace(/^--.*$/gm, ''),
+      ).filter((s) => s.trim()))
         await db.prepare(sql).run()
     }
     const known = await db
@@ -1433,15 +1439,14 @@ test('Retry-budget migration preserves delivery history and terminates already-e
           )
           .run()
       }
-      for (const sql of (
-        await readFile(
-          new URL('../packages/platform/migrations/' + name, import.meta.url),
-          'utf8',
-        )
-      )
-        .replace(/^--.*$/gm, '')
-        .split(';')
-        .filter((s) => s.trim()))
+      for (const sql of splitSqlQuery(
+        (
+          await readFile(
+            new URL('../packages/platform/migrations/' + name, import.meta.url),
+            'utf8',
+          )
+        ).replace(/^--.*$/gm, ''),
+      ).filter((s) => s.trim()))
         await db.prepare(sql).run()
     }
     assert.deepEqual(

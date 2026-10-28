@@ -6,7 +6,7 @@ import { storeAvatar } from '~~/server/utils/avatar-store'
 import {
   AVATAR_ALLOWED_MIME_TYPES,
   AVATAR_MAX_INPUT_BYTES,
-} from '~~/shared/utils/avatar'
+} from '#shared/utils/avatar'
 
 /**
  * POST /api/system/settings/avatar

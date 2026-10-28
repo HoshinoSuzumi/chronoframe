@@ -39,7 +39,7 @@ import {
   extractLocationFromGPS,
   parseGPSCoordinates,
 } from '../location/geocoding'
-import { hasValidCoordinates } from '../../../shared/utils/location'
+import { hasValidCoordinates } from '#shared/utils/location'
 import {
   enqueueLocationMigration,
   enqueueLocationMigrationRequest,

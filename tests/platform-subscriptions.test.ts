@@ -1,3 +1,4 @@
+import { splitSqlQuery } from './helpers/sql.ts'
 import { createDomainManager } from '../packages/platform/src/domains.ts'
 import test from 'node:test'
 import assert from 'node:assert/strict'
@@ -126,11 +127,11 @@ test('Real D1 defaults, live expiry, activation races/idempotency and workspace 
     for (const file of (await readdir('packages/platform/migrations'))
       .filter((f) => f.endsWith('.sql'))
       .sort())
-      for (const sql of (
-        await readFile('packages/platform/migrations/' + file, 'utf8')
+      for (const sql of splitSqlQuery(
+        (
+          await readFile('packages/platform/migrations/' + file, 'utf8')
+        ).replace(/^--.*$/gm, ''),
       )
-        .replace(/^--.*$/gm, '')
-        .split(';')
         .map((s) => s.trim())
         .filter(Boolean))
         await db.prepare(sql).run()

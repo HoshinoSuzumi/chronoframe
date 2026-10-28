@@ -1,3 +1,4 @@
+import { splitSqlQuery } from './helpers/sql.ts'
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import { createRequire } from 'node:module'
@@ -28,9 +29,7 @@ test('Real D1 album slugs share normalization, reserve history/tombstones and is
       .filter((n) => n.endsWith('.sql'))
       .sort()) {
       const sql = await readFile('packages/platform/migrations/' + file, 'utf8')
-      for (const statement of sql
-        .replace(/^--.*$/gm, '')
-        .split(';')
+      for (const statement of splitSqlQuery(sql.replace(/^--.*$/gm, ''))
         .map((s) => s.trim())
         .filter(Boolean))
         await db.prepare(statement).run()

@@ -5,7 +5,7 @@ import {
   getHiddenSettingKeys,
 } from '~~/server/services/settings/contants'
 import { getSettingUIConfig } from '~~/server/services/settings/ui-config'
-import type { SettingsFieldsResponse } from '~~/shared/types/settings'
+import type { SettingsFieldsResponse } from '#shared/types/settings'
 
 /**
  * GET /api/system/settings/fields?namespace=app

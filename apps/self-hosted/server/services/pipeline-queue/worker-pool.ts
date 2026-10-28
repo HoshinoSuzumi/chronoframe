@@ -4,7 +4,7 @@ import { QueueManager } from './manager'
 import {
   DEFAULT_QUEUE_WORKER_COUNT,
   validateQueueWorkerCount,
-} from '~~/shared/utils/queue-config'
+} from '#shared/utils/queue-config'
 
 export interface WorkerPoolConfig {
   /** 工作器数量 */

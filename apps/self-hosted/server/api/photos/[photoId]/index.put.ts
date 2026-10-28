@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { hasValidCoordinates } from '../../../../shared/utils/location'
+import { hasValidCoordinates } from '#shared/utils/location'
 import {
   usePhotoWriter,
   mutationResponse,

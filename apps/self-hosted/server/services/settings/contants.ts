@@ -1,6 +1,6 @@
 import { PUBLIC_GALLERY_DEFAULTS } from '@chronoframe/contracts/gallery-settings'
-import { tourIds } from '~~/shared/types/tours'
-import type { SettingConfig } from '~~/shared/types/settings'
+import { tourIds } from '#shared/types/tours'
+import type { SettingConfig } from '#shared/types/settings'
 import i18nOptions from '@chronoframe/gallery/i18n/i18n.options'
 
 // 存储提供商的枚举值

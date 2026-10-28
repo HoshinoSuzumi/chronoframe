@@ -1,7 +1,7 @@
 import { and as siteAnd, eq as siteEq } from 'drizzle-orm'
 import { DEFAULT_SITE } from '@chronoframe/core'
 import { createSettingsRuntimeEffects } from '../runtime/settings-effects'
-import type { SettingValue } from '~~/shared/types/settings'
+import type { SettingValue } from '#shared/types/settings'
 import { DEFAULT_SETTINGS } from '../services/settings/contants'
 import type { SettingNamespace } from '../services/settings/contants'
 import { settingsManager } from '../services/settings/settingsManager'

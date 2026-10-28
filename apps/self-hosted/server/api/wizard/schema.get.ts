@@ -4,7 +4,7 @@ import { settingsManager } from '~~/server/services/settings/settingsManager'
 import { getHiddenSettingKeys } from '~~/server/services/settings/contants'
 import { getSettingUIConfig } from '~~/server/services/settings/ui-config'
 import { isWizardRenderableField } from '~~/server/services/settings/wizard-fields'
-import type { FieldDescriptor } from '~~/shared/types/settings'
+import type { FieldDescriptor } from '#shared/types/settings'
 
 export default defineWizardHandler(async (event) => {
   const query = await getValidatedQuery(

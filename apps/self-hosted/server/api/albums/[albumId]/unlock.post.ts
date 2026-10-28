@@ -2,7 +2,7 @@ import { and as siteAnd, eq as siteEq } from 'drizzle-orm'
 import { DEFAULT_SITE } from '@chronoframe/core'
 import { eq } from 'drizzle-orm'
 import { z } from 'zod'
-import { ALBUM_PASSWORD_MAX_LENGTH } from '~~/shared/utils/album'
+import { ALBUM_PASSWORD_MAX_LENGTH } from '#shared/utils/album'
 import {
   grantAlbumAccess,
   verifyAlbumPassword,
