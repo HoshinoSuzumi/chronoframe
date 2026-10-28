@@ -314,3 +314,84 @@ test('Overview data stays unknown before the first response and retains counts d
   assert.equal(media.photos.value.length, 2)
   assert.equal(media.albums.value.length, 1)
 })
+
+test('Payment maintenance failures do not block authoritative reconciliation or expose raw errors', async () => {
+  let scheduled: any
+  const calls: string[] = [],
+    logs: string[] = []
+  const plugin = load(
+    'apps/cloud/server/plugins/payments.ts',
+    {
+      defineNitroPlugin: (value: any) => value,
+      console: { error: (code: string) => logs.push(code) },
+    },
+    {
+      '../../../../packages/platform/src/payment-product-sync': {
+        syncPaymentProducts: async () => {
+          calls.push('sync')
+          throw new Error('sensitive fixture')
+        },
+      },
+      '../../../../packages/platform/src/payment-events': {
+        expirePaymentEventPayloads: async () => {
+          calls.push('expiry')
+          throw new Error('sensitive fixture')
+        },
+      },
+      '../../../../packages/platform/src/payments': {
+        reconcilePayments: async () => {
+          calls.push('reconcile')
+        },
+      },
+    },
+  )
+  plugin.default({
+    hooks: {
+      hook: (_name: string, callback: any) => {
+        scheduled = callback
+      },
+    },
+  })
+  await scheduled({ env: { DB: {}, NUXT_PLATFORM_STORAGE_SECRET: 'fixture' } })
+  assert.deepEqual(calls, ['sync', 'expiry', 'reconcile'])
+  assert.deepEqual(logs, [
+    'payment_product_sync_failed',
+    'payment_payload_expiry_failed',
+  ])
+})
+
+test('Primary billing workspace consistently prefers ownership then administrative membership', async () => {
+  let selected = 0
+  const list = [
+    { id: 1, name: 'Read only', role: 'member', owned: 0 },
+    { id: 2, name: 'Managed', role: 'admin', owned: 0 },
+  ]
+  const module = load('apps/cloud/app/composables/useWorkspaceBilling.ts', {
+    usePortalIdentity: () => ref({ id: 3 }),
+    useRequestFetch: () => async (url: string, options: any) => {
+      if (url.endsWith('/workspaces')) return { workspaces: list }
+      selected = options.query.workspaceId
+      return { workspace: { role: list.find((w) => w.id === selected)?.role } }
+    },
+    useAsyncData: (_key: string, run: any) => {
+      const data = ref<any>(),
+        ready = run().then((value: any) => {
+          data.value = value
+        })
+      return Object.assign(ready, {
+        data,
+        error: ref(null),
+        status: ref('success'),
+      })
+    },
+    onMounted: () => {},
+  })
+  let state = module.useWorkspaceBilling(true)
+  await state.ready
+  assert.equal(selected, 2)
+  assert.equal(state.selected.value, 2)
+  list[0].owned = 1
+  state = module.useWorkspaceBilling()
+  await state.ready
+  assert.equal(selected, 1)
+})

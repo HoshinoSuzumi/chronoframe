@@ -676,7 +676,14 @@
       "event_signup_promotion": "注册活动套餐已开通",
       "event_signup_default": "注册默认套餐已分配",
       "signupOffer": "注册促销权益已生效，有效期见上方到期时间。",
-      "event_payment": "订阅账单已更新"
+      "event_payment": "订阅账单已更新",
+      "choosePlan": "选择适合你的套餐",
+      "optionsHelp": "对比当前套餐权益；已有订阅的价格以账单为准。",
+      "subscriptionStatus": "订阅状态",
+      "includedPlan": "默认套餐",
+      "recommended": "推荐",
+      "noCharge": "无需付款",
+      "monthlyBilling": "按月计费"
     },
     "payments": {
       "billing": "订阅账单",
@@ -685,7 +692,7 @@
       "failed": "暂时无法完成支付操作，请刷新账单状态后重试。",
       "pending": "正在等待渠道确认付款，请勿重复订阅。",
       "manage": "管理账单与订阅",
-      "resume": "继续付款",
+      "resume": "继续支付",
       "subscribe": "测试订阅",
       "manageExisting": "已有订阅，请前往账单管理",
       "status": {
@@ -697,7 +704,15 @@
         "paused": "已暂停",
         "canceled": "已取消",
         "unpaid": "未付款"
-      }
+      },
+      "waiting": "等待确认",
+      "checkingStatus": "正在核对订阅…",
+      "return_checking": "正在确认付款并更新套餐与额度…",
+      "return_pending": "付款仍在确认中，可以稍后再次检查，请勿重复发起付款。",
+      "return_completed": "付款已确认，套餐与额度已更新。",
+      "return_failed": "无法核验这笔付款，请检查登录账号或重试。",
+      "return_expired": "这笔付款已过期，可以在下方选择套餐重新发起。",
+      "checkAgain": "检查付款状态"
     }
   }
 }

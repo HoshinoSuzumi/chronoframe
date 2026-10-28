@@ -93,20 +93,6 @@ const date = (time: number) => new Date(time).toLocaleString(locale.value)
         @submit.prevent="inspect"
       >
         <label class="cf-field"
-          >{{ $t('cloud.billing.workspace')
-          }}<select
-            v-model="selected"
-            :disabled="busy || !!receipt"
-          >
-            <option
-              v-for="w in workspaces"
-              :key="w.id"
-              :value="w.id"
-            >
-              {{ w.name }}
-            </option>
-          </select></label
-        ><label class="cf-field"
           >{{ $t('cloud.billing.code')
           }}<CloudInput
             v-model="code"
@@ -188,7 +174,7 @@ const date = (time: number) => new Date(time).toLocaleString(locale.value)
               : $t('cloud.billing.noExpiry')
           }}
         </p>
-        <NuxtLink :to="'/account/plan?workspaceId=' + selected">{{
+        <NuxtLink :to="'/account/plan'">{{
           $t('cloud.billing.viewPlan')
         }}</NuxtLink>
       </div>

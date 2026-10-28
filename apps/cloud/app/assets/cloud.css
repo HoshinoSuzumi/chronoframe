@@ -3205,3 +3205,106 @@ a.cf-domain-address:hover {
 .cf-pricing-current {
   margin-bottom: 24px;
 }
+
+/* The account billing view keeps subscription, allowances and plan choices together. */
+.cf-subscription-overview {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) minmax(0, 1.2fr);
+  align-items: start;
+  gap: 20px;
+  padding: 22px;
+}
+.cf-subscription-overview h2 {
+  font-size: 25px;
+  font-weight: 600;
+  margin: 8px 0 0;
+}
+.cf-subscription-overview p {
+  font-size: 13px;
+  line-height: 1.6;
+  margin: 7px 0 0;
+}
+.cf-plan-management {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+}
+.cf-plan-page .cf-quota-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.cf-plan-page .cf-quota-card {
+  padding: 16px 18px;
+}
+.cf-plan-page .cf-quota-card h3 {
+  margin-bottom: 8px;
+}
+.cf-plan-page .cf-quota-card strong {
+  font-size: 21px;
+}
+.cf-plan-page .cf-quota-track {
+  margin-top: 10px;
+}
+.cf-plan-options {
+  scroll-margin-top: 90px;
+  padding-top: 12px;
+}
+.cf-plan-options-heading {
+  margin-bottom: 22px;
+  display: grid;
+  gap: 10px;
+  justify-items: start;
+}
+.cf-plan-options-heading h2 {
+  font-size: 19px;
+  font-weight: 600;
+}
+.cf-plan-options-heading > p {
+  font-size: 13px;
+  color: var(--muted-foreground);
+}
+.cf-plan-options-heading .cf-billing-toggle {
+  margin: 6px 0;
+}
+.cf-plan-options .cf-pricing-card {
+  padding: 20px;
+  gap: 14px;
+}
+.cf-plan-options .cf-plan-price strong {
+  font-size: 30px;
+}
+.cf-plan-options .cf-plan-description {
+  min-height: 0;
+}
+.cf-plan-options .cf-pricing-card.is-current {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 1px var(--primary);
+}
+.cf-plan-options .cf-price-caption {
+  min-height: 16px;
+}
+@media (max-width: 760px) {
+  .cf-subscription-overview {
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    padding: 18px;
+  }
+  .cf-subscription-overview > div:first-child {
+    grid-column: 1 / -1;
+  }
+  .cf-plan-page .cf-quota-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .cf-plan-management {
+    justify-content: flex-start;
+  }
+}
+@media (max-width: 380px) {
+  .cf-subscription-overview,
+  .cf-plan-page .cf-quota-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

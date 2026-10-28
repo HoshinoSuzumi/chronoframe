@@ -1,3 +1,4 @@
+import { sealPaymentEventPayload } from './payment-events.ts'
 import type { PlatformD1 } from './index.ts'
 import {
   allRows,
@@ -99,11 +100,14 @@ export async function paymentSecrets(
 export async function paymentSettings(db: PlatformD1) {
   const row = await db
     .prepare(
-      'SELECT enabled,environment,workspace_ids_json,revision,credentials_ciphertext IS NOT NULL AS configured FROM platform_payment_settings WHERE id=1',
+      'SELECT enabled,environment,workspace_ids_json,revision,catalog_revision,auto_sync,payload_retention_days,credentials_ciphertext IS NOT NULL AS configured FROM platform_payment_settings WHERE id=1',
     )
     .first<any>()
   return {
     enabled: !!row.enabled,
+    autoSync: !!row.auto_sync,
+    catalogRevision: Number(row.catalog_revision),
+    payloadRetentionDays: Number(row.payload_retention_days),
     environment: 'test' as const,
     workspaceIds: JSON.parse(row.workspace_ids_json) as number[],
     revision: Number(row.revision),
@@ -115,16 +119,20 @@ export async function creemRequest(
   path: string,
   body?: unknown,
   transport: PaymentFetch = fetch,
+  options: { method?: 'PATCH'; idempotencyKey?: string } = {},
 ) {
   if (!credentials.apiKey.startsWith('creem_test_') || !path.startsWith('/v1/'))
     fail(400, 'payment_test_mode_required')
   let response: Response
   try {
     response = await transport(CREEM_TEST_API + path, {
-      method: body === undefined ? 'GET' : 'POST',
+      method: options.method ?? (body === undefined ? 'GET' : 'POST'),
       headers: {
         'x-api-key': credentials.apiKey,
         'content-type': 'application/json',
+        ...(options.idempotencyKey
+          ? { 'Idempotency-Key': options.idempotencyKey }
+          : {}),
       },
       ...(body === undefined ? {} : { body: JSON.stringify(body) }),
       redirect: 'manual',
@@ -266,7 +274,7 @@ export async function paymentStatus(
     settings.workspaceIds.includes(workspaceId)
       ? await allRows<any>(
           db.prepare(
-            'SELECT m.plan_id,m.interval FROM platform_payment_products m JOIN platform_plans p ON p.id=m.plan_id WHERE m.enabled=1 AND p.active=1 AND p.listed=1 AND p.currency=m.currency AND m.price=CASE WHEN m.interval=1 THEN p.monthly_price ELSE p.quarterly_price END',
+            "SELECT m.plan_id,m.interval FROM platform_payment_products m JOIN platform_plans p ON p.id=m.plan_id WHERE m.enabled=1 AND p.active=1 AND p.listed=1 AND p.currency=m.currency AND m.price=CASE WHEN m.interval=1 THEN p.monthly_price ELSE p.quarterly_price END AND ((SELECT auto_sync FROM platform_payment_settings WHERE id=1)=0 OR EXISTS(SELECT 1 FROM platform_payment_product_sync j WHERE j.plan_id=p.id AND j.interval=m.interval AND j.state='synced' AND j.desired_revision=p.revision AND j.product_id=m.product_id AND j.catalog_revision=(SELECT catalog_revision FROM platform_payment_settings WHERE id=1)))",
           ),
         )
       : []
@@ -407,6 +415,16 @@ export async function createPaymentCheckout(
       .bind(input.planId, input.interval)
       .first<any>()
     if (!mapping) fail(400, 'payment_product_unavailable')
+    if (
+      settings.autoSync &&
+      !(await db
+        .prepare(
+          "SELECT 1 FROM platform_payment_product_sync j JOIN platform_plans p ON p.id=j.plan_id WHERE j.plan_id=? AND j.interval=? AND j.state='synced' AND j.desired_revision=p.revision AND j.product_id=? AND j.catalog_revision=(SELECT catalog_revision FROM platform_payment_settings WHERE id=1)",
+        )
+        .bind(input.planId, input.interval, mapping.product_id)
+        .first())
+    )
+      fail(409, 'payment_product_sync_pending')
     await paymentRequestBudget(db, userId, now)
     const credentials = await paymentSecrets(db, rootKey)
     const product = await validatePaymentProduct(
@@ -650,20 +668,50 @@ export async function receivePaymentEvent(
     )
   const ref =
     event.object.request_id || event.object.metadata?.chronoframe_checkout_id
-  await db
-    .prepare(
-      'INSERT OR IGNORE INTO platform_payment_events(id,type,object_id,reference_id,created_at,state,available_at) VALUES(?,?,?,?,?,?,?)',
-    )
-    .bind(
-      event.id,
-      type,
-      event.object.id,
-      identifier(ref) ? ref : null,
-      event.created_at,
-      supported ? 'pending' : 'ignored',
-      now,
-    )
-    .run()
+  let reference = identifier(ref) ? ref : null
+  let retainPayload = true
+  if (!supported) {
+    const sub = objectId(event.object.subscription)
+    const association = await db
+      .prepare(
+        'SELECT c.id FROM platform_payment_checkouts c LEFT JOIN platform_payment_subscriptions s ON s.checkout_id=c.id WHERE c.user_id IS NOT NULL AND (c.id=? OR c.provider_id=? OR s.id=?) LIMIT 1',
+      )
+      .bind(
+        reference ?? '',
+        event.object.id,
+        identifier(sub) ? sub : event.object.id,
+      )
+      .first<{ id: string }>()
+    reference = association?.id ?? null
+    retainPayload = !!association
+  }
+  const payload = retainPayload
+    ? await sealPaymentEventPayload(rootKey, event.id, body)
+    : null
+  await db.batch([
+    db
+      .prepare(
+        'INSERT OR IGNORE INTO platform_payment_events(id,type,object_id,reference_id,created_at,state,available_at) VALUES(?,?,?,?,?,?,?)',
+      )
+      .bind(
+        event.id,
+        type,
+        event.object.id,
+        reference,
+        event.created_at,
+        supported ? 'pending' : 'ignored',
+        now,
+      ),
+    ...(payload
+      ? [
+          db
+            .prepare(
+              'INSERT OR IGNORE INTO platform_payment_event_payloads(event_id,ciphertext,received_at) SELECT ?,?,? WHERE changes()=1 AND (?=1 OR EXISTS(SELECT 1 FROM platform_payment_checkouts WHERE id=? AND user_id IS NOT NULL))',
+            )
+            .bind(event.id, payload, now, supported ? 1 : 0, reference),
+        ]
+      : []),
+  ])
   return { received: true }
 }
 
@@ -723,12 +771,14 @@ async function synchronizePayment(
       .first<any>()
     subscriptionId = event.object_id
   }
-  if (
-    !checkout ||
-    !checkout.user_id ||
-    checkout.error === 'payment_test_abandoned'
-  )
+  if (!checkout || !checkout.user_id) {
+    await db
+      .prepare('DELETE FROM platform_payment_event_payloads WHERE event_id=?')
+      .bind(event.id)
+      .run()
     return 'ignored'
+  }
+  if (checkout.error === 'payment_test_abandoned') return 'ignored'
   if (!identifier(subscriptionId)) fail(409, 'payment_confirmation_pending')
   const token = await acquireWorkspace(db, checkout.workspace_id, now)
   try {
@@ -1011,6 +1061,7 @@ export async function processPaymentEvents(
   transport: PaymentFetch = fetch,
   now = Date.now(),
   limit = 5,
+  onlyId?: string,
 ) {
   await db
     .prepare(
@@ -1021,9 +1072,9 @@ export async function processPaymentEvents(
   const rows = await allRows<any>(
     db
       .prepare(
-        "SELECT * FROM platform_payment_events WHERE state='pending' AND attempts<8 AND available_at<=? AND (lease_until IS NULL OR lease_until<?) ORDER BY available_at,id LIMIT ?",
+        "SELECT * FROM platform_payment_events WHERE state='pending' AND attempts<8 AND available_at<=? AND (lease_until IS NULL OR lease_until<?) AND (? IS NULL OR id=?) ORDER BY available_at,id LIMIT ?",
       )
-      .bind(now, now, limit),
+      .bind(now, now, onlyId ?? null, onlyId ?? null, limit),
   )
   let processed = 0
   for (const row of rows) {
@@ -1313,4 +1364,72 @@ export async function closeAccountPayments(
     ])
   }
   return true
+}
+
+/** A return only requests authoritative reconciliation; query parameters never grant access. */
+export async function refreshPaymentCheckout(
+  db: PlatformD1,
+  rootKey: string,
+  userId: number,
+  workspaceId: number,
+  checkoutId: string,
+  transport: PaymentFetch = fetch,
+  now = Date.now(),
+) {
+  await paymentMember(db, userId, workspaceId, true)
+  if (!identifier(checkoutId)) fail(400, 'payment_checkout_invalid')
+  await paymentRequestBudget(db, userId, now)
+  const row = await db
+    .prepare(
+      'SELECT * FROM platform_payment_checkouts WHERE id=? AND workspace_id=? AND user_id=?',
+    )
+    .bind(checkoutId, workspaceId, userId)
+    .first<any>()
+  if (!row) fail(404, 'payment_checkout_unavailable')
+  if (['completed', 'expired'].includes(row.state)) return { state: row.state }
+  if (!row.provider_id) return { state: 'pending' }
+  const checkout = await creemRequest(
+    await paymentSecrets(db, rootKey),
+    '/v1/checkouts?checkout_id=' + encodeURIComponent(row.provider_id),
+    undefined,
+    transport,
+  )
+  if (
+    checkout.id !== row.provider_id ||
+    checkout.mode !== 'test' ||
+    !checkoutBound(checkout, row.id) ||
+    objectId(checkout.product) !== row.product_id
+  )
+    fail(422, 'payment_binding_invalid')
+  if (checkout.status === 'expired') {
+    await db
+      .prepare(
+        "UPDATE platform_payment_checkouts SET state='expired',updated_at=?,error=NULL WHERE id=? AND state IN('open','uncertain')",
+      )
+      .bind(now, row.id)
+      .run()
+    const current = await db
+      .prepare('SELECT state FROM platform_payment_checkouts WHERE id=?')
+      .bind(row.id)
+      .first<any>()
+    return {
+      state: ['expired', 'completed'].includes(current?.state)
+        ? current.state
+        : 'pending',
+    }
+  }
+  if (checkout.status !== 'completed') return { state: 'pending' }
+  const eventId = 'return_' + row.id
+  await db
+    .prepare(
+      "INSERT OR IGNORE INTO platform_payment_events(id,type,object_id,reference_id,created_at,available_at) VALUES(?,'checkout.completed',?,?,?,?)",
+    )
+    .bind(eventId, row.provider_id, row.id, now, now)
+    .run()
+  await processPaymentEvents(db, rootKey, transport, now, 1, eventId)
+  const current = await db
+    .prepare('SELECT state FROM platform_payment_checkouts WHERE id=?')
+    .bind(row.id)
+    .first<any>()
+  return { state: current?.state === 'completed' ? 'completed' : 'pending' }
 }

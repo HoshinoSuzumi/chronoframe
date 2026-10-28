@@ -80,12 +80,17 @@ export async function pricingCatalog(db: PlatformD1) {
   }
 }
 export async function billingWorkspaces(db: PlatformD1, userId: number) {
-  return allRows<{ id: number; name: string; role: 'admin' | 'member' }>(
+  return allRows<{
+    id: number
+    name: string
+    role: 'admin' | 'member'
+    owned: number
+  }>(
     db
       .prepare(
-        "SELECT w.id,w.name,m.role FROM platform_workspaces w JOIN platform_memberships m ON m.workspace_id=w.id WHERE m.user_id=? AND m.role IN('admin','member') ORDER BY w.id",
+        "SELECT w.id,w.name,m.role,CASE WHEN w.owner_user_id=? THEN 1 ELSE 0 END AS owned FROM platform_workspaces w JOIN platform_memberships m ON m.workspace_id=w.id WHERE m.user_id=? AND m.role IN('admin','member') ORDER BY owned DESC,w.id",
       )
-      .bind(userId),
+      .bind(userId, userId),
   )
 }
 export async function workspaceBilling(

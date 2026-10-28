@@ -1,6 +1,7 @@
 import {
   createPaymentCheckout,
   createPaymentPortal,
+  refreshPaymentCheckout,
 } from '../../../../../packages/platform/src/payments'
 import {
   definePlatformHandler,
@@ -28,6 +29,14 @@ export default definePlatformHandler(async (event) => {
         requestId: String(b.requestId),
       },
       config.portalOrigin,
+    )
+  if (b.action === 'refresh')
+    return refreshPaymentCheckout(
+      db,
+      config.storageSecret,
+      user.userId,
+      Number(b.workspaceId),
+      String(b.checkoutId),
     )
   if (b.action === 'portal')
     return createPaymentPortal(
