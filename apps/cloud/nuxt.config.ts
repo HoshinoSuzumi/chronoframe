@@ -68,7 +68,7 @@ export default defineNuxtConfig({
       workerSecret: '',
     },
   },
-  css: ['~/assets/cloud.css'],
+  css: ['~/assets/console-tailwind.css', '~/assets/cloud.css'],
   hooks: {
     'pages:extend'(pages) {
       // The portal shares console capabilities, not the public gallery route tree.

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import type { Component } from 'vue'
 import { Primitive, type PrimitiveProps } from 'reka-ui'
 import { cva, type VariantProps } from 'class-variance-authority'
 import { cn } from '../../../utils/cn'
@@ -8,6 +9,7 @@ const variants = cva('cf-button', {
     variant: {
       default: 'cf-button-primary',
       secondary: 'cf-button-secondary',
+      soft: 'cf-button-soft',
       ghost: 'cf-button-ghost',
       destructive: 'cf-button-destructive',
     },
@@ -26,6 +28,7 @@ const props = withDefaults(
     PrimitiveProps & {
       variant?: ButtonVariants['variant']
       size?: ButtonVariants['size']
+      icon?: Component
       loading?: boolean
       disabled?: boolean
       class?: string
@@ -47,6 +50,11 @@ const props = withDefaults(
     <LoaderCircle
       v-if="loading"
       class="cf-spin"
+      :size="16"
+      aria-hidden="true"
+    /><component
+      v-else-if="icon"
+      :is="icon"
       :size="16"
       aria-hidden="true"
     /><slot />

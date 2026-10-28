@@ -17,6 +17,12 @@ const props = withDefaults(
 const { t, locale } = useI18n(),
   links = useCloudLinks(),
   interval = ref<1 | 3>(1)
+const billingPeriod = computed({
+  get: () => String(interval.value),
+  set: (value: string) => {
+    interval.value = value === '3' ? 3 : 1
+  },
+})
 const billing = props.portal
   ? (props.workspaceBilling ?? useWorkspaceBilling())
   : null
@@ -98,7 +104,10 @@ async function checkout(plan: any) {
 }
 </script>
 <template>
-  <div class="cf-pricing">
+  <div
+    class="cf-pricing"
+    :class="{ 'cf-pricing-embedded': embedded }"
+  >
     <div :class="embedded ? 'cf-plan-options-heading' : 'cf-pricing-heading'">
       <p
         v-if="!embedded"
@@ -117,23 +126,17 @@ async function checkout(plan: any) {
           )
         }}
       </p>
-      <fieldset class="cf-billing-toggle">
-        <legend class="sr-only">{{ $t('cloud.billing.interval') }}</legend>
-        <label
-          v-for="n in [1, 3] as const"
-          :key="n"
-          :class="{ active: interval === n }"
-          ><input
-            v-model="interval"
-            type="radio"
-            name="billing-interval"
-            :disabled="portal && !!payment?.pending"
-            :value="n"
-          /><span>{{
-            $t('cloud.billing.' + (n === 1 ? 'monthly' : 'quarterly'))
-          }}</span></label
-        >
-      </fieldset>
+      <CloudRadioGroup
+        v-model="billingPeriod"
+        :label="$t('cloud.billing.interval')"
+        :options="
+          [1, 3].map((n) => ({
+            value: String(n),
+            label: $t('cloud.billing.' + (n === 1 ? 'monthly' : 'quarterly')),
+            disabled: portal && !!payment?.pending,
+          }))
+        "
+      />
       <p class="cf-field-hint">
         {{
           payment?.enabled
@@ -351,7 +354,7 @@ async function checkout(plan: any) {
         <h2>{{ $t('cloud.billing.compare') }}</h2>
         <p class="cf-field-hint">{{ $t('cloud.billing.comparisonHelp') }}</p>
         <div class="cf-table-scroll">
-          <table>
+          <CloudTable>
             <caption class="sr-only">
               {{
                 $t('cloud.billing.compare')
@@ -392,7 +395,7 @@ async function checkout(plan: any) {
                 </td>
               </tr>
             </tbody>
-          </table>
+          </CloudTable>
         </div>
       </section></template
     >

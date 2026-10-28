@@ -12,6 +12,8 @@ useSeoMeta({
 })
 const site = useEntryContext().value!,
   base = `/api/sites/${site.siteId}`
+const quota = useCloudQuota(site.workspaceId)
+const admission = computed(() => quota.gate('customDomains'))
 const {
   data: result,
   error,
@@ -76,7 +78,9 @@ function beginRename() {
   failure.value = false
   renameOpen.value = true
 }
-function beginAdd() {
+async function beginAdd() {
+  await quota.refresh()
+  if (!admission.value.allowed || quota.error.value) return
   notice.value = ''
   failure.value = false
   addOpen.value = true
@@ -87,7 +91,7 @@ function beginRemove(domain: CustomDomain) {
   removal.value = domain
 }
 async function refreshAll() {
-  await Promise.all([refresh(), refreshSettings()])
+  await Promise.all([refresh(), refreshSettings(), quota.refresh()])
 }
 async function run(body: Record<string, unknown>) {
   if (busy.value || !data.value?.admin) return
@@ -100,7 +104,7 @@ async function run(body: Record<string, unknown>) {
       { method: 'POST', body },
     )
     if (!mounted) return false
-    await Promise.all([refresh(), refreshSettings()])
+    await Promise.all([refresh(), refreshSettings(), quota.refresh()])
     notice.value = t('cloud.domains.saved')
     if (body.action === 'add') {
       expandedHost.value = response.domain?.hostname ?? String(body.hostname)
@@ -285,19 +289,21 @@ async function copy(value: string) {
           <CloudButton
             v-if="data.admin"
             size="sm"
-            :disabled="busy || !data.enabled || !data.customDomainLimit"
+            :disabled="
+              busy || !data.enabled || !admission.allowed || !!quota.error.value
+            "
             @click="beginAdd"
             ><Plus :size="14" />{{ t('cloud.domains.add') }}</CloudButton
           >
         </div>
+        <CloudQuotaNotice
+          v-if="data.admin && (admission.reason || quota.error.value)"
+          :reason="admission.reason"
+          :error="!!quota.error.value"
+          @retry="quota.refresh()"
+        />
         <p
-          v-if="!data.customDomainLimit"
-          class="cf-notice"
-        >
-          {{ t('cloud.storageAllowance.noCustomDomains') }}
-        </p>
-        <p
-          v-else-if="!data.enabled"
+          v-if="!data.enabled"
           class="cf-notice"
         >
           {{ t('cloud.domains.disabled') }}
@@ -394,7 +400,12 @@ async function copy(value: string) {
               >{{ t('cloud.messages.cancel') }}</CloudButton
             ><CloudButton
               type="submit"
-              :disabled="busy || !hostname.trim()"
+              :disabled="
+                busy ||
+                !hostname.trim() ||
+                !admission.allowed ||
+                !!quota.error.value
+              "
               :loading="busy"
               >{{ t('cloud.domainFlow.continue') }}</CloudButton
             >

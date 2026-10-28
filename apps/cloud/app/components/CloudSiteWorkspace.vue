@@ -10,7 +10,8 @@ settings.data = structuredClone(PUBLIC_GALLERY_DEFAULTS) as Record<
 settings.data.app!.title = useEntryContext().value?.name ?? 'ChronoFrame'
 settings.isInitialized = true
 const media = provideCloudSiteMedia(props)
-const { photos, loading, message, failed, reload } = media
+const { photos, loading, message, failed, reload, loadError, refreshMedia } =
+  media
 const status = computed(() => (loading.value ? 'pending' : 'success'))
 </script>
 <template>
@@ -19,14 +20,26 @@ const status = computed(() => (loading.value ? 'pending' : 'success'))
     :refresh="reload"
     :status="status"
   >
-    <p
-      v-if="message"
-      :role="failed ? 'alert' : 'status'"
-      class="cf-notice"
-      :class="{ 'cf-notice-error': failed }"
+    <CloudAlert
+      class="mb-4"
+      v-if="loadError"
+      tone="error"
     >
-      {{ message }}
-    </p>
+      {{ loadError
+      }}<CloudButton
+        size="sm"
+        variant="secondary"
+        :loading="loading"
+        @click="refreshMedia"
+        >{{ $t('cloud.messages.retry') }}</CloudButton
+      >
+    </CloudAlert>
+    <CloudAlert
+      class="mb-4"
+      v-if="message && message !== loadError"
+      :tone="failed ? 'error' : 'info'"
+      >{{ message }}</CloudAlert
+    >
     <slot /><CloudUploadDrawer
   /></PhotosProvider>
 </template>

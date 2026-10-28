@@ -76,7 +76,7 @@ async function submit() {
         return
       }
     }
-    await navigateTo('/sites', { external: true })
+    await navigateTo('/workspace', { external: true })
   } catch (cause) {
     error.value = accountError(cause, t)
   } finally {
@@ -93,7 +93,7 @@ async function passkeySignIn() {
   try {
     const result = await useCloudAccount().signIn.passkey()
     if (result.error) throw result.error
-    await navigateTo('/sites', { external: true })
+    await navigateTo('/workspace', { external: true })
   } catch (cause) {
     error.value = accountError(cause, t)
   } finally {
@@ -187,7 +187,7 @@ async function resend() {
           ><label for="factor">{{
             $t('cloud.messages.verificationMethod')
           }}</label
-          ><select
+          ><CloudSelect
             id="factor"
             v-model="factor"
             :disabled="busy"
@@ -205,7 +205,7 @@ async function resend() {
             <option value="recovery">
               {{ $t('cloud.messages.recoveryCode') }}
             </option>
-          </select></template
+          </CloudSelect></template
         >
         <template v-if="step !== 'credentials'"
           ><label for="code">{{

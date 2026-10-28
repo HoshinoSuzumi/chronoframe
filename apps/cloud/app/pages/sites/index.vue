@@ -4,15 +4,18 @@ const { t } = useI18n()
 import { ArrowUpRight, Images, ShieldCheck } from 'lucide-vue-next'
 const siteLink = resolveComponent('NuxtLink')
 definePageMeta({ layout: 'portal' })
-const workspace = ref<{ name: string } | null>(null)
+const workspace = ref<{ id: number; name: string } | null>(null)
 const workspaceError = ref(false)
 async function prepareWorkspace() {
   workspaceError.value = false
   try {
     workspace.value = (
-      await $fetch<{ workspace: { name: string } }>('/api/workspaces/default', {
-        method: 'POST',
-      })
+      await $fetch<{ workspace: { id: number; name: string } }>(
+        '/api/workspaces/default',
+        {
+          method: 'POST',
+        },
+      )
     ).workspace
   } catch {
     workspaceError.value = true
@@ -63,6 +66,7 @@ const sites = ref(
     <CloudSiteCreate
       v-if="workspace"
       :workspace-name="workspace.name"
+      :workspace-id="workspace.id"
     />
     <div
       v-if="sites.length"

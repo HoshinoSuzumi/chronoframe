@@ -92,6 +92,7 @@ export function useCloudMediaWorkspace(props: {
     activeResumeKey: string | undefined
   const canPoll = ref(true)
   const ready = ref(false)
+  const loadError = ref('')
   const loading = ref(true),
     uploadOpen = ref(false)
   let reloadGeneration = 0
@@ -130,16 +131,18 @@ export function useCloudMediaWorkspace(props: {
       jobs.value = p.jobs
       albums.value = a.albums
       ready.value = true
-      if (
-        !connectionId.value ||
-        connections.value.find((c) => c.id === connectionId.value)
-          ?.uploads_enabled === 0 ||
-        (!u.byosLimits?.byos &&
-          !s.connections.find((c) => c.id === connectionId.value)?.pool_id)
+      if (loadError.value && message.value === loadError.value) {
+        failed.value = false
+        message.value = ''
+      }
+      loadError.value = ''
+      canPoll.value = true
+      const uploadTargets = s.connections.filter(
+        (c) => c.uploads_enabled !== 0 && (c.pool_id || u.byosLimits?.byos),
       )
+      if (!uploadTargets.some((c) => c.id === connectionId.value))
         connectionId.value =
-          s.connections.find((c) => c.pool_id && c.uploads_enabled !== 0)?.id ??
-          (u.byosLimits?.byos ? (s.connections[0]?.id ?? '') : '')
+          uploadTargets.find((c) => c.pool_id)?.id ?? uploadTargets[0]?.id ?? ''
     } catch (error) {
       if (
         generation !== reloadGeneration ||
@@ -153,6 +156,7 @@ export function useCloudMediaWorkspace(props: {
               'cloud.messages.mediaServicesNeedDeploymentConfigurationYourExistingSiteSettings',
             )
           : t('cloud.messages.couldNotRefreshMediaCheckYourAccessAndRetry')
+      loadError.value = message.value
       canPoll.value = false
     } finally {
       if (generation === reloadGeneration) loading.value = false
@@ -524,6 +528,7 @@ export function useCloudMediaWorkspace(props: {
     api,
     loading,
     ready,
+    loadError,
     uploadOpen,
   }
 }

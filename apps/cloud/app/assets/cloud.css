@@ -3308,3 +3308,336 @@ a.cf-domain-address:hover {
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+/* Shared console primitives: theme tokens stay local to Cloud and Platform. */
+.cf-progress {
+  overflow: hidden;
+  height: 4px;
+  width: 100%;
+  border-radius: 999px;
+  background: var(--muted);
+}
+.cf-progress-indicator {
+  height: 100%;
+  background: var(--primary);
+  transition: width 180ms ease;
+  border-radius: inherit;
+}
+.cf-skeleton {
+  display: inline-block;
+  min-height: 1em;
+  border-radius: 5px;
+  background: var(--muted);
+  animation: cf-pulse 1.8s ease-in-out infinite;
+}
+@keyframes cf-pulse {
+  50% {
+    opacity: 0.45;
+  }
+}
+.cf-separator {
+  height: 1px;
+  width: 100%;
+  background: var(--border);
+  flex-shrink: 0;
+}
+.cf-alert {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--secondary);
+  font-size: 13px;
+}
+.cf-alert[data-tone='error'] {
+  color: var(--destructive);
+}
+.cf-alert p {
+  color: var(--muted-foreground);
+  font-size: 12px;
+  margin-top: 3px;
+}
+.cf-select {
+  width: 100%;
+  cursor: pointer;
+}
+.cf-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  text-align: left;
+}
+.cf-table th {
+  font-size: 11px;
+  font-weight: 550;
+  color: var(--muted-foreground);
+}
+.cf-table :is(th, td) {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+}
+.cf-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+.cf-segmented-control {
+  display: inline-flex;
+  padding: 4px;
+  gap: 3px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--muted);
+}
+.cf-segmented-item {
+  border: 0;
+  background: transparent;
+  color: var(--muted-foreground);
+  border-radius: 5px;
+  padding: 7px 13px;
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+.cf-segmented-item[data-state='checked'] {
+  background: var(--card);
+  color: var(--foreground);
+  box-shadow: 0 1px 3px #0000000a;
+}
+.cf-segmented-item:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.cf-stat-card {
+  padding: 18px;
+  display: grid;
+  align-content: start;
+  gap: 10px;
+}
+.cf-stat-card strong {
+  font-size: 25px;
+  font-weight: 600;
+  line-height: 1.25;
+  letter-spacing: -0.03em;
+}
+.cf-stat-label {
+  font-size: 12px;
+  color: var(--muted-foreground);
+}
+.cf-stat-card a {
+  font-size: 12px;
+}
+.cf-stat-card .cf-progress {
+  margin-top: 2px;
+}
+.cf-workspace-toolbar .cf-button svg {
+  color: currentColor;
+}
+.cf-pricing.cf-pricing-embedded {
+  padding: 0;
+  margin: 0;
+  max-width: none;
+}
+.cf-plan-page .cf-plan-options {
+  padding: 0;
+  margin-top: 6px;
+}
+.cf-plan-usage-notes {
+  display: grid;
+  gap: 6px;
+  margin-top: 12px;
+}
+.cf-dashboard-heading .cf-eyebrow {
+  margin-bottom: 8px;
+}
+.cf-dashboard-heading {
+  margin-bottom: 0;
+}
+.cf-dashboard-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+.cf-dashboard-columns {
+  display: grid;
+  grid-template-columns: minmax(0, 1.7fr) minmax(260px, 1fr);
+  gap: 20px;
+  align-items: start;
+}
+.cf-dashboard-panel {
+  padding: 20px;
+  display: grid;
+  gap: 18px;
+  min-width: 0;
+}
+.cf-dashboard-panel h2 {
+  font-size: 15px;
+  font-weight: 600;
+}
+.cf-dashboard-section-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.cf-dashboard-section-heading svg {
+  flex-shrink: 0;
+}
+.cf-dashboard-site-list {
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+.cf-dashboard-site-list li + li {
+  border-top: 1px solid var(--border);
+}
+.cf-dashboard-site {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 0;
+  color: var(--foreground);
+}
+.cf-dashboard-site strong {
+  display: block;
+  font-size: 13px;
+  font-weight: 550;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cf-dashboard-site small,
+.cf-dashboard-tool small {
+  display: block;
+  font-size: 12px;
+  color: var(--muted-foreground);
+  margin-top: 3px;
+}
+.cf-dashboard-site[aria-disabled='true'] {
+  opacity: 0.65;
+}
+.cf-dashboard-tool {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 15px;
+  color: var(--foreground);
+  font-size: 13px;
+}
+.cf-dashboard-tool:hover strong,
+.cf-dashboard-site:hover strong {
+  color: var(--primary);
+}
+.cf-dashboard-empty {
+  padding: 30px 12px;
+  display: grid;
+  justify-items: center;
+  text-align: center;
+  gap: 9px;
+  color: var(--muted-foreground);
+  font-size: 13px;
+}
+.cf-dashboard-empty h3 {
+  color: var(--foreground);
+  font-size: 14px;
+}
+.cf-dashboard-panel .cf-workspace-toolbar {
+  margin-bottom: 0;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+.cf-dashboard-panel .cf-quota-notice {
+  margin-top: -6px;
+}
+.cf-site-health-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 16px;
+}
+.cf-site-health-list li {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 13px;
+}
+.cf-site-health-list svg {
+  color: var(--primary);
+  margin-top: 3px;
+  flex-shrink: 0;
+}
+.cf-site-health-list p {
+  font-size: 12px;
+  color: var(--muted-foreground);
+  margin-top: 3px;
+}
+.cf-dashboard .cf-site-page-header {
+  margin-bottom: 0;
+}
+@media (max-width: 900px) {
+  .cf-dashboard-columns {
+    grid-template-columns: 1fr;
+  }
+}
+@media (max-width: 560px) {
+  .cf-dashboard-metrics {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+  .cf-stat-card {
+    padding: 16px;
+  }
+  .cf-dashboard-panel {
+    padding: 16px;
+  }
+  .cf-quota-notice {
+    align-items: flex-start;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cf-skeleton {
+    animation: none;
+  }
+  .cf-progress-indicator {
+    transition: none;
+  }
+}
+.cf-button-soft {
+  background: var(--secondary);
+  color: var(--secondary-foreground);
+  border-color: transparent;
+}
+.cf-button-soft:hover {
+  border-color: var(--border);
+}
+.cf-progress.is-over .cf-progress-indicator {
+  background: var(--destructive);
+}
+.cf-plan-page .cf-quota-card .cf-progress {
+  margin-top: 10px;
+  margin-bottom: 8px;
+}
+@media (max-width: 560px) {
+  .cf-dashboard-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .cf-dashboard-metrics > :last-child:nth-child(odd) {
+    grid-column: 1 / -1;
+  }
+  .cf-stat-label {
+    overflow-wrap: anywhere;
+  }
+}
+
+.cf-dashboard .cf-dashboard-heading {
+  margin-bottom: 0;
+}
+.cf-stat-card .cf-text-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}

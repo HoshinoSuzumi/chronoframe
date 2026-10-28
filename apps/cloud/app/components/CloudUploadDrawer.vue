@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { uploadQuotaGate } from '../utils/quota-gate'
 const {
   uploadOpen,
   message,
@@ -17,11 +18,27 @@ const {
 } = useCloudSiteMedia()
 const context = useEntryContext().value,
   input = ref<HTMLInputElement>()
+const quota = useCloudQuota(context?.workspaceId)
+const selectedAdmission = computed(() =>
+  uploadQuotaGate(
+    quota.data.value,
+    connectionId.value
+      ? connections.value.filter((c) => c.id === connectionId.value)
+      : connections.value,
+    connectionId.value,
+  ),
+)
+const uploadAllowed = computed(
+  () =>
+    !!connectionId.value &&
+    selectedAdmission.value.allowed &&
+    !quota.error.value,
+)
 async function dropFiles(event: DragEvent) {
   if (
     !input.value ||
     uploading.value ||
-    !connectionId.value ||
+    !uploadAllowed.value ||
     !admin.value ||
     !event.dataTransfer?.files.length
   )
@@ -63,6 +80,9 @@ async function dropFiles(event: DragEvent) {
                     ? $t('cloud.messages.platformStorage')
                     : c.config.bucket,
                   value: c.id,
+                  disabled:
+                    !uploadQuotaGate(quota.data.value, [c], c.id).allowed ||
+                    !!quota.error.value,
                 }))
             "
             class="w-full"
@@ -90,6 +110,12 @@ async function dropFiles(event: DragEvent) {
         >
           {{ $t('cloud.storageAllowance.unavailable') }}
         </p>
+        <CloudQuotaNotice
+          v-if="!selectedAdmission.allowed || quota.error.value"
+          :reason="selectedAdmission.reason"
+          :error="!!quota.error.value"
+          @retry="quota.refresh()"
+        />
         <input
           ref="input"
           class="sr-only"
@@ -97,13 +123,13 @@ async function dropFiles(event: DragEvent) {
           multiple
           accept="image/*,.heic,.heif,.mov"
           :aria-label="$t('cloud.messages.choosePhotographs')"
-          :disabled="uploading || !connectionId || !admin"
+          :disabled="uploading || !uploadAllowed || !admin"
           @change="upload"
         /><button
           class="cf-upload-dropzone"
           @dragover.prevent
           @drop.prevent="dropFiles"
-          :disabled="uploading || !connectionId || !admin"
+          :disabled="uploading || !uploadAllowed || !admin"
           @click="input?.click()"
         >
           <UIcon
@@ -147,18 +173,16 @@ async function dropFiles(event: DragEvent) {
         </p>
       </div></template
     ><template #footer
-      ><UButton
+      ><CloudButton
+        variant="destructive"
         v-if="uploading"
-        color="error"
-        variant="soft"
         @click="cancel"
-        >{{ $t('cloud.messages.cancelUpload') }}</UButton
-      ><UButton
+        >{{ $t('cloud.messages.cancelUpload') }}</CloudButton
+      ><CloudButton
         v-else
-        color="neutral"
-        variant="outline"
+        variant="secondary"
         @click="uploadOpen = false"
-        >{{ $t('cloud.messages.done') }}</UButton
+        >{{ $t('cloud.messages.done') }}</CloudButton
       ></template
     ></USlideover
   >
