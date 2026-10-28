@@ -2,6 +2,7 @@
 import { ArrowUpRight, Images, SlidersHorizontal } from 'lucide-vue-next'
 import type { EntrySiteCatalog } from '@chronoframe/contracts/entry'
 import { allowance } from '../utils/billing-format'
+import { quotaGate } from '../utils/quota-gate'
 definePageMeta({ layout: 'portal' })
 const { t, locale } = useI18n(),
   billing = useWorkspaceBilling()
@@ -147,7 +148,11 @@ useSeoMeta({
           class="h-28 w-full"
         />
         <CloudSiteCreate
-          v-if="data && billing.workspaces.value[0]?.owned"
+          v-if="
+            data &&
+            billing.workspaces.value[0]?.owned &&
+            quotaGate(data, 'sites').allowed
+          "
           :workspace-id="data.workspace.id"
           :workspace-name="data.workspace.name"
         />

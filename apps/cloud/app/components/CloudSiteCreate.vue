@@ -8,6 +8,7 @@ const quota = useCloudQuota(() => props.workspaceId)
 const admission = computed(() => quota.gate('sites'))
 const checking = ref(false)
 const open = ref(false)
+const quotaOpen = ref(false)
 const name = ref('')
 const slug = ref('')
 const busy = ref(false)
@@ -24,7 +25,11 @@ async function show() {
   checking.value = true
   await quota.refresh()
   checking.value = false
-  if (!admission.value.allowed || quota.error.value) return
+  if (!admission.value.allowed || quota.error.value) {
+    quotaOpen.value = true
+    return
+  }
+  quotaOpen.value = false
   open.value = true
   await nextTick()
   document.getElementById('site-name')?.focus()
@@ -71,17 +76,32 @@ async function create() {
       v-if="!open"
       id="create-site-trigger"
       size="sm"
-      :disabled="!admission.allowed || !!quota.error.value || checking"
+      :disabled="checking"
       :loading="checking"
       @click="show"
       ><Plus :size="15" />{{ $t('cloud.messages.createSite') }}</CloudButton
     >
   </div>
-  <CloudQuotaNotice
-    :reason="admission.reason"
-    :error="!!quota.error.value"
-    @retry="quota.refresh()"
-  />
+  <UModal
+    v-model:open="quotaOpen"
+    :title="$t('cloud.messages.createASite')"
+  >
+    <template #body>
+      <CloudQuotaNotice
+        :reason="admission.reason"
+        :error="!!quota.error.value"
+        @retry="show"
+      />
+    </template>
+    <template #footer>
+      <CloudButton
+        variant="secondary"
+        @click="quotaOpen = false"
+      >
+        {{ $t('cloud.messages.cancel') }}
+      </CloudButton>
+    </template>
+  </UModal>
   <CloudCard
     v-if="open"
     class="cf-create-panel"
