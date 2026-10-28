@@ -80,7 +80,7 @@ export function createStorageVault(
     async list() {
       const result = (await db
         .prepare(
-          'SELECT c.id,c.current_revision,c.healthy,c.checked_at,c.pool_id,CASE WHEN c.pool_id IS NULL THEN 1 ELSE COALESCE(p.enabled,0) END AS uploads_enabled,v.public_json FROM cloud_storage_connections c JOIN cloud_storage_versions v ON v.site_id=c.site_id AND v.connection_id=c.id AND v.revision=c.current_revision LEFT JOIN platform_storage_pools p ON p.id=c.pool_id WHERE c.site_id=? ORDER BY c.id LIMIT 20',
+          'SELECT c.id,c.current_revision,c.healthy,c.checked_at,c.pool_id,c.retired,CASE WHEN c.retired=1 THEN 0 WHEN c.pool_id IS NULL THEN 1 ELSE COALESCE(p.enabled,0) END AS uploads_enabled,v.public_json FROM cloud_storage_connections c JOIN cloud_storage_versions v ON v.site_id=c.site_id AND v.connection_id=c.id AND v.revision=c.current_revision LEFT JOIN platform_storage_pools p ON p.id=c.pool_id WHERE c.site_id=? ORDER BY c.id LIMIT 20',
         )
         .bind(siteId)) as unknown as { all<T>(): Promise<{ results: T[] }> }
       return (

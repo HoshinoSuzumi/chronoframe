@@ -455,7 +455,8 @@
       "draftAskAdmin": "This address returns 404 until you publish your gallery. Ask a workspace administrator to publish this gallery.",
       "passwordSetupGuidance": "You signed in with an email code. {link} before enabling two-step verification.",
       "connectStorageGuidance": "Connect your private storage in {link} before uploading.",
-      "attemptCount": "Attempt {count}"
+      "attemptCount": "Attempt {count}",
+      "chooseIcon": "Choose icon"
     },
     "storageErrors": {
       "storage_configuration_failed": "Check the S3 endpoint, region, bucket name and credential fields.",
@@ -752,6 +753,17 @@
       "publicationHelp": "Publishing does not require photographs or a storage connection.",
       "actions": "Actions",
       "quota_storage": "No upload-enabled storage connection is available. Review your site’s storage settings."
+    },
+    "storageManager": {
+      "help": "Choose the default destination for new uploads. Existing photographs stay in their original storage.",
+      "switched": "Default upload storage updated.",
+      "removed": "Storage removed from upload destinations.",
+      "archived": "Removed · retained for existing photographs",
+      "current": "Default upload destination",
+      "available": "Storage connection",
+      "use": "Use for uploads",
+      "removeTitle": "Remove storage?",
+      "removeHelp": "New uploads will stop using this connection. Existing photographs and files remain available in their original storage. Files are not moved or deleted."
     }
   }
 }

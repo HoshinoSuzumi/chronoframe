@@ -455,7 +455,8 @@
       "draftAskAdmin": "发布图库之前，访问此地址将返回 404。请联系工作区管理员发布此图库。",
       "passwordSetupGuidance": "你使用邮箱验证码登录。请先{link}，再启用两步验证。",
       "connectStorageGuidance": "上传前，请先在{link}中连接私有存储。",
-      "attemptCount": "尝试次数 {count}"
+      "attemptCount": "尝试次数 {count}",
+      "chooseIcon": "选择图标"
     },
     "storageErrors": {
       "storage_configuration_failed": "请检查 S3 服务端点、区域、存储桶名称和凭证字段。",
@@ -752,6 +753,17 @@
       "publicationHelp": "无需先上传照片或配置存储，即可发布站点。",
       "actions": "操作",
       "quota_storage": "暂无可用于上传的存储连接，请检查站点的存储设置。"
+    },
+    "storageManager": {
+      "help": "选择新上传照片的默认存储。已有照片仍保存在原存储中。",
+      "switched": "默认上传存储已更新。",
+      "removed": "存储已从上传目标移除。",
+      "archived": "已移除 · 保留以读取已有照片",
+      "current": "默认上传目标",
+      "available": "存储连接",
+      "use": "设为上传目标",
+      "removeTitle": "移除存储？",
+      "removeHelp": "此连接将不再用于新上传。已有照片仍从原存储读取，不会迁移或删除文件。"
     }
   }
 }

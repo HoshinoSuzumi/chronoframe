@@ -32,6 +32,7 @@ export function useCloudMediaWorkspace(props: {
         healthy: number
         uploads_enabled?: number
         pool_id?: string | null
+        retired?: number
         config: { bucket: string }
       }[]
     >([]),
@@ -95,13 +96,17 @@ export function useCloudMediaWorkspace(props: {
   const loadError = ref('')
   const loading = ref(true),
     uploadOpen = ref(false)
+  let storageInitialized = false
   let reloadGeneration = 0
   async function reload() {
     const generation = ++reloadGeneration
     loading.value = true
     try {
       const [s, p, a, u] = await Promise.all([
-        api<{ connections: typeof connections.value }>(base.value + '/storage'),
+        api<{
+          connections: typeof connections.value
+          preferredConnectionId?: string
+        }>(base.value + '/storage'),
         api<{ photos: Photo[]; jobs: typeof jobs.value }>(
           base.value + '/photos',
         ),
@@ -140,6 +145,13 @@ export function useCloudMediaWorkspace(props: {
       const uploadTargets = s.connections.filter(
         (c) => c.uploads_enabled !== 0 && (c.pool_id || u.byosLimits?.byos),
       )
+      if (
+        !storageInitialized &&
+        s.preferredConnectionId &&
+        uploadTargets.some((c) => c.id === s.preferredConnectionId)
+      )
+        connectionId.value = s.preferredConnectionId
+      storageInitialized = true
       if (!uploadTargets.some((c) => c.id === connectionId.value))
         connectionId.value =
           uploadTargets.find((c) => c.pool_id)?.id ?? uploadTargets[0]?.id ?? ''

@@ -52,6 +52,46 @@ export default definePlatformHandler(async (event) => {
   const [kind, id, action] = operation.split('/')
   const body = mutation ? await siteManagementBody(event, 131072) : {}
   const now = Date.now()
+  if (
+    kind === 'storage' &&
+    id &&
+    ['select', 'remove'].includes(action ?? '') &&
+    event.method === 'POST'
+  ) {
+    const target = (await vault.list()).find((c) => c.id === ID(id))
+    if (!target) throw createError({ statusCode: 404 })
+    if (action === 'remove') {
+      if (target.pool_id) throw createError({ statusCode: 403 })
+      await raw.batch([
+        raw
+          .prepare(
+            'UPDATE cloud_storage_connections SET retired=1 WHERE site_id=? AND id=?',
+          )
+          .bind(siteId, id),
+        raw
+          .prepare(
+            'UPDATE platform_sites SET preferred_storage_id=NULL WHERE id=? AND preferred_storage_id=?',
+          )
+          .bind(siteId, id),
+      ])
+    } else {
+      if (
+        !target.uploads_enabled ||
+        (!target.pool_id &&
+          !(await workspaceEntitlements(raw, site.workspaceId, 'byos')).limits
+            .byos)
+      )
+        throw createError({ statusCode: 403 })
+      const selected = await raw
+        .prepare(
+          'UPDATE platform_sites SET preferred_storage_id=? WHERE id=? AND EXISTS(SELECT 1 FROM cloud_storage_connections WHERE site_id=? AND id=? AND retired=0)',
+        )
+        .bind(id, siteId, siteId, id)
+        .run()
+      if (!selected.meta.changes) throw createError({ statusCode: 409 })
+    }
+    return { ok: true }
+  }
   if (kind === 'storage' && !id) {
     if (event.method === 'GET') {
       const available = await raw
@@ -71,6 +111,14 @@ export default definePlatformHandler(async (event) => {
       }
       return {
         connections,
+        preferredConnectionId: (
+          await raw
+            .prepare(
+              'SELECT preferred_storage_id FROM platform_sites WHERE id=?',
+            )
+            .bind(siteId)
+            .first<{ preferred_storage_id: string | null }>()
+        )?.preferred_storage_id,
         platformAvailable: !!available,
         plan,
       }
@@ -180,6 +228,14 @@ export default definePlatformHandler(async (event) => {
       throw createError({ statusCode: 400 })
     const ext = fileName.split('.').pop()?.toLowerCase() ?? '',
       contentType = types[ext]
+    if (
+      (await vault.list()).find((c) => c.id === connectionId)
+        ?.uploads_enabled === 0
+    )
+      throw createError({
+        statusCode: 409,
+        statusMessage: 'Storage is unavailable for uploads',
+      })
     const storedConnection = await vault.get(connectionId)
     if (!storedConnection) throw createError({ statusCode: 404 })
     const managed = 'poolId' in storedConnection

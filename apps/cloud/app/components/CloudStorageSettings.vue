@@ -9,8 +9,40 @@ const {
   rotateStorage,
   busy,
   admin,
+  failed,
+  message,
+  action,
+  api,
+  base,
 } = useCloudSiteMedia()
 const quota = useCloudQuota(useEntryContext().value?.workspaceId)
+const { t } = useI18n()
+const removal = ref<string | null>(null)
+async function selectStorage(id: string) {
+  const saved = await action(
+    () =>
+      api(base.value + '/storage/' + id + '/select', {
+        method: 'POST',
+        body: {},
+      }),
+    t('cloud.storageManager.switched'),
+  )
+  if (saved) connectionId.value = id
+}
+async function removeStorage() {
+  if (!removal.value) return
+  if (
+    await action(
+      () =>
+        api(base.value + '/storage/' + removal.value + '/remove', {
+          method: 'POST',
+          body: {},
+        }),
+      t('cloud.storageManager.removed'),
+    )
+  )
+    removal.value = null
+}
 const byosAdmission = computed(() => quota.gate('byos'))
 </script>
 <template>
@@ -34,33 +66,87 @@ const byosAdmission = computed(() => quota.gate('byos'))
         :error="!!quota.error.value"
         @retry="quota.refresh()"
       />
-      <label class="cf-field-label"
-        >{{ $t('cloud.messages.storageConnection')
-        }}<CloudSelect
-          v-model="connectionId"
-          class="cf-input"
-          :disabled="!admin"
+      <p class="cf-field-hint">{{ $t('cloud.storageManager.help') }}</p>
+      <div class="cf-storage-options">
+        <article
+          v-for="connection in connections"
+          :key="connection.id"
+          class="cf-storage-option"
+          :class="{
+            'is-selected': connection.id === connectionId,
+            'is-retired': connection.retired,
+          }"
         >
-          <option value="">{{ $t('cloud.messages.chooseAConnection') }}</option>
-          <option
-            v-for="connection in connections"
-            :key="connection.id"
-            :value="connection.id"
-            :disabled="
-              connection.uploads_enabled === 0 ||
-              (!connection.pool_id && !allowance?.byosLimits.byos)
-            "
-          >
-            {{
+          <div>
+            <strong>{{
               connection.pool_id
                 ? $t('cloud.messages.platformStorage')
-                : $t('cloud.ui.connectionRevision', {
-                    bucket: connection.config.bucket,
-                    revision: connection.current_revision,
-                  })
-            }}
-          </option>
-        </CloudSelect></label
+                : connection.config.bucket
+            }}</strong>
+            <p class="cf-field-hint">
+              {{
+                connection.retired
+                  ? $t('cloud.storageManager.archived')
+                  : connection.id === connectionId
+                    ? $t('cloud.storageManager.current')
+                    : $t('cloud.storageManager.available')
+              }}
+            </p>
+          </div>
+          <div
+            class="cf-storage-option-actions"
+            v-if="admin && !connection.retired"
+          >
+            <CloudButton
+              size="sm"
+              variant="secondary"
+              :disabled="
+                busy ||
+                connection.id === connectionId ||
+                connection.uploads_enabled === 0 ||
+                (!connection.pool_id && !allowance?.byosLimits.byos)
+              "
+              @click="selectStorage(connection.id)"
+              >{{ $t('cloud.storageManager.use') }}</CloudButton
+            >
+            <CloudButton
+              v-if="!connection.pool_id"
+              size="sm"
+              variant="ghost"
+              :disabled="busy"
+              @click="removal = connection.id"
+              >{{ $t('cloud.messages.delete') }}</CloudButton
+            >
+          </div>
+        </article>
+      </div>
+      <UModal
+        :open="!!removal"
+        :title="$t('cloud.storageManager.removeTitle')"
+        :description="$t('cloud.storageManager.removeHelp')"
+        :dismissible="!busy"
+        @update:open="
+          (value) => {
+            if (!value) removal = null
+          }
+        "
+        ><template
+          v-if="failed"
+          #body
+          ><CloudAlert tone="error">{{ message }}</CloudAlert></template
+        ><template #footer
+          ><CloudButton
+            variant="secondary"
+            :disabled="busy"
+            @click="removal = null"
+            >{{ $t('cloud.messages.cancel') }}</CloudButton
+          ><CloudButton
+            variant="destructive"
+            :loading="busy"
+            @click="removeStorage"
+            >{{ $t('cloud.messages.delete') }}</CloudButton
+          ></template
+        ></UModal
       >
       <details
         v-if="
