@@ -117,6 +117,14 @@ watch(mode, (next) => {
           ><p class="cf-nav-label">{{ $t('cloud.messages.workspace2') }}</p>
           <nav :aria-label="$t('cloud.messages.portalNavigation')">
             <NuxtLink
+              to="/workspace"
+              :class="{ active: route.path === '/workspace' }"
+              :aria-current="route.path === '/workspace' ? 'page' : undefined"
+              ><LayoutDashboard :size="17" />{{
+                $t('cloud.dashboard.workspaceOverview')
+              }}</NuxtLink
+            >
+            <NuxtLink
               to="/sites"
               :class="{ active: route.path === '/sites' }"
               :aria-current="route.path === '/sites' ? 'page' : undefined"

@@ -3,7 +3,10 @@ const { t } = useI18n()
 const siteBaseDomain = useRuntimeConfig().public.siteBaseDomain
 
 import { Plus, ArrowRight, Layers } from 'lucide-vue-next'
-defineProps<{ workspaceName?: string }>()
+const props = defineProps<{ workspaceName?: string; workspaceId?: number }>()
+const quota = useCloudQuota(() => props.workspaceId)
+const admission = computed(() => quota.gate('sites'))
+const checking = ref(false)
 const open = ref(false)
 const name = ref('')
 const slug = ref('')
@@ -18,6 +21,10 @@ const validSlug = computed(() =>
   /^[a-z0-9](?:[a-z0-9-]{1,38}[a-z0-9])$/.test(slug.value),
 )
 async function show() {
+  checking.value = true
+  await quota.refresh()
+  checking.value = false
+  if (!admission.value.allowed || quota.error.value) return
   open.value = true
   await nextTick()
   document.getElementById('site-name')?.focus()
@@ -28,7 +35,7 @@ async function cancel() {
   document.getElementById('create-site-trigger')?.focus()
 }
 async function create() {
-  if (busy.value) return
+  if (busy.value || !admission.value.allowed || quota.error.value) return
   busy.value = true
   error.value = ''
   requestId ||= crypto.randomUUID()
@@ -40,6 +47,7 @@ async function create() {
     await navigateTo(`/sites/${result.site.siteId}`)
   } catch (cause) {
     const status = (cause as { statusCode?: number }).statusCode
+    if (status === 403) await quota.refresh()
     error.value =
       status === 409
         ? t('cloud.messages.thisAddressIsAlreadyTakenOrThisRequestChanged')
@@ -63,10 +71,17 @@ async function create() {
       v-if="!open"
       id="create-site-trigger"
       size="sm"
+      :disabled="!admission.allowed || !!quota.error.value || checking"
+      :loading="checking"
       @click="show"
       ><Plus :size="15" />{{ $t('cloud.messages.createSite') }}</CloudButton
     >
   </div>
+  <CloudQuotaNotice
+    :reason="admission.reason"
+    :error="!!quota.error.value"
+    @retry="quota.refresh()"
+  />
   <CloudCard
     v-if="open"
     class="cf-create-panel"
@@ -132,7 +147,13 @@ async function create() {
       <div class="cf-site-actions">
         <CloudButton
           type="submit"
-          :disabled="busy || !name.trim() || !validSlug"
+          :disabled="
+            busy ||
+            !name.trim() ||
+            !validSlug ||
+            !admission.allowed ||
+            !!quota.error.value
+          "
           >{{
             busy
               ? $t('cloud.messages.creating')

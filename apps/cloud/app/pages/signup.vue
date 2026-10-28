@@ -34,7 +34,7 @@ async function submit() {
         method: 'POST',
         body: { email: email.value, otp: code.value },
       })
-      await navigateTo('/sites', { external: true })
+      await navigateTo('/workspace', { external: true })
     }
   } catch (cause) {
     error.value = accountError(cause, t)

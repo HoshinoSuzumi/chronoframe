@@ -173,19 +173,11 @@ const date = (time: number) => new Date(time).toLocaleString(locale.value)
                   >/ {{ allowance(key, data.plan.limits[key], locale) }}</span
                 >
               </p>
-              <div
-                class="cf-quota-track"
-                role="progressbar"
+              <CloudProgress
+                :value="ratio(key)"
                 :aria-label="$t('cloud.billing.' + key)"
-                :aria-valuemin="0"
-                :aria-valuemax="100"
-                :aria-valuenow="ratio(key)"
-              >
-                <span
-                  :style="{ width: ratio(key) + '%' }"
-                  :class="{ 'is-over': used(key)! > data.plan.limits[key] }"
-                />
-              </div>
+                :class="{ 'is-over': used(key)! > data.plan.limits[key] }"
+              />
               <small
                 :class="{
                   'cf-error-message': used(key)! > data.plan.limits[key],
@@ -205,17 +197,22 @@ const date = (time: number) => new Date(time).toLocaleString(locale.value)
             >
           </article>
         </div>
-        <p class="cf-field-hint">{{ $t('cloud.billing.usageHelp') }}</p>
+        <div class="cf-plan-usage-notes">
+          <p class="cf-field-hint">{{ $t('cloud.billing.usageHelp') }}</p>
+          <p class="cf-field-hint">
+            {{ $t('cloud.billing.byos') }}:
+            {{
+              data.plan.limits.byos
+                ? $t('cloud.billing.yes')
+                : $t('cloud.billing.no')
+            }}
+            ·
+            {{
+              $t('cloud.billing.connectionCount', { count: data.usage.byos })
+            }}
+          </p>
+        </div>
       </section>
-      <p class="cf-field-hint">
-        {{ $t('cloud.billing.byos') }}:
-        {{
-          data.plan.limits.byos
-            ? $t('cloud.billing.yes')
-            : $t('cloud.billing.no')
-        }}
-        · {{ $t('cloud.billing.connectionCount', { count: data.usage.byos }) }}
-      </p>
       <section
         id="plans"
         class="cf-plan-options"

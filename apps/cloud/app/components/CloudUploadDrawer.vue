@@ -147,18 +147,16 @@ async function dropFiles(event: DragEvent) {
         </p>
       </div></template
     ><template #footer
-      ><UButton
+      ><CloudButton
+        variant="destructive"
         v-if="uploading"
-        color="error"
-        variant="soft"
         @click="cancel"
-        >{{ $t('cloud.messages.cancelUpload') }}</UButton
-      ><UButton
+        >{{ $t('cloud.messages.cancelUpload') }}</CloudButton
+      ><CloudButton
         v-else
-        color="neutral"
-        variant="outline"
+        variant="secondary"
         @click="uploadOpen = false"
-        >{{ $t('cloud.messages.done') }}</UButton
+        >{{ $t('cloud.messages.done') }}</CloudButton
       ></template
     ></USlideover
   >

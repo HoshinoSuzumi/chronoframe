@@ -10,6 +10,8 @@ const {
   busy,
   admin,
 } = useCloudSiteMedia()
+const quota = useCloudQuota(useEntryContext().value?.workspaceId)
+const byosAdmission = computed(() => quota.gate('byos'))
 </script>
 <template>
   <CloudCard
@@ -26,9 +28,15 @@ const {
       </p>
     </div>
     <div class="cf-panel-body cf-media-controls">
+      <CloudQuotaNotice
+        v-if="admin && (byosAdmission.reason || quota.error.value)"
+        :reason="byosAdmission.reason"
+        :error="!!quota.error.value"
+        @retry="quota.refresh()"
+      />
       <label class="cf-field-label"
         >{{ $t('cloud.messages.storageConnection')
-        }}<select
+        }}<CloudSelect
           v-model="connectionId"
           class="cf-input"
           :disabled="!admin"
@@ -52,7 +60,7 @@ const {
                   })
             }}
           </option>
-        </select></label
+        </CloudSelect></label
       >
       <details
         v-if="
@@ -93,7 +101,7 @@ const {
         </form>
       </details>
       <details
-        v-if="admin && allowance?.byosLimits.byos"
+        v-if="admin && byosAdmission.allowed && !quota.error.value"
         class="cf-storage-details"
       >
         <summary>{{ $t('cloud.messages.connectStorage') }}</summary>

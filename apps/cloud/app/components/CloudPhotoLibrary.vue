@@ -1,4 +1,13 @@
 <script setup lang="ts">
+import {
+  ArrowUpDown as ButtonIconArrowUpDown,
+  Ellipsis as ButtonIconEllipsis,
+  Filter as ButtonIconFilter,
+  FolderPlus as ButtonIconFolderPlus,
+  RefreshCw as ButtonIconRefreshCw,
+  Trash2 as ButtonIconTrash2,
+  Upload as ButtonIconUpload,
+} from 'lucide-vue-next'
 const { t, locale } = useI18n()
 
 import type { Photo } from '@chronoframe/contracts/resources'
@@ -10,9 +19,12 @@ const {
   albums,
   jobs,
   loading,
+  ready,
   admin,
   busy,
   uploadOpen,
+  connectionId,
+  connections,
   editPhoto,
   photoLoaded,
   loadPhoto,
@@ -23,6 +35,26 @@ const {
   api,
   base,
 } = useCloudSiteMedia()
+const quota = useCloudQuota(useEntryContext().value?.workspaceId)
+const uploadAdmission = computed(() => {
+  if (!ready.value) return { allowed: false, reason: 'checking' }
+  const connection = connections.value.find((c) => c.id === connectionId.value)
+  const mode = !connection || connection.pool_id ? 'platform' : 'byos'
+  const resources =
+    mode === 'byos'
+      ? (['byos', 'photos', 'monthlyBytes', 'fileBytes'] as const)
+      : (['photos', 'storageBytes', 'monthlyBytes', 'fileBytes'] as const)
+  return (
+    resources
+      .map((resource) => quota.gate(resource, mode))
+      .find((gate) => !gate.allowed) ?? { allowed: true, reason: '' }
+  )
+})
+async function openUpload() {
+  await quota.refresh()
+  if (uploadAdmission.value.allowed && !quota.error.value)
+    uploadOpen.value = true
+}
 const search = ref(''),
   selection = ref<Record<string, boolean>>({}),
   editor = ref(false),
@@ -53,7 +85,10 @@ const columns: TableColumn<Photo>[] = [
   { accessorKey: 'tags', header: t('cloud.messages.tags') },
   { accessorKey: 'dateTaken', header: t('cloud.messages.dateTaken') },
   { accessorKey: 'fileSize', header: t('cloud.messages.size') },
-  { id: 'actions', header: '' },
+  {
+    id: 'actions',
+    header: () => h('span', { class: 'sr-only' }, t('cloud.dashboard.actions')),
+  },
 ]
 const pendingJobs = computed(() =>
   jobs.value.filter((j) => j.state !== 'succeeded'),
@@ -159,13 +194,20 @@ watch(
           }}
         </p>
       </div>
-      <UButton
+      <CloudButton
         v-if="admin"
-        icon="i-lucide-upload"
-        @click="uploadOpen = true"
-        >{{ $t('cloud.messages.upload') }}</UButton
+        :icon="ButtonIconUpload"
+        :disabled="!uploadAdmission.allowed || !!quota.error.value"
+        @click="openUpload"
+        >{{ $t('cloud.messages.upload') }}</CloudButton
       >
     </div>
+    <CloudQuotaNotice
+      v-if="admin && (uploadAdmission.reason || quota.error.value)"
+      :reason="uploadAdmission.reason"
+      :error="!!quota.error.value"
+      @retry="quota.refresh()"
+    />
     <div class="cf-library-toolbar">
       <UInput
         v-model="search"
@@ -174,23 +216,20 @@ watch(
         :aria-label="$t('cloud.messages.searchPhotographs2')"
         class="cf-library-search"
       /><UPopover
-        ><UButton
-          color="neutral"
-          :variant="hasActiveFilters ? 'soft' : 'outline'"
-          icon="i-lucide-filter"
-          >{{ $t('cloud.messages.filters') }}</UButton
+        ><CloudButton
+          :variant="hasActiveFilters ? 'soft' : 'secondary'"
+          :icon="ButtonIconFilter"
+          >{{ $t('cloud.messages.filters') }}</CloudButton
         ><template #content><OverlayFilterPanel /></template></UPopover
       ><UPopover
-        ><UButton
-          color="neutral"
-          variant="outline"
-          icon="i-lucide-arrow-up-down"
-          >{{ $t('cloud.messages.sort') }}</UButton
+        ><CloudButton
+          variant="secondary"
+          :icon="ButtonIconArrowUpDown"
+          >{{ $t('cloud.messages.sort') }}</CloudButton
         ><template #content><OverlaySortPanel /></template></UPopover
-      ><UButton
-        color="neutral"
+      ><CloudButton
         variant="ghost"
-        icon="i-lucide-refresh-cw"
+        :icon="ButtonIconRefreshCw"
         :aria-label="$t('cloud.messages.refreshPhotographs')"
         :loading="loading"
         @click="refreshMedia"
@@ -201,27 +240,25 @@ watch(
       class="cf-selection-bar"
     >
       <span>{{ $t('cloud.ui.selectedCount', { count: chosen.length }) }}</span
-      ><UButton
+      ><CloudButton
         v-if="admin"
         size="sm"
         variant="soft"
-        icon="i-lucide-folder-plus"
+        :icon="ButtonIconFolderPlus"
         @click="albumOpen = true"
-        >{{ $t('cloud.messages.addToAlbum') }}</UButton
-      ><UButton
+        >{{ $t('cloud.messages.addToAlbum') }}</CloudButton
+      ><CloudButton
+        variant="destructive"
         v-if="admin"
         size="sm"
-        color="error"
-        variant="soft"
-        icon="i-lucide-trash-2"
+        :icon="ButtonIconTrash2"
         @click="deleteOpen = true"
-        >{{ $t('cloud.messages.delete') }}</UButton
-      ><UButton
-        color="neutral"
+        >{{ $t('cloud.messages.delete') }}</CloudButton
+      ><CloudButton
         size="sm"
         variant="ghost"
         @click="selection = {}"
-        >{{ $t('cloud.messages.clear') }}</UButton
+        >{{ $t('cloud.messages.clear') }}</CloudButton
       >
     </div>
     <div class="cf-library-table">
@@ -305,10 +342,9 @@ watch(
           }}</span></template
         ><template #actions-cell="{ row }"
           ><UDropdownMenu :items="actions(row.original)"
-            ><UButton
-              color="neutral"
+            ><CloudButton
               variant="ghost"
-              icon="i-lucide-ellipsis"
+              :icon="ButtonIconEllipsis"
               :aria-label="
                 $t('cloud.ui.actionsNamed', { title: row.original.title })
               " /></UDropdownMenu></template
@@ -334,11 +370,12 @@ watch(
                     )
               }}
             </p>
-            <UButton
+            <CloudButton
               v-if="admin && !photos.length"
               variant="soft"
-              @click="uploadOpen = true"
-              >{{ $t('cloud.messages.upload') }}</UButton
+              :disabled="!uploadAdmission.allowed || !!quota.error.value"
+              @click="openUpload"
+              >{{ $t('cloud.messages.upload') }}</CloudButton
             >
           </div></template
         ></ConsoleMediaTable
@@ -388,10 +425,9 @@ watch(
             ></span
           >
         </div>
-        <UButton
+        <CloudButton
           v-if="admin && job.state === 'failed'"
-          color="neutral"
-          variant="outline"
+          variant="secondary"
           size="sm"
           :disabled="busy"
           @click="
@@ -404,14 +440,13 @@ watch(
               $t('cloud.messages.jobQueuedAgain'),
             )
           "
-          >{{ $t('cloud.messages.retry') }}</UButton
-        ><UButton
+          >{{ $t('cloud.messages.retry') }}</CloudButton
+        ><CloudButton
+          variant="destructive"
           v-if="admin && job.state !== 'cancelled'"
-          color="error"
-          variant="ghost"
           size="sm"
           @click="removePhoto(job.photo_id)"
-          >{{ $t('cloud.messages.remove') }}</UButton
+          >{{ $t('cloud.messages.remove') }}</CloudButton
         >
       </div>
     </section>
@@ -446,17 +481,16 @@ watch(
             v-model:tags="editPhoto.tags"
             v-model:rating="editPhoto.rating" /></UForm></template
       ><template #footer
-        ><UButton
-          color="neutral"
-          variant="outline"
+        ><CloudButton
+          variant="secondary"
           @click="editor = false"
-          >{{ $t('cloud.messages.cancel') }}</UButton
-        ><UButton
+          >{{ $t('cloud.messages.cancel') }}</CloudButton
+        ><CloudButton
           type="submit"
           form="cloud-edit-photo"
           :loading="busy"
           :disabled="photoLoaded !== editPhoto.id || !editPhoto.title.trim()"
-          >{{ $t('cloud.messages.saveChanges') }}</UButton
+          >{{ $t('cloud.messages.saveChanges') }}</CloudButton
         ></template
       ></USlideover
     >
@@ -495,13 +529,12 @@ watch(
         )
       "
       ><template #footer
-        ><UButton
-          color="neutral"
-          variant="outline"
+        ><CloudButton
+          variant="secondary"
           @click="deleteOpen = false"
-          >{{ $t('cloud.messages.cancel') }}</UButton
-        ><UButton
-          color="error"
+          >{{ $t('cloud.messages.cancel') }}</CloudButton
+        ><CloudButton
+          variant="destructive"
           :loading="saving"
           @click="deleteChosen"
           >{{
@@ -510,7 +543,7 @@ watch(
               { count: chosen.length },
               chosen.length,
             )
-          }}</UButton
+          }}</CloudButton
         ></template
       ></UModal
     >
@@ -532,16 +565,15 @@ watch(
           {{ $t('cloud.messages.createAnAlbumFirstFromTheAlbumsPage') }}
         </p></template
       ><template #footer
-        ><UButton
-          color="neutral"
-          variant="outline"
+        ><CloudButton
+          variant="secondary"
           @click="albumOpen = false"
-          >{{ $t('cloud.messages.cancel') }}</UButton
-        ><UButton
+          >{{ $t('cloud.messages.cancel') }}</CloudButton
+        ><CloudButton
           :disabled="!targetAlbum"
           :loading="busy"
           @click="addToAlbum"
-          >{{ $t('cloud.messages.addPhotographs') }}</UButton
+          >{{ $t('cloud.messages.addPhotographs') }}</CloudButton
         ></template
       ></UModal
     >

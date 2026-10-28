@@ -10,20 +10,21 @@ export default defineNuxtRouteMiddleware(async (to) => {
     () => null,
   )
   if (path === '/' && useCloudRequestURL().hostname === 'app.chronoframe.art')
-    return navigateTo('/sites', { redirectCode: 302 })
+    return navigateTo('/workspace', { redirectCode: 302 })
   if (path === '/dashboard' || path.startsWith('/dashboard/'))
-    return navigateTo('/sites', { redirectCode: 302 })
+    return navigateTo('/workspace', { redirectCode: 302 })
   if (['/signin', '/signup'].includes(path)) {
     const session = await useRequestFetch()<{ authenticated: boolean }>(
       '/api/auth/session',
     ).catch(() => null)
     if (session?.authenticated)
-      return navigateTo('/sites', { redirectCode: 302 })
+      return navigateTo('/workspace', { redirectCode: 302 })
   }
   if (
     (path === '/pricing' &&
       (useCloudRequestURL().hostname === 'app.chronoframe.art' ||
         to.query.portal === '1')) ||
+    path === '/workspace' ||
     path === '/account' ||
     path.startsWith('/account/') ||
     path === '/sites' ||
@@ -46,7 +47,7 @@ export default defineNuxtRouteMiddleware(async (to) => {
       context.value = null
       return navigateTo('/signin', { redirectCode: 302 })
     }
-    if (path === '/sites') {
+    if (path === '/sites' || path === '/workspace') {
       const result = await fetcher<{ sites: EntrySiteSummary[] }>('/api/sites')
       catalog.value = { userId: session.user.id, sites: result.sites }
     }
