@@ -2353,7 +2353,11 @@
   --ui-bg-elevated: var(--secondary);
   --ui-bg-muted: var(--muted);
   --ui-text: var(--foreground);
+  --ui-text-highlighted: var(--foreground);
+  --ui-text-toned: var(--foreground);
   --ui-text-muted: var(--muted-foreground);
+  --ui-text-dimmed: var(--muted-foreground);
+  --ui-text-inverted: var(--background);
   --ui-border: var(--border);
 }
 .cf-upload-dropzone {
@@ -3640,4 +3644,113 @@ a.cf-domain-address:hover {
   display: inline-flex;
   align-items: center;
   gap: 4px;
+}
+
+.cf-icon-picker {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: fit-content;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 8px 14px;
+  background: var(--secondary);
+  color: var(--foreground);
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+}
+.cf-icon-picker:focus-within {
+  outline: 2px solid var(--primary);
+}
+.cf-icon-file {
+  width: 100%;
+  font-size: 13px;
+  color: var(--muted-foreground);
+}
+.cf-icon-file::file-selector-button {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--secondary);
+  color: var(--foreground);
+  padding: 6px 12px;
+  margin-right: 10px;
+  cursor: pointer;
+}
+.cf-site-address-block {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 20px;
+}
+
+.cf-storage-options {
+  display: grid;
+  gap: 12px;
+  width: 100%;
+}
+.cf-storage-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--card);
+}
+.cf-storage-option.is-selected {
+  border-color: var(--primary);
+}
+.cf-storage-option.is-retired {
+  background: var(--secondary);
+}
+.cf-storage-option-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.cf-icon-file {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+.cf-field:has(.cf-icon-file:focus-visible) .cf-icon-picker {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+.cf-field:has(.cf-icon-file:disabled) .cf-icon-picker {
+  opacity: 0.5;
+  pointer-events: none;
+}
+@media (max-width: 560px) {
+  .cf-storage-option {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
+
+/* Nuxt UI text utilities share names with background-oriented theme colors. */
+.cf-cloud-body .text-muted,
+.cf-cloud-body .text-dimmed {
+  color: var(--muted-foreground);
+}
+.cf-cloud-body .text-default,
+.cf-cloud-body .text-toned,
+.cf-cloud-body .text-highlighted {
+  color: var(--foreground);
+}
+.cf-site-page-header {
+  border-bottom: 0;
+  padding: 20px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+.cf-site-page-header .cf-site-address-block {
+  background: var(--secondary);
+  border: 0;
+  padding: 14px;
 }

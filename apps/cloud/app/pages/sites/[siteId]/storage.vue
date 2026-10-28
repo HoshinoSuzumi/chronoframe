@@ -18,7 +18,7 @@ useSeoMeta({
         </p>
       </div>
     </div>
-    <CloudStorageSettings /><CloudCard
+    <CloudCard
       ><div class="cf-panel-heading">
         <h2>{{ $t('cloud.messages.platformStorage') }}</h2>
         <CloudBadge>{{ allowance?.plan.name ?? '—' }}</CloudBadge>
@@ -29,5 +29,6 @@ useSeoMeta({
         </p>
       </div></CloudCard
     >
+    <CloudStorageSettings />
   </div>
 </template>

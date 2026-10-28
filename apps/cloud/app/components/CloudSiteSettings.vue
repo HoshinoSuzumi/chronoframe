@@ -254,7 +254,12 @@ async function save() {
               width="64"
               height="64"
               class="cf-gallery-icon"
-            /><input
+            /><label
+              for="gallery-icon"
+              class="cf-icon-picker"
+              >{{ $t('cloud.ui.chooseIcon') }}</label
+            ><input
+              class="cf-icon-file"
               id="gallery-icon"
               type="file"
               accept="image/png,image/jpeg,image/webp"
@@ -266,7 +271,8 @@ async function save() {
             </p>
             <CloudButton
               v-if="profile.avatarUrl"
-              variant="ghost"
+              variant="secondary"
+              size="sm"
               :disabled="busy || iconBusy"
               @click="profile.avatarUrl = ''"
               >{{ $t('cloud.messages.removeIcon') }}</CloudButton

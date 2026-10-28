@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import type { DomainOverview } from '@chronoframe/contracts/domains'
 import { ArrowUpRight, Globe, Copy, Check } from 'lucide-vue-next'
 const defaultDomainsReady =
   String(useRuntimeConfig().public.defaultDomainsReady) === 'true'
@@ -16,10 +17,26 @@ const { data, status, error, refresh } = useFetch<{
     legacyHostname?: string | null
   }
 }>(`/api/sites/${context.value?.siteId}/settings`)
-const host = computed(() =>
-  defaultDomainsReady
-    ? (data.value?.site.defaultHostname ?? '')
-    : (data.value?.site.legacyHostname ?? ''),
+const {
+  data: domainOverview,
+  error: domainError,
+  refresh: refreshDomains,
+} = useFetch<DomainOverview>(`/api/sites/${context.value?.siteId}/domains`)
+const customHost = computed(() => {
+  if (!domainOverview.value?.enabled || !domainOverview.value.routingReady)
+    return undefined
+  const eligible =
+    domainOverview.value?.domains.filter(
+      (d) => d.status === 'active' && !d.holdReason && !d.cleanupPending,
+    ) ?? []
+  return eligible.find((d) => d.primary)?.hostname
+})
+const host = computed(
+  () =>
+    customHost.value ??
+    (defaultDomainsReady
+      ? (data.value?.site.defaultHostname ?? '')
+      : (data.value?.site.legacyHostname ?? '')),
 )
 const address = computed(() => (host.value ? `https://${host.value}` : ''))
 const copied = ref(false),
@@ -103,6 +120,17 @@ async function unpublish() {
     >
       {{ $t('cloud.domains.routingPending') }}
     </p>
+    <CloudAlert
+      v-if="domainError"
+      tone="error"
+      >{{ $t('cloud.domains.loadFailed')
+      }}<CloudButton
+        size="sm"
+        variant="secondary"
+        @click="refreshDomains()"
+        >{{ $t('cloud.messages.retry') }}</CloudButton
+      ></CloudAlert
+    >
     <div class="cf-site-address-block">
       <div
         v-if="address"
@@ -164,16 +192,6 @@ async function unpublish() {
         class="cf-draft-hint"
       >
         {{ $t(admin ? 'cloud.ui.draftReady' : 'cloud.ui.draftAskAdmin') }}
-      </p>
-      <p
-        v-else
-        class="cf-draft-hint"
-      >
-        {{
-          $t(
-            'cloud.messages.hiddenPhotographsStayHiddenPasswordProtectedAlbumsStillRequire',
-          )
-        }}
       </p>
       <p
         v-if="copied || copyError"

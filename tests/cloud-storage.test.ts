@@ -102,6 +102,7 @@ test('Credential vault authenticates Site/revision, keeps old objects usable and
       '0007_cloud_storage.sql',
       '0009_cloud_usage_events.sql',
       '0014_entitlements.sql',
+      '0025_site_storage_preferences.sql',
     ]) {
       const migration = await readFile(
         new URL('../packages/platform/migrations/' + name, import.meta.url),
@@ -109,9 +110,7 @@ test('Credential vault authenticates Site/revision, keeps old objects usable and
       )
       for (const sql of migration
         .replace(/^--.*$/gm, '')
-        .split(';')
-        .map((s) => s.trim())
-        .filter(Boolean))
+        .match(/\s*CREATE TRIGGER[\s\S]+?END;|[^;]+;/g) ?? [])
         await raw.prepare(sql).run()
     }
     const cipher = await createStorageCipher('platform-secret-'.repeat(4)),
@@ -190,6 +189,89 @@ test('Credential vault authenticates Site/revision, keeps old objects usable and
           .first()
       ).n,
       21,
+    )
+    await raw
+      .prepare(
+        'INSERT OR IGNORE INTO platform_users(id,created_at) VALUES(1,1)',
+      )
+      .run()
+    await raw
+      .prepare(
+        "INSERT INTO cloud_uploads(site_id,id,owner_id,photo_id,source_version,connection_id,object_key,expected_bytes,expires_at) VALUES(1,'before-retirement',1,'photo','1','storage','existing.jpg',1,9999999999999)",
+      )
+      .run()
+    await raw
+      .prepare(
+        "UPDATE platform_sites SET preferred_storage_id='storage' WHERE id=1",
+      )
+      .run()
+    await raw.batch([
+      raw.prepare(
+        "UPDATE cloud_storage_connections SET retired=1 WHERE site_id=1 AND id='storage'",
+      ),
+      raw.prepare(
+        "UPDATE platform_sites SET preferred_storage_id=NULL WHERE id=1 AND preferred_storage_id='storage'",
+      ),
+    ])
+    assert.equal(
+      (await vault.list()).find((c) => c.id === 'storage')?.uploads_enabled,
+      0,
+    )
+    assert.equal(
+      (await vault.get('storage', 1))?.credentials.secretAccessKey,
+      secretAccessKey,
+    )
+    assert.equal(
+      (
+        await raw
+          .prepare('SELECT preferred_storage_id FROM platform_sites WHERE id=1')
+          .first<any>()
+      ).preferred_storage_id,
+      null,
+    )
+    assert.equal(
+      (
+        await raw
+          .prepare('SELECT COUNT(*) AS n FROM cloud_uploads')
+          .first<any>()
+      ).n,
+      1,
+    )
+    await assert.rejects(
+      raw
+        .prepare(
+          "INSERT INTO cloud_uploads(site_id,id,owner_id,photo_id,source_version,connection_id,object_key,expected_bytes,expires_at) VALUES(1,'after-retirement',1,'photo2','1','storage','new.jpg',1,9999999999999)",
+        )
+        .run(),
+      /storage_connection_unavailable/,
+    )
+    await vault.create(
+      'replacement',
+      publicConfig,
+      { accessKeyId, secretAccessKey },
+      4,
+    )
+    assert.equal((await vault.list()).length, 21)
+    assert.equal(
+      (await vault.list()).filter((c) => c.uploads_enabled !== 0).length,
+      20,
+    )
+    assert.equal(
+      await vault.rotate(
+        'storage',
+        2,
+        { accessKeyId, secretAccessKey: 'replacement-read-secret' },
+        5,
+      ),
+      true,
+    )
+    assert.equal(
+      (await vault.list()).find((c) => c.id === 'storage')?.uploads_enabled,
+      0,
+    )
+    assert.equal(
+      (await vault.get('storage', 1))?.credentials.secretAccessKey,
+      secretAccessKey,
     )
   } finally {
     await mf.dispose()
