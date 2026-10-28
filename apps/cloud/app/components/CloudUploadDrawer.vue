@@ -173,16 +173,16 @@ async function dropFiles(event: DragEvent) {
         </p>
       </div></template
     ><template #footer
-      ><CloudButton
+      ><CfButton
         variant="destructive"
         v-if="uploading"
         @click="cancel"
-        >{{ $t('cloud.messages.cancelUpload') }}</CloudButton
-      ><CloudButton
+        >{{ $t('cloud.messages.cancelUpload') }}</CfButton
+      ><CfButton
         v-else
         variant="secondary"
         @click="uploadOpen = false"
-        >{{ $t('cloud.messages.done') }}</CloudButton
+        >{{ $t('cloud.messages.done') }}</CfButton
       ></template
     ></USlideover
   >

@@ -126,7 +126,7 @@ async function checkout(plan: any) {
           )
         }}
       </p>
-      <CloudRadioGroup
+      <CfRadioGroup
         v-model="billingPeriod"
         :label="$t('cloud.billing.interval')"
         :options="
@@ -159,10 +159,10 @@ async function checkout(plan: any) {
         class="cf-notice"
       >
         {{ $t('cloud.billing.failed') }}
-        <CloudButton
+        <CfButton
           variant="ghost"
           @click="billing.retry"
-          >{{ $t('cloud.billing.retry') }}</CloudButton
+          >{{ $t('cloud.billing.retry') }}</CfButton
         >
       </p>
       <p
@@ -172,13 +172,13 @@ async function checkout(plan: any) {
         {{ $t('cloud.billing.current') }}: {{ billing.data.value.plan.name }}
       </p>
     </template>
-    <CloudCard
+    <CfCard
       v-if="error"
       role="alert"
       ><p>{{ $t('cloud.billing.failed') }}</p>
-      <CloudButton @click="refresh">{{
+      <CfButton @click="refresh">{{
         $t('cloud.billing.retry')
-      }}</CloudButton></CloudCard
+      }}</CfButton></CfCard
     ><template v-else-if="data"
       ><div class="cf-pricing-grid">
         <article
@@ -192,12 +192,12 @@ async function checkout(plan: any) {
         >
           <div class="cf-plan-card-heading">
             <h2>{{ plan.name }}</h2>
-            <CloudBadge v-if="portal && plan.id === currentPlan">{{
+            <CfBadge v-if="portal && plan.id === currentPlan">{{
               $t('cloud.billing.current')
-            }}</CloudBadge
-            ><CloudBadge v-else-if="embedded && plan.featured">{{
+            }}</CfBadge
+            ><CfBadge v-else-if="embedded && plan.featured">{{
               $t('cloud.billing.recommended')
-            }}</CloudBadge>
+            }}</CfBadge>
           </div>
           <p class="cf-plan-description">
             {{ plan.description || $t('cloud.billing.simplePlan') }}
@@ -232,19 +232,19 @@ async function checkout(plan: any) {
                     )
             }}
           </p>
-          <CloudButton
+          <CfButton
             v-if="portal && !payment && payments?.error.value"
             variant="secondary"
             @click="payments?.refresh()"
-            >{{ $t('cloud.messages.retry') }}</CloudButton
+            >{{ $t('cloud.messages.retry') }}</CfButton
           >
-          <CloudButton
+          <CfButton
             v-else-if="portal && !payment"
             disabled
             variant="secondary"
-            >{{ $t('cloud.billing.loading') }}</CloudButton
+            >{{ $t('cloud.billing.loading') }}</CfButton
           >
-          <CloudButton
+          <CfButton
             v-else-if="portal && pendingFor(plan)"
             :disabled="!payment.pending.url || !!paying"
             @click="resume"
@@ -256,31 +256,31 @@ async function checkout(plan: any) {
                   : 'cloud.payments.waiting',
               )
             }}
-          </CloudButton>
-          <CloudButton
+          </CfButton>
+          <CfButton
             v-else-if="portal && plan.id === currentPlan"
             disabled
             variant="secondary"
-            >{{ $t('cloud.billing.current') }}</CloudButton
+            >{{ $t('cloud.billing.current') }}</CfButton
           >
-          <CloudButton
+          <CfButton
             v-else-if="portal && subscriptionActive && amount(plan) !== 0"
             :disabled="
               !payment.canManage || !!payment.pending || payments?.busy.value
             "
             variant="secondary"
             @click="payments?.portal()"
-            >{{ $t('cloud.payments.manage') }}</CloudButton
+            >{{ $t('cloud.payments.manage') }}</CfButton
           >
-          <CloudButton
+          <CfButton
             v-else-if="portal && offer(plan)"
             :loading="paying === plan.id + ':' + interval"
             :disabled="!!paying || !!payment.pending"
             :variant="plan.featured ? 'default' : 'secondary'"
             @click="checkout(plan)"
-            >{{ $t('cloud.payments.subscribe') }}</CloudButton
+            >{{ $t('cloud.payments.subscribe') }}</CfButton
           >
-          <CloudButton
+          <CfButton
             v-else-if="
               portal &&
               (billing?.data.value?.workspace.role !== 'admin' ||
@@ -289,9 +289,9 @@ async function checkout(plan: any) {
             disabled
             :title="$t('cloud.billing.adminOnly')"
             variant="secondary"
-            >{{ $t('cloud.billing.redeem') }}</CloudButton
+            >{{ $t('cloud.billing.redeem') }}</CfButton
           >
-          <CloudButton
+          <CfButton
             v-else
             as-child
             :variant="plan.featured ? 'default' : 'secondary'"
@@ -305,7 +305,7 @@ async function checkout(plan: any) {
                     : 'cloud.billing.redeem',
                 )
               }}</NuxtLink
-            ></CloudButton
+            ></CfButton
           >
           <ul class="cf-plan-features">
             <li
@@ -354,7 +354,7 @@ async function checkout(plan: any) {
         <h2>{{ $t('cloud.billing.compare') }}</h2>
         <p class="cf-field-hint">{{ $t('cloud.billing.comparisonHelp') }}</p>
         <div class="cf-table-scroll">
-          <CloudTable>
+          <CfTable>
             <caption class="sr-only">
               {{
                 $t('cloud.billing.compare')
@@ -395,7 +395,7 @@ async function checkout(plan: any) {
                 </td>
               </tr>
             </tbody>
-          </CloudTable>
+          </CfTable>
         </div>
       </section></template
     >

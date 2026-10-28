@@ -19,6 +19,7 @@
     "@chronoframe/database": "workspace:*",
     "@chronoframe/gallery": "workspace:*",
     "@chronoframe/platform": "workspace:*",
+    "@chronoframe/saas-ui": "workspace:*",
     "@chronoframe/storage": "workspace:*",
     "@nuxt/icon": "2.5.1",
     "@nuxt/ui": "^4.11.3",
@@ -28,8 +29,6 @@
     "@unhead/vue": "3.4.2",
     "@vueuse/nuxt": "14.4.0",
     "better-auth": "1.7.12",
-    "class-variance-authority": "^0.7.1",
-    "clsx": "^2.1.1",
     "dayjs-nuxt": "2.1.11",
     "h3": "1.15.11",
     "lucide-vue-next": "^1.0.0",
@@ -45,8 +44,6 @@
     "qrcode": "^1.5.4",
     "reflect-metadata": "0.2.2",
     "reka-ui": "^2.11.0",
-    "shadcn-nuxt": "^2.8.2",
-    "tailwind-merge": "^3.7.0",
     "vue": "^3.5.43"
   }
 }

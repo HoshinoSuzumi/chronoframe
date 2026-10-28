@@ -7,8 +7,7 @@ const galleryPages = fileURLToPath(
 )
 export default defineNuxtConfig({
   ...sharedUi,
-  modules: [...sharedUi.modules, 'shadcn-nuxt'],
-  shadcn: { prefix: '', componentDir: './app/components/ui' },
+  modules: sharedUi.modules,
   i18n: {
     strategy: 'no_prefix',
     defaultLocale: 'en',
@@ -43,7 +42,11 @@ export default defineNuxtConfig({
       wrangler: { name: 'chronoframe-cloud', compatibility_date: '2026-10-22' },
     },
   },
-  extends: ['../../packages/console', '../../packages/gallery'],
+  extends: [
+    '../../packages/saas-ui',
+    '../../packages/console',
+    '../../packages/gallery',
+  ],
   runtimeConfig: {
     ...sharedUi.runtimeConfig,
     public: {
@@ -69,7 +72,7 @@ export default defineNuxtConfig({
       workerSecret: '',
     },
   },
-  css: ['~/assets/console-tailwind.css', '~/assets/cloud.css'],
+  css: ['~/assets/cloud.css'],
   hooks: {
     'nitro:config'(config) {
       if (config.dev) {

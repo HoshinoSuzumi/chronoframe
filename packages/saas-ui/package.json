@@ -1,0 +1,21 @@
+{
+  "name": "@chronoframe/saas-ui",
+  "version": "0.1.0",
+  "private": true,
+  "license": "AGPL-3.0-only",
+  "type": "module",
+  "exports": {
+    ".": "./nuxt.config.ts"
+  },
+  "dependencies": {
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "lucide-vue-next": "^1.0.0",
+    "reka-ui": "^2.11.0",
+    "tailwind-merge": "^3.7.0",
+    "vue": "3.5.43"
+  },
+  "peerDependencies": {
+    "@nuxt/ui": "^4.11.3"
+  }
+}

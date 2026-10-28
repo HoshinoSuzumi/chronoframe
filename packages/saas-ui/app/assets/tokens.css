@@ -1,0 +1,96 @@
+/* The SaaS layer is opt-in: Self-hosted and public Site never import this file.
+ * Set tokens on html as well as the app so dialogs/menus teleported to body
+ * inherit exactly the same theme. Nuxt UI and Cf primitives share these values. */
+:root {
+  color-scheme: light;
+  --background: #f8f9fa;
+  --foreground: #282a30;
+  --card: #ffffff;
+  --card-foreground: var(--foreground);
+  --sidebar: #f0f1f3;
+  --primary: #34363d;
+  --primary-foreground: #ffffff;
+  --secondary: #eceef1;
+  --secondary-foreground: #363941;
+  --muted: #edeef1;
+  --muted-foreground: #646873;
+  --border: #e0e2e7;
+  --input: #d3d6dd;
+  --ring: #987333;
+  --accent: #866326;
+  --destructive: #b13f48;
+  --success: #297451;
+  --radius: 0.5rem;
+  --cf-primary: var(--accent);
+  --cf-ink: var(--foreground);
+  --cf-muted: var(--muted-foreground);
+  --cf-border: var(--border);
+  --cf-surface: var(--card);
+  --cf-control-height: 34px;
+  --cf-sidebar-width: 208px;
+  --cf-header-height: 48px;
+  --cf-content-width: 1360px;
+  --cf-font: 'Inter', 'Noto Sans SC', ui-sans-serif, system-ui, sans-serif;
+
+  /* Nuxt UI's supported semantic CSS API; includes teleported overlays. */
+  --ui-primary: var(--primary);
+  --ui-secondary: var(--secondary-foreground);
+  --ui-success: var(--success);
+  --ui-error: var(--destructive);
+  --ui-warning: var(--accent);
+  --ui-text: var(--foreground);
+  --ui-text-highlighted: var(--foreground);
+  --ui-text-toned: var(--foreground);
+  --ui-text-muted: var(--muted-foreground);
+  --ui-text-dimmed: var(--muted-foreground);
+  --ui-text-inverted: var(--primary-foreground);
+  --ui-bg: var(--background);
+  --ui-bg-muted: var(--muted);
+  --ui-bg-elevated: var(--card);
+  --ui-bg-accented: var(--secondary);
+  --ui-bg-inverted: var(--primary);
+  --ui-border: var(--border);
+  --ui-border-muted: var(--border);
+  --ui-border-accented: var(--input);
+  --ui-radius: var(--radius);
+}
+.dark {
+  color-scheme: dark;
+  --background: #202123;
+  --foreground: #dedfe3;
+  --card: #252629;
+  --sidebar: #191a1c;
+  --primary: #dedfe3;
+  --primary-foreground: #202123;
+  --secondary: #2c2e32;
+  --secondary-foreground: #dedfe3;
+  --muted: #2b2d31;
+  --muted-foreground: #a0a3ad;
+  --border: #34363c;
+  --input: #454851;
+  --ring: #c2a56f;
+  --accent: #c2a56f;
+  --destructive: #ed959e;
+  --success: #8bc6a7;
+}
+html,
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--cf-font);
+}
+.cf-root,
+.cf-error {
+  min-height: 100dvh;
+  color: var(--foreground);
+  background: var(--background);
+  font-family: var(--cf-font);
+  font-size: 14px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+body {
+  font-size: 14px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}

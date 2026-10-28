@@ -2,7 +2,7 @@
 import type { Component } from 'vue'
 import { Primitive, type PrimitiveProps } from 'reka-ui'
 import { cva, type VariantProps } from 'class-variance-authority'
-import { cn } from '../../../utils/cn'
+import { cn } from '../utils/cn'
 import { LoaderCircle } from 'lucide-vue-next'
 const variants = cva('cf-button', {
   variants: {
@@ -36,6 +36,12 @@ const props = withDefaults(
   >(),
   { as: 'button' },
 )
+function guardDisabled(event: Event) {
+  if (props.disabled || props.loading) {
+    event.preventDefault()
+    event.stopImmediatePropagation()
+  }
+}
 </script>
 <template>
   <Primitive
@@ -46,14 +52,17 @@ const props = withDefaults(
     :aria-busy="loading || undefined"
     :type="as === 'button' && !asChild ? 'button' : undefined"
     :data-disabled="disabled || loading || undefined"
+    :aria-disabled="disabled || loading || undefined"
+    :tabindex="asChild && (disabled || loading) ? -1 : undefined"
+    @click.capture="guardDisabled"
   >
     <LoaderCircle
-      v-if="loading"
+      v-if="loading && !asChild"
       class="cf-spin"
       :size="16"
       aria-hidden="true"
     /><component
-      v-else-if="icon"
+      v-else-if="icon && !asChild"
       :is="icon"
       :size="16"
       aria-hidden="true"

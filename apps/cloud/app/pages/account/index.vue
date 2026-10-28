@@ -28,16 +28,16 @@ const user = usePortalIdentity()
       >
         {{ $t('cloud.messages.profile') }}
       </h2>
-      <CloudCard class="cf-settings-card"
+      <CfCard class="cf-settings-card"
         ><div class="cf-setting-row">
           <div>
             <h3>{{ $t('cloud.messages.emailAddress') }}</h3>
             <p>{{ user?.email }}</p>
           </div>
-          <CloudBadge tone="success"
+          <CfBadge tone="success"
             ><ShieldCheck :size="12" />{{
               $t('cloud.messages.verified')
-            }}</CloudBadge
+            }}</CfBadge
           >
         </div>
         <div class="cf-setting-row">
@@ -46,7 +46,7 @@ const user = usePortalIdentity()
             <p>{{ $t('cloud.messages.chooseTheLightThatSuitsYou') }}</p>
           </div>
           <CloudThemeToggle /></div
-      ></CloudCard>
+      ></CfCard>
     </section>
     <CloudSecuritySettings />
   </div>

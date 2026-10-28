@@ -13,6 +13,9 @@ const name = ref('')
 const slug = ref('')
 const busy = ref(false)
 const error = ref('')
+function focusTrigger() {
+  if (!open.value) document.getElementById('create-site-trigger')?.focus()
+}
 let requestId = ''
 watch([name, slug], () => {
   requestId = ''
@@ -72,19 +75,20 @@ async function create() {
       ><Layers :size="15" />{{
         workspaceName || $t('cloud.messages.myWorkspace')
       }}</span
-    ><CloudButton
+    ><CfButton
       v-if="!open"
       id="create-site-trigger"
       size="sm"
       :disabled="checking"
       :loading="checking"
       @click="show"
-      ><Plus :size="15" />{{ $t('cloud.messages.createSite') }}</CloudButton
+      ><Plus :size="15" />{{ $t('cloud.messages.createSite') }}</CfButton
     >
   </div>
   <UModal
     v-model:open="quotaOpen"
     :title="$t('cloud.messages.createASite')"
+    @after:leave="focusTrigger"
   >
     <template #body>
       <CloudQuotaNotice
@@ -94,15 +98,15 @@ async function create() {
       />
     </template>
     <template #footer>
-      <CloudButton
+      <CfButton
         variant="secondary"
         @click="quotaOpen = false"
       >
         {{ $t('cloud.messages.cancel') }}
-      </CloudButton>
+      </CfButton>
     </template>
   </UModal>
-  <CloudCard
+  <CfCard
     v-if="open"
     class="cf-create-panel"
   >
@@ -119,7 +123,7 @@ async function create() {
       <div class="cf-create-fields">
         <div class="cf-field">
           <label for="site-name">{{ $t('cloud.messages.siteName') }}</label
-          ><CloudInput
+          ><CfInput
             id="site-name"
             v-model="name"
             required
@@ -130,7 +134,7 @@ async function create() {
         </div>
         <div class="cf-field">
           <label for="site-slug">{{ $t('cloud.messages.siteAddress') }}</label
-          ><CloudInput
+          ><CfInput
             id="site-slug"
             v-model="slug"
             required
@@ -165,7 +169,7 @@ async function create() {
         {{ error }}
       </p>
       <div class="cf-site-actions">
-        <CloudButton
+        <CfButton
           type="submit"
           :disabled="
             busy ||
@@ -178,15 +182,15 @@ async function create() {
             busy
               ? $t('cloud.messages.creating')
               : $t('cloud.messages.createDraft')
-          }}<ArrowRight :size="14" /></CloudButton
-        ><CloudButton
+          }}<ArrowRight :size="14" /></CfButton
+        ><CfButton
           type="button"
           variant="ghost"
           :disabled="busy"
           @click="cancel"
-          >{{ $t('cloud.messages.cancel') }}</CloudButton
+          >{{ $t('cloud.messages.cancel') }}</CfButton
         >
       </div>
     </form>
-  </CloudCard>
+  </CfCard>
 </template>

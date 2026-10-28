@@ -18,16 +18,16 @@ useSeoMeta({
         </p>
       </div>
     </div>
-    <CloudCard
+    <CfCard
       ><div class="cf-panel-heading">
         <h2>{{ $t('cloud.messages.platformStorage') }}</h2>
-        <CloudBadge>{{ allowance?.plan.name ?? '—' }}</CloudBadge>
+        <CfBadge>{{ allowance?.plan.name ?? '—' }}</CfBadge>
         <p>{{ $t('cloud.storageAllowance.description') }}</p>
         <p v-if="allowance">
           {{ (allowance.storageBytes / 1048576).toFixed(1) }} MiB /
           {{ (allowance.limits.storageBytes! / 1048576).toFixed(0) }} MiB
         </p>
-      </div></CloudCard
+      </div></CfCard
     >
     <CloudStorageSettings />
   </div>

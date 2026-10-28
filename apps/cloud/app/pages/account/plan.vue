@@ -57,22 +57,22 @@ const date = (time: number) => new Date(time).toLocaleString(locale.value)
       role="status"
     >
       {{ $t('cloud.payments.return_' + returned.state.value) }}
-      <CloudButton
+      <CfButton
         v-if="['pending', 'failed'].includes(returned.state.value)"
         variant="ghost"
         @click="returned.retry"
-        >{{ $t('cloud.payments.checkAgain') }}</CloudButton
+        >{{ $t('cloud.payments.checkAgain') }}</CfButton
       >
     </p>
-    <CloudCard
+    <CfCard
       v-if="error || listError"
       role="alert"
       ><p>{{ $t('cloud.billing.failed') }}</p>
-      <CloudButton @click="retry">{{
+      <CfButton @click="retry">{{
         $t('cloud.billing.retry')
-      }}</CloudButton></CloudCard
+      }}</CfButton></CfCard
     ><template v-else-if="data"
-      ><CloudCard class="cf-subscription-overview">
+      ><CfCard class="cf-subscription-overview">
         <div>
           <span class="cf-eyebrow">{{ $t('cloud.billing.current') }}</span>
           <h2>{{ data.plan.name }}</h2>
@@ -107,22 +107,22 @@ const date = (time: number) => new Date(time).toLocaleString(locale.value)
           </p>
         </div>
         <div class="cf-plan-management">
-          <CloudButton
+          <CfButton
             v-if="
               payments.data.value?.canManage &&
               payments.data.value.subscriptions.length
             "
             :loading="payments.busy.value"
             @click="payments.portal"
-            >{{ $t('cloud.payments.manage') }}</CloudButton
+            >{{ $t('cloud.payments.manage') }}</CfButton
           >
-          <CloudButton
+          <CfButton
             v-if="data.workspace.role === 'admin'"
             as-child
             variant="secondary"
             ><NuxtLink :to="links.redeem">{{
               $t('cloud.billing.redeem')
-            }}</NuxtLink></CloudButton
+            }}</NuxtLink></CfButton
           >
         </div>
         <p
@@ -132,7 +132,7 @@ const date = (time: number) => new Date(time).toLocaleString(locale.value)
         >
           {{ payments.error.value }}
         </p>
-      </CloudCard>
+      </CfCard>
       <section>
         <div class="cf-plan-section-heading">
           <div>
@@ -146,11 +146,11 @@ const date = (time: number) => new Date(time).toLocaleString(locale.value)
               }}
             </p>
           </div>
-          <CloudButton
+          <CfButton
             variant="ghost"
             :disabled="status === 'pending'"
             @click="refresh"
-            >{{ $t('cloud.billing.refresh') }}</CloudButton
+            >{{ $t('cloud.billing.refresh') }}</CfButton
           >
         </div>
         <div class="cf-quota-grid">
@@ -173,7 +173,7 @@ const date = (time: number) => new Date(time).toLocaleString(locale.value)
                   >/ {{ allowance(key, data.plan.limits[key], locale) }}</span
                 >
               </p>
-              <CloudProgress
+              <CfProgress
                 :value="ratio(key)"
                 :aria-label="$t('cloud.billing.' + key)"
                 :class="{ 'is-over': used(key)! > data.plan.limits[key] }"

@@ -8,12 +8,12 @@ defineProps<{
 }>()
 </script>
 <template>
-  <CloudCard class="cf-stat-card"
+  <CfCard class="cf-stat-card"
     ><span class="cf-stat-label">{{ label }}</span
-    ><CloudSkeleton
+    ><CfSkeleton
       v-if="loading"
       class="h-7 w-20" /><strong v-else>{{ value ?? '—' }}</strong
-    ><CloudProgress
+    ><CfProgress
       v-if="progress !== undefined"
       :value="progress"
       :aria-label="label" />
@@ -24,5 +24,5 @@ defineProps<{
       {{ detail }}
     </p>
     <slot
-  /></CloudCard>
+  /></CfCard>
 </template>

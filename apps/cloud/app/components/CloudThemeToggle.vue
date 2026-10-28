@@ -5,7 +5,7 @@ const dark = computed(() => mode.value === 'dark')
 </script>
 <template>
   <ClientOnly
-    ><CloudButton
+    ><CfButton
       variant="ghost"
       size="icon"
       :aria-label="
@@ -18,7 +18,7 @@ const dark = computed(() => mode.value === 'dark')
         v-if="dark"
         :size="18" /><Moon
         v-else
-        :size="18" /></CloudButton
+        :size="18" /></CfButton
     ><template #fallback><span class="cf-theme-placeholder" /></template
   ></ClientOnly>
 </template>

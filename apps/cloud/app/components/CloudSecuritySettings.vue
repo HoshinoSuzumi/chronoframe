@@ -165,7 +165,7 @@ async function deletePasskey(id: number) {
     >
       {{ notice }}
     </p>
-    <CloudCard class="cf-security-card"
+    <CfCard class="cf-security-card"
       ><div class="cf-settings-intro">
         <h2>{{ $t('cloud.messages.password') }}</h2>
         <p>
@@ -180,7 +180,7 @@ async function deletePasskey(id: number) {
           <label for="current-password">{{
             $t('cloud.messages.currentPassword')
           }}</label
-          ><CloudInput
+          ><CfInput
             id="current-password"
             v-model="password"
             type="password"
@@ -190,7 +190,7 @@ async function deletePasskey(id: number) {
           /><label for="new-password">{{
             $t('cloud.messages.newPassword')
           }}</label
-          ><CloudInput
+          ><CfInput
             id="new-password"
             v-model="newPassword"
             type="password"
@@ -199,10 +199,10 @@ async function deletePasskey(id: number) {
             maxlength="128"
             :disabled="busy"
             required
-          /><CloudButton
+          /><CfButton
             type="submit"
             :loading="busy"
-            >{{ $t('cloud.messages.updatePassword') }}</CloudButton
+            >{{ $t('cloud.messages.updatePassword') }}</CfButton
           >
         </form>
         <i18n-t
@@ -221,9 +221,9 @@ async function deletePasskey(id: number) {
             ></template
           >
         </i18n-t>
-      </div></CloudCard
+      </div></CfCard
     >
-    <CloudCard class="cf-security-card"
+    <CfCard class="cf-security-card"
       ><div class="cf-settings-intro">
         <div>
           <h2>{{ $t('cloud.messages.twoStepVerification') }}</h2>
@@ -235,21 +235,18 @@ async function deletePasskey(id: number) {
             }}
           </p>
         </div>
-        <CloudBadge
-          :tone="security?.twoFactorEnabled ? 'success' : 'neutral'"
-          >{{
-            security?.twoFactorEnabled
-              ? $t('cloud.messages.enabled')
-              : $t('cloud.messages.off')
-          }}</CloudBadge
-        >
+        <CfBadge :tone="security?.twoFactorEnabled ? 'success' : 'neutral'">{{
+          security?.twoFactorEnabled
+            ? $t('cloud.messages.enabled')
+            : $t('cloud.messages.off')
+        }}</CfBadge>
       </div>
       <div class="cf-settings-body">
         <template v-if="security?.hasPassword"
           ><label for="security-password">{{
             $t('cloud.messages.confirmYourPasswordToChangeSecuritySettings')
           }}</label
-          ><CloudInput
+          ><CfInput
             id="security-password"
             v-model="password"
             type="password"
@@ -257,25 +254,23 @@ async function deletePasskey(id: number) {
             :disabled="busy"
           />
           <div class="cf-security-actions">
-            <CloudButton
+            <CfButton
               v-if="!security.twoFactorEnabled"
               :disabled="busy || !password"
               @click="enable('otp')"
-              >{{ $t('cloud.messages.enableEmailVerification') }}</CloudButton
-            ><CloudButton
+              >{{ $t('cloud.messages.enableEmailVerification') }}</CfButton
+            ><CfButton
               v-if="!security.hasAuthenticator"
               variant="secondary"
               :disabled="busy || !password"
               @click="enable('totp')"
-              >{{ $t('cloud.messages.setUpAuthenticator') }}</CloudButton
-            ><CloudButton
+              >{{ $t('cloud.messages.setUpAuthenticator') }}</CfButton
+            ><CfButton
               v-if="security.twoFactorEnabled"
               variant="destructive"
               :disabled="busy || !password"
               @click="disable"
-              >{{
-                $t('cloud.messages.disableTwoStepVerification')
-              }}</CloudButton
+              >{{ $t('cloud.messages.disableTwoStepVerification') }}</CfButton
             >
           </div>
           <div
@@ -301,7 +296,7 @@ async function deletePasskey(id: number) {
               <label for="totp-code">{{
                 $t('cloud.messages.authenticatorCode')
               }}</label
-              ><CloudInput
+              ><CfInput
                 id="totp-code"
                 v-model="code"
                 inputmode="numeric"
@@ -310,10 +305,10 @@ async function deletePasskey(id: number) {
                 maxlength="6"
                 required
                 :disabled="busy"
-              /><CloudButton
+              /><CfButton
                 type="submit"
                 :loading="busy"
-                >{{ $t('cloud.messages.verifyAndEnable') }}</CloudButton
+                >{{ $t('cloud.messages.verifyAndEnable') }}</CfButton
               >
             </form>
           </div>
@@ -325,11 +320,11 @@ async function deletePasskey(id: number) {
                 )
               }}
             </p>
-            <CloudButton
+            <CfButton
               variant="secondary"
               :disabled="busy || !password"
               @click="regenerate"
-              >{{ $t('cloud.messages.replaceRecoveryCodes') }}</CloudButton
+              >{{ $t('cloud.messages.replaceRecoveryCodes') }}</CfButton
             >
           </div>
           <div
@@ -352,16 +347,16 @@ async function deletePasskey(id: number) {
                 <code>{{ item }}</code>
               </li>
             </ul>
-            <CloudButton
+            <CfButton
               variant="secondary"
               @click="backupCodes = []"
-              >{{ $t('cloud.messages.iHaveSavedMyCodes') }}</CloudButton
+              >{{ $t('cloud.messages.iHaveSavedMyCodes') }}</CfButton
             >
           </div></template
         >
-      </div></CloudCard
+      </div></CfCard
     >
-    <CloudCard class="cf-security-card"
+    <CfCard class="cf-security-card"
       ><div class="cf-settings-intro">
         <h2>{{ $t('cloud.messages.passkeys') }}</h2>
         <p>
@@ -375,17 +370,17 @@ async function deletePasskey(id: number) {
           <label for="passkey-name">{{
             $t('cloud.messages.passkeyName')
           }}</label
-          ><CloudInput
+          ><CfInput
             id="passkey-name"
             v-model="passkeyName"
             maxlength="80"
             autocomplete="off"
             :placeholder="$t('cloud.messages.forExampleMyLaptop')"
             :disabled="busy"
-          /><CloudButton
+          /><CfButton
             type="submit"
             :loading="busy"
-            >{{ $t('cloud.messages.createPasskey') }}</CloudButton
+            >{{ $t('cloud.messages.createPasskey') }}</CfButton
           >
         </form>
         <ul
@@ -397,7 +392,7 @@ async function deletePasskey(id: number) {
             :key="key.id"
           >
             <span>{{ key.name || $t('cloud.messages.passkey') }}</span
-            ><CloudButton
+            ><CfButton
               variant="destructive"
               size="sm"
               :disabled="busy"
@@ -407,7 +402,7 @@ async function deletePasskey(id: number) {
                 })
               "
               @click="deletePasskey(key.id)"
-              >{{ $t('cloud.messages.remove') }}</CloudButton
+              >{{ $t('cloud.messages.remove') }}</CfButton
             >
           </li>
         </ul>
@@ -417,7 +412,7 @@ async function deletePasskey(id: number) {
         >
           {{ $t('cloud.messages.noPasskeysYet') }}
         </p>
-      </div></CloudCard
+      </div></CfCard
     >
   </section>
 </template>

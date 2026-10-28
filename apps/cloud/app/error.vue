@@ -32,16 +32,16 @@ const notFound = computed(() => props.error.statusCode === 404)
       }}
     </p>
     <div class="cf-header-actions">
-      <CloudButton
+      <CfButton
         variant="secondary"
         as-child
         ><a href="https://chronoframe.art/"
           ><ArrowLeft :size="15" />{{ $t('cloud.messages.backToHome') }}</a
-        ></CloudButton
-      ><CloudButton
+        ></CfButton
+      ><CfButton
         v-if="!notFound"
         @click="reloadNuxtApp({ force: true })"
-        ><RotateCw :size="15" />{{ $t('cloud.messages.tryAgain') }}</CloudButton
+        ><RotateCw :size="15" />{{ $t('cloud.messages.tryAgain') }}</CfButton
       >
     </div>
   </main>

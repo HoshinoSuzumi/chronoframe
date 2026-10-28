@@ -6,26 +6,23 @@ must not change the Self-hosted or Site editions.
 
 ## Design language
 
-The Cloud theme adapts the [shadcn-vue](https://www.shadcn-vue.com/) composable
-component model: Reka UI `Primitive`/`asChild`, class-variance-authority variants,
-clsx/tailwind-merge overrides and editable local components. `components.json` and
-`shadcn-nuxt` configure this component directory. The `Cloud` prefix avoids collisions
-with shared gallery/console components. Local components are ChronoFrame-authored.
+Cloud uses the shared [SaaS UI layer](../../packages/saas-ui/README.md), also the
+required foundation for the future Admin app. Neutral graphite surfaces, quiet
+amber accents, compact controls and restrained borders follow the approved design.
 
-- `app/assets/cloud.css`: scoped shadcn semantic tokens, warm stone surfaces, forest
-  accents, consistent type scale, focus rings, spacing and responsive patterns.
-- `app/components/ui`: Button (variants, sizes, busy/disabled), Input (native form
-  semantics and v-model), Card and Badge. Prefer these primitives for Cloud changes.
-- `CloudPortalShell`: one responsive navigation/footer for account and site pages.
-- `useCloudMotion`: motion-v entry transitions, with reduced-motion support.
-- Lucide icons share size and stroke conventions; decorative icons accompany labels.
+- Shared `Cf*` primitives, semantic tokens, Nuxt UI overlays and `CfAppShell` live
+  in `packages/saas-ui`. Do not fork them inside Cloud or Admin.
+- `app/assets/cloud.css` owns Cloud feature composition, marketing and auth pages.
+- `CloudPortalShell` supplies the shared shell with Cloud navigation and identity.
+- The workspace overview is designed around one site; actual plans and quotas
+  remain authoritative. No allowance hides creation on the overview and shows an
+  on-demand modal on the Sites page.
 
-Use one primary action per flow, label inputs explicitly, announce errors and status,
-and make pending/error/empty states actionable. Do not present unimplemented P4
-features as working actions. Verification codes and sessions retain existing APIs.
-
-Theme preference uses Nuxt Color Mode. The palette follows light/dark system preference
-until the visitor chooses a theme. Desktop navigation becomes inline tabs on mobile.
+New visitors default to dark mode. Nuxt Color Mode preserves explicit preferences;
+light mode uses the same semantic theme. Mobile navigation is a focus-managed
+modal drawer. Use one primary action per flow and retain labeled native forms,
+keyboard focus, reduced-motion support and actionable pending/error/empty states.
+There is no shadcn runtime or Cloud-specific primitive directory.
 
 ## Photography
 

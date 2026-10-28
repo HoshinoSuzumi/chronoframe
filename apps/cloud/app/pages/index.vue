@@ -40,22 +40,22 @@ useSeoMeta({
             {{ $t('cloud.messages.aHomeForTheMomentsYouWantToShare') }}
           </p>
           <div class="cf-hero-actions">
-            <CloudButton
+            <CfButton
               as-child
               size="lg"
               ><NuxtLink
                 :to="links.signup"
                 external
                 >{{ $t('cloud.messages.createYourAccount')
-                }}<ArrowRight :size="16" /></NuxtLink></CloudButton
-            ><CloudButton
+                }}<ArrowRight :size="16" /></NuxtLink></CfButton
+            ><CfButton
               as-child
               variant="secondary"
               size="lg"
               ><a href="https://docs.chronoframe.art/guide/getting-started.html"
                 >{{ $t('cloud.messages.exploreSelfHosted')
                 }}<ArrowUpRight :size="16" /></a
-            ></CloudButton>
+            ></CfButton>
           </div>
           <p class="cf-small-note">
             {{ $t('cloud.messages.selfHostedIsAvailableNowCloudIsInPreview') }}
@@ -113,7 +113,7 @@ useSeoMeta({
               {{ $t('cloud.messages.thoughtfullySimpleEntirelyYours') }}
             </h2>
           </div>
-          <CloudBadge>{{ $t('cloud.messages.openSourceByNature') }}</CloudBadge>
+          <CfBadge>{{ $t('cloud.messages.openSourceByNature') }}</CfBadge>
         </div>
         <div class="cf-features">
           <article>

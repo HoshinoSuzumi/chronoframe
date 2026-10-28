@@ -20,25 +20,25 @@ const status = computed(() => (loading.value ? 'pending' : 'success'))
     :refresh="reload"
     :status="status"
   >
-    <CloudAlert
+    <CfAlert
       class="mb-4"
       v-if="loadError"
       tone="error"
     >
       {{ loadError
-      }}<CloudButton
+      }}<CfButton
         size="sm"
         variant="secondary"
         :loading="loading"
         @click="refreshMedia"
-        >{{ $t('cloud.messages.retry') }}</CloudButton
+        >{{ $t('cloud.messages.retry') }}</CfButton
       >
-    </CloudAlert>
-    <CloudAlert
+    </CfAlert>
+    <CfAlert
       class="mb-4"
       v-if="message && message !== loadError"
       :tone="failed ? 'error' : 'info'"
-      >{{ message }}</CloudAlert
+      >{{ message }}</CfAlert
     >
     <slot /><CloudUploadDrawer
   /></PhotosProvider>

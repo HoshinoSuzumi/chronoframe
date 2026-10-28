@@ -64,7 +64,7 @@ async function resend() {
 </script>
 <template>
   <CloudAuthLayout
-    ><CloudBadge>ChronoFrame Cloud</CloudBadge>
+    ><CfBadge>ChronoFrame Cloud</CfBadge>
     <h1>
       {{
         sent
@@ -85,7 +85,7 @@ async function resend() {
         :aria-busy="busy"
       >
         <label for="email">{{ $t('cloud.messages.emailAddress') }}</label
-        ><CloudInput
+        ><CfInput
           id="email"
           v-model="email"
           type="email"
@@ -94,7 +94,7 @@ async function resend() {
           required
         /><template v-if="!sent"
           ><label for="password">{{ $t('cloud.messages.password') }}</label
-          ><CloudInput
+          ><CfInput
             id="password"
             v-model="password"
             type="password"
@@ -113,7 +113,7 @@ async function resend() {
           ><label for="code">{{
             $t('cloud.messages.emailVerificationCode')
           }}</label
-          ><CloudInput
+          ><CfInput
             id="code"
             ref="codeInput"
             v-model="code"
@@ -131,15 +131,15 @@ async function resend() {
         >
           {{ error }}
         </p>
-        <CloudButton
+        <CfButton
           type="submit"
           :loading="busy"
           >{{
             sent
               ? $t('cloud.messages.verifyEmailAndContinue')
               : $t('cloud.messages.createAccount')
-          }}</CloudButton
-        ><CloudButton
+          }}</CfButton
+        ><CfButton
           variant="ghost"
           :disabled="busy || !email"
           @click="resend"
@@ -147,7 +147,7 @@ async function resend() {
             sent
               ? $t('cloud.messages.sendANewCode')
               : $t('cloud.messages.alreadyStartedResendVerification')
-          }}</CloudButton
+          }}</CfButton
         >
       </form>
       <p class="cf-auth-hint">

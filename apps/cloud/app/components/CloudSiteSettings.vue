@@ -170,7 +170,7 @@ async function save() {
 }
 </script>
 <template>
-  <CloudCard class="cf-site-settings">
+  <CfCard class="cf-site-settings">
     <div class="cf-panel-heading">
       <h2>{{ $t('cloud.messages.galleryIdentity') }}</h2>
       <p>{{ $t('cloud.messages.useTheSameTitleAuthorAndIconShownIn') }}</p>
@@ -181,10 +181,10 @@ async function save() {
       class="cf-notice"
     >
       {{ $t('cloud.messages.settingsCouldNotBeLoaded')
-      }}<CloudButton
+      }}<CfButton
         variant="ghost"
         @click="reload"
-        >{{ $t('cloud.messages.reloadSettings') }}</CloudButton
+        >{{ $t('cloud.messages.reloadSettings') }}</CfButton
       >
     </div>
     <template v-else-if="data">
@@ -198,7 +198,7 @@ async function save() {
             <label for="settings-site-name">{{
               $t('cloud.messages.workspaceSiteName')
             }}</label
-            ><CloudInput
+            ><CfInput
               id="settings-site-name"
               v-model="name"
               required
@@ -217,7 +217,7 @@ async function save() {
             <label for="gallery-title">{{
               $t('cloud.messages.publicTitle')
             }}</label
-            ><CloudInput
+            ><CfInput
               id="gallery-title"
               v-model="profile.title"
               maxlength="80"
@@ -227,7 +227,7 @@ async function save() {
           </div>
           <div class="cf-field">
             <label for="gallery-slogan">{{ $t('cloud.messages.slogan') }}</label
-            ><CloudInput
+            ><CfInput
               id="gallery-slogan"
               v-model="profile.slogan"
               maxlength="200"
@@ -236,7 +236,7 @@ async function save() {
           </div>
           <div class="cf-field">
             <label for="gallery-author">{{ $t('cloud.messages.author') }}</label
-            ><CloudInput
+            ><CfInput
               id="gallery-author"
               v-model="profile.author"
               maxlength="80"
@@ -269,13 +269,13 @@ async function save() {
             <p class="cf-field-hint">
               {{ $t('cloud.messages.pngJpegOrWebpUpTo2MibCropped') }}
             </p>
-            <CloudButton
+            <CfButton
               v-if="profile.avatarUrl"
               variant="secondary"
               size="sm"
               :disabled="busy || iconBusy"
               @click="profile.avatarUrl = ''"
-              >{{ $t('cloud.messages.removeIcon') }}</CloudButton
+              >{{ $t('cloud.messages.removeIcon') }}</CfButton
             >
             <p
               v-if="iconError"
@@ -326,7 +326,7 @@ async function save() {
                 ></label
               >
               <div class="cf-social-input-row">
-                <CloudInput
+                <CfInput
                   :id="'social-link-' + index"
                   v-model="socialDraft[index]"
                   type="url"
@@ -337,7 +337,7 @@ async function save() {
                   :aria-describedby="
                     socialErrors[index] ? 'social-error-' + index : undefined
                   "
-                /><CloudButton
+                /><CfButton
                   type="button"
                   variant="ghost"
                   :disabled="busy || !socialDraft[index]"
@@ -345,7 +345,7 @@ async function save() {
                     $t('cloud.presentation.clear', { number: index + 1 })
                   "
                   @click="socialDraft[index] = ''"
-                  >×</CloudButton
+                  >×</CfButton
                 >
               </div>
               <p
@@ -359,7 +359,7 @@ async function save() {
             </div>
           </section>
           <div class="cf-site-actions">
-            <CloudButton
+            <CfButton
               type="submit"
               :disabled="
                 busy || iconBusy || !name.trim() || socialErrors.some(Boolean)
@@ -368,13 +368,13 @@ async function save() {
                 busy
                   ? $t('cloud.messages.saving')
                   : $t('cloud.messages.saveChanges')
-              }}</CloudButton
-            ><CloudButton
+              }}</CfButton
+            ><CfButton
               type="button"
               variant="ghost"
               :disabled="busy"
               @click="reload"
-              >{{ $t('cloud.messages.reloadSettings') }}</CloudButton
+              >{{ $t('cloud.messages.reloadSettings') }}</CfButton
             >
           </div>
         </form>
@@ -397,5 +397,5 @@ async function save() {
         </p>
       </div>
     </template>
-  </CloudCard>
+  </CfCard>
 </template>
