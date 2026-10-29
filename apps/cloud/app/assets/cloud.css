@@ -3061,6 +3061,6 @@ a.cf-domain-address:hover {
 }
 @media (prefers-reduced-motion: reduce) {
   .cf-payment-spinner {
-    animation-duration: 2s;
+    animation: none;
   }
 }

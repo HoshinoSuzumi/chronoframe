@@ -15,6 +15,7 @@ export function useCloudPayments(
     try {
       const result = await $fetch('/api/billing/payments', {
         query: { workspaceId: id },
+        timeout: 15000,
       })
       if (alive && current === generation) {
         data.value = result
