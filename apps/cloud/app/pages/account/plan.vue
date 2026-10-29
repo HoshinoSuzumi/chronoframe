@@ -50,8 +50,34 @@ const date = (time: number) => new Date(time).toLocaleString(locale.value)
         <p class="cf-page-description">{{ $t('cloud.billing.planHelp') }}</p>
       </div>
     </div>
+    <UModal
+      :open="returned.state.value === 'checking'"
+      :dismissible="false"
+      :close="false"
+      :title="$t('cloud.payments.processing')"
+      :ui="{
+        content: 'cf-payment-processing-modal',
+        header: 'sr-only',
+        body: 'p-0',
+      }"
+    >
+      <template #body>
+        <div
+          class="cf-payment-processing"
+          role="status"
+          aria-live="polite"
+          aria-busy="true"
+        >
+          <span
+            class="cf-payment-spinner"
+            aria-hidden="true"
+          />
+          <p>{{ $t('cloud.payments.processing') }}</p>
+        </div>
+      </template>
+    </UModal>
     <p
-      v-if="returned.state.value !== 'idle'"
+      v-if="!['idle', 'checking'].includes(returned.state.value)"
       class="cf-notice"
       role="status"
     >

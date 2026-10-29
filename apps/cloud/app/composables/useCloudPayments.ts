@@ -7,14 +7,20 @@ export function useCloudPayments(
     busy = ref(false),
     error = ref('')
   let generation = 0,
-    alive = true
+    alive = true,
+    pending = false
   async function refresh() {
     const current = ++generation,
       id = Number(toValue(workspaceId))
-    if (!id) return
+    if (!id) {
+      pending = false
+      return
+    }
+    pending = true
     try {
       const result = await $fetch('/api/billing/payments', {
         query: { workspaceId: id },
+        timeout: 15000,
       })
       if (alive && current === generation) {
         data.value = result
@@ -23,6 +29,8 @@ export function useCloudPayments(
     } catch {
       if (alive && current === generation)
         error.value = t('cloud.payments.failed')
+    } finally {
+      if (current === generation) pending = false
     }
   }
   watch(
@@ -39,7 +47,7 @@ export function useCloudPayments(
     generation++
   })
   useIntervalFn(() => {
-    if (document.visibilityState === 'visible') void refresh()
+    if (document.visibilityState === 'visible' && !pending) void refresh()
   }, 15000)
   return { data, busy, error, refresh }
 }

@@ -7,6 +7,7 @@ export function useWorkspaceBilling(adminOnly = false) {
     async () => {
       const list = await fetcher<{ workspaces: Workspace[] }>(
         '/api/billing/workspaces',
+        { timeout: 15000 },
       )
       const primary =
         list.workspaces.find((w) => w.owned) ??
@@ -16,6 +17,7 @@ export function useWorkspaceBilling(adminOnly = false) {
       const plan = id
         ? await fetcher<any>('/api/billing/plan', {
             query: { workspaceId: id },
+            timeout: 15000,
           })
         : null
       return {

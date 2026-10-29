@@ -225,6 +225,15 @@ async function checkout(plan: any) {
             'is-current': portal && plan.id === currentPlan,
           }"
         >
+          <span
+            v-if="discountBps(plan) > 0 && originalAmount(plan) > 0"
+            class="cf-plan-discount-ribbon"
+            >−{{
+              new Intl.NumberFormat(locale, {
+                maximumFractionDigits: 2,
+              }).format(discountBps(plan) / 100)
+            }}%</span
+          >
           <div class="cf-plan-card-heading">
             <h2>{{ plan.name }}</h2>
             <CfBadge v-if="portal && plan.id === currentPlan">{{
@@ -237,18 +246,10 @@ async function checkout(plan: any) {
           <p class="cf-plan-description">
             {{ plan.description || $t('cloud.billing.simplePlan') }}
           </p>
-          <p
-            v-if="discountBps(plan) > 0 && originalAmount(plan) > 0"
-            class="cf-price-caption cf-plan-discount"
-          >
-            <del>{{ price(originalAmount(plan), plan.currency, locale) }}</del>
-            <CfBadge
-              >−{{
-                new Intl.NumberFormat(locale, {
-                  maximumFractionDigits: 2,
-                }).format(discountBps(plan) / 100)
-              }}%</CfBadge
-            >
+          <p class="cf-plan-original-price">
+            <del v-if="discountBps(plan) > 0 && originalAmount(plan) > 0">{{
+              price(originalAmount(plan), plan.currency, locale)
+            }}</del>
           </p>
           <div class="cf-plan-price">
             <strong>{{

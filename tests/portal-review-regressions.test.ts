@@ -2,9 +2,20 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import test from 'node:test'
 import vm from 'node:vm'
+import { createServer } from 'node:http'
+import { createRequire } from 'node:module'
 import ts from 'typescript'
 import { isAlbumPagePath } from '../packages/gallery/shared/utils/albumPath.ts'
-import { ref, reactive, computed, readonly, watch, effectScope } from 'vue'
+import {
+  ref,
+  reactive,
+  computed,
+  readonly,
+  watch,
+  effectScope,
+  toValue,
+  nextTick,
+} from 'vue'
 
 function load(
   file: string,
@@ -407,4 +418,139 @@ test('Primary billing workspace consistently prefers ownership then administrati
   state = module.useWorkspaceBilling()
   await state.ready
   assert.equal(selected, 1)
+})
+
+test('billing refresh aborts stalled workspace, plan and payment reads', async () => {
+  const require = createRequire(import.meta.url)
+  const { $fetch } = createRequire(require.resolve('nuxt/package.json'))(
+    'ofetch',
+  )
+  let stalledPath = ''
+  let closed: Promise<void> = Promise.resolve()
+  const server = createServer((request, response) => {
+    if (request.url?.split('?')[0] === stalledPath) {
+      closed = new Promise<void>((resolve) => response.once('close', resolve))
+      return
+    }
+    response.setHeader('Content-Type', 'application/json')
+    response.end(
+      JSON.stringify({ workspaces: [{ id: 1, role: 'admin', owned: 1 }] }),
+    )
+  })
+  await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve))
+  const address = server.address() as { port: number }
+  const fetcher = (url: string, options: any) => {
+    // Exercise the real fetch timeout/abort path on a shorter test clock.
+    assert.equal(options?.timeout, 15000)
+    return $fetch(url, {
+      ...options,
+      baseURL: `http://127.0.0.1:${address.port}`,
+      timeout: 100,
+      retry: 0,
+    })
+  }
+  const scope = effectScope()
+  try {
+    const billingModule = load(
+      'apps/cloud/app/composables/useWorkspaceBilling.ts',
+      {
+        usePortalIdentity: () => ref({ id: 1 }),
+        useRequestFetch: () => fetcher,
+        useAsyncData: (_key: string, run: any) => ({
+          data: ref(null),
+          error: ref(null),
+          status: ref('idle'),
+          refresh: run,
+        }),
+        onMounted: () => {},
+      },
+    )
+    const billing = scope.run(() => billingModule.useWorkspaceBilling())!
+    for (const path of ['/api/billing/workspaces', '/api/billing/plan']) {
+      stalledPath = path
+      await assert.rejects(billing.refresh(), /timeout/i)
+      await closed // The underlying HTTP request was canceled, not merely raced.
+    }
+    const paymentsModule = load(
+      'apps/cloud/app/composables/useCloudPayments.ts',
+      {
+        toValue: (value: any) =>
+          typeof value === 'function' ? value() : value,
+        $fetch: fetcher,
+        onMounted: () => {},
+        onBeforeUnmount: () => {},
+        useIntervalFn: () => {},
+      },
+    )
+    const payments = scope.run(() => paymentsModule.useCloudPayments(1))!
+    stalledPath = '/api/billing/payments'
+    await payments.refresh()
+    await closed
+    assert.ok(payments.error.value)
+    assert.equal(payments.data.value, undefined)
+  } finally {
+    scope.stop()
+    server.closeAllConnections()
+    await new Promise<void>((resolve, reject) =>
+      server.close((error) => (error ? reject(error) : resolve())),
+    )
+  }
+})
+
+test('payments polling preserves in-flight timeout errors and retries without superseding workspace refreshes', async () => {
+  const requests: {
+    resolve: (value: any) => void
+    reject: (error: Error) => void
+  }[] = []
+  let poll!: () => void
+  const workspaceId = ref(1)
+  const module = load('apps/cloud/app/composables/useCloudPayments.ts', {
+    toValue,
+    document: { visibilityState: 'visible' },
+    $fetch: () =>
+      new Promise((resolve, reject) => requests.push({ resolve, reject })),
+    onMounted: () => {},
+    onBeforeUnmount: () => {},
+    useIntervalFn: (callback: () => void) => {
+      poll = callback
+    },
+  })
+  const flush = async () => {
+    for (let n = 0; n < 8; n++) await nextTick()
+  }
+  const scope = effectScope()
+  try {
+    const payments = scope.run(() => module.useCloudPayments(workspaceId))!
+    const first = payments.refresh()
+    poll() // The timer fires just before the existing request times out.
+    assert.equal(requests.length, 1)
+    requests[0]!.reject(new Error('Request timeout'))
+    await first
+    assert.ok(payments.error.value)
+    poll() // The following tick retries the failed request.
+    assert.equal(requests.length, 2)
+    requests[1]!.resolve({ workspaceId: 1 })
+    await flush()
+    assert.equal(payments.error.value, '')
+    assert.equal(payments.data.value.workspaceId, 1)
+    const stale = payments.refresh()
+    workspaceId.value = 2
+    await flush()
+    assert.equal(requests.length, 4)
+    requests[2]!.resolve({ workspaceId: 1 })
+    await stale
+    // Finishing the superseded request must not clear the new request's pending flag.
+    poll()
+    assert.equal(requests.length, 4)
+    assert.equal(payments.data.value, null)
+    requests[3]!.resolve({ workspaceId: 2 })
+    await flush()
+    assert.equal(payments.data.value.workspaceId, 2)
+    poll()
+    assert.equal(requests.length, 5)
+    requests[4]!.resolve({ workspaceId: 2 })
+    await flush()
+  } finally {
+    scope.stop()
+  }
 })

@@ -27,6 +27,7 @@ export function useDodoCheckoutReturn(
           '/api/billing/payments',
           {
             method: 'POST',
+            timeout: 15000,
             body: { action: 'refresh', workspaceId: id, checkoutId: checkout },
           },
         )
@@ -40,7 +41,7 @@ export function useDodoCheckoutReturn(
       } catch (error: any) {
         if (!alive || current !== generation) return
         if (
-          [400, 401, 403, 404, 410, 503].includes(
+          [400, 401, 403, 404, 410, 422, 503].includes(
             error?.statusCode ?? error?.status,
           )
         ) {

@@ -616,8 +616,33 @@ async function reconcileDodoSubscription(
           (p) => p.subscription_id === subscriptionId,
         )
       : null
-    let start = period ? timestamp(period.starts_at) : known?.period_start
-    let end = period ? timestamp(period.ends_at) : known?.period_end
+    if (!successful && !known) fail('payment_confirmation_pending')
+    // Older Dodo responses can omit service_periods for the initial payment.
+    // Only recover the first, checkout-bound period: subscription dates alone
+    // must never extend an existing grant or turn a usage-only renewal into access.
+    const initialStart = timestamp(subscription.previous_billing_date)
+    const initialEnd = timestamp(subscription.next_billing_date)
+    const initialPaymentTime = timestamp(payment?.created_at)
+    const initialPeriod =
+      successful &&
+      !known &&
+      !period &&
+      !payment?.service_periods?.length &&
+      (!payment?.charge_type || payment.charge_type === 'new') &&
+      subscription.status === 'active' &&
+      Math.abs(initialStart - initialPaymentTime) <= 300000 &&
+      initialEnd > now &&
+      initialEnd - initialStart <= (checkout.interval * 31 + 1) * 86400000
+    let start = period
+      ? timestamp(period.starts_at)
+      : initialPeriod
+        ? initialStart
+        : known?.period_start
+    let end = period
+      ? timestamp(period.ends_at)
+      : initialPeriod
+        ? initialEnd
+        : known?.period_end
     if (
       !Number.isFinite(start) ||
       !Number.isFinite(end) ||
@@ -649,7 +674,6 @@ async function reconcileDodoSubscription(
       !(payment && (payment.refunds?.length || payment.disputes?.length))
     // A failed/refunded payment may revoke but may never extend a paid-through boundary.
     if (!successful && known) end = known.period_end
-    if (!successful && !known) fail('payment_confirmation_pending')
     const prior = await db
       .prepare('SELECT * FROM platform_workspace_plans WHERE workspace_id=?')
       .bind(checkout.workspace_id)

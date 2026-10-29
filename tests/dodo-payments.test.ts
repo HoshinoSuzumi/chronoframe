@@ -1275,3 +1275,69 @@ test('manual synchronization retries immediately and reports only safe HTTP and 
     await f.mf.dispose()
   }
 })
+
+for (const months of [1, 3]) {
+  test(`initial ${months}-month checkout recovers missing service periods without accepting unrelated billing dates`, async () => {
+    const f = await fixture()
+    try {
+      await syncDodoProducts(f.db, root, f.transport)
+      const checkout = await createPaymentCheckout(
+        f.db,
+        root,
+        1,
+        { ...input(), interval: months },
+        'https://portal.example',
+        f.transport,
+      )
+      const { sub, payment } = await f.paid(checkout, months)
+      const legacy = payment as any
+      if (months === 1) delete legacy.service_periods
+      else legacy.service_periods = []
+      legacy.charge_type = 'renewal'
+      const refresh = () =>
+        refreshDodoCheckout(f.db, root, 1, 1, checkout.id, f.transport)
+      await assert.rejects(refresh(), { code: 'payment_period_invalid' })
+      legacy.charge_type = 'new'
+      const start = sub.previous_billing_date
+      sub.previous_billing_date = new Date(f.now - 86400000).toISOString()
+      await assert.rejects(refresh(), { code: 'payment_period_invalid' })
+      sub.previous_billing_date = start
+      const end = sub.next_billing_date
+      sub.next_billing_date = new Date(
+        f.now + (months * 31 + 2) * 86400000,
+      ).toISOString()
+      await assert.rejects(refresh(), { code: 'payment_period_invalid' })
+      sub.next_billing_date = end
+      // A service period for another subscription must not trigger the fallback.
+      legacy.service_periods = [
+        { subscription_id: 'sub_other', starts_at: start, ends_at: end },
+      ]
+      await assert.rejects(refresh(), { code: 'payment_period_invalid' })
+      delete legacy.service_periods
+      delete legacy.charge_type // Older API responses can omit both new fields.
+      assert.equal((await refresh()).state, 'completed')
+      const assignment = () =>
+        f.db
+          .prepare(
+            'SELECT * FROM platform_workspace_plans WHERE workspace_id=1',
+          )
+          .first<any>()
+      const granted = await assignment()
+      assert.equal(granted.plan_id, 'pro')
+      assert.equal(granted.starts_at, Date.parse(start))
+      assert.equal(granted.expires_at, Date.parse(end))
+      await refresh()
+      assert.equal((await assignment()).starts_at, granted.starts_at)
+      assert.equal((await assignment()).revision, granted.revision)
+      // Subscription dates moving forward cannot extend access without a paid service period.
+      sub.previous_billing_date = end
+      sub.next_billing_date = new Date(
+        f.now + months * 56 * 86400000,
+      ).toISOString()
+      await refresh()
+      assert.equal((await assignment()).expires_at, granted.expires_at)
+    } finally {
+      await f.mf.dispose()
+    }
+  })
+}
