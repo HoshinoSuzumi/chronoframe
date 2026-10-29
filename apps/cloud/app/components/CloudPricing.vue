@@ -99,11 +99,6 @@ const offer = (plan: any) =>
   payment.value.offers.some(
     (v: any) => v.plan_id === plan.id && v.interval === interval.value,
   )
-const subscriptionActive = computed(() =>
-  payment.value?.subscriptions.some(
-    (v: any) => !['expired', 'canceled'].includes(v.status),
-  ),
-)
 async function checkout(plan: any) {
   if (paying.value || !billing?.selected.value) return
   const workspaceId = billing.selected.value,
@@ -302,15 +297,6 @@ async function checkout(plan: any) {
             disabled
             variant="secondary"
             >{{ $t('cloud.billing.current') }}</CfButton
-          >
-          <CfButton
-            v-else-if="portal && subscriptionActive && amount(plan) !== 0"
-            :disabled="
-              !payment.canManage || !!payment.pending || payments?.busy.value
-            "
-            variant="secondary"
-            @click="payments?.portal()"
-            >{{ $t('cloud.payments.manage') }}</CfButton
           >
           <CfButton
             v-else-if="portal && offer(plan)"

@@ -41,23 +41,5 @@ export function useCloudPayments(
   useIntervalFn(() => {
     if (document.visibilityState === 'visible') void refresh()
   }, 15000)
-  async function portal() {
-    if (busy.value) return
-    busy.value = true
-    error.value = ''
-    const id = Number(toValue(workspaceId))
-    try {
-      const result = await $fetch<{ url: string }>('/api/billing/payments', {
-        method: 'POST',
-        body: { action: 'portal', workspaceId: id },
-      })
-      if (alive && id === Number(toValue(workspaceId)))
-        await navigateTo(result.url, { external: true })
-    } catch {
-      if (alive) error.value = t('cloud.payments.failed')
-    } finally {
-      busy.value = false
-    }
-  }
-  return { data, busy, error, refresh, portal }
+  return { data, busy, error, refresh }
 }

@@ -68,7 +68,10 @@ export async function pricingCatalog(db: PlatformD1) {
     .first<{ new_plan_id: string }>()
   const payment = await paymentSettings(db)
   return {
-    paymentAvailable: payment.enabled && payment.purchaseMethod === 'payment',
+    paymentAvailable:
+      payment.enabled &&
+      payment.providerAvailable &&
+      payment.purchaseMethod === 'payment',
     purchaseMethod: payment.enabled
       ? payment.purchaseMethod
       : 'activation_code',

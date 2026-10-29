@@ -315,7 +315,7 @@ test('Overview data stays unknown before the first response and retains counts d
   assert.equal(media.albums.value.length, 1)
 })
 
-test('Payment maintenance failures do not block authoritative reconciliation or expose raw errors', async () => {
+test('Retired payment scheduler only runs local retention and never exposes raw errors', async () => {
   let scheduled: any
   const calls: string[] = [],
     logs: string[] = []
@@ -353,11 +353,10 @@ test('Payment maintenance failures do not block authoritative reconciliation or 
     },
   })
   await scheduled({ env: { DB: {}, NUXT_PLATFORM_STORAGE_SECRET: 'fixture' } })
-  assert.deepEqual(calls, ['sync', 'expiry', 'reconcile'])
-  assert.deepEqual(logs, [
-    'payment_product_sync_failed',
-    'payment_payload_expiry_failed',
-  ])
+  assert.deepEqual(calls, ['expiry'])
+  assert.deepEqual(logs, ['payment_payload_expiry_failed'])
+  await scheduled({ env: {} })
+  assert.deepEqual(calls, ['expiry'])
 })
 
 test('Primary billing workspace consistently prefers ownership then administrative membership', async () => {
