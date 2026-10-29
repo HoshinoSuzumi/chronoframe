@@ -76,7 +76,68 @@ export async function dodoClient(
     }),
   }
 }
-/** Provider bodies and SDK errors can contain credentials or customer data. */
+const productFields = new Set([
+  'name',
+  'description',
+  'tax_category',
+  'price',
+  'price.currency',
+  'price.price',
+  'price.discount',
+  'price.discount_bps',
+  'price.payment_frequency_count',
+  'price.payment_frequency_interval',
+  'price.subscription_period_count',
+  'price.subscription_period_interval',
+  'price.tax_inclusive',
+  'price.trial_period_days',
+  'metadata',
+])
+function validationField(body: unknown): string | undefined {
+  if (!body || typeof body !== 'object') return
+  const value = body as Record<string, unknown>
+  const entries = Array.isArray(value.detail)
+    ? value.detail
+    : Array.isArray(value.errors)
+      ? value.errors
+      : [value]
+  for (const entry of entries) {
+    if (!entry || typeof entry !== 'object') continue
+    const field = entry as Record<string, unknown>
+    const path = Array.isArray(field.loc)
+      ? field.loc
+          .filter((part) => typeof part === 'string' && part !== 'body')
+          .join('.')
+      : (field.field ?? field.param ?? field.path)
+    if (typeof path === 'string' && productFields.has(path)) return path
+  }
+  // Retain only a known schema field from older API validation messages, never the message or values.
+  const missing =
+    typeof value.message === 'string'
+      ? /missing field [`'"]([a-z_]+)[`'"]/.exec(value.message)?.[1]
+      : undefined
+  if (missing && productFields.has('price.' + missing))
+    return 'price.' + missing
+}
+export class DodoProviderError extends SubscriptionError {
+  providerStatus?: number
+  providerField?: string
+  constructor(code: string, providerStatus?: number, providerField?: string) {
+    super(502, code)
+    this.providerStatus = providerStatus
+    this.providerField = providerField
+  }
+  diagnostic() {
+    return [
+      this.code,
+      this.providerStatus ? 'http_' + this.providerStatus : null,
+      this.providerField,
+    ]
+      .filter(Boolean)
+      .join(':')
+  }
+}
+/** Persist only typed HTTP status and allowlisted field names, never SDK bodies, headers or messages. */
 export async function dodoRequest<T>(
   operation: () => PromiseLike<T>,
 ): Promise<T> {
@@ -84,6 +145,34 @@ export async function dodoRequest<T>(
     return await operation()
   } catch (error) {
     if (error instanceof SubscriptionError) throw error
-    throw new SubscriptionError(502, 'payment_provider_request_failed')
+    if (error instanceof DodoPayments.APIConnectionTimeoutError)
+      throw new DodoProviderError('payment_provider_timeout')
+    if (error instanceof DodoPayments.APIError && error.status) {
+      const status = error.status
+      const code =
+        status === 401
+          ? 'payment_provider_authentication_failed'
+          : status === 403
+            ? 'payment_provider_permission_denied'
+            : status === 400 || status === 422
+              ? 'payment_provider_validation_failed'
+              : status === 429
+                ? 'payment_provider_rate_limited'
+                : status >= 500
+                  ? 'payment_provider_unavailable'
+                  : 'payment_provider_request_failed'
+      throw new DodoProviderError(
+        code,
+        status,
+        status === 400 || status === 422
+          ? validationField(error.error)
+          : undefined,
+      )
+    }
+    throw new DodoProviderError(
+      error instanceof DodoPayments.APIConnectionError
+        ? 'payment_provider_connection_failed'
+        : 'payment_provider_request_failed',
+    )
   }
 }

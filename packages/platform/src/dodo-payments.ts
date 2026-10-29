@@ -10,6 +10,7 @@ import {
 import { paymentMember, paymentSettings } from './payments.ts'
 import {
   dodoClient,
+  DodoProviderError,
   dodoRequest,
   dodoId,
   rawDodoId,
@@ -45,6 +46,7 @@ export async function syncDodoProducts(
   transport: typeof fetch = fetch,
   now = Date.now(),
   limit = 2,
+  force = false,
 ) {
   const settings = await paymentSettings(db)
   if (!settings.enabled || !settings.providerAvailable || !settings.configured)
@@ -66,16 +68,17 @@ export async function syncDodoProducts(
     )
     .bind(key, syncToken, now + 240000, now)
     .first<any>()
-  if (syncLock?.token !== syncToken) return { processed: 0 }
+  if (syncLock?.token !== syncToken) return { processed: 0, busy: true }
   try {
     const plans = await allRows<any>(
       db
         .prepare(
-          'SELECT p.*,i.period,COALESCE(f.attempts,0) AS sync_attempts FROM platform_plans p CROSS JOIN (SELECT 1 AS period UNION ALL SELECT 3) i LEFT JOIN platform_dodo_products d ON d.provider_key=? AND d.plan_id=p.id AND d.interval=i.period LEFT JOIN platform_dodo_sync_failures f ON f.provider_key=? AND f.plan_id=p.id AND f.interval=i.period AND f.plan_revision=p.revision AND f.credential_revision=? WHERE (f.next_attempt_at IS NULL OR f.next_attempt_at<=?) AND p.active=1 AND p.listed=1 AND CASE WHEN i.period=1 THEN p.monthly_price ELSE p.quarterly_price END>0 AND (d.product_id IS NULL OR d.plan_revision<>p.revision OR d.credential_revision<>?) ORDER BY p.sort_order,p.id,i.period LIMIT ?',
+          'SELECT p.*,i.period,COALESCE(f.attempts,0) AS sync_attempts FROM platform_plans p CROSS JOIN (SELECT 1 AS period UNION ALL SELECT 3) i LEFT JOIN platform_dodo_products d ON d.provider_key=? AND d.plan_id=p.id AND d.interval=i.period LEFT JOIN platform_dodo_sync_failures f ON f.provider_key=? AND f.plan_id=p.id AND f.interval=i.period AND f.plan_revision=p.revision AND f.credential_revision=? WHERE (?=1 OR f.next_attempt_at IS NULL OR f.next_attempt_at<=?) AND p.active=1 AND p.listed=1 AND CASE WHEN i.period=1 THEN p.monthly_price ELSE p.quarterly_price END>0 AND (d.product_id IS NULL OR d.plan_revision<>p.revision OR d.credential_revision<>?) ORDER BY p.sort_order,p.id,i.period LIMIT ?',
         )
-        .bind(key, key, revision, now, revision, limit),
+        .bind(key, key, revision, force ? 1 : 0, now, revision, limit),
     )
-    let processed = 0
+    let processed = 0,
+      failed = 0
     for (const plan of plans) {
       try {
         const price = Number(
@@ -103,6 +106,8 @@ export async function syncDodoProducts(
             subscription_period_interval: 'Year' as const,
             tax_inclusive: true,
             trial_period_days: 0,
+            // Older Dodo API deployments still require the integer-percent field. New APIs prefer discount_bps.
+            discount: Math.floor(discountBps / 100),
             discount_bps: discountBps,
             purchasing_power_parity: false,
           },
@@ -123,6 +128,20 @@ export async function syncDodoProducts(
         )
         if (!identifier(product.product_id))
           fail('payment_product_invalid', 502)
+        const returnedPrice = product.price
+        if (
+          returnedPrice?.type !== 'recurring_price' ||
+          returnedPrice.price !== price ||
+          returnedPrice.currency !== plan.currency ||
+          returnedPrice.payment_frequency_count !== plan.period ||
+          returnedPrice.payment_frequency_interval !== 'Month'
+        )
+          fail('payment_product_mismatch', 502)
+        if (
+          (returnedPrice.discount_bps ??
+            (returnedPrice.discount ?? 0) * 100) !== discountBps
+        )
+          fail('payment_discount_precision_unsupported', 422)
         const published = await db
           .prepare(
             `INSERT INTO platform_dodo_products(provider_key,plan_id,interval,product_id,price,currency,discount_bps,effective_price,plan_revision,credential_revision,updated_at) SELECT ?,?,?,?,?,?,?,?,?,?,? WHERE ${activeFence} AND EXISTS(SELECT 1 FROM platform_dodo_sync_locks WHERE provider_key=? AND token=? AND expires_at>?) AND EXISTS(SELECT 1 FROM platform_plans WHERE id=? AND revision=?) ON CONFLICT(provider_key,plan_id,interval) DO UPDATE SET product_id=excluded.product_id,price=excluded.price,currency=excluded.currency,discount_bps=excluded.discount_bps,effective_price=excluded.effective_price,plan_revision=excluded.plan_revision,credential_revision=excluded.credential_revision,updated_at=excluded.updated_at`,
@@ -158,15 +177,20 @@ export async function syncDodoProducts(
           processed++
         }
       } catch (error) {
+        failed++
         const code =
-          error instanceof SubscriptionError &&
-          [
-            'payment_price_invalid',
-            'payment_product_invalid',
-            'payment_provider_request_failed',
-          ].includes(error.code)
-            ? error.code
-            : 'payment_product_sync_failed'
+          error instanceof DodoProviderError
+            ? error.diagnostic()
+            : error instanceof SubscriptionError &&
+                [
+                  'payment_price_invalid',
+                  'payment_product_invalid',
+                  'payment_product_mismatch',
+                  'payment_discount_precision_unsupported',
+                  'payment_provider_request_failed',
+                ].includes(error.code)
+              ? error.code
+              : 'payment_product_sync_failed'
         const attempts = Number(plan.sync_attempts) + 1
         const nextAttempt =
           now + Math.min(3600000, 30000 * 2 ** Math.min(attempts - 1, 7))
@@ -192,7 +216,7 @@ export async function syncDodoProducts(
           .run()
       }
     }
-    return { processed }
+    return { processed, failed }
   } finally {
     await db
       .prepare(

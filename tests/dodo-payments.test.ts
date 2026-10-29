@@ -937,7 +937,7 @@ test('product failures persist redacted backoff without starving later plans and
       .first<any>()
     assert.equal(failure.attempts, 1)
     assert.equal(failure.next_attempt_at, f.now + 30000)
-    assert.equal(failure.error, 'payment_provider_request_failed')
+    assert.equal(failure.error, 'payment_provider_validation_failed:http_422')
     assert.ok(!JSON.stringify(failure).includes('private-provider'))
     assert.equal(
       (await syncDodoProducts(f.db, root, transport, f.now + 1)).processed,
@@ -1127,6 +1127,149 @@ test('stale Dodo attempts release slots only in the active profile and remain re
           .first<any>()
       ).plan_id,
       'pro',
+    )
+  } finally {
+    await f.mf.dispose()
+  }
+})
+
+test('product synchronization supports legacy required discounts without silently changing fractional discounts', async () => {
+  const f = await fixture()
+  try {
+    const legacy: typeof fetch = async (input, init) => {
+      const url = new URL(
+        typeof input === 'string'
+          ? input
+          : input instanceof URL
+            ? input.href
+            : input.url,
+      )
+      if (url.pathname === '/products' && init?.method === 'POST') {
+        const body = JSON.parse(String(init.body))
+        if (!Number.isInteger(body.price.discount))
+          return Response.json(
+            { message: 'missing field `discount`' },
+            { status: 422 },
+          )
+        const response = await f.transport(input, init),
+          product = (await response.json()) as any
+        delete product.price.discount_bps
+        f.products.set(product.product_id, product)
+        return Response.json(product)
+      }
+      return f.transport(input, init)
+    }
+    await f.db
+      .prepare(
+        "UPDATE platform_plans SET monthly_discount_bps=2000,quarterly_discount_bps=2000,revision=revision+1 WHERE id='pro'",
+      )
+      .run()
+    assert.deepEqual(await syncDodoProducts(f.db, root, legacy), {
+      processed: 2,
+      failed: 0,
+    })
+    const checkout = await createPaymentCheckout(
+      f.db,
+      root,
+      1,
+      input(),
+      'https://portal.example',
+      legacy,
+    )
+    assert.ok(checkout.url)
+    assert.equal(
+      (
+        await f.db
+          .prepare('SELECT price FROM platform_payment_checkouts WHERE id=?')
+          .bind(checkout.id)
+          .first<any>()
+      ).price,
+      960,
+    )
+    await f.db
+      .prepare(
+        "UPDATE platform_plans SET monthly_discount_bps=1250,revision=revision+1 WHERE id='pro'",
+      )
+      .run()
+    const result = await syncDodoProducts(f.db, root, legacy)
+    assert.equal(result.failed, 1)
+    const failure = await f.db
+      .prepare(
+        "SELECT error FROM platform_dodo_sync_failures WHERE provider_key='dodo_test' AND interval=1",
+      )
+      .first<any>()
+    assert.equal(failure.error, 'payment_discount_precision_unsupported')
+    assert.equal(
+      (await paymentStatus(f.db, 1, 1)).offers.filter((o) => o.interval === 1)
+        .length,
+      0,
+    )
+  } finally {
+    await f.mf.dispose()
+  }
+})
+test('manual synchronization retries immediately and reports only safe HTTP and schema diagnostics', async () => {
+  const f = await fixture()
+  try {
+    let attempts = 0,
+      status = 401
+    const rejected: typeof fetch = async () => {
+      attempts++
+      return Response.json(
+        {
+          message: 'missing field `discount`',
+          private_key: 'secret-do-not-store',
+          detail: [
+            { loc: ['body', 'price', 'discount'], input: 'secret-input' },
+          ],
+        },
+        { status },
+      )
+    }
+    assert.deepEqual(await syncDodoProducts(f.db, root, rejected, f.now), {
+      processed: 0,
+      failed: 2,
+    })
+    let row = await f.db
+      .prepare(
+        "SELECT * FROM platform_dodo_sync_failures WHERE provider_key='dodo_test' AND interval=1",
+      )
+      .first<any>()
+    assert.equal(row.error, 'payment_provider_authentication_failed:http_401')
+    await syncDodoProducts(f.db, root, rejected, f.now + 1)
+    assert.equal(attempts, 2)
+    status = 422
+    await syncDodoProducts(f.db, root, rejected, f.now + 2, 20, true)
+    assert.equal(attempts, 4)
+    row = await f.db
+      .prepare(
+        "SELECT * FROM platform_dodo_sync_failures WHERE provider_key='dodo_test' AND interval=1",
+      )
+      .first<any>()
+    assert.equal(
+      row.error,
+      'payment_provider_validation_failed:http_422:price.discount',
+    )
+    assert.ok(!JSON.stringify(row).includes('secret'))
+    status = 403
+    await syncDodoProducts(f.db, root, rejected, f.now + 3, 20, true)
+    row = await f.db
+      .prepare(
+        "SELECT * FROM platform_dodo_sync_failures WHERE provider_key='dodo_test' AND interval=1",
+      )
+      .first<any>()
+    assert.equal(row.error, 'payment_provider_permission_denied:http_403')
+    assert.deepEqual(
+      await syncDodoProducts(f.db, root, f.transport, f.now + 4, 20, true),
+      { processed: 2, failed: 0 },
+    )
+    assert.equal(
+      (
+        await f.db
+          .prepare('SELECT COUNT(*) AS n FROM platform_dodo_sync_failures')
+          .first<any>()
+      ).n,
+      0,
     )
   } finally {
     await f.mf.dispose()
