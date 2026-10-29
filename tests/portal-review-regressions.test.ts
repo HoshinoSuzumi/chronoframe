@@ -6,7 +6,16 @@ import { createServer } from 'node:http'
 import { createRequire } from 'node:module'
 import ts from 'typescript'
 import { isAlbumPagePath } from '../packages/gallery/shared/utils/albumPath.ts'
-import { ref, reactive, computed, readonly, watch, effectScope } from 'vue'
+import {
+  ref,
+  reactive,
+  computed,
+  readonly,
+  watch,
+  effectScope,
+  toValue,
+  nextTick,
+} from 'vue'
 
 function load(
   file: string,
@@ -485,5 +494,63 @@ test('billing refresh aborts stalled workspace, plan and payment reads', async (
     await new Promise<void>((resolve, reject) =>
       server.close((error) => (error ? reject(error) : resolve())),
     )
+  }
+})
+
+test('payments polling preserves in-flight timeout errors and retries without superseding workspace refreshes', async () => {
+  const requests: {
+    resolve: (value: any) => void
+    reject: (error: Error) => void
+  }[] = []
+  let poll!: () => void
+  const workspaceId = ref(1)
+  const module = load('apps/cloud/app/composables/useCloudPayments.ts', {
+    toValue,
+    document: { visibilityState: 'visible' },
+    $fetch: () =>
+      new Promise((resolve, reject) => requests.push({ resolve, reject })),
+    onMounted: () => {},
+    onBeforeUnmount: () => {},
+    useIntervalFn: (callback: () => void) => {
+      poll = callback
+    },
+  })
+  const flush = async () => {
+    for (let n = 0; n < 8; n++) await nextTick()
+  }
+  const scope = effectScope()
+  try {
+    const payments = scope.run(() => module.useCloudPayments(workspaceId))!
+    const first = payments.refresh()
+    poll() // The timer fires just before the existing request times out.
+    assert.equal(requests.length, 1)
+    requests[0]!.reject(new Error('Request timeout'))
+    await first
+    assert.ok(payments.error.value)
+    poll() // The following tick retries the failed request.
+    assert.equal(requests.length, 2)
+    requests[1]!.resolve({ workspaceId: 1 })
+    await flush()
+    assert.equal(payments.error.value, '')
+    assert.equal(payments.data.value.workspaceId, 1)
+    const stale = payments.refresh()
+    workspaceId.value = 2
+    await flush()
+    assert.equal(requests.length, 4)
+    requests[2]!.resolve({ workspaceId: 1 })
+    await stale
+    // Finishing the superseded request must not clear the new request's pending flag.
+    poll()
+    assert.equal(requests.length, 4)
+    assert.equal(payments.data.value, null)
+    requests[3]!.resolve({ workspaceId: 2 })
+    await flush()
+    assert.equal(payments.data.value.workspaceId, 2)
+    poll()
+    assert.equal(requests.length, 5)
+    requests[4]!.resolve({ workspaceId: 2 })
+    await flush()
+  } finally {
+    scope.stop()
   }
 })
