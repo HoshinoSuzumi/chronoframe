@@ -131,6 +131,15 @@ test('provider profiles are isolated, encrypted, redacted, audited and revision 
       ),
       input.credentials,
     )
+    await assert.rejects(
+      openProviderCredentials(
+        key,
+        'stripe',
+        'test',
+        changed.credentials_ciphertext,
+      ),
+      { name: 'OperationError' },
+    )
     const safe = JSON.stringify({
       providers: await paymentProviders(db),
       audit: (await db.prepare('SELECT * FROM platform_admin_audit').all())
