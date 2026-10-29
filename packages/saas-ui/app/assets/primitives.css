@@ -208,14 +208,36 @@
   border-collapse: collapse;
   font-size: 13px;
   text-align: left;
+  color: var(--foreground);
+  background: var(--card);
+}
+.cf-table :is(th, td) {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
 }
 .cf-table th {
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 550;
   color: var(--muted-foreground);
+  background: var(--secondary);
+  white-space: nowrap;
+}
+.cf-table td {
+  font-size: 13px;
+  color: var(--foreground);
+}
+.cf-table tbody tr:hover {
+  background: color-mix(in srgb, var(--muted) 50%, transparent);
 }
 .cf-table tbody tr:last-child td {
   border-bottom: 0;
+}
+.cf-table td > .cf-button + .cf-button {
+  margin-inline-start: 6px;
+}
+.cf-data-table {
+  overflow-x: auto;
 }
 .cf-segmented-control {
   display: inline-flex;
@@ -425,4 +447,36 @@
   border: 0;
   border-top: 1px solid var(--border);
   margin-block: 1.5em;
+}
+
+/* A solid action surface keeps controls readable over horizontally scrolled cells. */
+.cf-table .cf-table-actions {
+  --cf-action-background: var(--card);
+  position: sticky;
+  right: 0;
+  z-index: 10;
+  width: 1%;
+  white-space: nowrap;
+  background: var(--cf-action-background);
+}
+.cf-table th.cf-table-actions {
+  --cf-action-background: var(--secondary);
+  z-index: 20;
+}
+.cf-table .cf-table-actions::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: -1px;
+  right: 100%;
+  width: 28px;
+  background: linear-gradient(
+    to left,
+    var(--cf-action-background),
+    transparent
+  );
+  pointer-events: none;
+}
+.cf-table tbody tr:hover .cf-table-actions {
+  --cf-action-background: color-mix(in srgb, var(--muted) 50%, var(--card));
 }

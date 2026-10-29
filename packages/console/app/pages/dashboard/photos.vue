@@ -2824,126 +2824,82 @@ onUnmounted(() => {
               </template>
             </ConsoleMediaTable>
 
-            <!-- 悬浮版批量操作菜单 -->
-            <transition
-              enter-active-class="transition-all duration-300 ease-out"
-              enter-from-class="translate-y-8 opacity-0 scale-95"
-              enter-to-class="translate-y-0 opacity-100 scale-100"
-              leave-active-class="transition-all duration-200 ease-in"
-              leave-from-class="translate-y-0 opacity-100 scale-100"
-              leave-to-class="translate-y-8 opacity-0 scale-95"
+            <ConsoleSelectionToolbar
+              :count="selectedRowsCount"
+              :total="totalRowsCount"
+              range-tip
             >
-              <div
-                v-if="selectedRowsCount > 0"
-                class="fixed bottom-8 left-1/2 -translate-x-1/2 z-60 w-max flex flex-col items-center gap-2"
+              <UButton
+                color="primary"
+                variant="ghost"
+                size="sm"
+                class="rounded-full"
+                icon="tabler:album"
+                :aria-label="$t('dashboard.photos.selection.addToAlbum')"
+                @click="openAddToAlbum"
               >
-                <p
-                  class="hidden items-center gap-1.5 max-w-[calc(100vw-2rem)] px-3 py-1 rounded-full bg-white/80 dark:bg-neutral-900/80 backdrop-blur-xl border border-neutral-200/80 dark:border-neutral-800/80 text-xs text-neutral-500 dark:text-neutral-400 pointer-fine:flex"
-                >
-                  <Icon
-                    name="tabler:info-circle"
-                    class="size-3.5 shrink-0"
-                  />
-                  {{ $t('ui.action.select.rangeTip') }}
-                </p>
+                <span class="hidden sm:inline">{{
+                  $t('dashboard.photos.selection.addToAlbum')
+                }}</span>
+              </UButton>
+              <UButton
+                color="neutral"
+                variant="ghost"
+                size="sm"
+                class="rounded-full text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100 dark:text-neutral-400 dark:hover:text-white dark:hover:bg-neutral-800"
+                icon="tabler:refresh"
+                :aria-label="$t('dashboard.photos.selection.batchReprocess')"
+                @click="handleBatchReprocess"
+              >
+                <span class="hidden sm:inline">{{
+                  $t('dashboard.photos.selection.batchReprocess')
+                }}</span>
+              </UButton>
 
-                <div
-                  class="max-w-[calc(100vw-1rem)] overflow-x-auto px-2 py-1.5 bg-white/90 dark:bg-neutral-900/90 backdrop-blur-xl shadow-xl rounded-full border border-neutral-200/80 dark:border-neutral-800/80 flex items-center gap-3 sm:gap-6 shadow-black/5 dark:shadow-black/20"
-                >
-                  <div
-                    class="pl-4 pr-1 border-r border-neutral-200 dark:border-neutral-800 min-w-max"
-                  >
-                    <p
-                      class="text-sm font-medium tracking-wide text-neutral-700 dark:text-neutral-200"
-                    >
-                      {{
-                        $t('dashboard.photos.selection.selected', {
-                          count: selectedRowsCount,
-                          total: totalRowsCount,
-                        })
-                      }}
-                    </p>
-                  </div>
+              <UButton
+                color="neutral"
+                variant="ghost"
+                size="sm"
+                class="rounded-full text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100 dark:text-neutral-400 dark:hover:text-white dark:hover:bg-neutral-800"
+                icon="tabler:map-off"
+                :aria-label="
+                  $t('dashboard.photos.selection.batchEraseLocation')
+                "
+                @click="handleBatchEraseLocation"
+              >
+                <span class="hidden sm:inline">{{
+                  $t('dashboard.photos.selection.batchEraseLocation')
+                }}</span>
+              </UButton>
 
-                  <div class="flex items-center gap-1 sm:gap-1.5 pr-2">
-                    <UButton
-                      color="primary"
-                      variant="ghost"
-                      size="sm"
-                      class="rounded-full"
-                      icon="tabler:album"
-                      :aria-label="$t('dashboard.photos.selection.addToAlbum')"
-                      @click="openAddToAlbum"
-                    >
-                      <span class="hidden sm:inline">{{
-                        $t('dashboard.photos.selection.addToAlbum')
-                      }}</span>
-                    </UButton>
-                    <UButton
-                      color="neutral"
-                      variant="ghost"
-                      size="sm"
-                      class="rounded-full text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100 dark:text-neutral-400 dark:hover:text-white dark:hover:bg-neutral-800"
-                      icon="tabler:refresh"
-                      :aria-label="
-                        $t('dashboard.photos.selection.batchReprocess')
-                      "
-                      @click="handleBatchReprocess"
-                    >
-                      <span class="hidden sm:inline">{{
-                        $t('dashboard.photos.selection.batchReprocess')
-                      }}</span>
-                    </UButton>
+              <UButton
+                color="neutral"
+                variant="ghost"
+                size="sm"
+                class="rounded-full text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100 dark:text-neutral-400 dark:hover:text-white dark:hover:bg-neutral-800"
+                icon="tabler:download"
+                :aria-label="$t('dashboard.photos.selection.batchDownload')"
+                @click="handleBatchDownload"
+              >
+                <span class="hidden sm:inline">{{
+                  $t('dashboard.photos.selection.batchDownload')
+                }}</span>
+              </UButton>
 
-                    <UButton
-                      color="neutral"
-                      variant="ghost"
-                      size="sm"
-                      class="rounded-full text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100 dark:text-neutral-400 dark:hover:text-white dark:hover:bg-neutral-800"
-                      icon="tabler:map-off"
-                      :aria-label="
-                        $t('dashboard.photos.selection.batchEraseLocation')
-                      "
-                      @click="handleBatchEraseLocation"
-                    >
-                      <span class="hidden sm:inline">{{
-                        $t('dashboard.photos.selection.batchEraseLocation')
-                      }}</span>
-                    </UButton>
-
-                    <UButton
-                      color="neutral"
-                      variant="ghost"
-                      size="sm"
-                      class="rounded-full text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100 dark:text-neutral-400 dark:hover:text-white dark:hover:bg-neutral-800"
-                      icon="tabler:download"
-                      :aria-label="
-                        $t('dashboard.photos.selection.batchDownload')
-                      "
-                      @click="handleBatchDownload"
-                    >
-                      <span class="hidden sm:inline">{{
-                        $t('dashboard.photos.selection.batchDownload')
-                      }}</span>
-                    </UButton>
-
-                    <UButton
-                      color="error"
-                      variant="ghost"
-                      size="sm"
-                      class="rounded-full hover:bg-error-50 dark:hover:bg-error-500/20"
-                      icon="tabler:trash"
-                      :aria-label="$t('dashboard.photos.selection.batchDelete')"
-                      @click="handleBatchDelete"
-                    >
-                      <span class="hidden sm:inline">{{
-                        $t('dashboard.photos.selection.batchDelete')
-                      }}</span>
-                    </UButton>
-                  </div>
-                </div>
-              </div>
-            </transition>
+              <UButton
+                color="error"
+                variant="ghost"
+                size="sm"
+                class="rounded-full hover:bg-error-50 dark:hover:bg-error-500/20"
+                icon="tabler:trash"
+                :aria-label="$t('dashboard.photos.selection.batchDelete')"
+                @click="handleBatchDelete"
+              >
+                <span class="hidden sm:inline">{{
+                  $t('dashboard.photos.selection.batchDelete')
+                }}</span>
+              </UButton>
+            </ConsoleSelectionToolbar>
           </div>
         </div>
 

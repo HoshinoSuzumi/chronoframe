@@ -1394,9 +1394,6 @@
   border-radius: 10px;
   background: var(--card);
 }
-.cf-library-table table {
-  font-size: 12px;
-}
 .cf-library-thumb {
   display: flex;
   width: 52px;
@@ -1452,16 +1449,16 @@
   font-size: 14px;
   font-weight: 500;
 }
-.cf-selection-bar {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 8px;
-  padding: 10px 12px;
-  margin-bottom: 10px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  background: var(--secondary);
+.console-selection-toolbar .cf-button {
+  border-radius: 999px;
+  flex-shrink: 0;
+}
+.console-selection-toolbar .cf-bulk-delete {
+  color: var(--destructive);
+}
+.cf-library-date {
+  font-family: ui-monospace, monospace;
+  white-space: nowrap;
   font-size: 12px;
 }
 .cf-processing-panel {
@@ -1665,8 +1662,12 @@
   overflow-y: auto;
 }
 
-.cf-photo-preview > .webgl-image-viewer {
-  height: min(65svh, 650px);
+.cf-photo-preview {
+  overflow-y: auto;
+  border-radius: 8px;
+}
+.cf-photo-preview > * {
+  width: 100%;
 }
 .cf-preview-details {
   padding: 12px 16px;
@@ -2924,14 +2925,34 @@ a.cf-domain-address:hover {
   flex-wrap: wrap;
   align-items: center;
   justify-content: center;
-  gap: 10px;
+  gap: 4px 16px;
+  padding-block: 12px;
   color: var(--muted-foreground);
   font-size: 12px;
   line-height: 1.6;
 }
+.cf-legal-links a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
+  padding: 4px 2px;
+  text-underline-offset: 4px;
+  border-radius: 4px;
+}
 .cf-legal-links a:hover {
   color: var(--foreground);
   text-decoration: underline;
+}
+.cf-legal-links a:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 4px;
+}
+.cf-legal-toolbar .cf-legal-links {
+  justify-content: flex-start;
+  padding-block: 0;
+}
+.cf-auth-main .cf-legal-links {
+  padding-block: 2px;
 }
 .cf-legal-page {
   width: min(100% - 40px, 800px);
@@ -2983,4 +3004,29 @@ a.cf-domain-address:hover {
   color: var(--muted-foreground);
   font-size: 12px;
   margin-top: 20px;
+}
+
+.cf-marketing-footer .cf-legal-links {
+  padding-block: 0;
+  gap: 4px 16px;
+}
+.cf-auth-bottom .cf-text-link {
+  display: inline-block;
+  margin-inline-start: 6px;
+}
+.cf-pricing > .cf-legal-links,
+.cf-redeem-page > .cf-legal-links {
+  margin-top: 8px;
+}
+
+.cf-marketing-footer {
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px 24px;
+}
+.cf-auth-main .cf-legal-disclosure {
+  width: 100%;
+  max-width: 370px;
+  margin: 0 auto 12px;
+  gap: 2px;
 }
