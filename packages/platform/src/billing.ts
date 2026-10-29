@@ -1,3 +1,4 @@
+import { discountedPrice } from '../../contracts/src/pricing.ts'
 import type { PlatformD1 } from './index.ts'
 import {
   allRows,
@@ -5,6 +6,7 @@ import {
   SubscriptionError,
 } from './subscriptions.ts'
 import { workspaceEntitlements, validatePolicy } from './entitlements.ts'
+import { paymentSettings } from './payments.ts'
 export const CURRENCIES = [
   'USD',
   'CNY',
@@ -37,10 +39,26 @@ export function validatePricing(value: unknown) {
         Number(p[key]) > 10000000000)
     )
       throw new SubscriptionError(400, 'invalid_pricing')
+  for (const [priceKey, discountKey] of [
+    ['monthlyPrice', 'monthlyDiscountBps'],
+    ['quarterlyPrice', 'quarterlyDiscountBps'],
+  ] as const) {
+    const discount = p[discountKey] ?? 0
+    if (
+      !Number.isSafeInteger(discount) ||
+      Number(discount) < 0 ||
+      Number(discount) > 9999 ||
+      (Number(p[priceKey]) > 0 &&
+        discountedPrice(Number(p[priceKey]), Number(discount))! < 1)
+    )
+      throw new SubscriptionError(400, 'invalid_pricing')
+  }
   return {
     currency: p.currency as string,
     monthlyPrice: p.monthlyPrice as number | null,
     quarterlyPrice: p.quarterlyPrice as number | null,
+    monthlyDiscountBps: Number(p.monthlyDiscountBps ?? 0),
+    quarterlyDiscountBps: Number(p.quarterlyDiscountBps ?? 0),
     listed: p.listed,
     featured: p.featured as boolean | undefined,
     description: p.description,
@@ -55,25 +73,52 @@ export async function pricingCatalog(db: PlatformD1) {
     currency: string
     monthly_price: number | null
     quarterly_price: number | null
+    monthly_discount_bps: number
+    quarterly_discount_bps: number
     description: string
     featured: number
   }>(
     db.prepare(
-      'SELECT id,name,policy_json,currency,monthly_price,quarterly_price,description,featured FROM platform_plans WHERE active=1 AND listed=1 ORDER BY sort_order,id',
+      'SELECT id,name,policy_json,currency,monthly_price,quarterly_price,monthly_discount_bps,quarterly_discount_bps,description,featured FROM platform_plans WHERE active=1 AND listed=1 ORDER BY sort_order,id',
     ),
   )
   const settings = await db
     .prepare('SELECT new_plan_id FROM platform_billing_settings WHERE id=1')
     .first<{ new_plan_id: string }>()
+  const payment = await paymentSettings(db)
   return {
-    paymentAvailable: false,
+    paymentAvailable:
+      payment.enabled &&
+      payment.providerAvailable &&
+      payment.purchaseMethod === 'payment',
+    purchaseMethod: payment.enabled
+      ? payment.purchaseMethod
+      : 'activation_code',
     newPlanId: settings?.new_plan_id ?? 'free',
     plans: rows.map(
-      ({ policy_json, monthly_price, quarterly_price, featured, ...row }) => ({
+      ({
+        policy_json,
+        monthly_price,
+        quarterly_price,
+        monthly_discount_bps,
+        quarterly_discount_bps,
+        featured,
+        ...row
+      }) => ({
         ...row,
         featured: !!featured,
         monthlyPrice: monthly_price,
         quarterlyPrice: quarterly_price,
+        monthlyDiscountBps: monthly_discount_bps,
+        quarterlyDiscountBps: quarterly_discount_bps,
+        monthlyEffectivePrice: discountedPrice(
+          monthly_price,
+          monthly_discount_bps,
+        ),
+        quarterlyEffectivePrice: discountedPrice(
+          quarterly_price,
+          quarterly_discount_bps,
+        ),
         policy: validatePolicy(JSON.parse(policy_json)),
       }),
     ),

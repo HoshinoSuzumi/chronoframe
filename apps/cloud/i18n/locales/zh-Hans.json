@@ -690,7 +690,7 @@
     "payments": {
       "billing": "订阅账单",
       "test": "测试环境",
-      "testHelp": "使用 Creem 测试付款，不产生真实扣费。",
+      "testHelp": "使用 Dodo 测试付款，不产生真实扣费。",
       "failed": "暂时无法完成支付操作，请刷新账单状态后重试。",
       "pending": "正在等待渠道确认付款，请勿重复订阅。",
       "manage": "管理账单与订阅",
@@ -698,6 +698,8 @@
       "subscribe": "测试订阅",
       "manageExisting": "已有订阅，请前往账单管理",
       "status": {
+        "pending": "待确认",
+        "failed": "失败",
         "active": "有效",
         "trialing": "试用中",
         "scheduled_cancel": "周期结束后取消",
@@ -709,6 +711,7 @@
       },
       "waiting": "等待确认",
       "checkingStatus": "正在核对订阅…",
+      "processing": "正在处理支付",
       "return_checking": "正在确认付款并更新套餐与额度…",
       "return_pending": "付款仍在确认中，可以稍后再次检查，请勿重复发起付款。",
       "return_completed": "付款已确认，套餐与额度已更新。",

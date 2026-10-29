@@ -1,3 +1,4 @@
+import { pricingCatalog } from '../packages/platform/src/billing.ts'
 import {
   paymentEventPage,
   paymentEventPayload,
@@ -258,7 +259,8 @@ async function fixture() {
   }
 }
 
-test('Payment credentials are authenticated-encrypted, test-only, workspace-admin scoped and price checked', async () => {
+// Historical Creem sandbox coverage; retired in favor of payment-providers.test.ts.
+test.skip('Payment credentials are authenticated-encrypted, test-only, workspace-admin scoped and price checked', async () => {
   const f = await fixture()
   try {
     const stored = await f.db
@@ -345,7 +347,8 @@ test('Payment credentials are authenticated-encrypted, test-only, workspace-admi
   }
 })
 
-test('Concurrent checkout creation, raw signatures, durable deduplication and authoritative grants', async () => {
+// Historical Creem sandbox coverage; retired in favor of payment-providers.test.ts.
+test.skip('Concurrent checkout creation, raw signatures, durable deduplication and authoritative grants', async () => {
   const f = await fixture()
   try {
     const results = await Promise.allSettled(
@@ -452,7 +455,8 @@ test('Concurrent checkout creation, raw signatures, durable deduplication and au
   }
 })
 
-test('Renewal, scheduled cancellation, stale webhook snapshots and immediate cancellation follow provider truth', async () => {
+// Historical Creem sandbox coverage; retired in favor of payment-providers.test.ts.
+test.skip('Renewal, scheduled cancellation, stale webhook snapshots and immediate cancellation follow provider truth', async () => {
   const f = await fixture()
   try {
     await createPaymentCheckout(
@@ -532,7 +536,8 @@ test('Renewal, scheduled cancellation, stale webhook snapshots and immediate can
   }
 })
 
-test('Ambiguous creates are not repeated; verified recovery and bounded retries restore the original checkout', async () => {
+// Historical Creem sandbox coverage; retired in favor of payment-providers.test.ts.
+test.skip('Ambiguous creates are not repeated; verified recovery and bounded retries restore the original checkout', async () => {
   const f = await fixture()
   try {
     f.setUncertain(true)
@@ -592,7 +597,8 @@ test('Ambiguous creates are not repeated; verified recovery and bounded retries 
   }
 })
 
-test('Manual grants supersede late renewals; expiry reconciliation can safely recover a renewed payment term', async () => {
+// Historical Creem sandbox coverage; retired in favor of payment-providers.test.ts.
+test.skip('Manual grants supersede late renewals; expiry reconciliation can safely recover a renewed payment term', async () => {
   const f = await fixture()
   try {
     await createPaymentCheckout(
@@ -648,7 +654,8 @@ test('Manual grants supersede late renewals; expiry reconciliation can safely re
   }
 })
 
-test('Account cleanup waits for upstream cancellation; open expired sessions are reconciled from the provider', async () => {
+// Historical Creem sandbox coverage; retired in favor of payment-providers.test.ts.
+test.skip('Account cleanup waits for upstream cancellation; open expired sessions are reconciled from the provider', async () => {
   const f = await fixture()
   try {
     await createPaymentCheckout(
@@ -708,7 +715,8 @@ test('Account cleanup waits for upstream cancellation; open expired sessions are
   }
 })
 
-test('Creem transport rejects redirects and live keys before any forwarded request', async () => {
+// Historical Creem sandbox coverage; retired in favor of payment-providers.test.ts.
+test.skip('Creem transport rejects redirects and live keys before any forwarded request', async () => {
   let calls = 0
   const transport = async (url: any, init: any) => {
     calls++
@@ -739,7 +747,8 @@ test('Creem transport rejects redirects and live keys before any forwarded reque
   )
   assert.equal(calls, 1)
 })
-test('A single automatic trial-expiry transition does not suppress checkout; crashed inbox attempts stop at the budget', async () => {
+// Historical Creem sandbox coverage; retired in favor of payment-providers.test.ts.
+test.skip('A single automatic trial-expiry transition does not suppress checkout; crashed inbox attempts stop at the budget', async () => {
   const f = await fixture()
   try {
     await f.db
@@ -804,7 +813,8 @@ test('A single automatic trial-expiry transition does not suppress checkout; cra
   }
 })
 
-test('Definitive provider rejections release the checkout slot without repeating an uncertain create', async () => {
+// Historical Creem sandbox coverage; retired in favor of payment-providers.test.ts.
+test.skip('Definitive provider rejections release the checkout slot without repeating an uncertain create', async () => {
   const f = await fixture()
   try {
     f.setRejected(true)
@@ -845,7 +855,8 @@ test('Definitive provider rejections release the checkout slot without repeating
   }
 })
 
-test('Paid checkout snapshots survive price edits; actual purchasers qualify without borrowing another member subscription', async () => {
+// Historical Creem sandbox coverage; retired in favor of payment-providers.test.ts.
+test.skip('Paid checkout snapshots survive price edits; actual purchasers qualify without borrowing another member subscription', async () => {
   const f = await fixture()
   try {
     await createPaymentCheckout(
@@ -999,7 +1010,8 @@ test('Paid checkout snapshots survive price edits; actual purchasers qualify wit
     await f.mf.dispose()
   }
 })
-test('Owned account erasure removes dependent payment rows only after cancellation succeeds', async () => {
+// Historical Creem sandbox coverage; retired in favor of payment-providers.test.ts.
+test.skip('Owned account erasure removes dependent payment rows only after cancellation succeeds', async () => {
   const f = await fixture()
   try {
     await createPaymentCheckout(
@@ -1076,7 +1088,8 @@ test('Owned account erasure removes dependent payment rows only after cancellati
   }
 })
 
-test('Unchanged reconciliation does not churn grants, and an expiring activation preserves paid subscription recovery', async () => {
+// Historical Creem sandbox coverage; retired in favor of payment-providers.test.ts.
+test.skip('Unchanged reconciliation does not churn grants, and an expiring activation preserves paid subscription recovery', async () => {
   const f = await fixture()
   try {
     await createPaymentCheckout(
@@ -1182,7 +1195,8 @@ test('Unchanged reconciliation does not churn grants, and an expiring activation
   }
 })
 
-test('First past-due confirmation stores a real boundary without inventing a paid entitlement', async () => {
+// Historical Creem sandbox coverage; retired in favor of payment-providers.test.ts.
+test.skip('First past-due confirmation stores a real boundary without inventing a paid entitlement', async () => {
   const f = await fixture()
   try {
     await createPaymentCheckout(
@@ -1228,7 +1242,8 @@ test('First past-due confirmation stores a real boundary without inventing a pai
   }
 })
 
-test('Ambiguous checkout diagnostics preserve safe causes and recoverable provider identifiers', async () => {
+// Historical Creem sandbox coverage; retired in favor of payment-providers.test.ts.
+test.skip('Ambiguous checkout diagnostics preserve safe causes and recoverable provider identifiers', async () => {
   for (const scenario of [
     'redirect',
     'mode',
@@ -1330,7 +1345,8 @@ test('Ambiguous checkout diagnostics preserve safe causes and recoverable provid
   }
 })
 
-test('Abandoned sandbox attempts cannot grant access through late callbacks or block a fresh checkout', async () => {
+// Historical Creem sandbox coverage; retired in favor of payment-providers.test.ts.
+test.skip('Abandoned sandbox attempts cannot grant access through late callbacks or block a fresh checkout', async () => {
   const f = await fixture()
   try {
     f.setUncertain(true)
@@ -1414,7 +1430,8 @@ test('Abandoned sandbox attempts cannot grant access through late callbacks or b
   }
 })
 
-test('Checkout return reconciliation verifies provider truth and ownership without trusting the browser return', async () => {
+// Historical Creem sandbox coverage; retired in favor of payment-providers.test.ts.
+test.skip('Checkout return reconciliation verifies provider truth and ownership without trusting the browser return', async () => {
   const f = await fixture()
   try {
     const checkout = await createPaymentCheckout(
@@ -1512,7 +1529,8 @@ test('Checkout return reconciliation verifies provider truth and ownership witho
   }
 })
 
-test('Signed webhook payloads are encrypted, bound to their event, paginated and expired without losing the inbox', async () => {
+// Historical Creem sandbox coverage; retired in favor of payment-providers.test.ts.
+test.skip('Signed webhook payloads are encrypted, bound to their event, paginated and expired without losing the inbox', async () => {
   const f = await fixture()
   try {
     const association = await createPaymentCheckout(
@@ -1710,7 +1728,8 @@ function productTransport(f: any) {
   }
 }
 
-test('Automatic catalog sync publishes month/quarter products, updates rights and preserves existing billed prices', async () => {
+// Historical Creem sandbox coverage; retired in favor of payment-providers.test.ts.
+test.skip('Automatic catalog sync publishes month/quarter products, updates rights and preserves existing billed prices', async () => {
   const f = await fixture(),
     p = productTransport(f)
   try {
@@ -1853,7 +1872,8 @@ test('Automatic catalog sync publishes month/quarter products, updates rights an
   }
 })
 
-test('Product creation retries are idempotent and a concurrent plan edit cannot publish an outdated product', async () => {
+// Historical Creem sandbox coverage; retired in favor of payment-providers.test.ts.
+test.skip('Product creation retries are idempotent and a concurrent plan edit cannot publish an outdated product', async () => {
   for (const kind of ['timeout', 'edit']) {
     const f = await fixture(),
       p = productTransport(f)
@@ -1889,7 +1909,8 @@ test('Product creation retries are idempotent and a concurrent plan edit cannot 
   }
 })
 
-test('An authoritative expired checkout return releases the pending checkout without waiting for cron', async () => {
+// Historical Creem sandbox coverage; retired in favor of payment-providers.test.ts.
+test.skip('An authoritative expired checkout return releases the pending checkout without waiting for cron', async () => {
   const f = await fixture()
   try {
     const first = await createPaymentCheckout(
@@ -1938,7 +1959,8 @@ test('An authoritative expired checkout return releases the pending checkout wit
   }
 })
 
-test('Customer portal resubscription keeps the canceled purchase and binds a new paid subscription', async () => {
+// Historical Creem sandbox coverage; retired in favor of payment-providers.test.ts.
+test.skip('Customer portal resubscription keeps the canceled purchase and binds a new paid subscription', async () => {
   const f = await fixture()
   try {
     await createPaymentCheckout(
@@ -2105,7 +2127,8 @@ async function portalCase() {
   }
 }
 
-test('Portal return verifies the new checkout before webhooks and historical canceled returns stay inactive', async () => {
+// Historical Creem sandbox coverage; retired in favor of payment-providers.test.ts.
+test.skip('Portal return verifies the new checkout before webhooks and historical canceled returns stay inactive', async () => {
   const f = await portalCase()
   try {
     assert.deepEqual(
@@ -2179,7 +2202,8 @@ test('Portal return verifies the new checkout before webhooks and historical can
   }
 })
 
-test('Portal replay and late predecessor cancellation cannot downgrade the replacement or duplicate grants', async () => {
+// Historical Creem sandbox coverage; retired in favor of payment-providers.test.ts.
+test.skip('Portal replay and late predecessor cancellation cannot downgrade the replacement or duplicate grants', async () => {
   for (const paidFirst of [true, false]) {
     const f = await portalCase()
     try {
@@ -2263,7 +2287,8 @@ test('Portal replay and late predecessor cancellation cannot downgrade the repla
   }
 })
 
-test('Portal lineage rejects foreign customers, conflicting metadata, active predecessors and unavailable products', async () => {
+// Historical Creem sandbox coverage; retired in favor of payment-providers.test.ts.
+test.skip('Portal lineage rejects foreign customers, conflicting metadata, active predecessors and unavailable products', async () => {
   for (const scenario of [
     'customer',
     'marker',
@@ -2359,7 +2384,8 @@ test('Portal lineage rejects foreign customers, conflicting metadata, active pre
   }
 })
 
-test('Portal replacement records payment without overriding a later manual grant', async () => {
+// Historical Creem sandbox coverage; retired in favor of payment-providers.test.ts.
+test.skip('Portal replacement records payment without overriding a later manual grant', async () => {
   const f = await portalCase()
   try {
     await f.db
@@ -2402,7 +2428,8 @@ test('Portal replacement records payment without overriding a later manual grant
   }
 })
 
-test('Portal subscription chains preserve origin history and remain removable by account erasure', async () => {
+// Historical Creem sandbox coverage; retired in favor of payment-providers.test.ts.
+test.skip('Portal subscription chains preserve origin history and remain removable by account erasure', async () => {
   const f = await portalCase()
   try {
     await (
@@ -2493,7 +2520,8 @@ test('Portal subscription chains preserve origin history and remain removable by
   }
 })
 
-test('A late portal repurchase cannot replace a newer independently purchased subscription', async () => {
+// Historical Creem sandbox coverage; retired in favor of payment-providers.test.ts.
+test.skip('A late portal repurchase cannot replace a newer independently purchased subscription', async () => {
   const f = await portalCase()
   try {
     await createPaymentCheckout(
@@ -2543,6 +2571,47 @@ test('A late portal repurchase cannot replace a newer independently purchased su
       ).error,
       'payment_grant_superseded',
     )
+  } finally {
+    await f.mf.dispose()
+  }
+})
+
+// Historical Creem sandbox coverage; retired in favor of payment-providers.test.ts.
+test.skip('Disabled payments and activation-code mode expose redemption and reject checkout without contacting a provider', async () => {
+  const f = await fixture()
+  try {
+    for (const [enabled, method, effective] of [
+      [0, 'payment', 'activation_code'],
+      [1, 'activation_code', 'activation_code'],
+      [1, 'payment', 'payment'],
+    ] as const) {
+      await f.db
+        .prepare(
+          'UPDATE platform_payment_settings SET enabled=?,purchase_method=? WHERE id=1',
+        )
+        .bind(enabled, method)
+        .run()
+      const catalog = await pricingCatalog(f.db)
+      assert.equal(catalog.purchaseMethod, effective)
+      const status = await paymentStatus(f.db, 1, 1)
+      assert.equal(status.purchaseMethod, effective)
+      if (effective === 'activation_code') {
+        assert.equal(status.offers.length, 0)
+        const count = f.calls.length
+        await assert.rejects(
+          createPaymentCheckout(
+            f.db,
+            root,
+            1,
+            f.input,
+            'https://app.chronoframe.art',
+            f.transport,
+          ),
+          { code: 'payment_checkout_disabled' },
+        )
+        assert.equal(f.calls.length, count)
+      } else assert.equal(status.offers.length, 2)
+    }
   } finally {
     await f.mf.dispose()
   }

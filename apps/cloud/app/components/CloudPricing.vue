@@ -64,13 +64,27 @@ const comparisonRows = computed(() =>
 )
 if (billing) await billing.ready
 const currentPlan = computed(() => billing?.data.value?.plan.id)
-const amount = (plan: any) =>
+const originalAmount = (plan: any) =>
   interval.value === 1 ? plan.monthlyPrice : plan.quarterlyPrice
+const amount = (plan: any) =>
+  interval.value === 1
+    ? (plan.monthlyEffectivePrice ?? plan.monthlyPrice)
+    : (plan.quarterlyEffectivePrice ?? plan.quarterlyPrice)
+const discountBps = (plan: any) =>
+  interval.value === 1
+    ? (plan.monthlyDiscountBps ?? 0)
+    : (plan.quarterlyDiscountBps ?? 0)
 const action = (plan: any) =>
   amount(plan) === 0 ? links.signup : links.purchase(plan.id, interval.value)
 const payment = computed(() => payments?.data.value),
   paying = ref(''),
   paymentError = ref('')
+const redeemOnly = computed(
+  () =>
+    (props.portal
+      ? (payment.value?.purchaseMethod ?? data.value?.purchaseMethod)
+      : data.value?.purchaseMethod) === 'activation_code',
+)
 let mounted = true
 onBeforeUnmount(() => {
   mounted = false
@@ -93,11 +107,6 @@ const offer = (plan: any) =>
   payment.value.offers.some(
     (v: any) => v.plan_id === plan.id && v.interval === interval.value,
   )
-const subscriptionActive = computed(() =>
-  payment.value?.subscriptions.some(
-    (v: any) => !['expired', 'canceled'].includes(v.status),
-  ),
-)
 async function checkout(plan: any) {
   if (paying.value || !billing?.selected.value) return
   const workspaceId = billing.selected.value,
@@ -163,7 +172,7 @@ async function checkout(plan: any) {
       />
       <p class="cf-field-hint">
         {{
-          portal && payment?.environment === 'test'
+          portal && !redeemOnly && payment?.environment === 'test'
             ? $t('cloud.payments.testHelp')
             : $t('cloud.billing.purchaseHelp')
         }}
@@ -216,6 +225,15 @@ async function checkout(plan: any) {
             'is-current': portal && plan.id === currentPlan,
           }"
         >
+          <span
+            v-if="discountBps(plan) > 0 && originalAmount(plan) > 0"
+            class="cf-plan-discount-ribbon"
+            >−{{
+              new Intl.NumberFormat(locale, {
+                maximumFractionDigits: 2,
+              }).format(discountBps(plan) / 100)
+            }}%</span
+          >
           <div class="cf-plan-card-heading">
             <h2>{{ plan.name }}</h2>
             <CfBadge v-if="portal && plan.id === currentPlan">{{
@@ -227,6 +245,11 @@ async function checkout(plan: any) {
           </div>
           <p class="cf-plan-description">
             {{ plan.description || $t('cloud.billing.simplePlan') }}
+          </p>
+          <p class="cf-plan-original-price">
+            <del v-if="discountBps(plan) > 0 && originalAmount(plan) > 0">{{
+              price(originalAmount(plan), plan.currency, locale)
+            }}</del>
           </p>
           <div class="cf-plan-price">
             <strong>{{
@@ -257,7 +280,17 @@ async function checkout(plan: any) {
             }}
           </p>
           <CfButton
-            v-if="portal && !payment && payments?.error.value"
+            v-if="redeemOnly"
+            as-child
+            :variant="plan.featured ? 'default' : 'secondary'"
+            ><NuxtLink
+              :to="links.redeem"
+              :external="!portal"
+              >{{ $t('cloud.billing.redeem') }}</NuxtLink
+            ></CfButton
+          >
+          <CfButton
+            v-else-if="portal && !payment && payments?.error.value"
             variant="secondary"
             @click="payments?.refresh()"
             >{{ $t('cloud.messages.retry') }}</CfButton
@@ -286,15 +319,6 @@ async function checkout(plan: any) {
             disabled
             variant="secondary"
             >{{ $t('cloud.billing.current') }}</CfButton
-          >
-          <CfButton
-            v-else-if="portal && subscriptionActive && amount(plan) !== 0"
-            :disabled="
-              !payment.canManage || !!payment.pending || payments?.busy.value
-            "
-            variant="secondary"
-            @click="payments?.portal()"
-            >{{ $t('cloud.payments.manage') }}</CfButton
           >
           <CfButton
             v-else-if="portal && offer(plan)"

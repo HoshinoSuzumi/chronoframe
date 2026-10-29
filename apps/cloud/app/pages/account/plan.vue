@@ -7,12 +7,11 @@ const { t, locale } = useI18n(),
 const { selected, data, error, listError, status, refresh, retry, ready } =
   billing
 const payments = useCloudPayments(() => selected.value)
-const returned = useCheckoutReturn(
+const returned = useDodoCheckoutReturn(
   () => selected.value,
+  () => !!payments.data.value?.enabled,
   async () => {
     await Promise.all([refresh(), payments.refresh()])
-    if (error.value || payments.error.value)
-      throw new Error('billing_refresh_failed')
   },
 )
 const latestSubscription = computed(() => {
@@ -51,8 +50,34 @@ const date = (time: number) => new Date(time).toLocaleString(locale.value)
         <p class="cf-page-description">{{ $t('cloud.billing.planHelp') }}</p>
       </div>
     </div>
+    <UModal
+      :open="returned.state.value === 'checking'"
+      :dismissible="false"
+      :close="false"
+      :title="$t('cloud.payments.processing')"
+      :ui="{
+        content: 'cf-payment-processing-modal',
+        header: 'sr-only',
+        body: 'p-0',
+      }"
+    >
+      <template #body>
+        <div
+          class="cf-payment-processing"
+          role="status"
+          aria-live="polite"
+          aria-busy="true"
+        >
+          <span
+            class="cf-payment-spinner"
+            aria-hidden="true"
+          />
+          <p>{{ $t('cloud.payments.processing') }}</p>
+        </div>
+      </template>
+    </UModal>
     <p
-      v-if="returned.state.value !== 'idle'"
+      v-if="!['idle', 'checking'].includes(returned.state.value)"
       class="cf-notice"
       role="status"
     >
@@ -107,15 +132,6 @@ const date = (time: number) => new Date(time).toLocaleString(locale.value)
           </p>
         </div>
         <div class="cf-plan-management">
-          <CfButton
-            v-if="
-              payments.data.value?.canManage &&
-              payments.data.value.subscriptions.length
-            "
-            :loading="payments.busy.value"
-            @click="payments.portal"
-            >{{ $t('cloud.payments.manage') }}</CfButton
-          >
           <CfButton
             v-if="data.workspace.role === 'admin'"
             as-child
