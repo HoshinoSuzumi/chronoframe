@@ -14,7 +14,6 @@ import { DASHBOARD_PHOTO_COLUMN_IDS } from '#console/composables/useDashboardPho
 const { t } = useI18n()
 const dayjs = useDayjs()
 const locationLabel = useLocationLabel()
-const entryContext = useEntryContext()
 
 import type { Photo } from '@chronoframe/contracts/resources'
 import type { TableColumn } from '@nuxt/ui'
@@ -104,30 +103,24 @@ watch(
 function openPreviewOriginal() {
   const photo = preview.value
   if (!photo) return
-  const entry = entryContext.value
-  const url =
-    entry?.published && entry.canonicalOrigin
-      ? new URL('/' + encodeURIComponent(photo.id), entry.canonicalOrigin).href
-      : photo.originalUrl
+  const url = photo.originalUrl
   if (url) window.open(url, '_blank', 'noopener,noreferrer')
 }
 const chosen = computed(() => rows.value.filter((p) => selection.value[p.id]))
 const columns = computed<TableColumn<Photo>[]>(() => [
   { id: 'select', header: '', size: 32, enableHiding: false },
-  ...DASHBOARD_PHOTO_COLUMN_IDS.filter((key) => key !== 'actions').map(
-    (key) => ({
-      id: key,
-      enableHiding: !['thumbnailUrl', 'id'].includes(key),
-      accessorFn: (photo: Photo) =>
-        key === 'colorSpace'
-          ? photo.exif?.ColorSpace
-          : photo[key as keyof Photo],
-      header: t(
-        'dashboard.photos.table.columns.' +
-          (key === 'thumbnailUrl' ? 'thumbnail.title' : key),
-      ),
-    }),
-  ),
+  ...DASHBOARD_PHOTO_COLUMN_IDS.filter(
+    (key) => key !== 'actions' && key !== 'lastModified',
+  ).map((key) => ({
+    id: key,
+    enableHiding: !['thumbnailUrl', 'id'].includes(key),
+    accessorFn: (photo: Photo) =>
+      key === 'colorSpace' ? photo.exif?.ColorSpace : photo[key as keyof Photo],
+    header: t(
+      'dashboard.photos.table.columns.' +
+        (key === 'thumbnailUrl' ? 'thumbnail.title' : key),
+    ),
+  })),
   {
     id: 'actions',
     enableHiding: false,
@@ -432,12 +425,6 @@ watch(
           <span class="cf-library-date">{{
             row.original.dateTaken
               ? dayjs(row.original.dateTaken).format('YYYY-MM-DD HH:mm:ss')
-              : '—'
-          }}</span> </template
-        ><template #lastModified-cell="{ row }">
-          <span class="cf-library-date">{{
-            row.original.lastModified
-              ? dayjs(row.original.lastModified).format('YYYY-MM-DD HH:mm:ss')
               : '—'
           }}</span> </template
         ><template #colorSpace-cell="{ row }">
