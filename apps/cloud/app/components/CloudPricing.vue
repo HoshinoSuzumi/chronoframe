@@ -379,7 +379,7 @@ async function checkout(plan: any) {
           class="cf-plan-comparison-table"
           :data="comparisonRows"
           :columns="comparisonColumns"
-          :aria-label="$t('cloud.billing.compare')"
+          :caption="$t('cloud.billing.compare')"
         /></section
     ></template>
     <CloudLegalLinks />

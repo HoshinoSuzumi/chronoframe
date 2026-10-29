@@ -82,6 +82,7 @@ const rows = computed(() => {
 })
 const columnVisibility = useDashboardPhotoColumnVisibility({
   storageKey: 'cloud-photos-column-visibility',
+  legacyStorageKey: 'dashboard-photos-column-visibility',
   hidden: ['id'],
   locked: ['thumbnailUrl', 'actions'],
 })
