@@ -64,8 +64,16 @@ const comparisonRows = computed(() =>
 )
 if (billing) await billing.ready
 const currentPlan = computed(() => billing?.data.value?.plan.id)
-const amount = (plan: any) =>
+const originalAmount = (plan: any) =>
   interval.value === 1 ? plan.monthlyPrice : plan.quarterlyPrice
+const amount = (plan: any) =>
+  interval.value === 1
+    ? (plan.monthlyEffectivePrice ?? plan.monthlyPrice)
+    : (plan.quarterlyEffectivePrice ?? plan.quarterlyPrice)
+const discountBps = (plan: any) =>
+  interval.value === 1
+    ? (plan.monthlyDiscountBps ?? 0)
+    : (plan.quarterlyDiscountBps ?? 0)
 const action = (plan: any) =>
   amount(plan) === 0 ? links.signup : links.purchase(plan.id, interval.value)
 const payment = computed(() => payments?.data.value),
@@ -228,6 +236,19 @@ async function checkout(plan: any) {
           </div>
           <p class="cf-plan-description">
             {{ plan.description || $t('cloud.billing.simplePlan') }}
+          </p>
+          <p
+            v-if="discountBps(plan) > 0 && originalAmount(plan) > 0"
+            class="cf-price-caption cf-plan-discount"
+          >
+            <del>{{ price(originalAmount(plan), plan.currency, locale) }}</del>
+            <CfBadge
+              >−{{
+                new Intl.NumberFormat(locale, {
+                  maximumFractionDigits: 2,
+                }).format(discountBps(plan) / 100)
+              }}%</CfBadge
+            >
           </p>
           <div class="cf-plan-price">
             <strong>{{

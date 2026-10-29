@@ -698,6 +698,8 @@
       "subscribe": "测试订阅",
       "manageExisting": "已有订阅，请前往账单管理",
       "status": {
+        "pending": "待确认",
+        "failed": "失败",
         "active": "有效",
         "trialing": "试用中",
         "scheduled_cancel": "周期结束后取消",

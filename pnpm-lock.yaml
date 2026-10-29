@@ -880,6 +880,9 @@ importers:
       '@chronoframe/core':
         specifier: workspace:*
         version: link:../core
+      dodopayments:
+        specifier: 2.59.0
+        version: 2.59.0
     devDependencies:
       typescript:
         specifier: ^5.9.3
@@ -989,6 +992,19 @@ importers:
         version: 2.2.12(typescript@5.9.3)
 
 packages:
+
+  '@stablelib/base64@1.0.1':
+    resolution: {integrity: sha512-1bnPQqSxSuc3Ii6MhBysoWCg58j97aUjuCSZrGSmDxNqtytIi0k8utUenAwTZN4V5mXXYGsVUI9zeBqy+jBOSQ==}
+
+  dodopayments@2.59.0:
+    resolution: {integrity: sha512-hJUfgPis3ug1beOgl31rbj7W5A2+WmM3t/JnfTxdLELBuopNe1bV/kGpTgVuLJpRRuQ7fpmGyaJTS0A5/tVh0w==}
+    hasBin: true
+
+  fast-sha256@1.3.0:
+    resolution: {integrity: sha512-n11RGP/lrWEFI/bWdygLxhI+pVeo1ZYIVwvvPkW7azl/rOy+F3HYRZ2K5zeE9mmkhQppyv9sQFx0JM9UabnpPQ==}
+
+  standardwebhooks@1.1.1:
+    resolution: {integrity: sha512-bCbX9ZEyFkWPsRz7Bl3NuQUJohmwGSev/yhr7vhaGPlc4AfIrspIRa6cPTBuI1ItmrTDJ4d/S2hCsfe4+vQGnQ==}
 
   '@adonisjs/hash@9.1.1':
     resolution: {integrity: sha512-ZkRguwjAp4skKvKDdRAfdJ2oqQ0N7p9l3sioyXO1E8o0WcsyDgEpsTQtuVNoIdMiw4sn4gJlmL3nyF4BcK1ZDQ==}
@@ -10045,6 +10061,19 @@ packages:
     resolution: {integrity: sha512-bXE4cR/kVZhKZX/RjPEflHaKVhUVl85noU3v6b8apfQEc1x4A+zBxjZ4lN8LqGd6WZ3dl98pY4o717VFmoPp+A==}
 
 snapshots:
+
+  '@stablelib/base64@1.0.1': {}
+
+  dodopayments@2.59.0:
+    dependencies:
+      standardwebhooks: 1.1.1
+
+  fast-sha256@1.3.0: {}
+
+  standardwebhooks@1.1.1:
+    dependencies:
+      '@stablelib/base64': 1.0.1
+      fast-sha256: 1.3.0
 
   '@adonisjs/hash@9.1.1':
     dependencies:
