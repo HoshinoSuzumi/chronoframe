@@ -59,7 +59,13 @@ export async function dodoClient(
       .bind(id, row.revision, purchase ? 1 : 0)
       .first()
     if (!current) throw new SubscriptionError(503, 'payment_unavailable')
-    return transport(input, { ...init, redirect: 'error' })
+    // Workers supports only follow/manual. Never forward authorization to a redirected origin.
+    const response = await transport(input, { ...init, redirect: 'manual' })
+    if (response.status >= 300 && response.status < 400) {
+      await response.body?.cancel().catch(() => undefined)
+      throw new SubscriptionError(502, 'payment_provider_redirect_blocked')
+    }
+    return response
   }
   return {
     revision: Number(row.revision),
@@ -145,6 +151,11 @@ export async function dodoRequest<T>(
     return await operation()
   } catch (error) {
     if (error instanceof SubscriptionError) throw error
+    if (
+      error instanceof DodoPayments.APIConnectionError &&
+      error.cause instanceof SubscriptionError
+    )
+      throw error.cause
     if (error instanceof DodoPayments.APIConnectionTimeoutError)
       throw new DodoProviderError('payment_provider_timeout')
     if (error instanceof DodoPayments.APIError && error.status) {
