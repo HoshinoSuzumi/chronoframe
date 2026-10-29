@@ -1,6 +1,7 @@
 import type { MaybeRefOrGetter } from 'vue'
 export function useCloudPayments(
   workspaceId: MaybeRefOrGetter<number | string>,
+  onReconciled?: () => Promise<void>,
 ) {
   const { t } = useI18n(),
     data = ref<any>(),
@@ -14,14 +15,44 @@ export function useCloudPayments(
       id = Number(toValue(workspaceId))
     if (!id) {
       pending = false
+      busy.value = false
       return
     }
     pending = true
+    busy.value = true
     try {
-      const result = await $fetch('/api/billing/payments', {
+      let result = await $fetch<any>('/api/billing/payments', {
         query: { workspaceId: id },
         timeout: 15000,
       })
+      if (
+        alive &&
+        current === generation &&
+        result.canManage &&
+        result.pending?.canRefresh
+      ) {
+        // A stored checkout must converge even when the return URL parameters are gone.
+        try {
+          await $fetch('/api/billing/payments', {
+            method: 'POST',
+            timeout: 15000,
+            body: {
+              action: 'refresh',
+              workspaceId: id,
+              checkoutId: result.pending.id,
+            },
+          })
+        } catch {
+          // Re-read the local state/diagnostic persisted by the authenticated check.
+        }
+        if (!alive || current !== generation) return
+        result = await $fetch<any>('/api/billing/payments', {
+          query: { workspaceId: id },
+          timeout: 15000,
+        })
+        if (alive && current === generation && !result.pending)
+          await onReconciled?.()
+      }
       if (alive && current === generation) {
         data.value = result
         error.value = ''
@@ -30,7 +61,10 @@ export function useCloudPayments(
       if (alive && current === generation)
         error.value = t('cloud.payments.failed')
     } finally {
-      if (current === generation) pending = false
+      if (current === generation) {
+        pending = false
+        busy.value = false
+      }
     }
   }
   watch(

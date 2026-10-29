@@ -1341,3 +1341,228 @@ for (const months of [1, 3]) {
     }
   })
 }
+
+test('adaptive-currency payments fulfill before any refund and cancellation later converges', async () => {
+  const f = await fixture()
+  try {
+    await f.db
+      .prepare(
+        "UPDATE platform_plans SET monthly_price=499,monthly_discount_bps=1000,revision=revision+1 WHERE id='pro'",
+      )
+      .run()
+    await syncDodoProducts(f.db, root, f.transport)
+    const checkout = await createPaymentCheckout(
+      f.db,
+      root,
+      1,
+      input(),
+      'https://portal.example',
+      f.transport,
+    )
+    const request = f.calls.find(
+      (c) => new URL(c.url).pathname === '/checkouts' && c.method === 'POST',
+    )!
+    assert.equal(request.body.billing_currency, 'USD')
+    const { sub, payment, session } = await f.paid(checkout)
+    const adaptive = payment as any
+    adaptive.currency = 'CNY'
+    adaptive.total_amount = 3110
+    adaptive.settlement_currency = 'USD'
+    adaptive.settlement_amount = 449
+    delete adaptive.service_periods
+    session.payment_status = 'processing' // Session status can lag the actual payment.
+    assert.equal(
+      (await refreshDodoCheckout(f.db, root, 1, 1, checkout.id, f.transport))
+        .state,
+      'completed',
+    )
+    assert.equal((await paymentStatus(f.db, 1, 1)).pending, null)
+    assert.equal(
+      (
+        await f.db
+          .prepare(
+            'SELECT plan_id FROM platform_workspace_plans WHERE workspace_id=1',
+          )
+          .first<any>()
+      ).plan_id,
+      'pro',
+    )
+    // This occurs after fulfillment; refunds must not be blamed for the initial failure.
+    adaptive.refunds.push({ status: 'succeeded', amount: 500 })
+    sub.status = 'cancelled'
+    assert.equal(
+      (await refreshDodoCheckout(f.db, root, 1, 1, checkout.id, f.transport))
+        .state,
+      'inactive',
+    )
+    assert.equal((await paymentStatus(f.db, 1, 1)).pending, null)
+    assert.equal(
+      (
+        await f.db
+          .prepare(
+            'SELECT plan_id FROM platform_workspace_plans WHERE workspace_id=1',
+          )
+          .first<any>()
+      ).plan_id,
+      'free',
+    )
+  } finally {
+    await f.mf.dispose()
+  }
+})
+
+test('unfulfilled partial refunds stop offering checkout and cancellation releases the pending slot without granting access', async () => {
+  const f = await fixture()
+  try {
+    await syncDodoProducts(f.db, root, f.transport)
+    const checkout = await createPaymentCheckout(
+      f.db,
+      root,
+      1,
+      input(),
+      'https://portal.example',
+      f.transport,
+    )
+    const { sub, payment } = await f.paid(checkout)
+    const adaptive = payment as any
+    adaptive.currency = 'CNY'
+    adaptive.total_amount = 8320
+    adaptive.settlement_currency = 'USD'
+    adaptive.settlement_amount = 1200
+    adaptive.refunds.push({ status: 'succeeded', amount: 500 })
+    await assert.rejects(
+      refreshDodoCheckout(f.db, root, 1, 1, checkout.id, f.transport),
+      { code: 'payment_refunded_or_disputed', statusCode: 422 },
+    )
+    let status = await paymentStatus(f.db, 1, 1)
+    assert.equal(status.pending.state, 'uncertain')
+    assert.equal(status.pending.url, null)
+    assert.equal(status.pending.canRefresh, 1)
+    assert.equal(status.pending.error, 'payment_refunded_or_disputed')
+    // A scheduled cancellation is still an active provider subscription: do not open a second one.
+    sub.cancel_at_next_billing_date = true
+    await assert.rejects(
+      refreshDodoCheckout(f.db, root, 1, 1, checkout.id, f.transport),
+      { code: 'payment_refunded_or_disputed' },
+    )
+    sub.status = 'cancelled'
+    await reconcileDodoPayments(f.db, root, f.transport)
+    status = await paymentStatus(f.db, 1, 1)
+    assert.equal(status.pending, null)
+    assert.equal(
+      (await refreshDodoCheckout(f.db, root, 1, 1, checkout.id, f.transport))
+        .state,
+      'inactive',
+    )
+    assert.equal(
+      (
+        await f.db
+          .prepare(
+            'SELECT plan_id FROM platform_workspace_plans WHERE workspace_id=1',
+          )
+          .first<any>()
+      ).plan_id,
+      'free',
+    )
+    assert.equal(
+      (
+        await f.db
+          .prepare(
+            'SELECT COUNT(*) AS count FROM platform_payment_subscriptions',
+          )
+          .first<any>()
+      ).count,
+      0,
+    )
+    await createPaymentCheckout(
+      f.db,
+      root,
+      1,
+      input('new_after_cancel'),
+      'https://portal.example',
+      f.transport,
+    )
+  } finally {
+    await f.mf.dispose()
+  }
+})
+
+test('amount and identity mismatches have safe diagnostics, cannot grant, and cannot be resumed as unpaid', async () => {
+  const f = await fixture()
+  try {
+    await syncDodoProducts(f.db, root, f.transport)
+    const checkout = await createPaymentCheckout(
+      f.db,
+      root,
+      1,
+      input(),
+      'https://portal.example',
+      f.transport,
+    )
+    const { sub, payment } = await f.paid(checkout)
+    const adaptive = payment as any
+    adaptive.currency = 'CNY'
+    adaptive.total_amount = 8320
+    adaptive.settlement_currency = 'USD'
+    adaptive.settlement_amount = 1
+    const refresh = () =>
+      refreshDodoCheckout(f.db, root, 1, 1, checkout.id, f.transport)
+    await assert.rejects(refresh(), {
+      code: 'payment_amount_mismatch',
+      statusCode: 422,
+    })
+    assert.equal((await paymentStatus(f.db, 1, 1)).pending.url, null)
+    adaptive.settlement_amount = 1200
+    adaptive.settlement_currency = 'EUR'
+    await assert.rejects(refresh(), { code: 'payment_amount_mismatch' })
+    adaptive.settlement_currency = 'USD'
+    adaptive.customer = { customer_id: 'cus_other' }
+    sub.status = 'cancelled'
+    await assert.rejects(refresh(), { code: 'payment_customer_mismatch' })
+    assert.notEqual((await paymentStatus(f.db, 1, 1)).pending, null)
+    assert.equal(
+      (
+        await f.db
+          .prepare(
+            'SELECT plan_id FROM platform_workspace_plans WHERE workspace_id=1',
+          )
+          .first<any>()
+      ).plan_id,
+      'free',
+    )
+    adaptive.customer = sub.customer
+    sub.status = 'active'
+    sub.currency = 'CNY' // Both base-currency and local-currency subscription responses are supported.
+    assert.equal((await refresh()).state, 'completed')
+  } finally {
+    await f.mf.dispose()
+  }
+})
+
+test('failed payments without a subscription close the unpaid checkout', async () => {
+  const f = await fixture()
+  try {
+    await syncDodoProducts(f.db, root, f.transport)
+    const checkout = await createPaymentCheckout(
+      f.db,
+      root,
+      1,
+      input(),
+      'https://portal.example',
+      f.transport,
+    )
+    const { payment } = await f.paid(checkout)
+    const failed = payment as any
+    failed.status = 'failed'
+    failed.subscription_id = null
+    failed.subscription_ids = []
+    assert.equal(
+      (await refreshDodoCheckout(f.db, root, 1, 1, checkout.id, f.transport))
+        .state,
+      'expired',
+    )
+    assert.equal((await paymentStatus(f.db, 1, 1)).pending, null)
+  } finally {
+    await f.mf.dispose()
+  }
+})

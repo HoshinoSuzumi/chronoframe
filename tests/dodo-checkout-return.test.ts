@@ -140,3 +140,14 @@ test('delayed confirmation has bounded polling and ignores late results after le
   await flush()
   assert.equal(late.returned.state.value, 'checking')
 })
+
+test('an authoritative inactive subscription exits processing after cancellation', async () => {
+  const f = fixture(async () => ({ state: 'inactive' }))
+  try {
+    await flush()
+    assert.equal(f.returned.state.value, 'inactive')
+    assert.equal(f.timers.length, 0)
+  } finally {
+    f.dispose()
+  }
+})

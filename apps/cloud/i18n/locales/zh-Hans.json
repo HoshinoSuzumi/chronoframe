@@ -414,6 +414,7 @@
       "draft": "草稿",
       "photograph": "照片",
       "photographs": "照片",
+      "confirmationReview": "这笔付款正在核验，请勿重复支付。如果核验异常，请携带下方错误码联系支持。",
       "processing": "处理中",
       "yourPublicAddressAndSharedLinksWillReturn40": "公开地址和分享链接将返回 404。照片、相簿和存储会保留在工作区中，你可以稍后重新发布。",
       "chooseHostedOrSelfHosted": "选择 ChronoFrame Cloud 托管图库，或在自己的基础设施上自部署。"
@@ -711,6 +712,7 @@
       },
       "waiting": "等待确认",
       "checkingStatus": "正在核对订阅…",
+      "confirmationReview": "这笔付款正在核验，请勿重复支付。如果核验异常，请携带下方错误码联系支持。",
       "processing": "正在处理支付",
       "return_checking": "正在确认付款并更新套餐与额度…",
       "return_pending": "付款仍在确认中，可以稍后再次检查，请勿重复发起付款。",
