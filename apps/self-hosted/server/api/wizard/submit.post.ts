@@ -2,6 +2,10 @@ import { toUserSummary } from '~~/server/utils/dto'
 import { defineWizardHandler } from '../../utils/wizard-handler'
 import { z } from 'zod'
 import { settingsManager } from '~~/server/services/settings/settingsManager'
+import {
+  persistWizardSiteSettings,
+  wizardSiteSchema,
+} from '~~/server/services/wizard/site-settings'
 import { storageConfigSchema } from '#shared/types/storage'
 import { useDB, tables, eq } from '~~/server/utils/db'
 
@@ -14,12 +18,7 @@ export default defineWizardHandler(async (event) => {
         password: z.string().min(6),
         username: z.string().min(2).default('admin'),
       }),
-      site: z.object({
-        title: z.string().min(1),
-        slogan: z.string().optional(),
-        avatarUrl: z.string().optional(),
-        author: z.string().optional(),
-      }),
+      site: wizardSiteSchema,
       storage: z.object({
         name: z.string().min(1),
         config: storageConfigSchema,
@@ -78,13 +77,7 @@ export default defineWizardHandler(async (event) => {
   }
 
   // 2. Handle Site Settings
-  await settingsManager.set('app', 'title', body.site.title)
-  if (body.site.slogan)
-    await settingsManager.set('app', 'slogan', body.site.slogan)
-  if (body.site.avatarUrl)
-    await settingsManager.set('app', 'avatarUrl', body.site.avatarUrl)
-  if (body.site.author)
-    await settingsManager.set('app', 'author', body.site.author)
+  await persistWizardSiteSettings(body.site)
 
   // 3. Handle Storage Settings
   // Check if provider already exists to avoid duplicates if re-running?
