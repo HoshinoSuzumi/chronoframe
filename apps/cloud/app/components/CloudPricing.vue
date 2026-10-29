@@ -71,6 +71,12 @@ const action = (plan: any) =>
 const payment = computed(() => payments?.data.value),
   paying = ref(''),
   paymentError = ref('')
+const redeemOnly = computed(
+  () =>
+    (props.portal
+      ? (payment.value?.purchaseMethod ?? data.value?.purchaseMethod)
+      : data.value?.purchaseMethod) === 'activation_code',
+)
 let mounted = true
 onBeforeUnmount(() => {
   mounted = false
@@ -163,7 +169,7 @@ async function checkout(plan: any) {
       />
       <p class="cf-field-hint">
         {{
-          portal && payment?.environment === 'test'
+          portal && !redeemOnly && payment?.environment === 'test'
             ? $t('cloud.payments.testHelp')
             : $t('cloud.billing.purchaseHelp')
         }}
@@ -257,7 +263,17 @@ async function checkout(plan: any) {
             }}
           </p>
           <CfButton
-            v-if="portal && !payment && payments?.error.value"
+            v-if="redeemOnly"
+            as-child
+            :variant="plan.featured ? 'default' : 'secondary'"
+            ><NuxtLink
+              :to="links.redeem"
+              :external="!portal"
+              >{{ $t('cloud.billing.redeem') }}</NuxtLink
+            ></CfButton
+          >
+          <CfButton
+            v-else-if="portal && !payment && payments?.error.value"
             variant="secondary"
             @click="payments?.refresh()"
             >{{ $t('cloud.messages.retry') }}</CfButton

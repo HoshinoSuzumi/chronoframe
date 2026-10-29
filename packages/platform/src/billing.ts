@@ -5,6 +5,7 @@ import {
   SubscriptionError,
 } from './subscriptions.ts'
 import { workspaceEntitlements, validatePolicy } from './entitlements.ts'
+import { paymentSettings } from './payments.ts'
 export const CURRENCIES = [
   'USD',
   'CNY',
@@ -65,8 +66,12 @@ export async function pricingCatalog(db: PlatformD1) {
   const settings = await db
     .prepare('SELECT new_plan_id FROM platform_billing_settings WHERE id=1')
     .first<{ new_plan_id: string }>()
+  const payment = await paymentSettings(db)
   return {
-    paymentAvailable: false,
+    paymentAvailable: payment.enabled && payment.purchaseMethod === 'payment',
+    purchaseMethod: payment.enabled
+      ? payment.purchaseMethod
+      : 'activation_code',
     newPlanId: settings?.new_plan_id ?? 'free',
     plans: rows.map(
       ({ policy_json, monthly_price, quarterly_price, featured, ...row }) => ({
