@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { planPurchasePath } from '../utils/plan-purchase'
 import {
   BILLING_LIMITS,
   allowance,
@@ -14,9 +15,15 @@ const props = withDefaults(
   }>(),
   { portal: false, embedded: false },
 )
+const route = useRoute()
+const requestedPurchase = computed(() =>
+  planPurchasePath(route.query.plan, route.query.interval),
+)
 const { t, locale } = useI18n(),
   links = useCloudLinks(),
-  interval = ref<1 | 3>(1)
+  interval = ref<1 | 3>(
+    requestedPurchase.value && route.query.interval === '3' ? 3 : 1,
+  )
 const billingPeriod = computed({
   get: () => String(interval.value),
   set: (value: string) => {
@@ -60,12 +67,7 @@ const currentPlan = computed(() => billing?.data.value?.plan.id)
 const amount = (plan: any) =>
   interval.value === 1 ? plan.monthlyPrice : plan.quarterlyPrice
 const action = (plan: any) =>
-  !props.portal && plan.id === data.value?.newPlanId
-    ? links.signup
-    : links.redeem +
-      (props.portal && billing?.selected.value
-        ? '?workspaceId=' + billing.selected.value
-        : '')
+  amount(plan) === 0 ? links.signup : links.purchase(plan.id, interval.value)
 const payment = computed(() => payments?.data.value),
   paying = ref(''),
   paymentError = ref('')
@@ -161,9 +163,9 @@ async function checkout(plan: any) {
       />
       <p class="cf-field-hint">
         {{
-          payment?.enabled
+          portal && payment?.environment === 'test'
             ? $t('cloud.payments.testHelp')
-            : $t('cloud.billing.paymentsPlanned')
+            : $t('cloud.billing.purchaseHelp')
         }}
       </p>
       <p
@@ -206,6 +208,8 @@ async function checkout(plan: any) {
         <article
           v-for="plan in data.plans"
           :key="plan.id"
+          :id="'plan-' + plan.id"
+          tabindex="-1"
           class="cf-pricing-card"
           :class="{
             'is-featured': plan.featured && !embedded,
@@ -246,11 +250,9 @@ async function checkout(plan: any) {
                     ' / ' +
                     $t('cloud.billing.month')
                   : $t(
-                      portal
-                        ? amount(plan) === 0
-                          ? 'cloud.billing.noCharge'
-                          : 'cloud.billing.monthlyBilling'
-                        : 'cloud.billing.noCheckout',
+                      amount(plan) === 0
+                        ? 'cloud.billing.noCharge'
+                        : 'cloud.billing.monthlyBilling',
                     )
             }}
           </p>
@@ -303,15 +305,25 @@ async function checkout(plan: any) {
             >{{ $t('cloud.payments.subscribe') }}</CfButton
           >
           <CfButton
-            v-else-if="
-              portal &&
-              (billing?.data.value?.workspace.role !== 'admin' ||
-                !!payment?.pending)
-            "
+            v-else-if="portal"
             disabled
-            :title="$t('cloud.billing.adminOnly')"
             variant="secondary"
-            >{{ $t('cloud.billing.redeem') }}</CfButton
+            :title="
+              billing?.data.value?.workspace.role !== 'admin'
+                ? $t('cloud.billing.adminOnly')
+                : $t('cloud.billing.purchaseUnavailableHelp')
+            "
+            >{{
+              billing?.data.value?.workspace.role !== 'admin'
+                ? $t('cloud.billing.adminOnly')
+                : $t('cloud.billing.purchaseUnavailable')
+            }}</CfButton
+          >
+          <CfButton
+            v-else-if="amount(plan) === null"
+            disabled
+            variant="secondary"
+            >{{ $t('cloud.billing.notPriced') }}</CfButton
           >
           <CfButton
             v-else
@@ -319,13 +331,11 @@ async function checkout(plan: any) {
             :variant="plan.featured ? 'default' : 'secondary'"
             ><NuxtLink
               :to="action(plan)"
-              :external="!portal"
+              external
               >{{
-                $t(
-                  !portal && plan.id === data.newPlanId
-                    ? 'cloud.billing.createAccount'
-                    : 'cloud.billing.redeem',
-                )
+                amount(plan) === 0
+                  ? $t('cloud.billing.createAccount')
+                  : $t('cloud.billing.buyPlan', { plan: plan.name })
               }}</NuxtLink
             ></CfButton
           >
@@ -382,6 +392,13 @@ async function checkout(plan: any) {
           :caption="$t('cloud.billing.compare')"
         /></section
     ></template>
+    <div class="cf-pricing-footer">
+      <CloudSupportLink /><NuxtLink
+        :to="links.redeem"
+        :external="!portal"
+        >{{ $t('cloud.billing.redeem') }}</NuxtLink
+      >
+    </div>
     <CloudLegalLinks />
   </div>
 </template>

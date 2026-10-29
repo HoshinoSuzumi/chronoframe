@@ -1,3 +1,4 @@
+import { purchaseReturnPath } from '../utils/plan-purchase'
 import type {
   EntrySiteCatalog,
   EntrySiteSummary,
@@ -18,7 +19,9 @@ export default defineNuxtRouteMiddleware(async (to) => {
       '/api/auth/session',
     ).catch(() => null)
     if (session?.authenticated)
-      return navigateTo('/workspace', { redirectCode: 302 })
+      return navigateTo(purchaseReturnPath(to.query.next) ?? '/workspace', {
+        redirectCode: 302,
+      })
   }
   if (
     (path === '/pricing' &&
@@ -45,7 +48,11 @@ export default defineNuxtRouteMiddleware(async (to) => {
       session.user?.id ?? null
     if (!session.authenticated || !session.user) {
       context.value = null
-      return navigateTo('/signin', { redirectCode: 302 })
+      const next = purchaseReturnPath(to.fullPath)
+      return navigateTo(
+        { path: '/signin', query: next ? { next } : {} },
+        { redirectCode: 302 },
+      )
     }
     if (path === '/sites' || path === '/workspace') {
       const result = await fetcher<{ sites: EntrySiteSummary[] }>('/api/sites')

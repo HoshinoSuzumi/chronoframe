@@ -58,7 +58,7 @@ useSeoMeta({
             ></CfButton>
           </div>
           <p class="cf-small-note">
-            {{ $t('cloud.messages.selfHostedIsAvailableNowCloudIsInPreview') }}
+            {{ $t('cloud.messages.chooseHostedOrSelfHosted') }}
           </p></motion.div
         >
         <motion.div v-bind="entrance"
@@ -167,6 +167,7 @@ useSeoMeta({
         href="https://github.com/HoshinoSuzumi/chronoframe/blob/main/LICENSING.md"
         >{{ $t('cloud.messages.sourceAndLicensing') }}<ArrowUpRight :size="13"
       /></a>
+      <CloudSupportLink />
       <CloudLegalLinks />
     </footer>
   </div>

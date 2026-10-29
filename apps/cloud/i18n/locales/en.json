@@ -64,7 +64,6 @@
       "navigation": "Navigation",
       "yourWorkspaceAndSiteNavigation": "Your workspace and site navigation.",
       "closeNavigation": "Close navigation",
-      "cloudPreview": "Cloud preview",
       "workspace": "Workspace",
       "security": "Security",
       "password": "Password",
@@ -186,7 +185,6 @@
       "aHomeForTheMomentsYouWantToShare": "A home for the moments you want to share. Bring your photographs together in a gallery that feels entirely yours.",
       "createYourAccount": "Create your account",
       "exploreSelfHosted": "Explore Self-hosted",
-      "selfHostedIsAvailableNowCloudIsInPreview": "Self-hosted is available now. Cloud is in preview.",
       "examplePhotographyGallery": "Example photography gallery",
       "fieldNotes": "FIELD NOTES",
       "aChronoframeGallery": "A CHRONOFRAME GALLERY",
@@ -300,7 +298,7 @@
       "thisAlbumUrlIsAlreadyUsedOrReservedBy": "This album URL is already used or reserved by an older link. Choose another slug.",
       "mediaServicesNeedDeploymentConfigurationCheckTheSelectedEnvironment": "Media services need deployment configuration. Check the selected environment settings.",
       "thisItemChangedRefreshAndTryAgain": "This item changed. Refresh and try again.",
-      "thePreviewResourceLimitHasBeenReached": "The preview resource limit has been reached.",
+      "thePreviewResourceLimitHasBeenReached": "The resource limit for your plan has been reached.",
       "administratorAccessIsRequired": "Administrator access is required.",
       "theOperationFailedCheckTheEnteredValuesAndYour": "The operation failed. Check the entered values and your connection, then retry.",
       "storageConnectedAndVerified": "Storage connected and verified.",
@@ -417,7 +415,8 @@
       "photograph": "Photograph",
       "photographs": "Photographs",
       "processing": "Processing",
-      "yourPublicAddressAndSharedLinksWillReturn40": "Your public address and shared links will return 404. Your photographs, albums and storage will remain in your workspace. You can publish again later."
+      "yourPublicAddressAndSharedLinksWillReturn40": "Your public address and shared links will return 404. Your photographs, albums and storage will remain in your workspace. You can publish again later.",
+      "chooseHostedOrSelfHosted": "Choose ChronoFrame Cloud for a hosted gallery, or self-host with your own infrastructure."
     },
     "ui": {
       "editNamed": "Edit {title}",
@@ -607,12 +606,10 @@
       "quarterly": "Quarterly",
       "month": "month",
       "quarter": "quarter",
-      "paymentsPlanned": "Online payments are not enabled yet. Prices are a preview; eligible activation codes can be redeemed now.",
       "defaultTier": "New account default",
       "simplePlan": "Your photographs, with room to make it yours.",
       "free": "Free",
       "notPriced": "Price not configured",
-      "noCheckout": "No charge will be made on this page.",
       "createAccount": "Create your account",
       "redeem": "Redeem code",
       "conditions": "Conditional allowances",
@@ -684,7 +681,11 @@
       "includedPlan": "Included plan",
       "recommended": "Recommended",
       "noCharge": "No payment required",
-      "monthlyBilling": "Monthly billing"
+      "monthlyBilling": "Monthly billing",
+      "purchaseHelp": "Choose monthly or quarterly billing. Review the payment details before confirming your subscription.",
+      "buyPlan": "Subscribe to {plan}",
+      "purchaseUnavailable": "Currently unavailable",
+      "purchaseUnavailableHelp": "This plan is not currently available for purchase. Please contact support or try again later."
     },
     "payments": {
       "billing": "Subscription billing",
@@ -774,6 +775,9 @@
       "revised": "Last revised:",
       "loadFailed": "Unable to load this document. Please retry.",
       "readBefore": "Please review our terms and privacy policy before continuing."
+    },
+    "support": {
+      "email": "Contact support: {email}"
     }
   }
 }

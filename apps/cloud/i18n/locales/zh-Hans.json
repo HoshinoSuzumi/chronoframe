@@ -64,7 +64,6 @@
       "navigation": "导航",
       "yourWorkspaceAndSiteNavigation": "工作区与站点导航。",
       "closeNavigation": "关闭导航",
-      "cloudPreview": "Cloud 预览版",
       "workspace": "工作区",
       "security": "安全",
       "password": "密码",
@@ -186,7 +185,6 @@
       "aHomeForTheMomentsYouWantToShare": "为想要分享的时刻安一个家，将照片汇聚成一座属于自己的图库。",
       "createYourAccount": "创建账户",
       "exploreSelfHosted": "了解自托管版",
-      "selfHostedIsAvailableNowCloudIsInPreview": "自托管版现已可用，Cloud 目前处于预览阶段。",
       "examplePhotographyGallery": "摄影图库示例",
       "fieldNotes": "影像手记",
       "aChronoframeGallery": "CHRONOFRAME 图库",
@@ -300,7 +298,7 @@
       "thisAlbumUrlIsAlreadyUsedOrReservedBy": "此相簿地址已被使用或被旧链接保留，请选择其他地址标识。",
       "mediaServicesNeedDeploymentConfigurationCheckTheSelectedEnvironment": "媒体服务需要完成部署配置，请检查所选环境的设置。",
       "thisItemChangedRefreshAndTryAgain": "此项目已发生更改，请刷新后重试。",
-      "thePreviewResourceLimitHasBeenReached": "已达到预览阶段的资源上限。",
+      "thePreviewResourceLimitHasBeenReached": "已达到当前套餐的资源上限。",
       "administratorAccessIsRequired": "此操作需要管理员权限。",
       "theOperationFailedCheckTheEnteredValuesAndYour": "操作失败，请检查输入内容和网络连接后重试。",
       "storageConnectedAndVerified": "存储已连接并通过验证。",
@@ -417,7 +415,8 @@
       "photograph": "照片",
       "photographs": "照片",
       "processing": "处理中",
-      "yourPublicAddressAndSharedLinksWillReturn40": "公开地址和分享链接将返回 404。照片、相簿和存储会保留在工作区中，你可以稍后重新发布。"
+      "yourPublicAddressAndSharedLinksWillReturn40": "公开地址和分享链接将返回 404。照片、相簿和存储会保留在工作区中，你可以稍后重新发布。",
+      "chooseHostedOrSelfHosted": "选择 ChronoFrame Cloud 托管图库，或在自己的基础设施上自部署。"
     },
     "ui": {
       "editNamed": "编辑 {title}",
@@ -607,12 +606,10 @@
       "quarterly": "按季",
       "month": "月",
       "quarter": "季",
-      "paymentsPlanned": "尚未启用在线支付，价格仅供预览；持有有效激活码的用户现在即可兑换。",
       "defaultTier": "新账号默认层级",
       "simplePlan": "让照片成为主角，为你的故事留出空间。",
       "free": "免费",
       "notPriced": "价格尚未配置",
-      "noCheckout": "此页面不会发起扣款。",
       "createAccount": "创建账号",
       "redeem": "兑换激活码",
       "conditions": "条件权益",
@@ -684,7 +681,11 @@
       "includedPlan": "默认套餐",
       "recommended": "推荐",
       "noCharge": "无需付款",
-      "monthlyBilling": "按月计费"
+      "monthlyBilling": "按月计费",
+      "purchaseHelp": "支持按月或按季订阅，请在确认订阅前核对付款详情。",
+      "buyPlan": "购买 {plan}",
+      "purchaseUnavailable": "暂不可购买",
+      "purchaseUnavailableHelp": "该套餐目前暂不可购买，请联系客服或稍后重试。"
     },
     "payments": {
       "billing": "订阅账单",
@@ -774,6 +775,9 @@
       "revised": "最近修订：",
       "loadFailed": "暂时无法加载文档，请重试。",
       "readBefore": "继续前，请阅读用户协议与隐私政策。"
+    },
+    "support": {
+      "email": "联系客服：{email}"
     }
   }
 }
