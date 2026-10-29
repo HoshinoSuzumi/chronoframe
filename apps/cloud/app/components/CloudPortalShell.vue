@@ -53,12 +53,7 @@ useCloudSiteSubscription()
       />
       <span class="cf-header-location">{{ section }}</span>
     </template>
-    <template #actions
-      ><CfBadge class="cf-preview-badge">{{
-        $t('cloud.messages.cloudPreview')
-      }}</CfBadge
-      ><CloudThemeToggle
-    /></template>
+    <template #actions><CloudThemeToggle /></template>
     <template #navigation><CloudSidebarNavigation /></template>
     <template #footer><CloudUserMenu /></template>
     <slot />

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 const { t } = useI18n()
+const { destination, authLink } = useCloudAuthDestination()
 
 import { accountError } from '../utils/account-error'
 useSeoMeta({
@@ -34,7 +35,7 @@ async function submit() {
         method: 'POST',
         body: { email: email.value, otp: code.value },
       })
-      await navigateTo('/workspace', { external: true })
+      await navigateTo(destination.value, { external: true })
     }
   } catch (cause) {
     error.value = accountError(cause, t)
@@ -153,7 +154,7 @@ async function resend() {
       <p class="cf-auth-hint">
         {{ $t('cloud.messages.alreadyHaveAnAccount')
         }}<NuxtLink
-          to="/signin"
+          :to="authLink('/signin')"
           class="cf-text-link"
           >{{ $t('cloud.messages.logIn') }}</NuxtLink
         >

@@ -1271,11 +1271,6 @@
   transform: translateX(-100%);
   opacity: 0;
 }
-@media (max-width: 899px) {
-  .cf-preview-badge {
-    display: none;
-  }
-}
 
 /* Management surfaces use the same table, metadata forms and viewer primitives as the console. */
 .cf-site-page-header {
@@ -2988,4 +2983,27 @@ a.cf-domain-address:hover {
   max-width: 370px;
   margin: 0 auto 12px;
   gap: 2px;
+}
+
+.cf-support-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.cf-support-link svg {
+  flex-shrink: 0;
+}
+.cf-pricing-footer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 12px 24px;
+  margin-top: 24px;
+  color: var(--muted-foreground);
+  font-size: 12px;
+}
+.cf-pricing-card:target {
+  outline: 2px solid var(--ring);
+  outline-offset: 3px;
 }

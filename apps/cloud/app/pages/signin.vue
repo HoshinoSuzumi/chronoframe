@@ -1,5 +1,6 @@
 <script setup lang="ts">
 const { t } = useI18n()
+const { destination, authLink } = useCloudAuthDestination()
 
 import { accountError } from '../utils/account-error'
 const { data: status } = await useFetch('/api/auth/status')
@@ -76,7 +77,7 @@ async function submit() {
         return
       }
     }
-    await navigateTo('/workspace', { external: true })
+    await navigateTo(destination.value, { external: true })
   } catch (cause) {
     error.value = accountError(cause, t)
   } finally {
@@ -93,7 +94,7 @@ async function passkeySignIn() {
   try {
     const result = await useCloudAccount().signIn.passkey()
     if (result.error) throw result.error
-    await navigateTo('/workspace', { external: true })
+    await navigateTo(destination.value, { external: true })
   } catch (cause) {
     error.value = accountError(cause, t)
   } finally {
@@ -271,7 +272,7 @@ async function resend() {
       <p class="cf-auth-hint">
         {{ $t('cloud.messages.newHere')
         }}<NuxtLink
-          to="/signup"
+          :to="authLink('/signup')"
           class="cf-text-link"
           >{{ $t('cloud.messages.createAnAccount') }}</NuxtLink
         >

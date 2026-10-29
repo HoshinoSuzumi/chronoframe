@@ -84,6 +84,7 @@ const initials = computed(() =>
               ><Ticket :size="16" />{{ $t('cloud.billing.redeem') }}</NuxtLink
             ></DropdownMenuItem
           >
+          <DropdownMenuItem as-child><CloudSupportLink /></DropdownMenuItem>
           <DropdownMenuSeparator class="cf-menu-separator" />
           <DropdownMenuItem
             :disabled="busy"
