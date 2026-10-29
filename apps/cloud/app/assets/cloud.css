@@ -2097,8 +2097,11 @@ a.cf-domain-address:hover {
   gap: 18px;
 }
 .cf-pricing-card {
-  display: flex;
-  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+  display: grid;
+  grid-row: span 8;
+  grid-template-rows: subgrid;
   gap: 18px;
   background: var(--card);
   padding: 26px;
@@ -2110,6 +2113,7 @@ a.cf-domain-address:hover {
   box-shadow: 0 0 0 1px var(--primary);
 }
 .cf-plan-card-heading {
+  padding-right: 36px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -2445,7 +2449,7 @@ a.cf-domain-address:hover {
   font-size: 30px;
 }
 .cf-plan-options .cf-plan-description {
-  min-height: 0;
+  min-height: 42px;
 }
 .cf-plan-options .cf-pricing-card.is-current {
   border-color: var(--primary);
@@ -3006,4 +3010,57 @@ a.cf-domain-address:hover {
 .cf-pricing-card:target {
   outline: 2px solid var(--ring);
   outline-offset: 3px;
+}
+
+.cf-plan-original-price {
+  min-height: 18px;
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--muted-foreground);
+  margin-bottom: -8px;
+}
+.cf-plan-discount-ribbon {
+  position: absolute;
+  top: 15px;
+  right: -33px;
+  width: 128px;
+  padding: 5px 0;
+  transform: rotate(45deg);
+  text-align: center;
+  background: var(--primary);
+  color: var(--primary-foreground);
+  font-size: 12px;
+  font-weight: 650;
+  letter-spacing: 0.02em;
+  pointer-events: none;
+}
+.cf-payment-processing-modal {
+  max-width: 320px;
+}
+.cf-payment-processing {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 22px;
+  padding: 48px 24px;
+  text-align: center;
+}
+.cf-payment-spinner {
+  width: 36px;
+  height: 36px;
+  border: 3px solid var(--border);
+  border-top-color: var(--primary);
+  border-radius: 50%;
+  animation: cf-payment-spin 0.8s linear infinite;
+}
+@keyframes cf-payment-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cf-payment-spinner {
+    animation-duration: 2s;
+  }
 }
