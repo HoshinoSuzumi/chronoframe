@@ -19,7 +19,7 @@
 }
 
 /* Cloud composition. All theme, primitives and shell dimensions are owned by saas-ui. */
-.cf-brand-compact {
+.cf-brand.cf-brand-compact {
   font-size: 13px;
   letter-spacing: 0.02em;
   white-space: nowrap;
