@@ -188,6 +188,8 @@ export async function syncDodoProducts(
                   'payment_product_mismatch',
                   'payment_discount_precision_unsupported',
                   'payment_provider_request_failed',
+                  'payment_provider_redirect_blocked',
+                  'payment_unavailable',
                 ].includes(error.code)
               ? error.code
               : 'payment_product_sync_failed'
