@@ -73,8 +73,9 @@ const payment = computed(() => payments?.data.value),
   paymentError = ref('')
 const redeemOnly = computed(
   () =>
-    data.value?.purchaseMethod === 'activation_code' ||
-    (props.portal && payment.value?.purchaseMethod === 'activation_code'),
+    (props.portal
+      ? (payment.value?.purchaseMethod ?? data.value?.purchaseMethod)
+      : data.value?.purchaseMethod) === 'activation_code',
 )
 let mounted = true
 onBeforeUnmount(() => {
