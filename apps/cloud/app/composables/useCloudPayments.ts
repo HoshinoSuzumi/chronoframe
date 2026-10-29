@@ -10,7 +10,7 @@ export function useCloudPayments(
   let generation = 0,
     alive = true,
     pending = false
-  async function refresh() {
+  async function refresh({ reconcile = true }: { reconcile?: boolean } = {}) {
     const current = ++generation,
       id = Number(toValue(workspaceId))
     if (!id) {
@@ -28,6 +28,7 @@ export function useCloudPayments(
       if (
         alive &&
         current === generation &&
+        reconcile &&
         result.canManage &&
         result.pending?.canRefresh
       ) {
@@ -72,16 +73,17 @@ export function useCloudPayments(
     () => {
       data.value = null
       error.value = ''
-      void refresh()
+      void refresh({ reconcile: true })
     },
   )
-  onMounted(refresh)
+  onMounted(() => void refresh({ reconcile: true }))
   onBeforeUnmount(() => {
     alive = false
     generation++
   })
   useIntervalFn(() => {
-    if (document.visibilityState === 'visible' && !pending) void refresh()
+    if (document.visibilityState === 'visible' && !pending)
+      void refresh({ reconcile: false })
   }, 15000)
   return { data, busy, error, refresh }
 }

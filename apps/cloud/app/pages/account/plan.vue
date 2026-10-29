@@ -11,7 +11,7 @@ const returned = useDodoCheckoutReturn(
   () => selected.value,
   () => !!payments.data.value?.enabled,
   async () => {
-    await Promise.all([refresh(), payments.refresh()])
+    await Promise.all([refresh(), payments.refresh({ reconcile: false })])
   },
 )
 const latestSubscription = computed(() => {

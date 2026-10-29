@@ -655,3 +655,47 @@ test('checkout verification diagnostics are re-read after 422 and non-owners do 
     }
   }
 })
+
+test('passive payment refreshes read state without duplicating provider confirmation', async () => {
+  let poll!: () => void
+  let mount!: () => void
+  const methods: string[] = []
+  const workspaceId = ref(1)
+  const module = load('apps/cloud/app/composables/useCloudPayments.ts', {
+    toValue,
+    document: { visibilityState: 'visible' },
+    $fetch: async (_path: string, options: any) => {
+      methods.push(options.method ?? 'GET')
+      return { canManage: true, pending: { id: 'checkout', canRefresh: 1 } }
+    },
+    onMounted: (callback: () => void) => {
+      mount = callback
+    },
+    onBeforeUnmount: () => {},
+    useIntervalFn: (callback: () => void) => {
+      poll = callback
+    },
+  })
+  const flush = async () => {
+    for (let n = 0; n < 12; n++) await nextTick()
+  }
+  const scope = effectScope()
+  try {
+    const payments = scope.run(() => module.useCloudPayments(workspaceId))!
+    mount()
+    await flush()
+    assert.deepEqual(methods.splice(0), ['GET', 'POST', 'GET'])
+    poll()
+    await flush()
+    assert.deepEqual(methods.splice(0), ['GET'])
+    await payments.refresh({ reconcile: false })
+    assert.deepEqual(methods.splice(0), ['GET'])
+    workspaceId.value = 2
+    await flush()
+    assert.deepEqual(methods.splice(0), ['GET', 'POST', 'GET'])
+    await payments.refresh()
+    assert.deepEqual(methods, ['GET', 'POST', 'GET'])
+  } finally {
+    scope.stop()
+  }
+})
