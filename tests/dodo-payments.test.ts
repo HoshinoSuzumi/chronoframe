@@ -16,6 +16,7 @@ import {
   paymentSettings,
   paymentStatus,
   createPaymentCheckout,
+  closeAccountPayments,
 } from '../packages/platform/src/payments.ts'
 import {
   syncDodoProducts,
@@ -394,7 +395,9 @@ test('official SDK isolates environments, synchronizes prices and creates a sign
     )
     await syncDodoProducts(f.db, root, f.transport)
     assert.ok(
-      f.calls.some((c) => c.url.startsWith('https://live.dodopayments.com')),
+      f.calls.some(
+        (c) => new URL(c.url).origin === 'https://live.dodopayments.com',
+      ),
     )
     assert.equal(
       (
@@ -894,6 +897,236 @@ test('multiple named Dodo profiles in one environment isolate callbacks, product
         reason: 'Attempt environment change',
       }),
       { code: 'payment_environment_invalid' },
+    )
+  } finally {
+    await f.mf.dispose()
+  }
+})
+
+test('product failures persist redacted backoff without starving later plans and reset after edits', async () => {
+  const f = await fixture()
+  try {
+    await f.db
+      .prepare(
+        "INSERT INTO platform_plans(id,name,policy_json,currency,monthly_price,quarterly_price) SELECT 'zzz','Later Plan',policy_json,'USD',2000,5000 FROM platform_plans WHERE id='free'",
+      )
+      .run()
+    let reject = true,
+      rejectedCalls = 0
+    const transport: typeof fetch = async (input, init) => {
+      const body = init?.body ? JSON.parse(String(init.body)) : null
+      if (
+        reject &&
+        body?.metadata?.chronoframe_plan_id === 'pro' &&
+        body.price.payment_frequency_count === 1
+      ) {
+        rejectedCalls++
+        return Response.json(
+          { message: 'private-provider-body-and-api-key' },
+          { status: 422 },
+        )
+      }
+      return f.transport(input, init)
+    }
+    assert.equal(
+      (await syncDodoProducts(f.db, root, transport, f.now)).processed,
+      1,
+    )
+    let failure = await f.db
+      .prepare("SELECT * FROM platform_dodo_sync_failures WHERE plan_id='pro'")
+      .first<any>()
+    assert.equal(failure.attempts, 1)
+    assert.equal(failure.next_attempt_at, f.now + 30000)
+    assert.equal(failure.error, 'payment_provider_request_failed')
+    assert.ok(!JSON.stringify(failure).includes('private-provider'))
+    assert.equal(
+      (await syncDodoProducts(f.db, root, transport, f.now + 1)).processed,
+      2,
+    )
+    assert.equal(rejectedCalls, 1)
+    assert.equal(
+      (
+        await f.db
+          .prepare(
+            "SELECT COUNT(*) AS n FROM platform_dodo_products WHERE plan_id='zzz'",
+          )
+          .first<any>()
+      ).n,
+      2,
+    )
+    await syncDodoProducts(f.db, root, transport, f.now + 30001)
+    failure = await f.db
+      .prepare("SELECT * FROM platform_dodo_sync_failures WHERE plan_id='pro'")
+      .first<any>()
+    assert.equal(failure.attempts, 2)
+    assert.equal(failure.next_attempt_at, f.now + 90001)
+    reject = false
+    await f.db
+      .prepare("UPDATE platform_plans SET revision=revision+1 WHERE id='pro'")
+      .run()
+    assert.equal(
+      (await syncDodoProducts(f.db, root, transport, f.now + 30002)).processed,
+      2,
+    )
+    assert.equal(
+      await f.db
+        .prepare(
+          "SELECT * FROM platform_dodo_sync_failures WHERE plan_id='pro'",
+        )
+        .first(),
+      null,
+    )
+    // An invalid local price and an isolated row-publication failure are also per-plan failures.
+    await f.db
+      .prepare(
+        "UPDATE platform_plans SET monthly_price=1,monthly_discount_bps=9999,revision=revision+1 WHERE id='pro'",
+      )
+      .run()
+    assert.equal(
+      (await syncDodoProducts(f.db, root, transport, f.now + 30003)).processed,
+      1,
+    )
+    failure = await f.db
+      .prepare("SELECT * FROM platform_dodo_sync_failures WHERE plan_id='pro'")
+      .first<any>()
+    assert.equal(failure.error, 'payment_price_invalid')
+    await f.db
+      .prepare(
+        "UPDATE platform_plans SET monthly_price=1200,monthly_discount_bps=0,revision=revision+1 WHERE id='pro'",
+      )
+      .run()
+    let failWrite = true
+    const db = {
+      prepare(sql: string) {
+        if (failWrite && sql.startsWith('INSERT INTO platform_dodo_products')) {
+          failWrite = false
+          throw Error('private database error')
+        }
+        return f.db.prepare(sql)
+      },
+      batch: (statements: any) => f.db.batch(statements),
+    }
+    assert.equal(
+      (await syncDodoProducts(db, root, transport, f.now + 30004)).processed,
+      1,
+    )
+    failure = await f.db
+      .prepare("SELECT * FROM platform_dodo_sync_failures WHERE plan_id='pro'")
+      .first<any>()
+    assert.equal(failure.error, 'payment_product_sync_failed')
+  } finally {
+    await f.mf.dispose()
+  }
+})
+
+test('stale Dodo attempts release slots only in the active profile and remain reconcilable by late events', async () => {
+  const f = await fixture()
+  try {
+    await syncDodoProducts(f.db, root, f.transport)
+    const checkout = await createPaymentCheckout(
+      f.db,
+      root,
+      1,
+      input(),
+      'https://portal.example',
+      f.transport,
+    )
+    const { payment } = await f.paid(checkout),
+      event = await f.sign('payment.succeeded', payment, 'evt_late_payment')
+    const old = f.now - 86400001
+    await f.db
+      .prepare(
+        "UPDATE platform_payment_checkouts SET state='uncertain',provider_id=NULL,updated_at=? WHERE id=?",
+      )
+      .bind(old, checkout.id)
+      .run()
+    for (const [workspace, id, key, environment, updated] of [
+      [2, 'stale_create', 'dodo_test', 'test', old],
+      [3, 'other_environment', 'dodo_live', 'live', old],
+      [4, 'fresh_create', 'dodo_test', 'test', f.now],
+    ] as const) {
+      if (workspace > 2) {
+        await f.db
+          .prepare(
+            'INSERT INTO platform_users(id,email,name,email_verified,created_at,updated_at) VALUES(?,?,?,1,?,?)',
+          )
+          .bind(workspace, id + '@example.com', id, f.now, f.now)
+          .run()
+        await f.db
+          .prepare(
+            'INSERT INTO platform_workspaces(id,name,owner_user_id,created_at) VALUES(?,?,?,?)',
+          )
+          .bind(workspace, id, workspace, f.now)
+          .run()
+      }
+      await f.db
+        .prepare(
+          "INSERT INTO platform_payment_checkouts(id,workspace_id,user_id,request_id,plan_id,interval,product_id,price,currency,assignment_revision,state,created_at,updated_at,provider,environment,provider_key) VALUES(?,?,2,?,'pro',1,'pdt_fixture',1200,'USD',1,'creating',?,?,'dodo',?,?)",
+        )
+        .bind(id, workspace, id, updated, updated, environment, key)
+        .run()
+    }
+    await f.db.prepare('UPDATE platform_payment_settings SET enabled=0').run()
+    await reconcileDodoPayments(f.db, root, f.transport, f.now)
+    assert.equal(
+      (
+        await f.db
+          .prepare('SELECT state FROM platform_payment_checkouts WHERE id=?')
+          .bind(checkout.id)
+          .first<any>()
+      ).state,
+      'uncertain',
+    )
+    await f.db.prepare('UPDATE platform_payment_settings SET enabled=1').run()
+    await reconcileDodoPayments(f.db, root, f.transport, f.now)
+    const rows = (
+      await f.db
+        .prepare('SELECT id,state FROM platform_payment_checkouts')
+        .all<any>()
+    ).results
+    const state = (id: string) => rows.find((row: any) => row.id === id)?.state
+    assert.equal(state(checkout.id), 'expired')
+    assert.equal(state('stale_create'), 'expired')
+    assert.equal(state('other_environment'), 'creating')
+    assert.equal(state('fresh_create'), 'creating')
+    // Expiration frees checkout capacity but does not declare unknown billing safe for account erasure.
+    assert.equal(await closeAccountPayments(f.db, root, 1, f.transport), false)
+    const retry = await createPaymentCheckout(
+      f.db,
+      root,
+      1,
+      input('retry_after_expiry'),
+      'https://portal.example',
+      f.transport,
+    )
+    assert.ok(retry.url)
+    await receiveDodoEvent(
+      f.db,
+      root,
+      'test',
+      event.body,
+      event.headers,
+      f.transport,
+    )
+    await processDodoEvents(f.db, root, f.transport)
+    assert.equal(
+      (
+        await f.db
+          .prepare('SELECT state FROM platform_payment_checkouts WHERE id=?')
+          .bind(checkout.id)
+          .first<any>()
+      ).state,
+      'completed',
+    )
+    assert.equal(
+      (
+        await f.db
+          .prepare(
+            'SELECT plan_id FROM platform_workspace_plans WHERE workspace_id=1',
+          )
+          .first<any>()
+      ).plan_id,
+      'pro',
     )
   } finally {
     await f.mf.dispose()

@@ -71,82 +71,126 @@ export async function syncDodoProducts(
     const plans = await allRows<any>(
       db
         .prepare(
-          'SELECT p.*,i.period FROM platform_plans p CROSS JOIN (SELECT 1 AS period UNION ALL SELECT 3) i LEFT JOIN platform_dodo_products d ON d.provider_key=? AND d.plan_id=p.id AND d.interval=i.period WHERE p.active=1 AND p.listed=1 AND CASE WHEN i.period=1 THEN p.monthly_price ELSE p.quarterly_price END>0 AND (d.product_id IS NULL OR d.plan_revision<>p.revision OR d.credential_revision<>?) ORDER BY p.sort_order,p.id,i.period LIMIT ?',
+          'SELECT p.*,i.period,COALESCE(f.attempts,0) AS sync_attempts FROM platform_plans p CROSS JOIN (SELECT 1 AS period UNION ALL SELECT 3) i LEFT JOIN platform_dodo_products d ON d.provider_key=? AND d.plan_id=p.id AND d.interval=i.period LEFT JOIN platform_dodo_sync_failures f ON f.provider_key=? AND f.plan_id=p.id AND f.interval=i.period AND f.plan_revision=p.revision AND f.credential_revision=? WHERE (f.next_attempt_at IS NULL OR f.next_attempt_at<=?) AND p.active=1 AND p.listed=1 AND CASE WHEN i.period=1 THEN p.monthly_price ELSE p.quarterly_price END>0 AND (d.product_id IS NULL OR d.plan_revision<>p.revision OR d.credential_revision<>?) ORDER BY p.sort_order,p.id,i.period LIMIT ?',
         )
-        .bind(key, revision, limit),
+        .bind(key, key, revision, now, revision, limit),
     )
     let processed = 0
     for (const plan of plans) {
-      const price = Number(
-        plan.period === 1 ? plan.monthly_price : plan.quarterly_price,
-      )
-      const snapshot = paymentProductSnapshot(plan, plan.period)
-      const discountBps = Number(
-        plan.period === 1
-          ? plan.monthly_discount_bps
-          : plan.quarterly_discount_bps,
-      )
-      const effectivePrice = discountedPrice(price, discountBps)!
-      if (effectivePrice < 1) fail('payment_price_invalid', 400)
-      const body = {
-        name: snapshot.product.name,
-        description: snapshot.product.description.slice(0, 1000),
-        tax_category: 'saas' as const,
-        price: {
-          type: 'recurring_price' as const,
-          currency: plan.currency,
-          price,
-          payment_frequency_count: plan.period,
-          payment_frequency_interval: 'Month' as const,
-          subscription_period_count: 20,
-          subscription_period_interval: 'Year' as const,
-          tax_inclusive: true,
-          trial_period_days: 0,
-          discount_bps: discountBps,
-          purchasing_power_parity: false,
-        },
-        metadata: {
-          chronoframe_plan_id: plan.id,
-          chronoframe_interval: String(plan.period),
-          chronoframe_profile_id: key,
-          chronoframe_plan_revision: String(plan.revision),
-        },
-      }
-      const product = await dodoRequest(() =>
-        client.products.create(body, {
-          idempotencyKey: `cf-product-${key}-${revision}-${plan.id}-${plan.revision}-${plan.period}`,
-          headers: {
-            'Idempotency-Key': `cf-product-${key}-${revision}-${plan.id}-${plan.revision}-${plan.period}`,
+      try {
+        const price = Number(
+          plan.period === 1 ? plan.monthly_price : plan.quarterly_price,
+        )
+        const snapshot = paymentProductSnapshot(plan, plan.period)
+        const discountBps = Number(
+          plan.period === 1
+            ? plan.monthly_discount_bps
+            : plan.quarterly_discount_bps,
+        )
+        const effectivePrice = discountedPrice(price, discountBps)!
+        if (effectivePrice < 1) fail('payment_price_invalid', 400)
+        const body = {
+          name: snapshot.product.name,
+          description: snapshot.product.description.slice(0, 1000),
+          tax_category: 'saas' as const,
+          price: {
+            type: 'recurring_price' as const,
+            currency: plan.currency,
+            price,
+            payment_frequency_count: plan.period,
+            payment_frequency_interval: 'Month' as const,
+            subscription_period_count: 20,
+            subscription_period_interval: 'Year' as const,
+            tax_inclusive: true,
+            trial_period_days: 0,
+            discount_bps: discountBps,
+            purchasing_power_parity: false,
           },
-        }),
-      )
-      if (!identifier(product.product_id)) fail('payment_product_invalid', 502)
-      await db
-        .prepare(
-          `INSERT INTO platform_dodo_products(provider_key,plan_id,interval,product_id,price,currency,discount_bps,effective_price,plan_revision,credential_revision,updated_at) SELECT ?,?,?,?,?,?,?,?,?,?,? WHERE ${activeFence} AND EXISTS(SELECT 1 FROM platform_dodo_sync_locks WHERE provider_key=? AND token=? AND expires_at>?) AND EXISTS(SELECT 1 FROM platform_plans WHERE id=? AND revision=?) ON CONFLICT(provider_key,plan_id,interval) DO UPDATE SET product_id=excluded.product_id,price=excluded.price,currency=excluded.currency,discount_bps=excluded.discount_bps,effective_price=excluded.effective_price,plan_revision=excluded.plan_revision,credential_revision=excluded.credential_revision,updated_at=excluded.updated_at`,
+          metadata: {
+            chronoframe_plan_id: plan.id,
+            chronoframe_interval: String(plan.period),
+            chronoframe_profile_id: key,
+            chronoframe_plan_revision: String(plan.revision),
+          },
+        }
+        const product = await dodoRequest(() =>
+          client.products.create(body, {
+            idempotencyKey: `cf-product-${key}-${revision}-${plan.id}-${plan.revision}-${plan.period}`,
+            headers: {
+              'Idempotency-Key': `cf-product-${key}-${revision}-${plan.id}-${plan.revision}-${plan.period}`,
+            },
+          }),
         )
-        .bind(
-          key,
-          plan.id,
-          plan.period,
-          product.product_id,
-          price,
-          plan.currency,
-          discountBps,
-          effectivePrice,
-          plan.revision,
-          revision,
-          now,
-          key,
-          revision,
-          key,
-          syncToken,
-          Date.now(),
-          plan.id,
-          plan.revision,
-        )
-        .run()
-      processed++
+        if (!identifier(product.product_id))
+          fail('payment_product_invalid', 502)
+        const published = await db
+          .prepare(
+            `INSERT INTO platform_dodo_products(provider_key,plan_id,interval,product_id,price,currency,discount_bps,effective_price,plan_revision,credential_revision,updated_at) SELECT ?,?,?,?,?,?,?,?,?,?,? WHERE ${activeFence} AND EXISTS(SELECT 1 FROM platform_dodo_sync_locks WHERE provider_key=? AND token=? AND expires_at>?) AND EXISTS(SELECT 1 FROM platform_plans WHERE id=? AND revision=?) ON CONFLICT(provider_key,plan_id,interval) DO UPDATE SET product_id=excluded.product_id,price=excluded.price,currency=excluded.currency,discount_bps=excluded.discount_bps,effective_price=excluded.effective_price,plan_revision=excluded.plan_revision,credential_revision=excluded.credential_revision,updated_at=excluded.updated_at`,
+          )
+          .bind(
+            key,
+            plan.id,
+            plan.period,
+            product.product_id,
+            price,
+            plan.currency,
+            discountBps,
+            effectivePrice,
+            plan.revision,
+            revision,
+            now,
+            key,
+            revision,
+            key,
+            syncToken,
+            Date.now(),
+            plan.id,
+            plan.revision,
+          )
+          .run()
+        if (published.meta.changes) {
+          await db
+            .prepare(
+              'DELETE FROM platform_dodo_sync_failures WHERE provider_key=? AND plan_id=? AND interval=?',
+            )
+            .bind(key, plan.id, plan.period)
+            .run()
+          processed++
+        }
+      } catch (error) {
+        const code =
+          error instanceof SubscriptionError &&
+          [
+            'payment_price_invalid',
+            'payment_product_invalid',
+            'payment_provider_request_failed',
+          ].includes(error.code)
+            ? error.code
+            : 'payment_product_sync_failed'
+        const attempts = Number(plan.sync_attempts) + 1
+        const nextAttempt =
+          now + Math.min(3600000, 30000 * 2 ** Math.min(attempts - 1, 7))
+        await db
+          .prepare(
+            `INSERT INTO platform_dodo_sync_failures(provider_key,plan_id,interval,plan_revision,credential_revision,attempts,next_attempt_at,error,updated_at) SELECT ?,?,?,?,?,?,?,?,? WHERE ${activeFence} AND EXISTS(SELECT 1 FROM platform_dodo_sync_locks WHERE provider_key=? AND token=?) ON CONFLICT(provider_key,plan_id,interval) DO UPDATE SET plan_revision=excluded.plan_revision,credential_revision=excluded.credential_revision,attempts=excluded.attempts,next_attempt_at=excluded.next_attempt_at,error=excluded.error,updated_at=excluded.updated_at`,
+          )
+          .bind(
+            key,
+            plan.id,
+            plan.period,
+            plan.revision,
+            revision,
+            attempts,
+            nextAttempt,
+            code,
+            now,
+            key,
+            revision,
+            key,
+            syncToken,
+          )
+          .run()
+      }
     }
     return { processed }
   } finally {
@@ -918,6 +962,13 @@ export async function reconcileDodoPayments(
         .run()
     }
   }
+  // The session's 24-hour validity has elapsed. Keep the immutable row for late provider events.
+  await db
+    .prepare(
+      "UPDATE platform_payment_checkouts SET state='expired',error='payment_confirmation_unresolved',updated_at=? WHERE provider='dodo' AND environment=? AND provider_key=? AND state IN('creating','uncertain') AND updated_at<?",
+    )
+    .bind(now, environment, key, now - 86400000)
+    .run()
   const pending = await allRows<any>(
     db
       .prepare(
@@ -982,7 +1033,7 @@ export async function closeDodoAccountPayments(
   }
   return !(await db
     .prepare(
-      "SELECT c.id FROM platform_payment_checkouts c JOIN platform_workspaces w ON w.id=c.workspace_id WHERE c.provider='dodo' AND (w.owner_user_id=? OR c.user_id=?) AND c.state IN('creating','open','uncertain') LIMIT 1",
+      "SELECT c.id FROM platform_payment_checkouts c JOIN platform_workspaces w ON w.id=c.workspace_id WHERE c.provider='dodo' AND (w.owner_user_id=? OR c.user_id=?) AND (c.state IN('creating','open','uncertain') OR (c.state='expired' AND c.error='payment_confirmation_unresolved')) LIMIT 1",
     )
     .bind(userId, userId)
     .first())
