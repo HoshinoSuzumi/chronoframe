@@ -11,12 +11,13 @@ export default defineAppConfig({
     },
     button: { slots: { base: 'cursor-pointer rounded-md font-medium' } },
     modal: {
+      variants: { overlay: { true: { overlay: 'bg-black/55' } } },
       slots: {
-        overlay: 'bg-black/55',
-        content: 'bg-default ring ring-default rounded-lg shadow-xl',
-        header: 'px-5 py-4 min-h-0',
-        body: 'p-5',
-        footer: 'px-5 py-3 gap-2',
+        content:
+          'bg-default ring ring-default rounded-lg shadow-xl max-h-[calc(100dvh-2rem)] overflow-hidden',
+        header: 'px-5 py-4 min-h-0 shrink-0',
+        body: 'p-5 min-h-0 overflow-y-auto',
+        footer: 'px-5 py-3 gap-2 justify-end shrink-0 flex-wrap',
         title: 'text-sm font-semibold text-highlighted',
         description: 'text-sm text-muted',
       },

@@ -78,7 +78,7 @@ const onShuffle = () => {
 </script>
 
 <template>
-  <div class="space-y-1.5 w-[calc(100vw-34px)] sm:w-md">
+  <div class="space-y-1.5 w-[calc(100vw-34px)] max-w-full sm:w-md">
     <div class="flex items-center justify-between">
       <h3 class="text-sm font-bold text-neutral-900 dark:text-white p-2">
         {{ $t('ui.action.filter.title') }}

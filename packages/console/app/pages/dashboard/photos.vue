@@ -2626,7 +2626,7 @@ onUnmounted(() => {
             </div>
 
             <div class="flex items-center gap-2">
-              <UPopover>
+              <OverlayFilterPopover>
                 <UTooltip :text="$t('ui.action.filter.tooltip')">
                   <UChip
                     inset
@@ -2643,14 +2643,8 @@ onUnmounted(() => {
                     />
                   </UChip>
                 </UTooltip>
-
-                <template #content>
-                  <UCard variant="glassmorphism">
-                    <OverlayFilterPanel />
-                  </UCard>
-                </template>
-              </UPopover>
-              <UPopover>
+              </OverlayFilterPopover>
+              <OverlaySortPopover>
                 <UTooltip :text="$t('ui.action.sort.tooltip')">
                   <UButton
                     variant="soft"
@@ -2664,11 +2658,7 @@ onUnmounted(() => {
                     size="sm"
                   />
                 </UTooltip>
-
-                <template #content>
-                  <OverlaySortPanel />
-                </template>
-              </UPopover>
+              </OverlaySortPopover>
               <!-- 过滤器 -->
               <USelectMenu
                 data-tour="photo-filter"

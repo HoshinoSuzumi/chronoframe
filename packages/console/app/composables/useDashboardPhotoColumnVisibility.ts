@@ -33,6 +33,7 @@ function createDefaultColumnVisibility(): DashboardPhotoColumnVisibility {
 function mergeColumnVisibility(
   storageValue: DashboardPhotoColumnVisibility,
   defaults: DashboardPhotoColumnVisibility,
+  locked: readonly DashboardPhotoColumnId[] = lockedVisibleColumnIds,
 ): DashboardPhotoColumnVisibility {
   const merged: DashboardPhotoColumnVisibility = { ...defaults }
 
@@ -51,19 +52,29 @@ function mergeColumnVisibility(
     }
   }
 
-  for (const columnId of lockedVisibleColumnIds) {
+  for (const columnId of locked) {
     merged[columnId] = true
   }
 
   return merged
 }
 
-export function useDashboardPhotoColumnVisibility() {
+export function useDashboardPhotoColumnVisibility(
+  options: {
+    storageKey?: string
+    hidden?: readonly DashboardPhotoColumnId[]
+    locked?: readonly DashboardPhotoColumnId[]
+  } = {},
+) {
   return useLocalStorage<DashboardPhotoColumnVisibility>(
-    DASHBOARD_PHOTO_COLUMN_VISIBILITY_STORAGE_KEY,
-    createDefaultColumnVisibility,
+    options.storageKey ?? DASHBOARD_PHOTO_COLUMN_VISIBILITY_STORAGE_KEY,
+    () => ({
+      ...createDefaultColumnVisibility(),
+      ...Object.fromEntries((options.hidden ?? []).map((id) => [id, false])),
+    }),
     {
-      mergeDefaults: mergeColumnVisibility,
+      mergeDefaults: (stored, defaults) =>
+        mergeColumnVisibility(stored, defaults, options.locked),
       initOnMounted: true,
     },
   )

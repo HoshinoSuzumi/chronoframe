@@ -335,124 +335,119 @@ function menu(album: Album) {
         @click="refreshMedia"
       />
     </div>
-    <div class="cf-library-table">
-      <CfTable
-        :data="rows"
-        :columns="columns"
-        :loading="loading && !albums.length"
-        ><template #cover-cell="{ row }"
-          ><button
-            class="cf-library-thumb"
-            :aria-label="
-              $t('cloud.ui.editNamed', { title: row.original.title })
-            "
-            :disabled="!admin"
-            @click="edit(row.original)"
-          >
-            <ThumbImage
-              v-if="cover(row.original)"
-              :src="cover(row.original)?.thumbnailUrl || ''"
-              :alt="row.original.title"
-            /><UIcon
-              v-else
-              name="i-lucide-images"
-              class="size-5"
-            /></button></template
-        ><template #title-cell="{ row }"
-          ><button
-            class="cf-photo-title"
-            :disabled="!admin"
-            @click="edit(row.original)"
-          >
-            {{ row.original.title }}
-          </button></template
-        ><template #description-cell="{ row }"
-          ><p class="cf-table-description">
-            {{ row.original.description || '—' }}
-          </p></template
-        ><template #count-cell="{ row }"
-          ><UBadge
-            color="neutral"
-            variant="soft"
-            >{{ row.original.photoIds.length }}</UBadge
-          ></template
-        ><template #visibility-cell="{ row }"
-          ><UBadge
-            color="neutral"
-            variant="soft"
-            :icon="
-              row.original.isHidden
-                ? 'i-lucide-eye-off'
-                : row.original.hasPassword
-                  ? 'i-lucide-lock'
-                  : 'i-lucide-globe'
-            "
-            >{{
-              row.original.isHidden
-                ? $t('cloud.messages.hidden')
-                : row.original.hasPassword
-                  ? $t('cloud.messages.password')
-                  : $t('cloud.messages.public')
-            }}</UBadge
-          ></template
-        ><template #actions-cell="{ row }"
-          ><div class="flex items-center gap-1">
-            <CfButton
-              v-if="admin"
+    <CfTable
+      class="cf-library-table"
+      :data="rows"
+      :columns="columns"
+      :loading="loading && !albums.length"
+      ><template #cover-cell="{ row }"
+        ><button
+          class="cf-library-thumb"
+          :aria-label="$t('cloud.ui.editNamed', { title: row.original.title })"
+          :disabled="!admin"
+          @click="edit(row.original)"
+        >
+          <ThumbImage
+            v-if="cover(row.original)"
+            :src="cover(row.original)?.thumbnailUrl || ''"
+            :alt="row.original.title"
+          /><UIcon
+            v-else
+            name="i-lucide-images"
+            class="size-5"
+          /></button></template
+      ><template #title-cell="{ row }"
+        ><button
+          class="cf-photo-title"
+          :disabled="!admin"
+          @click="edit(row.original)"
+        >
+          {{ row.original.title }}
+        </button></template
+      ><template #description-cell="{ row }"
+        ><p class="cf-table-description">
+          {{ row.original.description || '—' }}
+        </p></template
+      ><template #count-cell="{ row }"
+        ><UBadge
+          color="neutral"
+          variant="soft"
+          >{{ row.original.photoIds.length }}</UBadge
+        ></template
+      ><template #visibility-cell="{ row }"
+        ><UBadge
+          color="neutral"
+          variant="soft"
+          :icon="
+            row.original.isHidden
+              ? 'i-lucide-eye-off'
+              : row.original.hasPassword
+                ? 'i-lucide-lock'
+                : 'i-lucide-globe'
+          "
+          >{{
+            row.original.isHidden
+              ? $t('cloud.messages.hidden')
+              : row.original.hasPassword
+                ? $t('cloud.messages.password')
+                : $t('cloud.messages.public')
+          }}</UBadge
+        ></template
+      ><template #actions-cell="{ row }"
+        ><div class="flex items-center gap-1">
+          <CfButton
+            v-if="admin"
+            variant="ghost"
+            :icon="ButtonIconArrowUp"
+            size="sm"
+            :disabled="busy || albums[0]?.id === row.original.id"
+            :aria-label="$t('cloud.ui.moveUp', { title: row.original.title })"
+            @click="moveAlbum(row.original, -1)"
+          /><CfButton
+            v-if="admin"
+            variant="ghost"
+            :icon="ButtonIconArrowDown"
+            size="sm"
+            :disabled="busy || albums.at(-1)?.id === row.original.id"
+            :aria-label="$t('cloud.ui.moveDown', { title: row.original.title })"
+            @click="moveAlbum(row.original, 1)"
+          /><UDropdownMenu :items="menu(row.original)"
+            ><CfButton
               variant="ghost"
-              :icon="ButtonIconArrowUp"
-              size="sm"
-              :disabled="busy || albums[0]?.id === row.original.id"
-              :aria-label="$t('cloud.ui.moveUp', { title: row.original.title })"
-              @click="moveAlbum(row.original, -1)"
-            /><CfButton
-              v-if="admin"
-              variant="ghost"
-              :icon="ButtonIconArrowDown"
-              size="sm"
-              :disabled="busy || albums.at(-1)?.id === row.original.id"
+              :icon="ButtonIconEllipsis"
               :aria-label="
-                $t('cloud.ui.moveDown', { title: row.original.title })
+                $t('cloud.ui.actionsNamed', { title: row.original.title })
               "
-              @click="moveAlbum(row.original, 1)"
-            /><UDropdownMenu :items="menu(row.original)"
-              ><CfButton
-                variant="ghost"
-                :icon="ButtonIconEllipsis"
-                :aria-label="
-                  $t('cloud.ui.actionsNamed', { title: row.original.title })
-                "
-            /></UDropdownMenu></div></template
-        ><template #empty
-          ><div class="cf-library-empty">
-            <UIcon
-              name="i-lucide-library-big"
-              class="size-8"
-            />
-            <h3>
-              {{
-                search
-                  ? $t('cloud.messages.noMatchingAlbums')
-                  : $t('cloud.messages.makeRoomForACollection')
-              }}
-            </h3>
-            <p>
-              {{
-                $t(
-                  'cloud.messages.createAnAlbumToBringRelatedPhotographsTogether',
-                )
-              }}
-            </p>
-            <CfButton
-              v-if="admin && !albums.length"
-              variant="soft"
-              @click="create"
-              >{{ $t('cloud.messages.createAlbum') }}</CfButton
-            >
-          </div></template
-        ></CfTable
-      >
-    </div>
+          /></UDropdownMenu></div></template
+      ><template #empty
+        ><div class="cf-library-empty">
+          <UIcon
+            name="i-lucide-library-big"
+            class="size-8"
+          />
+          <h3>
+            {{
+              search
+                ? $t('cloud.messages.noMatchingAlbums')
+                : $t('cloud.messages.makeRoomForACollection')
+            }}
+          </h3>
+          <p>
+            {{
+              $t(
+                'cloud.messages.createAnAlbumToBringRelatedPhotographsTogether',
+              )
+            }}
+          </p>
+          <CfButton
+            v-if="admin && !albums.length"
+            variant="soft"
+            @click="create"
+            >{{ $t('cloud.messages.createAlbum') }}</CfButton
+          >
+        </div></template
+      ></CfTable
+    >
     <USlideover
       v-model:open="editor"
       :title="

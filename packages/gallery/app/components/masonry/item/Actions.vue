@@ -54,7 +54,7 @@ const totalSelectedFilters = computed(() =>
         />
       </UTooltip>
     </div>
-    <UPopover>
+    <OverlayFilterPopover>
       <UTooltip :text="$t('ui.action.filter.tooltip')">
         <UChip
           inset
@@ -71,11 +71,8 @@ const totalSelectedFilters = computed(() =>
           />
         </UChip>
       </UTooltip>
-      <template #content>
-        <UCard variant="glassmorphism"><OverlayFilterPanel /></UCard>
-      </template>
-    </UPopover>
-    <UPopover>
+    </OverlayFilterPopover>
+    <OverlaySortPopover>
       <UTooltip :text="$t('ui.action.sort.tooltip')">
         <UButton
           variant="soft"
@@ -87,10 +84,7 @@ const totalSelectedFilters = computed(() =>
           size="sm"
         />
       </UTooltip>
-      <template #content>
-        <OverlaySortPanel />
-      </template>
-    </UPopover>
+    </OverlaySortPopover>
     <div
       :class="compact ? 'hidden lg:flex' : 'flex'"
       class="items-center"

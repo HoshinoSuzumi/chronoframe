@@ -80,7 +80,11 @@ const rows = computed(() => {
           .includes(search.value.toLowerCase())),
   )
 })
-const columnVisibility = useDashboardPhotoColumnVisibility()
+const columnVisibility = useDashboardPhotoColumnVisibility({
+  storageKey: 'cloud-photos-column-visibility',
+  hidden: ['id'],
+  locked: ['thumbnailUrl', 'actions'],
+})
 const reactions = ref<Record<string, number> | null>(null)
 watch(
   photos,
@@ -113,7 +117,7 @@ const columns = computed<TableColumn<Photo>[]>(() => [
     (key) => key !== 'actions' && key !== 'lastModified',
   ).map((key) => ({
     id: key,
-    enableHiding: !['thumbnailUrl', 'id'].includes(key),
+    enableHiding: key !== 'thumbnailUrl',
     accessorFn: (photo: Photo) =>
       key === 'colorSpace' ? photo.exif?.ColorSpace : photo[key as keyof Photo],
     header: t(
@@ -252,18 +256,18 @@ watch(
         :placeholder="$t('cloud.messages.searchPhotographs')"
         :aria-label="$t('cloud.messages.searchPhotographs2')"
         class="cf-library-search"
-      /><UPopover
+      /><OverlayFilterPopover
         ><CfButton
           :variant="hasActiveFilters ? 'soft' : 'secondary'"
           :icon="ButtonIconFilter"
           >{{ $t('cloud.messages.filters') }}</CfButton
-        ><template #content><OverlayFilterPanel /></template></UPopover
-      ><UPopover
+        ></OverlayFilterPopover
+      ><OverlaySortPopover
         ><CfButton
           variant="secondary"
           :icon="ButtonIconArrowUpDown"
           >{{ $t('cloud.messages.sort') }}</CfButton
-        ><template #content><OverlaySortPanel /></template></UPopover
+        ></OverlaySortPopover
       ><CfButton
         variant="ghost"
         :icon="ButtonIconRefreshCw"
@@ -276,8 +280,7 @@ watch(
           columns
             .filter(
               (c) =>
-                c.id &&
-                !['select', 'thumbnailUrl', 'id', 'actions'].includes(c.id),
+                c.id && !['select', 'thumbnailUrl', 'actions'].includes(c.id),
             )
             .map((c) => ({
               label: String(c.header),
@@ -325,163 +328,160 @@ watch(
         >{{ $t('cloud.messages.clear') }}</CfButton
       >
     </ConsoleSelectionToolbar>
-    <div class="cf-library-table">
-      <CfTable
-        v-model:column-visibility="columnVisibility"
-        :data="rows"
-        :columns="columns"
-        :loading="loading && !photos.length"
-        :get-row-id="(row: Photo) => row.id"
-        ><template #select-header
-          ><UCheckbox
-            :model-value="
-              chosen.length && chosen.length < rows.length
-                ? 'indeterminate'
-                : rows.length > 0 && chosen.length === rows.length
-            "
-            :aria-label="$t('cloud.messages.selectAllPhotographs')"
-            @update:model-value="
-              (v) => {
-                selection =
-                  v === true
-                    ? Object.fromEntries(rows.map((p) => [p.id, true]))
-                    : {}
-              }
-            " /></template
-        ><template #select-cell="{ row }"
-          ><UCheckbox
-            :model-value="!!selection[row.original.id]"
-            :aria-label="
-              $t('cloud.ui.selectNamed', { title: row.original.title })
-            "
-            @update:model-value="
-              (v) => (selection[row.original.id] = !!v)
-            " /></template
-        ><template #thumbnailUrl-cell="{ row }"
-          ><button
-            class="cf-library-thumb"
-            :aria-label="
-              $t('cloud.ui.previewNamed', { title: row.original.title })
-            "
-            @click="preview = row.original"
-          >
-            <ThumbImage
-              :src="row.original.thumbnailUrl || row.original.originalUrl || ''"
-              :thumbhash="row.original.thumbnailHash || ''"
-              :alt="row.original.title"
-            /><span
-              v-if="row.original.isLivePhoto"
-              class="cf-live-label"
-              >{{ $t('cloud.messages.live') }}</span
-            >
-          </button></template
-        ><template #title-cell="{ row }"
-          ><button
-            class="cf-photo-title"
-            @click="preview = row.original"
-          >
-            {{ row.original.title }}</button
-          ><span class="cf-photo-dimensions"
-            >{{ row.original.width }} × {{ row.original.height }}</span
-          ></template
-        ><template #tags-cell="{ row }"
-          ><div class="cf-tag-list">
-            <UBadge
-              v-for="tag in (row.original.tags ?? []).slice(0, 3)"
-              :key="tag"
-              color="neutral"
-              variant="soft"
-              size="sm"
-              >{{ tag }}</UBadge
-            ><span
-              v-if="!row.original.tags?.length"
-              class="text-muted"
-              >—</span
-            >
-          </div></template
-        ><template #rating-cell="{ row }">
-          <Rating
-            v-if="row.original.exif?.Rating != null"
-            :model-value="row.original.exif.Rating"
-            readonly
-            size="xs"
-          />
-          <span v-else>—</span> </template
-        ><template #isLivePhoto-cell="{ row }">
-          <span>{{
-            row.original.isLivePhoto
-              ? $t('ui.livePhoto')
-              : $t('dashboard.photos.table.cells.staticPhoto')
-          }}</span> </template
-        ><template #location-cell="{ row }">
-          <span>{{
-            row.original.exif?.GPSLongitude != null &&
-            row.original.exif?.GPSLatitude != null
-              ? locationLabel(row.original) ||
-                $t('dashboard.photos.table.cells.unknown')
-              : $t('dashboard.photos.table.cells.noGps')
-          }}</span> </template
-        ><template #dateTaken-cell="{ row }">
-          <span class="cf-library-date">{{
-            row.original.dateTaken
-              ? dayjs(row.original.dateTaken).format('YYYY-MM-DD HH:mm:ss')
-              : '—'
-          }}</span> </template
-        ><template #colorSpace-cell="{ row }">
-          <span>{{ row.original.exif?.ColorSpace ?? '—' }}</span> </template
-        ><template #reactions-cell="{ row }"
-          ><span>{{
-            reactions ? reactions[row.original.id] || 0 : '—'
-          }}</span></template
+    <CfTable
+      class="cf-library-table"
+      v-model:column-visibility="columnVisibility"
+      :data="rows"
+      :columns="columns"
+      :loading="loading && !photos.length"
+      :get-row-id="(row: Photo) => row.id"
+      ><template #select-header
+        ><UCheckbox
+          :model-value="
+            chosen.length && chosen.length < rows.length
+              ? 'indeterminate'
+              : rows.length > 0 && chosen.length === rows.length
+          "
+          :aria-label="$t('cloud.messages.selectAllPhotographs')"
+          @update:model-value="
+            (v) => {
+              selection =
+                v === true
+                  ? Object.fromEntries(rows.map((p) => [p.id, true]))
+                  : {}
+            }
+          " /></template
+      ><template #select-cell="{ row }"
+        ><UCheckbox
+          :model-value="!!selection[row.original.id]"
+          :aria-label="
+            $t('cloud.ui.selectNamed', { title: row.original.title })
+          "
+          @update:model-value="
+            (v) => (selection[row.original.id] = !!v)
+          " /></template
+      ><template #thumbnailUrl-cell="{ row }"
+        ><button
+          class="cf-library-thumb"
+          :aria-label="
+            $t('cloud.ui.previewNamed', { title: row.original.title })
+          "
+          @click="preview = row.original"
         >
-        <template #fileSize-cell="{ row }">
-          <span>{{
-            row.original.fileSize != null
-              ? formatBytes(row.original.fileSize)
-              : '—'
-          }}</span>
-        </template>
-        <template #actions-cell="{ row }"
-          ><UDropdownMenu :items="actions(row.original)"
-            ><CfButton
-              variant="ghost"
-              :icon="ButtonIconEllipsis"
-              :aria-label="
-                $t('cloud.ui.actionsNamed', { title: row.original.title })
-              " /></UDropdownMenu></template
-        ><template #empty
-          ><div class="cf-library-empty">
-            <UIcon
-              name="i-lucide-images"
-              class="size-8"
-            />
-            <h3>
-              {{
-                search
-                  ? $t('cloud.messages.noMatchingPhotographs')
-                  : $t('cloud.messages.yourLibraryStartsHere')
-              }}
-            </h3>
-            <p>
-              {{
-                search
-                  ? $t('cloud.messages.tryAnotherSearchOrClearYourFilters')
-                  : $t(
-                      'cloud.messages.uploadPhotographsToStartTellingYourStory',
-                    )
-              }}
-            </p>
-            <CfButton
-              v-if="admin && !photos.length"
-              variant="soft"
-              :disabled="!uploadAdmission.allowed || !!quota.error.value"
-              @click="openUpload"
-              >{{ $t('cloud.messages.upload') }}</CfButton
-            >
-          </div></template
-        ></CfTable
+          <ThumbImage
+            :src="row.original.thumbnailUrl || row.original.originalUrl || ''"
+            :thumbhash="row.original.thumbnailHash || ''"
+            :alt="row.original.title"
+          /><span
+            v-if="row.original.isLivePhoto"
+            class="cf-live-label"
+            >{{ $t('cloud.messages.live') }}</span
+          >
+        </button></template
+      ><template #title-cell="{ row }"
+        ><button
+          class="cf-photo-title"
+          @click="preview = row.original"
+        >
+          {{ row.original.title }}</button
+        ><span class="cf-photo-dimensions"
+          >{{ row.original.width }} × {{ row.original.height }}</span
+        ></template
+      ><template #tags-cell="{ row }"
+        ><div class="cf-tag-list">
+          <UBadge
+            v-for="tag in (row.original.tags ?? []).slice(0, 3)"
+            :key="tag"
+            color="neutral"
+            variant="soft"
+            size="sm"
+            >{{ tag }}</UBadge
+          ><span
+            v-if="!row.original.tags?.length"
+            class="text-muted"
+            >—</span
+          >
+        </div></template
+      ><template #rating-cell="{ row }">
+        <Rating
+          v-if="row.original.exif?.Rating != null"
+          :model-value="row.original.exif.Rating"
+          readonly
+          size="xs"
+        />
+        <span v-else>—</span> </template
+      ><template #isLivePhoto-cell="{ row }">
+        <span>{{
+          row.original.isLivePhoto
+            ? $t('ui.livePhoto')
+            : $t('dashboard.photos.table.cells.staticPhoto')
+        }}</span> </template
+      ><template #location-cell="{ row }">
+        <span>{{
+          row.original.exif?.GPSLongitude != null &&
+          row.original.exif?.GPSLatitude != null
+            ? locationLabel(row.original) ||
+              $t('dashboard.photos.table.cells.unknown')
+            : $t('dashboard.photos.table.cells.noGps')
+        }}</span> </template
+      ><template #dateTaken-cell="{ row }">
+        <span class="cf-library-date">{{
+          row.original.dateTaken
+            ? dayjs(row.original.dateTaken).format('YYYY-MM-DD HH:mm:ss')
+            : '—'
+        }}</span> </template
+      ><template #colorSpace-cell="{ row }">
+        <span>{{ row.original.exif?.ColorSpace ?? '—' }}</span> </template
+      ><template #reactions-cell="{ row }"
+        ><span>{{
+          reactions ? reactions[row.original.id] || 0 : '—'
+        }}</span></template
       >
-    </div>
+      <template #fileSize-cell="{ row }">
+        <span>{{
+          row.original.fileSize != null
+            ? formatBytes(row.original.fileSize)
+            : '—'
+        }}</span>
+      </template>
+      <template #actions-cell="{ row }"
+        ><UDropdownMenu :items="actions(row.original)"
+          ><CfButton
+            variant="ghost"
+            :icon="ButtonIconEllipsis"
+            :aria-label="
+              $t('cloud.ui.actionsNamed', { title: row.original.title })
+            " /></UDropdownMenu></template
+      ><template #empty
+        ><div class="cf-library-empty">
+          <UIcon
+            name="i-lucide-images"
+            class="size-8"
+          />
+          <h3>
+            {{
+              search
+                ? $t('cloud.messages.noMatchingPhotographs')
+                : $t('cloud.messages.yourLibraryStartsHere')
+            }}
+          </h3>
+          <p>
+            {{
+              search
+                ? $t('cloud.messages.tryAnotherSearchOrClearYourFilters')
+                : $t('cloud.messages.uploadPhotographsToStartTellingYourStory')
+            }}
+          </p>
+          <CfButton
+            v-if="admin && !photos.length"
+            variant="soft"
+            :disabled="!uploadAdmission.allowed || !!quota.error.value"
+            @click="openUpload"
+            >{{ $t('cloud.messages.upload') }}</CfButton
+          >
+        </div></template
+      ></CfTable
+    >
     <section
       v-if="pendingJobs.length"
       class="cf-processing-panel"
