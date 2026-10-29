@@ -1,3 +1,4 @@
+import { pricingCatalog } from '../packages/platform/src/billing.ts'
 import {
   paymentEventPage,
   paymentEventPayload,
@@ -2543,6 +2544,46 @@ test('A late portal repurchase cannot replace a newer independently purchased su
       ).error,
       'payment_grant_superseded',
     )
+  } finally {
+    await f.mf.dispose()
+  }
+})
+
+test('Disabled payments and activation-code mode expose redemption and reject checkout without contacting a provider', async () => {
+  const f = await fixture()
+  try {
+    for (const [enabled, method, effective] of [
+      [0, 'payment', 'activation_code'],
+      [1, 'activation_code', 'activation_code'],
+      [1, 'payment', 'payment'],
+    ] as const) {
+      await f.db
+        .prepare(
+          'UPDATE platform_payment_settings SET enabled=?,purchase_method=? WHERE id=1',
+        )
+        .bind(enabled, method)
+        .run()
+      const catalog = await pricingCatalog(f.db)
+      assert.equal(catalog.purchaseMethod, effective)
+      const status = await paymentStatus(f.db, 1, 1)
+      assert.equal(status.purchaseMethod, effective)
+      if (effective === 'activation_code') {
+        assert.equal(status.offers.length, 0)
+        const count = f.calls.length
+        await assert.rejects(
+          createPaymentCheckout(
+            f.db,
+            root,
+            1,
+            f.input,
+            'https://app.chronoframe.art',
+            f.transport,
+          ),
+          { code: 'payment_checkout_disabled' },
+        )
+        assert.equal(f.calls.length, count)
+      } else assert.equal(status.offers.length, 2)
+    }
   } finally {
     await f.mf.dispose()
   }

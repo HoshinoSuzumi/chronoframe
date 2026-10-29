@@ -100,11 +100,12 @@ export async function paymentSecrets(
 export async function paymentSettings(db: PlatformD1) {
   const row = await db
     .prepare(
-      'SELECT enabled,environment,revision,catalog_revision,auto_sync,payload_retention_days,credentials_ciphertext IS NOT NULL AS configured FROM platform_payment_settings WHERE id=1',
+      'SELECT enabled,purchase_method,environment,revision,catalog_revision,auto_sync,payload_retention_days,credentials_ciphertext IS NOT NULL AS configured FROM platform_payment_settings WHERE id=1',
     )
     .first<any>()
   return {
     enabled: !!row.enabled,
+    purchaseMethod: row.purchase_method as 'payment' | 'activation_code',
     autoSync: !!row.auto_sync,
     catalogRevision: Number(row.catalog_revision),
     payloadRetentionDays: Number(row.payload_retention_days),
@@ -268,7 +269,9 @@ export async function paymentStatus(
     .bind(workspaceId)
     .first<any>()
   const offers =
-    settings.enabled && settings.configured
+    settings.enabled &&
+    settings.purchaseMethod === 'payment' &&
+    settings.configured
       ? await allRows<any>(
           db.prepare(
             "SELECT m.plan_id,m.interval FROM platform_payment_products m JOIN platform_plans p ON p.id=m.plan_id WHERE m.enabled=1 AND p.active=1 AND p.listed=1 AND p.currency=m.currency AND m.price=CASE WHEN m.interval=1 THEN p.monthly_price ELSE p.quarterly_price END AND ((SELECT auto_sync FROM platform_payment_settings WHERE id=1)=0 OR EXISTS(SELECT 1 FROM platform_payment_product_sync j WHERE j.plan_id=p.id AND j.interval=m.interval AND j.state='synced' AND j.desired_revision=p.revision AND j.product_id=m.product_id AND j.catalog_revision=(SELECT catalog_revision FROM platform_payment_settings WHERE id=1)))",
@@ -277,6 +280,9 @@ export async function paymentStatus(
       : []
   return {
     environment: 'test',
+    purchaseMethod: settings.enabled
+      ? settings.purchaseMethod
+      : 'activation_code',
     enabled: offers.length > 0,
     canManage: membership.role === 'admin',
     offers,
@@ -363,7 +369,11 @@ export async function createPaymentCheckout(
   )
     fail(400, 'payment_checkout_invalid')
   const settings = await paymentSettings(db)
-  if (!settings.enabled || !settings.configured)
+  if (
+    !settings.enabled ||
+    settings.purchaseMethod !== 'payment' ||
+    !settings.configured
+  )
     fail(403, 'payment_checkout_disabled')
   const token = await acquireWorkspace(db, input.workspaceId, now)
   try {
