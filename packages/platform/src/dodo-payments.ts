@@ -371,6 +371,7 @@ export async function createDodoCheckout(
       client.checkoutSessions.create(
         {
           product_cart: [{ product_id: product.product_id, quantity: 1 }],
+          billing_currency: product.currency,
           customer: { email: member.email },
           metadata: {
             chronoframe_checkout_id: id,
@@ -538,6 +539,26 @@ async function reconcileDodoSubscription(
     .bind(checkout.workspace_id, token, now + 60000, now)
     .first<any>()
   if (lock?.token !== token) fail('payment_busy')
+  const checkoutState = async (
+    state: 'uncertain' | 'expired',
+    error: string,
+  ) => {
+    await db
+      .prepare(
+        `UPDATE platform_payment_checkouts SET state=?,error=?,updated_at=? WHERE id=? AND state IN('creating','open','uncertain') AND ${activeFence} AND EXISTS(SELECT 1 FROM platform_payment_locks WHERE workspace_id=? AND token=?)`,
+      )
+      .bind(
+        state,
+        error,
+        now,
+        checkout.id,
+        key,
+        revision,
+        checkout.workspace_id,
+        token,
+      )
+      .run()
+  }
   try {
     subscription = await dodoRequest(() =>
       client.subscriptions.retrieve(subscriptionId),
@@ -551,7 +572,6 @@ async function reconcileDodoSubscription(
     if (
       subscription.subscription_id !== subscriptionId ||
       subscription.product_id !== checkout.product_id ||
-      subscription.currency !== checkout.currency ||
       subscription.quantity !== 1 ||
       subscription.payment_frequency_interval !== 'Month' ||
       subscription.payment_frequency_count !== checkout.interval ||
@@ -569,12 +589,10 @@ async function reconcileDodoSubscription(
       const session = await dodoRequest(() =>
         client.checkoutSessions.retrieve(rawDodoId(checkout.provider_id)),
       )
-      if (
-        session.id !== rawDodoId(checkout.provider_id) ||
-        !session.payment_id ||
-        session.payment_status !== 'succeeded'
-      )
-        fail('payment_confirmation_pending')
+      if (session.id !== rawDodoId(checkout.provider_id))
+        fail('payment_checkout_mismatch', 422)
+      // The retrieved payment is authoritative; a session status may lag behind it.
+      if (!session.payment_id) fail('payment_confirmation_pending')
       paymentId = session.payment_id ?? undefined
     } else if (!known && !paymentId) {
       const payments = await dodoRequest(() =>
@@ -591,26 +609,74 @@ async function reconcileDodoSubscription(
     const payment = paymentId
       ? await dodoRequest(() => client.payments.retrieve(paymentId!))
       : null
+    // A succeeded payment is never resumable, even when fulfillment needs investigation.
+    if (payment?.status === 'succeeded' && !known)
+      await checkoutState('uncertain', 'payment_confirmation_pending')
+    const identityError = !payment
+      ? null
+      : payment.payment_id !== paymentId ||
+          (payment.checkout_session_id &&
+            !known &&
+            checkout.provider_id &&
+            payment.checkout_session_id !== rawDodoId(checkout.provider_id))
+        ? 'payment_checkout_mismatch'
+        : payment.is_update_payment_method ||
+            payment.is_multi_subscription ||
+            !(
+              payment.subscription_id === subscriptionId ||
+              payment.subscription_ids?.includes(subscriptionId)
+            )
+          ? 'payment_subscription_mismatch'
+          : payment.customer.customer_id !== subscription.customer.customer_id
+            ? 'payment_customer_mismatch'
+            : payment.currency !== subscription.currency &&
+                subscription.currency !== checkout.currency
+              ? 'payment_currency_mismatch'
+              : (payment.metadata?.chronoframe_checkout_id &&
+                    payment.metadata.chronoframe_checkout_id !== checkout.id) ||
+                  (payment.metadata?.chronoframe_environment &&
+                    payment.metadata.chronoframe_environment !== environment) ||
+                  (payment.metadata?.chronoframe_profile_id &&
+                    payment.metadata.chronoframe_profile_id !== key) ||
+                  (!known &&
+                    !checkout.provider_id &&
+                    payment.metadata?.chronoframe_checkout_id !== checkout.id)
+                ? 'payment_checkout_mismatch'
+                : null
+    if (!known && identityError) fail(identityError, 422)
+    // Cancellation must converge even if an initial grant failed its amount/period checks.
+    // Only the authenticated, checkout-bound payment and subscription can release the slot.
+    if (
+      !known &&
+      payment &&
+      !identityError &&
+      ['cancelled', 'expired', 'failed'].includes(subscription.status)
+    ) {
+      await checkoutState('expired', 'payment_subscription_inactive')
+      return checkout.id as string
+    }
+    // Adaptive pricing charges the customer in a local currency. Compare the
+    // provider's settlement amount in the immutable product currency, never a
+    // browser amount, guessed exchange rate, or a numeric total in another currency.
+    const amountMatches =
+      payment &&
+      Number.isSafeInteger(payment.total_amount) &&
+      payment.total_amount > 0 &&
+      (payment.currency === checkout.currency
+        ? payment.total_amount === checkout.price
+        : payment.settlement_currency === checkout.currency &&
+          payment.settlement_amount === checkout.price)
     const successful =
       payment?.status === 'succeeded' &&
-      !payment.is_update_payment_method &&
-      !payment.is_multi_subscription &&
-      (payment.subscription_id === subscriptionId ||
-        payment.subscription_ids?.includes(subscriptionId)) &&
-      payment.customer.customer_id === subscription.customer.customer_id &&
-      payment.currency === checkout.currency &&
-      payment.total_amount === checkout.price &&
-      (!payment.metadata?.chronoframe_checkout_id ||
-        payment.metadata.chronoframe_checkout_id === checkout.id) &&
-      (!payment.metadata?.chronoframe_environment ||
-        payment.metadata.chronoframe_environment === environment) &&
-      (!payment.metadata?.chronoframe_profile_id ||
-        payment.metadata.chronoframe_profile_id === key) &&
-      (!!known ||
-        !!checkout.provider_id ||
-        payment.metadata?.chronoframe_checkout_id === checkout.id) &&
+      !identityError &&
+      amountMatches &&
       !payment.refunds?.length &&
       !payment.disputes?.length
+    if (!known && payment?.status === 'succeeded' && !successful) {
+      if (payment.refunds?.length || payment.disputes?.length)
+        fail('payment_refunded_or_disputed', 422)
+      fail('payment_amount_mismatch', 422)
+    }
     const period = successful
       ? payment.service_periods?.find(
           (p) => p.subscription_id === subscriptionId,
@@ -777,6 +843,10 @@ async function reconcileDodoSubscription(
     }
     await db.batch(writes)
     return checkout.id as string
+  } catch (error) {
+    if (error instanceof SubscriptionError && error.statusCode === 422)
+      await checkoutState('uncertain', error.code)
+    throw error
   } finally {
     await db
       .prepare(
@@ -907,7 +977,7 @@ export async function refreshDodoCheckout(
     .first<any>()
   if (!row) fail('payment_checkout_unavailable', 404)
   if (!row.provider_id) return { state: row.state }
-  const { client } = await dodoClient(
+  const { client, revision } = await dodoClient(
     db,
     secret,
     environment,
@@ -918,10 +988,30 @@ export async function refreshDodoCheckout(
   const session = await dodoRequest(() =>
     client.checkoutSessions.retrieve(rawDodoId(row.provider_id)),
   )
+  if (session.id !== rawDodoId(row.provider_id))
+    fail('payment_checkout_mismatch', 422)
   if (session.payment_id) {
     const payment = await dodoRequest(() =>
       client.payments.retrieve(session.payment_id!),
     )
+    if (
+      payment.payment_id !== session.payment_id ||
+      (payment.checkout_session_id &&
+        payment.checkout_session_id !== session.id)
+    )
+      fail('payment_checkout_mismatch', 422)
+    if (
+      !payment.subscription_id &&
+      !payment.subscription_ids?.length &&
+      ['failed', 'cancelled'].includes(payment.status ?? '')
+    ) {
+      await db
+        .prepare(
+          `UPDATE platform_payment_checkouts SET state='expired',error='payment_not_completed',updated_at=? WHERE id=? AND state IN('creating','open','uncertain') AND ${activeFence}`,
+        )
+        .bind(now, row.id, key, revision)
+        .run()
+    }
     if (payment.subscription_id && !payment.is_multi_subscription)
       await reconcileDodoSubscription(
         db,
@@ -946,13 +1036,18 @@ export async function refreshDodoCheckout(
     )
     .bind(now, row.id)
     .run()
+  const latest = await db
+    .prepare(
+      'SELECT c.state,c.error,s.status FROM platform_payment_checkouts c LEFT JOIN platform_payment_subscriptions s ON s.checkout_id=c.id WHERE c.id=?',
+    )
+    .bind(row.id)
+    .first<any>()
   return {
-    state: (
-      await db
-        .prepare('SELECT state FROM platform_payment_checkouts WHERE id=?')
-        .bind(row.id)
-        .first<any>()
-    ).state,
+    state:
+      latest.error === 'payment_subscription_inactive' ||
+      ['canceled', 'expired', 'failed'].includes(latest.status)
+        ? 'inactive'
+        : latest.state,
   }
 }
 export async function reconcileDodoPayments(
@@ -1015,14 +1110,14 @@ export async function reconcileDodoPayments(
   // The session's 24-hour validity has elapsed. Keep the immutable row for late provider events.
   await db
     .prepare(
-      "UPDATE platform_payment_checkouts SET state='expired',error='payment_confirmation_unresolved',updated_at=? WHERE provider='dodo' AND environment=? AND provider_key=? AND state IN('creating','uncertain') AND updated_at<?",
+      "UPDATE platform_payment_checkouts SET state='expired',error='payment_confirmation_unresolved',updated_at=? WHERE provider='dodo' AND environment=? AND provider_key=? AND state IN('creating','uncertain') AND provider_id IS NULL AND updated_at<?",
     )
     .bind(now, environment, key, now - 86400000)
     .run()
   const pending = await allRows<any>(
     db
       .prepare(
-        "SELECT id,workspace_id,user_id FROM platform_payment_checkouts WHERE provider='dodo' AND environment=? AND provider_key=? AND state='open' AND user_id IS NOT NULL ORDER BY updated_at LIMIT 2",
+        "SELECT id,workspace_id,user_id FROM platform_payment_checkouts WHERE provider='dodo' AND environment=? AND provider_key=? AND state IN('open','uncertain') AND provider_id IS NOT NULL AND user_id IS NOT NULL ORDER BY updated_at LIMIT 2",
       )
       .bind(environment, key),
   )
@@ -1038,7 +1133,7 @@ export async function reconcileDodoPayments(
     ).catch(async () => {
       await db
         .prepare(
-          "UPDATE platform_payment_checkouts SET updated_at=?,error='payment_reconciliation_failed' WHERE id=? AND state='open'",
+          "UPDATE platform_payment_checkouts SET updated_at=?,error=COALESCE(error,'payment_reconciliation_failed') WHERE id=? AND state IN('open','uncertain')",
         )
         .bind(now, row.id)
         .run()

@@ -6,12 +6,12 @@ const { t, locale } = useI18n(),
   billing = useWorkspaceBilling()
 const { selected, data, error, listError, status, refresh, retry, ready } =
   billing
-const payments = useCloudPayments(() => selected.value)
+const payments = useCloudPayments(() => selected.value, refresh)
 const returned = useDodoCheckoutReturn(
   () => selected.value,
   () => !!payments.data.value?.enabled,
   async () => {
-    await Promise.all([refresh(), payments.refresh()])
+    await Promise.all([refresh(), payments.refresh({ reconcile: false })])
   },
 )
 const latestSubscription = computed(() => {

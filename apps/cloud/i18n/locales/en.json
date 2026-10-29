@@ -414,6 +414,7 @@
       "draft": "Draft",
       "photograph": "Photograph",
       "photographs": "Photographs",
+      "confirmationReview": "Your payment is being verified. Do not pay again. If verification reports an error, contact support with the code below.",
       "processing": "Processing",
       "yourPublicAddressAndSharedLinksWillReturn40": "Your public address and shared links will return 404. Your photographs, albums and storage will remain in your workspace. You can publish again later.",
       "chooseHostedOrSelfHosted": "Choose ChronoFrame Cloud for a hosted gallery, or self-host with your own infrastructure."
@@ -711,6 +712,7 @@
       },
       "waiting": "Waiting for confirmation",
       "checkingStatus": "Checking subscription…",
+      "confirmationReview": "Your payment is being verified. Do not pay again. If verification reports an error, contact support with the code below.",
       "processing": "Processing payment",
       "return_checking": "Confirming your payment and updating your plan…",
       "return_pending": "Your payment is still being confirmed. You can check again; do not start another checkout.",

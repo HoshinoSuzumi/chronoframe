@@ -35,7 +35,12 @@ const billing = props.portal
   : null
 const payments = props.portal
   ? (props.paymentController ??
-    useCloudPayments(() => billing?.selected.value ?? 0))
+    useCloudPayments(
+      () => billing?.selected.value ?? 0,
+      async () => {
+        await billing?.refresh()
+      },
+    ))
   : null
 const { data, error, refresh } = await useFetch<any>('/api/billing/catalog', {
   key: 'public-pricing-catalog',
@@ -100,6 +105,7 @@ const pendingFor = (plan: any) => payment.value?.pending?.planId === plan.id
 async function resume() {
   if (payment.value?.pending?.url)
     await navigateTo(payment.value.pending.url, { external: true })
+  else await Promise.all([payments?.refresh(), billing?.refresh()])
 }
 const offer = (plan: any) =>
   payment.value?.enabled &&
@@ -176,6 +182,20 @@ async function checkout(plan: any) {
             ? $t('cloud.payments.testHelp')
             : $t('cloud.billing.purchaseHelp')
         }}
+      </p>
+      <p
+        v-if="payment?.pending?.state === 'uncertain'"
+        class="cf-field-hint"
+        role="status"
+      >
+        {{ $t('cloud.payments.confirmationReview') }}
+        <code
+          v-if="
+            payment.pending.error &&
+            payment.pending.error !== 'payment_confirmation_pending'
+          "
+          >{{ payment.pending.error }}</code
+        >
       </p>
       <p
         v-if="paymentError"
@@ -303,14 +323,18 @@ async function checkout(plan: any) {
           >
           <CfButton
             v-else-if="portal && pendingFor(plan)"
-            :disabled="!payment.pending.url || !!paying"
+            :disabled="
+              !!paying ||
+              payments?.busy.value ||
+              (!payment.pending.url && !payment.pending.canRefresh)
+            "
             @click="resume"
           >
             {{
               $t(
                 payment.pending.url
                   ? 'cloud.payments.resume'
-                  : 'cloud.payments.waiting',
+                  : 'cloud.payments.checkAgain',
               )
             }}
           </CfButton>
