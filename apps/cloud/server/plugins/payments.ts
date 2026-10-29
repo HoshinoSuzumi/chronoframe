@@ -5,6 +5,9 @@ export default defineNitroPlugin((app) => {
   app.hooks.hook('cloudflare:scheduled', async ({ env }) => {
     const db = env.DB as PlatformD1 | undefined
     // Local data retention continues independently of payment availability.
-    if (db) await expirePaymentEventPayloads(db)
+    if (db)
+      await expirePaymentEventPayloads(db).catch(() =>
+        console.error('payment_payload_expiry_failed'),
+      )
   })
 })
