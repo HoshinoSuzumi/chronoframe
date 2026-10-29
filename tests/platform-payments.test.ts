@@ -267,7 +267,7 @@ test('Payment credentials are authenticated-encrypted, test-only, workspace-admi
     assert.ok(!stored.credentials_ciphertext.includes(credentials.apiKey))
     assert.deepEqual(await paymentSecrets(f.db, root), credentials)
     await assert.rejects(paymentSecrets(f.db, 'different-root-key-'.repeat(4)))
-    assert.deepEqual((await paymentSettings(f.db)).workspaceIds, [1])
+    assert.equal('workspaceIds' in (await paymentSettings(f.db)), false)
     assert.equal((await paymentStatus(f.db, 1, 1)).offers.length, 2)
     await assert.rejects(
       createPaymentCheckout(
@@ -304,9 +304,31 @@ test('Payment credentials are authenticated-encrypted, test-only, workspace-admi
       { code: 'payment_product_mismatch' },
     )
     assert.equal(f.calls.filter((v) => v === 'POST /v1/checkouts').length, 0)
+    f.setPrice(1200)
+    // A legacy list containing only workspace 1 must not restrict workspace 2.
+    assert.equal((await paymentStatus(f.db, 2, 2)).offers.length, 2)
+    await createPaymentCheckout(
+      f.db,
+      root,
+      2,
+      { ...f.input, workspaceId: 2, requestId: 'outside_old_list' },
+      'https://app.chronoframe.art',
+      f.transport,
+    )
     await f.db
       .prepare("UPDATE platform_payment_settings SET workspace_ids_json='[]'")
       .run()
+    assert.equal((await paymentStatus(f.db, 1, 1)).offers.length, 2)
+    await createPaymentCheckout(
+      f.db,
+      root,
+      1,
+      f.input,
+      'https://app.chronoframe.art',
+      f.transport,
+    )
+    await f.db.prepare('UPDATE platform_payment_settings SET enabled=0').run()
+    assert.equal((await paymentStatus(f.db, 1, 1)).offers.length, 0)
     await assert.rejects(
       createPaymentCheckout(
         f.db,
