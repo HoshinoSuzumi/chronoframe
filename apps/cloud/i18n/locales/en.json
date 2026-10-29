@@ -698,6 +698,8 @@
       "subscribe": "Subscribe in test mode",
       "manageExisting": "Manage your existing subscription",
       "status": {
+        "pending": "Pending",
+        "failed": "Failed",
         "active": "Active",
         "trialing": "Trialing",
         "scheduled_cancel": "Cancels at period end",

@@ -7,6 +7,13 @@ const { t, locale } = useI18n(),
 const { selected, data, error, listError, status, refresh, retry, ready } =
   billing
 const payments = useCloudPayments(() => selected.value)
+const returned = useDodoCheckoutReturn(
+  () => selected.value,
+  () => !!payments.data.value?.enabled,
+  async () => {
+    await Promise.all([refresh(), payments.refresh()])
+  },
+)
 const latestSubscription = computed(() => {
   const rows = payments.data.value?.subscriptions ?? []
   return (
@@ -43,6 +50,19 @@ const date = (time: number) => new Date(time).toLocaleString(locale.value)
         <p class="cf-page-description">{{ $t('cloud.billing.planHelp') }}</p>
       </div>
     </div>
+    <p
+      v-if="returned.state.value !== 'idle'"
+      class="cf-notice"
+      role="status"
+    >
+      {{ $t('cloud.payments.return_' + returned.state.value) }}
+      <CfButton
+        v-if="['pending', 'failed'].includes(returned.state.value)"
+        variant="ghost"
+        @click="returned.retry"
+        >{{ $t('cloud.payments.checkAgain') }}</CfButton
+      >
+    </p>
     <CfCard
       v-if="error || listError"
       role="alert"

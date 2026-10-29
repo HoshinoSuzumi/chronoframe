@@ -67,14 +67,21 @@ export async function openProviderCredentials(
 export async function paymentProviders(db: PlatformD1) {
   const rows = await allRows<any>(
     db.prepare(
-      'SELECT id,name,environment,revision,credentials_ciphertext IS NOT NULL AS configured FROM platform_payment_providers ORDER BY id',
+      'SELECT id,name,provider,environment,revision,credentials_ciphertext IS NOT NULL AS configured FROM platform_payment_providers ORDER BY id',
     ),
   )
   return rows.map((row) => ({
     ...row,
     configured: !!row.configured,
-    available: false,
-    status: row.id === 'creem' ? 'retired' : 'not_integrated',
+    available: row.provider === 'dodo' && !!row.configured,
+    status:
+      row.id === 'creem'
+        ? 'retired'
+        : row.provider === 'dodo'
+          ? row.configured
+            ? 'ready'
+            : 'not_configured'
+          : 'not_integrated',
   }))
 }
 /** Configurations can be prepared before an adapter exists. No unknown provider may execute payments. */
@@ -101,12 +108,26 @@ export async function savePaymentProvider(
     throw new SubscriptionError(400, 'payment_provider_invalid')
   if (input.id === 'creem')
     throw new SubscriptionError(410, 'payment_provider_retired')
+  if (
+    input.provider !== undefined &&
+    !['dodo', 'custom'].includes(input.provider)
+  )
+    throw new SubscriptionError(400, 'payment_provider_invalid')
   const prior = await db
     .prepare('SELECT * FROM platform_payment_providers WHERE id=?')
     .bind(input.id)
     .first<any>()
   if ((prior?.revision ?? 0) !== input.revision)
     throw new SubscriptionError(409, 'payment_revision_conflict')
+  const provider = input.provider ?? prior?.provider ?? 'custom'
+  if (prior && provider !== prior.provider)
+    throw new SubscriptionError(400, 'payment_provider_invalid')
+  if (
+    prior?.credentials_ciphertext &&
+    prior.environment !== input.environment &&
+    provider === 'dodo'
+  )
+    throw new SubscriptionError(400, 'payment_environment_invalid')
   let envelope = prior?.credentials_ciphertext ?? null
   if (input.credentials !== undefined) {
     if (
@@ -123,11 +144,40 @@ export async function savePaymentProvider(
       JSON.stringify(input.credentials).length > 12000
     )
       throw new SubscriptionError(400, 'payment_credentials_invalid')
+    let credentials = input.credentials
+    if (provider === 'dodo') {
+      const saved = envelope
+        ? await openProviderCredentials(
+            secret,
+            input.id,
+            input.environment,
+            envelope,
+          )
+        : {}
+      credentials = {
+        ...saved,
+        ...Object.fromEntries(
+          Object.entries(input.credentials).filter(
+            ([, value]) => typeof value === 'string' && value.trim(),
+          ),
+        ),
+      }
+      if (
+        Object.keys(credentials).some(
+          (key) => !['apiKey', 'webhookSecret'].includes(key),
+        ) ||
+        typeof credentials.apiKey !== 'string' ||
+        !credentials.apiKey.trim() ||
+        typeof credentials.webhookSecret !== 'string' ||
+        !/^whsec_[A-Za-z0-9+/=_-]{16,}$/.test(credentials.webhookSecret)
+      )
+        throw new SubscriptionError(400, 'payment_credentials_invalid')
+    }
     envelope = await sealProviderCredentials(
       secret,
       input.id,
       input.environment,
-      input.credentials,
+      credentials,
     )
   } else if (prior && prior.environment !== input.environment && envelope) {
     // Preserve credentials while rebinding the authenticated environment context.
@@ -157,6 +207,7 @@ export async function savePaymentProvider(
         input.reason.trim(),
         JSON.stringify({
           name: input.name.trim(),
+          provider,
           environment: input.environment,
           configured: !!envelope,
         }),
@@ -166,7 +217,7 @@ export async function savePaymentProvider(
       ),
     db
       .prepare(
-        'INSERT INTO platform_payment_providers(id,name,environment,credentials_ciphertext,updated_at) SELECT ?,?,?,?,? WHERE EXISTS(SELECT 1 FROM platform_admin_audit WHERE id=?) ON CONFLICT(id) DO UPDATE SET name=excluded.name,environment=excluded.environment,credentials_ciphertext=excluded.credentials_ciphertext,updated_at=excluded.updated_at,revision=platform_payment_providers.revision+1',
+        'INSERT INTO platform_payment_providers(id,name,environment,credentials_ciphertext,updated_at,provider) SELECT ?,?,?,?,?,? WHERE EXISTS(SELECT 1 FROM platform_admin_audit WHERE id=?) ON CONFLICT(id) DO UPDATE SET name=excluded.name,environment=excluded.environment,credentials_ciphertext=excluded.credentials_ciphertext,updated_at=excluded.updated_at,revision=platform_payment_providers.revision+1',
       )
       .bind(
         input.id,
@@ -174,6 +225,7 @@ export async function savePaymentProvider(
         input.environment,
         envelope,
         now,
+        provider,
         auditId,
       ),
   ])

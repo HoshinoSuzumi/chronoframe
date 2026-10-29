@@ -315,7 +315,7 @@ test('Overview data stays unknown before the first response and retains counts d
   assert.equal(media.albums.value.length, 1)
 })
 
-test('Retired payment scheduler only runs local retention and never exposes raw errors', async () => {
+test('Dodo scheduler isolates provider failures and local retention without exposing raw errors', async () => {
   let scheduled: any
   const calls: string[] = [],
     logs: string[] = []
@@ -326,6 +326,16 @@ test('Retired payment scheduler only runs local retention and never exposes raw 
       console: { error: (code: string) => logs.push(code) },
     },
     {
+      '../../../../packages/platform/src/dodo-payments': {
+        syncDodoProducts: async () => {
+          calls.push('dodo-sync')
+          throw new Error('sensitive fixture')
+        },
+        reconcileDodoPayments: async () => {
+          calls.push('dodo-reconcile')
+          throw new Error('sensitive fixture')
+        },
+      },
       '../../../../packages/platform/src/payment-product-sync': {
         syncPaymentProducts: async () => {
           calls.push('sync')
@@ -353,10 +363,14 @@ test('Retired payment scheduler only runs local retention and never exposes raw 
     },
   })
   await scheduled({ env: { DB: {}, NUXT_PLATFORM_STORAGE_SECRET: 'fixture' } })
-  assert.deepEqual(calls, ['expiry'])
-  assert.deepEqual(logs, ['payment_payload_expiry_failed'])
+  assert.deepEqual(calls, ['dodo-sync', 'dodo-reconcile', 'expiry'])
+  assert.deepEqual(logs, [
+    'dodo_product_sync_failed',
+    'dodo_reconciliation_failed',
+    'payment_payload_expiry_failed',
+  ])
   await scheduled({ env: {} })
-  assert.deepEqual(calls, ['expiry'])
+  assert.deepEqual(calls, ['dodo-sync', 'dodo-reconcile', 'expiry'])
 })
 
 test('Primary billing workspace consistently prefers ownership then administrative membership', async () => {

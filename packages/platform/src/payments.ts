@@ -1,3 +1,8 @@
+import {
+  createDodoCheckout,
+  refreshDodoCheckout,
+  closeDodoAccountPayments,
+} from './dodo-payments.ts'
 import type { PlatformD1 } from './index.ts'
 import { allRows, SubscriptionError } from './subscriptions.ts'
 
@@ -79,14 +84,13 @@ export async function paymentSecrets(
 export async function paymentSettings(db: PlatformD1) {
   const row = await db
     .prepare(
-      'SELECT s.current_provider,s.enabled,s.purchase_method,s.revision,s.catalog_revision,s.payload_retention_days,p.environment,p.credentials_ciphertext IS NOT NULL AS configured FROM platform_payment_settings s LEFT JOIN platform_payment_providers p ON p.id=s.current_provider WHERE s.id=1',
+      'SELECT s.current_provider,s.enabled,s.purchase_method,s.revision,s.catalog_revision,s.payload_retention_days,p.provider,p.environment,p.credentials_ciphertext IS NOT NULL AS configured FROM platform_payment_settings s LEFT JOIN platform_payment_providers p ON p.id=s.current_provider WHERE s.id=1',
     )
     .first<any>()
   return {
     enabled: !!row.enabled,
     currentProvider: row.current_provider as string | null,
-    // No active adapter remains after retiring the Creem sandbox.
-    providerAvailable: false,
+    providerAvailable: row.provider === 'dodo',
     purchaseMethod: row.purchase_method as 'payment' | 'activation_code',
     autoSync: false,
     catalogRevision: Number(row.catalog_revision),
@@ -169,30 +173,72 @@ export async function paymentStatus(
     purchaseMethod: settings.enabled
       ? settings.purchaseMethod
       : 'activation_code',
-    enabled: false,
+    enabled:
+      settings.enabled &&
+      settings.providerAvailable &&
+      settings.configured &&
+      settings.purchaseMethod === 'payment',
     canManage: membership.role === 'admin',
-    offers: [],
+    offers:
+      settings.enabled &&
+      settings.providerAvailable &&
+      settings.configured &&
+      settings.purchaseMethod === 'payment'
+        ? await allRows<any>(
+            db
+              .prepare(
+                'SELECT d.plan_id,d.interval FROM platform_dodo_products d JOIN platform_plans p ON p.id=d.plan_id JOIN platform_payment_providers v ON v.id=d.provider_key WHERE d.provider_key=? AND d.credential_revision=v.revision AND d.plan_revision=p.revision AND p.active=1 AND p.listed=1 AND d.price=CASE WHEN d.interval=1 THEN p.monthly_price ELSE p.quarterly_price END AND d.currency=p.currency',
+              )
+              .bind(settings.currentProvider),
+          )
+        : [],
     subscriptions,
-    pending: null,
+    pending:
+      settings.enabled &&
+      settings.providerAvailable &&
+      settings.purchaseMethod === 'payment'
+        ? await db
+            .prepare(
+              "SELECT id,state,plan_id AS planId,interval,error,CASE WHEN state='open' AND user_id=? AND ?='admin' THEN checkout_url ELSE NULL END AS url FROM platform_payment_checkouts WHERE workspace_id=? AND provider='dodo' AND environment=? AND provider_key=? AND state IN('creating','open','uncertain') ORDER BY created_at DESC LIMIT 1",
+            )
+            .bind(
+              userId,
+              membership.role,
+              workspaceId,
+              settings.environment,
+              settings.currentProvider,
+            )
+            .first<any>()
+        : null,
   }
 }
 
-/** Legacy API compatibility: retired checkout operations fail before reading or mutating data. */
+/** Dispatch only the active supported adapter; Creem remains retired. */
 export async function createPaymentCheckout(
-  _db: PlatformD1,
-  _rootKey: string,
-  _userId: number,
-  _input: {
+  db: PlatformD1,
+  rootKey: string,
+  userId: number,
+  input: {
     workspaceId: number
     planId: string
     interval: number
     requestId: string
   },
-  _portalOrigin: string,
-  _transport: PaymentFetch = fetch,
-  _now = Date.now(),
+  portalOrigin: string,
+  transport: PaymentFetch = fetch,
+  now = Date.now(),
 ) {
-  throw new SubscriptionError(410, 'payment_provider_retired')
+  if (!(await paymentSettings(db)).providerAvailable)
+    throw new SubscriptionError(410, 'payment_provider_retired')
+  return createDodoCheckout(
+    db,
+    rootKey,
+    userId,
+    input,
+    portalOrigin,
+    transport,
+    now,
+  )
 }
 export async function createPaymentPortal(
   _db: PlatformD1,
@@ -246,25 +292,34 @@ export async function recoverPaymentCheckout(
 }
 /** Retired sandbox records do not require an upstream cancellation during erasure. */
 export async function closeAccountPayments(
-  _db: PlatformD1,
-  _rootKey: string,
-  _userId: number,
-  _transport: PaymentFetch = fetch,
+  db: PlatformD1,
+  rootKey: string,
+  userId: number,
+  transport: PaymentFetch = fetch,
 ) {
-  // Historical Creem subscriptions were sandbox-only and cannot bill.
-  return true
+  return closeDodoAccountPayments(db, rootKey, userId, transport)
 }
 
-/** Historical return URLs cannot trigger reconciliation or grant access. */
+/** Reconcile only an authenticated local Dodo checkout; browser provider identifiers are ignored. */
 export async function refreshPaymentCheckout(
-  _db: PlatformD1,
-  _rootKey: string,
-  _userId: number,
-  _workspaceId: number,
-  _checkoutId: string,
-  _transport: PaymentFetch = fetch,
-  _now = Date.now(),
+  db: PlatformD1,
+  rootKey: string,
+  userId: number,
+  workspaceId: number,
+  checkoutId: string,
+  transport: PaymentFetch = fetch,
+  now = Date.now(),
   _hints: { providerCheckoutId?: string; subscriptionId?: string } = {},
 ) {
-  throw new SubscriptionError(410, 'payment_provider_retired')
+  if (!(await paymentSettings(db)).providerAvailable)
+    throw new SubscriptionError(410, 'payment_provider_retired')
+  return refreshDodoCheckout(
+    db,
+    rootKey,
+    userId,
+    workspaceId,
+    checkoutId,
+    transport,
+    now,
+  )
 }
