@@ -243,7 +243,7 @@ async function save() {
               :disabled="busy"
             />
           </div>
-          <div class="cf-field">
+          <div class="cf-field cf-icon-field">
             <label for="gallery-icon">{{
               $t('cloud.messages.galleryIcon')
             }}</label

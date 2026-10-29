@@ -60,8 +60,8 @@
   margin: 24px 0 !important;
 }
 .cf-hero-title em {
-  font-family: var(--cf-font);
-  font-style: normal;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-style: italic;
   color: var(--accent);
   font-weight: 400;
 }
@@ -220,7 +220,7 @@
   max-width: 390px;
 }
 .cf-auth-quote h2 {
-  font-family: var(--cf-font);
+  font-family: Georgia, serif;
   font-weight: 400;
   font-size: clamp(32px, 3.6vw, 52px);
   letter-spacing: -1.5px;
@@ -1699,12 +1699,6 @@
 .cf-site-settings .cf-panel-body {
   min-width: 0;
 }
-.cf-site-settings input[type='file'] {
-  width: 100%;
-  max-width: 100%;
-  min-width: 0;
-  font-size: 12px;
-}
 
 .cf-domain-section-heading {
   display: flex;
@@ -2596,20 +2590,6 @@ a.cf-domain-address:hover {
 .cf-icon-picker:focus-within {
   outline: 2px solid var(--primary);
 }
-.cf-icon-file {
-  width: 100%;
-  font-size: 13px;
-  color: var(--muted-foreground);
-}
-.cf-icon-file::file-selector-button {
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  background: var(--secondary);
-  color: var(--foreground);
-  padding: 6px 12px;
-  margin-right: 10px;
-  cursor: pointer;
-}
 .cf-site-address-block {
   background: var(--card);
   border: 1px solid var(--border);
@@ -2643,12 +2623,19 @@ a.cf-domain-address:hover {
   gap: 8px;
   flex-wrap: wrap;
 }
-.cf-icon-file {
+.cf-icon-field {
+  position: relative;
+}
+.cf-site-settings input.cf-icon-file {
   position: absolute;
   width: 1px;
   height: 1px;
+  padding: 0;
+  border: 0;
+  margin: -1px;
   overflow: hidden;
   clip-path: inset(50%);
+  white-space: nowrap;
 }
 .cf-field:has(.cf-icon-file:focus-visible) .cf-icon-picker {
   outline: 2px solid var(--primary);
