@@ -1,14 +1,47 @@
 <script setup lang="ts" generic="T">
 import type { TableColumn } from '@nuxt/ui'
+import { computed } from 'vue'
 defineOptions({ inheritAttrs: false })
-defineProps<{ data?: T[]; columns?: TableColumn<T>[] }>()
+const props = defineProps<{ data?: T[]; columns?: TableColumn<T>[] }>()
+function actionClass<C>(
+  value: string | ((cell: C) => string) | undefined,
+  pinned: string,
+) {
+  return (cell: C) =>
+    [typeof value === 'function' ? value(cell) : value, pinned]
+      .filter(Boolean)
+      .join(' ')
+}
+const renderedColumns = computed(() =>
+  props.columns?.map((column) =>
+    column.id === 'actions'
+      ? {
+          ...column,
+          meta: {
+            ...column.meta,
+            class: {
+              ...column.meta?.class,
+              th: actionClass(
+                column.meta?.class?.th,
+                'cf-table-actions sticky right-0 z-20',
+              ),
+              td: actionClass(
+                column.meta?.class?.td,
+                'cf-table-actions sticky right-0 z-10',
+              ),
+            },
+          },
+        }
+      : column,
+  ),
+)
 </script>
 <template>
   <UTable
     v-if="data"
     v-bind="$attrs"
     :data="data"
-    :columns="columns"
+    :columns="renderedColumns"
     :ui="{
       root: 'cf-data-table',
       base: 'cf-table table-auto border-collapse',

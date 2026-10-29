@@ -336,7 +336,7 @@ function menu(album: Album) {
       />
     </div>
     <div class="cf-library-table">
-      <ConsoleMediaTable
+      <CfTable
         :data="rows"
         :columns="columns"
         :loading="loading && !albums.length"
@@ -450,7 +450,7 @@ function menu(album: Album) {
               >{{ $t('cloud.messages.createAlbum') }}</CfButton
             >
           </div></template
-        ></ConsoleMediaTable
+        ></CfTable
       >
     </div>
     <USlideover
