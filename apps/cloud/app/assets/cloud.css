@@ -1388,12 +1388,6 @@
   width: 260px;
   max-width: 100%;
 }
-.cf-library-table {
-  overflow-x: auto;
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  background: var(--card);
-}
 .cf-library-thumb {
   display: flex;
   width: 52px;
@@ -1478,13 +1472,8 @@
 .cf-photo-preview {
   width: 100%;
   max-height: 70vh;
-  object-fit: contain;
-}
-.cf-preview-details {
-  display: flex;
-  gap: 12px;
-  font-size: 12px;
-  color: var(--muted-foreground);
+  overflow-y: auto;
+  border-radius: 8px;
 }
 .cf-selected-photo {
   display: flex;
@@ -1662,16 +1651,8 @@
   overflow-y: auto;
 }
 
-.cf-photo-preview {
-  overflow-y: auto;
-  border-radius: 8px;
-}
 .cf-photo-preview > * {
   width: 100%;
-}
-.cf-preview-details {
-  padding: 12px 16px;
-  flex-wrap: wrap;
 }
 .cf-overview-stats {
   display: grid;
@@ -2208,30 +2189,8 @@ a.cf-domain-address:hover {
   font-weight: 600;
   margin-bottom: 8px;
 }
-.cf-table-scroll {
-  overflow: auto;
-  border: 1px solid var(--border);
-  border-radius: 10px;
+.cf-plan-comparison-table {
   margin-top: 18px;
-  background: var(--card);
-}
-.cf-table-scroll table {
-  width: 100%;
-  border-collapse: collapse;
-  white-space: nowrap;
-  text-align: left;
-}
-.cf-table-scroll th,
-.cf-table-scroll td {
-  font-size: 12px;
-  padding: 14px 18px;
-  border-bottom: 1px solid var(--border);
-}
-.cf-table-scroll th {
-  font-weight: 550;
-}
-.cf-table-scroll thead {
-  background: var(--secondary);
 }
 .cf-plan-page {
   display: grid;

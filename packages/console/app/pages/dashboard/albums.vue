@@ -1063,7 +1063,7 @@ const columns = computed<any[]>(() => [
 
                 <div class="mt-4 space-y-3">
                   <div class="flex flex-wrap items-center gap-2">
-                    <UPopover
+                    <OverlayFilterPopover
                       v-model:open="isSelectorFilterOpen"
                       :content="{
                         side: 'bottom',
@@ -1089,13 +1089,7 @@ const columns = computed<any[]>(() => [
                           {{ totalSelectedFilters }}
                         </UBadge>
                       </UButton>
-
-                      <template #content>
-                        <UCard variant="glassmorphism">
-                          <OverlayFilterPanel />
-                        </UCard>
-                      </template>
-                    </UPopover>
+                    </OverlayFilterPopover>
 
                     <UButton
                       v-if="hasActiveFilters"

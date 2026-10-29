@@ -33,6 +33,28 @@ const payments = props.portal
 const { data, error, refresh } = await useFetch<any>('/api/billing/catalog', {
   key: 'public-pricing-catalog',
 })
+const comparisonColumns = computed(() => [
+  { accessorKey: 'label', header: t('cloud.billing.allowance') },
+  ...(data.value?.plans ?? []).map((plan: any) => ({
+    id: 'plan:' + plan.id,
+    header: plan.name,
+    accessorFn: (row: { values: Record<string, string> }) =>
+      row.values[plan.id],
+  })),
+])
+const comparisonRows = computed(() =>
+  [...BILLING_LIMITS, 'conditions'].map((key) => ({
+    label: t('cloud.billing.' + key),
+    values: Object.fromEntries(
+      (data.value?.plans ?? []).map((plan: any) => [
+        plan.id,
+        key === 'conditions'
+          ? String(plan.policy.rules.length || '—')
+          : allowance(key, plan.policy.limits[key], locale.value),
+      ]),
+    ),
+  })),
+)
 if (billing) await billing.ready
 const currentPlan = computed(() => billing?.data.value?.plan.id)
 const amount = (plan: any) =>
@@ -353,52 +375,13 @@ async function checkout(plan: any) {
       >
         <h2>{{ $t('cloud.billing.compare') }}</h2>
         <p class="cf-field-hint">{{ $t('cloud.billing.comparisonHelp') }}</p>
-        <div class="cf-table-scroll">
-          <CfTable>
-            <caption class="sr-only">
-              {{
-                $t('cloud.billing.compare')
-              }}
-            </caption>
-            <thead>
-              <tr>
-                <th scope="col">{{ $t('cloud.billing.allowance') }}</th>
-                <th
-                  v-for="plan in data.plans"
-                  :key="plan.id"
-                  scope="col"
-                >
-                  {{ plan.name }}
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr
-                v-for="key in BILLING_LIMITS"
-                :key="key"
-              >
-                <th scope="row">{{ $t('cloud.billing.' + key) }}</th>
-                <td
-                  v-for="plan in data.plans"
-                  :key="plan.id"
-                >
-                  {{ allowance(key, plan.policy.limits[key], locale) }}
-                </td>
-              </tr>
-              <tr>
-                <th scope="row">{{ $t('cloud.billing.conditions') }}</th>
-                <td
-                  v-for="plan in data.plans"
-                  :key="plan.id"
-                >
-                  {{ plan.policy.rules.length || '—' }}
-                </td>
-              </tr>
-            </tbody>
-          </CfTable>
-        </div>
-      </section></template
-    >
+        <CfTable
+          class="cf-plan-comparison-table"
+          :data="comparisonRows"
+          :columns="comparisonColumns"
+          :caption="$t('cloud.billing.compare')"
+        /></section
+    ></template>
     <CloudLegalLinks />
   </div>
 </template>
