@@ -193,5 +193,6 @@ const date = (time: number) => new Date(time).toLocaleString(locale.value)
         {{ failure }}
       </p></CfCard
     >
+    <CloudLegalLinks />
   </div>
 </template>

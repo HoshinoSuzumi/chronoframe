@@ -764,6 +764,16 @@
       "use": "Use for uploads",
       "removeTitle": "Remove storage?",
       "removeHelp": "New uploads will stop using this connection. Existing photographs and files remain available in their original storage. Files are not moved or deleted."
+    },
+    "legal": {
+      "terms": "Terms of Service",
+      "privacy": "Privacy Policy",
+      "navigation": "Legal information",
+      "language": "Language",
+      "effective": "Effective date:",
+      "revised": "Last revised:",
+      "loadFailed": "Unable to load this document. Please retry.",
+      "readBefore": "Please review our terms and privacy policy before continuing."
     }
   }
 }
