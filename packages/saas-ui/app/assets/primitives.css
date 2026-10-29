@@ -350,3 +350,79 @@
     transition: none;
   }
 }
+
+/* Safe Markdown presentation shared by public documents and editorial previews. */
+.cf-markdown {
+  font-size: 14px;
+  line-height: 1.85;
+  overflow-wrap: anywhere;
+}
+.cf-markdown > * + * {
+  margin-top: 1em;
+}
+.cf-markdown :is(h1, h2, h3, h4) {
+  color: var(--foreground);
+  font-weight: 600;
+  line-height: 1.4;
+  margin-top: 1.8em;
+}
+.cf-markdown > :first-child {
+  margin-top: 0;
+}
+.cf-markdown h1 {
+  font-size: 1.65em;
+}
+.cf-markdown h2 {
+  font-size: 1.3em;
+}
+.cf-markdown h3 {
+  font-size: 1.1em;
+}
+.cf-markdown a {
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.cf-markdown :is(ul, ol) {
+  padding-left: 1.5em;
+}
+.cf-markdown ul {
+  list-style: disc;
+}
+.cf-markdown ol {
+  list-style: decimal;
+}
+.cf-markdown li + li {
+  margin-top: 0.4em;
+}
+.cf-markdown blockquote {
+  border-left: 3px solid var(--border);
+  padding-left: 1em;
+  color: var(--muted-foreground);
+}
+.cf-markdown pre {
+  white-space: pre-wrap;
+  background: var(--muted);
+  padding: 1em;
+  border-radius: var(--radius);
+}
+.cf-markdown code {
+  font-family: ui-monospace, monospace;
+  font-size: 0.9em;
+}
+.cf-markdown table {
+  display: block;
+  max-width: 100%;
+  overflow: auto;
+  border-collapse: collapse;
+}
+.cf-markdown :is(td, th) {
+  border: 1px solid var(--border);
+  padding: 0.6em 0.9em;
+  text-align: start;
+}
+.cf-markdown hr {
+  border: 0;
+  border-top: 1px solid var(--border);
+  margin-block: 1.5em;
+}

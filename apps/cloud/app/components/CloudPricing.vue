@@ -399,5 +399,6 @@ async function checkout(plan: any) {
         </div>
       </section></template
     >
+    <CloudLegalLinks />
   </div>
 </template>

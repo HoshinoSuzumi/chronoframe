@@ -764,6 +764,16 @@
       "use": "设为上传目标",
       "removeTitle": "移除存储？",
       "removeHelp": "此连接将不再用于新上传。已有照片仍从原存储读取，不会迁移或删除文件。"
+    },
+    "legal": {
+      "terms": "用户协议",
+      "privacy": "隐私政策",
+      "navigation": "法律信息",
+      "language": "语言",
+      "effective": "生效日期：",
+      "revised": "最近修订：",
+      "loadFailed": "暂时无法加载文档，请重试。",
+      "readBefore": "继续前，请阅读用户协议与隐私政策。"
     }
   }
 }

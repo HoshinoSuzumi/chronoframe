@@ -19,6 +19,8 @@ export default defineEventHandler((event) => {
       '/api/auth/security',
       '/api/sites',
       '/api/billing/catalog',
+      '/api/legal/terms',
+      '/api/legal/privacy',
       '/api/billing/workspaces',
       '/api/billing/plan',
       '/api/billing/redeem',

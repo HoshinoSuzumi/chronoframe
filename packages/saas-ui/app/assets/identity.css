@@ -1,0 +1,164 @@
+/* Account controls share the same surface, spacing and focus language. */
+.cf-brand-edition {
+  font-size: 0.78em;
+  font-weight: 500;
+  opacity: 0.8;
+}
+
+/* One persistent shell: workspace and site navigation share a wider sidebar. */
+.cf-user-trigger {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-width: 0;
+  gap: 9px;
+  padding: 10px 8px;
+  text-align: left;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+/* Cloud composition. All theme, primitives and shell dimensions are owned by saas-ui. */
+.cf-brand.cf-brand-compact {
+  font-size: 13px;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+/* Shared brand, account menu and keyboard skip-link presentation. */
+.cf-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  color: var(--foreground);
+  font-size: 19px;
+  font-weight: 650;
+  letter-spacing: -0.8px;
+}
+.cf-brand-logo {
+  width: 34px;
+  height: 34px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+.cf-brand-dot {
+  color: var(--accent);
+}
+.cf-brand-light {
+  color: #fff;
+}
+.cf-skip-link {
+  position: fixed;
+  top: -100px;
+  left: 16px;
+  z-index: 100;
+  padding: 12px 20px;
+  background: var(--primary);
+  color: var(--primary-foreground);
+}
+.cf-skip-link:focus {
+  top: 12px;
+}
+.cf-user-trigger:hover,
+.cf-user-trigger[data-state='open'] {
+  background: var(--secondary);
+}
+.cf-user-trigger > svg {
+  flex-shrink: 0;
+  color: var(--muted-foreground);
+}
+.cf-user-avatar {
+  flex: 0 0 32px;
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--secondary);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--primary);
+}
+.cf-user-identity {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+.cf-user-identity strong {
+  font-size: 12px;
+  color: var(--foreground);
+  font-weight: 550;
+}
+.cf-user-identity span {
+  font-size: 10px;
+  color: var(--muted-foreground);
+}
+.cf-user-identity > * {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cf-account-menu {
+  z-index: 120;
+  width: 248px;
+  max-width: calc(100vw - 24px);
+  padding: 5px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--card);
+  box-shadow: 0 12px 32px #111c1620;
+  font-size: 12px;
+}
+.cf-account-menu-label {
+  display: grid;
+  gap: 3px;
+  padding: 9px;
+}
+.cf-account-menu-label > * {
+  overflow-wrap: anywhere;
+}
+.cf-account-menu-label span {
+  color: var(--muted-foreground);
+  font-size: 11px;
+}
+.cf-account-menu [role='menuitem'] {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 9px;
+  border-radius: 5px;
+  cursor: pointer;
+  outline: none;
+}
+.cf-account-menu [role='menuitem'][data-highlighted] {
+  background: var(--secondary);
+}
+.cf-menu-separator {
+  height: 1px;
+  margin: 4px 0;
+  background: var(--border);
+}
+.cf-brand-compact .cf-brand-edition {
+  margin-left: 8px;
+  padding-left: 8px;
+  border-left: 1px solid var(--border);
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--muted-foreground);
+  letter-spacing: 0;
+}
+.cf-user-avatar {
+  color: var(--foreground);
+  border-radius: 50%;
+  width: 28px;
+  height: 28px;
+  flex-basis: 28px;
+}
+.cf-user-trigger {
+  padding: 8px 6px;
+}
+.cf-account-menu {
+  box-shadow: 0 8px 28px #0003;
+  border-radius: 6px;
+}

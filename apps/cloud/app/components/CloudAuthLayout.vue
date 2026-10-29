@@ -46,6 +46,10 @@ const links = useCloudLinks()
         ><CloudThemeToggle />
       </div>
       <div class="cf-auth-form"><slot /></div>
+      <div class="cf-legal-disclosure">
+        <p>{{ $t('cloud.legal.readBefore') }}</p>
+        <CloudLegalLinks />
+      </div>
       <p class="cf-auth-bottom">
         {{ $t('cloud.messages.aHomeForYourPhotographs')
         }}<a

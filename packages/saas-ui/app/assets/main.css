@@ -3,6 +3,7 @@
 @import './tokens.css';
 @import './primitives.css' layer(components);
 @import './shell.css';
+@import './identity.css';
 
 @source '../components';
 @source '../../../../apps/cloud/app';

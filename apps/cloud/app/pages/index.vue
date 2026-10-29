@@ -167,6 +167,7 @@ useSeoMeta({
         href="https://github.com/HoshinoSuzumi/chronoframe/blob/main/LICENSING.md"
         >{{ $t('cloud.messages.sourceAndLicensing') }}<ArrowUpRight :size="13"
       /></a>
+      <CloudLegalLinks />
     </footer>
   </div>
 </template>
