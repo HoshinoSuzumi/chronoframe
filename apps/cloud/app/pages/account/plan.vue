@@ -7,14 +7,6 @@ const { t, locale } = useI18n(),
 const { selected, data, error, listError, status, refresh, retry, ready } =
   billing
 const payments = useCloudPayments(() => selected.value)
-const returned = useCheckoutReturn(
-  () => selected.value,
-  async () => {
-    await Promise.all([refresh(), payments.refresh()])
-    if (error.value || payments.error.value)
-      throw new Error('billing_refresh_failed')
-  },
-)
 const latestSubscription = computed(() => {
   const rows = payments.data.value?.subscriptions ?? []
   return (
@@ -51,19 +43,6 @@ const date = (time: number) => new Date(time).toLocaleString(locale.value)
         <p class="cf-page-description">{{ $t('cloud.billing.planHelp') }}</p>
       </div>
     </div>
-    <p
-      v-if="returned.state.value !== 'idle'"
-      class="cf-notice"
-      role="status"
-    >
-      {{ $t('cloud.payments.return_' + returned.state.value) }}
-      <CfButton
-        v-if="['pending', 'failed'].includes(returned.state.value)"
-        variant="ghost"
-        @click="returned.retry"
-        >{{ $t('cloud.payments.checkAgain') }}</CfButton
-      >
-    </p>
     <CfCard
       v-if="error || listError"
       role="alert"
@@ -107,15 +86,6 @@ const date = (time: number) => new Date(time).toLocaleString(locale.value)
           </p>
         </div>
         <div class="cf-plan-management">
-          <CfButton
-            v-if="
-              payments.data.value?.canManage &&
-              payments.data.value.subscriptions.length
-            "
-            :loading="payments.busy.value"
-            @click="payments.portal"
-            >{{ $t('cloud.payments.manage') }}</CfButton
-          >
           <CfButton
             v-if="data.workspace.role === 'admin'"
             as-child
