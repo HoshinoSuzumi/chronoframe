@@ -3,7 +3,7 @@ import { useLocalStorage } from '@vueuse/core'
 const DASHBOARD_PHOTO_COLUMN_VISIBILITY_STORAGE_KEY =
   'dashboard-photos-column-visibility'
 
-const dashboardPhotoColumnIds = [
+export const DASHBOARD_PHOTO_COLUMN_IDS = [
   'thumbnailUrl',
   'id',
   'actions',
@@ -21,12 +21,12 @@ const dashboardPhotoColumnIds = [
 
 const lockedVisibleColumnIds = ['thumbnailUrl', 'id', 'actions'] as const
 
-type DashboardPhotoColumnId = (typeof dashboardPhotoColumnIds)[number]
+type DashboardPhotoColumnId = (typeof DASHBOARD_PHOTO_COLUMN_IDS)[number]
 type DashboardPhotoColumnVisibility = Record<DashboardPhotoColumnId, boolean>
 
 function createDefaultColumnVisibility(): DashboardPhotoColumnVisibility {
   return Object.fromEntries(
-    dashboardPhotoColumnIds.map((columnId) => [columnId, true]),
+    DASHBOARD_PHOTO_COLUMN_IDS.map((columnId) => [columnId, true]),
   ) as DashboardPhotoColumnVisibility
 }
 
@@ -44,7 +44,7 @@ function mergeColumnVisibility(
     return merged
   }
 
-  for (const columnId of dashboardPhotoColumnIds) {
+  for (const columnId of DASHBOARD_PHOTO_COLUMN_IDS) {
     const value = storageValue[columnId]
     if (typeof value === 'boolean') {
       merged[columnId] = value

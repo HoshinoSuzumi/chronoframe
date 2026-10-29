@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import {
   ArrowUpDown as ButtonIconArrowUpDown,
+  Columns3,
   Ellipsis as ButtonIconEllipsis,
   Filter as ButtonIconFilter,
   FolderPlus as ButtonIconFolderPlus,
@@ -9,7 +10,11 @@ import {
   Upload as ButtonIconUpload,
 } from 'lucide-vue-next'
 import { uploadQuotaGate } from '../utils/quota-gate'
-const { t, locale } = useI18n()
+import { DASHBOARD_PHOTO_COLUMN_IDS } from '#console/composables/useDashboardPhotoColumnVisibility'
+const { t } = useI18n()
+const dayjs = useDayjs()
+const locationLabel = useLocationLabel()
+const entryContext = useEntryContext()
 
 import type { Photo } from '@chronoframe/contracts/resources'
 import type { TableColumn } from '@nuxt/ui'
@@ -76,19 +81,59 @@ const rows = computed(() => {
           .includes(search.value.toLowerCase())),
   )
 })
+const columnVisibility = useDashboardPhotoColumnVisibility()
+const reactions = ref<Record<string, number> | null>(null)
+watch(
+  photos,
+  async (_, __, onCleanup) => {
+    let active = true
+    onCleanup(() => {
+      active = false
+    })
+    try {
+      const counts = await api<Record<string, number>>(
+        base.value + '/photos/reactions',
+      )
+      if (active) reactions.value = counts
+    } catch {
+      if (active) reactions.value = null
+    }
+  },
+  { immediate: true },
+)
+function openPreviewOriginal() {
+  const photo = preview.value
+  if (!photo) return
+  const entry = entryContext.value
+  const url =
+    entry?.published && entry.canonicalOrigin
+      ? new URL('/' + encodeURIComponent(photo.id), entry.canonicalOrigin).href
+      : photo.originalUrl
+  if (url) window.open(url, '_blank', 'noopener,noreferrer')
+}
 const chosen = computed(() => rows.value.filter((p) => selection.value[p.id]))
-const columns: TableColumn<Photo>[] = [
-  { id: 'select', header: '', size: 32 },
-  { accessorKey: 'thumbnailUrl', header: t('cloud.messages.photograph') },
-  { accessorKey: 'title', header: t('cloud.messages.title') },
-  { accessorKey: 'tags', header: t('cloud.messages.tags') },
-  { accessorKey: 'dateTaken', header: t('cloud.messages.dateTaken') },
-  { accessorKey: 'fileSize', header: t('cloud.messages.size') },
+const columns = computed<TableColumn<Photo>[]>(() => [
+  { id: 'select', header: '', size: 32, enableHiding: false },
+  ...DASHBOARD_PHOTO_COLUMN_IDS.filter((key) => key !== 'actions').map(
+    (key) => ({
+      id: key,
+      enableHiding: !['thumbnailUrl', 'id'].includes(key),
+      accessorFn: (photo: Photo) =>
+        key === 'colorSpace'
+          ? photo.exif?.ColorSpace
+          : photo[key as keyof Photo],
+      header: t(
+        'dashboard.photos.table.columns.' +
+          (key === 'thumbnailUrl' ? 'thumbnail.title' : key),
+      ),
+    }),
+  ),
   {
     id: 'actions',
+    enableHiding: false,
     header: () => h('span', { class: 'sr-only' }, t('cloud.dashboard.actions')),
   },
-]
+])
 const pendingJobs = computed(() =>
   jobs.value.filter((j) => j.state !== 'succeeded'),
 )
@@ -233,21 +278,48 @@ watch(
         :loading="loading"
         @click="refreshMedia"
       />
+      <UDropdownMenu
+        :items="
+          columns
+            .filter(
+              (c) =>
+                c.id &&
+                !['select', 'thumbnailUrl', 'id', 'actions'].includes(c.id),
+            )
+            .map((c) => ({
+              label: String(c.header),
+              type: 'checkbox' as const,
+              checked: columnVisibility[c.id as keyof typeof columnVisibility],
+              onUpdateChecked: (checked: boolean) => {
+                columnVisibility[c.id as keyof typeof columnVisibility] =
+                  checked
+              },
+              onSelect: (event: Event) => event.preventDefault(),
+            }))
+        "
+      >
+        <CfButton
+          variant="secondary"
+          :icon="Columns3"
+          >{{ $t('dashboard.photos.table.columnVisibility.button') }}</CfButton
+        >
+      </UDropdownMenu>
     </div>
-    <div
-      v-if="chosen.length"
-      class="cf-selection-bar"
+    <ConsoleSelectionToolbar
+      :count="chosen.length"
+      :total="rows.length"
+      teleport
     >
-      <span>{{ $t('cloud.ui.selectedCount', { count: chosen.length }) }}</span
-      ><CfButton
+      <CfButton
         v-if="admin"
         size="sm"
-        variant="soft"
+        variant="ghost"
         :icon="ButtonIconFolderPlus"
         @click="albumOpen = true"
         >{{ $t('cloud.messages.addToAlbum') }}</CfButton
       ><CfButton
-        variant="destructive"
+        variant="ghost"
+        class="cf-bulk-delete"
         v-if="admin"
         size="sm"
         :icon="ButtonIconTrash2"
@@ -259,22 +331,28 @@ watch(
         @click="selection = {}"
         >{{ $t('cloud.messages.clear') }}</CfButton
       >
-    </div>
+    </ConsoleSelectionToolbar>
     <div class="cf-library-table">
-      <ConsoleMediaTable
+      <CfTable
+        v-model:column-visibility="columnVisibility"
         :data="rows"
         :columns="columns"
         :loading="loading && !photos.length"
         :get-row-id="(row: Photo) => row.id"
         ><template #select-header
           ><UCheckbox
-            :model-value="rows.length > 0 && rows.every((p) => selection[p.id])"
+            :model-value="
+              chosen.length && chosen.length < rows.length
+                ? 'indeterminate'
+                : rows.length > 0 && chosen.length === rows.length
+            "
             :aria-label="$t('cloud.messages.selectAllPhotographs')"
             @update:model-value="
               (v) => {
-                selection = v
-                  ? Object.fromEntries(rows.map((p) => [p.id, true]))
-                  : {}
+                selection =
+                  v === true
+                    ? Object.fromEntries(rows.map((p) => [p.id, true]))
+                    : {}
               }
             " /></template
         ><template #select-cell="{ row }"
@@ -295,7 +373,8 @@ watch(
             @click="preview = row.original"
           >
             <ThumbImage
-              :src="row.original.thumbnailUrl || ''"
+              :src="row.original.thumbnailUrl || row.original.originalUrl || ''"
+              :thumbhash="row.original.thumbnailHash || ''"
               :alt="row.original.title"
             /><span
               v-if="row.original.isLivePhoto"
@@ -327,19 +406,55 @@ watch(
               >—</span
             >
           </div></template
-        ><template #dateTaken-cell="{ row }"
-          ><span class="text-xs text-muted">{{
+        ><template #rating-cell="{ row }">
+          <Rating
+            v-if="row.original.exif?.Rating != null"
+            :model-value="row.original.exif.Rating"
+            readonly
+            size="xs"
+          />
+          <span v-else>—</span> </template
+        ><template #isLivePhoto-cell="{ row }">
+          <span>{{
+            row.original.isLivePhoto
+              ? $t('ui.livePhoto')
+              : $t('dashboard.photos.table.cells.staticPhoto')
+          }}</span> </template
+        ><template #location-cell="{ row }">
+          <span>{{
+            row.original.exif?.GPSLongitude != null &&
+            row.original.exif?.GPSLatitude != null
+              ? locationLabel(row.original) ||
+                $t('dashboard.photos.table.cells.unknown')
+              : $t('dashboard.photos.table.cells.noGps')
+          }}</span> </template
+        ><template #dateTaken-cell="{ row }">
+          <span class="cf-library-date">{{
             row.original.dateTaken
-              ? new Date(row.original.dateTaken).toLocaleDateString(
-                  locale === 'zh-Hans' ? 'zh-CN' : 'en-US',
-                )
+              ? dayjs(row.original.dateTaken).format('YYYY-MM-DD HH:mm:ss')
               : '—'
+          }}</span> </template
+        ><template #lastModified-cell="{ row }">
+          <span class="cf-library-date">{{
+            row.original.lastModified
+              ? dayjs(row.original.lastModified).format('YYYY-MM-DD HH:mm:ss')
+              : '—'
+          }}</span> </template
+        ><template #colorSpace-cell="{ row }">
+          <span>{{ row.original.exif?.ColorSpace ?? '—' }}</span> </template
+        ><template #reactions-cell="{ row }"
+          ><span>{{
+            reactions ? reactions[row.original.id] || 0 : '—'
           }}</span></template
-        ><template #fileSize-cell="{ row }"
-          ><span class="text-xs text-muted">{{
-            row.original.fileSize ? formatBytes(row.original.fileSize) : '—'
-          }}</span></template
-        ><template #actions-cell="{ row }"
+        >
+        <template #fileSize-cell="{ row }">
+          <span>{{
+            row.original.fileSize != null
+              ? formatBytes(row.original.fileSize)
+              : '—'
+          }}</span>
+        </template>
+        <template #actions-cell="{ row }"
           ><UDropdownMenu :items="actions(row.original)"
             ><CfButton
               variant="ghost"
@@ -377,7 +492,7 @@ watch(
               >{{ $t('cloud.messages.upload') }}</CfButton
             >
           </div></template
-        ></ConsoleMediaTable
+        ></CfTable
       >
     </div>
     <section
@@ -497,7 +612,7 @@ watch(
       :open="!!preview"
       :title="preview?.title || $t('cloud.messages.photograph')"
       :description="$t('cloud.messages.previewPhotograph')"
-      :ui="{ content: 'max-w-5xl', body: 'p-0' }"
+      :ui="{ content: 'max-w-2xl' }"
       @update:open="
         (v) => {
           if (!v) preview = null
@@ -508,17 +623,13 @@ watch(
           v-if="preview"
           class="cf-photo-preview"
         >
-          <WebGLImageViewer
-            :src="preview.originalUrl || preview.thumbnailUrl || ''"
-            :alt="preview.title"
-          />
-          <div class="cf-preview-details">
-            <strong>{{ preview.title }}</strong>
-            <p>{{ preview.description }}</p>
-          </div>
-        </div></template
-      ></UModal
-    >
+          <MasonryItemPhoto
+            :key="preview.id"
+            :photo="preview"
+            :index="0"
+            @open-viewer="openPreviewOriginal"
+          /></div></template
+    ></UModal>
     <UModal
       v-model:open="deleteOpen"
       :title="$t('cloud.messages.deletePhotographs')"

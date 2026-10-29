@@ -481,6 +481,18 @@ export default definePlatformHandler(async (event) => {
       return { jobId: id }
     }
   }
+  if (
+    kind === 'photos' &&
+    id === 'reactions' &&
+    !action &&
+    event.method === 'GET'
+  ) {
+    const counts = await sql<{ photo_id: string; total: number }>(
+      'SELECT r.photo_id, COUNT(*) AS total FROM platform_photo_reactions r JOIN cloud_photos p ON p.site_id=r.site_id AND p.id=r.photo_id WHERE r.site_id=? AND p.deleted=0 GROUP BY r.photo_id',
+      siteId,
+    )
+    return Object.fromEntries(counts.map((row) => [row.photo_id, row.total]))
+  }
   if (kind === 'photos' && !id && event.method === 'GET')
     return {
       photos: await ctx.resources.listPhotos(),

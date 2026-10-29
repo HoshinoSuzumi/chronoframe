@@ -208,14 +208,36 @@
   border-collapse: collapse;
   font-size: 13px;
   text-align: left;
+  color: var(--foreground);
+  background: var(--card);
+}
+.cf-table :is(th, td) {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
 }
 .cf-table th {
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 550;
   color: var(--muted-foreground);
+  background: var(--secondary);
+  white-space: nowrap;
+}
+.cf-table td {
+  font-size: 13px;
+  color: var(--foreground);
+}
+.cf-table tbody tr:hover {
+  background: color-mix(in srgb, var(--muted) 50%, transparent);
 }
 .cf-table tbody tr:last-child td {
   border-bottom: 0;
+}
+.cf-table td > .cf-button + .cf-button {
+  margin-inline-start: 6px;
+}
+.cf-data-table {
+  overflow-x: auto;
 }
 .cf-segmented-control {
   display: inline-flex;
