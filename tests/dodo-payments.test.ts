@@ -2577,3 +2577,108 @@ test('an authorization without a payment ID converges and blocks redemption unti
     await f.mf.dispose()
   }
 })
+
+for (const invalid of ['checkout', 'date'])
+  test(`new deferred authorization with invalid ${invalid} is canceled before rejection without granting rights`, async () => {
+    const f = await handoverFixture()
+    try {
+      const checkout = await createPaymentCheckout(
+        f.db,
+        root,
+        1,
+        { ...input('invalid_handover'), startMode: 'after_entitlement' },
+        origin,
+        f.transport,
+        f.now,
+      )
+      const { sub, payment, session } = await f.paid(checkout)
+      sub.trial_period_days = session.trial_period_days
+      sub.previous_billing_date = new Date(f.now).toISOString()
+      sub.next_billing_date = new Date(f.now + 4 * 86400000).toISOString()
+      payment.total_amount = 0
+      payment.service_periods = []
+      if (invalid === 'checkout')
+        session.customer_email = 'different@example.com'
+      else sub.next_billing_date = new Date(f.originalEnd - 1000).toISOString()
+      await assert.rejects(
+        refreshDodoCheckout(
+          f.db,
+          root,
+          1,
+          1,
+          checkout.id,
+          f.transport,
+          f.now + 1000,
+        ),
+        {
+          code:
+            invalid === 'checkout'
+              ? 'payment_checkout_mismatch'
+              : 'payment_handover_date_invalid',
+        },
+      )
+      assert.equal(sub.status, 'cancelled')
+      assert.equal(
+        (
+          await f.db
+            .prepare(
+              'SELECT COUNT(*) AS count FROM platform_payment_subscriptions',
+            )
+            .first<any>()
+        ).count,
+        0,
+      )
+      const grant = await f.db
+        .prepare(
+          'SELECT source,expires_at FROM platform_workspace_plans WHERE workspace_id=1',
+        )
+        .first<any>()
+      assert.equal(grant.source, 'activation')
+      assert.equal(grant.expires_at, f.originalEnd)
+    } finally {
+      await f.mf.dispose()
+    }
+  })
+
+test('missing checkout linkage requires verified cancellation before rejecting a new authorization', async () => {
+  const { reconcileDeferredAuthorization } =
+    await import('../packages/platform/src/deferred-payments.ts')
+  for (const confirmed of [false, true]) {
+    let canceled = false
+    const client = {
+      subscriptions: {
+        update: async () => {
+          canceled = true
+        },
+        retrieve: async () => ({ status: confirmed ? 'cancelled' : 'active' }),
+      },
+    }
+    await assert.rejects(
+      reconcileDeferredAuthorization(
+        null as any,
+        client,
+        {
+          id: 'checkout_missing_link',
+          handover_json: JSON.stringify({ trialDays: 4 }),
+        },
+        {
+          subscription_id: 'sub_missing_link',
+          status: 'active',
+          trial_period_days: 4,
+        },
+        null,
+        undefined,
+        Date.now(),
+        '1=1',
+        [],
+        'local_sub',
+      ),
+      {
+        code: confirmed
+          ? 'payment_checkout_mismatch'
+          : 'payment_confirmation_pending',
+      },
+    )
+    assert.equal(canceled, true)
+  }
+})

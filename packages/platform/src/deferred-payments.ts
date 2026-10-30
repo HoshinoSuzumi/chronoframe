@@ -24,10 +24,31 @@ export async function reconcileDeferredAuthorization(
   if (known && known.customer_id !== subscription.customer.customer_id)
     fail('payment_customer_mismatch')
   const snapshot = JSON.parse(checkout.handover_json)
+  // The caller has verified provider metadata and product ownership. Do not leave
+  // a new, rejected trial running without a local reservation to manage it.
+  async function rejectNewAuthorization(code: string): Promise<never> {
+    if (!known && subscription.status === 'active') {
+      await dodoRequest(() =>
+        client.subscriptions.update(
+          subscription.subscription_id,
+          { status: 'cancelled' },
+          {
+            headers: { 'Idempotency-Key': `cf-cancel-handover-${checkout.id}` },
+          },
+        ),
+      )
+      const actual = (await dodoRequest(() =>
+        client.subscriptions.retrieve(subscription.subscription_id),
+      )) as any
+      if (actual.status !== 'cancelled') fail('payment_confirmation_pending')
+    }
+    return fail(code)
+  }
   if (subscription.trial_period_days !== snapshot.trialDays)
     fail('payment_subscription_mismatch')
   if (!known) {
-    if (!checkout.provider_id) fail('payment_checkout_mismatch')
+    if (!checkout.provider_id)
+      await rejectNewAuthorization('payment_checkout_mismatch')
     const session = (await dodoRequest(() =>
       client.checkoutSessions.retrieve(checkout.provider_id.split(':').pop()),
     )) as any
@@ -36,7 +57,7 @@ export async function reconcileDeferredAuthorization(
       (session.customer_email &&
         session.customer_email.toLowerCase() !== snapshot.email.toLowerCase())
     )
-      fail('payment_checkout_mismatch')
+      await rejectNewAuthorization('payment_checkout_mismatch')
     paymentId ??= session.payment_id ?? undefined
   }
   let payment = paymentId
@@ -108,7 +129,7 @@ export async function reconcileDeferredAuthorization(
       (at > checkout.created_at + (snapshot.trialDays + 1) * DAY ||
         time(subscription.previous_billing_date) > checkout.created_at + DAY))
   )
-    fail('payment_handover_date_invalid')
+    await rejectNewAuthorization('payment_handover_date_invalid')
   const prior = await db
     .prepare('SELECT * FROM platform_workspace_plans WHERE workspace_id=?')
     .bind(checkout.workspace_id)
