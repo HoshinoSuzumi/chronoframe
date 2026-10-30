@@ -2116,12 +2116,9 @@ a.cf-domain-address:hover {
   padding-right: 36px;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
   gap: 10px;
   flex-wrap: wrap;
-}
-.cf-plan-card-heading.has-recommendation {
-  justify-content: flex-start;
 }
 .cf-plan-card-heading h2 {
   font-size: 19px;
