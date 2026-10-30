@@ -699,7 +699,8 @@
       "purchaseHelp": "Choose monthly or quarterly billing. Review the payment details before confirming your subscription.",
       "buyPlan": "Subscribe to {plan}",
       "purchaseUnavailable": "Currently unavailable",
-      "purchaseUnavailableHelp": "This plan is not currently available for purchase. Please contact support or try again later."
+      "purchaseUnavailableHelp": "This plan is not currently available for purchase. Please contact support or try again later.",
+      "reservationActive": "Cancel your reserved subscription before redeeming an activation code."
     },
     "payments": {
       "billing": "Subscription billing",
@@ -747,7 +748,23 @@
       "return_expired": "This checkout has expired. You can start a new one from the plans below.",
       "checkAgain": "Check payment status",
       "return_inactive": "This subscription is no longer active. Your current plan and usage are shown below.",
-      "return_superseded": "Payment confirmed. Your current plan is controlled by another entitlement; contact support if you need help."
+      "return_superseded": "Payment confirmed. Your current plan is controlled by another entitlement; contact support if you need help.",
+      "return_scheduled": "Subscription authorized. Your existing entitlement remains active until the first charge.",
+      "reservationStatus": "{plan} subscription reserved. First charge is scheduled for {date}.",
+      "reservationPaymentDue": "The first payment has not completed. Paid benefits will activate only after successful payment. Use subscription management to update your payment method or cancel.",
+      "cancelReservation": "Cancel reserved subscription",
+      "cancelReservationHelp": "This stops the reserved subscription. Your original trial or activation-code entitlement remains until its original expiry; any complimentary bridge period ends.",
+      "cancelReservationFailed": "Could not cancel the reservation. If billing is imminent or has started, use subscription management to check or cancel it.",
+      "convertSubscription": "Convert to a paid subscription",
+      "subscribeConfirm": "Confirm subscription timing",
+      "currentEntitlement": "Current entitlement: {plan}, valid until {date}.",
+      "startImmediately": "Pay and upgrade immediately",
+      "startAfterEntitlement": "Start billing after the current entitlement",
+      "deferredExplanation": "No recurring charge today. Dodo trials use whole days rounded up, so the first charge will not precede your current expiry. The exact date is shown by Dodo; your current tier is extended free until then. The new tier activates after the first successful payment. Cancel the reservation before redeeming another activation code.",
+      "replaceExplanation": "Payment starts immediately. This replaces the remaining trial or activation-code entitlement without credit or restoration.",
+      "replaceConsent": "I agree to replace my remaining entitlement and start billing now.",
+      "continueCheckout": "Continue to checkout",
+      "trialUnavailable": "Deferred billing is unavailable for this checkout. No reservation was created; please contact support."
     },
     "dashboard": {
       "workspaceOverview": "Workspace overview",

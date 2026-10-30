@@ -67,6 +67,7 @@ export function billingError(error: any, t: (key: string) => string) {
   const key = (
     {
       invalid_activation_code: 'invalidCode',
+      payment_handover_exists: 'reservationActive',
       permanent_plan_active: 'permanentActive',
       activation_rate_limit: 'rateLimit',
       subscription_changed: 'changed',

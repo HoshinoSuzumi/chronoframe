@@ -699,7 +699,8 @@
       "purchaseHelp": "支持按月或按季订阅，请在确认订阅前核对付款详情。",
       "buyPlan": "购买 {plan}",
       "purchaseUnavailable": "暂不可购买",
-      "purchaseUnavailableHelp": "该套餐目前暂不可购买，请联系客服或稍后重试。"
+      "purchaseUnavailableHelp": "该套餐目前暂不可购买，请联系客服或稍后重试。",
+      "reservationActive": "请先取消预约订阅，再兑换激活码。"
     },
     "payments": {
       "billing": "订阅账单",
@@ -747,7 +748,23 @@
       "return_expired": "这笔付款已过期，可以在下方选择套餐重新发起。",
       "checkAgain": "检查付款状态",
       "return_inactive": "此订阅已不再生效。当前套餐与用量如下。",
-      "return_superseded": "付款已确认，当前套餐由其他授权管理。如需帮助，请联系客服。"
+      "return_superseded": "付款已确认，当前套餐由其他授权管理。如需帮助，请联系客服。",
+      "return_scheduled": "订阅已授权，当前权益将保留至首次扣款日，尚未开始付费账期。",
+      "reservationStatus": "已预约 {plan} 订阅，预计首次扣款时间：{date}。",
+      "reservationPaymentDue": "首次付款尚未完成，成功后才会开通付费权益。请在订阅管理中更新付款方式或取消。",
+      "cancelReservation": "取消预约订阅",
+      "cancelReservationHelp": "取消后停止此预约订阅。原试用或激活码权益仍保留至原到期日，额外赠送的衔接时段结束。",
+      "cancelReservationFailed": "未能取消预约。若已临近首扣或已进入扣款流程，请在订阅管理中核对或取消。",
+      "convertSubscription": "转为正式订阅",
+      "subscribeConfirm": "确认订阅生效方式",
+      "currentEntitlement": "当前权益：{plan}，有效期至 {date}。",
+      "startImmediately": "立即付款并升级",
+      "startAfterEntitlement": "当前权益到期后开始计费",
+      "deferredExplanation": "今天不收取订阅费用。Dodo 按整天折算并向上取整，首扣不早于当前权益到期日，准确日期以 Dodo 结账页为准；当前等级免费延续至首扣日。新等级在首次付款成功后开通。再次兑换激活码前，需要先取消预约。",
+      "replaceExplanation": "立即扣款并切换套餐，剩余试用或激活码权益将被替换，不折抵、不恢复。",
+      "replaceConsent": "我同意替换剩余权益，并立即开始付费订阅。",
+      "continueCheckout": "前往结账",
+      "trialUnavailable": "当前结账不支持延期扣款，未创建订阅预约，请联系客服。"
     },
     "dashboard": {
       "workspaceOverview": "工作区概览",

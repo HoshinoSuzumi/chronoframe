@@ -34,7 +34,11 @@ export function useDodoCheckoutReturn(
         if (!alive || current !== generation) return
         await refresh()
         if (!alive || current !== generation) return
-        if (['completed', 'expired', 'inactive'].includes(result.state)) {
+        if (
+          ['completed', 'scheduled', 'expired', 'inactive'].includes(
+            result.state,
+          )
+        ) {
           state.value = result.state
           return
         }
