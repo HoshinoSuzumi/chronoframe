@@ -41,6 +41,13 @@ export async function reconcileDeferredAuthorization(
         client.subscriptions.retrieve(subscription.subscription_id),
       )) as any
       if (actual.status !== 'cancelled') fail('payment_confirmation_pending')
+      if (!checkout.provider_id)
+        await db
+          .prepare(
+            `UPDATE platform_payment_checkouts SET state='expired',error=?,updated_at=? WHERE id=? AND state IN('creating','open','uncertain') AND ${fence}`,
+          )
+          .bind(code, now, checkout.id, ...fenceValues)
+          .run()
     }
     return fail(code)
   }

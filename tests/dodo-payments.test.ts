@@ -2644,7 +2644,17 @@ test('missing checkout linkage requires verified cancellation before rejecting a
   const { reconcileDeferredAuthorization } =
     await import('../packages/platform/src/deferred-payments.ts')
   for (const confirmed of [false, true]) {
-    let canceled = false
+    let canceled = false,
+      expired = false
+    const db = {
+      prepare: () => ({
+        bind: () => ({
+          run: async () => {
+            expired = true
+          },
+        }),
+      }),
+    }
     const client = {
       subscriptions: {
         update: async () => {
@@ -2655,7 +2665,7 @@ test('missing checkout linkage requires verified cancellation before rejecting a
     }
     await assert.rejects(
       reconcileDeferredAuthorization(
-        null as any,
+        db as any,
         client,
         {
           id: 'checkout_missing_link',
@@ -2680,5 +2690,66 @@ test('missing checkout linkage requires verified cancellation before rejecting a
       },
     )
     assert.equal(canceled, true)
+    assert.equal(expired, confirmed)
+  }
+})
+
+test('confirmed cancellation of a provider-less checkout releases handover blockers immediately', async () => {
+  const f = await handoverFixture()
+  try {
+    const checkout = await createPaymentCheckout(
+      f.db,
+      root,
+      1,
+      { ...input('providerless_handover'), startMode: 'after_entitlement' },
+      origin,
+      f.transport,
+      f.now,
+    )
+    const { sub, session } = await f.paid(checkout)
+    sub.trial_period_days = session.trial_period_days
+    await f.db
+      .prepare(
+        "UPDATE platform_payment_checkouts SET provider_id=NULL,state='uncertain' WHERE id=?",
+      )
+      .bind(checkout.id)
+      .run()
+    const { reconcileDodoSubscription } =
+      await import('../packages/platform/src/dodo-payments.ts')
+    await assert.rejects(
+      reconcileDodoSubscription(
+        f.db,
+        root,
+        'test',
+        sub.subscription_id,
+        undefined,
+        f.transport,
+        f.now + 1000,
+        sub.metadata.chronoframe_profile_id,
+      ),
+      { code: 'payment_checkout_mismatch' },
+    )
+    assert.equal(sub.status, 'cancelled')
+    const stored = await f.db
+      .prepare('SELECT state,error FROM platform_payment_checkouts WHERE id=?')
+      .bind(checkout.id)
+      .first<any>()
+    assert.equal(stored.state, 'expired')
+    assert.equal(stored.error, 'payment_checkout_mismatch')
+    const { requireNoHandover } =
+      await import('../packages/platform/src/payment-handover.ts')
+    await requireNoHandover(f.db, 1)
+    assert.equal(
+      (
+        await f.db
+          .prepare(
+            'SELECT expires_at FROM platform_workspace_plans WHERE workspace_id=1',
+          )
+          .first<any>()
+      ).expires_at,
+      f.originalEnd,
+    )
+  } finally {
+    await f.mf.dispose()
   }
 })
