@@ -658,7 +658,10 @@ test('wrong amounts cannot grant access and authoritative refunds revoke only th
   const f = await fixture()
   try {
     await syncDodoProducts(f.db, root, f.transport)
-    assert.match([...f.products.values()][0].description, /Platform storage:/)
+    assert.match(
+      [...f.products.values()][0].description,
+      /Platform storage:\*\*/,
+    )
     const checkout = await createPaymentCheckout(
       f.db,
       root,

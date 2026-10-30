@@ -33,17 +33,48 @@ function condition(c: any): string {
 export function paymentProductSnapshot(plan: any, interval: number) {
   const policy = validatePolicy(JSON.parse(plan.policy_json)),
     price = interval === 1 ? plan.monthly_price : plan.quarterly_price
-  const description = [
-    plan.description || plan.name,
-    '',
-    ...LIMIT_KEYS.map((k) => `${names[k]}: ${allowance(k, policy.limits[k])}`),
+  // Dodo product descriptions support Markdown. Escape admin-authored text so it
+  // remains content, and truncate at whole list items within the API limit.
+  const markdown = (value: string) =>
+    value
+      .replace(/[\r\n]+/g, ' ')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/([\\`*_{}[\]()#+.!|~-])/g, '\\$1')
+  const items = [
+    ...LIMIT_KEYS.map(
+      (k) => `- **${names[k]}:** ${allowance(k, policy.limits[k])}`,
+    ),
+    ...(policy.features ?? []).map(
+      (f) =>
+        `- **${markdown(f.label)}:** ${markdown(f.type === 'supported' ? 'Included' : f.type === 'unsupported' ? 'Not included' : f.type === 'dash' ? '—' : String(f.value))}`,
+    ),
     ...policy.rules.map(
       (r) =>
-        `When ${condition(r.when)}: ${Object.entries(r.limits)
-          .map(([k, v]) => `${names[k]} ${allowance(k, Number(v))}`)
+        `- When ${markdown(condition(r.when))}: ${Object.entries(r.limits)
+          .map(([k, v]) => `${names[k]}: ${allowance(k, Number(v))}`)
           .join('; ')}`,
     ),
-  ].join('\n')
+  ]
+  let introduction = ''
+  for (const char of String(plan.description || plan.name)) {
+    const escaped = markdown(char)
+    if (introduction.length + escaped.length > 500) break
+    introduction += escaped
+  }
+  let description = introduction + '\n\n'
+  for (let i = 0; i < items.length; i++) {
+    const suffix =
+      i < items.length - 1 ? '\n\nSee the platform for full plan details.' : ''
+    if (description.length + items[i]!.length + 1 + suffix.length > 1000) {
+      description += '\nSee the platform for full plan details.'
+      break
+    }
+    description += items[i] + '\n'
+  }
+  description = description.trim()
+
   return {
     planId: plan.id,
     interval,

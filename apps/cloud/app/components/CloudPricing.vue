@@ -22,7 +22,7 @@ const requestedPurchase = computed(() =>
 const { t, locale } = useI18n(),
   links = useCloudLinks(),
   interval = ref<1 | 3>(
-    requestedPurchase.value && route.query.interval === '3' ? 3 : 1,
+    requestedPurchase.value && route.query.interval === '1' ? 1 : 3,
   )
 const billingPeriod = computed({
   get: () => String(interval.value),
@@ -54,19 +54,43 @@ const comparisonColumns = computed(() => [
       row.values[plan.id],
   })),
 ])
-const comparisonRows = computed(() =>
-  [...BILLING_LIMITS, 'conditions'].map((key) => ({
-    label: t('cloud.billing.' + key),
-    values: Object.fromEntries(
-      (data.value?.plans ?? []).map((plan: any) => [
-        plan.id,
-        key === 'conditions'
-          ? String(plan.policy.rules.length || '—')
-          : allowance(key, plan.policy.limits[key], locale.value),
-      ]),
+const comparisonRows = computed(() => {
+  const plans = data.value?.plans ?? []
+  const labels = [
+    ...new Set<string>(
+      plans.flatMap((plan: any) =>
+        (plan.policy.features ?? []).map((f: any) => f.label),
+      ),
     ),
-  })),
-)
+  ]
+  return [...BILLING_LIMITS, 'conditions']
+    .map((key) => ({
+      key,
+      label: t('cloud.billing.' + key),
+      values: Object.fromEntries(
+        (data.value?.plans ?? []).map((plan: any) => [
+          plan.id,
+          key === 'conditions'
+            ? String(plan.policy.rules.length || '—')
+            : allowance(key, plan.policy.limits[key], locale.value),
+        ]),
+      ),
+    }))
+    .concat(
+      labels.map((label) => ({
+        key: 'feature:' + label,
+        label,
+        values: Object.fromEntries(
+          plans.map((plan: any) => [
+            plan.id,
+            plan.policy.features?.find((f: any) => f.label === label) ?? {
+              type: 'dash',
+            },
+          ]),
+        ),
+      })),
+    )
+})
 if (billing) await billing.ready
 const currentPlan = computed(() => billing?.data.value?.plan.id)
 const originalAmount = (plan: any) =>
@@ -339,7 +363,15 @@ async function checkout(plan: any) {
               }).format(discountBps(plan) / 100)
             }}%</span
           >
-          <div class="cf-plan-card-heading">
+          <div
+            class="cf-plan-card-heading"
+            :class="{
+              'has-recommendation':
+                embedded &&
+                plan.featured &&
+                !(portal && plan.id === currentPlan),
+            }"
+          >
             <h2>{{ plan.name }}</h2>
             <CfBadge v-if="portal && plan.id === currentPlan">{{
               $t('cloud.billing.current')
@@ -353,19 +385,27 @@ async function checkout(plan: any) {
           </p>
           <p class="cf-plan-original-price">
             <del v-if="discountBps(plan) > 0 && originalAmount(plan) > 0">{{
-              price(originalAmount(plan), plan.currency, locale)
+              price(
+                originalAmount(plan) === null
+                  ? null
+                  : originalAmount(plan) / interval,
+                plan.currency,
+                locale,
+              )
             }}</del>
           </p>
           <div class="cf-plan-price">
             <strong>{{
               amount(plan) === 0
                 ? $t('cloud.billing.free')
-                : price(amount(plan), plan.currency, locale)
+                : price(
+                    amount(plan) === null ? null : amount(plan) / interval,
+                    plan.currency,
+                    locale,
+                  )
             }}</strong
             ><span v-if="amount(plan) !== null && amount(plan) > 0"
-              >/{{
-                $t('cloud.billing.' + (interval === 1 ? 'month' : 'quarter'))
-              }}</span
+              >/{{ $t('cloud.billing.month') }}</span
             >
           </div>
           <p class="cf-price-caption">
@@ -373,10 +413,9 @@ async function checkout(plan: any) {
               amount(plan) === null
                 ? $t('cloud.billing.notPriced')
                 : interval === 3 && amount(plan) > 0
-                  ? '≈ ' +
-                    price(amount(plan)! / 3, plan.currency, locale) +
+                  ? price(amount(plan), plan.currency, locale) +
                     ' / ' +
-                    $t('cloud.billing.month')
+                    $t('cloud.billing.quarter')
                   : $t(
                       amount(plan) === 0
                         ? 'cloud.billing.noCharge'
@@ -491,9 +530,32 @@ async function checkout(plan: any) {
               :key="key"
             >
               <span>{{ $t('cloud.billing.' + key) }}</span
-              ><strong>{{
-                allowance(key, plan.policy.limits[key], locale)
-              }}</strong>
+              ><strong
+                ><UIcon
+                  v-if="key === 'byos'"
+                  :name="
+                    plan.policy.limits[key]
+                      ? 'i-lucide-check'
+                      : 'i-lucide-minus'
+                  "
+                  :aria-label="
+                    $t(
+                      'cloud.billing.' +
+                        (plan.policy.limits[key] ? 'yes' : 'no'),
+                    )
+                  "
+                  role="img"
+                /><template v-else>{{
+                  allowance(key, plan.policy.limits[key], locale)
+                }}</template></strong
+              >
+            </li>
+            <li
+              v-for="(feature, index) in plan.policy.features ?? []"
+              :key="'feature:' + index"
+            >
+              <span>{{ feature.label }}</span
+              ><strong><CloudPlanFeatureValue :feature="feature" /></strong>
             </li>
           </ul>
           <details
@@ -512,7 +574,12 @@ async function checkout(plan: any) {
                   :key="key"
                 >
                   {{ $t('cloud.billing.' + key) }}:
-                  {{ allowance(String(key), Number(value), locale) }}
+                  <CloudPlanFeatureValue
+                    v-if="key === 'byos'"
+                    :feature="{ type: value ? 'supported' : 'dash' }"
+                  /><template v-else>{{
+                    allowance(String(key), Number(value), locale)
+                  }}</template>
                 </li>
               </ul>
             </div>
@@ -536,8 +603,26 @@ async function checkout(plan: any) {
           :data="comparisonRows"
           :columns="comparisonColumns"
           :caption="$t('cloud.billing.compare')"
-        /></section
-    ></template>
+          ><template
+            v-for="plan in data.plans"
+            :key="plan.id"
+            #[`plan:${plan.id}-cell`]="{ row }"
+          >
+            <CloudPlanFeatureValue
+              v-if="row.original.key.startsWith('feature:')"
+              :feature="row.original.values[plan.id]"
+            />
+            <CloudPlanFeatureValue
+              v-else-if="row.original.key === 'byos'"
+              :feature="{
+                type: plan.policy.limits.byos ? 'supported' : 'dash',
+              }"
+            />
+            <template v-else>{{ row.original.values[plan.id] }}</template>
+          </template></CfTable
+        >
+      </section></template
+    >
     <div class="cf-pricing-footer">
       <CloudSupportLink /><NuxtLink
         :to="links.redeem"

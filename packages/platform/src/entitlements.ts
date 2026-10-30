@@ -34,7 +34,13 @@ type Condition =
       op: 'eq' | 'gte' | 'lte'
       value: string | number | boolean
     }
+export type PlanFeature = {
+  label: string
+  type: 'supported' | 'unsupported' | 'dash' | 'number' | 'text'
+  value?: string | number
+}
 export interface PlanPolicy {
+  features?: PlanFeature[]
   limits: Limits
   rules: { when: Condition; limits: Partial<Limits> }[]
 }
@@ -46,9 +52,41 @@ export function validatePolicy(value: unknown): PlanPolicy {
     !plain(value.limits) ||
     !Array.isArray(value.rules) ||
     value.rules.length > 32 ||
-    Object.keys(value).some((k) => !['limits', 'rules'].includes(k))
+    Object.keys(value).some((k) => !['limits', 'rules', 'features'].includes(k))
   )
     throw new Error('Invalid policy')
+  if (value.features !== undefined) {
+    if (!Array.isArray(value.features) || value.features.length > 32)
+      throw new Error('Invalid plan features')
+    const labels = new Set<string>()
+    for (const feature of value.features) {
+      if (
+        !plain(feature) ||
+        Object.keys(feature).some(
+          (k) => !['label', 'type', 'value'].includes(k),
+        ) ||
+        typeof feature.label !== 'string' ||
+        !feature.label.trim() ||
+        feature.label.length > 100 ||
+        typeof feature.type !== 'string' ||
+        !['supported', 'unsupported', 'dash', 'number', 'text'].includes(
+          String(feature.type),
+        ) ||
+        (feature.type === 'number' &&
+          (typeof feature.value !== 'number' ||
+            !Number.isFinite(feature.value) ||
+            Math.abs(feature.value) > Number.MAX_SAFE_INTEGER)) ||
+        (feature.type === 'text' &&
+          (typeof feature.value !== 'string' || feature.value.length > 200)) ||
+        (!['number', 'text'].includes(String(feature.type)) &&
+          feature.value !== undefined)
+      )
+        throw new Error('Invalid plan feature')
+      if (labels.has(feature.label.trim()))
+        throw new Error('Duplicate plan feature')
+      labels.add(feature.label.trim())
+    }
+  }
   function limits(v: unknown, complete: boolean) {
     if (
       !plain(v) ||
@@ -113,7 +151,13 @@ export function validatePolicy(value: unknown): PlanPolicy {
     if (Number((rule.limits as Record<string, unknown>).byos ?? 0) > 1)
       throw new Error('Invalid BYOS entitlement')
   }
-  return structuredClone(value) as unknown as PlanPolicy
+  const policy = structuredClone(value) as unknown as PlanPolicy
+  if (policy.features)
+    policy.features = policy.features.map((f) => ({
+      ...f,
+      label: f.label.trim(),
+    }))
+  return policy
 }
 export function evaluatePolicy(
   policy: PlanPolicy,

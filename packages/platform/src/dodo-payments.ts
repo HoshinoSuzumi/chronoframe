@@ -94,7 +94,7 @@ export async function syncDodoProducts(
         if (effectivePrice < 1) fail('payment_price_invalid', 400)
         const body = {
           name: snapshot.product.name,
-          description: snapshot.product.description.slice(0, 1000),
+          description: snapshot.product.description,
           tax_category: 'saas' as const,
           price: {
             type: 'recurring_price' as const,
