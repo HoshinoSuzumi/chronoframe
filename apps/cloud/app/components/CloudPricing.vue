@@ -110,9 +110,75 @@ async function resume() {
 const offer = (plan: any) =>
   payment.value?.enabled &&
   payment.value?.canManage &&
+  !payment.value?.hasActiveSubscription &&
   payment.value.offers.some(
     (v: any) => v.plan_id === plan.id && v.interval === interval.value,
   )
+const changeQuote = ref<any>(null),
+  changeOpen = ref(false),
+  changeBusy = ref(false),
+  changeError = ref('')
+const changeFor = (plan: any) =>
+  payment.value?.enabled &&
+  payment.value?.canManage &&
+  !payment.value?.planChange &&
+  payment.value?.changes?.find(
+    (c: any) => c.planId === plan.id && c.interval === interval.value,
+  )
+async function previewChange(plan: any) {
+  if (changeBusy.value || !billing?.selected.value) return
+  changeBusy.value = true
+  changeError.value = ''
+  changeQuote.value = null
+  changeOpen.value = true
+  try {
+    changeQuote.value = await $fetch('/api/billing/payments', {
+      method: 'POST',
+      timeout: 15000,
+      body: {
+        action: 'preview-change',
+        workspaceId: billing.selected.value,
+        planId: plan.id,
+      },
+    })
+  } catch {
+    changeError.value = t('cloud.payments.changeFailed')
+  } finally {
+    changeBusy.value = false
+  }
+}
+async function confirmChange() {
+  if (changeBusy.value || !changeQuote.value || !billing?.selected.value) return
+  changeBusy.value = true
+  changeError.value = ''
+  try {
+    await $fetch('/api/billing/payments', {
+      method: 'POST',
+      timeout: 25000,
+      body: {
+        action: 'change-plan',
+        workspaceId: billing.selected.value,
+        quoteId: changeQuote.value.id,
+      },
+    })
+    changeOpen.value = false
+  } catch {
+    changeError.value = t('cloud.payments.changeFailed')
+  } finally {
+    await Promise.all([
+      payments?.refresh({ reconcile: false }),
+      billing?.refresh(),
+    ])
+    changeBusy.value = false
+  }
+}
+watch(
+  () => billing?.selected.value,
+  () => {
+    changeOpen.value = false
+    changeQuote.value = null
+  },
+)
 async function checkout(plan: any) {
   if (paying.value || !billing?.selected.value) return
   const workspaceId = billing.selected.value,
@@ -182,6 +248,25 @@ async function checkout(plan: any) {
             ? $t('cloud.payments.testHelp')
             : $t('cloud.billing.purchaseHelp')
         }}
+      </p>
+      <p
+        v-if="payment?.planChange"
+        class="cf-notice"
+        role="status"
+      >
+        {{
+          $t(
+            payment.planChange.state === 'scheduled'
+              ? 'cloud.payments.changeScheduled'
+              : 'cloud.payments.changePending',
+          )
+        }}
+        <CfButton
+          variant="ghost"
+          :disabled="payments?.busy.value"
+          @click="payments?.refresh()"
+          >{{ $t('cloud.payments.checkAgain') }}</CfButton
+        >
       </p>
       <p
         v-if="payment?.pending?.state === 'uncertain'"
@@ -345,6 +430,19 @@ async function checkout(plan: any) {
             >{{ $t('cloud.billing.current') }}</CfButton
           >
           <CfButton
+            v-else-if="portal && changeFor(plan)"
+            :disabled="changeBusy || !!payment.pending"
+            :variant="plan.featured ? 'default' : 'secondary'"
+            @click="previewChange(plan)"
+            >{{
+              $t(
+                changeFor(plan).direction === 'upgrade'
+                  ? 'cloud.payments.upgrade'
+                  : 'cloud.payments.downgrade',
+              )
+            }}</CfButton
+          >
+          <CfButton
             v-else-if="portal && offer(plan)"
             :loading="paying === plan.id + ':' + interval"
             :disabled="!!paying || !!payment.pending"
@@ -447,6 +545,74 @@ async function checkout(plan: any) {
         >{{ $t('cloud.billing.redeem') }}</NuxtLink
       >
     </div>
+    <UModal
+      v-model:open="changeOpen"
+      :title="$t('cloud.payments.changeTitle')"
+      :dismissible="!changeBusy"
+      :close="!changeBusy"
+    >
+      <template #body
+        ><div class="cf-form">
+          <p
+            v-if="changeBusy && !changeQuote"
+            role="status"
+          >
+            {{ $t('cloud.billing.loading') }}
+          </p>
+          <template v-if="changeQuote">
+            <p>
+              {{
+                $t(
+                  changeQuote.direction === 'upgrade'
+                    ? 'cloud.payments.upgradeHelp'
+                    : 'cloud.payments.downgradeHelp',
+                )
+              }}
+            </p>
+            <p>
+              {{ $t('cloud.payments.chargeNow') }}
+              <strong>{{
+                price(
+                  changeQuote.charge.total_amount,
+                  changeQuote.charge.currency,
+                  locale,
+                )
+              }}</strong>
+            </p>
+            <p>
+              {{ $t('cloud.payments.newRecurring') }}
+              <strong>{{
+                price(changeQuote.renewalAmount, changeQuote.currency, locale)
+              }}</strong>
+              /
+              {{
+                $t(
+                  changeQuote.interval === 1
+                    ? 'cloud.billing.month'
+                    : 'cloud.billing.quarter',
+                )
+              }}
+            </p>
+            <p class="cf-field-hint">{{ $t('cloud.payments.savedMethod') }}</p>
+          </template>
+          <p
+            v-if="changeError"
+            class="cf-error-message"
+            role="alert"
+          >
+            {{ changeError }}
+          </p>
+        </div></template
+      >
+      <template #footer
+        ><CfButton
+          :disabled="changeBusy || !changeQuote"
+          :loading="changeBusy"
+          @click="confirmChange"
+          >{{ $t('cloud.payments.confirmChange') }}</CfButton
+        ></template
+      >
+    </UModal>
     <CloudLegalLinks />
   </div>
 </template>

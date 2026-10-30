@@ -21,6 +21,25 @@ const latestSubscription = computed(() => {
     rows[0]
   )
 })
+const portalBusy = ref(false),
+  portalError = ref('')
+async function openBillingPortal() {
+  if (portalBusy.value) return
+  portalBusy.value = true
+  portalError.value = ''
+  try {
+    const result = await $fetch<{ url: string }>('/api/billing/payments', {
+      method: 'POST',
+      timeout: 15000,
+      body: { action: 'portal', workspaceId: selected.value },
+    })
+    await navigateTo(result.url, { external: true })
+  } catch {
+    portalError.value = t('cloud.payments.portalFailed')
+  } finally {
+    portalBusy.value = false
+  }
+}
 const quotaKeys = BILLING_LIMITS.filter((key) => key !== 'byos')
 await ready
 useSeoMeta({
@@ -132,6 +151,20 @@ const date = (time: number) => new Date(time).toLocaleString(locale.value)
           </p>
         </div>
         <div class="cf-plan-management">
+          <CfButton
+            v-if="payments.data.value?.canOpenPortal"
+            variant="secondary"
+            :loading="portalBusy"
+            @click="openBillingPortal"
+            >{{ $t('cloud.payments.manage') }}</CfButton
+          >
+          <p
+            v-if="portalError"
+            class="cf-error-message"
+            role="alert"
+          >
+            {{ portalError }}
+          </p>
           <CfButton
             v-if="data.workspace.role === 'admin'"
             as-child
