@@ -98,6 +98,8 @@ export async function reconcileDeferredAuthorization(
           p.status === 'succeeded' &&
           (p.total_amount > 0 ||
             (p.total_amount === 0 &&
+              p.charge_type === 'renewal' &&
+              !p.is_update_payment_method &&
               time(p.created_at) >= paidBoundary - 60000)) &&
           (p.subscription_id === subscription.subscription_id ||
             p.subscription_ids?.includes(subscription.subscription_id)),
