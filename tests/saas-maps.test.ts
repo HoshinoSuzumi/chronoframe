@@ -99,6 +99,16 @@ test('public map defaults, per-site overrides, membership and optimistic revisio
         }),
       { code: 'map_style_invalid' },
     )
+    await db
+      .prepare('UPDATE platform_map_settings SET config_json=? WHERE id=1')
+      .bind(
+        JSON.stringify({
+          ...defaults,
+          'mapbox.token': 'sk.must_never_be_public',
+        }),
+      )
+      .run()
+    await assert.rejects(siteMaps(db, 2), { code: 'map_public_token_required' })
   } finally {
     await mf.dispose()
   }

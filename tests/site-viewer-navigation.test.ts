@@ -5,7 +5,7 @@ import vm from 'node:vm'
 import ts from 'typescript'
 import { computed, reactive, ref, watch, effectScope, nextTick } from 'vue'
 function compile(source: string, context: Record<string, unknown>) {
-  const exports: Record<string, any> = {}
+  const exports: Record<string, unknown> = {}
   vm.runInNewContext(
     ts.transpileModule(source, {
       compilerOptions: { module: ts.ModuleKind.CommonJS },
@@ -18,7 +18,13 @@ test('Site viewer route keeps scroll on open/close and preserves normal navigati
   const router = compile(
     readFileSync('apps/site/app/router.options.ts', 'utf8'),
     {},
-  ).default
+  ).default as {
+    scrollBehavior(
+      to: { name?: string; path?: string; hash?: string },
+      from: { name?: string; path?: string },
+      saved: unknown,
+    ): unknown
+  }
   assert.equal(
     router.scrollBehavior({ name: 'slug' }, { path: '/' }, null),
     false,
@@ -38,6 +44,22 @@ test('Site viewer route keeps scroll on open/close and preserves normal navigati
       ),
     ),
     { top: 0 },
+  )
+  assert.equal(
+    router.scrollBehavior({ path: '/albums/summer' }, { name: 'slug' }, null),
+    false,
+  )
+  assert.deepEqual(
+    JSON.parse(
+      JSON.stringify(
+        router.scrollBehavior(
+          { path: '/photos', hash: '#summer' },
+          { path: '/' },
+          null,
+        ),
+      ),
+    ),
+    { el: '#summer' },
   )
   const saved = { left: 0, top: 900 }
   assert.equal(

@@ -74,10 +74,10 @@ export async function mapDefaults(db: PlatformD1) {
     )
     .first<{ config_json: string; revision: number }>()
   return {
-    config: {
+    config: parsePublicMap({
       ...EMPTY_MAP,
       ...JSON.parse(row!.config_json),
-    } as PublicMapConfig,
+    }),
     revision: row!.revision,
   }
 }

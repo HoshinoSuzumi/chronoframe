@@ -34,7 +34,7 @@ export async function purgeAccounts(
   try {
     const billing = await db
       .prepare(
-        "SELECT s.id FROM platform_payment_subscriptions s JOIN platform_workspaces w ON w.id=s.workspace_id JOIN platform_payment_checkouts c ON c.id=s.checkout_id WHERE (w.owner_user_id=? OR c.user_id=?) AND s.status NOT IN('canceled','expired') UNION ALL SELECT c.id FROM platform_payment_checkouts c JOIN platform_workspaces w ON w.id=c.workspace_id WHERE (w.owner_user_id=? OR c.user_id=?) AND c.state IN('creating','open','uncertain') LIMIT 1",
+        "SELECT s.id FROM platform_payment_subscriptions s JOIN platform_workspaces w ON w.id=s.workspace_id JOIN platform_payment_checkouts c ON c.id=s.checkout_id WHERE (w.owner_user_id=? OR c.user_id=?) AND s.status NOT IN('canceled','expired') UNION ALL SELECT c.id FROM platform_payment_checkouts c JOIN platform_workspaces w ON w.id=c.workspace_id WHERE (w.owner_user_id=? OR c.user_id=?) AND (c.state IN('creating','open','uncertain') OR (c.state='expired' AND c.error IN('payment_confirmation_unresolved','payment_checkout_abandoned'))) LIMIT 1",
       )
       .bind(id, id, id, id)
       .first()

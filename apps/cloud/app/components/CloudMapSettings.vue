@@ -4,10 +4,9 @@ const { locale } = useI18n()
 const store = useSettingsStore()
 const context = useEntryContext()
 const t = (en: string, zh: string) => (locale.value === 'zh-Hans' ? zh : en)
-const { data, error, refresh } = await useFetch(
-  `/api/sites/${props.siteId}/map`,
-  { key: `site-maps-${props.siteId}` },
-)
+const { data, error } = await useFetch(`/api/sites/${props.siteId}/map`, {
+  key: `site-maps-${props.siteId}`,
+})
 const own = ref(!!data.value?.config)
 const draft = ref({
   provider: 'maplibre',
@@ -26,14 +25,15 @@ async function save() {
   message.value = ''
   failed.value = false
   try {
-    await $fetch(`/api/sites/${props.siteId}/map`, {
+    const result = await $fetch(`/api/sites/${props.siteId}/map`, {
       method: 'PUT',
       body: {
         revision: data.value.revision,
         config: own.value ? draft.value : null,
       },
     })
-    await refresh()
+    data.value = { ...data.value, ...result }
+    error.value = null
     if (context.value?.siteId === props.siteId && data.value)
       store.data.map = { ...data.value.effective }
     message.value = t('Map settings saved.', '地图设置已保存。')

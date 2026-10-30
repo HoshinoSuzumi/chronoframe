@@ -1497,6 +1497,7 @@ export async function closeDodoAccountPayments(
   secret: string,
   userId: number,
   transport: typeof fetch = fetch,
+  now = Date.now(),
 ) {
   const rows = await allRows<any>(
     db
@@ -1523,12 +1524,51 @@ export async function closeDodoAccountPayments(
       .prepare(
         "UPDATE platform_payment_subscriptions SET status='canceled',checked_at=? WHERE id=?",
       )
-      .bind(Date.now(), row.id)
+      .bind(now, row.id)
+      .run()
+  }
+  // Locally abandoned sessions can still be paid through an old browser tab.
+  // Only release their erasure fence after expiry AND a fresh no-payment response.
+  const abandoned = await allRows<{
+    id: string
+    provider_id: string
+    provider_key: string
+    environment: DodoEnvironment
+  }>(
+    db
+      .prepare(
+        "SELECT c.id,c.provider_id,c.provider_key,c.environment FROM platform_payment_checkouts c JOIN platform_workspaces w ON w.id=c.workspace_id WHERE c.provider='dodo' AND (w.owner_user_id=? OR c.user_id=?) AND c.state='expired' AND c.error='payment_checkout_abandoned' AND c.created_at<? ORDER BY c.created_at LIMIT 10",
+      )
+      .bind(userId, userId, now - 86400000),
+  )
+  for (const checkout of abandoned) {
+    const { client, revision } = await dodoClient(
+      db,
+      secret,
+      checkout.environment,
+      transport,
+      false,
+      checkout.provider_key,
+    )
+    const session = await dodoRequest(() =>
+      client.checkoutSessions.retrieve(rawDodoId(checkout.provider_id)),
+    )
+    if (
+      session.id !== rawDodoId(checkout.provider_id) ||
+      session.payment_id ||
+      session.payment_status
+    )
+      continue
+    await db
+      .prepare(
+        `UPDATE platform_payment_checkouts SET error='payment_checkout_expired',updated_at=? WHERE id=? AND state='expired' AND error='payment_checkout_abandoned' AND NOT EXISTS(SELECT 1 FROM platform_payment_subscriptions WHERE checkout_id=platform_payment_checkouts.id) AND NOT EXISTS(SELECT 1 FROM platform_payment_locks WHERE workspace_id=platform_payment_checkouts.workspace_id AND expires_at>?) AND ${activeFence}`,
+      )
+      .bind(now, checkout.id, now, checkout.provider_key, revision)
       .run()
   }
   return !(await db
     .prepare(
-      "SELECT c.id FROM platform_payment_checkouts c JOIN platform_workspaces w ON w.id=c.workspace_id WHERE c.provider='dodo' AND (w.owner_user_id=? OR c.user_id=?) AND (c.state IN('creating','open','uncertain') OR (c.state='expired' AND c.error='payment_confirmation_unresolved')) LIMIT 1",
+      "SELECT c.id FROM platform_payment_checkouts c JOIN platform_workspaces w ON w.id=c.workspace_id WHERE c.provider='dodo' AND (w.owner_user_id=? OR c.user_id=?) AND (c.state IN('creating','open','uncertain') OR (c.state='expired' AND c.error IN('payment_confirmation_unresolved','payment_checkout_abandoned'))) LIMIT 1",
     )
     .bind(userId, userId)
     .first())

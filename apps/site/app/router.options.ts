@@ -10,10 +10,17 @@ export default <RouterConfig>{
       return false
     }
 
-    if (from.name === 'slug' && (to.path === '/photos' || to.path === '/')) {
+    if (
+      from.name === 'slug' &&
+      !to.hash &&
+      (to.path === '/photos' ||
+        to.path === '/' ||
+        to.path.startsWith('/albums/'))
+    ) {
       return false
     }
 
+    if (to.hash) return { el: to.hash }
     return { top: 0 }
   },
 }

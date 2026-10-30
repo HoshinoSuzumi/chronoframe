@@ -3372,7 +3372,12 @@ test('details-stage cancellation releases the local slot and preserves late paym
     const abandoned = await f.db
       .prepare('SELECT * FROM platform_payment_checkouts WHERE id=?')
       .bind(checkout.id)
-      .first<any>()
+      .first<{
+        state: string
+        error: string
+        checkout_url: string | null
+        provider_id: string
+      }>()
     assert.equal(abandoned.state, 'expired')
     assert.equal(abandoned.error, 'payment_checkout_abandoned')
     assert.equal(abandoned.checkout_url, null)
@@ -3390,7 +3395,7 @@ test('details-stage cancellation releases the local slot and preserves late paym
     )
     const grant = await f.db
       .prepare('SELECT * FROM platform_workspace_plans WHERE workspace_id=1')
-      .first<any>()
+      .first<{ source: string }>()
     assert.equal(grant.source, 'payment')
   } finally {
     await f.mf.dispose()
@@ -4085,10 +4090,110 @@ test('details-stage abandonment requires a fresh empty provider session and no r
         'SELECT state,checkout_url FROM platform_payment_checkouts WHERE id=?',
       )
       .bind(checkout.id)
-      .first<any>()
+      .first<{ state: string; checkout_url: string | null }>()
     assert.equal(row.state, 'open')
     assert.equal(row.checkout_url, checkout.url)
     assert.ok((await paymentStatus(f.db, 1, 1)).pending)
+  } finally {
+    await f.mf.dispose()
+  }
+})
+
+test('account erasure retains payable abandoned sessions until expiry is verified without a payment', async () => {
+  const f = await fixture()
+  try {
+    await syncDodoProducts(f.db, root, f.transport)
+    const checkout = await createPaymentCheckout(
+      f.db,
+      root,
+      1,
+      input(),
+      origin,
+      f.transport,
+      f.now,
+    )
+    const { cancelDodoCheckout, closeDodoAccountPayments } =
+      await import('../packages/platform/src/dodo-payments.ts')
+    await cancelDodoCheckout(
+      f.db,
+      root,
+      1,
+      1,
+      checkout.id,
+      f.transport,
+      f.now + 1000,
+    )
+    const calls = f.calls.length
+    assert.equal(
+      await closeDodoAccountPayments(f.db, root, 1, f.transport, f.now + 2000),
+      false,
+    )
+    assert.equal(
+      f.calls.length,
+      calls,
+      'a still-payable session must remain fenced',
+    )
+    await f.db
+      .prepare(
+        "INSERT INTO platform_account_deletions(user_id,generation,source,reason,marked_at,purge_at,previous_suspended,previous_reason) VALUES(1,'abandon-purge','manual','Delete account',?,?,0,'')",
+      )
+      .bind(f.now, f.now + 1000)
+      .run()
+    const { purgeAccounts } =
+      await import('../packages/platform/src/account-purge.ts')
+    let billingCalls = 0,
+      domainCalls = 0
+    await purgeAccounts(
+      f.db,
+      {
+        billing: async () => {
+          billingCalls++
+          return false
+        },
+        domains: async () => {
+          domainCalls++
+          return true
+        },
+        storage: async () => true,
+      },
+      f.now + 2000,
+    )
+    assert.equal(billingCalls, 1)
+    assert.equal(domainCalls, 0)
+    assert.ok(
+      await f.db.prepare('SELECT id FROM platform_users WHERE id=1').first(),
+    )
+    const session = f.sessions.get(checkout.url.split('/').pop()!)!
+    const expiredAt = f.now + 86400000 + 2000
+    session.payment_id = 'pay_late_unresolved'
+    assert.equal(
+      await closeDodoAccountPayments(f.db, root, 1, f.transport, expiredAt),
+      false,
+    )
+    session.payment_id = null
+    session.payment_status = 'processing'
+    assert.equal(
+      await closeDodoAccountPayments(f.db, root, 1, f.transport, expiredAt),
+      false,
+    )
+    session.payment_status = null
+    const unavailable: typeof fetch = async () =>
+      Response.json({}, { status: 503 })
+    await assert.rejects(
+      closeDodoAccountPayments(f.db, root, 1, unavailable, expiredAt),
+    )
+    assert.equal(
+      await closeDodoAccountPayments(f.db, root, 1, f.transport, expiredAt),
+      true,
+    )
+    const row = await f.db
+      .prepare(
+        'SELECT error,provider_id FROM platform_payment_checkouts WHERE id=?',
+      )
+      .bind(checkout.id)
+      .first<{ error: string; provider_id: string }>()
+    assert.equal(row.error, 'payment_checkout_expired')
+    assert.ok(row.provider_id)
   } finally {
     await f.mf.dispose()
   }
