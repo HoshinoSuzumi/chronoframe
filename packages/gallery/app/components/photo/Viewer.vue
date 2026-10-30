@@ -95,6 +95,8 @@ const { convertMovToMp4, getProcessingState } = useLivePhotoProcessor()
 // Computed
 const currentPhoto = computed(() => props.photos[props.currentIndex])
 const isTransitioning = ref(false)
+let isOpening = false
+let closeQueued = false
 let transitionImage: HTMLImageElement | undefined
 let transitionAnimation: Animation | undefined
 let restoreSourceVisibility: (() => void) | undefined
@@ -198,7 +200,12 @@ const animatePhoto = async (closing = false, onStart?: () => void) => {
 }
 
 const requestClose = async () => {
-  if (!props.isOpen || isTransitioning.value) return
+  if (!props.isOpen) return
+  if (isOpening) {
+    closeQueued = true
+    return
+  }
+  if (isTransitioning.value) return
   let closed = false
   const close = () => {
     if (closed) return
@@ -217,7 +224,11 @@ const requestClose = async () => {
 watch(
   () => props.isOpen,
   async (open) => {
-    if (!open) return
+    if (!open) {
+      closeQueued = false
+      return
+    }
+    isOpening = true
     isTransitioning.value = true
     try {
       await nextTick()
@@ -226,7 +237,11 @@ watch(
       )
       if (props.isOpen) await animatePhoto()
     } finally {
+      isOpening = false
       isTransitioning.value = false
+      const shouldClose = closeQueued && props.isOpen
+      closeQueued = false
+      if (shouldClose) await requestClose()
     }
   },
 )
