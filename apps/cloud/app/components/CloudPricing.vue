@@ -363,15 +363,7 @@ async function checkout(plan: any) {
               }).format(discountBps(plan) / 100)
             }}%</span
           >
-          <div
-            class="cf-plan-card-heading"
-            :class="{
-              'has-recommendation':
-                embedded &&
-                plan.featured &&
-                !(portal && plan.id === currentPlan),
-            }"
-          >
+          <div class="cf-plan-card-heading">
             <h2>{{ plan.name }}</h2>
             <CfBadge v-if="portal && plan.id === currentPlan">{{
               $t('cloud.billing.current')

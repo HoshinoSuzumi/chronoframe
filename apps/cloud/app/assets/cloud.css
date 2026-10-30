@@ -2116,12 +2116,9 @@ a.cf-domain-address:hover {
   padding-right: 36px;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
   gap: 10px;
   flex-wrap: wrap;
-}
-.cf-plan-card-heading.has-recommendation {
-  justify-content: flex-start;
 }
 .cf-plan-card-heading h2 {
   font-size: 19px;
@@ -2150,6 +2147,7 @@ a.cf-domain-address:hover {
 }
 .cf-plan-features {
   display: grid;
+  align-content: start;
   gap: 12px;
   list-style: none;
   padding: 16px 0 0;
@@ -2157,6 +2155,8 @@ a.cf-domain-address:hover {
 }
 .cf-plan-features li {
   display: flex;
+  align-items: flex-start;
+  line-height: 1.5;
   justify-content: space-between;
   gap: 12px;
   font-size: 12px;
