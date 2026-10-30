@@ -699,3 +699,42 @@ test('passive payment refreshes read state without duplicating provider confirma
     scope.stop()
   }
 })
+
+test('explicit subscription-change checks refresh the plan without confusing them with checkout confirmation', async () => {
+  let reads = 0
+  const bodies: any[] = []
+  let refreshes = 0
+  const module = load('apps/cloud/app/composables/useCloudPayments.ts', {
+    toValue,
+    $fetch: async (_path: string, options: any) => {
+      if (options.method === 'POST') {
+        bodies.push(options.body)
+        return { checked: true }
+      }
+      return {
+        canManage: true,
+        planChange: reads++ === 0 ? { id: 'change', state: 'pending' } : null,
+        pending: null,
+      }
+    },
+    onMounted: () => {},
+    onBeforeUnmount: () => {},
+    useIntervalFn: () => {},
+  })
+  const scope = effectScope()
+  try {
+    const payments = scope.run(() =>
+      module.useCloudPayments(1, async () => {
+        refreshes++
+      }),
+    )!
+    await payments.refresh()
+    assert.equal(bodies.length, 1)
+    assert.equal(bodies[0].action, 'check-change')
+    assert.equal(bodies[0].workspaceId, 1)
+    assert.equal(refreshes, 1)
+    assert.equal(payments.data.value.planChange, null)
+  } finally {
+    scope.stop()
+  }
+})

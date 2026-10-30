@@ -30,7 +30,7 @@ export function useCloudPayments(
         current === generation &&
         reconcile &&
         result.canManage &&
-        result.pending?.canRefresh
+        (result.pending?.canRefresh || result.planChange)
       ) {
         // A stored checkout must converge even when the return URL parameters are gone.
         try {
@@ -38,9 +38,9 @@ export function useCloudPayments(
             method: 'POST',
             timeout: 15000,
             body: {
-              action: 'refresh',
+              action: result.planChange ? 'check-change' : 'refresh',
               workspaceId: id,
-              checkoutId: result.pending.id,
+              checkoutId: result.pending?.id,
             },
           })
         } catch {
@@ -51,7 +51,12 @@ export function useCloudPayments(
           query: { workspaceId: id },
           timeout: 15000,
         })
-        if (alive && current === generation && !result.pending)
+        if (
+          alive &&
+          current === generation &&
+          !result.pending &&
+          !result.planChange
+        )
           await onReconciled?.()
       }
       if (alive && current === generation) {

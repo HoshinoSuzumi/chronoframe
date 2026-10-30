@@ -1,3 +1,9 @@
+import {
+  savePaymentPlanRule,
+  previewPaymentPlanChange,
+  commitPaymentPlanChange,
+  checkPaymentPlanChange,
+} from '../packages/platform/src/subscription-changes.ts'
 import test from 'node:test'
 import { discountedPrice } from '../packages/contracts/src/pricing.ts'
 import {
@@ -16,6 +22,7 @@ import {
   paymentSettings,
   paymentStatus,
   createPaymentCheckout,
+  createPaymentPortal,
   closeAccountPayments,
 } from '../packages/platform/src/payments.ts'
 import {
@@ -1562,6 +1569,421 @@ test('failed payments without a subscription close the unpaid checkout', async (
       'expired',
     )
     assert.equal((await paymentStatus(f.db, 1, 1)).pending, null)
+  } finally {
+    await f.mf.dispose()
+  }
+})
+
+async function changeFixture() {
+  const f = await fixture()
+  await f.db
+    .prepare(
+      "INSERT INTO platform_plans(id,name,policy_json,currency,monthly_price,quarterly_price,sort_order) SELECT 'studio','Studio',policy_json,'USD',2400,6000,3 FROM platform_plans WHERE id='free'",
+    )
+    .run()
+  await syncDodoProducts(f.db, root, f.transport, f.now, 20)
+  const checkout = await createPaymentCheckout(
+    f.db,
+    root,
+    1,
+    input(),
+    'https://portal.example',
+    f.transport,
+  )
+  const paid = await f.paid(checkout)
+  await refreshDodoCheckout(f.db, root, 1, 1, checkout.id, f.transport)
+  const mutations: any[] = []
+  let outcome = 'apply'
+  let scheduled: any = null
+  let portalURL = 'https://test.customer.dodopayments.com/session/fixture'
+  const apply = (body: any, now = f.now) => {
+    paid.sub.product_id = body.product_id
+    paid.sub.previous_billing_date = new Date(now - 1000).toISOString()
+    paid.sub.next_billing_date = new Date(now + 28 * 86400000).toISOString()
+    ;(paid.sub as any).scheduled_change = null
+  }
+  const transport: typeof fetch = async (input, init) => {
+    const url = new URL(
+      typeof input === 'string'
+        ? input
+        : input instanceof URL
+          ? input.href
+          : input.url,
+    )
+    const body = init?.body ? JSON.parse(String(init.body)) : null
+    if (url.pathname.endsWith('/change-plan/preview')) {
+      return Response.json({
+        new_plan: { ...paid.sub, product_id: body.product_id },
+        immediate_charge: {
+          effective_at:
+            body.effective_at === 'next_billing_date'
+              ? paid.sub.next_billing_date
+              : new Date(f.now).toISOString(),
+          line_items: [],
+          summary: {
+            currency: 'USD',
+            total_amount: body.effective_at === 'next_billing_date' ? 0 : 600,
+            settlement_currency: 'USD',
+            settlement_amount: 600,
+            customer_credits: 0,
+            customer_credits_currency: 'USD',
+          },
+        },
+      })
+    }
+    if (url.pathname.endsWith('/change-plan')) {
+      mutations.push(body)
+      assert.equal(body.on_payment_failure, 'prevent_change')
+      assert.deepEqual(body.discount_codes, [])
+      if (outcome === 'timeout') throw Error('network after provider accepted')
+      if (outcome === 'reject')
+        return Response.json({ code: 'invalid' }, { status: 422 })
+      if (body.effective_at === 'next_billing_date') {
+        scheduled = body
+        ;(paid.sub as any).scheduled_change = { product_id: body.product_id }
+      } else if (outcome === 'apply') apply(body)
+      return Response.json({})
+    }
+    if (url.pathname.endsWith('/customer-portal/session'))
+      return Response.json({ link: portalURL })
+    return f.transport(input, init)
+  }
+  const rule = async (from: string, to: string, direction = 'upgrade') =>
+    savePaymentPlanRule(f.db, 1, {
+      fromPlan: from,
+      toPlan: to,
+      direction,
+      enabled: true,
+      revision: 0,
+      reason: 'Configure allowed subscription transitions',
+    })
+  const assignment = () =>
+    f.db
+      .prepare('SELECT * FROM platform_workspace_plans WHERE workspace_id=1')
+      .first<any>()
+  return {
+    ...f,
+    ...paid,
+    checkout,
+    transport,
+    mutations,
+    rule,
+    assignment,
+    setOutcome: (value: string) => {
+      outcome = value
+    },
+    setPortal: (value: string) => {
+      portalURL = value
+    },
+    applyScheduled: (now: number) => apply(scheduled, now),
+  }
+}
+
+test('directed subscription rules validate paid plans and audit changes with revision checks', async () => {
+  const f = await changeFixture()
+  try {
+    await assert.rejects(f.rule('free', 'studio'), {
+      code: 'payment_change_rule_invalid',
+    })
+    await f.rule('pro', 'studio')
+    await assert.rejects(f.rule('pro', 'studio'), { code: 'revision_conflict' })
+    await assert.rejects(
+      previewPaymentPlanChange(
+        f.db,
+        root,
+        1,
+        { workspaceId: 1, planId: 'free' },
+        f.transport,
+      ),
+      { code: 'payment_change_not_allowed' },
+    )
+    await assert.rejects(
+      previewPaymentPlanChange(
+        f.db,
+        root,
+        2,
+        { workspaceId: 1, planId: 'studio' },
+        f.transport,
+      ),
+      { code: 'workspace_admin_required' },
+    )
+    const audit = await f.db
+      .prepare(
+        "SELECT after_json FROM platform_admin_audit WHERE action='payment.plan-rule'",
+      )
+      .first<any>()
+    assert.equal(JSON.parse(audit.after_json).to, 'studio')
+    await savePaymentPlanRule(f.db, 1, {
+      fromPlan: 'pro',
+      toPlan: 'studio',
+      direction: 'upgrade',
+      enabled: false,
+      revision: 1,
+      reason: 'Disable this transition',
+    })
+    await assert.rejects(
+      previewPaymentPlanChange(
+        f.db,
+        root,
+        1,
+        { workspaceId: 1, planId: 'studio' },
+        f.transport,
+      ),
+      { code: 'payment_change_not_allowed' },
+    )
+    assert.equal(f.mutations.length, 0)
+  } finally {
+    await f.mf.dispose()
+  }
+})
+
+test('previewed upgrades change the existing subscription without resetting the quota anchor or original checkout', async () => {
+  const f = await changeFixture()
+  try {
+    await f.rule('pro', 'studio')
+    const before = await f.assignment()
+    const quote = await previewPaymentPlanChange(
+      f.db,
+      root,
+      1,
+      { workspaceId: 1, planId: 'studio' },
+      f.transport,
+    )
+    assert.equal(quote.charge.total_amount, 600)
+    assert.equal((await f.assignment()).plan_id, 'pro')
+    assert.equal(
+      (await commitPaymentPlanChange(f.db, root, 1, 1, quote.id, f.transport))
+        .state,
+      'applied',
+    )
+    assert.equal(f.mutations.length, 1)
+    assert.equal(
+      f.mutations[0].proration_billing_mode,
+      'prorated_immediately_keep_cycle',
+    )
+    assert.equal(f.mutations[0].effective_at, 'immediately')
+    const after = await f.assignment()
+    assert.equal(after.plan_id, 'studio')
+    assert.equal(after.starts_at, before.starts_at)
+    const original = await f.db
+      .prepare('SELECT * FROM platform_payment_checkouts WHERE id=?')
+      .bind(f.checkout.id)
+      .first<any>()
+    assert.notEqual(original.product_id, f.sub.product_id)
+    assert.equal(original.price, 1200)
+    assert.equal(
+      (
+        await f.db
+          .prepare('SELECT COUNT(*) AS n FROM platform_payment_subscriptions')
+          .first<any>()
+      ).n,
+      1,
+    )
+    assert.equal((await paymentStatus(f.db, 1, 1)).planChange, null)
+    assert.equal((await paymentStatus(f.db, 1, 1)).hasActiveSubscription, true)
+    assert.equal((await paymentStatus(f.db, 1, 1)).canOpenPortal, true)
+    assert.equal(
+      (await createPaymentPortal(f.db, root, 1, 1, f.transport)).url,
+      'https://test.customer.dodopayments.com/session/fixture',
+    )
+  } finally {
+    await f.mf.dispose()
+  }
+})
+
+test('scheduled downgrades retain the paid tier until the provider switches at renewal', async () => {
+  const f = await changeFixture()
+  try {
+    await f.rule('pro', 'studio')
+    const up = await previewPaymentPlanChange(
+      f.db,
+      root,
+      1,
+      { workspaceId: 1, planId: 'studio' },
+      f.transport,
+    )
+    await commitPaymentPlanChange(f.db, root, 1, 1, up.id, f.transport)
+    await f.rule('studio', 'pro', 'downgrade')
+    const down = await previewPaymentPlanChange(
+      f.db,
+      root,
+      1,
+      { workspaceId: 1, planId: 'pro' },
+      f.transport,
+    )
+    assert.equal(down.charge.total_amount, 0)
+    assert.equal(
+      (await commitPaymentPlanChange(f.db, root, 1, 1, down.id, f.transport))
+        .state,
+      'scheduled',
+    )
+    assert.equal((await f.assignment()).plan_id, 'studio')
+    assert.equal(f.mutations[1].effective_at, 'next_billing_date')
+    assert.equal(f.mutations[1].proration_billing_mode, 'full_immediately')
+    const later = f.now + 28 * 86400000
+    f.applyScheduled(later)
+    await checkPaymentPlanChange(f.db, root, 1, 1, f.transport, later)
+    assert.equal((await f.assignment()).plan_id, 'pro')
+    assert.equal((await paymentStatus(f.db, 1, 1)).planChange, null)
+  } finally {
+    await f.mf.dispose()
+  }
+})
+
+test('failed and ambiguous plan changes never grant benefits or repeat a saved-method charge', async () => {
+  const f = await changeFixture()
+  try {
+    await f.rule('pro', 'studio')
+    let quote = await previewPaymentPlanChange(
+      f.db,
+      root,
+      1,
+      { workspaceId: 1, planId: 'studio' },
+      f.transport,
+    )
+    f.setOutcome('reject')
+    await assert.rejects(
+      commitPaymentPlanChange(f.db, root, 1, 1, quote.id, f.transport),
+    )
+    assert.equal((await f.assignment()).plan_id, 'pro')
+    assert.equal((await paymentStatus(f.db, 1, 1)).planChange, null)
+    quote = await previewPaymentPlanChange(
+      f.db,
+      root,
+      1,
+      { workspaceId: 1, planId: 'studio' },
+      f.transport,
+    )
+    f.setOutcome('timeout')
+    await assert.rejects(
+      commitPaymentPlanChange(f.db, root, 1, 1, quote.id, f.transport),
+    )
+    assert.equal(
+      (await commitPaymentPlanChange(f.db, root, 1, 1, quote.id, f.transport))
+        .state,
+      'uncertain',
+    )
+    assert.equal(f.mutations.length, 2)
+    assert.equal((await f.assignment()).plan_id, 'pro')
+    await assert.rejects(
+      previewPaymentPlanChange(
+        f.db,
+        root,
+        1,
+        { workspaceId: 1, planId: 'studio' },
+        f.transport,
+      ),
+      { code: 'payment_change_pending' },
+    )
+  } finally {
+    await f.mf.dispose()
+  }
+})
+
+test('revoked rules, stale quotes, disabled payments and unsafe customer portal links fail closed', async () => {
+  const f = await changeFixture()
+  try {
+    await f.rule('pro', 'studio')
+    const quote = await previewPaymentPlanChange(
+      f.db,
+      root,
+      1,
+      { workspaceId: 1, planId: 'studio' },
+      f.transport,
+    )
+    await savePaymentPlanRule(f.db, 1, {
+      fromPlan: 'pro',
+      toPlan: 'studio',
+      direction: 'upgrade',
+      enabled: false,
+      revision: 1,
+      reason: 'Revoke this transition',
+    })
+    await assert.rejects(
+      commitPaymentPlanChange(f.db, root, 1, 1, quote.id, f.transport),
+      { code: 'payment_quote_expired' },
+    )
+    assert.equal(f.mutations.length, 0)
+    f.setPortal('https://untrusted.example/steal')
+    await assert.rejects(createPaymentPortal(f.db, root, 1, 1, f.transport), {
+      code: 'payment_redirect_invalid',
+    })
+    await f.db
+      .prepare(
+        "UPDATE platform_memberships SET role='admin' WHERE workspace_id=1 AND user_id=2",
+      )
+      .run()
+    await assert.rejects(createPaymentPortal(f.db, root, 2, 1, f.transport), {
+      code: 'payment_portal_unavailable',
+    })
+    await f.db.prepare('UPDATE platform_payment_settings SET enabled=0').run()
+    const calls = f.calls.length
+    await assert.rejects(
+      commitPaymentPlanChange(f.db, root, 1, 1, quote.id, f.transport),
+      { code: 'payment_unavailable' },
+    )
+    await assert.rejects(createPaymentPortal(f.db, root, 1, 1, f.transport), {
+      code: 'payment_unavailable',
+    })
+    assert.equal(f.calls.length, calls)
+  } finally {
+    await f.mf.dispose()
+  }
+})
+
+test('accepted changes await provider application; failed change payments retain the existing paid plan', async () => {
+  const f = await changeFixture()
+  try {
+    await f.rule('pro', 'studio')
+    f.setOutcome('delayed')
+    const quote = await previewPaymentPlanChange(
+      f.db,
+      root,
+      1,
+      { workspaceId: 1, planId: 'studio' },
+      f.transport,
+    )
+    assert.equal(
+      (await commitPaymentPlanChange(f.db, root, 1, 1, quote.id, f.transport))
+        .state,
+      'pending',
+    )
+    assert.equal((await f.assignment()).plan_id, 'pro')
+    assert.equal(
+      (await commitPaymentPlanChange(f.db, root, 1, 1, quote.id, f.transport))
+        .state,
+      'pending',
+    )
+    assert.equal(f.mutations.length, 1)
+    const failed = {
+      ...f.payment,
+      payment_id: 'pay_change_failed',
+      status: 'failed',
+      charge_type: 'plan_change',
+      metadata: { ...f.payment.metadata, chronoframe_change_id: quote.id },
+    }
+    f.payments.set(failed.payment_id, failed)
+    const event = await f.sign('payment.failed', failed, 'evt_change_failed')
+    await receiveDodoEvent(
+      f.db,
+      root,
+      'test',
+      event.body,
+      event.headers,
+      f.transport,
+    )
+    await processDodoEvents(f.db, root, f.transport)
+    assert.equal((await f.assignment()).plan_id, 'pro')
+    assert.equal((await paymentStatus(f.db, 1, 1)).planChange, null)
+    assert.equal(
+      (
+        await f.db
+          .prepare('SELECT state FROM platform_payment_plan_changes WHERE id=?')
+          .bind(quote.id)
+          .first<any>()
+      ).state,
+      'failed',
+    )
   } finally {
     await f.mf.dispose()
   }
