@@ -2120,6 +2120,9 @@ a.cf-domain-address:hover {
   gap: 10px;
   flex-wrap: wrap;
 }
+.cf-plan-card-heading.has-recommendation {
+  justify-content: flex-start;
+}
 .cf-plan-card-heading h2 {
   font-size: 19px;
 }
@@ -2158,11 +2161,16 @@ a.cf-domain-address:hover {
   gap: 12px;
   font-size: 12px;
 }
-.cf-plan-features li span {
+.cf-plan-features li > span {
+  min-width: 0;
+  overflow-wrap: anywhere;
   color: var(--muted-foreground);
 }
 .cf-plan-features strong {
-  white-space: nowrap;
+  min-width: 0;
+  max-width: 60%;
+  overflow-wrap: anywhere;
+  text-align: right;
   font-weight: 550;
 }
 .cf-rule-details {
