@@ -60,7 +60,11 @@ export function useDodoCheckoutReturn(
   }
   onMounted(() =>
     watch(
-      () => [toValue(workspaceId), toValue(enabled), route.query.checkout],
+      [
+        () => toValue(workspaceId),
+        () => toValue(enabled),
+        () => route.query.checkout,
+      ],
       () => void check(),
       { immediate: true },
     ),
