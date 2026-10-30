@@ -21,7 +21,9 @@ const { t, locale } = useI18n()
   />
   <span v-else>{{
     feature.type === 'number'
-      ? new Intl.NumberFormat(locale).format(Number(feature.value))
+      ? new Intl.NumberFormat(locale, { maximumSignificantDigits: 21 }).format(
+          Number(feature.value),
+        )
       : feature.value
   }}</span>
 </template>
