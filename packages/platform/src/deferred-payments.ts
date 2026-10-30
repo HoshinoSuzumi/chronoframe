@@ -1,4 +1,7 @@
-import { closeFailedInitialCheckout } from './unpaid-checkout.ts'
+import {
+  closeFailedInitialCheckout,
+  markAwaitingInitialCheckout,
+} from './unpaid-checkout.ts'
 import type { PlatformD1 } from './index.ts'
 import { DAY } from './payment-handover.ts'
 import { SubscriptionError, subscriptionInvalidation } from './subscriptions.ts'
@@ -19,6 +22,7 @@ export async function reconcileDeferredAuthorization(
   fence: string,
   fenceValues: (string | number | null)[],
   localId: string,
+  cancelInitial = false,
 ) {
   if (!checkout.handover_json || known?.activation_state === 'paid')
     return { handled: false, paymentId }
@@ -133,6 +137,20 @@ export async function reconcileDeferredAuthorization(
     await closeFailedInitialCheckout(
       db,
       client,
+      checkout,
+      subscription,
+      payment,
+      known,
+      now,
+      fence,
+      fenceValues,
+      cancelInitial,
+    )
+  )
+    return { handled: true, paymentId }
+  if (
+    await markAwaitingInitialCheckout(
+      db,
       checkout,
       subscription,
       payment,

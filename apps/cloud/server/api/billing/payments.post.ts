@@ -1,4 +1,7 @@
-import { cancelDeferredSubscription } from '../../../../../packages/platform/src/dodo-payments'
+import {
+  cancelDeferredSubscription,
+  cancelDodoCheckout,
+} from '../../../../../packages/platform/src/dodo-payments'
 import {
   previewPaymentPlanChange,
   checkPaymentPlanChange,
@@ -24,6 +27,14 @@ export default definePlatformHandler(async (event) => {
   platformPortalOrigin(event, config.portalOrigin, true)
   const b = await siteManagementBody(event, 4096),
     db = platformDatabase(event)
+  if (b.action === 'cancel-checkout')
+    return cancelDodoCheckout(
+      db,
+      config.storageSecret,
+      user.userId,
+      Number(b.workspaceId),
+      String(b.checkoutId),
+    )
   if (b.action === 'cancel-reservation')
     return cancelDeferredSubscription(
       db,

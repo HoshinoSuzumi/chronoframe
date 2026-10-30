@@ -2,6 +2,19 @@ import type { PlatformD1 } from './index.ts'
 import { dodoRequest } from './dodo-client.ts'
 import { SubscriptionError } from './subscriptions.ts'
 
+export const awaitingInitialPayment = (
+  subscription: any,
+  payment: any,
+  known: any,
+) =>
+  !known &&
+  subscription.status === 'pending' &&
+  ['requires_payment_method', 'requires_confirmation'].includes(
+    payment?.status,
+  ) &&
+  !payment.refunds?.length &&
+  !payment.disputes?.length
+
 /** Call only after binding the authoritative payment and subscription to our checkout. */
 export async function closeFailedInitialCheckout(
   db: PlatformD1,
@@ -13,14 +26,13 @@ export async function closeFailedInitialCheckout(
   now: number,
   fence: string,
   fenceValues: (string | number | null)[],
+  cancelRequested = false,
 ) {
   // Session links last 24 hours. Only pre-charge states may be abandoned on age;
   // processing, customer authentication, and capture states must keep reconciling.
   const expiredBeforeCharge =
-    now - checkout.created_at > 86400000 &&
-    ['requires_payment_method', 'requires_confirmation'].includes(
-      payment?.status,
-    )
+    (cancelRequested || now - checkout.created_at > 86400000) &&
+    awaitingInitialPayment(subscription, payment, known)
   if (
     known ||
     subscription.status !== 'pending' ||
@@ -44,6 +56,29 @@ export async function closeFailedInitialCheckout(
       `UPDATE platform_payment_checkouts SET state='expired',error='payment_not_completed',updated_at=? WHERE id=? AND state IN('creating','open','uncertain') AND NOT EXISTS(SELECT 1 FROM platform_payment_subscriptions WHERE checkout_id=platform_payment_checkouts.id) AND ${fence}`,
     )
     .bind(now, checkout.id, ...fenceValues)
+    .run()
+  if (!result.meta.changes)
+    throw new SubscriptionError(409, 'payment_entitlement_changed')
+  return true
+}
+
+/** Record a verified pre-charge state without creating or extending any entitlement. */
+export async function markAwaitingInitialCheckout(
+  db: PlatformD1,
+  checkout: any,
+  subscription: any,
+  payment: any,
+  known: any,
+  now: number,
+  fence: string,
+  values: (string | number | null)[],
+) {
+  if (!awaitingInitialPayment(subscription, payment, known)) return false
+  const result = await db
+    .prepare(
+      `UPDATE platform_payment_checkouts SET state='open',error='payment_awaiting_payment',updated_at=? WHERE id=? AND state IN('creating','open','uncertain') AND NOT EXISTS(SELECT 1 FROM platform_payment_subscriptions WHERE checkout_id=platform_payment_checkouts.id) AND ${fence}`,
+    )
+    .bind(now, checkout.id, ...values)
     .run()
   if (!result.meta.changes)
     throw new SubscriptionError(409, 'payment_entitlement_changed')

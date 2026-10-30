@@ -762,7 +762,16 @@
       "replaceExplanation": "立即扣款并切换套餐，剩余试用或激活码权益将被替换，不折抵、不恢复。",
       "replaceConsent": "我同意替换剩余权益，并立即开始付费订阅。",
       "continueCheckout": "前往结账",
-      "trialUnavailable": "当前结账不支持延期扣款，未创建订阅预约，请联系客服。"
+      "trialUnavailable": "当前结账不支持延期扣款，未创建订阅预约，请联系客服。",
+      "return_awaiting_payment": "尚未完成付款，可在下方取消本次支付或重新发起。",
+      "awaitingPayment": "这次付款尚未开始。如果结账链接已过期，可取消本次支付，或使用新链接重新发起。",
+      "cancelCheckout": "取消本次支付",
+      "restartCheckout": "重新发起支付",
+      "confirmRestartCheckout": "取消并重新发起",
+      "cancelCheckoutHelp": "核验当前状态后取消这次尚未付款的结账，保留已有权益及交易历史。已开始处理或已完成的付款无法在此取消。重新发起会创建新的结账链接。",
+      "checkoutCannotCancel": "当前无法取消这笔付款，可能已开始处理或已完成。请先查看更新后的状态。",
+      "checkoutCancelFailed": "暂未确认取消成功，未创建新的结账。请重试或联系客服。",
+      "cancelCheckoutSummary": "核验并取消这次尚未付款的结账。"
     },
     "dashboard": {
       "workspaceOverview": "工作区概览",

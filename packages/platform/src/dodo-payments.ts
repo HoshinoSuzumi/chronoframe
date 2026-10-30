@@ -1,4 +1,7 @@
-import { closeFailedInitialCheckout } from './unpaid-checkout.ts'
+import {
+  closeFailedInitialCheckout,
+  markAwaitingInitialCheckout,
+} from './unpaid-checkout.ts'
 import { checkoutHandover } from './payment-handover.ts'
 import { reconcileDeferredAuthorization } from './deferred-payments.ts'
 import { discountedPrice } from '../../contracts/src/pricing.ts'
@@ -542,6 +545,7 @@ export async function reconcileDodoSubscription(
   transport: typeof fetch,
   now: number,
   key: string,
+  cancelInitial = false,
 ) {
   if (!identifier(subscriptionId)) fail('payment_subscription_invalid', 422)
   const { client, revision } = await dodoClient(
@@ -682,6 +686,7 @@ export async function reconcileDodoSubscription(
         `${activeFence} AND EXISTS(SELECT 1 FROM platform_payment_locks WHERE workspace_id=? AND token=?)`,
         [key, revision, checkout.workspace_id, token],
         localId,
+        cancelInitial,
       )
       if (deferred.handled) return checkout.id as string
       paymentId = deferred.paymentId
@@ -751,6 +756,21 @@ export async function reconcileDodoSubscription(
       (await closeFailedInitialCheckout(
         db,
         client,
+        checkout,
+        subscription,
+        payment,
+        known,
+        now,
+        `${activeFence} AND EXISTS(SELECT 1 FROM platform_payment_locks WHERE workspace_id=? AND token=?)`,
+        [key, revision, checkout.workspace_id, token],
+        cancelInitial,
+      ))
+    )
+      return checkout.id as string
+    if (
+      !identityError &&
+      (await markAwaitingInitialCheckout(
+        db,
         checkout,
         subscription,
         payment,
@@ -1191,6 +1211,7 @@ export async function refreshDodoCheckout(
   checkoutId: string,
   transport: typeof fetch = fetch,
   now = Date.now(),
+  cancelInitial = false,
 ) {
   await paymentMember(db, userId, workspaceId, true)
   const budget = await db
@@ -1260,6 +1281,7 @@ export async function refreshDodoCheckout(
         transport,
         now,
         key,
+        cancelInitial,
       )
   }
   if (session.payment_id) {
@@ -1294,6 +1316,7 @@ export async function refreshDodoCheckout(
         transport,
         now,
         key,
+        cancelInitial,
       )
   } else if (now - row.created_at > 86400000)
     await db
@@ -1322,7 +1345,10 @@ export async function refreshDodoCheckout(
         : latest.activation_state === 'authorized' &&
             latest.state === 'completed'
           ? 'scheduled'
-          : latest.state,
+          : latest.state === 'open' &&
+              latest.error === 'payment_awaiting_payment'
+            ? 'awaiting_payment'
+            : latest.state,
   }
 }
 export async function reconcileDodoPayments(
@@ -1531,4 +1557,38 @@ export async function cancelDeferredSubscription(
     key,
   )
   return { state: 'cancelled' }
+}
+
+/** Explicit cancellation still uses only the stored session and authoritative provider data. */
+export async function cancelDodoCheckout(
+  db: PlatformD1,
+  secret: string,
+  userId: number,
+  workspaceId: number,
+  checkoutId: string,
+  transport: typeof fetch = fetch,
+  now = Date.now(),
+) {
+  try {
+    const result = await refreshDodoCheckout(
+      db,
+      secret,
+      userId,
+      workspaceId,
+      checkoutId,
+      transport,
+      now,
+      true,
+    )
+    if (!['expired', 'inactive'].includes(result.state))
+      throw new SubscriptionError(409, 'payment_cancellation_unavailable')
+    return result
+  } catch (error) {
+    if (
+      error instanceof SubscriptionError &&
+      error.code === 'payment_confirmation_pending'
+    )
+      throw new SubscriptionError(409, 'payment_cancellation_unavailable')
+    throw error
+  }
 }
