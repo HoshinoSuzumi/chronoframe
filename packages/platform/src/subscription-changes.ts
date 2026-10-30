@@ -229,7 +229,6 @@ export async function previewPaymentPlanChange(
     quantity: 1,
     ...mode(rule.direction),
     on_payment_failure: 'prevent_change' as const,
-    discount_codes: [],
   }
   const quote = await dodoRequest(() =>
     client.subscriptions.previewChangePlan(rawDodoId(sub.id), params),
@@ -273,7 +272,13 @@ export async function previewPaymentPlanChange(
     direction: rule.direction,
     planId: target.plan_id,
     interval: target.interval,
-    renewalAmount: target.effective_price,
+    renewalAmount:
+      quote.new_plan.tax_inclusive === true &&
+      quote.new_plan.currency === target.currency &&
+      Number.isSafeInteger(quote.new_plan.recurring_pre_tax_amount) &&
+      quote.new_plan.recurring_pre_tax_amount >= 0
+        ? quote.new_plan.recurring_pre_tax_amount
+        : target.effective_price,
     currency: target.currency,
     charge: quote.immediate_charge.summary,
     effectiveAt: quote.immediate_charge.effective_at,
@@ -365,7 +370,6 @@ export async function commitPaymentPlanChange(
           quantity: 1,
           ...mode(row.direction),
           on_payment_failure: 'prevent_change',
-          discount_codes: [],
           metadata: { ...actual.metadata, chronoframe_change_id: id },
         },
         { headers: { 'Idempotency-Key': `cf-change-${id}` } },

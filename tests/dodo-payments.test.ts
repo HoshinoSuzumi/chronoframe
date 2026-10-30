@@ -188,6 +188,30 @@ async function fixture() {
       return Response.json({ items: [...subscriptions.values()] })
     if (url.pathname === '/payments')
       return Response.json({ items: [...payments.values()] })
+    if (url.pathname.endsWith('/line-items')) {
+      const payment = payments.get(url.pathname.split('/')[2]!)
+      const sub = subscriptions.get(payment.subscription_id)
+      const currency =
+        url.searchParams.get('currency') ??
+        payment.settlement_currency ??
+        payment.currency
+      const total =
+        currency === payment.currency
+          ? payment.total_amount
+          : payment.settlement_amount
+      return Response.json(
+        payment.lineItems ?? {
+          currency,
+          items: [
+            {
+              items_id: sub.product_id,
+              amount: total - (payment.tax ?? 0),
+              tax: payment.tax ?? 0,
+            },
+          ],
+        },
+      )
+    }
     if (url.pathname.startsWith('/payments/'))
       return Response.json(payments.get(url.pathname.split('/')[2]!))
     throw Error('Unexpected request ' + url.href)
@@ -1650,7 +1674,7 @@ async function changeFixture() {
     if (url.pathname.endsWith('/change-plan')) {
       mutations.push(body)
       assert.equal(body.on_payment_failure, 'prevent_change')
-      assert.deepEqual(body.discount_codes, [])
+      assert.equal(body.discount_codes, undefined)
       if (outcome === 'timeout') throw Error('network after provider accepted')
       if (outcome === 'reject')
         return Response.json({ code: 'invalid' }, { status: 422 })
@@ -3413,3 +3437,563 @@ test('unpaid deferred authorization can be canceled without extending the origin
     await f.mf.dispose()
   }
 })
+
+function coupon(
+  payment: any,
+  productId: string,
+  type = 'percentage',
+  amount = 2000,
+  position = 0,
+) {
+  payment.business_id = 'bus_fixture'
+  return {
+    discount_id: 'dsc_fixture_' + position,
+    business_id: payment.business_id,
+    code: 'SAVE' + position,
+    type,
+    amount,
+    position,
+    restricted_to: [productId],
+  }
+}
+for (const kind of [
+  'percentage',
+  'flat',
+  'stacked',
+  'free',
+  'adaptive',
+  'taxed',
+])
+  test(`hosted checkout coupons fulfill verified ${kind} invoices without changing catalog prices`, async () => {
+    const f = await fixture()
+    try {
+      await syncDodoProducts(f.db, root, f.transport)
+      const checkout = await createPaymentCheckout(
+        f.db,
+        root,
+        1,
+        input(),
+        origin,
+        f.transport,
+        f.now,
+      )
+      const request = f.calls.find(
+        (c) => new URL(c.url).pathname === '/checkouts' && c.method === 'POST',
+      )!
+      assert.equal(request.body.feature_flags.allow_discount_code, true)
+      const { payment, sub } = await f.paid(checkout)
+      const paid = payment as any
+      paid.discounts = [
+        coupon(
+          paid,
+          sub.product_id,
+          kind === 'flat' ? 'flat' : 'percentage',
+          kind === 'free' ? 10000 : 2000,
+        ),
+      ]
+      paid.total_amount = kind === 'free' ? 0 : kind === 'flat' ? 1000 : 960
+      if (kind === 'stacked') {
+        paid.discounts.push(coupon(paid, sub.product_id, 'flat', 100, 1))
+        paid.total_amount = 860
+      }
+      if (kind === 'adaptive') {
+        paid.currency = 'CNY'
+        paid.total_amount = 6800
+        paid.settlement_currency = 'USD'
+        paid.settlement_amount = 960
+      }
+      if (kind === 'taxed') paid.tax = 160
+      if (kind === 'free') {
+        paid.service_periods = []
+        paid.charge_type = 'new'
+      }
+      assert.equal(
+        (
+          await refreshDodoCheckout(
+            f.db,
+            root,
+            1,
+            1,
+            checkout.id,
+            f.transport,
+            f.now + 1000,
+          )
+        ).state,
+        'completed',
+      )
+      assert.equal(
+        (
+          await f.db
+            .prepare(
+              'SELECT plan_id FROM platform_workspace_plans WHERE workspace_id=1',
+            )
+            .first<any>()
+        ).plan_id,
+        'pro',
+      )
+      assert.equal(
+        (
+          await f.db
+            .prepare('SELECT price FROM platform_payment_checkouts WHERE id=?')
+            .bind(checkout.id)
+            .first<any>()
+        ).price,
+        1200,
+      )
+      assert.equal(
+        (
+          await f.db
+            .prepare("SELECT monthly_price FROM platform_plans WHERE id='pro'")
+            .first<any>()
+        ).monthly_price,
+        1200,
+      )
+    } finally {
+      await f.mf.dispose()
+    }
+  })
+test('coupon scope, business and invoice mismatches cannot fulfill discounted payments; legacy checkouts stay strict', async () => {
+  const f = await fixture()
+  try {
+    await syncDodoProducts(f.db, root, f.transport)
+    const checkout = await createPaymentCheckout(
+      f.db,
+      root,
+      1,
+      input(),
+      origin,
+      f.transport,
+      f.now,
+    )
+    const { payment, sub } = await f.paid(checkout),
+      paid = payment as any
+    paid.total_amount = 600
+    const valid = coupon(paid, sub.product_id)
+    for (const invalid of [
+      [],
+      [{ ...valid, restricted_to: ['other_product'] }],
+      [{ ...valid, business_id: 'other_business' }],
+      [{ ...valid, position: 2 }],
+      [{ ...valid, type: 'unknown' }],
+    ]) {
+      paid.discounts = invalid
+      await assert.rejects(
+        refreshDodoCheckout(
+          f.db,
+          root,
+          1,
+          1,
+          checkout.id,
+          f.transport,
+          f.now + 1000,
+        ),
+        { code: 'payment_amount_mismatch' },
+      )
+    }
+    paid.discounts = [valid]
+    for (const lines of [
+      {
+        currency: 'USD',
+        items: [{ items_id: 'wrong_product', amount: 600, tax: 0 }],
+      },
+      {
+        currency: 'USD',
+        items: [{ items_id: sub.product_id, amount: 500, tax: 0 }],
+      },
+      {
+        currency: 'EUR',
+        items: [{ items_id: sub.product_id, amount: 600, tax: 0 }],
+      },
+    ]) {
+      paid.lineItems = lines
+      await assert.rejects(
+        refreshDodoCheckout(
+          f.db,
+          root,
+          1,
+          1,
+          checkout.id,
+          f.transport,
+          f.now + 1000,
+        ),
+        { code: 'payment_amount_mismatch' },
+      )
+    }
+    delete paid.lineItems
+    await f.db
+      .prepare(
+        'UPDATE platform_payment_checkouts SET coupon_enabled=0 WHERE id=?',
+      )
+      .bind(checkout.id)
+      .run()
+    await assert.rejects(
+      refreshDodoCheckout(
+        f.db,
+        root,
+        1,
+        1,
+        checkout.id,
+        f.transport,
+        f.now + 1000,
+      ),
+      { code: 'payment_amount_mismatch' },
+    )
+    assert.equal(
+      (
+        await f.db
+          .prepare(
+            'SELECT plan_id FROM platform_workspace_plans WHERE workspace_id=1',
+          )
+          .first<any>()
+      ).plan_id,
+      'free',
+    )
+  } finally {
+    await f.mf.dispose()
+  }
+})
+
+test('coupons combine with catalog discounts, renew at the billed amount, then expire back to the base contract', async () => {
+  const f = await fixture()
+  try {
+    await f.db
+      .prepare(
+        "UPDATE platform_plans SET monthly_discount_bps=1000,revision=revision+1 WHERE id='pro'",
+      )
+      .run()
+    await syncDodoProducts(f.db, root, f.transport)
+    const checkout = await createPaymentCheckout(
+      f.db,
+      root,
+      1,
+      input(),
+      origin,
+      f.transport,
+      f.now,
+    )
+    const { sub, payment } = await f.paid(checkout),
+      paid = payment as any
+    paid.discounts = [coupon(paid, sub.product_id)]
+    paid.total_amount = 864
+    await refreshDodoCheckout(
+      f.db,
+      root,
+      1,
+      1,
+      checkout.id,
+      f.transport,
+      f.now + 1000,
+    )
+    const initial = await f.db
+      .prepare('SELECT * FROM platform_workspace_plans WHERE workspace_id=1')
+      .first<any>()
+    const { reconcileDodoSubscription } =
+      await import('../packages/platform/src/dodo-payments.ts')
+    for (const [index, total, discounted] of [
+      [1, 0, true],
+      [2, 1080, false],
+    ] as const) {
+      const start = f.now + index * 28 * 86400000,
+        end = start + 28 * 86400000
+      sub.previous_billing_date = new Date(start).toISOString()
+      sub.next_billing_date = new Date(end).toISOString()
+      const renewal = {
+        ...paid,
+        payment_id: 'pay_coupon_cycle_' + index,
+        charge_type: 'renewal',
+        total_amount: total,
+        discounts: discounted
+          ? [coupon(paid, sub.product_id, 'percentage', 10000)]
+          : [],
+        created_at: new Date(start).toISOString(),
+        service_periods: discounted
+          ? []
+          : [
+              {
+                subscription_id: sub.subscription_id,
+                starts_at: sub.previous_billing_date,
+                ends_at: sub.next_billing_date,
+              },
+            ],
+      }
+      f.payments.set(renewal.payment_id, renewal)
+      await reconcileDodoSubscription(
+        f.db,
+        root,
+        'test',
+        sub.subscription_id,
+        renewal.payment_id,
+        f.transport,
+        start + 1000,
+        'dodo_test',
+      )
+      const grant = await f.db
+        .prepare('SELECT * FROM platform_workspace_plans WHERE workspace_id=1')
+        .first<any>()
+      assert.equal(grant.expires_at, end)
+      assert.equal(grant.starts_at, initial.starts_at)
+    }
+  } finally {
+    await f.mf.dispose()
+  }
+})
+test('a zero-dollar coupon is not a trial payment; it activates only at the reserved paid-cycle boundary', async () => {
+  const f = await handoverFixture()
+  try {
+    const { checkout, sub, payment, at } = await authorizeHandover(f)
+    const auth = payment as any
+    auth.discounts = [coupon(auth, sub.product_id, 'percentage', 10000)]
+    auth.charge_type = 'new'
+    await refreshDodoCheckout(
+      f.db,
+      root,
+      1,
+      1,
+      checkout.id,
+      f.transport,
+      f.now + 2000,
+    )
+    assert.equal(
+      (
+        await f.db
+          .prepare(
+            'SELECT source FROM platform_workspace_plans WHERE workspace_id=1',
+          )
+          .first<any>()
+      ).source,
+      'activation',
+    )
+    sub.previous_billing_date = new Date(at).toISOString()
+    sub.next_billing_date = new Date(at + 28 * 86400000).toISOString()
+    const renewal = {
+      ...auth,
+      payment_id: 'pay_free_first_cycle',
+      charge_type: 'renewal',
+      created_at: new Date(at).toISOString(),
+      service_periods: [],
+    }
+    f.payments.set(renewal.payment_id, renewal)
+    assert.equal(
+      (
+        await refreshDodoCheckout(
+          f.db,
+          root,
+          1,
+          1,
+          checkout.id,
+          f.transport,
+          at + 1000,
+        )
+      ).state,
+      'completed',
+    )
+    const grant = await f.db
+      .prepare('SELECT * FROM platform_workspace_plans WHERE workspace_id=1')
+      .first<any>()
+    assert.equal(grant.source, 'payment')
+    assert.equal(grant.starts_at, at)
+    assert.equal(grant.expires_at, at + 28 * 86400000)
+  } finally {
+    await f.mf.dispose()
+  }
+})
+
+test('refunded coupon payments revoke only their linked grant without fetching refund-sensitive invoice details', async () => {
+  const f = await fixture()
+  try {
+    await syncDodoProducts(f.db, root, f.transport)
+    const checkout = await createPaymentCheckout(
+      f.db,
+      root,
+      1,
+      input(),
+      origin,
+      f.transport,
+      f.now,
+    )
+    const { sub, payment } = await f.paid(checkout),
+      paid = payment as any
+    paid.discounts = [coupon(paid, sub.product_id)]
+    paid.total_amount = 960
+    await refreshDodoCheckout(
+      f.db,
+      root,
+      1,
+      1,
+      checkout.id,
+      f.transport,
+      f.now + 1000,
+    )
+    paid.refunds = [{ refund_id: 'ref_coupon', status: 'succeeded' }]
+    const noLines: typeof fetch = async (url, init) => {
+      if (String(url).includes('/line-items'))
+        assert.fail('a refund must not depend on line-item retrieval')
+      return f.transport(url, init)
+    }
+    await refreshDodoCheckout(
+      f.db,
+      root,
+      1,
+      1,
+      checkout.id,
+      noLines,
+      f.now + 2000,
+    )
+    assert.equal(
+      (
+        await f.db
+          .prepare(
+            'SELECT source FROM platform_workspace_plans WHERE workspace_id=1',
+          )
+          .first<any>()
+      ).source,
+      'expired_default',
+    )
+  } finally {
+    await f.mf.dispose()
+  }
+})
+
+test('a late trial authorization with a 100% coupon cannot become a paid cycle after the old entitlement expires', async () => {
+  const f = await handoverFixture()
+  try {
+    await f.db
+      .prepare(
+        'UPDATE platform_workspace_plans SET expires_at=? WHERE workspace_id=1',
+      )
+      .bind(f.now + 6 * 3600000)
+      .run()
+    const checkout = await createPaymentCheckout(
+      f.db,
+      root,
+      1,
+      { ...input(), startMode: 'after_entitlement' },
+      origin,
+      f.transport,
+      f.now,
+    )
+    const { sub, payment, session } = await f.paid(checkout),
+      auth = payment as any
+    const authorizedAt = f.now + 12 * 3600000,
+      startsPaidAt = authorizedAt + 86400000
+    sub.trial_period_days = session.trial_period_days
+    sub.previous_billing_date = new Date(authorizedAt).toISOString()
+    sub.next_billing_date = new Date(startsPaidAt).toISOString()
+    auth.total_amount = 0
+    auth.charge_type = 'new'
+    auth.service_periods = []
+    auth.created_at = sub.previous_billing_date
+    auth.discounts = [coupon(auth, sub.product_id, 'percentage', 10000)]
+    assert.equal(
+      (
+        await refreshDodoCheckout(
+          f.db,
+          root,
+          1,
+          1,
+          checkout.id,
+          f.transport,
+          authorizedAt + 1000,
+        )
+      ).state,
+      'scheduled',
+    )
+    const ledger = await f.db
+      .prepare(
+        'SELECT activation_state,handover_at FROM platform_payment_subscriptions',
+      )
+      .first<any>()
+    assert.equal(ledger.activation_state, 'authorized')
+    assert.equal(ledger.handover_at, startsPaidAt)
+    assert.equal(
+      (
+        await f.db
+          .prepare(
+            'SELECT source FROM platform_workspace_plans WHERE workspace_id=1',
+          )
+          .first<any>()
+      ).source,
+      'activation',
+    )
+  } finally {
+    await f.mf.dispose()
+  }
+})
+
+for (const providerStatus of ['cancelled', 'expired'] as const) {
+  test(`known discounted ${providerStatus} subscription revokes access without line-item availability`, async () => {
+    const f = await fixture()
+    try {
+      await syncDodoProducts(f.db, root, f.transport)
+      const checkout = await createPaymentCheckout(
+        f.db,
+        root,
+        1,
+        input(),
+        origin,
+        f.transport,
+        f.now,
+      )
+      const { sub, payment } = await f.paid(checkout),
+        paid = payment as any
+      paid.discounts = [coupon(paid, sub.product_id)]
+      paid.total_amount = 960
+      await refreshDodoCheckout(
+        f.db,
+        root,
+        1,
+        1,
+        checkout.id,
+        f.transport,
+        f.now + 1000,
+      )
+      const before = await f.db
+        .prepare(
+          'SELECT * FROM platform_payment_subscriptions WHERE checkout_id=?',
+        )
+        .bind(checkout.id)
+        .first<any>()
+      assert.equal(before.status, 'active')
+      sub.status = providerStatus
+      let lineRequests = 0
+      const unavailable: typeof fetch = async (url, options) => {
+        if (String(url).includes('/line-items')) {
+          lineRequests++
+          return Response.json({ message: 'Unavailable' }, { status: 503 })
+        }
+        return f.transport(url, options)
+      }
+      const { reconcileDodoSubscription } =
+        await import('../packages/platform/src/dodo-payments.ts')
+      await reconcileDodoSubscription(
+        f.db,
+        root,
+        'test',
+        sub.subscription_id,
+        paid.payment_id,
+        unavailable,
+        f.now + 2000,
+        'dodo_test',
+      )
+      const after = await f.db
+        .prepare(
+          'SELECT * FROM platform_payment_subscriptions WHERE checkout_id=?',
+        )
+        .bind(checkout.id)
+        .first<any>()
+      assert.equal(lineRequests, 0)
+      assert.equal(
+        after.status,
+        providerStatus === 'cancelled' ? 'canceled' : providerStatus,
+      )
+      assert.equal(after.period_end, before.period_end)
+      const grant = await f.db
+        .prepare('SELECT * FROM platform_workspace_plans WHERE workspace_id=1')
+        .first<any>()
+      assert.equal(grant.source, 'expired_default')
+      assert.equal(grant.plan_id, 'free')
+    } finally {
+      await f.mf.dispose()
+    }
+  })
+}

@@ -1,3 +1,4 @@
+import { appliedDiscounts, freeDiscountPeriod } from './payment-discounts.ts'
 import {
   closeFailedInitialCheckout,
   markAwaitingInitialCheckout,
@@ -29,6 +30,9 @@ export async function reconcileDeferredAuthorization(
   if (known && known.customer_id !== subscription.customer.customer_id)
     fail('payment_customer_mismatch')
   const snapshot = JSON.parse(checkout.handover_json)
+  const paidBoundary =
+    known?.handover_at ??
+    Math.max(snapshot.expiresAt, checkout.created_at + snapshot.trialDays * DAY)
   // The caller has verified provider metadata and product ownership. Do not leave
   // a new, rejected trial running without a local reservation to manage it.
   async function rejectNewAuthorization(code: string): Promise<never> {
@@ -92,7 +96,11 @@ export async function reconcileDeferredAuthorization(
       .filter(
         (p: any) =>
           p.status === 'succeeded' &&
-          p.total_amount > 0 &&
+          (p.total_amount > 0 ||
+            (p.total_amount === 0 &&
+              p.charge_type === 'renewal' &&
+              !p.is_update_payment_method &&
+              time(p.created_at) >= paidBoundary - 60000)) &&
           (p.subscription_id === subscription.subscription_id ||
             p.subscription_ids?.includes(subscription.subscription_id)),
       )
@@ -102,20 +110,34 @@ export async function reconcileDeferredAuthorization(
       payment = await dodoRequest(() => client.payments.retrieve(paymentId))
     }
   }
-  if (payment?.status === 'succeeded' && payment.total_amount > 0) {
+  const freePeriod =
+    payment?.charge_type === 'renewal'
+      ? freeDiscountPeriod(payment, subscription, checkout, paidBoundary)
+      : null
+  const couponCycle =
+    payment?.total_amount === 0 &&
+    payment.charge_type === 'renewal' &&
+    appliedDiscounts(payment, checkout) &&
+    (payment.service_periods?.some(
+      (p: any) =>
+        p.subscription_id === subscription.subscription_id &&
+        time(p.starts_at) >= paidBoundary - 60000,
+    ) ||
+      freePeriod)
+  if (
+    payment?.status === 'succeeded' &&
+    (payment.total_amount > 0 || couponCycle)
+  ) {
     if (
       known?.status === 'canceled' ||
       checkout.error === 'payment_handover_cancelled'
     )
       fail('payment_handover_cancelled')
-    const period = payment.service_periods?.find(
-      (p: any) => p.subscription_id === subscription.subscription_id,
-    )
-    if (
-      !period ||
-      time(period.starts_at) <
-        (known?.handover_at ?? snapshot.expiresAt) - 60000
-    )
+    const period =
+      payment.service_periods?.find(
+        (p: any) => p.subscription_id === subscription.subscription_id,
+      ) ?? freePeriod
+    if (!period || time(period.starts_at) < paidBoundary - 60000)
       fail('payment_period_invalid')
     return { handled: false, paymentId }
   }
