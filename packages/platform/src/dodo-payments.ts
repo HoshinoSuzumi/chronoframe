@@ -1528,16 +1528,17 @@ export async function closeDodoAccountPayments(
       .run()
   }
   // Locally abandoned sessions can still be paid through an old browser tab.
-  // Only release their erasure fence after expiry AND a fresh no-payment response.
+  // Release only after expiry and a fresh no-payment or verified terminal-failure result.
   const abandoned = await allRows<{
     id: string
     provider_id: string
     provider_key: string
     environment: DodoEnvironment
+    product_id: string
   }>(
     db
       .prepare(
-        "SELECT c.id,c.provider_id,c.provider_key,c.environment FROM platform_payment_checkouts c JOIN platform_workspaces w ON w.id=c.workspace_id WHERE c.provider='dodo' AND (w.owner_user_id=? OR c.user_id=?) AND c.state='expired' AND c.error='payment_checkout_abandoned' AND c.created_at<? ORDER BY c.created_at LIMIT 10",
+        "SELECT c.id,c.provider_id,c.provider_key,c.environment,c.product_id FROM platform_payment_checkouts c JOIN platform_workspaces w ON w.id=c.workspace_id WHERE c.provider='dodo' AND (w.owner_user_id=? OR c.user_id=?) AND c.state='expired' AND c.error='payment_checkout_abandoned' AND c.created_at<? ORDER BY c.created_at LIMIT 3",
       )
       .bind(userId, userId, now - 86400000),
   )
@@ -1553,19 +1554,68 @@ export async function closeDodoAccountPayments(
     const session = await dodoRequest(() =>
       client.checkoutSessions.retrieve(rawDodoId(checkout.provider_id)),
     )
-    if (
-      session.id !== rawDodoId(checkout.provider_id) ||
-      session.payment_id ||
-      session.payment_status
-    )
-      continue
+    if (session.id !== rawDodoId(checkout.provider_id)) continue
+    let resolution = 'payment_checkout_expired'
+    if (session.payment_id) {
+      const payment = await dodoRequest(() =>
+        client.payments.retrieve(session.payment_id!),
+      )
+      if (
+        payment.payment_id !== session.payment_id ||
+        (payment.checkout_session_id &&
+          payment.checkout_session_id !== session.id) ||
+        !['failed', 'cancelled'].includes(payment.status ?? '') ||
+        payment.refunds?.length ||
+        payment.disputes?.length ||
+        payment.is_multi_subscription
+      )
+        continue
+      if (payment.subscription_id) {
+        const subscription = await dodoRequest(() =>
+          client.subscriptions.retrieve(payment.subscription_id!),
+        )
+        if (
+          subscription.subscription_id !== payment.subscription_id ||
+          subscription.metadata?.chronoframe_checkout_id !== checkout.id ||
+          subscription.metadata?.chronoframe_profile_id !==
+            checkout.provider_key ||
+          subscription.metadata?.chronoframe_environment !==
+            checkout.environment ||
+          subscription.product_id !== checkout.product_id
+        )
+          continue
+        if (subscription.status === 'pending') {
+          await dodoRequest(() =>
+            client.subscriptions.update(payment.subscription_id!, {
+              status: 'cancelled',
+            }),
+          )
+          const actual = await dodoRequest(() =>
+            client.subscriptions.retrieve(payment.subscription_id!),
+          )
+          if (actual.status !== 'cancelled') continue
+        } else if (
+          !['cancelled', 'expired', 'failed'].includes(subscription.status)
+        )
+          continue
+      } else if (payment.subscription_ids?.length) continue
+      resolution = 'payment_not_completed'
+    } else if (session.payment_status) continue
     await db
       .prepare(
-        `UPDATE platform_payment_checkouts SET error='payment_checkout_expired',updated_at=? WHERE id=? AND state='expired' AND error='payment_checkout_abandoned' AND NOT EXISTS(SELECT 1 FROM platform_payment_subscriptions WHERE checkout_id=platform_payment_checkouts.id) AND NOT EXISTS(SELECT 1 FROM platform_payment_locks WHERE workspace_id=platform_payment_checkouts.workspace_id AND expires_at>?) AND ${activeFence}`,
+        `UPDATE platform_payment_checkouts SET error=?,updated_at=? WHERE id=? AND state='expired' AND error='payment_checkout_abandoned' AND NOT EXISTS(SELECT 1 FROM platform_payment_subscriptions WHERE checkout_id=platform_payment_checkouts.id) AND NOT EXISTS(SELECT 1 FROM platform_payment_locks WHERE workspace_id=platform_payment_checkouts.workspace_id AND expires_at>?) AND ${activeFence}`,
       )
-      .bind(now, checkout.id, now, checkout.provider_key, revision)
+      .bind(resolution, now, checkout.id, now, checkout.provider_key, revision)
       .run()
   }
+  // A provider-less creation timeout is not proof that no billing exists. Release
+  // it only when authenticated reconciliation has established a terminal ledger.
+  await db
+    .prepare(
+      "UPDATE platform_payment_checkouts SET error='payment_not_completed',updated_at=? WHERE provider='dodo' AND state='expired' AND error='payment_confirmation_unresolved' AND (user_id=? OR workspace_id IN(SELECT id FROM platform_workspaces WHERE owner_user_id=?)) AND EXISTS(SELECT 1 FROM platform_payment_subscriptions s WHERE s.checkout_id=platform_payment_checkouts.id AND s.provider_key IS platform_payment_checkouts.provider_key AND s.status IN('canceled','expired','failed'))",
+    )
+    .bind(now, userId, userId)
+    .run()
   return !(await db
     .prepare(
       "SELECT c.id FROM platform_payment_checkouts c JOIN platform_workspaces w ON w.id=c.workspace_id WHERE c.provider='dodo' AND (w.owner_user_id=? OR c.user_id=?) AND (c.state IN('creating','open','uncertain') OR (c.state='expired' AND c.error IN('payment_confirmation_unresolved','payment_checkout_abandoned'))) LIMIT 1",

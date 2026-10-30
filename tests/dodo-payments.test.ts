@@ -4166,6 +4166,10 @@ test('account erasure retains payable abandoned sessions until expiry is verifie
     const session = f.sessions.get(checkout.url.split('/').pop()!)!
     const expiredAt = f.now + 86400000 + 2000
     session.payment_id = 'pay_late_unresolved'
+    f.payments.set(session.payment_id, {
+      payment_id: session.payment_id,
+      status: 'processing',
+    })
     assert.equal(
       await closeDodoAccountPayments(f.db, root, 1, f.transport, expiredAt),
       false,
@@ -4194,6 +4198,174 @@ test('account erasure retains payable abandoned sessions until expiry is verifie
       .first<{ error: string; provider_id: string }>()
     assert.equal(row.error, 'payment_checkout_expired')
     assert.ok(row.provider_id)
+  } finally {
+    await f.mf.dispose()
+  }
+})
+
+test('late failed abandoned payments cancel only their pending subscription before releasing erasure', async () => {
+  const f = await fixture()
+  try {
+    await syncDodoProducts(f.db, root, f.transport)
+    const checkout = await createPaymentCheckout(
+      f.db,
+      root,
+      1,
+      input(),
+      origin,
+      f.transport,
+      f.now,
+    )
+    const { cancelDodoCheckout, closeDodoAccountPayments } =
+      await import('../packages/platform/src/dodo-payments.ts')
+    await cancelDodoCheckout(
+      f.db,
+      root,
+      1,
+      1,
+      checkout.id,
+      f.transport,
+      f.now + 1000,
+    )
+    const { sub, payment } = await f.paid(checkout)
+    const expiredAt = f.now + 86400000 + 1000
+    sub.status = 'pending'
+    payment.status = 'processing'
+    assert.equal(
+      await closeDodoAccountPayments(f.db, root, 1, f.transport, expiredAt),
+      false,
+    )
+    payment.status = 'succeeded'
+    assert.equal(
+      await closeDodoAccountPayments(f.db, root, 1, f.transport, expiredAt),
+      false,
+    )
+    payment.status = 'failed'
+    const unconfirmed: typeof fetch = async (url, init) =>
+      init?.method === 'PATCH' ? Response.json(sub) : f.transport(url, init)
+    assert.equal(
+      await closeDodoAccountPayments(f.db, root, 1, unconfirmed, expiredAt),
+      false,
+    )
+    assert.equal(
+      await closeDodoAccountPayments(f.db, root, 1, f.transport, expiredAt),
+      true,
+    )
+    assert.equal(sub.status, 'cancelled')
+    assert.equal(
+      (
+        await f.db
+          .prepare('SELECT error FROM platform_payment_checkouts WHERE id=?')
+          .bind(checkout.id)
+          .first<{ error: string }>()
+      ).error,
+      'payment_not_completed',
+    )
+  } finally {
+    await f.mf.dispose()
+  }
+})
+
+test('provider-less timeouts release erasure only after a verified terminal subscription ledger', async () => {
+  const f = await fixture()
+  try {
+    await syncDodoProducts(f.db, root, f.transport)
+    const checkout = await createPaymentCheckout(
+      f.db,
+      root,
+      1,
+      input(),
+      origin,
+      f.transport,
+      f.now,
+    )
+    const { sub } = await f.paid(checkout)
+    await refreshDodoCheckout(
+      f.db,
+      root,
+      1,
+      1,
+      checkout.id,
+      f.transport,
+      f.now + 1000,
+    )
+    await f.db
+      .prepare(
+        "UPDATE platform_payment_checkouts SET state='expired',provider_id=NULL,error='payment_confirmation_unresolved' WHERE id=?",
+      )
+      .bind(checkout.id)
+      .run()
+    const { closeDodoAccountPayments } =
+      await import('../packages/platform/src/dodo-payments.ts')
+    assert.equal(
+      await closeDodoAccountPayments(f.db, root, 1, f.transport, f.now + 2000),
+      true,
+    )
+    assert.equal(sub.status, 'cancelled')
+    assert.equal(
+      (
+        await f.db
+          .prepare('SELECT error FROM platform_payment_checkouts WHERE id=?')
+          .bind(checkout.id)
+          .first<{ error: string }>()
+      ).error,
+      'payment_not_completed',
+    )
+  } finally {
+    await f.mf.dispose()
+  }
+})
+
+test('a cancelled late payment without a subscription safely releases abandoned erasure', async () => {
+  const f = await fixture()
+  try {
+    await syncDodoProducts(f.db, root, f.transport)
+    const checkout = await createPaymentCheckout(
+      f.db,
+      root,
+      1,
+      input(),
+      origin,
+      f.transport,
+      f.now,
+    )
+    const { cancelDodoCheckout, closeDodoAccountPayments } =
+      await import('../packages/platform/src/dodo-payments.ts')
+    await cancelDodoCheckout(
+      f.db,
+      root,
+      1,
+      1,
+      checkout.id,
+      f.transport,
+      f.now + 1000,
+    )
+    const session = f.sessions.get(checkout.url.split('/').pop()!)!
+    session.payment_id = 'pay_cancelled_without_subscription'
+    f.payments.set(session.payment_id, {
+      payment_id: session.payment_id,
+      checkout_session_id: session.id,
+      status: 'cancelled',
+    })
+    assert.equal(
+      await closeDodoAccountPayments(
+        f.db,
+        root,
+        1,
+        f.transport,
+        f.now + 86400000 + 1000,
+      ),
+      true,
+    )
+    assert.equal(
+      (
+        await f.db
+          .prepare('SELECT error FROM platform_payment_checkouts WHERE id=?')
+          .bind(checkout.id)
+          .first<{ error: string }>()
+      ).error,
+      'payment_not_completed',
+    )
   } finally {
     await f.mf.dispose()
   }

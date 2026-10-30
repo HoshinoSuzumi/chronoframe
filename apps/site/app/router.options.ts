@@ -1,4 +1,5 @@
 import type { RouterConfig } from 'nuxt/schema'
+import { useNuxtApp, useRouter } from '#app'
 
 export default <RouterConfig>{
   scrollBehavior(to, from, savedPosition) {
@@ -30,7 +31,23 @@ export default <RouterConfig>{
       return false
     }
 
-    if (to.hash) return { el: to.hash }
+    if (to.hash) {
+      if (to.path === from.path || !from.matched?.length) return { el: to.hash }
+      const app = useNuxtApp(),
+        router = useRouter()
+      return new Promise((resolve) => {
+        app.hooks.hookOnce('page:loading:end', async () => {
+          await app['~transitionPromise']
+          requestAnimationFrame(() =>
+            resolve(
+              router.currentRoute.value.fullPath === to.fullPath
+                ? { el: to.hash }
+                : false,
+            ),
+          )
+        })
+      })
+    }
     return { top: 0 }
   },
 }
