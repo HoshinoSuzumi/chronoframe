@@ -768,7 +768,7 @@
       "cancelCheckout": "Cancel this payment",
       "restartCheckout": "Start a new checkout",
       "confirmRestartCheckout": "Cancel and start again",
-      "cancelCheckoutHelp": "Cancel this unpaid checkout after verifying its current status. Existing entitlements and transaction history are preserved. Payments already processing or completed cannot be canceled here. Starting again creates a new checkout link.",
+      "cancelCheckoutHelp": "Cancel this unpaid checkout after verifying its current status. Existing entitlements and transaction history are preserved. A checkout still collecting details is only abandoned locally: its old link may remain usable until it expires. Do not pay through the old link. Payments already processing or completed cannot be canceled here. Starting again creates a new checkout link.",
       "checkoutCannotCancel": "This payment cannot currently be canceled. It may have started processing or completed. Check the updated status before trying again.",
       "checkoutCancelFailed": "Could not confirm cancellation. No new checkout was created. Please retry or contact support.",
       "cancelCheckoutSummary": "Verify and cancel this unpaid checkout."

@@ -1342,6 +1342,25 @@ export async function refreshDodoCheckout(
         key,
         cancelInitial,
       )
+  } else if (cancelInitial && session.payment_status == null) {
+    // Dodo has no session revocation endpoint. Abandon locally only after a fresh
+    // details-stage response; retain the provider identity for late payment events.
+    const closed = await db
+      .prepare(
+        `UPDATE platform_payment_checkouts SET state='expired',error='payment_checkout_abandoned',checkout_url=NULL,updated_at=? WHERE id=? AND state IN('open','uncertain') AND NOT EXISTS(SELECT 1 FROM platform_payment_subscriptions WHERE checkout_id=platform_payment_checkouts.id) AND NOT EXISTS(SELECT 1 FROM platform_payment_locks WHERE workspace_id=platform_payment_checkouts.workspace_id AND expires_at>?) AND ${activeFence}`,
+      )
+      .bind(now, row.id, now, key, revision)
+      .run()
+    if (!closed.meta.changes) {
+      // The handover reconciliation above may already have confirmed cancellation.
+      const canceled = await db
+        .prepare(
+          "SELECT 1 FROM platform_payment_subscriptions WHERE checkout_id=? AND status IN('canceled','expired','failed')",
+        )
+        .bind(row.id)
+        .first()
+      if (!canceled) fail('payment_cancellation_unavailable')
+    }
   } else if (now - row.created_at > 86400000)
     await db
       .prepare(
