@@ -9,6 +9,11 @@ import type {
 import { useMapSetupNotice } from '#gallery/composables/useMapSetupNotice'
 import { isMapServiceConfigured } from '@chronoframe/gallery/shared/utils/map-service'
 
+import {
+  DEFAULT_MAPBOX_STYLE,
+  mapLightPreset,
+} from '@chronoframe/gallery/shared/utils/map-appearance'
+
 import ChronoFrameLightStyle from '#gallery/assets/mapStyles/chronoframe_light.json'
 import ChronoFrameDarkStyle from '#gallery/assets/mapStyles/chronoframe_dark.json'
 
@@ -22,6 +27,7 @@ const props = withDefaults(
     attributionControl?: false | AttributionControlOptions
     language?: string
     setupNotice?: boolean
+    dateTaken?: string | null
   }>(),
   {
     class: undefined,
@@ -32,6 +38,7 @@ const props = withDefaults(
     attributionControl: false,
     language: undefined,
     setupNotice: false,
+    dateTaken: undefined,
   },
 )
 
@@ -41,6 +48,33 @@ const emit = defineEmits<{
 }>()
 
 const colorMode = useColorMode()
+const lightPreset = computed(() =>
+  mapLightPreset(props.dateTaken, colorMode.value),
+)
+const mapboxInstance = shallowRef<MapboxMap | null>(null)
+function syncMapboxAppearance() {
+  const map = mapboxInstance.value
+  if (!map || !map.isStyleLoaded()) return
+  // Custom styles without the Standard basemap do not expose its lighting controls.
+  if (
+    mapStyle.value === DEFAULT_MAPBOX_STYLE ||
+    map.getStyle().imports?.some((fragment) => fragment.id === 'basemap')
+  ) {
+    map.setConfigProperty('basemap', 'lightPreset', lightPreset.value)
+  }
+}
+function detachMapboxAppearance() {
+  mapboxInstance.value?.off('style.load', syncMapboxAppearance)
+  mapboxInstance.value = null
+}
+function onMapboxLoad(map: MapboxMap) {
+  detachMapboxAppearance()
+  mapboxInstance.value = map
+  map.on('style.load', syncMapboxAppearance)
+  syncMapboxAppearance()
+  emit('load', map)
+}
+watch(lightPreset, syncMapboxAppearance)
 
 const mapConfig = computed(() => {
   const config = getSetting('map')
@@ -48,6 +82,9 @@ const mapConfig = computed(() => {
 })
 
 const provider = computed(() => mapConfig.value.provider || 'maplibre')
+watch(provider, (value) => {
+  if (value !== 'mapbox') detachMapboxAppearance()
+})
 const isConfigured = computed(() =>
   isMapServiceConfigured(mapConfig.value as Record<string, unknown>),
 )
@@ -69,13 +106,14 @@ watch([isConfigured, () => props.setupNotice], () => {
   if (import.meta.client) syncMapSetupNotice()
 })
 onBeforeUnmount(() => {
+  detachMapboxAppearance()
   if (!props.setupNotice) return
   hideMapSetupNotice()
 })
 
 const mapStyle = computed(() => {
   if (provider.value === 'mapbox') {
-    return mapConfig.value['mapbox.style'] || `mapbox://styles/mapbox/standard`
+    return mapConfig.value['mapbox.style'] || DEFAULT_MAPBOX_STYLE
   } else {
     const styleConfig =
       colorMode.value === 'dark' ? ChronoFrameDarkStyle : ChronoFrameLightStyle
@@ -134,14 +172,17 @@ const mapStyle = computed(() => {
           interactive: interactive,
           attributionControl: attributionControl,
           language: language,
-          config: {
-            basemap: {
-              lightPreset: $colorMode.value === 'dark' ? 'night' : 'day',
-              colorThemes: 'faded',
-            },
-          },
+          config:
+            mapStyle === DEFAULT_MAPBOX_STYLE
+              ? {
+                  basemap: {
+                    lightPreset: lightPreset,
+                    colorThemes: 'faded',
+                  },
+                }
+              : undefined,
         }"
-        @load="emit('load', $event as MapboxMap)"
+        @load="onMapboxLoad($event as MapboxMap)"
         @zoom="emit('zoom')"
       >
         <slot />

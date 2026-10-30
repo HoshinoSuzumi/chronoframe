@@ -1,9 +1,6 @@
 <script lang="ts" setup>
 import { motion } from 'motion-v'
-import {
-  isMapboxMap,
-  type MapInstance,
-} from '@chronoframe/gallery/shared/types/map'
+import type { MapInstance } from '@chronoframe/gallery/shared/types/map'
 
 const props = defineProps<{
   photo: Photo
@@ -13,24 +10,29 @@ const props = defineProps<{
 
 const MAPID = 'minimap-info-panel'
 
-const config = useRuntimeConfig()
-
 const loaded = ref(false)
 const isAnimating = ref(false)
-const mapInstance = ref<MapInstance | null>(null)
+const mapInstance = shallowRef<MapInstance | null>(null)
+let readyTimer: ReturnType<typeof setTimeout> | null = null
 let animationTimer: ReturnType<typeof setTimeout> | null = null
 
 const onMapLoad = (map: MapInstance) => {
   mapInstance.value = map
   map.setCenter([props.longitude, props.latitude])
-  setTimeout(() => {
+  if (readyTimer) clearTimeout(readyTimer)
+  readyTimer = setTimeout(() => {
     loaded.value = true
+    readyTimer = null
   }, 100)
 }
 
 const moveMapTo = (newLat: number, newLng: number) => {
   // 动画持续时间
   const DURATION = 1000
+  if (mapInstance.value && !loaded.value) {
+    mapInstance.value.setCenter([newLng, newLat])
+    return
+  }
   if (mapInstance.value && loaded.value) {
     // 清除之前的计时器
     if (animationTimer) {
@@ -56,25 +58,10 @@ const moveMapTo = (newLat: number, newLng: number) => {
 
 watch([() => props.latitude, () => props.longitude], ([newLat, newLng]) => {
   moveMapTo(newLat, newLng)
-  const map = mapInstance.value
-  // Only available with Mapbox
-  if (map && isMapboxMap(map as any, config.public.map.provider)) {
-    // 根据拍摄时间决定四种 lightPreset: dawn / day / dusk / night
-    const photoDate = new Date(props.photo.dateTaken || 0)
-    const hours = photoDate.getHours()
-    if (hours >= 5 && hours < 7) {
-      ;(map as any).setConfigProperty('basemap', 'lightPreset', 'dawn')
-    } else if (hours >= 7 && hours < 17) {
-      ;(map as any).setConfigProperty('basemap', 'lightPreset', 'day')
-    } else if (hours >= 17 && hours < 21) {
-      ;(map as any).setConfigProperty('basemap', 'lightPreset', 'dusk')
-    } else {
-      ;(map as any).setConfigProperty('basemap', 'lightPreset', 'night')
-    }
-  }
 })
 
 onUnmounted(() => {
+  if (readyTimer) clearTimeout(readyTimer)
   if (animationTimer) {
     clearTimeout(animationTimer)
     animationTimer = null
@@ -90,6 +77,7 @@ onUnmounted(() => {
       class="w-full h-full relative overflow-hidden"
       :map-id="MAPID"
       :zoom="12"
+      :date-taken="photo.dateTaken"
       :interactive="false"
       :language="$i18n.locale"
       @load="onMapLoad"
