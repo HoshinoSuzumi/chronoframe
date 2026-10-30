@@ -8,6 +8,7 @@ import { ref, toValue, watch, nextTick, effectScope } from 'vue'
 function fixture(
   fetch: (...args: any[]) => Promise<any>,
   refresh = async () => {},
+  sources: { workspaceId?: () => number; enabled?: () => boolean } = {},
 ) {
   const exports: Record<string, any> = {}
   const timers: (() => void)[] = []
@@ -47,7 +48,11 @@ function fixture(
   )
   const scope = effectScope()
   const returned = scope.run(() => {
-    const returned = exports.useDodoCheckoutReturn(1, true, refresh)
+    const returned = exports.useDodoCheckoutReturn(
+      sources.workspaceId ?? 1,
+      sources.enabled ?? true,
+      refresh,
+    )
     mounted.forEach((fn) => fn())
     return returned
   })!
@@ -147,6 +152,70 @@ test('an authoritative inactive subscription exits processing after cancellation
     await flush()
     assert.equal(f.returned.state.value, 'inactive')
     assert.equal(f.timers.length, 0)
+  } finally {
+    f.dispose()
+  }
+})
+
+test('replacing refreshed billing objects cannot restart an already completed checkout', async () => {
+  const billing = ref({ selected: 1 })
+  const payments = ref({ enabled: true })
+  let confirmations = 0
+  const f = fixture(
+    async () => {
+      confirmations++
+      // Bound the old regression: a second request remains pending instead of looping forever.
+      if (confirmations > 1) return new Promise(() => {})
+      return { state: 'completed' }
+    },
+    async () => {
+      billing.value = { selected: 1 }
+      payments.value = { enabled: true }
+    },
+    {
+      workspaceId: () => billing.value.selected,
+      enabled: () => payments.value.enabled,
+    },
+  )
+  try {
+    await flush()
+    assert.equal(confirmations, 1)
+    assert.equal(f.returned.state.value, 'completed')
+    billing.value = { selected: 1 }
+    payments.value = { enabled: true }
+    await flush()
+    assert.equal(confirmations, 1)
+    assert.equal(f.returned.state.value, 'completed')
+    assert.equal(f.timers.length, 0)
+  } finally {
+    f.dispose()
+  }
+})
+
+test('actual workspace and payment availability changes still restart the return check', async () => {
+  const workspace = ref(1)
+  const enabled = ref(true)
+  const checked: number[] = []
+  const f = fixture(
+    async (_path, options) => {
+      checked.push(options.body.workspaceId)
+      return { state: 'completed' }
+    },
+    async () => {},
+    { workspaceId: () => workspace.value, enabled: () => enabled.value },
+  )
+  try {
+    await flush()
+    workspace.value = 2
+    await flush()
+    assert.deepEqual(checked, [1, 2])
+    enabled.value = false
+    await flush()
+    assert.equal(f.returned.state.value, 'idle')
+    enabled.value = true
+    await flush()
+    assert.deepEqual(checked, [1, 2, 2])
+    assert.equal(f.returned.state.value, 'completed')
   } finally {
     f.dispose()
   }
