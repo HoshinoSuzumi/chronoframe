@@ -46,11 +46,13 @@ try {
   let ready = false
   for (let attempt = 0; attempt < 120; attempt++) {
     if (worker.exitCode !== null) throw new Error(`Worker exited: ${output}`)
-    const response = await fetch(base + '/api/health', {
+    const health = await fetch(base + '/api/health', {
       signal: AbortSignal.timeout(1000),
-    }).catch(() => null)
-    if (response?.ok) {
-      assert.deepEqual(await response.json(), {
+    })
+      .then(async (response) => (response.ok ? await response.json() : null))
+      .catch(() => null)
+    if (health) {
+      assert.deepEqual(health, {
         service: `chronoframe-${entry}`,
         status: 'bootstrap',
       })

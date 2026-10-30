@@ -8,7 +8,11 @@ import { ref, toValue, watch, nextTick, effectScope } from 'vue'
 function fixture(
   fetch: (...args: any[]) => Promise<any>,
   refresh = async () => {},
-  sources: { workspaceId?: () => number; enabled?: () => boolean } = {},
+  sources: {
+    workspaceId?: () => number
+    enabled?: () => boolean
+    now?: () => number
+  } = {},
 ) {
   const exports: Record<string, any> = {}
   const timers: (() => void)[] = []
@@ -29,6 +33,7 @@ function fixture(
     ).outputText,
     {
       exports,
+      Date: { now: sources.now ?? Date.now },
       ref,
       toValue,
       watch,
@@ -317,3 +322,38 @@ test('the overall return deadline also covers a hung entitlement refresh', async
     f.dispose()
   }
 })
+
+for (const stage of ['fetch', 'refresh', 'error'])
+  test(`elapsed return deadline wins when a delayed timer has not run during ${stage}`, async () => {
+    let now = 1000,
+      release!: () => void,
+      refreshes = 0
+    const wait = new Promise<void>((r) => {
+      release = r
+    })
+    const f = fixture(
+      async () => {
+        if (stage !== 'refresh') await wait
+        if (stage === 'error') throw { statusCode: 422 }
+        return { state: 'completed' }
+      },
+      async () => {
+        refreshes++
+        if (stage === 'refresh') await wait
+      },
+      { now: () => now },
+    )
+    try {
+      await flush()
+      assert.equal(f.watchdogs.length, 1)
+      now += 60001
+      release()
+      await flush()
+      assert.equal(f.returned.state.value, 'pending')
+      assert.equal(refreshes, stage === 'refresh' ? 1 : 0)
+      assert.equal(f.watchdogs.length, 0)
+      assert.equal(f.timers.length, 0)
+    } finally {
+      f.dispose()
+    }
+  })

@@ -3063,3 +3063,85 @@ test('unconfirmed provider cancellation and mismatched failed payments never rel
     await f.mf.dispose()
   }
 })
+
+test('lost checkout update fences reject closure and a later reconciliation can converge', async () => {
+  const f = await fixture()
+  try {
+    await syncDodoProducts(f.db, root, f.transport)
+    const checkout = await createPaymentCheckout(
+      f.db,
+      root,
+      1,
+      input(),
+      origin,
+      f.transport,
+      f.now,
+    )
+    const { payment, sub } = await f.paid(checkout)
+    payment.status = 'failed'
+    sub.status = 'pending'
+    const row = await f.db
+      .prepare('SELECT * FROM platform_payment_checkouts WHERE id=?')
+      .bind(checkout.id)
+      .first<any>()
+    const client = {
+      subscriptions: {
+        update: async () => {
+          sub.status = 'cancelled'
+        },
+        retrieve: async () => sub,
+      },
+    }
+    const { closeFailedInitialCheckout } =
+      await import('../packages/platform/src/unpaid-checkout.ts')
+    await assert.rejects(
+      closeFailedInitialCheckout(
+        f.db,
+        client,
+        row,
+        sub,
+        payment,
+        null,
+        f.now,
+        '0=1',
+        [],
+      ),
+      { code: 'payment_entitlement_changed' },
+    )
+    assert.equal(sub.status, 'cancelled')
+    assert.equal(
+      (
+        await f.db
+          .prepare('SELECT state FROM platform_payment_checkouts WHERE id=?')
+          .bind(checkout.id)
+          .first<any>()
+      ).state,
+      'open',
+    )
+    assert.equal(
+      (
+        await refreshDodoCheckout(
+          f.db,
+          root,
+          1,
+          1,
+          checkout.id,
+          f.transport,
+          f.now + 1000,
+        )
+      ).state,
+      'inactive',
+    )
+    assert.equal((await paymentStatus(f.db, 1, 1)).pending, null)
+    assert.equal(
+      (
+        await f.db
+          .prepare('SELECT COUNT(*) AS n FROM platform_payment_subscriptions')
+          .first<any>()
+      ).n,
+      0,
+    )
+  } finally {
+    await f.mf.dispose()
+  }
+})

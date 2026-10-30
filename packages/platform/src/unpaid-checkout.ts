@@ -39,11 +39,13 @@ export async function closeFailedInitialCheckout(
   )) as any
   if (actual.status !== 'cancelled')
     throw new SubscriptionError(409, 'payment_confirmation_pending')
-  await db
+  const result = await db
     .prepare(
       `UPDATE platform_payment_checkouts SET state='expired',error='payment_not_completed',updated_at=? WHERE id=? AND state IN('creating','open','uncertain') AND NOT EXISTS(SELECT 1 FROM platform_payment_subscriptions WHERE checkout_id=platform_payment_checkouts.id) AND ${fence}`,
     )
     .bind(now, checkout.id, ...fenceValues)
     .run()
+  if (!result.meta.changes)
+    throw new SubscriptionError(409, 'payment_entitlement_changed')
   return true
 }

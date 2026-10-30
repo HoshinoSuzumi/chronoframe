@@ -33,16 +33,27 @@ export function useDodoCheckoutReturn(
       return
     }
     state.value = 'checking'
-    // Bound the whole return flow, including slow refreshes and transient workspace resets.
-    deadlineTimer = setTimeout(() => {
-      if (!alive || current !== generation) return
+    function expire() {
       generation++
       deadline = 0
       if (timer) clearTimeout(timer)
+      if (deadlineTimer) clearTimeout(deadlineTimer)
       state.value = 'pending'
+    }
+    function isCurrent() {
+      if (!alive || current !== generation) return false
+      if (Date.now() >= deadline) {
+        expire()
+        return false
+      }
+      return true
+    }
+    // Timers may be throttled in background tabs, so also check time after awaits.
+    deadlineTimer = setTimeout(() => {
+      if (alive && current === generation) expire()
     }, deadline - Date.now())
     async function poll(attempt: number): Promise<void> {
-      if (!alive || current !== generation) return
+      if (!isCurrent()) return
       try {
         const result = await $fetch<{ state: string }>(
           '/api/billing/payments',
@@ -52,9 +63,9 @@ export function useDodoCheckoutReturn(
             body: { action: 'refresh', workspaceId: id, checkoutId: checkout },
           },
         )
-        if (!alive || current !== generation) return
+        if (!isCurrent()) return
         await refresh()
-        if (!alive || current !== generation) return
+        if (!isCurrent()) return
         if (
           ['completed', 'scheduled', 'expired', 'inactive'].includes(
             result.state,
@@ -65,7 +76,7 @@ export function useDodoCheckoutReturn(
           return
         }
       } catch (error: any) {
-        if (!alive || current !== generation) return
+        if (!isCurrent()) return
         if (
           [400, 401, 403, 404, 410, 422, 503].includes(
             error?.statusCode ?? error?.status,
