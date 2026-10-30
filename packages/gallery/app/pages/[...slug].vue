@@ -15,14 +15,22 @@ const { photos } = usePhotos()
 const slug = computed(() => (route.params.slug as string[]) || [])
 const photoId = computed(() => slug.value[0] || null)
 
+const { t } = useI18n()
+// Register one reactive head entry so unmount disposes it and every close restores
+// the layout title; watcher-created entries can outlive their photo route.
+useHead(() => ({
+  title: photoId.value
+    ? (scopedPhotos.value ?? photos.value).find(
+        (photo) => photo.id === photoId.value,
+      )?.title || t('title.fallback.photo')
+    : '',
+}))
+
 watch(
   [photoId, photos],
   ([currentPhotoId, globalPhotos]) => {
     if (!currentPhotoId) {
       closeViewer()
-      useHead({
-        title: '',
-      })
       return
     }
 
@@ -40,10 +48,6 @@ watch(
       (photo) => photo.id === currentPhotoId,
     )
     if (foundIndex === -1) return
-
-    useHead({
-      title: activePhotos[foundIndex]?.title || $t('title.fallback.photo'),
-    })
 
     if (!isViewerOpen.value) {
       // Direct access to a photo detail page: don't set a returnRoute (pass null)

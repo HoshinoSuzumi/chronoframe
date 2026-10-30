@@ -1,3 +1,4 @@
+import { siteMaps } from '../../../../../../../packages/platform/src/maps'
 import {
   PUBLIC_GALLERY_DEFAULTS,
   parseGalleryPresentation,
@@ -38,6 +39,9 @@ export default definePlatformHandler(async (event) => {
     )
     data.app!['appearance.homeHeaderLayout'] = presentation.homeHeaderLayout
     data.app!.socialLinks = presentation.socialLinks
+  }
+  data.map = {
+    ...(await siteMaps(platformDatabase(event), context.siteId)).effective,
   }
   return { timestamp: Date.now(), data }
 })

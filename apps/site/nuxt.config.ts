@@ -6,7 +6,12 @@ export default defineNuxtConfig({
   modules: [...sharedUi.modules, '@nuxt/fonts'],
   fonts: { families: galleryFontFamilies },
   devServer: { port: 3002 },
-  app: { head: { htmlAttrs: { lang: 'en' } } },
+  app: {
+    head: {
+      htmlAttrs: { lang: 'en' },
+      link: [{ rel: 'icon', type: 'image/x-icon', href: '/favicon.ico' }],
+    },
+  },
   nitro: {
     ...sharedUi.nitro,
     cloudflare: {

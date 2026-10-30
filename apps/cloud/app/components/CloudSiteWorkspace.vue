@@ -3,12 +3,20 @@ import { PUBLIC_GALLERY_DEFAULTS } from '@chronoframe/contracts/gallery-settings
 import type { SettingValue } from '@chronoframe/contracts/settings'
 const props = defineProps<{ siteId: number; role?: string }>()
 const settings = useSettingsStore()
+const context = useEntryContext()
+const scope = context.value?.scope
 settings.data = structuredClone(PUBLIC_GALLERY_DEFAULTS) as Record<
   string,
   Record<string, SettingValue>
 >
 settings.data.app!.title = useEntryContext().value?.name ?? 'ChronoFrame'
-settings.isInitialized = true
+const { data: maps } = await useFetch(`/api/sites/${props.siteId}/map`, {
+  key: `site-maps-${props.siteId}`,
+})
+if (context.value?.scope === scope) {
+  if (maps.value) settings.data.map = { ...maps.value.effective }
+  settings.isInitialized = true
+}
 const media = provideCloudSiteMedia(props)
 const { photos, loading, message, failed, reload, loadError, refreshMedia } =
   media

@@ -6,6 +6,7 @@ const componentLocale = computed(() =>
 )
 useHead(() => ({
   htmlAttrs: { lang: locale.value === 'zh-Hans' ? 'zh-CN' : 'en' },
+  link: [{ rel: 'icon', type: 'image/x-icon', href: '/favicon.ico' }],
   bodyAttrs: { class: 'cf-cloud-body' },
 }))
 </script>
