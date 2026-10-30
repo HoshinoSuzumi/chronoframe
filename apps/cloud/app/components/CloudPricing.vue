@@ -329,11 +329,7 @@ async function submitCheckout(plan: any, mode?: string) {
         "
       />
       <p class="cf-field-hint">
-        {{
-          portal && !redeemOnly && payment?.environment === 'test'
-            ? $t('cloud.payments.testHelp')
-            : $t('cloud.billing.purchaseHelp')
-        }}
+        {{ $t('cloud.billing.purchaseHelp') }}
       </p>
       <p
         v-if="payment?.planChange"
