@@ -707,24 +707,23 @@ export async function reconcileDodoSubscription(
         ? payment.total_amount === checkout.price
         : payment.settlement_currency === checkout.currency &&
           payment.settlement_amount === checkout.price)
-    const successful =
-      !!confirmedChange ||
-      (payment?.status === 'succeeded' &&
-        !identityError &&
-        amountMatches &&
-        !payment.refunds?.length &&
-        !payment.disputes?.length)
+    const paid =
+      payment?.status === 'succeeded' &&
+      !identityError &&
+      amountMatches &&
+      !payment.refunds?.length &&
+      !payment.disputes?.length
+    const successful = !!confirmedChange || paid
     if (!known && payment?.status === 'succeeded' && !successful) {
       if (payment.refunds?.length || payment.disputes?.length)
         fail('payment_refunded_or_disputed', 422)
       fail('payment_amount_mismatch', 422)
     }
-    const period =
-      successful && !confirmedChange
-        ? payment?.service_periods?.find(
-            (p) => p.subscription_id === subscriptionId,
-          )
-        : null
+    const period = paid
+      ? payment?.service_periods?.find(
+          (p) => p.subscription_id === subscriptionId,
+        )
+      : null
     if (!successful && !known) fail('payment_confirmation_pending')
     // Older Dodo responses can omit service_periods for the initial payment.
     // Only recover the first, checkout-bound period: subscription dates alone
@@ -742,14 +741,16 @@ export async function reconcileDodoSubscription(
       Math.abs(initialStart - initialPaymentTime) <= 300000 &&
       initialEnd > now &&
       initialEnd - initialStart <= (checkout.interval * 31 + 1) * 86400000
-    let start = confirmedChange
+    // Only a successful renewal can extend a scheduled downgrade's paid-through period.
+    const sameCycleUpgrade = confirmedChange?.direction === 'upgrade'
+    let start = sameCycleUpgrade
       ? timestamp(subscription.previous_billing_date)
       : period
         ? timestamp(period.starts_at)
         : initialPeriod
           ? initialStart
           : known?.period_start
-    let end = confirmedChange
+    let end = sameCycleUpgrade
       ? timestamp(subscription.next_billing_date)
       : period
         ? timestamp(period.ends_at)
@@ -926,6 +927,62 @@ export async function reconcileDodoSubscription(
             ...bindFence,
           ),
       )
+    }
+    if (
+      known &&
+      !confirmedChange &&
+      subscription.product_id === known.product_id
+    ) {
+      const stale = await allRows<any>(
+        db
+          .prepare(
+            "SELECT id,to_product,created_at FROM platform_payment_plan_changes WHERE subscription_id=? AND provider_key=? AND from_product=? AND state IN('submitting','pending','scheduled','uncertain') AND updated_at<?",
+          )
+          .bind(localId, key, known.product_id, now - 900000),
+      )
+      const abandoned = stale.filter(
+        (change) =>
+          subscription.scheduled_change?.product_id !== change.to_product,
+      )
+      if (abandoned.length) {
+        // An unchanged product alone is insufficient while a charge still awaits settlement.
+        const charges = await dodoRequest(() =>
+          client.payments.list({
+            subscription_id: subscriptionId,
+            created_at_gte: new Date(
+              Math.min(...abandoned.map((c) => c.created_at)) - 60000,
+            ).toISOString(),
+            page_size: 100,
+          }),
+        )
+        for (const change of abandoned) {
+          const unsettled =
+            charges.items.length >= 100 ||
+            charges.items.some(
+              (p) =>
+                (p.metadata?.chronoframe_change_id === change.id ||
+                  (!p.metadata?.chronoframe_change_id &&
+                    p.charge_type === 'plan_change' &&
+                    timestamp(p.created_at) >= change.created_at - 60000)) &&
+                !['failed', 'cancelled'].includes(p.status ?? ''),
+            )
+          if (!unsettled)
+            writes.push(
+              db
+                .prepare(
+                  `UPDATE platform_payment_plan_changes SET state='failed',updated_at=? WHERE id=? AND subscription_id=? AND from_product=? AND state IN('submitting','pending','scheduled','uncertain') AND updated_at<? AND ${fence}`,
+                )
+                .bind(
+                  now,
+                  change.id,
+                  localId,
+                  known.product_id,
+                  now - 900000,
+                  ...bindFence,
+                ),
+            )
+        }
+      }
     }
     await db.batch(writes)
     return checkout.id as string

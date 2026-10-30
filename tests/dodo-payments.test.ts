@@ -1823,7 +1823,62 @@ test('scheduled downgrades retain the paid tier until the provider switches at r
     const later = f.now + 28 * 86400000
     f.applyScheduled(later)
     await checkPaymentPlanChange(f.db, root, 1, 1, f.transport, later)
+    // The provider product switch alone must not buy the next billing period.
+    assert.equal((await f.assignment()).plan_id, 'free')
+    const unpaid = await f.db
+      .prepare('SELECT period_end FROM platform_payment_subscriptions')
+      .first<any>()
+    assert.ok(unpaid.period_end <= later)
+    f.sub.status = 'on_hold'
+    await refreshDodoCheckout(
+      f.db,
+      root,
+      1,
+      1,
+      f.checkout.id,
+      f.transport,
+      later,
+    )
+    assert.equal((await f.assignment()).plan_id, 'free')
+    assert.equal(
+      (
+        await f.db
+          .prepare('SELECT period_end FROM platform_payment_subscriptions')
+          .first<any>()
+      ).period_end,
+      unpaid.period_end,
+    )
+    f.sub.status = 'active'
+    const renewed = {
+      ...f.payment,
+      payment_id: 'pay_paid_downgrade',
+      charge_type: 'renewal',
+      created_at: new Date(later).toISOString(),
+      service_periods: [
+        {
+          subscription_id: f.sub.subscription_id,
+          starts_at: new Date(later).toISOString(),
+          ends_at: new Date(later + 28 * 86400000).toISOString(),
+        },
+      ],
+    }
+    f.payments.set(renewed.payment_id, renewed)
+    const event = await f.sign(
+      'payment.succeeded',
+      renewed,
+      'evt_paid_downgrade',
+    )
+    await receiveDodoEvent(
+      f.db,
+      root,
+      'test',
+      event.body,
+      event.headers,
+      f.transport,
+    )
+    await processDodoEvents(f.db, root, f.transport, later)
     assert.equal((await f.assignment()).plan_id, 'pro')
+    assert.equal((await f.assignment()).expires_at, later + 28 * 86400000)
     assert.equal((await paymentStatus(f.db, 1, 1)).planChange, null)
   } finally {
     await f.mf.dispose()
@@ -1988,3 +2043,77 @@ test('accepted changes await provider application; failed change payments retain
     await f.mf.dispose()
   }
 })
+
+for (const state of ['submitting', 'pending', 'scheduled', 'uncertain']) {
+  test(`stale ${state} plan changes settle without retrying a charge, while live schedules and payments remain protected`, async () => {
+    const f = await changeFixture()
+    try {
+      await f.rule('pro', 'studio')
+      const quote = await previewPaymentPlanChange(
+        f.db,
+        root,
+        1,
+        { workspaceId: 1, planId: 'studio' },
+        f.transport,
+      )
+      await f.db
+        .prepare('UPDATE platform_payment_plan_changes SET state=? WHERE id=?')
+        .bind(state, quote.id)
+        .run()
+      const change = await f.db
+        .prepare('SELECT * FROM platform_payment_plan_changes WHERE id=?')
+        .bind(quote.id)
+        .first<any>()
+      const getState = async () =>
+        (
+          await f.db
+            .prepare(
+              'SELECT state FROM platform_payment_plan_changes WHERE id=?',
+            )
+            .bind(quote.id)
+            .first<any>()
+        ).state
+      await checkPaymentPlanChange(f.db, root, 1, 1, f.transport)
+      assert.equal(await getState(), state) // Grace period has not elapsed.
+      const later = Date.now() + 16 * 60000
+      ;(f.sub as any).scheduled_change = { product_id: change.to_product }
+      await checkPaymentPlanChange(f.db, root, 1, 1, f.transport, later)
+      assert.equal(await getState(), state)
+      ;(f.sub as any).scheduled_change = null
+      const charge = {
+        ...f.payment,
+        payment_id: 'pay_unsettled_change',
+        status: 'processing',
+        charge_type: 'plan_change',
+        created_at: new Date(change.created_at).toISOString(),
+        metadata: { ...f.payment.metadata, chronoframe_change_id: quote.id },
+      }
+      f.payments.set(charge.payment_id, charge)
+      await checkPaymentPlanChange(f.db, root, 1, 1, f.transport, later)
+      assert.equal(await getState(), state)
+      charge.status = 'succeeded' // A settled charge waiting for application is also protected.
+      await checkPaymentPlanChange(f.db, root, 1, 1, f.transport, later)
+      assert.equal(await getState(), state)
+      f.payments.delete(charge.payment_id)
+      ;(f.sub as any).scheduled_change = {
+        product_id: 'pdt_some_other_schedule',
+      }
+      await checkPaymentPlanChange(f.db, root, 1, 1, f.transport, later)
+      assert.equal(await getState(), 'failed')
+      assert.equal((await paymentStatus(f.db, 1, 1)).planChange, null)
+      assert.equal((await f.assignment()).plan_id, 'pro')
+      assert.equal(f.mutations.length, 0)
+      ;(f.sub as any).scheduled_change = null
+      await previewPaymentPlanChange(
+        f.db,
+        root,
+        1,
+        { workspaceId: 1, planId: 'studio' },
+        f.transport,
+      )
+      assert.equal(f.mutations.length, 0)
+    } finally {
+      await f.mf.dispose()
+    }
+  })
+}
