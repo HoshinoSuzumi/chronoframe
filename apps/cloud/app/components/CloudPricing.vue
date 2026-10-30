@@ -149,8 +149,13 @@ async function resume() {
     if (result.state === 'awaiting_payment') openCancelCheckout(true)
     else if (result.state === 'open' && payment.value?.pending?.url)
       await navigateTo(payment.value.pending.url, { external: true })
-  } catch {
-    paymentError.value = t('cloud.payments.failed')
+  } catch (error: any) {
+    const code = error?.data?.data?.code ?? error?.data?.code
+    paymentError.value = t(
+      code === 'payment_confirmation_pending'
+        ? 'cloud.payments.confirmationReview'
+        : 'cloud.payments.failed',
+    )
     await payments?.refresh({ reconcile: false })
   } finally {
     resuming.value = false
@@ -282,7 +287,7 @@ async function cancelCheckout() {
       },
     })
     cancelCheckoutOpen.value = false
-    await Promise.all([
+    await Promise.allSettled([
       payments?.refresh({ reconcile: false }),
       billing?.refresh(),
     ])
@@ -307,7 +312,7 @@ async function cancelCheckout() {
           ? 'cloud.payments.checkoutCannotCancel'
           : 'cloud.payments.checkoutCancelFailed',
       )
-    await Promise.all([
+    await Promise.allSettled([
       payments?.refresh({ reconcile: false }),
       billing?.refresh(),
     ])
