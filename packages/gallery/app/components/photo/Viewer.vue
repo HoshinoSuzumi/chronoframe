@@ -2,6 +2,7 @@
 const galleryApi = useGalleryApi()
 
 import { motion, AnimatePresence, useDomRef } from 'motion-v'
+import type { Ref } from 'vue'
 import { Swiper, SwiperSlide } from 'swiper/vue'
 import { Navigation, Keyboard, Virtual } from 'swiper/modules'
 import type { Swiper as SwiperType } from 'swiper'
@@ -31,7 +32,7 @@ const emit = defineEmits<{
 
 const toast = useToast()
 
-const containerRef = useDomRef()
+const containerRef: Ref<HTMLElement | null> = useDomRef()
 const swiperRef = ref<SwiperType>()
 const loadingIndicatorRef = ref<LoadingIndicatorRef>()
 
@@ -96,10 +97,15 @@ const currentPhoto = computed(() => props.photos[props.currentIndex])
 const isTransitioning = ref(false)
 let transitionImage: HTMLImageElement | undefined
 let transitionAnimation: Animation | undefined
+let restoreSourceVisibility: (() => void) | undefined
 
 const animatePhoto = async (closing = false, onStart?: () => void) => {
   const photo = currentPhoto.value
-  if (!photo || window.matchMedia('(prefers-reduced-motion: reduce)').matches)
+  if (
+    !photo ||
+    (closing && isImageZoomed.value) ||
+    window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  )
     return
   const source = Array.from(
     document.querySelectorAll<HTMLElement>('[data-photo-id]'),
@@ -111,6 +117,13 @@ const animatePhoto = async (closing = false, onStart?: () => void) => {
   const from = source.getBoundingClientRect()
   const bounds = target.getBoundingClientRect()
   if (!from.width || !bounds.width || !photo.width || !photo.height) return
+  if (
+    from.bottom <= 0 ||
+    from.right <= 0 ||
+    from.top >= window.innerHeight ||
+    from.left >= window.innerWidth
+  )
+    return
   const scale = Math.min(
     bounds.width / photo.width,
     bounds.height / photo.height,
@@ -146,8 +159,19 @@ const animatePhoto = async (closing = false, onStart?: () => void) => {
   transitionImage = image
   document.body.append(image)
   isTransitioning.value = true
-  onStart?.()
+  {
+    restoreSourceVisibility?.()
+    // Route navigation can replace the source node. Hide by photo identity so
+    // both the current node and its replacement stay hidden during the return.
+    const style = document.createElement('style')
+    style.textContent = `[data-photo-id="${CSS.escape(photo.id)}"] { opacity: 0 !important; }`
+    document.head.append(style)
+    restoreSourceVisibility = () => {
+      style.remove()
+    }
+  }
   try {
+    onStart?.()
     transitionAnimation = image.animate(
       closing ? [frame(to), frame(from)] : [frame(from), frame(to)],
       {
@@ -160,6 +184,14 @@ const animatePhoto = async (closing = false, onStart?: () => void) => {
   } catch {
     /* interrupted or unmounted */
   } finally {
+    // Let the restored wall paint beneath the transition before removing it.
+    if (closing) {
+      restoreSourceVisibility?.()
+      restoreSourceVisibility = undefined
+      await new Promise<void>((resolve) =>
+        requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
+      )
+    }
     image.remove()
     isTransitioning.value = false
   }
@@ -177,6 +209,8 @@ const requestClose = async () => {
     await animatePhoto(true, close)
   } finally {
     close()
+    restoreSourceVisibility?.()
+    restoreSourceVisibility = undefined
   }
 }
 
@@ -200,6 +234,8 @@ watch(
 onUnmounted(() => {
   transitionAnimation?.cancel()
   transitionImage?.remove()
+  restoreSourceVisibility?.()
+  restoreSourceVisibility = undefined
 })
 const isMobile = useMediaQuery('(max-width: 768px)')
 
@@ -665,24 +701,23 @@ const swiperModules = [Navigation, Keyboard, Virtual]
         :transition="{ duration: 0.3 }"
         class="fixed inset-0 bg-white/50 dark:bg-black/50 backdrop-blur-2xl z-50"
         @click="requestClose"
-      />
-    </AnimatePresence>
-
-    <!-- 交叉溶解的 Thumbhash 背景 -->
-    <AnimatePresence mode="sync">
-      <motion.div
-        v-if="isOpen && currentPhoto?.thumbnailHash"
-        :key="currentPhoto.id"
-        :initial="{ opacity: 0 }"
-        :animate="{ opacity: 1 }"
-        :exit="{ opacity: 0 }"
-        :transition="{ duration: 0.3 }"
-        class="fixed inset-0 z-40"
       >
-        <ThumbHash
-          :thumbhash="currentPhoto.thumbnailHash"
-          class="w-full h-full scale-110"
-        />
+        <AnimatePresence mode="sync">
+          <motion.div
+            v-if="currentPhoto?.thumbnailHash"
+            :key="currentPhoto.id"
+            :initial="{ opacity: 1 }"
+            :animate="{ opacity: 1 }"
+            :exit="{ opacity: 0 }"
+            :transition="{ duration: 0.3 }"
+            class="absolute inset-0 pointer-events-none"
+          >
+            <ThumbHash
+              :thumbhash="currentPhoto.thumbnailHash"
+              class="w-full h-full scale-110"
+            />
+          </motion.div>
+        </AnimatePresence>
       </motion.div>
     </AnimatePresence>
 
