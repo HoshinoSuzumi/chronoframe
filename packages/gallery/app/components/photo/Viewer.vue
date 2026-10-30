@@ -31,7 +31,7 @@ const emit = defineEmits<{
 
 const toast = useToast()
 
-const containerRef = ref<HTMLDivElement>()
+const containerRef = useDomRef()
 const swiperRef = ref<SwiperType>()
 const loadingIndicatorRef = ref<LoadingIndicatorRef>()
 
@@ -93,6 +93,114 @@ const { convertMovToMp4, getProcessingState } = useLivePhotoProcessor()
 
 // Computed
 const currentPhoto = computed(() => props.photos[props.currentIndex])
+const isTransitioning = ref(false)
+let transitionImage: HTMLImageElement | undefined
+let transitionAnimation: Animation | undefined
+
+const animatePhoto = async (closing = false, onStart?: () => void) => {
+  const photo = currentPhoto.value
+  if (!photo || window.matchMedia('(prefers-reduced-motion: reduce)').matches)
+    return
+  const source = Array.from(
+    document.querySelectorAll<HTMLElement>('[data-photo-id]'),
+  ).find((element) => element.dataset.photoId === photo.id)
+  const target = containerRef.value?.querySelector<HTMLElement>(
+    '.swiper-slide-active [data-viewer-image]',
+  )
+  if (!source || !target) return
+  const from = source.getBoundingClientRect()
+  const bounds = target.getBoundingClientRect()
+  if (!from.width || !bounds.width || !photo.width || !photo.height) return
+  const scale = Math.min(
+    bounds.width / photo.width,
+    bounds.height / photo.height,
+  )
+  const to = {
+    width: photo.width * scale,
+    height: photo.height * scale,
+    left: bounds.left + (bounds.width - photo.width * scale) / 2,
+    top: bounds.top + (bounds.height - photo.height * scale) / 2,
+  }
+  const frame = (rect: {
+    left: number
+    top: number
+    width: number
+    height: number
+  }) => ({
+    left: `${rect.left}px`,
+    top: `${rect.top}px`,
+    width: `${rect.width}px`,
+    height: `${rect.height}px`,
+  })
+  const image = document.createElement('img')
+  image.src =
+    currentBlobSrc.value || photo.thumbnailUrl || photo.originalUrl || ''
+  image.alt = ''
+  Object.assign(image.style, {
+    position: 'fixed',
+    zIndex: '10000',
+    objectFit: 'contain',
+    pointerEvents: 'none',
+    ...frame(closing ? to : from),
+  })
+  transitionImage = image
+  document.body.append(image)
+  isTransitioning.value = true
+  onStart?.()
+  try {
+    transitionAnimation = image.animate(
+      closing ? [frame(to), frame(from)] : [frame(from), frame(to)],
+      {
+        duration: 320,
+        easing: 'cubic-bezier(0.22, 1, 0.36, 1)',
+        fill: 'forwards',
+      },
+    )
+    await transitionAnimation.finished
+  } catch {
+    /* interrupted or unmounted */
+  } finally {
+    image.remove()
+    isTransitioning.value = false
+  }
+}
+
+const requestClose = async () => {
+  if (!props.isOpen || isTransitioning.value) return
+  let closed = false
+  const close = () => {
+    if (closed) return
+    closed = true
+    emit('close')
+  }
+  try {
+    await animatePhoto(true, close)
+  } finally {
+    close()
+  }
+}
+
+watch(
+  () => props.isOpen,
+  async (open) => {
+    if (!open) return
+    isTransitioning.value = true
+    try {
+      await nextTick()
+      await new Promise<void>((resolve) =>
+        requestAnimationFrame(() => resolve()),
+      )
+      if (props.isOpen) await animatePhoto()
+    } finally {
+      isTransitioning.value = false
+    }
+  },
+)
+
+onUnmounted(() => {
+  transitionAnimation?.cancel()
+  transitionImage?.remove()
+})
 const isMobile = useMediaQuery('(max-width: 768px)')
 
 // LivePhoto processing state
@@ -518,7 +626,7 @@ defineShortcuts({
       showShareModal.value = false
       return
     }
-    emit('close')
+    requestClose()
   },
 })
 
@@ -556,7 +664,7 @@ const swiperModules = [Navigation, Keyboard, Virtual]
         :exit="{ opacity: 0 }"
         :transition="{ duration: 0.3 }"
         class="fixed inset-0 bg-white/50 dark:bg-black/50 backdrop-blur-2xl z-50"
-        @click="emit('close')"
+        @click="requestClose"
       />
     </AnimatePresence>
 
@@ -589,7 +697,7 @@ const swiperModules = [Navigation, Keyboard, Virtual]
         :transition="{ duration: 0.3 }"
         class="fixed inset-0 z-50 flex items-center justify-center"
         :style="{ touchAction: isMobile ? 'manipulation' : 'none' }"
-        @click.self="emit('close')"
+        @click.self="requestClose"
       >
         <div
           class="flex w-full h-full"
@@ -667,7 +775,7 @@ const swiperModules = [Navigation, Keyboard, Virtual]
                     icon="tabler:x"
                     size="sm"
                     rounded
-                    @click="emit('close')"
+                    @click="requestClose"
                   />
                 </div>
               </motion.div>
@@ -698,10 +806,14 @@ const swiperModules = [Navigation, Keyboard, Virtual]
                   class="flex items-center justify-center"
                 >
                   <motion.div
-                    :initial="{ opacity: 0.5, scale: 0.95 }"
-                    :animate="{ opacity: 1, scale: 1 }"
-                    :exit="{ opacity: 0, scale: 0.95 }"
+                    :initial="{ opacity: 1 }"
+                    :animate="{ opacity: 1 }"
+                    :exit="{ opacity: 0 }"
                     :transition="{ type: 'spring', duration: 0.4, bounce: 0 }"
+                    data-viewer-image
+                    :style="{
+                      visibility: isTransitioning ? 'hidden' : 'visible',
+                    }"
                     class="relative flex h-full w-full items-center justify-center"
                     style="
                       user-select: none;
