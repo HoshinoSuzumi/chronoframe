@@ -2150,6 +2150,7 @@ a.cf-domain-address:hover {
 }
 .cf-plan-features {
   display: grid;
+  align-content: start;
   gap: 12px;
   list-style: none;
   padding: 16px 0 0;
@@ -2157,6 +2158,8 @@ a.cf-domain-address:hover {
 }
 .cf-plan-features li {
   display: flex;
+  align-items: flex-start;
+  line-height: 1.5;
   justify-content: space-between;
   gap: 12px;
   font-size: 12px;
