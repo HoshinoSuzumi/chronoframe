@@ -29,9 +29,8 @@ watch(
 <template>
   <div class="relative h-screen">
     <div class="h-svh px-1">
-      <ClientOnly>
+      <ClientOnly v-if="route.path !== '/' || homeView !== 'albums'">
         <MasonryRoot
-          v-if="route.path !== '/' || homeView !== 'albums'"
           :photos="photos"
           columns="auto"
         />
