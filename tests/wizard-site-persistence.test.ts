@@ -22,7 +22,7 @@ function wizardPayload(
   return {
     admin: {
       email: 'admin@example.com',
-      password: 'secret1',
+      password: 'test-password-123',
       username: 'admin',
     },
     site,
