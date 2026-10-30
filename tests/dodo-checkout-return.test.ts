@@ -12,6 +12,9 @@ function fixture(
 ) {
   const exports: Record<string, any> = {}
   const timers: (() => void)[] = []
+  const watchdogs: (() => void)[] = []
+  const handles = new Map<number, { list: (() => void)[]; fn: () => void }>()
+  let timerId = 0
   const mounted: (() => void)[] = []
   const unmounted: (() => void)[] = []
   vm.runInNewContext(
@@ -39,11 +42,20 @@ function fixture(
       onMounted: (fn: () => void) => mounted.push(fn),
       onBeforeUnmount: (fn: () => void) => unmounted.push(fn),
       $fetch: fetch,
-      setTimeout: (fn: () => void) => {
-        timers.push(fn)
-        return timers.length
+      setTimeout: (fn: () => void, delay: number) => {
+        const list = delay > 5000 ? watchdogs : timers
+        list.push(fn)
+        handles.set(++timerId, { list, fn })
+        return timerId
       },
-      clearTimeout: () => {},
+      clearTimeout: (id: number) => {
+        const value = handles.get(id)
+        if (value) {
+          const index = value.list.indexOf(value.fn)
+          if (index >= 0) value.list.splice(index, 1)
+        }
+        handles.delete(id)
+      },
     },
   )
   const scope = effectScope()
@@ -59,6 +71,7 @@ function fixture(
   return {
     returned,
     timers,
+    watchdogs,
     dispose: () => {
       unmounted.forEach((fn) => fn())
       scope.stop()
@@ -234,6 +247,72 @@ test('a confirmed deferred reservation closes the processing modal without furth
     assert.equal(f.returned.state.value, 'scheduled')
     assert.equal(refreshes, 1)
     assert.equal(f.timers.length, 0)
+  } finally {
+    f.dispose()
+  }
+})
+
+test('an expired checkout ends return processing without additional polls', async () => {
+  const f = fixture(async () => ({ state: 'expired' }))
+  try {
+    await flush()
+    assert.equal(f.returned.state.value, 'expired')
+    assert.equal(f.timers.length, 0)
+    assert.equal(f.watchdogs.length, 0)
+  } finally {
+    f.dispose()
+  }
+})
+test('the overall return deadline closes a hung request and ignores its late response until explicit retry', async () => {
+  let resolve!: (v: any) => void
+  let hung = true
+  const enabled = ref(true)
+  const f = fixture(
+    async () =>
+      hung
+        ? new Promise((r) => {
+            resolve = r
+          })
+        : { state: 'expired' },
+    async () => {},
+    { enabled: () => enabled.value },
+  )
+  try {
+    await flush()
+    f.watchdogs.shift()!()
+    assert.equal(f.returned.state.value, 'pending')
+    enabled.value = false
+    await flush()
+    enabled.value = true
+    await flush()
+    assert.equal(f.returned.state.value, 'pending')
+    resolve({ state: 'completed' })
+    await flush()
+    assert.equal(f.returned.state.value, 'pending')
+    hung = false
+    await f.returned.retry()
+    assert.equal(f.returned.state.value, 'expired')
+  } finally {
+    f.dispose()
+  }
+})
+test('the overall return deadline also covers a hung entitlement refresh', async () => {
+  let finish!: () => void
+  const f = fixture(
+    async () => ({ state: 'completed' }),
+    () =>
+      new Promise<void>((r) => {
+        finish = r
+      }),
+  )
+  try {
+    await flush()
+    assert.equal(f.returned.state.value, 'checking')
+    f.watchdogs.shift()!()
+    assert.equal(f.returned.state.value, 'pending')
+    finish()
+    await flush()
+    assert.equal(f.returned.state.value, 'pending')
   } finally {
     f.dispose()
   }

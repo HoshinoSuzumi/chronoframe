@@ -2753,3 +2753,313 @@ test('confirmed cancellation of a provider-less checkout releases handover block
     await f.mf.dispose()
   }
 })
+
+for (const outcome of [
+  'failed',
+  'cancelled',
+  'requires_payment_method',
+  'requires_confirmation',
+])
+  test(`unpaid ${outcome} with a pending subscription closes an expired checkout and releases the purchase slot`, async () => {
+    const f = await fixture()
+    try {
+      await syncDodoProducts(f.db, root, f.transport)
+      const checkout = await createPaymentCheckout(
+        f.db,
+        root,
+        1,
+        input(),
+        origin,
+        f.transport,
+        f.now,
+      )
+      const { payment, sub } = await f.paid(checkout)
+      payment.status = outcome
+      payment.service_periods = []
+      sub.status = 'pending'
+      const later = f.now + 86400001
+      assert.equal(
+        (
+          await refreshDodoCheckout(
+            f.db,
+            root,
+            1,
+            1,
+            checkout.id,
+            f.transport,
+            later,
+          )
+        ).state,
+        'expired',
+      )
+      assert.equal(sub.status, 'cancelled')
+      assert.equal((await paymentStatus(f.db, 1, 1)).pending, null)
+      assert.equal(
+        (
+          await f.db
+            .prepare('SELECT COUNT(*) AS n FROM platform_payment_subscriptions')
+            .first<any>()
+        ).n,
+        0,
+      )
+      assert.equal(
+        (
+          await f.db
+            .prepare(
+              'SELECT source FROM platform_workspace_plans WHERE workspace_id=1',
+            )
+            .first<any>()
+        ).source,
+        'default',
+      )
+      const next = await createPaymentCheckout(
+        f.db,
+        root,
+        1,
+        input('after_expired'),
+        origin,
+        f.transport,
+        later + 1000,
+      )
+      assert.notEqual(next.id, checkout.id)
+    } finally {
+      await f.mf.dispose()
+    }
+  })
+test('a failed linked payment closes without waiting for the checkout age limit', async () => {
+  const f = await fixture()
+  try {
+    await syncDodoProducts(f.db, root, f.transport)
+    const checkout = await createPaymentCheckout(
+      f.db,
+      root,
+      1,
+      input(),
+      origin,
+      f.transport,
+      f.now,
+    )
+    const { payment, sub } = await f.paid(checkout)
+    payment.status = 'cancelled'
+    sub.status = 'pending'
+    assert.equal(
+      (
+        await refreshDodoCheckout(
+          f.db,
+          root,
+          1,
+          1,
+          checkout.id,
+          f.transport,
+          f.now + 1000,
+        )
+      ).state,
+      'expired',
+    )
+    assert.equal((await paymentStatus(f.db, 1, 1)).pending, null)
+  } finally {
+    await f.mf.dispose()
+  }
+})
+test('old processing and actionable payments are never canceled on checkout age alone', async () => {
+  const f = await fixture()
+  try {
+    await syncDodoProducts(f.db, root, f.transport)
+    const checkout = await createPaymentCheckout(
+      f.db,
+      root,
+      1,
+      input(),
+      origin,
+      f.transport,
+      f.now,
+    )
+    const { payment, sub } = await f.paid(checkout)
+    sub.status = 'pending'
+    for (const state of [
+      'processing',
+      'requires_customer_action',
+      'requires_capture',
+      'partially_captured',
+      'partially_captured_and_capturable',
+    ]) {
+      payment.status = state
+      await assert.rejects(
+        refreshDodoCheckout(
+          f.db,
+          root,
+          1,
+          1,
+          checkout.id,
+          f.transport,
+          f.now + 86400001,
+        ),
+        { code: 'payment_confirmation_pending' },
+      )
+      assert.equal(sub.status, 'pending')
+      assert.equal(
+        f.calls.some(
+          (c) => c.method === 'PATCH' && c.url.includes('/subscriptions/'),
+        ),
+        false,
+      )
+      assert.ok((await paymentStatus(f.db, 1, 1)).pending)
+    }
+  } finally {
+    await f.mf.dispose()
+  }
+})
+test('a deferred checkout with a failed pending subscription expires without authorizing or extending entitlements', async () => {
+  const f = await handoverFixture()
+  try {
+    const checkout = await createPaymentCheckout(
+      f.db,
+      root,
+      1,
+      { ...input(), startMode: 'after_entitlement' },
+      origin,
+      f.transport,
+      f.now,
+    )
+    const { payment, sub, session } = await f.paid(checkout)
+    sub.trial_period_days = session.trial_period_days
+    sub.status = 'pending'
+    payment.status = 'failed'
+    payment.total_amount = 0
+    assert.equal(
+      (
+        await refreshDodoCheckout(
+          f.db,
+          root,
+          1,
+          1,
+          checkout.id,
+          f.transport,
+          f.now + 1000,
+        )
+      ).state,
+      'expired',
+    )
+    assert.equal((await paymentStatus(f.db, 1, 1)).reservation, null)
+    assert.equal(
+      (
+        await f.db
+          .prepare(
+            'SELECT expires_at FROM platform_workspace_plans WHERE workspace_id=1',
+          )
+          .first<any>()
+      ).expires_at,
+      f.originalEnd,
+    )
+  } finally {
+    await f.mf.dispose()
+  }
+})
+
+test('an expired session without a payment also releases uncertain checkouts, without discarding late payment recovery', async () => {
+  const f = await fixture()
+  try {
+    await syncDodoProducts(f.db, root, f.transport)
+    const checkout = await createPaymentCheckout(
+      f.db,
+      root,
+      1,
+      input(),
+      origin,
+      f.transport,
+      f.now,
+    )
+    await f.db
+      .prepare(
+        "UPDATE platform_payment_checkouts SET state='uncertain' WHERE id=?",
+      )
+      .bind(checkout.id)
+      .run()
+    assert.equal(
+      (
+        await refreshDodoCheckout(
+          f.db,
+          root,
+          1,
+          1,
+          checkout.id,
+          f.transport,
+          f.now + 86400001,
+        )
+      ).state,
+      'expired',
+    )
+    assert.equal((await paymentStatus(f.db, 1, 1)).pending, null)
+    const { sub } = await f.paid(checkout)
+    assert.equal(
+      (
+        await refreshDodoCheckout(
+          f.db,
+          root,
+          1,
+          1,
+          checkout.id,
+          f.transport,
+          f.now + 2000,
+        )
+      ).state,
+      'completed',
+    )
+    assert.equal(sub.status, 'active')
+  } finally {
+    await f.mf.dispose()
+  }
+})
+test('unconfirmed provider cancellation and mismatched failed payments never release a checkout', async () => {
+  const f = await fixture()
+  try {
+    await syncDodoProducts(f.db, root, f.transport)
+    const checkout = await createPaymentCheckout(
+      f.db,
+      root,
+      1,
+      input(),
+      origin,
+      f.transport,
+      f.now,
+    )
+    const { payment, sub } = await f.paid(checkout)
+    payment.status = 'failed'
+    sub.status = 'pending'
+    const noCancel: typeof fetch = async (url, init) =>
+      init?.method === 'PATCH'
+        ? Response.json({ ...sub })
+        : f.transport(url, init)
+    await assert.rejects(
+      refreshDodoCheckout(
+        f.db,
+        root,
+        1,
+        1,
+        checkout.id,
+        noCancel,
+        f.now + 1000,
+      ),
+      { code: 'payment_confirmation_pending' },
+    )
+    assert.ok((await paymentStatus(f.db, 1, 1)).pending)
+    payment.customer = { customer_id: 'different_customer' }
+    const calls = f.calls.length
+    await assert.rejects(
+      refreshDodoCheckout(
+        f.db,
+        root,
+        1,
+        1,
+        checkout.id,
+        f.transport,
+        f.now + 2000,
+      ),
+      { code: 'payment_customer_mismatch' },
+    )
+    assert.ok(!f.calls.slice(calls).some((c) => c.method === 'PATCH'))
+    assert.ok((await paymentStatus(f.db, 1, 1)).pending)
+  } finally {
+    await f.mf.dispose()
+  }
+})

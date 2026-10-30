@@ -1,3 +1,4 @@
+import { closeFailedInitialCheckout } from './unpaid-checkout.ts'
 import { checkoutHandover } from './payment-handover.ts'
 import { reconcileDeferredAuthorization } from './deferred-payments.ts'
 import { discountedPrice } from '../../contracts/src/pricing.ts'
@@ -745,6 +746,21 @@ export async function reconcileDodoSubscription(
                 ? 'payment_checkout_mismatch'
                 : null
     if (!known && identityError) fail(identityError, 422)
+    if (
+      !identityError &&
+      (await closeFailedInitialCheckout(
+        db,
+        client,
+        checkout,
+        subscription,
+        payment,
+        known,
+        now,
+        `${activeFence} AND EXISTS(SELECT 1 FROM platform_payment_locks WHERE workspace_id=? AND token=?)`,
+        [key, revision, checkout.workspace_id, token],
+      ))
+    )
+      return checkout.id as string
     // Cancellation must converge even if an initial grant failed its amount/period checks.
     // Only the authenticated, checkout-bound payment and subscription can release the slot.
     if (
@@ -1282,9 +1298,9 @@ export async function refreshDodoCheckout(
   } else if (now - row.created_at > 86400000)
     await db
       .prepare(
-        "UPDATE platform_payment_checkouts SET state='expired',updated_at=? WHERE id=? AND state='open' AND NOT EXISTS(SELECT 1 FROM platform_payment_subscriptions WHERE checkout_id=platform_payment_checkouts.id)",
+        `UPDATE platform_payment_checkouts SET state='expired',error='payment_checkout_expired',updated_at=? WHERE id=? AND state IN('open','uncertain') AND NOT EXISTS(SELECT 1 FROM platform_payment_subscriptions WHERE checkout_id=platform_payment_checkouts.id) AND ${activeFence}`,
       )
-      .bind(now, row.id)
+      .bind(now, row.id, key, revision)
       .run()
   await db
     .prepare(
