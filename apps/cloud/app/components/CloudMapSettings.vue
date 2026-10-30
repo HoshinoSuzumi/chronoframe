@@ -49,104 +49,107 @@ async function save() {
 }
 </script>
 <template>
-  <section class="cf-card cf-card-pad">
-    <h2 class="cf-section-title">{{ t('Maps', '地图') }}</h2>
-    <p class="cf-muted">
-      {{
-        t(
-          'Use platform maps or your own Mapbox / MapTiler browser keys for this site. These keys and style URLs are public. Restrict them to your gallery domains; never enter a secret key.',
-          '此站点可使用平台地图，或配置自己的 Mapbox／MapTiler 浏览器公共密钥。密钥及样式地址会公开发送到浏览器，请限制允许的图库域名，切勿填写服务端密钥。',
-        )
-      }}
-    </p>
-    <CfAlert
-      v-if="error"
-      tone="error"
-      >{{ t('Unable to load map settings.', '无法加载地图设置。') }}</CfAlert
-    >
-    <form
-      v-else-if="data"
-      class="map-form"
-      @submit.prevent="save"
-    >
-      <fieldset :disabled="busy || data.role !== 'admin'">
-        <label
-          ><CfSelect
-            :model-value="String(own)"
-            @update:model-value="own = $event === 'true'"
-            ><option value="false">
-              {{ t('Use platform defaults', '使用平台默认配置') }}
-            </option>
-            <option value="true">
-              {{ t('Use my own configuration', '使用自定义配置') }}
-            </option></CfSelect
-          ></label
-        >
-        <template v-if="own">
-          <label
-            >{{ t('Provider', '地图服务')
-            }}<CfSelect v-model="draft.provider"
-              ><option value="mapbox">Mapbox</option>
-              <option value="maplibre">MapTiler (MapLibre)</option></CfSelect
-            ></label
-          >
-          <label
-            >{{ t('Mapbox public token (pk.)', 'Mapbox 公共令牌（pk.）')
-            }}<CfInput
-              v-model="draft['mapbox.token']"
-              autocomplete="off"
-              maxlength="1024"
-          /></label>
-          <label
-            >{{ t('Mapbox style (optional)', 'Mapbox 样式（可选）')
-            }}<CfInput
-              v-model="draft['mapbox.style']"
-              placeholder="mapbox://styles/mapbox/standard"
-              maxlength="2048"
-          /></label>
-          <label
-            >{{ t('MapTiler public key', 'MapTiler 公共密钥')
-            }}<CfInput
-              v-model="draft['maplibre.token']"
-              autocomplete="off"
-              maxlength="256"
-          /></label>
-          <label
-            >{{ t('MapLibre style URL (optional)', 'MapLibre 样式地址（可选）')
-            }}<CfInput
-              v-model="draft['maplibre.style']"
-              placeholder="https://…"
-              maxlength="2048"
-          /></label>
-        </template>
-        <CfButton
-          type="submit"
-          :loading="busy"
-          >{{ t('Save maps', '保存地图设置') }}</CfButton
-        >
-      </fieldset>
+  <CfCard class="cf-site-settings">
+    <div class="cf-panel-heading">
+      <h2>{{ t('Maps', '地图') }}</h2>
+      <p>
+        {{
+          t(
+            'Use platform maps or your own Mapbox / MapTiler browser keys for this site. These keys and style URLs are public. Restrict them to your gallery domains; never enter a secret key.',
+            '此站点可使用平台地图，或配置自己的 Mapbox／MapTiler 浏览器公共密钥。密钥及样式地址会公开发送到浏览器，请限制允许的图库域名，切勿填写服务端密钥。',
+          )
+        }}
+      </p>
+    </div>
+    <div class="cf-panel-body">
       <CfAlert
-        v-if="message"
-        :tone="failed ? 'error' : 'info'"
-        >{{ message }}</CfAlert
+        v-if="error"
+        tone="error"
+        >{{ t('Unable to load map settings.', '无法加载地图设置。') }}</CfAlert
       >
-    </form>
-  </section>
+      <form
+        v-else-if="data"
+        class="cf-form"
+        @submit.prevent="save"
+      >
+        <fieldset
+          class="cf-form map-fields"
+          :disabled="busy || data.role !== 'admin'"
+        >
+          <label class="cf-field"
+            >{{ t('Map configuration', '地图配置') }}
+            <CfSelect
+              :model-value="String(own)"
+              @update:model-value="own = $event === 'true'"
+            >
+              <option value="false">
+                {{ t('Use platform defaults', '使用平台默认配置') }}
+              </option>
+              <option value="true">
+                {{ t('Use my own configuration', '使用自定义配置') }}
+              </option>
+            </CfSelect>
+          </label>
+          <template v-if="own">
+            <label class="cf-field"
+              >{{ t('Provider', '地图服务')
+              }}<CfSelect v-model="draft.provider"
+                ><option value="mapbox">Mapbox</option>
+                <option value="maplibre">MapTiler (MapLibre)</option></CfSelect
+              ></label
+            >
+            <label class="cf-field"
+              >{{ t('Mapbox public token (pk.)', 'Mapbox 公共令牌（pk.）')
+              }}<CfInput
+                v-model="draft['mapbox.token']"
+                autocomplete="off"
+                maxlength="1024"
+            /></label>
+            <label class="cf-field"
+              >{{ t('Mapbox style (optional)', 'Mapbox 样式（可选）')
+              }}<CfInput
+                v-model="draft['mapbox.style']"
+                placeholder="mapbox://styles/mapbox/standard"
+                maxlength="2048"
+            /></label>
+            <label class="cf-field"
+              >{{ t('MapTiler public key', 'MapTiler 公共密钥')
+              }}<CfInput
+                v-model="draft['maplibre.token']"
+                autocomplete="off"
+                maxlength="256"
+            /></label>
+            <label class="cf-field"
+              >{{
+                t('MapLibre style URL (optional)', 'MapLibre 样式地址（可选）')
+              }}<CfInput
+                v-model="draft['maplibre.style']"
+                placeholder="https://…"
+                maxlength="2048"
+            /></label>
+          </template>
+          <div class="cf-site-actions">
+            <CfButton
+              type="submit"
+              :loading="busy"
+              >{{ t('Save maps', '保存地图设置') }}</CfButton
+            >
+          </div>
+        </fieldset>
+        <CfAlert
+          v-if="message"
+          :tone="failed ? 'error' : 'info'"
+          >{{ message }}</CfAlert
+        >
+      </form>
+    </div>
+  </CfCard>
 </template>
 <style scoped>
-.map-form {
-  margin-top: 1.5rem;
-}
-fieldset {
+.map-fields {
+  min-width: 0;
   border: 0;
   padding: 0;
   margin: 0;
-  display: grid;
-  gap: 1rem;
-  max-width: 44rem;
-}
-label {
-  display: grid;
-  gap: 0.5rem;
 }
 </style>
