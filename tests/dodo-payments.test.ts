@@ -3919,3 +3919,81 @@ test('a late trial authorization with a 100% coupon cannot become a paid cycle a
     await f.mf.dispose()
   }
 })
+
+for (const providerStatus of ['cancelled', 'expired'] as const) {
+  test(`known discounted ${providerStatus} subscription revokes access without line-item availability`, async () => {
+    const f = await fixture()
+    try {
+      await syncDodoProducts(f.db, root, f.transport)
+      const checkout = await createPaymentCheckout(
+        f.db,
+        root,
+        1,
+        input(),
+        origin,
+        f.transport,
+        f.now,
+      )
+      const { sub, payment } = await f.paid(checkout),
+        paid = payment as any
+      paid.discounts = [coupon(paid, sub.product_id)]
+      paid.total_amount = 960
+      await refreshDodoCheckout(
+        f.db,
+        root,
+        1,
+        1,
+        checkout.id,
+        f.transport,
+        f.now + 1000,
+      )
+      const before = await f.db
+        .prepare(
+          'SELECT * FROM platform_payment_subscriptions WHERE checkout_id=?',
+        )
+        .bind(checkout.id)
+        .first<any>()
+      assert.equal(before.status, 'active')
+      sub.status = providerStatus
+      let lineRequests = 0
+      const unavailable: typeof fetch = async (url, options) => {
+        if (String(url).includes('/line-items')) {
+          lineRequests++
+          return Response.json({ message: 'Unavailable' }, { status: 503 })
+        }
+        return f.transport(url, options)
+      }
+      const { reconcileDodoSubscription } =
+        await import('../packages/platform/src/dodo-payments.ts')
+      await reconcileDodoSubscription(
+        f.db,
+        root,
+        'test',
+        sub.subscription_id,
+        paid.payment_id,
+        unavailable,
+        f.now + 2000,
+        'dodo_test',
+      )
+      const after = await f.db
+        .prepare(
+          'SELECT * FROM platform_payment_subscriptions WHERE checkout_id=?',
+        )
+        .bind(checkout.id)
+        .first<any>()
+      assert.equal(lineRequests, 0)
+      assert.equal(
+        after.status,
+        providerStatus === 'cancelled' ? 'canceled' : providerStatus,
+      )
+      assert.equal(after.period_end, before.period_end)
+      const grant = await f.db
+        .prepare('SELECT * FROM platform_workspace_plans WHERE workspace_id=1')
+        .first<any>()
+      assert.equal(grant.source, 'expired_default')
+      assert.equal(grant.plan_id, 'free')
+    } finally {
+      await f.mf.dispose()
+    }
+  })
+}

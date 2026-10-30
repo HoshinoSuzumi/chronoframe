@@ -812,6 +812,7 @@ export async function reconcileDodoSubscription(
     const couponMatches =
       !identityError &&
       payment &&
+      (!known || subscription.status === 'active') &&
       (await discountedPaymentMatches(client, checkout, payment))
     const amountMatches =
       couponMatches ||

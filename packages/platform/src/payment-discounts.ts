@@ -1,7 +1,18 @@
+import type DodoPayments from 'dodopayments'
+import type { Payment } from 'dodopayments/resources/payments'
+import type { Subscription } from 'dodopayments/resources/subscriptions'
 import { dodoRequest } from './dodo-client.ts'
 
+interface DiscountCheckout {
+  coupon_enabled: number
+  product_id: string
+  currency: string
+  price: number
+  interval: number
+}
+
 /** Applied discount snapshots are read only from the authenticated payment response. */
-export function appliedDiscounts(payment: any, checkout: any) {
+export function appliedDiscounts(payment: Payment, checkout: DiscountCheckout) {
   if (
     !checkout.coupon_enabled ||
     !Array.isArray(payment?.discounts) ||
@@ -32,15 +43,15 @@ export function appliedDiscounts(payment: any, checkout: any) {
   }
   return (
     !payment.discount_id ||
-    payment.discount_id === payment.discounts[0].discount_id
+    payment.discount_id === payment.discounts[0]?.discount_id
   )
 }
 
 /** Verify the billed product and final discounted total using its settled line item. */
 export async function discountedPaymentMatches(
-  client: any,
-  checkout: any,
-  payment: any,
+  client: Pick<DodoPayments, 'payments'>,
+  checkout: DiscountCheckout,
+  payment: Payment,
 ) {
   if (
     !appliedDiscounts(payment, checkout) ||
@@ -59,23 +70,25 @@ export async function discountedPaymentMatches(
         ? payment.settlement_amount
         : null
   if (
+    expected === null ||
     !Number.isSafeInteger(expected) ||
     expected < 0 ||
     expected > checkout.price
   )
     return false
-  const lines = (await dodoRequest(() =>
+  const lines = await dodoRequest(() =>
     client.payments.retrieveLineItems(
       payment.payment_id,
       payment.currency === checkout.currency
         ? { currency: payment.currency }
         : undefined,
     ),
-  )) as any
+  )
   if (lines.currency !== checkout.currency || lines.items?.length !== 1)
     return false
   const item = lines.items[0]
   return (
+    !!item &&
     item.items_id === checkout.product_id &&
     Number.isSafeInteger(item.amount) &&
     item.amount >= 0 &&
@@ -88,9 +101,9 @@ export async function discountedPaymentMatches(
 
 /** A free recurring invoice may omit service_periods; never infer a period from a setup authorization. */
 export function freeDiscountPeriod(
-  payment: any,
-  subscription: any,
-  checkout: any,
+  payment: Payment,
+  subscription: Subscription,
+  checkout: DiscountCheckout,
   notBefore: number,
 ) {
   if (
@@ -100,7 +113,7 @@ export function freeDiscountPeriod(
     payment.includes_usage ||
     payment.is_update_payment_method ||
     payment.is_multi_subscription ||
-    !['new', 'renewal'].includes(payment.charge_type) ||
+    !['new', 'renewal'].includes(payment.charge_type ?? '') ||
     subscription.status !== 'active' ||
     payment.service_periods?.length
   )
