@@ -1,4 +1,8 @@
 import {
+  discountedPaymentMatches,
+  freeDiscountPeriod,
+} from './payment-discounts.ts'
+import {
   closeFailedInitialCheckout,
   markAwaitingInitialCheckout,
 } from './unpaid-checkout.ts'
@@ -104,6 +108,8 @@ export async function syncDodoProducts(
           tax_category: 'saas' as const,
           price: {
             type: 'recurring_price' as const,
+            zero_amount_payment_method_optional: false,
+            trial_payment_method_optional: false,
             currency: plan.currency,
             price,
             payment_frequency_count: plan.period,
@@ -354,6 +360,8 @@ export async function createDodoCheckout(
     (price.trial_amount ?? 0) !== 0 ||
     (price.discount_bps ?? (price.discount ?? 0) * 100) !==
       product.discount_bps ||
+    price.zero_amount_payment_method_optional ||
+    price.trial_payment_method_optional ||
     price.purchasing_power_parity ||
     providerProduct.addons?.length
   )
@@ -377,7 +385,7 @@ export async function createDodoCheckout(
   try {
     const result = await db
       .prepare(
-        `INSERT INTO platform_payment_checkouts(id,workspace_id,user_id,request_id,plan_id,interval,product_id,price,currency,assignment_revision,state,created_at,updated_at,provider,environment,provider_key,handover_json) SELECT ?,?,?,?,?,?,?,?,?,?,'creating',?,?,'dodo',?,?,? WHERE ${activeFence} AND EXISTS(SELECT 1 FROM platform_workspace_plans WHERE workspace_id=? AND revision=?)`,
+        `INSERT INTO platform_payment_checkouts(id,workspace_id,user_id,request_id,plan_id,interval,product_id,price,currency,assignment_revision,state,created_at,updated_at,provider,environment,provider_key,handover_json,coupon_enabled) SELECT ?,?,?,?,?,?,?,?,?,?,'creating',?,?,'dodo',?,?,?,1 WHERE ${activeFence} AND EXISTS(SELECT 1 FROM platform_workspace_plans WHERE workspace_id=? AND revision=?)`,
       )
       .bind(
         id,
@@ -425,7 +433,7 @@ export async function createDodoCheckout(
           ).href,
           feature_flags: {
             allow_currency_selection: false,
-            allow_discount_code: false,
+            allow_discount_code: true,
             allow_customer_editing_email: false,
             allow_editing_addons: false,
           },
@@ -801,14 +809,19 @@ export async function reconcileDodoSubscription(
     // Adaptive pricing charges the customer in a local currency. Compare the
     // provider's settlement amount in the immutable product currency, never a
     // browser amount, guessed exchange rate, or a numeric total in another currency.
-    const amountMatches =
+    const couponMatches =
+      !identityError &&
       payment &&
-      Number.isSafeInteger(payment.total_amount) &&
-      payment.total_amount > 0 &&
-      (payment.currency === checkout.currency
-        ? payment.total_amount === checkout.price
-        : payment.settlement_currency === checkout.currency &&
-          payment.settlement_amount === checkout.price)
+      (await discountedPaymentMatches(client, checkout, payment))
+    const amountMatches =
+      couponMatches ||
+      (payment &&
+        Number.isSafeInteger(payment.total_amount) &&
+        payment.total_amount > 0 &&
+        (payment.currency === checkout.currency
+          ? payment.total_amount === checkout.price
+          : payment.settlement_currency === checkout.currency &&
+            payment.settlement_amount === checkout.price))
     const paid =
       payment?.status === 'succeeded' &&
       !identityError &&
@@ -822,9 +835,19 @@ export async function reconcileDodoSubscription(
       fail('payment_amount_mismatch', 422)
     }
     const period = paid
-      ? payment?.service_periods?.find(
+      ? (payment?.service_periods?.find(
           (p) => p.subscription_id === subscriptionId,
-        )
+        ) ??
+        (couponMatches
+          ? freeDiscountPeriod(
+              payment,
+              subscription,
+              checkout,
+              known?.activation_state === 'authorized'
+                ? known.handover_at
+                : (known?.period_end ?? checkout.created_at),
+            )
+          : null))
       : null
     if (!successful && !known) fail('payment_confirmation_pending')
     // Older Dodo responses can omit service_periods for the initial payment.
