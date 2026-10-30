@@ -37,7 +37,7 @@ const displayPhotos = computed(() => {
 })
 
 const viewer = useViewerState()
-const { currentPhotoIndex, isViewerOpen } = storeToRefs(viewer)
+const { currentPhotoIndex } = storeToRefs(viewer)
 
 const FIRST_SCREEN_ITEMS_COUNT = 50
 const MASONRY_GAP = 4
@@ -359,13 +359,6 @@ const scrollToPhoto = (photoIndex: number) => {
   }
 }
 
-watch(currentPhotoIndex, (newIndex) => {
-  if (isViewerOpen.value && newIndex >= 0) {
-    nextTick(() => {
-      scrollToPhoto(newIndex)
-    })
-  }
-})
 </script>
 
 <template>
