@@ -5,6 +5,7 @@ useHead({
 
 const { photos } = usePhotos()
 const route = useRoute()
+const { homeView } = useHomeView()
 const router = useRouter()
 const { clearAllFilters, toggleFilter } = usePhotoFilters()
 
@@ -28,7 +29,7 @@ watch(
 <template>
   <div class="relative h-screen">
     <div class="h-svh px-1">
-      <ClientOnly>
+      <ClientOnly v-if="route.path !== '/' || homeView !== 'albums'">
         <MasonryRoot
           :photos="photos"
           columns="auto"

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 definePageMeta({
   middleware: 'home-tag-redirect',
+  layout: 'masonry',
 })
 
 const { homeView } = useHomeView()
@@ -8,10 +9,5 @@ const { homeView } = useHomeView()
 
 <template>
   <AlbumListing v-if="homeView === 'albums'" />
-  <NuxtLayout
-    v-else
-    name="masonry"
-  >
-    <div />
-  </NuxtLayout>
+  <div v-else />
 </template>
