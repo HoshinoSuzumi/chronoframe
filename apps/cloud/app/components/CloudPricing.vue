@@ -65,7 +65,7 @@ const comparisonRows = computed(() => {
   ]
   return [...BILLING_LIMITS, 'conditions']
     .map((key) => ({
-      key,
+      key: String(key),
       label: t('cloud.billing.' + key),
       values: Object.fromEntries(
         (data.value?.plans ?? []).map((plan: any) => [
