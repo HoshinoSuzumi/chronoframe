@@ -9,19 +9,51 @@ export function useDodoCheckoutReturn(
     state = ref('idle')
   let generation = 0,
     alive = true,
-    timer: ReturnType<typeof setTimeout> | undefined
+    timer: ReturnType<typeof setTimeout> | undefined,
+    deadlineTimer: ReturnType<typeof setTimeout> | undefined,
+    windowKey = '',
+    deadline = 0
   async function check() {
     const current = ++generation
     if (timer) clearTimeout(timer)
+    if (deadlineTimer) clearTimeout(deadlineTimer)
     const id = toValue(workspaceId),
       checkout = route.query.checkout
     if (!toValue(enabled) || !id || typeof checkout !== 'string') {
       state.value = 'idle'
       return
     }
+    const key = `${id}:${checkout}`
+    if (windowKey !== key) {
+      windowKey = key
+      deadline = Date.now() + 60000
+    }
+    if (Date.now() >= deadline) {
+      state.value = 'pending'
+      return
+    }
     state.value = 'checking'
+    function expire() {
+      generation++
+      deadline = 0
+      if (timer) clearTimeout(timer)
+      if (deadlineTimer) clearTimeout(deadlineTimer)
+      state.value = 'pending'
+    }
+    function isCurrent() {
+      if (!alive || current !== generation) return false
+      if (Date.now() >= deadline) {
+        expire()
+        return false
+      }
+      return true
+    }
+    // Timers may be throttled in background tabs, so also check time after awaits.
+    deadlineTimer = setTimeout(() => {
+      if (alive && current === generation) expire()
+    }, deadline - Date.now())
     async function poll(attempt: number): Promise<void> {
-      if (!alive || current !== generation) return
+      if (!isCurrent()) return
       try {
         const result = await $fetch<{ state: string }>(
           '/api/billing/payments',
@@ -31,30 +63,33 @@ export function useDodoCheckoutReturn(
             body: { action: 'refresh', workspaceId: id, checkoutId: checkout },
           },
         )
-        if (!alive || current !== generation) return
+        if (!isCurrent()) return
         await refresh()
-        if (!alive || current !== generation) return
+        if (!isCurrent()) return
         if (
           ['completed', 'scheduled', 'expired', 'inactive'].includes(
             result.state,
           )
         ) {
+          if (deadlineTimer) clearTimeout(deadlineTimer)
           state.value = result.state
           return
         }
       } catch (error: any) {
-        if (!alive || current !== generation) return
+        if (!isCurrent()) return
         if (
           [400, 401, 403, 404, 410, 422, 503].includes(
             error?.statusCode ?? error?.status,
           )
         ) {
+          if (deadlineTimer) clearTimeout(deadlineTimer)
           state.value = 'failed'
           await refresh()
           return
         }
       }
       if (attempt >= 7) {
+        if (deadlineTimer) clearTimeout(deadlineTimer)
         state.value = 'pending'
         return
       }
@@ -77,6 +112,13 @@ export function useDodoCheckoutReturn(
     alive = false
     generation++
     if (timer) clearTimeout(timer)
+    if (deadlineTimer) clearTimeout(deadlineTimer)
   })
-  return { state, retry: check }
+  return {
+    state,
+    retry: () => {
+      windowKey = ''
+      return check()
+    },
+  }
 }

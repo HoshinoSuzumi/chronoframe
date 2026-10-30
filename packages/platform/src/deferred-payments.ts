@@ -1,3 +1,4 @@
+import { closeFailedInitialCheckout } from './unpaid-checkout.ts'
 import type { PlatformD1 } from './index.ts'
 import { DAY } from './payment-handover.ts'
 import { SubscriptionError, subscriptionInvalidation } from './subscriptions.ts'
@@ -128,6 +129,20 @@ export async function reconcileDeferredAuthorization(
       payment.disputes?.length)
   )
     fail('payment_subscription_mismatch')
+  if (
+    await closeFailedInitialCheckout(
+      db,
+      client,
+      checkout,
+      subscription,
+      payment,
+      known,
+      now,
+      fence,
+      fenceValues,
+    )
+  )
+    return { handled: true, paymentId }
   const at = known?.handover_at ?? time(subscription.next_billing_date)
   if (
     !Number.isSafeInteger(at) ||
