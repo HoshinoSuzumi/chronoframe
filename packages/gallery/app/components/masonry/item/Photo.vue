@@ -292,6 +292,12 @@ const handleClick = (event: Event) => {
     return
   }
 
+  // Pointer activation should not leave a keyboard focus outline behind when
+  // Escape closes the viewer. Keep focus for keyboard-activated photos.
+  if (event instanceof MouseEvent && event.detail > 0) {
+    photoRef.value?.blur()
+  }
+
   // Track photo view event in Google Analytics
   gtag('event', 'photo_view', {
     photo_id: props.photo.id,
