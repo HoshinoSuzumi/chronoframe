@@ -20,8 +20,18 @@ test('Site viewer route keeps scroll on open/close and preserves normal navigati
     {},
   ).default as {
     scrollBehavior(
-      to: { name?: string; path?: string; hash?: string },
-      from: { name?: string; path?: string },
+      to: {
+        name?: string
+        path?: string
+        hash?: string
+        query?: { photo?: string }
+      },
+      from: {
+        name?: string
+        path?: string
+        hash?: string
+        query?: { photo?: string }
+      },
       saved: unknown,
     ): unknown
   }
@@ -60,6 +70,34 @@ test('Site viewer route keeps scroll on open/close and preserves normal navigati
       ),
     ),
     { el: '#summer' },
+  )
+  assert.equal(
+    router.scrollBehavior(
+      { path: '/albums/summer', query: { photo: 'one' } },
+      { path: '/albums/summer' },
+      null,
+    ),
+    false,
+  )
+  assert.equal(
+    router.scrollBehavior(
+      { path: '/albums/summer' },
+      { path: '/albums/summer', query: { photo: 'one' } },
+      null,
+    ),
+    false,
+  )
+  assert.deepEqual(
+    JSON.parse(
+      JSON.stringify(
+        router.scrollBehavior(
+          { path: '/albums/winter' },
+          { path: '/albums/summer', query: { photo: 'one' } },
+          null,
+        ),
+      ),
+    ),
+    { top: 0 },
   )
   const saved = { left: 0, top: 900 }
   assert.equal(

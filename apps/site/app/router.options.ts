@@ -10,6 +10,16 @@ export default <RouterConfig>{
       return false
     }
 
+    // Album viewers use ?photo= on the same route instead of the slug page.
+    if (
+      to.path === from.path &&
+      to.path.startsWith('/albums/') &&
+      (typeof to.query?.photo === 'string' ||
+        typeof from.query?.photo === 'string') &&
+      to.hash === from.hash
+    )
+      return false
+
     if (
       from.name === 'slug' &&
       !to.hash &&
