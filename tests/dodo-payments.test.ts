@@ -26,6 +26,7 @@ import {
   closeAccountPayments,
 } from '../packages/platform/src/payments.ts'
 import {
+  cancelDeferredSubscription,
   syncDodoProducts,
   receiveDodoEvent,
   processDodoEvents,
@@ -154,6 +155,12 @@ async function fixture() {
     }
     if (url.pathname.startsWith('/products/'))
       return Response.json(products.get(url.pathname.split('/')[2]!))
+    if (url.pathname === '/checkouts/preview')
+      return Response.json({
+        payment_method_required: true,
+        current_breakup: { total_amount: 0 },
+        trial_amount: null,
+      })
     if (url.pathname === '/checkouts' && init?.method === 'POST') {
       if (createUncertain) throw Error('provider raw secret')
       const id = 'cks_' + environment + '_' + sessions.size
@@ -163,6 +170,7 @@ async function fixture() {
         product_id: body.product_cart[0].product_id,
         payment_id: null,
         payment_status: null,
+        trial_period_days: body.subscription_data?.trial_period_days ?? 0,
       })
       return Response.json({
         session_id: id,
@@ -171,8 +179,13 @@ async function fixture() {
     }
     if (url.pathname.startsWith('/checkouts/'))
       return Response.json(sessions.get(url.pathname.split('/')[2]!))
-    if (url.pathname.startsWith('/subscriptions/'))
-      return Response.json(subscriptions.get(url.pathname.split('/')[2]!))
+    if (url.pathname.startsWith('/subscriptions/')) {
+      const sub = subscriptions.get(url.pathname.split('/')[2]!)
+      if (init?.method === 'PATCH') Object.assign(sub, body)
+      return Response.json(sub)
+    }
+    if (url.pathname === '/subscriptions')
+      return Response.json({ items: [...subscriptions.values()] })
     if (url.pathname === '/payments')
       return Response.json({ items: [...payments.values()] })
     if (url.pathname.startsWith('/payments/'))
@@ -2120,3 +2133,447 @@ for (const state of ['submitting', 'pending', 'scheduled', 'uncertain']) {
     }
   })
 }
+
+const origin = 'https://app.chronoframe.art'
+async function handoverFixture(source = 'activation', higher = false) {
+  const f = await fixture(),
+    originalStart = f.now - 2 * 86400000,
+    originalEnd = f.now + 3.4 * 86400000
+  await f.db
+    .prepare(
+      "UPDATE platform_workspace_plans SET plan_id='pro',source=?,starts_at=?,expires_at=?,revision=revision+1 WHERE workspace_id=1",
+    )
+    .bind(source, originalStart, originalEnd)
+    .run()
+  if (higher) {
+    await f.db
+      .prepare(
+        "INSERT INTO platform_plans(id,name,policy_json,currency,monthly_price,quarterly_price) SELECT 'studio','Studio',policy_json,'USD',2400,6000 FROM platform_plans WHERE id='pro'",
+      )
+      .run()
+    await savePaymentPlanRule(
+      f.db,
+      1,
+      {
+        fromPlan: 'pro',
+        toPlan: 'studio',
+        direction: 'upgrade',
+        enabled: true,
+        revision: 0,
+        reason: 'Allow paid tier upgrades',
+      },
+      f.now,
+    )
+  }
+  await syncDodoProducts(f.db, root, f.transport, f.now, 10)
+  return { ...f, originalStart, originalEnd }
+}
+async function authorizeHandover(
+  f: Awaited<ReturnType<typeof handoverFixture>>,
+  planId = 'pro',
+) {
+  const checkout = await createPaymentCheckout(
+    f.db,
+    root,
+    1,
+    { ...input('handover_checkout'), planId, startMode: 'after_entitlement' },
+    origin,
+    f.transport,
+    f.now,
+  )
+  const { sub, payment, session } = await f.paid(checkout)
+  sub.trial_period_days = session.trial_period_days
+  sub.previous_billing_date = new Date(f.now).toISOString()
+  const at = f.now + sub.trial_period_days * 86400000
+  sub.next_billing_date = new Date(at).toISOString()
+  payment.total_amount = 0
+  payment.service_periods = []
+  const result = await refreshDodoCheckout(
+    f.db,
+    root,
+    1,
+    1,
+    checkout.id,
+    f.transport,
+    f.now + 1000,
+  )
+  assert.equal(result.state, 'scheduled')
+  return { checkout, sub, payment, session, at }
+}
+for (const source of ['promotion', 'activation'])
+  test(`${source} same-tier conversion authorizes without charging, preserves quota anchor, then activates only a paid service period`, async () => {
+    const f = await handoverFixture(source)
+    try {
+      const { checkout, sub, payment, at } = await authorizeHandover(f)
+      assert.equal(sub.trial_period_days, 4)
+      assert.ok(at >= f.originalEnd)
+      const before = await f.db
+        .prepare('SELECT * FROM platform_workspace_plans WHERE workspace_id=1')
+        .first<any>()
+      assert.equal(before.source, source)
+      assert.equal(before.starts_at, f.originalStart)
+      assert.equal(before.expires_at, at)
+      const status = await paymentStatus(f.db, 1, 1)
+      assert.equal((status.reservation as any).startsAt, at)
+      assert.equal(status.hasActiveSubscription, true)
+      assert.equal(status.canOpenPortal, true)
+      const { requireNoHandover } =
+        await import('../packages/platform/src/payment-handover.ts')
+      await assert.rejects(requireNoHandover(f.db, 1), {
+        code: 'payment_handover_exists',
+      })
+      await refreshDodoCheckout(
+        f.db,
+        root,
+        1,
+        1,
+        checkout.id,
+        f.transport,
+        f.now + 2000,
+      )
+      assert.equal(
+        (
+          await f.db
+            .prepare(
+              'SELECT revision FROM platform_workspace_plans WHERE workspace_id=1',
+            )
+            .first<any>()
+        ).revision,
+        before.revision,
+      )
+      sub.previous_billing_date = new Date(at).toISOString()
+      sub.next_billing_date = new Date(at + 28 * 86400000).toISOString()
+      const first = {
+        ...payment,
+        payment_id: 'pay_first_handover',
+        total_amount: 1200,
+        created_at: new Date(at + 1000).toISOString(),
+        service_periods: [
+          {
+            subscription_id: sub.subscription_id,
+            starts_at: sub.previous_billing_date,
+            ends_at: sub.next_billing_date,
+          },
+        ],
+      }
+      f.payments.set(first.payment_id, first)
+      const completed = await refreshDodoCheckout(
+        f.db,
+        root,
+        1,
+        1,
+        checkout.id,
+        f.transport,
+        at + 2000,
+      )
+      assert.equal(completed.state, 'completed')
+      const grant = await f.db
+        .prepare('SELECT * FROM platform_workspace_plans WHERE workspace_id=1')
+        .first<any>()
+      assert.equal(grant.source, 'payment')
+      assert.equal(grant.plan_id, 'pro')
+      assert.equal(grant.starts_at, at)
+      assert.equal(grant.expires_at, at + 28 * 86400000)
+      assert.equal(
+        (
+          await f.db
+            .prepare(
+              'SELECT activation_state FROM platform_payment_subscriptions',
+            )
+            .first<any>()
+        ).activation_state,
+        'paid',
+      )
+      await refreshDodoCheckout(
+        f.db,
+        root,
+        1,
+        1,
+        checkout.id,
+        f.transport,
+        at + 3000,
+      )
+      assert.equal(
+        (
+          await f.db
+            .prepare(
+              'SELECT starts_at FROM platform_workspace_plans WHERE workspace_id=1',
+            )
+            .first<any>()
+        ).starts_at,
+        at,
+      )
+    } finally {
+      await f.mf.dispose()
+    }
+  })
+test('deferred higher-tier purchase keeps the old tier until first payment; failure cannot extend complimentary access', async () => {
+  const f = await handoverFixture('activation', true)
+  try {
+    const { checkout, sub, payment, at } = await authorizeHandover(f, 'studio')
+    assert.equal(
+      (
+        await f.db
+          .prepare(
+            'SELECT plan_id FROM platform_workspace_plans WHERE workspace_id=1',
+          )
+          .first<any>()
+      ).plan_id,
+      'pro',
+    )
+    payment.status = 'failed'
+    payment.total_amount = 2400
+    sub.status = 'on_hold'
+    sub.next_billing_date = new Date(at + 28 * 86400000).toISOString()
+    await refreshDodoCheckout(
+      f.db,
+      root,
+      1,
+      1,
+      checkout.id,
+      f.transport,
+      at + 2000,
+    )
+    const grant = await f.db
+      .prepare('SELECT * FROM platform_workspace_plans WHERE workspace_id=1')
+      .first<any>()
+    assert.equal(grant.plan_id, 'pro')
+    assert.equal(grant.expires_at, at)
+    assert.equal((await paymentStatus(f.db, 1, 1)).canOpenPortal, true)
+    const { resolveSubscription } =
+      await import('../packages/platform/src/subscriptions.ts')
+    assert.equal((await resolveSubscription(f.db, 1, at + 2000)).id, 'free')
+  } finally {
+    await f.mf.dispose()
+  }
+})
+test('reservation cancellation restores original expiry and releases code redemption; wrong owners and imminent billing cannot cancel', async () => {
+  const f = await handoverFixture()
+  try {
+    const { checkout, sub, at } = await authorizeHandover(f)
+    await assert.rejects(
+      cancelDeferredSubscription(f.db, root, 2, 1, f.transport, f.now + 1000),
+      { code: 'workspace_admin_required' },
+    )
+    await assert.rejects(
+      cancelDeferredSubscription(f.db, root, 1, 1, f.transport, at - 1000),
+      { code: 'payment_handover_due' },
+    )
+    await cancelDeferredSubscription(
+      f.db,
+      root,
+      1,
+      1,
+      f.transport,
+      f.now + 2000,
+    )
+    assert.equal(sub.status, 'cancelled')
+    const grant = await f.db
+      .prepare('SELECT * FROM platform_workspace_plans WHERE workspace_id=1')
+      .first<any>()
+    assert.equal(grant.expires_at, f.originalEnd)
+    assert.equal(grant.starts_at, f.originalStart)
+    assert.equal(grant.source, 'activation')
+    assert.equal(
+      (
+        await refreshDodoCheckout(
+          f.db,
+          root,
+          1,
+          1,
+          checkout.id,
+          f.transport,
+          f.now + 3000,
+        )
+      ).state,
+      'inactive',
+    )
+    const { requireNoHandover } =
+      await import('../packages/platform/src/payment-handover.ts')
+    await requireNoHandover(f.db, 1)
+    assert.equal((await paymentStatus(f.db, 1, 1)).hasActiveSubscription, false)
+  } finally {
+    await f.mf.dispose()
+  }
+})
+test('explicit immediate upgrades require replacement consent; invalid transitions and permanent same-tier conversion are rejected', async () => {
+  const f = await handoverFixture('activation', true)
+  try {
+    await assert.rejects(
+      createPaymentCheckout(
+        f.db,
+        root,
+        1,
+        {
+          ...input('upgrade_missing_consent'),
+          planId: 'studio',
+          startMode: 'immediate',
+        },
+        origin,
+        f.transport,
+        f.now,
+      ),
+      { code: 'payment_replace_confirmation_required' },
+    )
+    const checkout = await createPaymentCheckout(
+      f.db,
+      root,
+      1,
+      {
+        ...input('upgrade_with_consent'),
+        planId: 'studio',
+        startMode: 'immediate',
+        replaceEntitlement: true,
+      },
+      origin,
+      f.transport,
+      f.now,
+    )
+    assert.equal(
+      f.sessions.get(checkout.url.split('/').pop()!)?.trial_period_days,
+      0,
+    )
+    await f.paid(checkout)
+    await refreshDodoCheckout(
+      f.db,
+      root,
+      1,
+      1,
+      checkout.id,
+      f.transport,
+      f.now + 1000,
+    )
+    assert.equal(
+      (
+        await f.db
+          .prepare(
+            'SELECT plan_id FROM platform_workspace_plans WHERE workspace_id=1',
+          )
+          .first<any>()
+      ).plan_id,
+      'studio',
+    )
+  } finally {
+    await f.mf.dispose()
+  }
+  const permanent = await handoverFixture()
+  try {
+    await permanent.db
+      .prepare(
+        'UPDATE platform_workspace_plans SET expires_at=NULL WHERE workspace_id=1',
+      )
+      .run()
+    await assert.rejects(
+      createPaymentCheckout(
+        permanent.db,
+        root,
+        1,
+        input('permanent_conversion'),
+        origin,
+        permanent.transport,
+        permanent.now,
+      ),
+      { code: 'permanent_plan_active' },
+    )
+  } finally {
+    await permanent.mf.dispose()
+  }
+})
+
+test('handover refuses cardless authorization and preserves the original grant', async () => {
+  const f = await handoverFixture()
+  try {
+    const transport: typeof fetch = async (url, init) =>
+      String(url).includes('/checkouts/preview')
+        ? Response.json({
+            payment_method_required: false,
+            current_breakup: { total_amount: 0 },
+          })
+        : f.transport(url, init)
+    await assert.rejects(
+      createPaymentCheckout(
+        f.db,
+        root,
+        1,
+        input('cardless_handover'),
+        origin,
+        transport,
+        f.now,
+      ),
+      { code: 'payment_trial_unavailable' },
+    )
+    assert.equal(f.sessions.size, 0)
+    assert.equal(
+      (
+        await f.db
+          .prepare(
+            'SELECT expires_at FROM platform_workspace_plans WHERE workspace_id=1',
+          )
+          .first<any>()
+      ).expires_at,
+      f.originalEnd,
+    )
+  } finally {
+    await f.mf.dispose()
+  }
+})
+test('superseded handovers cancel without overwriting a newer entitlement', async () => {
+  const f = await handoverFixture()
+  try {
+    const { checkout, sub } = await authorizeHandover(f)
+    await f.db
+      .prepare(
+        "UPDATE platform_workspace_plans SET source='manual',expires_at=?,revision=revision+1 WHERE workspace_id=1",
+      )
+      .bind(f.originalEnd + 10 * 86400000)
+      .run()
+    await refreshDodoCheckout(
+      f.db,
+      root,
+      1,
+      1,
+      checkout.id,
+      f.transport,
+      f.now + 2000,
+    )
+    assert.equal(sub.status, 'cancelled')
+    const grant = await f.db
+      .prepare(
+        'SELECT source,expires_at FROM platform_workspace_plans WHERE workspace_id=1',
+      )
+      .first<any>()
+    assert.equal(grant.source, 'manual')
+    assert.equal(grant.expires_at, f.originalEnd + 10 * 86400000)
+  } finally {
+    await f.mf.dispose()
+  }
+})
+test('an authorization without a payment ID converges and blocks redemption until canceled', async () => {
+  const f = await handoverFixture()
+  try {
+    const { checkout, session } = await authorizeHandover(f)
+    session.payment_id = null
+    f.payments.clear()
+    assert.equal(
+      (
+        await refreshDodoCheckout(
+          f.db,
+          root,
+          1,
+          1,
+          checkout.id,
+          f.transport,
+          f.now + 2000,
+        )
+      ).state,
+      'scheduled',
+    )
+    const { requireNoHandover } =
+      await import('../packages/platform/src/payment-handover.ts')
+    await assert.rejects(requireNoHandover(f.db, 1), {
+      code: 'payment_handover_exists',
+    })
+  } finally {
+    await f.mf.dispose()
+  }
+})

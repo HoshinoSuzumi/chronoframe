@@ -135,6 +135,10 @@ const offer = (plan: any) =>
   payment.value?.enabled &&
   payment.value?.canManage &&
   !payment.value?.hasActiveSubscription &&
+  (!payment.value.entitlement ||
+    (plan.id === payment.value.entitlement.planId
+      ? payment.value.entitlement.expiresAt !== null
+      : payment.value.entitlement.upgradePlans.includes(plan.id))) &&
   payment.value.offers.some(
     (v: any) => v.plan_id === plan.id && v.interval === interval.value,
   )
@@ -200,10 +204,61 @@ watch(
   () => billing?.selected.value,
   () => {
     changeOpen.value = false
+    checkoutOpen.value = false
+    cancelOpen.value = false
     changeQuote.value = null
   },
 )
-async function checkout(plan: any) {
+const checkoutOpen = ref(false),
+  checkoutPlan = ref<any>(null),
+  startMode = ref('immediate'),
+  replaceConfirmed = ref(false),
+  cancelOpen = ref(false),
+  cancelling = ref(false)
+const entitlement = computed(() => payment.value?.entitlement)
+const date = (value: number) => new Date(value).toLocaleString(locale.value)
+function checkout(plan: any) {
+  if (entitlement.value) {
+    checkoutPlan.value = plan
+    startMode.value =
+      plan.id === entitlement.value.planId ? 'after_entitlement' : 'immediate'
+    replaceConfirmed.value = false
+    checkoutOpen.value = true
+  } else void submitCheckout(plan)
+}
+async function cancelReservation() {
+  if (cancelling.value || !billing?.selected.value) return
+  cancelling.value = true
+  paymentError.value = ''
+  try {
+    await $fetch('/api/billing/payments', {
+      method: 'POST',
+      timeout: 15000,
+      body: {
+        action: 'cancel-reservation',
+        workspaceId: billing.selected.value,
+      },
+    })
+    cancelOpen.value = false
+    await Promise.all([
+      payments?.refresh({ reconcile: false }),
+      billing.refresh(),
+    ])
+  } catch {
+    paymentError.value = t('cloud.payments.cancelReservationFailed')
+  } finally {
+    cancelling.value = false
+  }
+}
+async function confirmCheckout() {
+  if (
+    !checkoutPlan.value ||
+    (startMode.value === 'immediate' && !replaceConfirmed.value)
+  )
+    return
+  await submitCheckout(checkoutPlan.value, startMode.value)
+}
+async function submitCheckout(plan: any, mode?: string) {
   if (paying.value || !billing?.selected.value) return
   const workspaceId = billing.selected.value,
     key = plan.id + ':' + interval.value
@@ -218,13 +273,20 @@ async function checkout(plan: any) {
         planId: plan.id,
         interval: interval.value,
         requestId: crypto.randomUUID(),
+        startMode: mode,
+        replaceEntitlement: mode === 'immediate' && replaceConfirmed.value,
       },
     })
     if (mounted && workspaceId === billing.selected.value)
       await navigateTo(result.url, { external: true })
-  } catch {
+  } catch (error: any) {
     if (mounted) {
-      paymentError.value = t('cloud.payments.failed')
+      const code = error?.data?.data?.code ?? error?.data?.code
+      paymentError.value = t(
+        code === 'payment_trial_unavailable'
+          ? 'cloud.payments.trialUnavailable'
+          : 'cloud.payments.failed',
+      )
       await payments?.refresh()
     }
   } finally {
@@ -334,6 +396,31 @@ async function checkout(plan: any) {
         {{ $t('cloud.billing.current') }}: {{ billing.data.value.plan.name }}
       </p>
     </template>
+    <CfCard
+      v-if="portal && payment?.reservation"
+      class="cf-notice"
+    >
+      <p>
+        {{
+          $t('cloud.payments.reservationStatus', {
+            plan: payment.reservation.planName,
+            date: date(payment.reservation.startsAt),
+          })
+        }}
+      </p>
+      <p v-if="payment.reservation.status === 'past_due'">
+        {{ $t('cloud.payments.reservationPaymentDue') }}
+      </p>
+      <CfButton
+        v-if="payment.reservation.canCancel"
+        variant="secondary"
+        :disabled="
+          cancelling || payment.reservation.startsAt <= Date.now() + 60000
+        "
+        @click="cancelOpen = true"
+        >{{ $t('cloud.payments.cancelReservation') }}</CfButton
+      >
+    </CfCard>
     <CfCard
       v-if="error"
       role="alert"
@@ -455,7 +542,9 @@ async function checkout(plan: any) {
             }}
           </CfButton>
           <CfButton
-            v-else-if="portal && plan.id === currentPlan"
+            v-else-if="
+              portal && plan.id === currentPlan && !(entitlement && offer(plan))
+            "
             disabled
             variant="secondary"
             >{{ $t('cloud.billing.current') }}</CfButton
@@ -622,6 +711,104 @@ async function checkout(plan: any) {
         >{{ $t('cloud.billing.redeem') }}</NuxtLink
       >
     </div>
+    <UModal
+      v-model:open="checkoutOpen"
+      :title="$t('cloud.payments.subscribeConfirm')"
+      :description="checkoutPlan?.name"
+    >
+      <template #body
+        ><div
+          class="cf-handover-options"
+          v-if="entitlement && checkoutPlan"
+        >
+          <p>
+            {{
+              $t('cloud.payments.currentEntitlement', {
+                plan: entitlement.name,
+                date:
+                  entitlement.expiresAt === null
+                    ? $t('cloud.billing.noExpiry')
+                    : date(entitlement.expiresAt),
+              })
+            }}
+          </p>
+          <label v-if="checkoutPlan.id !== entitlement.planId"
+            ><input
+              v-model="startMode"
+              type="radio"
+              value="immediate"
+            />{{ $t('cloud.payments.startImmediately') }}</label
+          >
+          <label v-if="entitlement.expiresAt !== null"
+            ><input
+              v-model="startMode"
+              type="radio"
+              value="after_entitlement"
+            />{{ $t('cloud.payments.startAfterEntitlement') }}</label
+          >
+          <p>
+            {{
+              $t(
+                startMode === 'after_entitlement'
+                  ? 'cloud.payments.deferredExplanation'
+                  : 'cloud.payments.replaceExplanation',
+              )
+            }}
+          </p>
+          <label v-if="startMode === 'immediate'"
+            ><input
+              v-model="replaceConfirmed"
+              type="checkbox"
+            />{{ $t('cloud.payments.replaceConsent') }}</label
+          >
+          <p
+            v-if="paymentError"
+            role="alert"
+            class="cf-error-message"
+          >
+            {{ paymentError }}
+          </p>
+        </div></template
+      >
+      <template #footer
+        ><CfButton
+          variant="secondary"
+          :disabled="!!paying"
+          @click="checkoutOpen = false"
+          >{{ $t('cloud.billing.cancel') }}</CfButton
+        ><CfButton
+          :loading="!!paying"
+          :disabled="startMode === 'immediate' && !replaceConfirmed"
+          @click="confirmCheckout"
+          >{{ $t('cloud.payments.continueCheckout') }}</CfButton
+        ></template
+      >
+    </UModal>
+    <UModal
+      v-model:open="cancelOpen"
+      :title="$t('cloud.payments.cancelReservation')"
+      :description="$t('cloud.payments.cancelReservationHelp')"
+      ><template #body
+        ><p
+          v-if="paymentError"
+          role="alert"
+          class="cf-error-message"
+        >
+          {{ paymentError }}
+        </p></template
+      ><template #footer
+        ><CfButton
+          variant="secondary"
+          :disabled="cancelling"
+          @click="cancelOpen = false"
+          >{{ $t('cloud.billing.cancel') }}</CfButton
+        ><CfButton
+          :loading="cancelling"
+          @click="cancelReservation"
+          >{{ $t('cloud.payments.cancelReservation') }}</CfButton
+        ></template
+      ></UModal
+    >
     <UModal
       v-model:open="changeOpen"
       :title="$t('cloud.payments.changeTitle')"

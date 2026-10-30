@@ -1,3 +1,5 @@
+import { checkoutHandover } from './payment-handover.ts'
+import { reconcileDeferredAuthorization } from './deferred-payments.ts'
 import { discountedPrice } from '../../contracts/src/pricing.ts'
 import { paymentProductSnapshot } from './payment-product-sync.ts'
 import type { PlatformD1 } from './index.ts'
@@ -238,6 +240,8 @@ export async function createDodoCheckout(
     planId: string
     interval: number
     requestId: string
+    startMode?: string
+    replaceEntitlement?: boolean
   },
   origin: string,
   transport: typeof fetch = fetch,
@@ -275,7 +279,9 @@ export async function createDodoCheckout(
       existing.interval !== input.interval ||
       existing.provider !== 'dodo' ||
       existing.provider_key !== key ||
-      existing.environment !== environment
+      existing.environment !== environment ||
+      (input.startMode !== undefined &&
+        !!existing.handover_json !== (input.startMode === 'after_entitlement'))
     )
       fail('payment_request_conflict')
     if (existing.state === 'open' && existing.checkout_url)
@@ -299,6 +305,17 @@ export async function createDodoCheckout(
     .bind(input.workspaceId)
     .first<any>()
   if (!prior) fail('workspace_unavailable', 404)
+  const handover = await checkoutHandover(
+    db,
+    input.workspaceId,
+    input.planId,
+    input.startMode,
+    input.replaceEntitlement,
+    now,
+  )
+  const handoverJson = handover
+    ? JSON.stringify({ ...handover, email: member.email })
+    : null
   // Rate limit includes failed attempts, and the partial unique index serializes new sessions per workspace.
   const budget = await db
     .prepare(
@@ -330,17 +347,33 @@ export async function createDodoCheckout(
     price.payment_frequency_count !== input.interval ||
     !price.tax_inclusive ||
     (price.trial_period_days ?? 0) !== 0 ||
+    (price.trial_amount ?? 0) !== 0 ||
     (price.discount_bps ?? (price.discount ?? 0) * 100) !==
       product.discount_bps ||
     price.purchasing_power_parity ||
     providerProduct.addons?.length
   )
     fail('payment_product_mismatch', 422)
+  if (handover) {
+    const preview = await dodoRequest(() =>
+      client.checkoutSessions.preview({
+        product_cart: [{ product_id: product.product_id, quantity: 1 }],
+        billing_currency: product.currency,
+        subscription_data: { trial_period_days: handover.trialDays },
+      }),
+    )
+    if (
+      preview.payment_method_required !== true ||
+      preview.current_breakup.total_amount !== 0 ||
+      (preview.trial_amount ?? 0) !== 0
+    )
+      fail('payment_trial_unavailable', 422)
+  }
   const id = crypto.randomUUID()
   try {
     const result = await db
       .prepare(
-        `INSERT INTO platform_payment_checkouts(id,workspace_id,user_id,request_id,plan_id,interval,product_id,price,currency,assignment_revision,state,created_at,updated_at,provider,environment,provider_key) SELECT ?,?,?,?,?,?,?,?,?,?,'creating',?,?,'dodo',?,? WHERE ${activeFence}`,
+        `INSERT INTO platform_payment_checkouts(id,workspace_id,user_id,request_id,plan_id,interval,product_id,price,currency,assignment_revision,state,created_at,updated_at,provider,environment,provider_key,handover_json) SELECT ?,?,?,?,?,?,?,?,?,?,'creating',?,?,'dodo',?,?,? WHERE ${activeFence} AND EXISTS(SELECT 1 FROM platform_workspace_plans WHERE workspace_id=? AND revision=?)`,
       )
       .bind(
         id,
@@ -357,8 +390,11 @@ export async function createDodoCheckout(
         now,
         environment,
         key,
+        handoverJson,
         key,
         revision,
+        input.workspaceId,
+        prior.revision,
       )
       .run()
     if (!result.meta.changes) fail('payment_unavailable', 503)
@@ -372,6 +408,7 @@ export async function createDodoCheckout(
         {
           product_cart: [{ product_id: product.product_id, quantity: 1 }],
           billing_currency: product.currency,
+          subscription_data: { trial_period_days: handover?.trialDays ?? 0 },
           customer: { email: member.email },
           metadata: {
             chronoframe_checkout_id: id,
@@ -616,11 +653,40 @@ export async function reconcileDodoSubscription(
       subscription.payment_frequency_interval !== 'Month' ||
       subscription.payment_frequency_count !== checkout.interval ||
       subscription.on_demand ||
-      subscription.trial_period_days !== 0
+      !(
+        known?.activation_state === 'paid'
+          ? [
+              0,
+              checkout.handover_json
+                ? JSON.parse(checkout.handover_json).trialDays
+                : 0,
+            ]
+          : [
+              checkout.handover_json
+                ? JSON.parse(checkout.handover_json).trialDays
+                : 0,
+            ]
+      ).includes(subscription.trial_period_days)
     )
       fail('payment_subscription_mismatch', 422)
+    if (checkout.handover_json) {
+      const deferred = await reconcileDeferredAuthorization(
+        db,
+        client,
+        checkout,
+        subscription,
+        known,
+        paymentId,
+        now,
+        `${activeFence} AND EXISTS(SELECT 1 FROM platform_payment_locks WHERE workspace_id=? AND token=?)`,
+        [key, revision, checkout.workspace_id, token],
+        localId,
+      )
+      if (deferred.handled) return checkout.id as string
+      paymentId = deferred.paymentId
+    }
     // An initial grant must also be bound to the payment returned by our stored checkout session.
-    if (!known && checkout.provider_id) {
+    if (!known && checkout.provider_id && !checkout.handover_json) {
       const session = await dodoRequest(() =>
         client.checkoutSessions.retrieve(rawDodoId(checkout.provider_id)),
       )
@@ -805,20 +871,29 @@ export async function reconcileDodoSubscription(
         .first()
     )
       fail('payment_account_unavailable')
-    const canAssign = known
-      ? prior?.payment_subscription_id === localId &&
-        ['payment', 'expired_default'].includes(prior.source)
-      : prior?.revision === checkout.assignment_revision ||
+    const initialHandover =
+      !!checkout.handover_json &&
+      (!known || known.activation_state === 'authorized')
+    const handoverRevision =
+      known?.handover_revision ?? checkout.assignment_revision
+    const canAssign = initialHandover
+      ? prior?.revision === handoverRevision ||
         (prior?.source === 'expired_default' &&
-          prior.revision === checkout.assignment_revision + 1)
-    const anchor = known?.quota_anchor ?? start
+          prior.revision === handoverRevision + 1)
+      : known
+        ? prior?.payment_subscription_id === localId &&
+          ['payment', 'expired_default'].includes(prior.source)
+        : prior?.revision === checkout.assignment_revision ||
+          (prior?.source === 'expired_default' &&
+            prior.revision === checkout.assignment_revision + 1)
+    const anchor = initialHandover ? start : (known?.quota_anchor ?? start)
     const eventId = crypto.randomUUID()
     const fence = `${activeFence} AND EXISTS(SELECT 1 FROM platform_payment_locks WHERE workspace_id=? AND token=?)`
     const bindFence = [key, revision, checkout.workspace_id, token]
     const writes = [
       db
         .prepare(
-          `INSERT INTO platform_payment_subscriptions(id,workspace_id,checkout_id,customer_id,product_id,plan_id,interval,quota_anchor,status,period_start,period_end,provider_updated_at,checked_at,next_check_at,error,provider,environment,provider_key,price,currency) SELECT ?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'dodo',?,?,?,? WHERE ${fence} ON CONFLICT(id) DO UPDATE SET product_id=excluded.product_id,plan_id=excluded.plan_id,interval=excluded.interval,price=excluded.price,currency=excluded.currency,status=excluded.status,period_start=excluded.period_start,period_end=excluded.period_end,checked_at=excluded.checked_at,next_check_at=excluded.next_check_at,error=excluded.error,revision=platform_payment_subscriptions.revision+1`,
+          `INSERT INTO platform_payment_subscriptions(id,workspace_id,checkout_id,customer_id,product_id,plan_id,interval,quota_anchor,status,period_start,period_end,provider_updated_at,checked_at,next_check_at,error,provider,environment,provider_key,price,currency) SELECT ?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'dodo',?,?,?,? WHERE ${fence} ON CONFLICT(id) DO UPDATE SET quota_anchor=CASE WHEN platform_payment_subscriptions.activation_state='authorized' THEN excluded.quota_anchor ELSE platform_payment_subscriptions.quota_anchor END,activation_state='paid',product_id=excluded.product_id,plan_id=excluded.plan_id,interval=excluded.interval,price=excluded.price,currency=excluded.currency,status=excluded.status,period_start=excluded.period_start,period_end=excluded.period_end,checked_at=excluded.checked_at,next_check_at=excluded.next_check_at,error=excluded.error,revision=platform_payment_subscriptions.revision+1`,
         )
         .bind(
           localId,
@@ -1133,6 +1208,44 @@ export async function refreshDodoCheckout(
   )
   if (session.id !== rawDodoId(row.provider_id))
     fail('payment_checkout_mismatch', 422)
+  if (row.handover_json && !session.payment_id) {
+    const known = await db
+      .prepare(
+        'SELECT id FROM platform_payment_subscriptions WHERE checkout_id=?',
+      )
+      .bind(row.id)
+      .first<any>()
+    let subscriptionId = known ? rawDodoId(known.id) : undefined
+    if (!subscriptionId) {
+      const subscriptions = await dodoRequest(() =>
+        client.subscriptions.list({
+          product_id: row.product_id,
+          created_at_gte: new Date(row.created_at - 60000).toISOString(),
+          created_at_lte: new Date(row.created_at + 86400000).toISOString(),
+          page_size: 100,
+        }),
+      )
+      const matching = subscriptions.items.filter(
+        (s) =>
+          s.metadata?.chronoframe_checkout_id === row.id &&
+          s.metadata?.chronoframe_profile_id === key &&
+          s.metadata?.chronoframe_environment === environment,
+      )
+      if (matching.length > 1) fail('payment_subscription_mismatch', 422)
+      subscriptionId = matching[0]?.subscription_id
+    }
+    if (subscriptionId)
+      await reconcileDodoSubscription(
+        db,
+        secret,
+        environment,
+        subscriptionId,
+        undefined,
+        transport,
+        now,
+        key,
+      )
+  }
   if (session.payment_id) {
     const payment = await dodoRequest(() =>
       client.payments.retrieve(session.payment_id!),
@@ -1169,7 +1282,7 @@ export async function refreshDodoCheckout(
   } else if (now - row.created_at > 86400000)
     await db
       .prepare(
-        "UPDATE platform_payment_checkouts SET state='expired',updated_at=? WHERE id=? AND state='open'",
+        "UPDATE platform_payment_checkouts SET state='expired',updated_at=? WHERE id=? AND state='open' AND NOT EXISTS(SELECT 1 FROM platform_payment_subscriptions WHERE checkout_id=platform_payment_checkouts.id)",
       )
       .bind(now, row.id)
       .run()
@@ -1181,7 +1294,7 @@ export async function refreshDodoCheckout(
     .run()
   const latest = await db
     .prepare(
-      'SELECT c.state,c.error,s.status FROM platform_payment_checkouts c LEFT JOIN platform_payment_subscriptions s ON s.checkout_id=c.id WHERE c.id=?',
+      'SELECT c.state,c.error,s.status,s.activation_state FROM platform_payment_checkouts c LEFT JOIN platform_payment_subscriptions s ON s.checkout_id=c.id WHERE c.id=?',
     )
     .bind(row.id)
     .first<any>()
@@ -1190,7 +1303,10 @@ export async function refreshDodoCheckout(
       latest.error === 'payment_subscription_inactive' ||
       ['canceled', 'expired', 'failed'].includes(latest.status)
         ? 'inactive'
-        : latest.state,
+        : latest.activation_state === 'authorized' &&
+            latest.state === 'completed'
+          ? 'scheduled'
+          : latest.state,
   }
 }
 export async function reconcileDodoPayments(
@@ -1331,4 +1447,72 @@ export async function closeDodoAccountPayments(
     )
     .bind(userId, userId)
     .first())
+}
+
+export async function cancelDeferredSubscription(
+  db: PlatformD1,
+  secret: string,
+  userId: number,
+  workspaceId: number,
+  transport: typeof fetch = fetch,
+  now = Date.now(),
+) {
+  await paymentMember(db, userId, workspaceId, true)
+  const environment = await selectedEnvironment(db),
+    key = (await paymentSettings(db)).currentProvider!
+  const row = await db
+    .prepare(
+      "SELECT s.* FROM platform_payment_subscriptions s JOIN platform_payment_checkouts c ON c.id=s.checkout_id WHERE s.workspace_id=? AND c.user_id=? AND s.provider_key=? AND s.activation_state='authorized' AND s.status NOT IN('canceled','expired','failed')",
+    )
+    .bind(workspaceId, userId, key)
+    .first<any>()
+  if (!row) fail('payment_handover_unavailable', 404)
+  const { client } = await dodoClient(
+    db,
+    secret,
+    environment,
+    transport,
+    true,
+    key,
+  )
+  const actual = await dodoRequest(() =>
+    client.subscriptions.retrieve(rawDodoId(row.id)),
+  )
+  if (
+    actual.customer.customer_id !== row.customer_id ||
+    actual.metadata?.chronoframe_checkout_id !== row.checkout_id
+  )
+    fail('payment_subscription_mismatch', 422)
+  if (
+    Math.max(now, Date.now()) >= row.handover_at - 60000 ||
+    timestamp(actual.next_billing_date) !== row.handover_at
+  )
+    fail('payment_handover_due')
+  if (actual.status !== 'cancelled')
+    await dodoRequest(() =>
+      client.subscriptions.update(
+        rawDodoId(row.id),
+        { status: 'cancelled' },
+        {
+          headers: {
+            'Idempotency-Key': `cf-cancel-handover-${row.checkout_id}`,
+          },
+        },
+      ),
+    )
+  const confirmed = await dodoRequest(() =>
+    client.subscriptions.retrieve(rawDodoId(row.id)),
+  )
+  if (confirmed.status !== 'cancelled') fail('payment_confirmation_pending')
+  await reconcileDodoSubscription(
+    db,
+    secret,
+    environment,
+    rawDodoId(row.id),
+    undefined,
+    transport,
+    now,
+    key,
+  )
+  return { state: 'cancelled' }
 }

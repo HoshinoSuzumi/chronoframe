@@ -3072,3 +3072,17 @@ a.cf-domain-address:hover {
     animation: none;
   }
 }
+
+.cf-handover-options {
+  display: grid;
+  gap: 16px;
+}
+.cf-handover-options label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  line-height: 1.5;
+}
+.cf-handover-options input {
+  flex-shrink: 0;
+}

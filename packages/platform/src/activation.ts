@@ -1,3 +1,4 @@
+import { NO_HANDOVER, requireNoHandover } from './payment-handover.ts'
 import type { PlatformD1 } from './index.ts'
 import {
   duration,
@@ -192,6 +193,7 @@ export async function previewActivation(
   now = Date.now(),
 ) {
   await permitted(db, userId, workspaceId)
+  await requireNoHandover(db, workspaceId)
   await attempt(db, userId, now)
   const hash = await activationHash(value),
     code = await available(db, hash, userId, now)
@@ -244,6 +246,7 @@ export async function redeemActivation(
     return row ? JSON.parse(row.receipt_json) : null
   }
   await attempt(db, userId, now)
+  await requireNoHandover(db, workspaceId)
   const hash = await activationHash(input.code),
     code = await available(db, hash, userId, now)
   if (!code) {
@@ -265,7 +268,7 @@ export async function redeemActivation(
       grant,
       redeemedAt: now,
     }
-  const guard = `EXISTS(SELECT 1 FROM platform_activation_codes c JOIN platform_plans p ON p.id=c.plan_id WHERE c.id=? AND c.revision=? AND c.enabled=1 AND p.active=1 AND (c.redeem_until IS NULL OR c.redeem_until>?) AND (c.max_uses IS NULL OR c.uses<c.max_uses)) AND COALESCE((SELECT revision FROM platform_workspace_plans WHERE workspace_id=?),0)=? AND EXISTS(SELECT 1 FROM platform_memberships m JOIN platform_users u ON u.id=m.user_id LEFT JOIN platform_account_controls ac ON ac.user_id=u.id WHERE m.workspace_id=? AND m.user_id=? AND m.role='admin' AND u.email_verified=1 AND COALESCE(ac.suspended,0)=0)`
+  const guard = `EXISTS(SELECT 1 FROM platform_activation_codes c JOIN platform_plans p ON p.id=c.plan_id WHERE c.id=? AND c.revision=? AND c.enabled=1 AND p.active=1 AND (c.redeem_until IS NULL OR c.redeem_until>?) AND (c.max_uses IS NULL OR c.uses<c.max_uses)) AND COALESCE((SELECT revision FROM platform_workspace_plans WHERE workspace_id=?),0)=? AND EXISTS(SELECT 1 FROM platform_memberships m JOIN platform_users u ON u.id=m.user_id LEFT JOIN platform_account_controls ac ON ac.user_id=u.id WHERE m.workspace_id=? AND m.user_id=? AND m.role='admin' AND u.email_verified=1 AND COALESCE(ac.suspended,0)=0) AND ${NO_HANDOVER}`
   try {
     await db.batch([
       db
@@ -287,6 +290,8 @@ export async function redeemActivation(
           Number(input.revision),
           workspaceId,
           userId,
+          workspaceId,
+          workspaceId,
         ),
       db
         .prepare(

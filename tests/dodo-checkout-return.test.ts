@@ -220,3 +220,21 @@ test('actual workspace and payment availability changes still restart the return
     f.dispose()
   }
 })
+
+test('a confirmed deferred reservation closes the processing modal without further polls', async () => {
+  let refreshes = 0
+  const f = fixture(
+    async () => ({ state: 'scheduled' }),
+    async () => {
+      refreshes++
+    },
+  )
+  try {
+    await flush()
+    assert.equal(f.returned.state.value, 'scheduled')
+    assert.equal(refreshes, 1)
+    assert.equal(f.timers.length, 0)
+  } finally {
+    f.dispose()
+  }
+})

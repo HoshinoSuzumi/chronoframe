@@ -1,3 +1,4 @@
+import { handoverContext } from './payment-handover.ts'
 import {
   createDodoCheckout,
   refreshDodoCheckout,
@@ -163,12 +164,19 @@ export async function paymentStatus(
   const subscriptions = await allRows<any>(
     db
       .prepare(
-        'SELECT id,status,period_start,period_end,plan_id,interval,error FROM platform_payment_subscriptions WHERE workspace_id=? ORDER BY checked_at DESC LIMIT 10',
+        'SELECT id,status,period_start,period_end,plan_id,interval,error,activation_state,handover_at FROM platform_payment_subscriptions WHERE workspace_id=? ORDER BY checked_at DESC LIMIT 10',
       )
       .bind(workspaceId),
   )
 
   return {
+    entitlement: await handoverContext(db, workspaceId),
+    reservation: await db
+      .prepare(
+        "SELECT s.id,s.checkout_id AS checkoutId,s.plan_id AS planId,p.name AS planName,s.handover_at AS startsAt,s.status,s.error,CASE WHEN c.user_id=? AND ?='admin' THEN 1 ELSE 0 END AS canCancel FROM platform_payment_subscriptions s JOIN platform_plans p ON p.id=s.plan_id JOIN platform_payment_checkouts c ON c.id=s.checkout_id WHERE s.workspace_id=? AND s.provider_key=? AND s.activation_state='authorized' AND s.status NOT IN('canceled','expired','failed') ORDER BY s.checked_at DESC LIMIT 1",
+      )
+      .bind(userId, membership.role, workspaceId, settings.currentProvider)
+      .first(),
     environment: settings.environment,
     purchaseMethod: settings.enabled
       ? settings.purchaseMethod
@@ -206,7 +214,7 @@ export async function paymentStatus(
       membership.role === 'admin' &&
       (await db
         .prepare(
-          "SELECT 1 FROM platform_payment_subscriptions s JOIN platform_payment_checkouts c ON c.id=s.checkout_id WHERE s.workspace_id=? AND c.user_id=? AND s.provider='dodo' AND s.provider_key=? AND s.environment=? AND s.status IN('active','scheduled_cancel','past_due') AND s.period_end>?",
+          "SELECT 1 FROM platform_payment_subscriptions s JOIN platform_payment_checkouts c ON c.id=s.checkout_id WHERE s.workspace_id=? AND c.user_id=? AND s.provider='dodo' AND s.provider_key=? AND s.environment=? AND s.status IN('active','scheduled_cancel','past_due') AND (s.period_end>? OR s.activation_state='authorized')",
         )
         .bind(
           workspaceId,
@@ -220,7 +228,7 @@ export async function paymentStatus(
     changes: await allRows<any>(
       db
         .prepare(
-          "SELECT r.to_plan AS planId,r.direction,d.interval,d.effective_price AS price,d.currency FROM platform_payment_plan_rules r JOIN platform_payment_subscriptions s ON s.plan_id=r.from_plan JOIN platform_workspace_plans w ON w.payment_subscription_id=s.id AND w.source='payment' JOIN platform_dodo_products d ON d.plan_id=r.to_plan AND d.provider_key=s.provider_key AND d.interval=s.interval JOIN platform_plans p ON p.id=d.plan_id JOIN platform_payment_providers v ON v.id=d.provider_key WHERE s.workspace_id=? AND s.provider_key=? AND s.environment=? AND s.status='active' AND s.period_end>? AND r.enabled=1 AND p.active=1 AND p.listed=1 AND d.plan_revision=p.revision AND d.credential_revision=v.revision AND d.effective_price>0 AND d.currency=s.currency",
+          "SELECT r.to_plan AS planId,r.direction,d.interval,d.effective_price AS price,d.currency FROM platform_payment_plan_rules r JOIN platform_payment_subscriptions s ON s.plan_id=r.from_plan JOIN platform_workspace_plans w ON w.payment_subscription_id=s.id AND w.source='payment' JOIN platform_dodo_products d ON d.plan_id=r.to_plan AND d.provider_key=s.provider_key AND d.interval=s.interval JOIN platform_plans p ON p.id=d.plan_id JOIN platform_payment_providers v ON v.id=d.provider_key WHERE s.workspace_id=? AND s.provider_key=? AND s.environment=? AND s.status='active' AND s.activation_state='paid' AND s.period_end>? AND r.enabled=1 AND p.active=1 AND p.listed=1 AND d.plan_revision=p.revision AND d.credential_revision=v.revision AND d.effective_price>0 AND d.currency=s.currency",
         )
         .bind(
           workspaceId,
@@ -267,6 +275,8 @@ export async function createPaymentCheckout(
     planId: string
     interval: number
     requestId: string
+    startMode?: string
+    replaceEntitlement?: boolean
   },
   portalOrigin: string,
   transport: PaymentFetch = fetch,
@@ -300,7 +310,7 @@ export async function createPaymentPortal(
   // A customer portal exposes every subscription for that customer, not just this workspace.
   const sub = await db
     .prepare(
-      "SELECT s.* FROM platform_payment_subscriptions s JOIN platform_payment_checkouts c ON c.id=s.checkout_id WHERE s.workspace_id=? AND c.user_id=? AND s.provider='dodo' AND s.provider_key=? AND s.environment=? AND s.status IN('active','scheduled_cancel','past_due') AND s.period_end>? ORDER BY s.checked_at DESC LIMIT 1",
+      "SELECT s.* FROM platform_payment_subscriptions s JOIN platform_payment_checkouts c ON c.id=s.checkout_id WHERE s.workspace_id=? AND c.user_id=? AND s.provider='dodo' AND s.provider_key=? AND s.environment=? AND s.status IN('active','scheduled_cancel','past_due') AND (s.period_end>? OR s.activation_state='authorized') ORDER BY s.checked_at DESC LIMIT 1",
     )
     .bind(
       workspaceId,
