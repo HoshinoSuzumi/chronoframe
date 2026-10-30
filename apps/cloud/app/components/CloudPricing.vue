@@ -126,11 +126,42 @@ watch(
   { immediate: true },
 )
 const pendingFor = (plan: any) => payment.value?.pending?.planId === plan.id
+const resuming = ref(false)
 async function resume() {
-  if (payment.value?.pending?.url)
-    await navigateTo(payment.value.pending.url, { external: true })
-  else await Promise.all([payments?.refresh(), billing?.refresh()])
+  const pending = payment.value?.pending,
+    workspaceId = billing?.selected.value
+  if (
+    !pending?.canRefresh ||
+    !workspaceId ||
+    payments?.busy.value ||
+    resuming.value
+  )
+    return
+  resuming.value = true
+  try {
+    const result = await $fetch<{ state: string }>('/api/billing/payments', {
+      method: 'POST',
+      timeout: 15000,
+      body: { action: 'refresh', workspaceId, checkoutId: pending.id },
+    })
+    await payments?.refresh({ reconcile: false })
+    if (!mounted || workspaceId !== billing?.selected.value) return
+    if (result.state === 'awaiting_payment') openCancelCheckout(true)
+    else if (result.state === 'open' && payment.value?.pending?.url)
+      await navigateTo(payment.value.pending.url, { external: true })
+  } catch (error: any) {
+    const code = error?.data?.data?.code ?? error?.data?.code
+    paymentError.value = t(
+      code === 'payment_confirmation_pending'
+        ? 'cloud.payments.confirmationReview'
+        : 'cloud.payments.failed',
+    )
+    await payments?.refresh({ reconcile: false })
+  } finally {
+    resuming.value = false
+  }
 }
+
 const offer = (plan: any) =>
   payment.value?.enabled &&
   payment.value?.canManage &&
@@ -215,6 +246,99 @@ const checkoutOpen = ref(false),
   replaceConfirmed = ref(false),
   cancelOpen = ref(false),
   cancelling = ref(false)
+const cancelCheckoutOpen = ref(false),
+  cancelCheckoutRetry = ref(false),
+  cancelCheckoutBusy = ref(false),
+  cancellationTarget = ref<any>(null)
+function openCancelCheckout(retry = false) {
+  const pending = payment.value?.pending
+  if (!pending?.canCancel || !billing?.selected.value) return
+  cancellationTarget.value = { ...pending, workspaceId: billing.selected.value }
+  cancelCheckoutRetry.value = retry
+  paymentError.value = ''
+  cancelCheckoutOpen.value = true
+}
+async function clearCheckoutReturn(id: string) {
+  if (route.query.checkout !== id) return
+  const query = { ...route.query }
+  for (const key of [
+    'checkout',
+    'subscription_id',
+    'payment_id',
+    'status',
+    'email',
+  ])
+    delete query[key]
+  await navigateTo({ path: route.path, query }, { replace: true })
+}
+async function cancelCheckout() {
+  const target = cancellationTarget.value
+  if (!target || cancelCheckoutBusy.value) return
+  cancelCheckoutBusy.value = true
+  paymentError.value = ''
+  try {
+    await $fetch('/api/billing/payments', {
+      method: 'POST',
+      timeout: 15000,
+      body: {
+        action: 'cancel-checkout',
+        workspaceId: target.workspaceId,
+        checkoutId: target.id,
+      },
+    })
+    cancelCheckoutOpen.value = false
+    if (
+      mounted &&
+      target.workspaceId === billing?.selected.value &&
+      payments?.data.value?.pending?.id === target.id
+    )
+      payments.data.value = { ...payments.data.value, pending: null }
+    await Promise.allSettled([
+      payments?.refresh({ reconcile: false }),
+      billing?.refresh(),
+    ])
+    if (mounted && target.workspaceId === billing?.selected.value)
+      await clearCheckoutReturn(target.id)
+    if (
+      mounted &&
+      target.workspaceId === billing?.selected.value &&
+      cancelCheckoutRetry.value
+    ) {
+      const plan = data.value?.plans?.find((p: any) => p.id === target.planId)
+      if (plan) {
+        interval.value = target.interval
+        checkout(plan)
+      }
+    }
+  } catch (error: any) {
+    const code = error?.data?.data?.code ?? error?.data?.code
+    if (mounted && target.workspaceId === billing?.selected.value)
+      paymentError.value = t(
+        code === 'payment_cancellation_unavailable'
+          ? 'cloud.payments.checkoutCannotCancel'
+          : 'cloud.payments.checkoutCancelFailed',
+      )
+    await Promise.allSettled([
+      payments?.refresh({ reconcile: false }),
+      billing?.refresh(),
+    ])
+    if (
+      mounted &&
+      target.workspaceId === billing?.selected.value &&
+      payment.value?.pending?.id !== target.id
+    )
+      await clearCheckoutReturn(target.id)
+  } finally {
+    cancelCheckoutBusy.value = false
+  }
+}
+watch(
+  () => billing?.selected.value,
+  () => {
+    cancelCheckoutOpen.value = false
+    cancellationTarget.value = null
+  },
+)
 const entitlement = computed(() => payment.value?.entitlement)
 const date = (value: number) => new Date(value).toLocaleString(locale.value)
 function checkout(plan: any) {
@@ -364,6 +488,18 @@ async function submitCheckout(plan: any, mode?: string) {
           >{{ payment.pending.error }}</code
         >
       </p>
+      <CfCard
+        v-if="payment?.pending?.canCancel"
+        class="cf-notice"
+      >
+        <p>{{ $t('cloud.payments.awaitingPayment') }}</p>
+        <CfButton
+          variant="secondary"
+          :disabled="cancelCheckoutBusy"
+          @click="openCancelCheckout(false)"
+          >{{ $t('cloud.payments.cancelCheckout') }}</CfButton
+        >
+      </CfCard>
       <p
         v-if="paymentError"
         class="cf-error-message"
@@ -524,6 +660,7 @@ async function submitCheckout(plan: any, mode?: string) {
             v-else-if="portal && pendingFor(plan)"
             :disabled="
               !!paying ||
+              resuming ||
               payments?.busy.value ||
               (!payment.pending.url && !payment.pending.canRefresh)
             "
@@ -531,9 +668,11 @@ async function submitCheckout(plan: any, mode?: string) {
           >
             {{
               $t(
-                payment.pending.url
-                  ? 'cloud.payments.resume'
-                  : 'cloud.payments.checkAgain',
+                payment.pending.canCancel
+                  ? 'cloud.payments.restartCheckout'
+                  : payment.pending.url
+                    ? 'cloud.payments.resume'
+                    : 'cloud.payments.checkAgain',
               )
             }}
           </CfButton>
@@ -805,6 +944,50 @@ async function submitCheckout(plan: any, mode?: string) {
         ></template
       ></UModal
     >
+    <UModal
+      v-model:open="cancelCheckoutOpen"
+      :dismissible="!cancelCheckoutBusy"
+      :close="!cancelCheckoutBusy"
+      :title="
+        $t(
+          cancelCheckoutRetry
+            ? 'cloud.payments.restartCheckout'
+            : 'cloud.payments.cancelCheckout',
+        )
+      "
+      :description="$t('cloud.payments.cancelCheckoutSummary')"
+    >
+      <template #body
+        ><div class="cf-form">
+          <p>{{ $t('cloud.payments.cancelCheckoutHelp') }}</p>
+          <p
+            v-if="paymentError"
+            class="cf-error-message"
+            role="alert"
+          >
+            {{ paymentError }}
+          </p>
+        </div></template
+      >
+      <template #footer
+        ><CfButton
+          variant="secondary"
+          :disabled="cancelCheckoutBusy"
+          @click="cancelCheckoutOpen = false"
+          >{{ $t('cloud.billing.cancel') }}</CfButton
+        ><CfButton
+          :loading="cancelCheckoutBusy"
+          @click="cancelCheckout"
+          >{{
+            $t(
+              cancelCheckoutRetry
+                ? 'cloud.payments.confirmRestartCheckout'
+                : 'cloud.payments.cancelCheckout',
+            )
+          }}</CfButton
+        ></template
+      >
+    </UModal>
     <UModal
       v-model:open="changeOpen"
       :title="$t('cloud.payments.changeTitle')"

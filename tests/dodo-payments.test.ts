@@ -3145,3 +3145,271 @@ test('lost checkout update fences reject closure and a later reconciliation can 
     await f.mf.dispose()
   }
 })
+
+for (const state of ['requires_payment_method', 'requires_confirmation'])
+  test(`manual cancellation of ${state} ends pending checkout and permits a fresh link before the age limit`, async () => {
+    const f = await fixture()
+    try {
+      await syncDodoProducts(f.db, root, f.transport)
+      const checkout = await createPaymentCheckout(
+        f.db,
+        root,
+        1,
+        input(),
+        origin,
+        f.transport,
+        f.now,
+      )
+      const { sub, payment } = await f.paid(checkout)
+      sub.status = 'pending'
+      payment.status = state
+      assert.equal(
+        (
+          await refreshDodoCheckout(
+            f.db,
+            root,
+            1,
+            1,
+            checkout.id,
+            f.transport,
+            f.now + 1000,
+          )
+        ).state,
+        'awaiting_payment',
+      )
+      const pending = (await paymentStatus(f.db, 1, 1)).pending
+      assert.equal(pending.canCancel, 1)
+      assert.equal(pending.url, null)
+      const { cancelDodoCheckout } =
+        await import('../packages/platform/src/dodo-payments.ts')
+      await assert.rejects(
+        cancelDodoCheckout(
+          f.db,
+          root,
+          2,
+          1,
+          checkout.id,
+          f.transport,
+          f.now + 2000,
+        ),
+        { code: 'workspace_admin_required' },
+      )
+      assert.equal(
+        (
+          await cancelDodoCheckout(
+            f.db,
+            root,
+            1,
+            1,
+            checkout.id,
+            f.transport,
+            f.now + 2000,
+          )
+        ).state,
+        'expired',
+      )
+      assert.equal(sub.status, 'cancelled')
+      assert.equal((await paymentStatus(f.db, 1, 1)).pending, null)
+      assert.equal(
+        (
+          await f.db
+            .prepare(
+              'SELECT source FROM platform_workspace_plans WHERE workspace_id=1',
+            )
+            .first<any>()
+        ).source,
+        'default',
+      )
+      await cancelDodoCheckout(
+        f.db,
+        root,
+        1,
+        1,
+        checkout.id,
+        f.transport,
+        f.now + 3000,
+      )
+      const next = await createPaymentCheckout(
+        f.db,
+        root,
+        1,
+        input('explicit_retry'),
+        origin,
+        f.transport,
+        f.now + 4000,
+      )
+      assert.notEqual(next.url, checkout.url)
+    } finally {
+      await f.mf.dispose()
+    }
+  })
+test('manual cancellation never cancels processing or successful payments and requires verified revocation', async () => {
+  const f = await fixture()
+  try {
+    await syncDodoProducts(f.db, root, f.transport)
+    const checkout = await createPaymentCheckout(
+      f.db,
+      root,
+      1,
+      input(),
+      origin,
+      f.transport,
+      f.now,
+    )
+    const { sub, payment } = await f.paid(checkout)
+    sub.status = 'pending'
+    const { cancelDodoCheckout } =
+      await import('../packages/platform/src/dodo-payments.ts')
+    for (const state of [
+      'processing',
+      'requires_customer_action',
+      'requires_capture',
+    ]) {
+      payment.status = state
+      const calls = f.calls.length
+      await assert.rejects(
+        cancelDodoCheckout(
+          f.db,
+          root,
+          1,
+          1,
+          checkout.id,
+          f.transport,
+          f.now + 1000,
+        ),
+        { code: 'payment_cancellation_unavailable' },
+      )
+      assert.ok(!f.calls.slice(calls).some((c) => c.method === 'PATCH'))
+    }
+    payment.status = 'requires_payment_method'
+    const denied: typeof fetch = async (url, init) =>
+      init?.method === 'PATCH' ? Response.json(sub) : f.transport(url, init)
+    await assert.rejects(
+      cancelDodoCheckout(f.db, root, 1, 1, checkout.id, denied, f.now + 1000),
+      { code: 'payment_cancellation_unavailable' },
+    )
+    assert.ok((await paymentStatus(f.db, 1, 1)).pending)
+    sub.status = 'active'
+    payment.status = 'succeeded'
+    const calls = f.calls.length
+    await assert.rejects(
+      cancelDodoCheckout(
+        f.db,
+        root,
+        1,
+        1,
+        checkout.id,
+        f.transport,
+        f.now + 2000,
+      ),
+      { code: 'payment_cancellation_unavailable' },
+    )
+    assert.ok(!f.calls.slice(calls).some((c) => c.method === 'PATCH'))
+    assert.equal(
+      (
+        await f.db
+          .prepare(
+            'SELECT source FROM platform_workspace_plans WHERE workspace_id=1',
+          )
+          .first<any>()
+      ).source,
+      'payment',
+    )
+  } finally {
+    await f.mf.dispose()
+  }
+})
+test('manual cancellation cannot locally discard a still-valid session with no bound payment', async () => {
+  const f = await fixture()
+  try {
+    await syncDodoProducts(f.db, root, f.transport)
+    const checkout = await createPaymentCheckout(
+      f.db,
+      root,
+      1,
+      input(),
+      origin,
+      f.transport,
+      f.now,
+    )
+    const { cancelDodoCheckout } =
+      await import('../packages/platform/src/dodo-payments.ts')
+    await assert.rejects(
+      cancelDodoCheckout(
+        f.db,
+        root,
+        1,
+        1,
+        checkout.id,
+        f.transport,
+        f.now + 1000,
+      ),
+      { code: 'payment_cancellation_unavailable' },
+    )
+    assert.ok((await paymentStatus(f.db, 1, 1)).pending)
+  } finally {
+    await f.mf.dispose()
+  }
+})
+test('unpaid deferred authorization can be canceled without extending the original entitlement', async () => {
+  const f = await handoverFixture()
+  try {
+    const checkout = await createPaymentCheckout(
+      f.db,
+      root,
+      1,
+      { ...input(), startMode: 'after_entitlement' },
+      origin,
+      f.transport,
+      f.now,
+    )
+    const { sub, payment, session } = await f.paid(checkout)
+    sub.status = 'pending'
+    sub.trial_period_days = session.trial_period_days
+    payment.status = 'requires_payment_method'
+    payment.total_amount = 0
+    assert.equal(
+      (
+        await refreshDodoCheckout(
+          f.db,
+          root,
+          1,
+          1,
+          checkout.id,
+          f.transport,
+          f.now + 1000,
+        )
+      ).state,
+      'awaiting_payment',
+    )
+    const { cancelDodoCheckout } =
+      await import('../packages/platform/src/dodo-payments.ts')
+    assert.equal(
+      (
+        await cancelDodoCheckout(
+          f.db,
+          root,
+          1,
+          1,
+          checkout.id,
+          f.transport,
+          f.now + 2000,
+        )
+      ).state,
+      'expired',
+    )
+    assert.equal(
+      (
+        await f.db
+          .prepare(
+            'SELECT expires_at FROM platform_workspace_plans WHERE workspace_id=1',
+          )
+          .first<any>()
+      ).expires_at,
+      f.originalEnd,
+    )
+    assert.equal((await paymentStatus(f.db, 1, 1)).reservation, null)
+  } finally {
+    await f.mf.dispose()
+  }
+})

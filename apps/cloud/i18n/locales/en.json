@@ -762,7 +762,16 @@
       "replaceExplanation": "Payment starts immediately. This replaces the remaining trial or activation-code entitlement without credit or restoration.",
       "replaceConsent": "I agree to replace my remaining entitlement and start billing now.",
       "continueCheckout": "Continue to checkout",
-      "trialUnavailable": "Deferred billing is unavailable for this checkout. No reservation was created; please contact support."
+      "trialUnavailable": "Deferred billing is unavailable for this checkout. No reservation was created; please contact support.",
+      "return_awaiting_payment": "Payment has not been completed. You can cancel this checkout or start again below.",
+      "awaitingPayment": "This payment has not started. If the checkout link has expired, cancel it or start again with a new link.",
+      "cancelCheckout": "Cancel this payment",
+      "restartCheckout": "Start a new checkout",
+      "confirmRestartCheckout": "Cancel and start again",
+      "cancelCheckoutHelp": "Cancel this unpaid checkout after verifying its current status. Existing entitlements and transaction history are preserved. Payments already processing or completed cannot be canceled here. Starting again creates a new checkout link.",
+      "checkoutCannotCancel": "This payment cannot currently be canceled. It may have started processing or completed. Check the updated status before trying again.",
+      "checkoutCancelFailed": "Could not confirm cancellation. No new checkout was created. Please retry or contact support.",
+      "cancelCheckoutSummary": "Verify and cancel this unpaid checkout."
     },
     "dashboard": {
       "workspaceOverview": "Workspace overview",

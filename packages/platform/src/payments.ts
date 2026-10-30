@@ -249,9 +249,11 @@ export async function paymentStatus(
       settings.purchaseMethod === 'payment'
         ? await db
             .prepare(
-              "SELECT id,state,plan_id AS planId,interval,error,CASE WHEN user_id=? AND ?='admin' THEN 1 ELSE 0 END AS canRefresh,CASE WHEN state='open' AND user_id=? AND ?='admin' THEN checkout_url ELSE NULL END AS url FROM platform_payment_checkouts WHERE workspace_id=? AND provider='dodo' AND environment=? AND provider_key=? AND state IN('creating','open','uncertain') ORDER BY created_at DESC LIMIT 1",
+              "SELECT id,state,plan_id AS planId,interval,error,CASE WHEN user_id=? AND ?='admin' THEN 1 ELSE 0 END AS canRefresh,CASE WHEN error='payment_awaiting_payment' AND user_id=? AND ?='admin' THEN 1 ELSE 0 END AS canCancel,CASE WHEN state='open' AND (error IS NULL OR error<>'payment_awaiting_payment') AND user_id=? AND ?='admin' THEN checkout_url ELSE NULL END AS url FROM platform_payment_checkouts WHERE workspace_id=? AND provider='dodo' AND environment=? AND provider_key=? AND state IN('creating','open','uncertain') ORDER BY created_at DESC LIMIT 1",
             )
             .bind(
+              userId,
+              membership.role,
               userId,
               membership.role,
               userId,

@@ -67,9 +67,13 @@ export function useDodoCheckoutReturn(
         await refresh()
         if (!isCurrent()) return
         if (
-          ['completed', 'scheduled', 'expired', 'inactive'].includes(
-            result.state,
-          )
+          [
+            'completed',
+            'scheduled',
+            'expired',
+            'inactive',
+            'awaiting_payment',
+          ].includes(result.state)
         ) {
           if (deadlineTimer) clearTimeout(deadlineTimer)
           state.value = result.state

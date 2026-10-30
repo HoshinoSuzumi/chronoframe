@@ -357,3 +357,15 @@ for (const stage of ['fetch', 'refresh', 'error'])
       f.dispose()
     }
   })
+
+test('awaiting a payment method closes the processing modal without repeated polling', async () => {
+  const f = fixture(async () => ({ state: 'awaiting_payment' }))
+  try {
+    await flush()
+    assert.equal(f.returned.state.value, 'awaiting_payment')
+    assert.equal(f.timers.length, 0)
+    assert.equal(f.watchdogs.length, 0)
+  } finally {
+    f.dispose()
+  }
+})
