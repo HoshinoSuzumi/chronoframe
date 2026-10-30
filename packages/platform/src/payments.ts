@@ -193,15 +193,59 @@ export async function paymentStatus(
           )
         : [],
     subscriptions,
+    hasActiveSubscription: !!(await db
+      .prepare(
+        "SELECT 1 FROM platform_payment_subscriptions WHERE workspace_id=? AND provider='dodo' AND provider_key=? AND environment=? AND status NOT IN('canceled','expired','failed') LIMIT 1",
+      )
+      .bind(workspaceId, settings.currentProvider, settings.environment)
+      .first()),
+    canOpenPortal: !!(
+      settings.enabled &&
+      settings.providerAvailable &&
+      settings.configured &&
+      membership.role === 'admin' &&
+      (await db
+        .prepare(
+          "SELECT 1 FROM platform_payment_subscriptions s JOIN platform_payment_checkouts c ON c.id=s.checkout_id WHERE s.workspace_id=? AND c.user_id=? AND s.provider='dodo' AND s.provider_key=? AND s.environment=? AND s.status IN('active','scheduled_cancel','past_due') AND s.period_end>?",
+        )
+        .bind(
+          workspaceId,
+          userId,
+          settings.currentProvider,
+          settings.environment,
+          Date.now(),
+        )
+        .first())
+    ),
+    changes: await allRows<any>(
+      db
+        .prepare(
+          "SELECT r.to_plan AS planId,r.direction,d.interval,d.effective_price AS price,d.currency FROM platform_payment_plan_rules r JOIN platform_payment_subscriptions s ON s.plan_id=r.from_plan JOIN platform_workspace_plans w ON w.payment_subscription_id=s.id AND w.source='payment' JOIN platform_dodo_products d ON d.plan_id=r.to_plan AND d.provider_key=s.provider_key AND d.interval=s.interval JOIN platform_plans p ON p.id=d.plan_id JOIN platform_payment_providers v ON v.id=d.provider_key WHERE s.workspace_id=? AND s.provider_key=? AND s.environment=? AND s.status='active' AND s.period_end>? AND r.enabled=1 AND p.active=1 AND p.listed=1 AND d.plan_revision=p.revision AND d.credential_revision=v.revision AND d.effective_price>0 AND d.currency=s.currency",
+        )
+        .bind(
+          workspaceId,
+          settings.currentProvider,
+          settings.environment,
+          Date.now(),
+        ),
+    ),
+    planChange: await db
+      .prepare(
+        "SELECT id,to_plan AS planId,direction,state FROM platform_payment_plan_changes WHERE workspace_id=? AND provider_key=? AND state IN('submitting','pending','scheduled','uncertain') ORDER BY created_at DESC LIMIT 1",
+      )
+      .bind(workspaceId, settings.currentProvider)
+      .first(),
     pending:
       settings.enabled &&
       settings.providerAvailable &&
       settings.purchaseMethod === 'payment'
         ? await db
             .prepare(
-              "SELECT id,state,plan_id AS planId,interval,error,CASE WHEN state='open' AND user_id=? AND ?='admin' THEN checkout_url ELSE NULL END AS url FROM platform_payment_checkouts WHERE workspace_id=? AND provider='dodo' AND environment=? AND provider_key=? AND state IN('creating','open','uncertain') ORDER BY created_at DESC LIMIT 1",
+              "SELECT id,state,plan_id AS planId,interval,error,CASE WHEN user_id=? AND ?='admin' THEN 1 ELSE 0 END AS canRefresh,CASE WHEN state='open' AND user_id=? AND ?='admin' THEN checkout_url ELSE NULL END AS url FROM platform_payment_checkouts WHERE workspace_id=? AND provider='dodo' AND environment=? AND provider_key=? AND state IN('creating','open','uncertain') ORDER BY created_at DESC LIMIT 1",
             )
             .bind(
+              userId,
+              membership.role,
               userId,
               membership.role,
               workspaceId,
@@ -241,13 +285,68 @@ export async function createPaymentCheckout(
   )
 }
 export async function createPaymentPortal(
-  _db: PlatformD1,
-  _rootKey: string,
-  _userId: number,
-  _workspaceId: number,
-  _transport: PaymentFetch = fetch,
+  db: PlatformD1,
+  rootKey: string,
+  userId: number,
+  workspaceId: number,
+  transport: PaymentFetch = fetch,
 ) {
-  throw new SubscriptionError(410, 'payment_provider_retired')
+  const settings = await paymentSettings(db)
+  if (!settings.providerAvailable)
+    throw new SubscriptionError(410, 'payment_provider_retired')
+  await paymentMember(db, userId, workspaceId, true)
+  if (!settings.enabled || !settings.providerAvailable || !settings.configured)
+    throw new SubscriptionError(503, 'payment_unavailable')
+  // A customer portal exposes every subscription for that customer, not just this workspace.
+  const sub = await db
+    .prepare(
+      "SELECT s.* FROM platform_payment_subscriptions s JOIN platform_payment_checkouts c ON c.id=s.checkout_id WHERE s.workspace_id=? AND c.user_id=? AND s.provider='dodo' AND s.provider_key=? AND s.environment=? AND s.status IN('active','scheduled_cancel','past_due') AND s.period_end>? ORDER BY s.checked_at DESC LIMIT 1",
+    )
+    .bind(
+      workspaceId,
+      userId,
+      settings.currentProvider,
+      settings.environment,
+      Date.now(),
+    )
+    .first<any>()
+  if (!sub) throw new SubscriptionError(403, 'payment_portal_unavailable')
+  const { dodoClient, dodoRequest, rawDodoId } =
+    await import('./dodo-client.ts')
+  const { client } = await dodoClient(
+    db,
+    rootKey,
+    sub.environment,
+    transport as typeof fetch,
+    false,
+    sub.provider_key,
+  )
+  const actual = await dodoRequest(() =>
+    client.subscriptions.retrieve(rawDodoId(sub.id)),
+  )
+  if (actual.customer.customer_id !== sub.customer_id)
+    throw new SubscriptionError(422, 'payment_customer_mismatch')
+  const portal = await dodoRequest(() =>
+    client.customers.customerPortal.create(sub.customer_id, {
+      send_email: false,
+    }),
+  )
+  let url: URL
+  try {
+    url = new URL(portal.link)
+  } catch {
+    throw new SubscriptionError(502, 'payment_redirect_invalid')
+  }
+  if (
+    url.origin !==
+      (sub.environment === 'test'
+        ? 'https://test.customer.dodopayments.com'
+        : 'https://customer.dodopayments.com') ||
+    url.username ||
+    url.password
+  )
+    throw new SubscriptionError(502, 'payment_redirect_invalid')
+  return { url: url.href }
 }
 
 /** Retired callbacks cannot enter the durable inbox. */

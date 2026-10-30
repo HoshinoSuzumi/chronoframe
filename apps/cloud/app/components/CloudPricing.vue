@@ -22,7 +22,7 @@ const requestedPurchase = computed(() =>
 const { t, locale } = useI18n(),
   links = useCloudLinks(),
   interval = ref<1 | 3>(
-    requestedPurchase.value && route.query.interval === '3' ? 3 : 1,
+    requestedPurchase.value && route.query.interval === '1' ? 1 : 3,
   )
 const billingPeriod = computed({
   get: () => String(interval.value),
@@ -35,7 +35,12 @@ const billing = props.portal
   : null
 const payments = props.portal
   ? (props.paymentController ??
-    useCloudPayments(() => billing?.selected.value ?? 0))
+    useCloudPayments(
+      () => billing?.selected.value ?? 0,
+      async () => {
+        await billing?.refresh()
+      },
+    ))
   : null
 const { data, error, refresh } = await useFetch<any>('/api/billing/catalog', {
   key: 'public-pricing-catalog',
@@ -49,19 +54,43 @@ const comparisonColumns = computed(() => [
       row.values[plan.id],
   })),
 ])
-const comparisonRows = computed(() =>
-  [...BILLING_LIMITS, 'conditions'].map((key) => ({
-    label: t('cloud.billing.' + key),
-    values: Object.fromEntries(
-      (data.value?.plans ?? []).map((plan: any) => [
-        plan.id,
-        key === 'conditions'
-          ? String(plan.policy.rules.length || '—')
-          : allowance(key, plan.policy.limits[key], locale.value),
-      ]),
+const comparisonRows = computed(() => {
+  const plans = data.value?.plans ?? []
+  const labels = [
+    ...new Set<string>(
+      plans.flatMap((plan: any) =>
+        (plan.policy.features ?? []).map((f: any) => f.label),
+      ),
     ),
-  })),
-)
+  ]
+  return [...BILLING_LIMITS, 'conditions']
+    .map((key) => ({
+      key: String(key),
+      label: t('cloud.billing.' + key),
+      values: Object.fromEntries(
+        (data.value?.plans ?? []).map((plan: any) => [
+          plan.id,
+          key === 'conditions'
+            ? String(plan.policy.rules.length || '—')
+            : allowance(key, plan.policy.limits[key], locale.value),
+        ]),
+      ),
+    }))
+    .concat(
+      labels.map((label) => ({
+        key: 'feature:' + label,
+        label,
+        values: Object.fromEntries(
+          plans.map((plan: any) => [
+            plan.id,
+            plan.policy.features?.find((f: any) => f.label === label) ?? {
+              type: 'dash',
+            },
+          ]),
+        ),
+      })),
+    )
+})
 if (billing) await billing.ready
 const currentPlan = computed(() => billing?.data.value?.plan.id)
 const originalAmount = (plan: any) =>
@@ -100,13 +129,80 @@ const pendingFor = (plan: any) => payment.value?.pending?.planId === plan.id
 async function resume() {
   if (payment.value?.pending?.url)
     await navigateTo(payment.value.pending.url, { external: true })
+  else await Promise.all([payments?.refresh(), billing?.refresh()])
 }
 const offer = (plan: any) =>
   payment.value?.enabled &&
   payment.value?.canManage &&
+  !payment.value?.hasActiveSubscription &&
   payment.value.offers.some(
     (v: any) => v.plan_id === plan.id && v.interval === interval.value,
   )
+const changeQuote = ref<any>(null),
+  changeOpen = ref(false),
+  changeBusy = ref(false),
+  changeError = ref('')
+const changeFor = (plan: any) =>
+  payment.value?.enabled &&
+  payment.value?.canManage &&
+  !payment.value?.planChange &&
+  payment.value?.changes?.find(
+    (c: any) => c.planId === plan.id && c.interval === interval.value,
+  )
+async function previewChange(plan: any) {
+  if (changeBusy.value || !billing?.selected.value) return
+  changeBusy.value = true
+  changeError.value = ''
+  changeQuote.value = null
+  changeOpen.value = true
+  try {
+    changeQuote.value = await $fetch('/api/billing/payments', {
+      method: 'POST',
+      timeout: 15000,
+      body: {
+        action: 'preview-change',
+        workspaceId: billing.selected.value,
+        planId: plan.id,
+      },
+    })
+  } catch {
+    changeError.value = t('cloud.payments.changeFailed')
+  } finally {
+    changeBusy.value = false
+  }
+}
+async function confirmChange() {
+  if (changeBusy.value || !changeQuote.value || !billing?.selected.value) return
+  changeBusy.value = true
+  changeError.value = ''
+  try {
+    await $fetch('/api/billing/payments', {
+      method: 'POST',
+      timeout: 25000,
+      body: {
+        action: 'change-plan',
+        workspaceId: billing.selected.value,
+        quoteId: changeQuote.value.id,
+      },
+    })
+    changeOpen.value = false
+  } catch {
+    changeError.value = t('cloud.payments.changeFailed')
+  } finally {
+    await Promise.all([
+      payments?.refresh({ reconcile: false }),
+      billing?.refresh(),
+    ])
+    changeBusy.value = false
+  }
+}
+watch(
+  () => billing?.selected.value,
+  () => {
+    changeOpen.value = false
+    changeQuote.value = null
+  },
+)
 async function checkout(plan: any) {
   if (paying.value || !billing?.selected.value) return
   const workspaceId = billing.selected.value,
@@ -176,6 +272,39 @@ async function checkout(plan: any) {
             ? $t('cloud.payments.testHelp')
             : $t('cloud.billing.purchaseHelp')
         }}
+      </p>
+      <p
+        v-if="payment?.planChange"
+        class="cf-notice"
+        role="status"
+      >
+        {{
+          $t(
+            payment.planChange.state === 'scheduled'
+              ? 'cloud.payments.changeScheduled'
+              : 'cloud.payments.changePending',
+          )
+        }}
+        <CfButton
+          variant="ghost"
+          :disabled="payments?.busy.value"
+          @click="payments?.refresh()"
+          >{{ $t('cloud.payments.checkAgain') }}</CfButton
+        >
+      </p>
+      <p
+        v-if="payment?.pending?.state === 'uncertain'"
+        class="cf-field-hint"
+        role="status"
+      >
+        {{ $t('cloud.payments.confirmationReview') }}
+        <code
+          v-if="
+            payment.pending.error &&
+            payment.pending.error !== 'payment_confirmation_pending'
+          "
+          >{{ payment.pending.error }}</code
+        >
       </p>
       <p
         v-if="paymentError"
@@ -248,19 +377,27 @@ async function checkout(plan: any) {
           </p>
           <p class="cf-plan-original-price">
             <del v-if="discountBps(plan) > 0 && originalAmount(plan) > 0">{{
-              price(originalAmount(plan), plan.currency, locale)
+              price(
+                originalAmount(plan) === null
+                  ? null
+                  : originalAmount(plan) / interval,
+                plan.currency,
+                locale,
+              )
             }}</del>
           </p>
           <div class="cf-plan-price">
             <strong>{{
               amount(plan) === 0
                 ? $t('cloud.billing.free')
-                : price(amount(plan), plan.currency, locale)
+                : price(
+                    amount(plan) === null ? null : amount(plan) / interval,
+                    plan.currency,
+                    locale,
+                  )
             }}</strong
             ><span v-if="amount(plan) !== null && amount(plan) > 0"
-              >/{{
-                $t('cloud.billing.' + (interval === 1 ? 'month' : 'quarter'))
-              }}</span
+              >/{{ $t('cloud.billing.month') }}</span
             >
           </div>
           <p class="cf-price-caption">
@@ -268,10 +405,9 @@ async function checkout(plan: any) {
               amount(plan) === null
                 ? $t('cloud.billing.notPriced')
                 : interval === 3 && amount(plan) > 0
-                  ? '≈ ' +
-                    price(amount(plan)! / 3, plan.currency, locale) +
+                  ? price(amount(plan), plan.currency, locale) +
                     ' / ' +
-                    $t('cloud.billing.month')
+                    $t('cloud.billing.quarter')
                   : $t(
                       amount(plan) === 0
                         ? 'cloud.billing.noCharge'
@@ -303,14 +439,18 @@ async function checkout(plan: any) {
           >
           <CfButton
             v-else-if="portal && pendingFor(plan)"
-            :disabled="!payment.pending.url || !!paying"
+            :disabled="
+              !!paying ||
+              payments?.busy.value ||
+              (!payment.pending.url && !payment.pending.canRefresh)
+            "
             @click="resume"
           >
             {{
               $t(
                 payment.pending.url
                   ? 'cloud.payments.resume'
-                  : 'cloud.payments.waiting',
+                  : 'cloud.payments.checkAgain',
               )
             }}
           </CfButton>
@@ -319,6 +459,19 @@ async function checkout(plan: any) {
             disabled
             variant="secondary"
             >{{ $t('cloud.billing.current') }}</CfButton
+          >
+          <CfButton
+            v-else-if="portal && changeFor(plan)"
+            :disabled="changeBusy || !!payment.pending"
+            :variant="plan.featured ? 'default' : 'secondary'"
+            @click="previewChange(plan)"
+            >{{
+              $t(
+                changeFor(plan).direction === 'upgrade'
+                  ? 'cloud.payments.upgrade'
+                  : 'cloud.payments.downgrade',
+              )
+            }}</CfButton
           >
           <CfButton
             v-else-if="portal && offer(plan)"
@@ -369,9 +522,32 @@ async function checkout(plan: any) {
               :key="key"
             >
               <span>{{ $t('cloud.billing.' + key) }}</span
-              ><strong>{{
-                allowance(key, plan.policy.limits[key], locale)
-              }}</strong>
+              ><strong
+                ><UIcon
+                  v-if="key === 'byos'"
+                  :name="
+                    plan.policy.limits[key]
+                      ? 'i-lucide-check'
+                      : 'i-lucide-minus'
+                  "
+                  :aria-label="
+                    $t(
+                      'cloud.billing.' +
+                        (plan.policy.limits[key] ? 'yes' : 'no'),
+                    )
+                  "
+                  role="img"
+                /><template v-else>{{
+                  allowance(key, plan.policy.limits[key], locale)
+                }}</template></strong
+              >
+            </li>
+            <li
+              v-for="(feature, index) in plan.policy.features ?? []"
+              :key="'feature:' + index"
+            >
+              <span>{{ feature.label }}</span
+              ><strong><CloudPlanFeatureValue :feature="feature" /></strong>
             </li>
           </ul>
           <details
@@ -390,7 +566,12 @@ async function checkout(plan: any) {
                   :key="key"
                 >
                   {{ $t('cloud.billing.' + key) }}:
-                  {{ allowance(String(key), Number(value), locale) }}
+                  <CloudPlanFeatureValue
+                    v-if="key === 'byos'"
+                    :feature="{ type: value ? 'supported' : 'dash' }"
+                  /><template v-else>{{
+                    allowance(String(key), Number(value), locale)
+                  }}</template>
                 </li>
               </ul>
             </div>
@@ -414,8 +595,26 @@ async function checkout(plan: any) {
           :data="comparisonRows"
           :columns="comparisonColumns"
           :caption="$t('cloud.billing.compare')"
-        /></section
-    ></template>
+          ><template
+            v-for="plan in data.plans"
+            :key="plan.id"
+            #[`plan:${plan.id}-cell`]="{ row }"
+          >
+            <CloudPlanFeatureValue
+              v-if="row.original.key.startsWith('feature:')"
+              :feature="row.original.values[plan.id]"
+            />
+            <CloudPlanFeatureValue
+              v-else-if="row.original.key === 'byos'"
+              :feature="{
+                type: plan.policy.limits.byos ? 'supported' : 'dash',
+              }"
+            />
+            <template v-else>{{ row.original.values[plan.id] }}</template>
+          </template></CfTable
+        >
+      </section></template
+    >
     <div class="cf-pricing-footer">
       <CloudSupportLink /><NuxtLink
         :to="links.redeem"
@@ -423,6 +622,74 @@ async function checkout(plan: any) {
         >{{ $t('cloud.billing.redeem') }}</NuxtLink
       >
     </div>
+    <UModal
+      v-model:open="changeOpen"
+      :title="$t('cloud.payments.changeTitle')"
+      :dismissible="!changeBusy"
+      :close="!changeBusy"
+    >
+      <template #body
+        ><div class="cf-form">
+          <p
+            v-if="changeBusy && !changeQuote"
+            role="status"
+          >
+            {{ $t('cloud.billing.loading') }}
+          </p>
+          <template v-if="changeQuote">
+            <p>
+              {{
+                $t(
+                  changeQuote.direction === 'upgrade'
+                    ? 'cloud.payments.upgradeHelp'
+                    : 'cloud.payments.downgradeHelp',
+                )
+              }}
+            </p>
+            <p>
+              {{ $t('cloud.payments.chargeNow') }}
+              <strong>{{
+                price(
+                  changeQuote.charge.total_amount,
+                  changeQuote.charge.currency,
+                  locale,
+                )
+              }}</strong>
+            </p>
+            <p>
+              {{ $t('cloud.payments.newRecurring') }}
+              <strong>{{
+                price(changeQuote.renewalAmount, changeQuote.currency, locale)
+              }}</strong>
+              /
+              {{
+                $t(
+                  changeQuote.interval === 1
+                    ? 'cloud.billing.month'
+                    : 'cloud.billing.quarter',
+                )
+              }}
+            </p>
+            <p class="cf-field-hint">{{ $t('cloud.payments.savedMethod') }}</p>
+          </template>
+          <p
+            v-if="changeError"
+            class="cf-error-message"
+            role="alert"
+          >
+            {{ changeError }}
+          </p>
+        </div></template
+      >
+      <template #footer
+        ><CfButton
+          :disabled="changeBusy || !changeQuote"
+          :loading="changeBusy"
+          @click="confirmChange"
+          >{{ $t('cloud.payments.confirmChange') }}</CfButton
+        ></template
+      >
+    </UModal>
     <CloudLegalLinks />
   </div>
 </template>
