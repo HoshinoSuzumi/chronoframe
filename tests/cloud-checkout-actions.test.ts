@@ -77,6 +77,7 @@ for (const retry of [false, true])
       cancelCheckoutOpen = ref(true),
       cancelCheckoutBusy = ref(false),
       interval = ref(1)
+    const paymentData = ref({ pending: target })
     const cleared: string[] = [],
       restarted: any[] = []
     let cancellations = 0,
@@ -99,6 +100,7 @@ for (const retry of [false, true])
         },
       },
       payments: {
+        data: paymentData,
         refresh: async () => {
           refreshes++
           throw Error('payments refresh failed')
@@ -121,6 +123,7 @@ for (const retry of [false, true])
     assert.equal(cancellations, 1)
     assert.equal(refreshes, 2)
     assert.equal(paymentError.value, '')
+    assert.equal(paymentData.value.pending, null)
     assert.equal(cancelCheckoutOpen.value, false)
     assert.equal(cancelCheckoutBusy.value, false)
     assert.deepEqual(cleared, [target.id])
@@ -164,3 +167,41 @@ test('failed cancellation retains its error and never starts a new checkout even
   assert.equal(busy.value, false)
   assert.equal(open.value, true)
 })
+
+for (const changed of ['checkout', 'workspace'])
+  test(`confirmed cancellation preserves a different current ${changed}`, async () => {
+    const target = {
+      id: 'old-checkout',
+      workspaceId: 1,
+      planId: 'creator',
+      interval: 3,
+    }
+    const pending = { id: changed === 'checkout' ? 'new-checkout' : target.id }
+    const paymentData = ref({ pending }),
+      selected = ref(changed === 'workspace' ? 2 : 1)
+    const run = action('cancelCheckout', {
+      cancellationTarget: ref(target),
+      cancelCheckoutBusy: ref(false),
+      cancelCheckoutOpen: ref(true),
+      paymentError: ref(''),
+      cancelCheckoutRetry: ref(false),
+      mounted: true,
+      billing: {
+        selected,
+        refresh: async () => {
+          throw Error('refresh failed')
+        },
+      },
+      payments: {
+        data: paymentData,
+        refresh: async () => {
+          throw Error('refresh failed')
+        },
+      },
+      $fetch: async () => ({ state: 'expired' }),
+      clearCheckoutReturn: async () => {},
+      t: (key: string) => key,
+    })
+    await run()
+    assert.deepEqual(paymentData.value.pending, pending)
+  })

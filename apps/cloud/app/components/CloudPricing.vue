@@ -287,6 +287,12 @@ async function cancelCheckout() {
       },
     })
     cancelCheckoutOpen.value = false
+    if (
+      mounted &&
+      target.workspaceId === billing?.selected.value &&
+      payments?.data.value?.pending?.id === target.id
+    )
+      payments.data.value = { ...payments.data.value, pending: null }
     await Promise.allSettled([
       payments?.refresh({ reconcile: false }),
       billing?.refresh(),
