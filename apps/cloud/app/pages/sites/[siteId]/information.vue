@@ -21,5 +21,6 @@ const site = useEntryContext().value!
       </div>
     </div>
     <CloudSiteSettings :site-id="site.siteId" />
+    <CloudMapSettings :site-id="site.siteId" />
   </div>
 </template>
