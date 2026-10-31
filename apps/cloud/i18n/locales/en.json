@@ -1,6 +1,7 @@
 {
   "cloud": {
     "home": {
+      "trialRibbon": "14-day trial",
   "selfHostedTitle": "Self-hosted",
   "ctaDescription": "Bring your photographs together and make a gallery that feels like yours.",
   "detailDescription": "Open a photograph in the dedicated viewer and spend time with the details.",
@@ -9,7 +10,7 @@
   "detailTitle": "Take a closer look",
   "storyTitle": "See the whole story. Stay for the details.",
   "storyCaption": "A place for the moments that stay with you.",
-  "selfHostedDescription": "Run ChronoFrame on your own infrastructure, with storage you control.",
+  "selfHostedDescription": "Run ChronoFrame on your own infrastructure.",
   "waysDescription": "Start with a hosted gallery or make a home for your photographs on your own infrastructure.",
   "ctaEyebrow": "MAKE SPACE FOR YOUR PHOTOGRAPHS",
   "ctaTitle": "Your next chapter starts here.",

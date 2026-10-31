@@ -833,13 +833,14 @@ async function submitCheckout(plan: any, mode?: string) {
         >
       </section></template
     >
-    <div class="cf-pricing-footer">
-      <CloudSupportLink /><NuxtLink
+    <footer class="cf-pricing-footer">
+      <div class="cf-pricing-footer-actions"><CloudSupportLink /><NuxtLink
         :to="links.redeem"
         :external="!portal"
         >{{ $t('cloud.billing.redeem') }}</NuxtLink
-      >
-    </div>
+      ></div>
+      <CloudLegalLinks />
+    </footer>
     <UModal
       v-model:open="checkoutOpen"
       :title="$t('cloud.payments.subscribeConfirm')"
@@ -1050,6 +1051,5 @@ async function submitCheckout(plan: any, mode?: string) {
         ></template
       >
     </UModal>
-    <CloudLegalLinks />
   </div>
 </template>

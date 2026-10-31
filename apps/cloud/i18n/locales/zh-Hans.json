@@ -1,6 +1,7 @@
 {
   "cloud": {
     "home": {
+      "trialRibbon": "14 天试用",
   "selfHostedTitle": "自部署",
   "ctaDescription": "把照片聚在一起，打造真正属于你的图库。",
   "detailDescription": "在专属照片查看器中打开画面，细细欣赏每处细节。",
@@ -9,7 +10,7 @@
   "detailTitle": "靠近一点看",
   "storyTitle": "看见完整故事，也看见每处细节。",
   "storyCaption": "为值得珍藏的瞬间，留一个位置。",
-  "selfHostedDescription": "在自己的基础设施上运行 ChronoFrame，使用由你掌控的存储。",
+  "selfHostedDescription": "在自己的基础设施上运行 ChronoFrame。",
   "waysDescription": "使用托管图库开始，或在自己的基础设施上为照片安家。",
   "ctaEyebrow": "为照片留一处空间",
   "ctaTitle": "从这里，开启下一章。",

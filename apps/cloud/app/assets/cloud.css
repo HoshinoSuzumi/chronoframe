@@ -168,9 +168,24 @@
 .cf-story-details p, .cf-ways-grid p { color: var(--muted-foreground); font-size: 13px; line-height: 1.8; }
 .cf-ways { padding: 80px 0 90px; border-top: 1px solid var(--border); }
 .cf-ways-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 36px; }
-.cf-ways-grid article { padding: 30px; border: 1px solid var(--border); border-radius: 8px; background: var(--card); }
-.cf-ways-grid p { max-width: 420px; min-height: 48px; }
-.cf-ways-grid a { display: inline-flex; align-items: center; gap: 8px; margin-top: 24px; color: var(--foreground); font-size: 13px; font-weight: 550; }
+.cf-ways-grid .cf-way-card { display: block; color: var(--foreground); padding: 26px; border: 1px solid var(--border); border-radius: 8px; background: var(--card); }
+.cf-ways-grid .cf-way-card { position: relative; overflow: hidden; isolation: isolate; transition: border-color .2s ease, box-shadow .2s ease; }
+.cf-ways-grid .cf-way-card::after { content: ''; position: absolute; z-index: -1; right: -48px; top: -84px; width: 210px; height: 210px; border: 1px solid color-mix(in srgb, var(--accent) 20%, transparent); border-radius: 50%; box-shadow: 0 0 0 28px color-mix(in srgb, var(--accent) 4%, transparent), 0 0 0 56px color-mix(in srgb, var(--accent) 3%, transparent); pointer-events: none; }
+.cf-ways-grid .cf-way-server::after { border-radius: 28px; transform: rotate(45deg); }
+.cf-ways-grid .cf-way-card:hover { border-color: color-mix(in srgb, var(--accent) 45%, var(--border)); box-shadow: 0 12px 28px -22px color-mix(in srgb, var(--accent) 45%, transparent); }
+.cf-way-card:focus-visible { outline: 2px solid var(--ring); outline-offset: 3px; }
+.cf-way-ribbon { position: absolute; top: 22px; right: -38px; width: 160px; padding: 6px 0; transform: rotate(45deg); background: var(--accent); color: var(--card); text-align: center; font-size: 10px; font-weight: 650; letter-spacing: .02em; }
+.cf-way-icon { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 12px; background: color-mix(in srgb, var(--accent) 12%, var(--card)); color: var(--accent); }
+.cf-ways-grid .cf-way-card h3 { margin-top: 18px; }
+.cf-way-card h3 { display: flex; align-items: center; gap: 8px; }
+.cf-way-card h3 svg { transition: transform .2s ease; }
+.cf-way-card:hover h3 svg { transform: translateX(4px); }
+@media (prefers-reduced-motion: reduce) { .cf-way-card h3 svg { transition: none; } }
+.cf-ways-grid p { max-width: 420px; }
+.cf-ways-grid .cf-way-action { display: inline-flex; align-items: center; gap: 8px; margin-top: 24px; color: var(--foreground); font-size: 13px; font-weight: 550; }
+.cf-ways-grid .cf-way-action svg { transition: transform .2s ease; }
+.cf-ways-grid .cf-way-card:hover .cf-way-action svg { transform: translateX(4px); }
+@media (prefers-reduced-motion: reduce) { .cf-ways-grid .cf-way-card, .cf-ways-grid .cf-way-action svg { transition: none; } }
 .cf-home-cta { display: flex; justify-content: space-between; align-items: center; gap: 30px; padding: 64px 0 76px; border-top: 1px solid var(--border); }
 .cf-home-cta .cf-button { flex-shrink: 0; }
 @media (max-width: 700px) {
@@ -3029,12 +3044,20 @@ a.cf-domain-address:hover {
 .cf-pricing-footer {
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: space-between;
   flex-wrap: wrap;
-  gap: 12px 24px;
-  margin-top: 24px;
+  gap: 16px 32px;
+  margin-top: 48px;
+  padding: 24px 0 32px;
+  border-top: 1px solid var(--border);
   color: var(--muted-foreground);
   font-size: 12px;
+}
+.cf-pricing-footer-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 12px 24px; }
+.cf-pricing-footer .cf-legal-links { padding: 0; gap: 8px 20px; }
+.cf-pricing-footer a:hover { color: var(--foreground); }
+@media (max-width: 700px) {
+  .cf-pricing-footer { align-items: flex-start; flex-direction: column; }
 }
 .cf-pricing-card:target {
   outline: 2px solid var(--ring);

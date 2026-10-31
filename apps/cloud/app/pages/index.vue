@@ -10,6 +10,8 @@ import {
   Code2,
   Search,
   SlidersHorizontal,
+  Cloud,
+  Server,
 } from 'lucide-vue-next'
 const entrance = useCloudMotion()
 const links = useCloudLinks()
@@ -203,8 +205,8 @@ useSeoMeta({
           <p>{{ $t('cloud.home.waysDescription') }}</p>
         </div>
         <div class="cf-ways-grid">
-          <article><h3>ChronoFrame Cloud</h3><p>{{ $t('cloud.home.cloudDescription') }}</p><NuxtLink :to="links.signup" external>{{ $t('cloud.messages.createYourAccount') }} <ArrowRight :size="15" /></NuxtLink></article>
-          <article><h3>{{ $t('cloud.home.selfHostedTitle') }}</h3><p>{{ $t('cloud.home.selfHostedDescription') }}</p><a href="https://docs.chronoframe.art/guide/getting-started.html">{{ $t('cloud.messages.exploreSelfHosted') }} <ArrowUpRight :size="15" /></a></article>
+          <NuxtLink :to="links.signup" external class="cf-way-card cf-way-cloud"><span class="cf-way-ribbon">{{ $t('cloud.home.trialRibbon') }}</span><div class="cf-way-icon" aria-hidden="true"><Cloud :size="22" :stroke-width="1.5" /></div><h3>ChronoFrame Cloud <ArrowRight :size="16" aria-hidden="true" /></h3><p>{{ $t('cloud.home.cloudDescription') }}</p></NuxtLink>
+          <a href="https://docs.chronoframe.art/guide/getting-started.html" class="cf-way-card cf-way-server"><div class="cf-way-icon" aria-hidden="true"><Server :size="22" :stroke-width="1.5" /></div><h3>{{ $t('cloud.home.selfHostedTitle') }} <ArrowUpRight :size="16" aria-hidden="true" /></h3><p>{{ $t('cloud.home.selfHostedDescription') }}</p></a>
         </div>
       </section>
       <section class="cf-home-cta" aria-labelledby="home-cta-heading">
