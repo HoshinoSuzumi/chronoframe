@@ -29,6 +29,8 @@ export default definePlatformHandler(async (event) => {
       avatarUrl: string
       presentation: string
     }>()
+  // Start public galleries in dark mode; visitors can switch themes in the UI.
+  data.app!['appearance.theme'] = 'dark'
   data.app!.title = profile?.title || context.name
   data.app!.slogan = profile?.slogan || ''
   data.app!.author = profile?.author || ''
