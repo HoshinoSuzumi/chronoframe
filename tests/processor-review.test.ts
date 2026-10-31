@@ -80,16 +80,24 @@ test('a bad post-claim configuration promptly fails the claimed attempt instead 
       target: ts.ScriptTarget.ES2022,
     },
   }).outputText
-  const handlers: Record<string, () => void> = {},
-    failures: any[] = []
+  const handlers: Record<string, () => void> = {}
+  type FailBody = { lease: typeof lease; code: string; retryable: boolean }
+  const failures: FailBody[] = []
   let opened = 0,
     processed = false
   const lease = { id: 'job', siteId: 1, workerId: nodeId, attemptId: 'attempt' }
-  const rpc = async (action: string, body: any) => {
+  const rpc = async (action: string, body: Record<string, unknown>) => {
     if (action === 'register') return {}
     if (action === 'claim') return { lease, configuration: {} }
     if (action === 'fail') {
-      failures.push(body)
+      assert.deepEqual(body.lease, lease)
+      assert.equal(typeof body.code, 'string')
+      assert.equal(typeof body.retryable, 'boolean')
+      failures.push({
+        lease,
+        code: String(body.code),
+        retryable: body.retryable === true,
+      })
       handlers.SIGTERM!()
       return { ok: true }
     }
@@ -195,7 +203,7 @@ test('provider empty results stay successful nulls while transport failures can 
 
 test('rerunning media setup retains its registered key and optional Access credentials', () => {
   const existing = `CHRONOFRAME_PORTAL_ORIGIN=https://old.example\nCHRONOFRAME_PROCESSOR_KEY=${key}\nCHRONOFRAME_ACCESS_CLIENT_SECRET=private-access-example\n`
-  for (const supplied of [undefined, '']) {
+  for (const supplied of [undefined, '', '""', "''", '  ""  ', "  ''  "]) {
     const result = processorEnvironment(
       'https://new.example',
       supplied,
@@ -224,6 +232,35 @@ test('rerunning media setup retains its registered key and optional Access crede
       existing,
     ),
   )
+})
+
+test('spaced Compose assignments are normalized and the last stored key survives rotation or setup', () => {
+  const second = `pn_${nodeId}.${'b'.repeat(43)}`
+  const existing = `CHRONOFRAME_PROCESSOR_KEY=${key}\r\n  CHRONOFRAME_PROCESSOR_KEY \t = "${second}"\r\n CHRONOFRAME_PORTAL_ORIGIN = https://old.example\r\nCHRONOFRAME_ACCESS_CLIENT_SECRET=keep-me\r\n`
+  const preserved = processorEnvironment(
+    'https://new.example',
+    undefined,
+    existing,
+  )
+  assert(preserved.includes('CHRONOFRAME_PROCESSOR_KEY=' + second))
+  const rotated = processorEnvironment('https://new.example', key, existing)
+  assert.equal(
+    rotated
+      .split('\n')
+      .filter((line) => /^[\t ]*CHRONOFRAME_PROCESSOR_KEY[\t ]*=/.test(line))
+      .length,
+    1,
+  )
+  assert.equal(
+    rotated
+      .split('\n')
+      .filter((line) => /^[\t ]*CHRONOFRAME_PORTAL_ORIGIN[\t ]*=/.test(line))
+      .length,
+    1,
+  )
+  assert(rotated.includes('CHRONOFRAME_PROCESSOR_KEY=' + key))
+  assert(!rotated.includes(second))
+  assert(rotated.includes('CHRONOFRAME_ACCESS_CLIENT_SECRET=keep-me'))
 })
 
 test('batch processing reports conflicts but propagates unexpected queue failures', async () => {

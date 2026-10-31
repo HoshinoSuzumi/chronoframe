@@ -7,6 +7,7 @@ import { readFile, readdir } from 'node:fs/promises'
 import { splitSqlQuery } from './helpers/sql.ts'
 import {
   processorCipher,
+  type ProcessorConfiguration,
   processorKeyHash,
   DEFAULT_PROCESSOR_LIMITS,
   parseProcessorLimits,
@@ -207,7 +208,7 @@ test('registered node auth revokes old keys; full schema preserves assets and fe
     )
     const decoded = await (
       await processorCipher(key)
-    ).open<any>(
+    ).open<ProcessorConfiguration>(
       config.envelope,
       `${id}:${config.revision}:${config.issuedAt}:${config.expiresAt}:${config.nonce}`,
     )
