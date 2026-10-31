@@ -154,9 +154,7 @@ const sites = ref(
     <p class="cf-catalog-note">
       <ShieldCheck :size="14" />{{
         $t('cloud.messages.onlySitesYouBelongToAppearHere')
-      }}<a href="https://docs.chronoframe.art/"
-        >{{ $t('cloud.messages.viewDocumentation') }}<ArrowUpRight :size="12"
-      /></a>
+      }}
     </p>
   </div>
 </template>
