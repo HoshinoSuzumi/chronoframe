@@ -852,7 +852,14 @@
       "selectAlbums": "Select albums (optional, multiple allowed)",
       "albumHelp": "Uploaded photographs are automatically added to the selected albums. Leave empty to add only to the library.",
       "albumsUnavailable": "A selected album is no longer available. Update your album selection and try again. Previously uploaded photographs are unaffected.",
-      "albumsCheckFailed": "Unable to verify albums. Check your connection and try again. Upload has not started."
+      "albumsCheckFailed": "Unable to verify albums. Check your connection and try again. Upload has not started.",
+      "selectedFiles": "Files to upload",
+      "selectedFilesCount": "{count} files selected",
+      "clearSelection": "Clear",
+      "removeSelected": "Remove {name}",
+      "selectPhotosForVideo": "Select photographs together with their matching MOV companion videos.",
+      "closeSelection": "Close",
+      "startUpload": "Start upload"
     }
   }
 }

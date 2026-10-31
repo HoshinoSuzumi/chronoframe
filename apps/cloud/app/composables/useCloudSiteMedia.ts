@@ -425,8 +425,10 @@ export function useCloudMediaWorkspace(props: {
     localStorage.removeItem(cache)
     activeUpload = undefined
   }
-  async function upload(event: Event) {
-    const input = event.target as HTMLInputElement,
+  async function upload(event: Event | File[]) {
+    const input = Array.isArray(event)
+        ? { files: event, value: '' }
+        : (event.target as HTMLInputElement),
       files = Array.from(input.files ?? [])
     if (
       !files.length ||
@@ -551,6 +553,7 @@ export function useCloudMediaWorkspace(props: {
       currentFile.value = ''
       await reload()
     }
+    return { completed: uploadSession.completed }
   }
   async function cancel() {
     controller?.abort()
