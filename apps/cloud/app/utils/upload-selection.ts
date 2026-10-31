@@ -17,16 +17,15 @@ export function remainingUploadFiles<T extends UploadFile>(
   completed: number,
 ): T[] {
   const isVideo = (file: T) => file.name.toLowerCase().endsWith('.mov')
-  const completedPhotos = files
-    .filter((file) => !isVideo(file))
-    .slice(0, completed)
+  const photos = files.filter((file) => !isVideo(file))
+  const completedPhotos = photos.slice(0, completed)
+  const stem = (file: T) => file.name.replace(/\.[^.]+$/, '').toLowerCase()
+  const unfinishedStems = new Set(photos.slice(completed).map(stem))
   const removed = new Set(completedPhotos)
   for (const photo of completedPhotos) {
+    if (unfinishedStems.has(stem(photo))) continue
     const companion = files.find(
-      (file) =>
-        isVideo(file) &&
-        file.name.replace(/\.[^.]+$/, '').toLowerCase() ===
-          photo.name.replace(/\.[^.]+$/, '').toLowerCase(),
+      (file) => isVideo(file) && stem(file) === stem(photo),
     )
     if (companion) removed.add(companion)
   }

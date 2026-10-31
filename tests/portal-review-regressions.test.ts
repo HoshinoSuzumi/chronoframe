@@ -1103,3 +1103,20 @@ test('file selection and dropping only stage files; explicit start uploads once 
   await state.startUpload()
   assert.equal(batches.length, count)
 })
+
+test('partial upload cleanup retains shared MOV companions until every matching photo completes', () => {
+  const heic = new File(['heic'], 'One.HEIC', { lastModified: 1 })
+  const video = new File(['video'], 'one.MOV', { lastModified: 1 })
+  const jpeg = new File(['jpeg'], 'ONE.jpg', { lastModified: 1 })
+  const orphan = new File(['orphan'], 'other.MOV', { lastModified: 1 })
+  const selected = [heic, video, jpeg, orphan]
+  assert.deepEqual(remainingUploadFiles(selected, 0), selected)
+  const remaining = remainingUploadFiles(selected, 1)
+  assert.deepEqual(remaining, [video, jpeg, orphan])
+  assert.equal(
+    remaining.find((file) => file.name.toLowerCase().endsWith('.mov')),
+    video,
+  )
+  assert.deepEqual(remainingUploadFiles(remaining, 1), [orphan])
+  assert.deepEqual(remainingUploadFiles(selected, 2), [orphan])
+})
