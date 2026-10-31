@@ -632,7 +632,7 @@ export default definePlatformHandler(async (event) => {
     return {
       photos: await ctx.resources.listPhotos(),
       jobs: await sql(
-        'SELECT j.id,j.state,j.attempts,j.error_code,j.photo_id,u.file_name FROM cloud_processing_jobs j LEFT JOIN cloud_uploads u ON u.site_id=j.site_id AND u.id=j.upload_id WHERE j.site_id=? ORDER BY j.created_at DESC,j.id DESC LIMIT 100',
+        'SELECT j.id,j.state,j.attempts,j.error_code,j.photo_id,u.file_name FROM cloud_processing_jobs j LEFT JOIN cloud_uploads u ON u.site_id=j.site_id AND u.id=j.upload_id WHERE j.site_id=? AND EXISTS(SELECT 1 FROM cloud_photos p WHERE p.site_id=j.site_id AND p.id=j.photo_id AND p.deleted=0) ORDER BY j.created_at DESC,j.id DESC LIMIT 100',
         siteId,
       ),
     }

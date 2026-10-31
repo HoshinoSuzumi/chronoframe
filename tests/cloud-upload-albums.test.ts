@@ -70,6 +70,7 @@ test('upload reservation persists canonical site-owned albums and refuses changi
         target: ts.ScriptTarget.ES2022,
       },
     }).outputText
+    let operation = 'uploads'
     const deps = {
       definePlatformHandler: <T>(f: T) => f,
       cloudMedia: async () => ({
@@ -79,12 +80,20 @@ test('upload reservation persists canonical site-owned albums and refuses changi
         db,
         raw: db,
         repository,
+        resources: { listPhotos: async () => [] },
+        sql: async (query: string, ...values: (string | number | null)[]) =>
+          (
+            await db
+              .prepare(query)
+              .bind(...values)
+              .all()
+          ).results,
         vault: {
           list: async () => [{ id: 'storage', uploads_enabled: 1 }],
           get: async () => ({ poolId: 'pool', enabled: true, revision: 1 }),
         },
       }),
-      getRouterParam: () => 'uploads',
+      getRouterParam: () => operation,
       siteManagementBody: async (event: RequestEvent) => event.body,
       uploadAlbumIds,
       validateUploadAlbums,
@@ -110,7 +119,7 @@ test('upload reservation persists canonical site-owned albums and refuses changi
       code + '; return exports.default',
     )({}, ...Object.values(deps)) as (
       event: RequestEvent,
-    ) => Promise<{ id: string }>
+    ) => Promise<{ id?: string; jobs?: { id: string; photo_id: string }[] }>
     const body = {
       requestId: 'upload',
       connectionId: 'storage',
@@ -153,6 +162,36 @@ test('upload reservation persists canonical site-owned albums and refuses changi
         .all()
         .map((r) => r.album_id),
       ['1'],
+    )
+    operation = 'photos'
+    sqlite
+      .prepare(
+        "UPDATE cloud_processing_jobs SET state='failed' WHERE site_id=1 AND id='job'",
+      )
+      .run()
+    const beforeDelete = await api({ method: 'GET', body: {} })
+    assert.equal(beforeDelete.jobs?.length, 1) // Not-ready failures remain actionable.
+    sqlite
+      .prepare(
+        "INSERT INTO cloud_photos(site_id,id,source_version,title) VALUES(2,'upload','1','Other site')",
+      )
+      .run()
+    sqlite
+      .prepare(
+        "UPDATE cloud_photos SET deleted=1 WHERE site_id=1 AND id='upload'",
+      )
+      .run()
+    for (let visit = 0; visit < 2; visit++)
+      assert.deepEqual((await api({ method: 'GET', body: {} })).jobs, [])
+    assert.equal(
+      (
+        sqlite
+          .prepare(
+            "SELECT COUNT(*) AS total FROM cloud_processing_jobs WHERE site_id=1 AND id='job'",
+          )
+          .get() as { total: number }
+      ).total,
+      1,
     )
   } finally {
     sqlite.close()

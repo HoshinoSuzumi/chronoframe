@@ -34,6 +34,10 @@ watch(
       initialSnapshot = false
     }
     const next = { ...tracked.value }
+    const present = new Set(items.map((job) => job.id))
+    for (const job of Object.values(next)) {
+      if (job.state !== 'succeeded' && !present.has(job.id)) delete next[job.id]
+    }
     for (const job of items) {
       if (active(job)) dismissed.delete(job.id)
       if (

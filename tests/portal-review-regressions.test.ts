@@ -898,6 +898,9 @@ test('floating queue follows task completion and retry without showing historica
   media.busy.value = false
   state.removeFailed(failedJob)
   assert.deepEqual(removed, ['never-ready'])
+  media.jobs.value = [] // The server omits tombstoned photos after deletion.
+  await nextTick()
+  assert.equal(state.processingJobs.value.length, 0)
   // A new visit keeps historical failures accessible, but starts collapsed.
   media.ready.value = false
   media.jobs.value = [failedJob]
