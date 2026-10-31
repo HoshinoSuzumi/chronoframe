@@ -81,8 +81,7 @@ test('a bad post-claim configuration promptly fails the claimed attempt instead 
     },
   }).outputText
   const handlers: Record<string, () => void> = {}
-  type FailBody = { lease: typeof lease; code: string; retryable: boolean }
-  const failures: FailBody[] = []
+  const failures: Record<string, unknown>[] = []
   let opened = 0,
     processed = false
   const lease = { id: 'job', siteId: 1, workerId: nodeId, attemptId: 'attempt' }
@@ -90,14 +89,7 @@ test('a bad post-claim configuration promptly fails the claimed attempt instead 
     if (action === 'register') return {}
     if (action === 'claim') return { lease, configuration: {} }
     if (action === 'fail') {
-      assert.deepEqual(body.lease, lease)
-      assert.equal(typeof body.code, 'string')
-      assert.equal(typeof body.retryable, 'boolean')
-      failures.push({
-        lease,
-        code: String(body.code),
-        retryable: body.retryable === true,
-      })
+      failures.push(body)
       handlers.SIGTERM!()
       return { ok: true }
     }
@@ -148,9 +140,11 @@ test('a bad post-claim configuration promptly fails the claimed attempt instead 
   )(...Object.values(deps))
   assert.equal(processed, false)
   assert.equal(failures.length, 1)
-  assert.deepEqual(failures[0].lease, lease)
-  assert.equal(failures[0].code, 'configuration_invalid')
-  assert.equal(failures[0].retryable, true)
+  const failure = failures[0]
+  assert(failure)
+  assert.deepEqual(failure.lease, lease)
+  assert.equal(failure.code, 'configuration_invalid')
+  assert.equal(failure.retryable, true)
 })
 
 test('provider empty results stay successful nulls while transport failures can propagate to processing queues', async () => {

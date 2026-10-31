@@ -1,3 +1,4 @@
+import { REACTION_TYPES } from '../packages/contracts/src/reactions.ts'
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import Database from 'better-sqlite3'
@@ -18,9 +19,9 @@ test('published photo streams remain available throughout maintenance and after 
     )
     const db = {
       prepare: (sql: string) => {
-        let values: any[] = []
+        let values: (string | number | null)[] = []
         const statement = {
-          bind: (...v: any[]) => {
+          bind: (...v: (string | number | null)[]) => {
             values = v
             return statement
           },
@@ -58,12 +59,53 @@ test('published photo streams remain available throughout maintenance and after 
         signGet: async (key: string) => 'https://storage.example/' + key,
       }),
       getHeader: () => undefined,
-      createError: (v: any) => Object.assign(new Error(v.statusMessage), v),
+      createError: (v: { statusCode: number; statusMessage?: string }) =>
+        Object.assign(new Error(v.statusMessage), v),
     }
     const media = new Function(
       ...Object.keys(deps),
       code + ';return exports.privateMedia',
     )(...Object.values(deps))
+    let denied = false,
+      publicSiteId = 1,
+      authorizationCalls = 0
+    const album = { id: 1, title: 'Album' }
+    const publicSource = (
+      await readFile(
+        'apps/site/server/api/public/photos/[photoId]/[operation].ts',
+        'utf8',
+      )
+    ).replace(/^import[\s\S]*?from ['"][^'"]+['"]\s*\n/gm, '')
+    const publicCode = ts.transpileModule(publicSource, {
+      compilerOptions: {
+        module: ts.ModuleKind.CommonJS,
+        target: ts.ScriptTarget.ES2022,
+      },
+    }).outputText
+    const publicDeps = {
+      ...deps,
+      exports: {},
+      definePlatformHandler: (f: unknown) => f,
+      publicSiteContext: async () => ({ site: { id: publicSiteId } }),
+      getRouterParam: (event: { operation: string }, name: string) =>
+        name === 'photoId' ? 'photo' : event.operation,
+      authorizePublicPhoto: async () => {
+        authorizationCalls++
+        if (denied)
+          throw Object.assign(new Error('Denied'), { statusCode: 403 })
+      },
+      createCloudResourceRepository: () => ({
+        membershipsForPhoto: async () => [{ albumId: 1 }],
+      }),
+      createResourceReader: () => ({ listAlbums: async () => [album] }),
+      createEmailCodeCrypto: async () => ({ mac: async () => 'visitor' }),
+      platformRequestURL: () => new URL('https://gallery.example'),
+      REACTION_TYPES,
+    }
+    const publicApi = new Function(
+      ...Object.keys(publicDeps),
+      publicCode + ';return exports.default',
+    )(...Object.values(publicDeps))
     globalThis.fetch = async () =>
       new Response('img', {
         headers: { 'content-length': '3', 'content-type': 'image/jpeg' },
@@ -79,13 +121,41 @@ test('published photo streams remain available throughout maintenance and after 
       sqlite.prepare('UPDATE cloud_processing_jobs SET state=?').run(state)
       for (const role of ['original', 'display', 'thumbnail', 'live-video'])
         assert.equal(await (await media({}, 1, 'photo', role)).text(), 'img')
+      assert.deepEqual(
+        await publicApi({ method: 'GET', operation: 'albums' }),
+        [album],
+      )
+      assert.deepEqual(
+        (await publicApi({ method: 'GET', operation: 'reactions' })).reactions,
+        Object.fromEntries(REACTION_TYPES.map((type) => [type, 0])),
+      )
     }
+    assert.equal(authorizationCalls, 12)
+    denied = true
+    await assert.rejects(publicApi({ method: 'GET', operation: 'albums' }), {
+      statusCode: 403,
+    })
+    await assert.rejects(publicApi({ method: 'GET', operation: 'reactions' }), {
+      statusCode: 403,
+    })
+    denied = false
+    publicSiteId = 2
+    await assert.rejects(publicApi({ method: 'GET', operation: 'albums' }), {
+      statusCode: 404,
+    })
+    publicSiteId = 1
     sqlite.exec('UPDATE cloud_photos SET metadata_json=NULL')
+    await assert.rejects(publicApi({ method: 'GET', operation: 'albums' }), {
+      statusCode: 404,
+    })
     await assert.rejects(media({}, 1, 'photo', 'thumbnail'), {
       statusCode: 404,
     })
     sqlite.exec("UPDATE cloud_photos SET metadata_json='{}',deleted=1")
     await assert.rejects(media({}, 1, 'photo', 'original'), { statusCode: 404 })
+    await assert.rejects(publicApi({ method: 'GET', operation: 'reactions' }), {
+      statusCode: 404,
+    })
   } finally {
     globalThis.fetch = originalFetch
     sqlite.close()
