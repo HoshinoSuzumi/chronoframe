@@ -748,6 +748,7 @@ test('upload sessions capture their actual storage type and move progress out of
       release = resolve
     })
     const reservations: any[] = []
+    const cacheKeys: string[] = []
     const storage = new Map<string, string>()
     const module = load(
       'apps/cloud/app/composables/useCloudSiteMedia.ts',
@@ -763,7 +764,10 @@ test('upload sessions capture their actual storage type and move progress out of
         setInterval,
         clearInterval,
         localStorage: {
-          getItem: (k: string) => storage.get(k),
+          getItem: (k: string) => {
+            cacheKeys.push(k)
+            return storage.get(k)
+          },
           setItem: (k: string, v: string) => storage.set(k, v),
           removeItem: (k: string) => storage.delete(k),
         },
@@ -808,16 +812,26 @@ test('upload sessions capture their actual storage type and move progress out of
         value: 'chosen',
       },
     })
+    media.connectionId.value = 'changed-during-preflight'
     assert.equal(media.preparingUpload.value, true)
     await new Promise((resolve) => setImmediate(resolve))
     assert.equal(media.uploading.value, true)
     assert.equal(media.uploadOpen.value, false)
     assert.equal(media.uploadSession.storage, platform ? 'platform' : 'private')
+    media.connectionId.value = 'changed-during-upload'
     media.selectedAlbumIds.value = [7]
     media.connections.value = []
     assert.equal(media.uploadSession.storage, platform ? 'platform' : 'private')
     release()
     await pending
+    assert.deepEqual(
+      reservations.map((body) => body.connectionId),
+      ['chosen', 'chosen'],
+    )
+    assert(
+      cacheKeys.length > 0 &&
+        cacheKeys.every((key) => key.includes(':chosen:albums:')),
+    )
     assert.equal(media.uploadSession.total, 2)
     assert.equal(media.uploadSession.completed, 2)
     assert.equal(media.uploadSession.failed, false)

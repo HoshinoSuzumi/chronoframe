@@ -119,7 +119,10 @@ test('upload reservation persists canonical site-owned albums and refuses changi
       code + '; return exports.default',
     )({}, ...Object.values(deps)) as (
       event: RequestEvent,
-    ) => Promise<{ id?: string; jobs?: { id: string; photo_id: string }[] }>
+    ) => Promise<{
+      id?: string
+      jobs?: { id: string; photo_id: string; state: string }[]
+    }>
     const body = {
       requestId: 'upload',
       connectionId: 'storage',
@@ -193,6 +196,55 @@ test('upload reservation persists canonical site-owned albums and refuses changi
       ).total,
       1,
     )
+    sqlite
+      .prepare(
+        "UPDATE cloud_photos SET deleted=0 WHERE site_id=1 AND id='upload'",
+      )
+      .run()
+    sqlite
+      .prepare(
+        "UPDATE cloud_processing_jobs SET state='running',created_at=1 WHERE site_id=1 AND id='job'",
+      )
+      .run()
+    sqlite.transaction(() => {
+      for (let index = 0; index < 125; index++) {
+        const id = 'more-' + index
+        sqlite
+          .prepare(
+            "INSERT INTO cloud_photos(site_id,id,source_version,title) VALUES(1,?,'1','Photo')",
+          )
+          .run(id)
+        sqlite
+          .prepare(
+            "INSERT INTO cloud_uploads(site_id,id,owner_id,photo_id,source_version,connection_id,object_key,expected_bytes,expires_at) VALUES(1,?,1,?,'1','storage',?,10,9999999999999)",
+          )
+          .run(id, id, id)
+        sqlite
+          .prepare(
+            "INSERT INTO cloud_processing_jobs(site_id,id,upload_id,photo_id,source_version,pipeline_version,state,created_at) VALUES(1,?,?,?,'1','1',?,?)",
+          )
+          .run(
+            id,
+            id,
+            id,
+            index === 0 ? 'queued' : index === 1 ? 'retry_wait' : 'succeeded',
+            index < 2 ? index + 2 : 10000 + index,
+          )
+      }
+    })()
+    const jobs = (await api({ method: 'GET', body: {} })).jobs!
+    assert.equal(jobs.length, 103) // All three older active jobs plus 100 history rows.
+    for (const id of ['job', 'more-0', 'more-1'])
+      assert(jobs.some((job) => job.id === id))
+    assert.equal(jobs.filter((job) => job.state === 'succeeded').length, 100)
+    sqlite
+      .prepare(
+        "UPDATE cloud_photos SET deleted=1 WHERE site_id=1 AND id='upload'",
+      )
+      .run()
+    const afterDelete = (await api({ method: 'GET', body: {} })).jobs!
+    assert.equal(afterDelete.length, 102)
+    assert(!afterDelete.some((job) => job.id === 'job'))
   } finally {
     sqlite.close()
   }

@@ -632,7 +632,17 @@ export default definePlatformHandler(async (event) => {
     return {
       photos: await ctx.resources.listPhotos(),
       jobs: await sql(
-        'SELECT j.id,j.state,j.attempts,j.error_code,j.photo_id,u.file_name FROM cloud_processing_jobs j LEFT JOIN cloud_uploads u ON u.site_id=j.site_id AND u.id=j.upload_id WHERE j.site_id=? AND EXISTS(SELECT 1 FROM cloud_photos p WHERE p.site_id=j.site_id AND p.id=j.photo_id AND p.deleted=0) ORDER BY j.created_at DESC,j.id DESC LIMIT 100',
+        `WITH visible_jobs AS (
+          SELECT j.id,j.state,j.attempts,j.error_code,j.photo_id,j.created_at,u.file_name
+          FROM cloud_processing_jobs j LEFT JOIN cloud_uploads u ON u.site_id=j.site_id AND u.id=j.upload_id
+          WHERE j.site_id=? AND EXISTS(SELECT 1 FROM cloud_photos p WHERE p.site_id=j.site_id AND p.id=j.photo_id AND p.deleted=0)
+        ), recent_history AS (
+          SELECT id FROM visible_jobs WHERE state NOT IN ('queued','running','retry_wait')
+          ORDER BY created_at DESC,id DESC LIMIT 100
+        )
+        SELECT id,state,attempts,error_code,photo_id,file_name FROM visible_jobs
+        WHERE state IN ('queued','running','retry_wait') OR id IN (SELECT id FROM recent_history)
+        ORDER BY created_at DESC,id DESC`,
         siteId,
       ),
     }

@@ -319,7 +319,7 @@ export function useCloudMediaWorkspace(props: {
     if (saved) await loadPhoto()
     return saved
   }
-  function resumeKey(file: File, albumIds: number[]) {
+  function resumeKey(file: File, albumIds: number[], connection: string) {
     return (
       [
         'chronoframe-upload',
@@ -328,7 +328,7 @@ export function useCloudMediaWorkspace(props: {
         file.name,
         file.size,
         file.lastModified,
-        connectionId.value,
+        connection,
       ].join(':') + (albumIds.length ? ':albums:' + albumIds.join(',') : '')
     )
   }
@@ -336,14 +336,15 @@ export function useCloudMediaWorkspace(props: {
     file: File,
     liveVideo: File | undefined,
     albumIds: number[],
+    connection: string,
   ) {
-    const cache = resumeKey(file, albumIds),
+    const cache = resumeKey(file, albumIds, connection),
       id = localStorage.getItem(cache) || crypto.randomUUID()
     await api(base.value + '/uploads', {
       method: 'POST',
       body: {
         requestId: id,
-        connectionId: connectionId.value,
+        connectionId: connection,
         fileName: file.name,
         bytes: file.size,
         albumIds,
@@ -434,6 +435,11 @@ export function useCloudMediaWorkspace(props: {
       !connectionId.value
     )
       return
+    const batchConnection = connectionId.value
+    const batchStorage = connections.value.find((c) => c.id === batchConnection)
+      ?.pool_id
+      ? 'platform'
+      : 'private'
     const isVideo = (file: File) => file.name.toLowerCase().endsWith('.mov')
     const companionFor = (photo: File) =>
       files.find(
@@ -473,7 +479,12 @@ export function useCloudMediaWorkspace(props: {
         // Existing reservations retain their original selection even if an album was removed.
         const hasNewFiles = files
           .filter((file) => !isVideo(file))
-          .some((file) => !localStorage.getItem(resumeKey(file, chosenAlbums)))
+          .some(
+            (file) =>
+              !localStorage.getItem(
+                resumeKey(file, chosenAlbums, batchConnection),
+              ),
+          )
         if (unavailable && hasNewFiles) {
           failed.value = true
           message.value = t('cloud.transfer.albumsUnavailable')
@@ -492,11 +503,7 @@ export function useCloudMediaWorkspace(props: {
     const albumIds = chosenAlbums
     uploadSession.total = files.filter((f) => !isVideo(f)).length
     uploadSession.completed = 0
-    uploadSession.storage = connections.value.find(
-      (c) => c.id === connectionId.value,
-    )?.pool_id
-      ? 'platform'
-      : 'private'
+    uploadSession.storage = batchStorage
     uploadSession.message = ''
     uploadSession.failed = false
     uploadOpen.value = false
@@ -511,7 +518,7 @@ export function useCloudMediaWorkspace(props: {
         const companion = companionFor(file)
         currentFile.value = file.name
         progress.value = 0
-        await sendFile(file, companion, albumIds)
+        await sendFile(file, companion, albumIds, batchConnection)
         uploadSession.completed++
         void refreshProcessing()
       }
