@@ -448,7 +448,7 @@
       "photographCount": "{count} photograph | {count} photographs",
       "photoMembershipCount": "Photographs · {count}",
       "securityFor": "Manage sign-in methods for {email}.",
-      "uploadProgress": "{progress}% · Uploading to your private bucket",
+      "uploadProgress": "{progress}% · Uploading to your private storage",
       "uploadUsage": "Workspace: {photos} / {photoLimit} photographs · {bytes} / {uploadLimit} GiB uploaded this quota month",
       "connectionRevision": "{bucket} · revision {revision}",
       "admin": "Admin",
@@ -469,7 +469,8 @@
       "passwordSetupGuidance": "You signed in with an email code. {link} before enabling two-step verification.",
       "connectStorageGuidance": "Connect your private storage in {link} before uploading.",
       "attemptCount": "Attempt {count}",
-      "chooseIcon": "Choose icon"
+      "chooseIcon": "Choose icon",
+      "uploadProgressPlatform": "{progress}% · Uploading to platform storage"
     },
     "storageErrors": {
       "storage_configuration_failed": "Check the S3 endpoint, region, bucket name and credential fields.",
@@ -840,6 +841,16 @@
     },
     "support": {
       "email": "Contact support: {email}"
+    },
+    "transfer": {
+      "title": "Upload and processing queue",
+      "dismiss": "Clear finished tasks",
+      "upload": "Upload progress",
+      "count": "{completed} / {total} completed",
+      "verifying": "Upload complete. Verifying files…",
+      "albums": "Add to albums",
+      "selectAlbums": "Select albums (optional, multiple allowed)",
+      "albumHelp": "Uploaded photographs are automatically added to the selected albums. Leave empty to add only to the library."
     }
   }
 }

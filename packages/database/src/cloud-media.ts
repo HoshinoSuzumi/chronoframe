@@ -198,6 +198,21 @@ export function createCloudMediaRepository(
           now,
         ),
         statement(
+          `INSERT INTO cloud_album_photos(site_id,album_id,photo_id,position)
+           SELECT ?,a.id,u.photo_id,COALESCE((SELECT MAX(position)+1 FROM cloud_album_photos WHERE site_id=a.site_id AND album_id=a.id),0)
+           FROM cloud_uploads u JOIN json_each(u.album_ids_json) selected JOIN cloud_albums a ON a.site_id=u.site_id AND a.id=CAST(selected.value AS TEXT)
+           WHERE u.site_id=? AND u.id=? AND u.owner_id=? AND u.state='pending' AND u.expires_at>? ON CONFLICT DO NOTHING`,
+          siteId,
+          id,
+          ownerId,
+          now,
+        ),
+        db
+          .prepare(
+            `UPDATE cloud_albums SET revision=revision+1,updated_at=? WHERE site_id=? AND id IN(SELECT CAST(selected.value AS TEXT) FROM cloud_uploads u JOIN json_each(u.album_ids_json) selected WHERE u.site_id=? AND u.id=? AND u.owner_id=? AND u.state='pending' AND u.expires_at>?)`,
+          )
+          .bind(now, siteId, siteId, id, ownerId, now),
+        statement(
           `UPDATE cloud_uploads SET state='completed' WHERE site_id=? AND id=? AND owner_id=? AND state='pending' AND expires_at>?`,
           id,
           ownerId,

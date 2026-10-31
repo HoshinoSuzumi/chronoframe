@@ -21,9 +21,10 @@ function load(
   file: string,
   globals: Record<string, unknown>,
   imports: Record<string, unknown> = {},
+  source?: string,
 ) {
   const exports: Record<string, any> = {}
-  const code = ts.transpileModule(readFileSync(file, 'utf8'), {
+  const code = ts.transpileModule(source ?? readFileSync(file, 'utf8'), {
     compilerOptions: { module: ts.ModuleKind.CommonJS },
   }).outputText
   vm.runInNewContext(code, {
@@ -123,8 +124,9 @@ test('Live Photo validation rejects the combined size before reserving any uploa
   assert.equal(media.failed.value, false)
   const reservation = requests.find((r) => r.path.endsWith('/uploads'))!
   assert.equal(reservation.body.bytes, 60 * mib)
+  assert.deepEqual(Array.from(reservation.body.albumIds), [])
   assert.equal(reservation.body.liveVideo.bytes, 40 * mib)
-  assert.match(media.message.value, /Upload verified/)
+  assert.match(media.uploadSession.message, /Upload verified/)
 })
 
 test('subscription retains edits through network/503 failures and invalidates only authoritative denials', async () => {
@@ -737,4 +739,139 @@ test('explicit subscription-change checks refresh the plan without confusing the
   } finally {
     scope.stop()
   }
+})
+
+test('upload sessions capture their actual storage type and move progress out of the selection drawer', async () => {
+  for (const platform of [true, false]) {
+    let release!: () => void
+    const gate = new Promise<void>((resolve) => {
+      release = resolve
+    })
+    const reservations: any[] = []
+    const storage = new Map<string, string>()
+    const module = load(
+      'apps/cloud/app/composables/useCloudSiteMedia.ts',
+      {
+        useEntryContext: () => ({
+          value: { scope: 'site:1:user:1', siteId: 1 },
+        }),
+        onMounted: () => {},
+        onBeforeUnmount: () => {},
+        AbortController,
+        crypto,
+        setTimeout,
+        setInterval,
+        clearInterval,
+        localStorage: {
+          getItem: (k: string) => storage.get(k),
+          setItem: (k: string, v: string) => storage.set(k, v),
+          removeItem: (k: string) => storage.delete(k),
+        },
+        $fetch: async (path: string, options?: { body?: unknown }) => {
+          if (path.endsWith('/uploads')) {
+            reservations.push(options?.body)
+            await gate
+          }
+          if (path.endsWith('/plan')) return { state: 'completed' }
+          if (path.endsWith('/storage')) return { connections: [] }
+          if (path.endsWith('/photos')) return { photos: [], jobs: [] }
+          if (path.endsWith('/albums')) return { albums: [] }
+          if (path.endsWith('/usage'))
+            return { usage: { photos: 0 }, limits: {}, byosLimits: {} }
+          return {}
+        },
+      },
+      {
+        '@chronoframe/contracts/storage-diagnostics': {
+          STORAGE_CONNECTION_MESSAGES: {},
+        },
+      },
+    )
+    const media = module.useCloudMediaWorkspace({ siteId: 1, role: 'admin' })
+    media.connectionId.value = 'chosen'
+    media.connections.value = [
+      { id: 'chosen', pool_id: platform ? 'pool' : null },
+    ]
+    media.allowance.value = {
+      limits: { fileBytes: 100 },
+      byosLimits: { fileBytes: 100, byos: 1 },
+    }
+    media.selectedAlbumIds.value = [2, 1]
+    media.uploadOpen.value = true
+    const pending = media.upload({
+      target: {
+        files: [
+          { name: 'one.jpg', size: 10 },
+          { name: 'two.jpg', size: 10 },
+        ],
+        value: 'chosen',
+      },
+    })
+    assert.equal(media.uploading.value, true)
+    assert.equal(media.uploadOpen.value, false)
+    assert.equal(media.uploadSession.storage, platform ? 'platform' : 'private')
+    media.selectedAlbumIds.value = [7]
+    media.connections.value = []
+    assert.equal(media.uploadSession.storage, platform ? 'platform' : 'private')
+    release()
+    await pending
+    assert.equal(media.uploadSession.total, 2)
+    assert.equal(media.uploadSession.completed, 2)
+    assert.equal(media.uploadSession.failed, false)
+    assert.match(media.uploadSession.message, /Upload verified/)
+    assert.deepEqual(
+      reservations.map((body) => Array.from(body.albumIds)),
+      [
+        [1, 2],
+        [1, 2],
+      ],
+    )
+  }
+})
+
+test('floating queue follows task completion and retry without showing historical successful jobs', async () => {
+  const media = {
+    jobs: ref<any[]>([{ id: 'old', state: 'succeeded' }]),
+    photos: ref([]),
+    uploading: ref(false),
+    progress: ref(0),
+    currentFile: ref(''),
+    uploadSession: reactive({ total: 0, message: '' }),
+    admin: ref(true),
+    busy: ref(false),
+    action: () => {},
+    api: () => {},
+    base: ref(''),
+  }
+  const file = 'apps/cloud/app/components/CloudTransferPanel.vue'
+  const script = readFileSync(file, 'utf8')
+    .split('<script setup lang="ts">')[1]!
+    .split('</script>')[0]!
+  const state = load(
+    file,
+    { useCloudSiteMedia: () => media, useId: () => 'queue' },
+    {},
+    script +
+      '\nexport { visible, collapsed, processingJobs, processingActive, processingCompleted, dismiss }',
+  )
+  assert.equal(state.visible.value, false)
+  media.jobs.value = [{ id: 'j', state: 'queued', attempts: 0 }]
+  await nextTick()
+  assert.equal(state.processingActive.value, 1)
+  state.dismiss()
+  assert.equal(state.visible.value, true)
+  media.jobs.value = [{ id: 'j', state: 'succeeded', attempts: 1 }]
+  await nextTick()
+  assert.equal(state.processingCompleted.value, 1)
+  state.dismiss()
+  assert.equal(state.visible.value, false)
+  media.jobs.value = [{ id: 'j', state: 'failed', attempts: 2 }]
+  await nextTick()
+  assert.equal(state.visible.value, false)
+  media.jobs.value = [{ id: 'j', state: 'retry_wait', attempts: 2 }]
+  await nextTick()
+  assert.equal(state.processingActive.value, 1)
+  media.jobs.value = [{ id: 'j', state: 'failed', attempts: 3 }]
+  await nextTick()
+  assert.equal(state.processingJobs.value[0].state, 'failed')
 })

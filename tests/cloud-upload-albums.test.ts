@@ -1,0 +1,136 @@
+import test from 'node:test'
+import assert from 'node:assert/strict'
+import { readFile, readdir } from 'node:fs/promises'
+import Database from 'better-sqlite3'
+import ts from 'typescript'
+import { createCloudMediaRepository } from '../packages/database/src/cloud-media.ts'
+import { workspaceUsageSQL } from '../packages/platform/src/entitlements.ts'
+import { validateUploadAlbums } from '../apps/cloud/server/utils/cloud-upload-albums.ts'
+
+test('upload reservation persists canonical site-owned albums and refuses changing choices on resume', async () => {
+  const sqlite = new Database(':memory:')
+  sqlite.pragma('foreign_keys = ON')
+  try {
+    for (const name of (await readdir('packages/platform/migrations'))
+      .filter((f) => f.endsWith('.sql'))
+      .sort())
+      sqlite.exec(
+        await readFile('packages/platform/migrations/' + name, 'utf8'),
+      )
+    sqlite.exec(
+      "INSERT INTO platform_users(id,email,created_at) VALUES(1,'one@example.com',1); INSERT INTO platform_workspaces(id,name) VALUES(1,'Workspace'); INSERT INTO platform_sites(id,workspace_id,name) VALUES(1,1,'One'),(2,1,'Two'); INSERT INTO cloud_albums(site_id,id,title) VALUES(1,'1','First'),(1,'2','Second'),(2,'3','Foreign')",
+    )
+    class Statement {
+      sql: string
+      values: any[] = []
+      constructor(sql: string) {
+        this.sql = sql
+      }
+      bind(...values: any[]) {
+        this.values = values
+        return this
+      }
+      async all<T>() {
+        return { results: sqlite.prepare(this.sql).all(...this.values) as T[] }
+      }
+      async first() {
+        return sqlite.prepare(this.sql).get(...this.values) ?? null
+      }
+    }
+    const db = {
+      prepare: (sql: string) => new Statement(sql),
+      async batch(statements: Statement[]) {
+        sqlite.transaction(() => {
+          for (const s of statements) sqlite.prepare(s.sql).run(...s.values)
+        })()
+      },
+    }
+    const repository = createCloudMediaRepository(db, { id: 1 })
+    const source = (
+      await readFile(
+        'apps/cloud/server/api/sites/[siteId]/media/[...operation].ts',
+        'utf8',
+      )
+    ).replace(/^import[\s\S]*?from ['"][^'"]+['"]\s*\n/gm, '')
+    const code = ts.transpileModule(source, {
+      compilerOptions: {
+        module: ts.ModuleKind.CommonJS,
+        target: ts.ScriptTarget.ES2022,
+      },
+    }).outputText
+    const deps = {
+      definePlatformHandler: (f: any) => f,
+      cloudMedia: async () => ({
+        siteId: 1,
+        userId: 1,
+        site: { workspaceId: 1 },
+        db,
+        raw: db,
+        repository,
+        vault: {
+          list: async () => [{ id: 'storage', uploads_enabled: 1 }],
+          get: async () => ({ poolId: 'pool', enabled: true, revision: 1 }),
+        },
+      }),
+      getRouterParam: () => 'uploads',
+      siteManagementBody: async (event: any) => event.body,
+      validateUploadAlbums,
+      workspaceUsageSQL,
+      workspaceEntitlements: async () => ({
+        limits: {
+          fileBytes: 1000,
+          photos: 100,
+          monthlyBytes: 100000,
+          storageBytes: 100000,
+        },
+        quotaPeriod: { start: 1 },
+      }),
+      createError: (value: any) =>
+        Object.assign(new Error(value.statusMessage), value),
+    }
+    const api = new Function(
+      'exports',
+      ...Object.keys(deps),
+      code + '; return exports.default',
+    )({}, ...Object.values(deps))
+    const body = {
+      requestId: 'upload',
+      connectionId: 'storage',
+      fileName: 'one.jpg',
+      bytes: 10,
+      albumIds: [2, 1],
+    }
+    const post = (override = {}) =>
+      api({ method: 'POST', body: { ...body, ...override } })
+    await post()
+    assert.equal(
+      (await repository.upload('upload', 1))?.album_ids_json,
+      '[1,2]',
+    )
+    await post({ albumIds: [1, 2] })
+    await assert.rejects(post({ albumIds: [1] }), { statusCode: 409 })
+    await assert.rejects(post({ requestId: 'foreign', albumIds: [3] }), {
+      statusCode: 400,
+    })
+    assert.equal(await repository.upload('foreign', 1), null)
+    await repository.completeUpload({
+      id: 'upload',
+      ownerId: 1,
+      jobId: 'job',
+      pipelineVersion: '1',
+      title: 'Photo',
+      now: Date.now(),
+    })
+    assert.deepEqual(
+      sqlite
+        .prepare(
+          'SELECT album_id FROM cloud_album_photos WHERE site_id=1 ORDER BY album_id',
+        )
+        .all()
+        .map((r: any) => r.album_id),
+      ['1', '2'],
+    )
+  } finally {
+    sqlite.close()
+  }
+})

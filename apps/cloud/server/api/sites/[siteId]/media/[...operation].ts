@@ -1,3 +1,4 @@
+import { validateUploadAlbums } from '../../../../utils/cloud-upload-albums'
 import { cloudLiveAttachment } from '../../../../utils/cloud-live-attachment'
 import { queuePhotoProcessing } from '../../../../utils/cloud-photo-processing'
 import {
@@ -327,6 +328,11 @@ export default definePlatformHandler(async (event) => {
     }
   }
   if (kind === 'uploads' && !id && event.method === 'POST') {
+    const albumIdsJson = await validateUploadAlbums(
+      raw as unknown as MediaDatabase,
+      siteId,
+      body.albumIds,
+    )
     const uploadId = ID(body.requestId),
       connectionId = ID(body.connectionId),
       bytes = number(body.bytes),
@@ -380,8 +386,8 @@ export default definePlatformHandler(async (event) => {
       const objectKey = `chronoframe/${siteId}/originals/${uploadId}/1/source.${ext}`
       await db.batch([
         db
-          .prepare(`INSERT INTO cloud_uploads(site_id,id,owner_id,photo_id,source_version,connection_id,connection_revision,object_key,expected_bytes,expires_at,content_type,file_name,expected_video_bytes,video_key,reserved_storage_bytes)
-     SELECT ?,?,?,?,'1',?,?,?,?,?,?,?,?,?,? WHERE
+          .prepare(`INSERT INTO cloud_uploads(site_id,id,owner_id,photo_id,source_version,connection_id,connection_revision,object_key,expected_bytes,expires_at,content_type,file_name,expected_video_bytes,video_key,reserved_storage_bytes,album_ids_json)
+     SELECT ?,?,?,?,'1',?,?,?,?,?,?,?,?,?,?,? WHERE
      ${expression.photos}<? AND ${expression.monthly}+?<=? AND (?=0 OR ${expression.storage}+?<=?)
      ON CONFLICT DO NOTHING`)
           .bind(
@@ -401,6 +407,7 @@ export default definePlatformHandler(async (event) => {
               ? `chronoframe/${siteId}/originals/${uploadId}/1/source.MOV`
               : null,
             managed ? bytes + videoBytes : 0,
+            albumIdsJson,
             now,
             entitlement.limits.photos,
             entitlement.quotaPeriod.start,
@@ -417,6 +424,7 @@ export default definePlatformHandler(async (event) => {
     }
     if (!upload) throw createError({ statusCode: 429 })
     if (
+      upload.album_ids_json !== albumIdsJson ||
       upload.expected_bytes !== bytes ||
       upload.expected_video_bytes !== videoBytes ||
       upload.connection_id !== connectionId
@@ -620,7 +628,7 @@ export default definePlatformHandler(async (event) => {
     return {
       photos: await ctx.resources.listPhotos(),
       jobs: await sql(
-        'SELECT id,state,attempts,error_code,photo_id FROM cloud_processing_jobs WHERE site_id=? ORDER BY created_at DESC LIMIT 100',
+        'SELECT j.id,j.state,j.attempts,j.error_code,j.photo_id,u.file_name FROM cloud_processing_jobs j LEFT JOIN cloud_uploads u ON u.site_id=j.site_id AND u.id=j.upload_id WHERE j.site_id=? ORDER BY j.created_at DESC,j.id DESC LIMIT 100',
         siteId,
       ),
     }

@@ -36,6 +36,8 @@ test('D1 queue serializes claims, fences expired attempts, retries and refuses d
       '0006_cloud_execution.sql',
       '0007_cloud_storage.sql',
       '0009_cloud_usage_events.sql',
+      '0008_cloud_albums.sql',
+      '0037_upload_albums.sql',
     ]) {
       const migration = await readFile(
         new URL('../packages/platform/migrations/' + name, import.meta.url),
