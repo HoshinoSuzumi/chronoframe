@@ -156,6 +156,29 @@
   max-width: 290px;
   line-height: 1.8;
 }
+.cf-story { display: grid; grid-template-columns: 1fr 1fr; align-items: center; gap: clamp(40px, 8vw, 110px); padding: 90px 0; border-top: 1px solid var(--border); }
+.cf-story-image { position: relative; overflow: hidden; border-radius: 8px; aspect-ratio: 5 / 4; background: var(--card); }
+.cf-story-image img { width: 100%; height: 100%; object-fit: cover; }
+.cf-story-image span { position: absolute; bottom: 20px; left: 22px; color: white; font-size: 11px; text-shadow: 0 1px 8px #000; }
+.cf-story h2, .cf-ways h2, .cf-home-cta h2 { margin: 18px 0 !important; font-size: clamp(32px, 3.3vw, 48px); font-weight: 450; letter-spacing: -.045em; line-height: 1.15; }
+.cf-story-content > p:not(.cf-eyebrow), .cf-ways-heading > p:not(.cf-eyebrow), .cf-home-cta p:not(.cf-eyebrow) { max-width: 440px; color: var(--muted-foreground); line-height: 1.8; font-size: 15px; }
+.cf-story-details { display: grid; grid-template-columns: 1fr 1fr; gap: 25px; margin-top: 38px; }
+.cf-story-details span, .cf-ways-number { color: var(--accent); font-size: 10px; letter-spacing: .12em; }
+.cf-story-details h3, .cf-ways-grid h3 { margin: 12px 0 8px; font-size: 16px; font-weight: 550; }
+.cf-story-details p, .cf-ways-grid p { color: var(--muted-foreground); font-size: 13px; line-height: 1.8; }
+.cf-ways { padding: 80px 0 90px; border-top: 1px solid var(--border); }
+.cf-ways-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 36px; }
+.cf-ways-grid article { padding: 30px; border: 1px solid var(--border); border-radius: 8px; background: var(--card); }
+.cf-ways-grid p { max-width: 420px; min-height: 48px; }
+.cf-ways-grid a { display: inline-flex; align-items: center; gap: 8px; margin-top: 24px; color: var(--foreground); font-size: 13px; font-weight: 550; }
+.cf-home-cta { display: flex; justify-content: space-between; align-items: center; gap: 30px; padding: 64px 0 76px; border-top: 1px solid var(--border); }
+.cf-home-cta .cf-button { flex-shrink: 0; }
+@media (max-width: 700px) {
+  .cf-story { grid-template-columns: 1fr; gap: 32px; padding: 60px 0; }
+  .cf-ways { padding: 60px 0; }
+  .cf-ways-grid { grid-template-columns: 1fr; }
+  .cf-home-cta { align-items: flex-start; flex-direction: column; padding: 55px 0; }
+}
 .cf-marketing-footer {
   border-top: 1px solid var(--border);
   color: var(--muted-foreground);

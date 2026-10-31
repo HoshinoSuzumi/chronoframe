@@ -74,9 +74,7 @@ useSeoMeta({
     >
       <section class="cf-hero">
         <motion.div v-bind="entrance"
-          ><p class="cf-eyebrow">
-            {{ $t('cloud.messages.yourPhotographyYourPerspective') }}
-          </p>
+          >
           <h1 class="cf-hero-title">
             {{ $t('cloud.messages.everyFrame') }}<br /><em>{{
               $t('cloud.messages.yourStory')
@@ -133,14 +131,12 @@ useSeoMeta({
       <section aria-labelledby="features-heading">
         <div class="cf-section-heading">
           <div>
-            <p class="cf-eyebrow">
-              {{ $t('cloud.messages.lessBetweenYouAndYourPhotographs') }}
-            </p>
+
             <h2 id="features-heading">
               {{ $t('cloud.messages.thoughtfullySimpleEntirelyYours') }}
             </h2>
           </div>
-          <CfBadge>{{ $t('cloud.messages.openSourceByNature') }}</CfBadge>
+
         </div>
         <div class="cf-features">
           <article>
@@ -184,6 +180,36 @@ useSeoMeta({
             </p>
           </article>
         </div>
+      </section>
+      <section class="cf-story" aria-labelledby="story-heading">
+        <div class="cf-story-image">
+          <img src="/images/valley.jpg" alt="" loading="lazy" width="600" height="400" />
+          <span>{{ $t('cloud.home.storyCaption') }}</span>
+        </div>
+        <div class="cf-story-content">
+
+          <h2 id="story-heading">{{ $t('cloud.home.storyTitle') }}</h2>
+          <p>{{ $t('cloud.home.storyDescription') }}</p>
+          <div class="cf-story-details">
+            <div><h3>{{ $t('cloud.home.browseTitle') }}</h3><p>{{ $t('cloud.home.browseDescription') }}</p></div>
+            <div><h3>{{ $t('cloud.home.detailTitle') }}</h3><p>{{ $t('cloud.home.detailDescription') }}</p></div>
+          </div>
+        </div>
+      </section>
+      <section class="cf-ways" aria-labelledby="ways-heading">
+        <div class="cf-ways-heading">
+
+          <h2 id="ways-heading">{{ $t('cloud.home.waysTitle') }}</h2>
+          <p>{{ $t('cloud.home.waysDescription') }}</p>
+        </div>
+        <div class="cf-ways-grid">
+          <article><h3>ChronoFrame Cloud</h3><p>{{ $t('cloud.home.cloudDescription') }}</p><NuxtLink :to="links.signup" external>{{ $t('cloud.messages.createYourAccount') }} <ArrowRight :size="15" /></NuxtLink></article>
+          <article><h3>{{ $t('cloud.home.selfHostedTitle') }}</h3><p>{{ $t('cloud.home.selfHostedDescription') }}</p><a href="https://docs.chronoframe.art/guide/getting-started.html">{{ $t('cloud.messages.exploreSelfHosted') }} <ArrowUpRight :size="15" /></a></article>
+        </div>
+      </section>
+      <section class="cf-home-cta" aria-labelledby="home-cta-heading">
+        <div><h2 id="home-cta-heading">{{ $t('cloud.home.ctaTitle') }}</h2><p>{{ $t('cloud.home.ctaDescription') }}</p></div>
+        <CfButton as-child size="lg"><NuxtLink :to="links.signup" external>{{ $t('cloud.messages.createYourAccount') }} <ArrowRight :size="16" /></NuxtLink></CfButton>
       </section>
     </main>
     <footer class="cf-marketing-footer">

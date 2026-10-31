@@ -424,12 +424,6 @@ async function submitCheckout(plan: any, mode?: string) {
     :class="{ 'cf-pricing-embedded': embedded }"
   >
     <div :class="embedded ? 'cf-plan-options-heading' : 'cf-pricing-heading'">
-      <p
-        v-if="!embedded"
-        class="cf-eyebrow"
-      >
-        ChronoFrame Cloud
-      </p>
       <h2 v-if="embedded">{{ $t('cloud.billing.choosePlan') }}</h2>
       <h1 v-else>{{ $t('cloud.billing.pricing') }}</h1>
       <p>

@@ -1,5 +1,24 @@
 {
   "cloud": {
+    "home": {
+  "selfHostedTitle": "Self-hosted",
+  "ctaDescription": "Bring your photographs together and make a gallery that feels like yours.",
+  "detailDescription": "Open a photograph in the dedicated viewer and spend time with the details.",
+  "cloudDescription": "Create an account and get started with a hosted ChronoFrame gallery.",
+  "storyEyebrow": "MADE FOR LOOKING BACK",
+  "detailTitle": "Take a closer look",
+  "storyTitle": "See the whole story. Stay for the details.",
+  "storyCaption": "A place for the moments that stay with you.",
+  "selfHostedDescription": "Run ChronoFrame on your own infrastructure, with storage you control.",
+  "waysDescription": "Start with a hosted gallery or make a home for your photographs on your own infrastructure.",
+  "ctaEyebrow": "MAKE SPACE FOR YOUR PHOTOGRAPHS",
+  "ctaTitle": "Your next chapter starts here.",
+  "browseDescription": "Explore photographs in a masonry gallery, or bring related moments together in albums.",
+  "waysEyebrow": "YOUR GALLERY, YOUR WAY",
+  "storyDescription": "From a collection of everyday moments to a favorite frame, give your photographs a home that invites you to look a little longer.",
+  "waysTitle": "Choose where your story lives.",
+  "browseTitle": "Browse your way"
+},
     "messages": {
       "skipToContent": "Skip to content",
       "albums": "Albums",
