@@ -1,3 +1,5 @@
+import { cloudLiveAttachment } from '../../../../utils/cloud-live-attachment'
+import { queuePhotoProcessing } from '../../../../utils/cloud-photo-processing'
 import {
   workspaceEntitlements,
   workspaceUsageSQL,
@@ -24,6 +26,10 @@ const types: Record<string, string> = {
   heif: 'image/heif',
   avif: 'image/avif',
   gif: 'image/gif',
+  bmp: 'image/bmp',
+  tif: 'image/tiff',
+  tiff: 'image/tiff',
+  hif: 'image/heif',
 }
 const text = (v: unknown, max = 128) => {
   if (typeof v !== 'string' || !v.trim() || v.length > max)
@@ -176,6 +182,120 @@ export default definePlatformHandler(async (event) => {
     if (!(await vault.rotate(id, number(body.revision), credentials, now)))
       throw createError({ statusCode: 409 })
     return { ok: true }
+  }
+  if (
+    kind === 'photos' &&
+    id &&
+    action === 'live-video' &&
+    event.method === 'POST'
+  )
+    return cloudLiveAttachment(ctx, ID(id), body, now)
+  if (kind === 'photos' && id === 'process-batch' && event.method === 'POST') {
+    if (
+      !Array.isArray(body.photoIds) ||
+      !body.photoIds.length ||
+      body.photoIds.length > 100 ||
+      typeof body.operation !== 'string' ||
+      !['reindex', 'geocoding', 'erase-location'].includes(body.operation)
+    )
+      throw createError({ statusCode: 400 })
+    const ids = [...new Set(body.photoIds.map(ID))]
+    const rows = (
+      await db
+        .prepare(
+          `SELECT id,revision FROM cloud_photos WHERE site_id=? AND deleted=0 AND id IN (${ids.map(() => '?').join(',')})`,
+        )
+        .bind(siteId, ...ids)
+        .all<{ id: string; revision: number }>()
+    ).results
+    if (rows.length !== ids.length) throw createError({ statusCode: 404 })
+    const results = []
+    for (const row of rows) {
+      try {
+        await queuePhotoProcessing(
+          raw,
+          siteId,
+          row.id,
+          body.operation,
+          row.revision,
+        )
+        results.push({ id: row.id, queued: true })
+      } catch {
+        results.push({ id: row.id, queued: false })
+      }
+    }
+    if (results.some((r) => !r.queued))
+      throw createError({
+        statusCode: 409,
+        statusMessage:
+          'Some photos already have processing tasks; refresh before retrying',
+        data: { results },
+      })
+    return { results }
+  }
+  if (kind === 'processing-settings' && !id) {
+    if (event.method === 'GET')
+      return (
+        (await raw
+          .prepare(
+            'SELECT erase_location AS eraseLocation,revision FROM platform_site_processing WHERE site_id=?',
+          )
+          .bind(siteId)
+          .first()) ?? { eraseLocation: false, revision: 0 }
+      )
+    if (
+      event.method !== 'POST' ||
+      typeof body.eraseLocation !== 'boolean' ||
+      !Number.isSafeInteger(body.revision)
+    )
+      throw createError({ statusCode: 400 })
+    const revision = Number(body.revision)
+    const result =
+      revision === 0
+        ? await raw
+            .prepare(
+              'INSERT INTO platform_site_processing(site_id,erase_location,revision) VALUES(?,?,1) ON CONFLICT DO NOTHING',
+            )
+            .bind(siteId, body.eraseLocation ? 1 : 0)
+            .run()
+        : await raw
+            .prepare(
+              'UPDATE platform_site_processing SET erase_location=?,revision=revision+1 WHERE site_id=? AND revision=?',
+            )
+            .bind(body.eraseLocation ? 1 : 0, siteId, revision)
+            .run()
+    if (!result.meta.changes) throw createError({ statusCode: 409 })
+    return { ok: true }
+  }
+  if (
+    kind === 'photos' &&
+    id &&
+    action === 'process' &&
+    event.method === 'POST'
+  ) {
+    const options: Record<string, unknown> = {}
+    if (body.latitude !== undefined || body.longitude !== undefined) {
+      if (
+        typeof body.latitude !== 'number' ||
+        typeof body.longitude !== 'number' ||
+        !Number.isFinite(body.latitude) ||
+        !Number.isFinite(body.longitude) ||
+        Math.abs(body.latitude) > 90 ||
+        Math.abs(body.longitude) > 180 ||
+        (body.latitude === 0 && body.longitude === 0)
+      )
+        throw createError({ statusCode: 400 })
+      options.latitude = body.latitude
+      options.longitude = body.longitude
+    }
+    return queuePhotoProcessing(
+      raw,
+      siteId,
+      ID(id),
+      String(body.operation),
+      number(body.revision),
+      options,
+    )
   }
   if (kind === 'usage' && event.method === 'GET') {
     const plan = await workspaceEntitlements(raw, site.workspaceId, 'platform')
@@ -420,6 +540,8 @@ export default definePlatformHandler(async (event) => {
       return { ok: true }
     }
     if (event.method === 'POST' && action === 'complete') {
+      if (detail.content_type.startsWith('video/'))
+        throw createError({ statusCode: 400 })
       if (upload.state === 'completed') return { jobId: id }
       if (upload.state !== 'pending' || upload.expires_at <= now)
         throw createError({ statusCode: 409 })

@@ -68,7 +68,7 @@ export async function privateMedia(
   const raw = platformDatabase(event)
   const source = await raw
     .prepare(
-      `SELECT u.connection_id,u.connection_revision,u.object_key,u.expected_bytes,u.content_type,u.verified_etag FROM cloud_uploads u JOIN cloud_photos p ON p.site_id=u.site_id AND p.id=u.photo_id AND p.source_version=u.source_version WHERE u.site_id=? AND p.id=? AND p.deleted=0 AND p.metadata_json IS NOT NULL AND u.state='completed' AND EXISTS(SELECT 1 FROM cloud_processing_jobs j WHERE j.site_id=p.site_id AND j.photo_id=p.id AND j.source_version=p.source_version AND j.state='succeeded') LIMIT 1`,
+      `SELECT u.connection_id,u.connection_revision,u.object_key,u.expected_bytes,u.content_type,u.verified_etag FROM cloud_uploads u JOIN cloud_photos p ON p.site_id=u.site_id AND p.id=u.photo_id AND p.source_version=u.source_version WHERE u.site_id=? AND p.id=? AND p.deleted=0 AND p.metadata_json IS NOT NULL AND u.state='completed' AND u.content_type NOT LIKE 'video/%' AND EXISTS(SELECT 1 FROM cloud_processing_jobs j WHERE j.site_id=p.site_id AND j.photo_id=p.id AND j.source_version=p.source_version AND j.state='succeeded') LIMIT 1`,
     )
     .bind(siteId, photoId)
     .first<{
@@ -87,10 +87,17 @@ export async function privateMedia(
     bytes: source.expected_bytes,
     content_type: source.content_type,
   }
+  const sanitized = await raw
+    .prepare(
+      "SELECT connection_id,connection_revision,object_key,bytes,content_type FROM cloud_media_assets WHERE site_id=? AND photo_id=? AND source_version=(SELECT source_version FROM cloud_photos WHERE site_id=? AND id=?) AND role='sanitized-original' ORDER BY pipeline_version DESC LIMIT 1",
+    )
+    .bind(siteId, photoId, siteId, photoId)
+    .first<typeof object>()
+  if (sanitized) object = sanitized
   if (role !== 'original') {
     const asset = await raw
       .prepare(
-        `SELECT connection_id,connection_revision,object_key,bytes,content_type FROM cloud_media_assets a WHERE site_id=? AND photo_id=? AND role=? AND source_version=(SELECT source_version FROM cloud_photos WHERE site_id=? AND id=?) LIMIT 1`,
+        `SELECT connection_id,connection_revision,object_key,bytes,content_type FROM cloud_media_assets a WHERE site_id=? AND photo_id=? AND role=? AND source_version=(SELECT source_version FROM cloud_photos WHERE site_id=? AND id=?) ORDER BY pipeline_version DESC LIMIT 1`,
       )
       .bind(siteId, photoId, role, siteId, photoId)
       .first<typeof object>()

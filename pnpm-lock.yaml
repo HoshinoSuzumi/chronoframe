@@ -645,6 +645,9 @@ importers:
       '@chronoframe/core':
         specifier: workspace:*
         version: link:../../packages/core
+      '@chronoframe/geocoding':
+        specifier: workspace:*
+        version: link:../../packages/geocoding
       '@chronoframe/media':
         specifier: workspace:*
         version: link:../../packages/media

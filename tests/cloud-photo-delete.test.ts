@@ -58,7 +58,15 @@ test('bulk deletion rejects foreign or invalid IDs before any site changes', asy
       sqlite.prepare('SELECT SUM(deleted) AS n FROM cloud_photos').get().n,
       0,
     )
+    sqlite.exec(
+      "INSERT INTO cloud_media_assets(site_id,photo_id,source_version,pipeline_version,role,connection_id,object_key,bytes,content_type) VALUES(1,'own','1','1','thumbnail','s3','old.webp',10,'image/webp'),(1,'own','1','2','thumbnail','s3','new.webp',10,'image/webp')",
+    )
     await deleteCloudPhotos(db, 1, ['own', 'own'], 1)
+    assert.equal(
+      sqlite.prepare('SELECT COUNT(*) AS n FROM cloud_cleanup_requests').get()
+        .n,
+      2,
+    )
     assert.equal(
       sqlite.prepare('SELECT deleted FROM cloud_photos WHERE site_id=1').get()
         .deleted,

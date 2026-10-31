@@ -19,7 +19,7 @@ export interface CloudMediaResult {
   /** JSON-safe metadata, independently size-limited before persistence. */
   metadata: Record<string, unknown>
   assets: {
-    role: 'thumbnail' | 'live-video' | 'display'
+    role: 'thumbnail' | 'live-video' | 'display' | 'sanitized-original'
     objectKey: string
     bytes: number
     contentType: string

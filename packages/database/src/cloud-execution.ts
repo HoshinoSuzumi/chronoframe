@@ -1,4 +1,9 @@
 import {
+  DEFAULT_PROCESSOR_LIMITS,
+  parseProcessorLimits,
+  type ProcessorLimits,
+} from '@chronoframe/contracts/processor'
+import {
   assertSiteContext,
   CoreError,
   type SiteContext,
@@ -32,8 +37,16 @@ const currentSource = `EXISTS(SELECT 1 FROM cloud_photos p WHERE p.site_id=cloud
 export function createCloudExecutionRepository(
   db: MediaDatabase,
   site: SiteContext,
+  nodeLimits?: ProcessorLimits,
+  publicationRevision = 0,
 ): CloudExecutionRepository {
   assertSiteContext(site)
+  const limits = nodeLimits
+    ? parseProcessorLimits(nodeLimits)
+    : DEFAULT_PROCESSOR_LIMITS
+  const capability = nodeLimits
+    ? `required_pixels<=${limits.maxPixels} AND required_file_bytes<=${limits.maxFileBytes} AND required_metadata_bytes<=${limits.maxMetadataBytes} AND `
+    : ''
   const siteId = site.id
   const stmt = (sql: string, ...values: (string | number | null)[]) =>
     db.prepare(sql).bind(...values)
@@ -43,7 +56,12 @@ export function createCloudExecutionRepository(
     identifier(lease.attemptId)
     identifier(lease.workerId)
   }
-  const valid = `site_id=? AND id=? AND attempt_id=? AND worker_id=? AND state='running' AND lease_until>? AND ${currentSource} AND ${activeSite}`
+  if (!Number.isSafeInteger(publicationRevision) || publicationRevision < 0)
+    throw new CoreError(400, 'Invalid photo revision')
+  const revisionGuard = publicationRevision
+    ? ` AND EXISTS(SELECT 1 FROM cloud_photos p WHERE p.site_id=cloud_processing_jobs.site_id AND p.id=cloud_processing_jobs.photo_id AND p.revision=${publicationRevision})`
+    : ''
+  const valid = `site_id=? AND id=? AND attempt_id=? AND worker_id=? AND state='running' AND lease_until>? AND ${currentSource} AND ${activeSite}${revisionGuard}`
   const validValues = (lease: CloudLease, now: number) =>
     [lease.id, lease.attemptId, lease.workerId, positive(now)] as const
   async function changed(s: MediaStatement) {
@@ -66,7 +84,7 @@ export function createCloudExecutionRepository(
         stmt(
           `UPDATE cloud_processing_jobs SET state='running',worker_id=?,attempt_id=?,lease_until=?,attempts=attempts+1,error_code=NULL
           WHERE site_id=? AND ${activeSite} AND id=(SELECT id FROM cloud_processing_jobs WHERE site_id=? AND attempts<max_attempts AND ${currentSource}
-          AND ((state IN ('queued','retry_wait') AND available_at<=?) OR (state='running' AND lease_until<=?)) AND NOT EXISTS(SELECT 1 FROM cloud_processing_jobs active WHERE active.site_id=? AND active.state='running' AND active.lease_until>?) ORDER BY created_at,id LIMIT 1)`,
+          AND ${capability}((state IN ('queued','retry_wait') AND available_at<=?) OR (state='running' AND lease_until<=?)) AND NOT EXISTS(SELECT 1 FROM cloud_processing_jobs active WHERE (active.site_id=? OR active.worker_id=?) AND active.state='running' AND active.lease_until>?) AND EXISTS(SELECT 1 FROM cloud_uploads eligible WHERE eligible.site_id=cloud_processing_jobs.site_id AND eligible.id=cloud_processing_jobs.upload_id AND MAX(eligible.expected_bytes,eligible.expected_video_bytes)<=?) ORDER BY created_at,id LIMIT 1)`,
           workerId,
           attemptId,
           now + leaseMs,
@@ -75,7 +93,9 @@ export function createCloudExecutionRepository(
           now,
           now,
           siteId,
+          workerId,
           now,
+          limits.maxFileBytes,
         ),
         stmt(
           `UPDATE cloud_job_attempts SET state='expired',finished_at=? WHERE site_id=? AND state='running' AND EXISTS(SELECT 1 FROM cloud_processing_jobs j WHERE j.site_id=cloud_job_attempts.site_id AND j.id=cloud_job_attempts.job_id AND (j.attempt_id!=cloud_job_attempts.attempt_id OR j.state='failed'))`,
@@ -169,11 +189,7 @@ export function createCloudExecutionRepository(
         return false
       positive(result.width)
       positive(result.height)
-      if (
-        result.width > 65535 ||
-        result.height > 65535 ||
-        result.width * result.height > 100_000_000
-      )
+      if (result.width * result.height > limits.maxPixels)
         throw new CoreError(400, 'Image dimensions exceed limits')
       const json = JSON.stringify({
         ...result.metadata,
@@ -181,33 +197,54 @@ export function createCloudExecutionRepository(
         height: result.height,
       })
       if (
-        new TextEncoder().encode(json).length > 65536 ||
+        new TextEncoder().encode(json).length > limits.maxMetadataBytes ||
         result.assets.length < 1 ||
-        result.assets.length > 3 ||
+        result.assets.length > 4 ||
         new Set(result.assets.map((a) => a.role)).size !== result.assets.length
       )
         throw new CoreError(400, 'Invalid media result')
       const prefix = `chronoframe/${siteId}/derived/${lease.photoId}/${lease.sourceVersion}/${lease.pipelineVersion}/${lease.attemptId}/`
       for (const asset of result.assets) {
         positive(asset.bytes)
+        if (
+          asset.bytes > limits.maxFileBytes ||
+          ![
+            'image/jpeg',
+            'image/png',
+            'image/webp',
+            'image/heic',
+            'image/heif',
+            'image/avif',
+            'image/gif',
+            'image/bmp',
+            'image/tiff',
+            'video/mp4',
+            'video/quicktime',
+          ].includes(asset.contentType)
+        )
+          throw new CoreError(400, 'Invalid derivative')
         const suffix =
           asset.role === 'thumbnail'
             ? 'thumbnail.webp'
-            : asset.role === 'display'
-              ? 'display.jpeg'
-              : asset.contentType === 'video/mp4'
-                ? 'live-video.mp4'
-                : 'live-video.mov'
+            : asset.role === 'sanitized-original'
+              ? 'sanitized-original'
+              : asset.role === 'display'
+                ? 'display.jpeg'
+                : asset.contentType === 'video/mp4'
+                  ? 'live-video.mp4'
+                  : 'live-video.mov'
         if (
           asset.objectKey !== prefix + suffix ||
           asset.contentType !==
-            (asset.role === 'thumbnail'
-              ? 'image/webp'
-              : asset.role === 'display'
-                ? 'image/jpeg'
-                : asset.objectKey.endsWith('.mp4')
-                  ? 'video/mp4'
-                  : 'video/quicktime')
+            (asset.role === 'sanitized-original'
+              ? asset.contentType
+              : asset.role === 'thumbnail'
+                ? 'image/webp'
+                : asset.role === 'display'
+                  ? 'image/jpeg'
+                  : asset.objectKey.endsWith('.mp4')
+                    ? 'video/mp4'
+                    : 'video/quicktime')
         )
           throw new CoreError(400, 'Unexpected media object')
       }

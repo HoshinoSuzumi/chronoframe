@@ -150,7 +150,6 @@ jobs:
           CLOUD_PLATFORM_SECRET: ${{ secrets.CLOUD_PLATFORM_SECRET }}
           SITE_PLATFORM_SECRET: ${{ secrets.SITE_PLATFORM_SECRET }}
           PLATFORM_STORAGE_SECRET: ${{ secrets.PLATFORM_STORAGE_SECRET }}
-          PLATFORM_WORKER_SECRET: ${{ secrets.PLATFORM_WORKER_SECRET }}
           PLATFORM_S3_ENDPOINT_HOSTS: ${{ vars.PLATFORM_S3_ENDPOINT_HOSTS }}
         run: |
           node --input-type=module <<'NODE'
@@ -158,7 +157,6 @@ jobs:
           domainDeploymentValues(process.env.DEPLOY_ENVIRONMENT,process.env)
           if (process.env.PLATFORM_D1_DATABASE_ID) {
             if ((process.env.PLATFORM_STORAGE_SECRET || '').length < 32) throw new Error('Configure PLATFORM_STORAGE_SECRET with at least 32 characters in the selected GitHub Environment secrets')
-            if (process.env.ENTRIES.split(/\s+/).includes('cloud') && (process.env.PLATFORM_WORKER_SECRET || '').length < 32) throw new Error('Configure PLATFORM_WORKER_SECRET with at least 32 characters in the selected GitHub Environment secrets')
             for (const host of (process.env.PLATFORM_S3_ENDPOINT_HOSTS || '').split(',').filter(Boolean)) {
               if (!/^[a-z0-9.-]+$/i.test(host.trim())) throw new Error('PLATFORM_S3_ENDPOINT_HOSTS must contain exact hostnames')
             }
@@ -276,7 +274,6 @@ jobs:
           CLOUD_PLATFORM_SECRET: ${{ secrets.CLOUD_PLATFORM_SECRET }}
           SITE_PLATFORM_SECRET: ${{ secrets.SITE_PLATFORM_SECRET }}
           PLATFORM_STORAGE_SECRET: ${{ secrets.PLATFORM_STORAGE_SECRET }}
-          PLATFORM_WORKER_SECRET: ${{ secrets.PLATFORM_WORKER_SECRET }}
           PLATFORM_S3_ENDPOINT_HOSTS: ${{ vars.PLATFORM_S3_ENDPOINT_HOSTS }}
         run: |
           set -euo pipefail
@@ -309,7 +306,6 @@ jobs:
           const secret = process.env[process.env.ENTRY === 'cloud' ? 'CLOUD_PLATFORM_SECRET' : 'SITE_PLATFORM_SECRET']
           const values = secret ? { NUXT_PLATFORM_SECRET: secret } : {}
           if (process.env.PLATFORM_STORAGE_SECRET) values.NUXT_PLATFORM_STORAGE_SECRET = process.env.PLATFORM_STORAGE_SECRET
-          if (process.env.ENTRY === 'cloud' && process.env.PLATFORM_WORKER_SECRET) values.NUXT_PLATFORM_WORKER_SECRET = process.env.PLATFORM_WORKER_SECRET
           if (process.env.ENTRY === 'cloud' && process.env.PLATFORM_DOMAIN_PROVIDER_TOKEN) values.NUXT_PLATFORM_DOMAIN_PROVIDER_TOKEN = process.env.PLATFORM_DOMAIN_PROVIDER_TOKEN
           fs.writeFileSync(process.env.WORKER_SECRET_FILE, JSON.stringify(values), { mode: 0o600 })
           NODE

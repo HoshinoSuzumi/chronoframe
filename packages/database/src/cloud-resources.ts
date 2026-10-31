@@ -41,7 +41,7 @@ export function createCloudResourceRepository(
           : null,
       dateTaken: typeof m.dateTaken === 'string' ? m.dateTaken : null,
       fileSize: typeof m.fileSize === 'number' ? m.fileSize : null,
-      lastModified: null,
+      lastModified: typeof m.lastModified === 'string' ? m.lastModified : null,
       originalUrl: base + '/display',
       downloadUrl: base + '/original',
       thumbnailUrl: base + '/thumbnail',
@@ -56,13 +56,13 @@ export function createCloudResourceRepository(
       country: typeof m.country === 'string' ? m.country : null,
       city: typeof m.city === 'string' ? m.city : null,
       locationName: typeof m.locationName === 'string' ? m.locationName : null,
-      geocoding: null,
+      geocoding: m.geocoding ?? null,
       isLivePhoto: row.has_video ? 1 : 0,
       livePhotoVideoUrl: row.has_video ? base + '/live-video' : null,
     }
   }
   const columns = `p.*,EXISTS(SELECT 1 FROM cloud_media_assets a WHERE a.site_id=p.site_id AND a.photo_id=p.id AND a.source_version=p.source_version AND a.role='live-video') AS has_video`
-  const ready = `p.deleted=0 AND p.metadata_json IS NOT NULL AND EXISTS(SELECT 1 FROM cloud_processing_jobs j WHERE j.site_id=p.site_id AND j.photo_id=p.id AND j.source_version=p.source_version AND j.state='succeeded')`
+  const ready = `p.deleted=0 AND p.metadata_json IS NOT NULL AND EXISTS(SELECT 1 FROM cloud_media_assets a WHERE a.site_id=p.site_id AND a.photo_id=p.id AND a.source_version=p.source_version AND a.role='thumbnail')`
   const album = (r: Record<string, unknown>): AlbumReadRecord => ({
     resource: {
       id: Number(r.id),
