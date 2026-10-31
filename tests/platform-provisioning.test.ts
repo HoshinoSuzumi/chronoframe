@@ -223,6 +223,7 @@ test('Real D1 provisioning preserves old tenants, serializes defaults and enforc
       revision: 3,
       profile,
       presentation: {
+        theme: 'light',
         homeHeaderLayout: 'fixed',
         socialLinks: {
           links: [
@@ -233,6 +234,7 @@ test('Real D1 provisioning preserves old tenants, serializes defaults and enforc
       },
     })
     assert.deepEqual(profiled.presentation, {
+      theme: 'light',
       homeHeaderLayout: 'fixed',
       socialLinks: {
         links: ['https://github.com/example', 'https://example.com/portfolio'],
@@ -244,6 +246,10 @@ test('Real D1 provisioning preserves old tenants, serializes defaults and enforc
       name: 'Renamed workspace',
       published: false,
       revision: 4,
+      presentation: {
+        homeHeaderLayout: 'fixed',
+        socialLinks: profiled.presentation.socialLinks,
+      },
     })
     assert.equal(
       preserved.title,

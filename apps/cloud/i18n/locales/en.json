@@ -609,7 +609,14 @@
       "slot": "Link {number}",
       "clear": "Clear link {number}",
       "invalid": "Enter a valid HTTPS profile URL.",
-      "duplicate": "This profile is already listed."
+      "duplicate": "This profile is already listed.",
+      "theme": "Default theme",
+      "themeHelp": "Choose the initial appearance of your public gallery. Visitors can switch between light and dark themes.",
+      "themeOptions": {
+        "light": "Light",
+        "dark": "Dark",
+        "system": "System"
+      }
     },
     "billing": {
       "plan": "Plan & usage",

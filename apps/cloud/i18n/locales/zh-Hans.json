@@ -609,7 +609,14 @@
       "slot": "链接 {number}",
       "clear": "清空链接 {number}",
       "invalid": "请输入有效的 HTTPS 个人主页链接。",
-      "duplicate": "该个人主页已添加。"
+      "duplicate": "该个人主页已添加。",
+      "theme": "默认主题",
+      "themeHelp": "设置公开图库的默认外观，访客仍可切换明暗主题。",
+      "themeOptions": {
+        "light": "浅色",
+        "dark": "深色",
+        "system": "跟随系统"
+      }
     },
     "billing": {
       "plan": "套餐与用量",

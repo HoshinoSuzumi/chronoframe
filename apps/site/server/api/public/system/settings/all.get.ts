@@ -39,6 +39,7 @@ export default definePlatformHandler(async (event) => {
     const presentation = parseGalleryPresentation(
       JSON.parse(profile.presentation),
     )
+    data.app!['appearance.theme'] = presentation.theme
     data.app!['appearance.homeHeaderLayout'] = presentation.homeHeaderLayout
     data.app!.socialLinks = presentation.socialLinks
   }

@@ -23,6 +23,9 @@ const profile = reactive({
   author: data.value?.site.author ?? '',
   avatarUrl: data.value?.site.avatarUrl ?? '',
 })
+const theme = ref<'light' | 'dark' | 'system'>(
+  data.value?.site.presentation.theme ?? 'dark',
+)
 const homeHeaderLayout = ref<'embedded' | 'fixed'>(
   data.value?.site.presentation.homeHeaderLayout ?? 'embedded',
 )
@@ -113,6 +116,7 @@ async function reload() {
     author: data.value?.site.author ?? '',
     avatarUrl: data.value?.site.avatarUrl ?? '',
   })
+  theme.value = data.value?.site.presentation.theme ?? 'dark'
   homeHeaderLayout.value =
     data.value?.site.presentation.homeHeaderLayout ?? 'embedded'
   socialDraft.value = Array.from(
@@ -141,6 +145,7 @@ async function save() {
         published: !!data.value.site.published,
         profile: { ...profile },
         presentation: {
+          theme: theme.value,
           homeHeaderLayout: homeHeaderLayout.value,
           socialLinks: {
             links: parseSocialLinks({
@@ -285,6 +290,32 @@ async function save() {
               {{ iconError }}
             </p>
           </div>
+          <section class="cf-gallery-presentation">
+            <h3>{{ $t('cloud.presentation.theme') }}</h3>
+            <p class="cf-field-hint">
+              {{ $t('cloud.presentation.themeHelp') }}
+            </p>
+            <fieldset :disabled="busy">
+              <legend class="sr-only">
+                {{ $t('cloud.presentation.theme') }}
+              </legend>
+              <label
+                v-for="option in ['light', 'dark', 'system'] as const"
+                :key="option"
+                class="cf-layout-option"
+              >
+                <input
+                  v-model="theme"
+                  type="radio"
+                  name="gallery-theme"
+                  :value="option"
+                />
+                <span>{{
+                  $t('cloud.presentation.themeOptions.' + option)
+                }}</span>
+              </label>
+            </fieldset>
+          </section>
           <section class="cf-gallery-presentation">
             <h3>{{ $t('cloud.presentation.layout') }}</h3>
             <p class="cf-field-hint">

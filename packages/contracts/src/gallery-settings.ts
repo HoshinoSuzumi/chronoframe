@@ -42,6 +42,7 @@ export const PUBLIC_GALLERY_DEFAULTS = {
 } as const
 
 export interface GalleryPresentation {
+  theme: 'light' | 'dark' | 'system'
   homeHeaderLayout: 'embedded' | 'fixed'
   socialLinks: { links: string[] }
 }
@@ -51,12 +52,18 @@ export function parseGalleryPresentation(value: unknown): GalleryPresentation {
   const data = value as Record<string, unknown>
   if (
     Object.keys(data).some(
-      (k) => !['homeHeaderLayout', 'socialLinks'].includes(k),
+      (k) => !['homeHeaderLayout', 'socialLinks', 'theme'].includes(k),
     ) ||
     (data.homeHeaderLayout !== 'embedded' && data.homeHeaderLayout !== 'fixed')
   )
     throw new Error('Invalid home header layout')
+  if (
+    data.theme !== undefined &&
+    !['light', 'dark', 'system'].includes(data.theme as string)
+  )
+    throw new Error('Invalid gallery theme')
   return {
+    theme: (data.theme ?? 'dark') as GalleryPresentation['theme'],
     homeHeaderLayout:
       data.homeHeaderLayout as GalleryPresentation['homeHeaderLayout'],
     socialLinks: { links: parseSocialLinks(data.socialLinks) },
