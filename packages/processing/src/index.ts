@@ -22,6 +22,7 @@ export const EXIF_LOCATION_KEYS = [
   'GPSLongitude',
   'GPSLongitudeRef',
   'GPSPosition',
+  'GPSCoordinates',
   'GPSDateStamp',
   'GPSTimeStamp',
   'GPSImgDirection',
@@ -41,6 +42,7 @@ export type ProcessedPhoto = Photo & { originalDerivedKey: string | null }
 export interface PhotoProcessingInput {
   photoId: string
   storageKey: string
+  maxPixels?: number
   eraseLocation: boolean
   storage: StorageProvider
   stage(stage: ProcessingStage): Promise<void>
@@ -66,7 +68,10 @@ export function createPhotoProcessor(deps: {
       input.signal?.throwIfAborted()
       await input.stage(value)
     }
-    const media = createImageProcessor(deps.logger, { signal: input.signal })
+    const media = createImageProcessor(deps.logger, {
+      signal: input.signal,
+      limitInputPixels: input.maxPixels,
+    })
     await stage('preprocessing')
     const raw = await storage.get(storageKey)
     if (!raw) throw new Error('Source object not found')

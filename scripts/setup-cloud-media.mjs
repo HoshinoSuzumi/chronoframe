@@ -1,4 +1,5 @@
-import { randomBytes, randomUUID } from 'node:crypto'
+import { processorEnvironment } from './processor-environment.mjs'
+import { randomBytes } from 'node:crypto'
 import { mkdir, readFile, writeFile, realpath, chmod } from 'node:fs/promises'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -55,46 +56,41 @@ try {
 } catch (error) {
   if (error.code !== 'ENOENT') throw error
 }
-if (
-  !secrets &&
-  existing.some((s) =>
-    ['PLATFORM_STORAGE_SECRET', 'PLATFORM_WORKER_SECRET'].includes(s.name),
-  )
-)
+if (!secrets && existing.some((s) => s.name === 'PLATFORM_STORAGE_SECRET'))
   throw new Error(
     'Secrets already exist remotely. Use the original protected output directory; do not silently rotate a storage encryption key',
   )
 if (!secrets) {
   secrets = {
     storage: randomBytes(48).toString('base64url'),
-    worker: randomBytes(48).toString('base64url'),
-    workerId: randomUUID(),
     environment,
   }
   await writeFile(file, JSON.stringify(secrets), { mode: 0o600, flag: 'wx' })
 }
-if (
-  secrets.environment !== environment ||
-  secrets.storage?.length < 32 ||
-  secrets.worker?.length < 32
-)
+if (secrets.environment !== environment || secrets.storage?.length < 32)
   throw new Error('Invalid protected configuration')
 await chmod(file, 0o600)
 gh(
   ['secret', 'set', 'PLATFORM_STORAGE_SECRET', '--env', envName],
   secrets.storage,
 )
-gh(
-  ['secret', 'set', 'PLATFORM_WORKER_SECRET', '--env', envName],
-  secrets.worker,
-)
-const workerEnv = path.join(target, environment + '-worker.env')
+const workerEnv = path.join(target, environment + '-processor.env')
+let existingEnv = ''
+try {
+  existingEnv = await readFile(workerEnv, 'utf8')
+} catch (error) {
+  if (error.code !== 'ENOENT') throw error
+}
 await writeFile(
   workerEnv,
-  `CHRONOFRAME_PORTAL_ORIGIN=${portal}\nCHRONOFRAME_WORKER_SECRET=${secrets.worker}\nCHRONOFRAME_WORKER_ID=${secrets.workerId}\n`,
+  processorEnvironment(
+    portal,
+    process.env.CHRONOFRAME_PROCESSOR_KEY,
+    existingEnv,
+  ),
   { mode: 0o600 },
 )
 await chmod(workerEnv, 0o600)
 console.log(
-  `Configured ${envName}. Protected worker configuration: ${workerEnv}. Back up the media-secrets.json file securely; losing its storage key makes stored credentials unreadable. No deployment has been started.`,
+  `Configured ${envName}. Protected processing-node configuration: ${workerEnv}. Back up the media-secrets.json file securely; losing its storage key makes stored credentials unreadable. No deployment has been started.`,
 )

@@ -11,7 +11,9 @@ import {
 } from 'lucide-vue-next'
 import { uploadQuotaGate } from '../utils/quota-gate'
 import { DASHBOARD_PHOTO_COLUMN_IDS } from '#console/composables/useDashboardPhotoColumnVisibility'
-const { t } = useI18n()
+const { t, locale } = useI18n()
+const processingText = (en: string, zh: string) =>
+  locale.value === 'zh-Hans' ? zh : en
 const dayjs = useDayjs()
 const locationLabel = useLocationLabel()
 
@@ -181,6 +183,92 @@ async function addToAlbum() {
     selection.value = {}
   }
 }
+const processingOpen = ref(false),
+  processingPhotos = ref<Photo[]>([]),
+  processingOperation = ref('reindex')
+function openProcessing(photos: Photo[]) {
+  processingPhotos.value = photos
+  processingOperation.value = 'reindex'
+  processingOpen.value = true
+}
+async function processPhotos() {
+  const ok = await action(
+    async () => {
+      for (
+        let offset = 0;
+        offset < processingPhotos.value.length;
+        offset += 100
+      )
+        await api(base.value + '/photos/process-batch', {
+          method: 'POST',
+          body: {
+            photoIds: processingPhotos.value
+              .slice(offset, offset + 100)
+              .map((p) => p.id),
+            operation: processingOperation.value,
+          },
+        })
+    },
+    processingText('Processing tasks queued.', '处理任务已排队。'),
+  )
+  if (ok) processingOpen.value = false
+}
+const liveOpen = ref(false),
+  livePhoto = ref<Photo>(),
+  liveFile = ref<File>(),
+  attaching = ref(false)
+let liveController: AbortController | undefined
+onBeforeUnmount(() => liveController?.abort())
+async function attachVideo() {
+  if (!livePhoto.value || !liveFile.value || attaching.value) return
+  attaching.value = true
+  liveController = new AbortController()
+  const photoId = livePhoto.value.id,
+    file = liveFile.value,
+    signal = liveController.signal
+  try {
+    const ok = await action(
+      async () => {
+        const latest = await api<{ revision: number }>(
+          base.value + '/photos/' + photoId,
+        )
+        const body = {
+          revision: latest.revision,
+          fileName: file.name,
+          bytes: file.size,
+        }
+        const reservation = await api<{ id: string; url: string }>(
+          base.value + '/photos/' + photoId + '/live-video',
+          { method: 'POST', body: { ...body, phase: 'prepare' } },
+        )
+        const response = await fetch(reservation.url, {
+          method: 'PUT',
+          body: file,
+          headers: { 'Content-Type': 'video/quicktime' },
+          credentials: 'omit',
+          redirect: 'error',
+          signal,
+        })
+        if (!response.ok) throw new Error('video_upload_failed')
+        await api(base.value + '/photos/' + photoId + '/live-video', {
+          method: 'POST',
+          body: {
+            phase: 'complete',
+            uploadId: reservation.id,
+            revision: latest.revision,
+          },
+        })
+      },
+      processingText('Live Photo processing queued.', '实况照片处理已排队。'),
+    )
+    if (ok) {
+      liveOpen.value = false
+      liveFile.value = undefined
+    }
+  } finally {
+    attaching.value = false
+  }
+}
 function actions(photo: Photo) {
   return [
     [
@@ -190,6 +278,22 @@ function actions(photo: Photo) {
         onSelect: () => {
           preview.value = photo
         },
+      },
+      {
+        label: processingText('Attach Live Photo video', '补充实况照片视频'),
+        icon: 'i-lucide-video',
+        disabled: !admin.value,
+        onSelect: () => {
+          livePhoto.value = photo
+          liveFile.value = undefined
+          liveOpen.value = true
+        },
+      },
+      {
+        label: processingText('Process photo', '处理照片'),
+        icon: 'i-lucide-refresh-cw',
+        disabled: !admin.value,
+        onSelect: () => openProcessing([photo]),
       },
       {
         label: t('cloud.messages.editDetails'),
@@ -327,6 +431,13 @@ watch(
         variant="ghost"
         @click="selection = {}"
         >{{ $t('cloud.messages.clear') }}</CfButton
+      >
+      <CfButton
+        v-if="admin"
+        size="sm"
+        variant="ghost"
+        @click="openProcessing(chosen)"
+        >{{ processingText('Process selected', '处理所选照片') }}</CfButton
       >
     </ConsoleSelectionToolbar>
     <CfTable
@@ -676,4 +787,97 @@ watch(
       ></UModal
     >
   </section>
+  <UModal
+    v-model:open="processingOpen"
+    :title="processingText('Process photos', '处理照片')"
+    ><template #body
+      ><div class="cf-form">
+        <p>
+          {{ processingText('Selected photographs', '已选择照片') }}:
+          {{ processingPhotos.length }}
+        </p>
+        <label class="cf-field"
+          >{{ processingText('Operation', '操作')
+          }}<CfSelect v-model="processingOperation"
+            ><option value="reindex">
+              {{
+                processingText(
+                  'Rebuild EXIF and thumbnails',
+                  '重建 EXIF 与缩略图',
+                )
+              }}
+            </option>
+            <option value="geocoding">
+              {{ processingText('Refresh locations', '更新地理位置') }}
+            </option>
+            <option value="erase-location">
+              {{ processingText('Erase image locations', '擦除照片位置') }}
+            </option></CfSelect
+          ></label
+        >
+        <p class="cf-field-hint">
+          {{
+            processingOperation === 'erase-location'
+              ? processingText(
+                  'GPS is removed from metadata and downloadable image files. This cannot be undone after old originals are cleaned up. Companion videos retain their original metadata.',
+                  '将从元数据和可下载原图中移除 GPS，旧原图清理后不可撤销。配对视频保留原有元数据。',
+                )
+              : processingText(
+                  'Published photos remain visible during processing. Existing tasks must finish before new processing can be queued.',
+                  '处理期间已发布照片保持可见；已有任务需结束后才能重新排队。',
+                )
+          }}
+        </p>
+      </div></template
+    ><template #footer
+      ><CfButton
+        variant="outline"
+        :disabled="busy"
+        @click="processingOpen = false"
+        >{{ t('cloud.messages.cancel') }}</CfButton
+      ><CfButton
+        :disabled="busy"
+        @click="processPhotos"
+        >{{ processingText('Queue processing', '提交处理') }}</CfButton
+      ></template
+    ></UModal
+  >
+  <UModal
+    v-model:open="liveOpen"
+    :title="processingText('Attach Live Photo video', '补充实况照片视频')"
+    :dismissible="!attaching"
+    :close="!attaching"
+    ><template #body
+      ><div class="cf-form">
+        <p>{{ livePhoto?.title }}</p>
+        <label class="cf-field"
+          >{{ processingText('MOV companion video', 'MOV 配对视频')
+          }}<input
+            type="file"
+            accept=".mov,video/quicktime"
+            :disabled="attaching"
+            @change="liveFile = ($event.target as HTMLInputElement).files?.[0]"
+        /></label>
+        <p class="cf-field-hint">
+          {{
+            processingText(
+              'Upload a companion video for this photo. Processing will publish the new pairing after verification.',
+              '为此照片上传配对视频，核实并完成处理后发布新配对。',
+            )
+          }}
+        </p>
+      </div></template
+    ><template #footer
+      ><CfButton
+        variant="outline"
+        :disabled="attaching"
+        @click="liveOpen = false"
+        >{{ t('cloud.messages.cancel') }}</CfButton
+      ><CfButton
+        :disabled="attaching || !liveFile"
+        @click="attachVideo"
+        >{{ processingText('Upload and process', '上传并处理') }}</CfButton
+      ></template
+    ></UModal
+  >
 </template>

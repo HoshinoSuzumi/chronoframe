@@ -19,7 +19,7 @@ export default definePlatformHandler(async (event) => {
   const db = platformDatabase(event)
   const photo = await db
     .prepare(
-      `SELECT p.id FROM cloud_photos p WHERE p.site_id=? AND p.id=? AND p.deleted=0 AND p.metadata_json IS NOT NULL AND EXISTS(SELECT 1 FROM cloud_processing_jobs j WHERE j.site_id=p.site_id AND j.photo_id=p.id AND j.source_version=p.source_version AND j.state='succeeded')`,
+      `SELECT p.id FROM cloud_photos p WHERE p.site_id=? AND p.id=? AND p.deleted=0 AND p.metadata_json IS NOT NULL AND EXISTS(SELECT 1 FROM cloud_media_assets a WHERE a.site_id=p.site_id AND a.photo_id=p.id AND a.source_version=p.source_version AND a.role='thumbnail')`,
     )
     .bind(context.site.id, id)
     .first()

@@ -5,7 +5,7 @@ export async function readSiteBody(
   stream: ReadableStream<Uint8Array> | null | undefined,
   limit = 4096,
 ): Promise<Record<string, unknown>> {
-  if (!Number.isSafeInteger(limit) || limit < 1 || limit > 131072)
+  if (!Number.isSafeInteger(limit) || limit < 1 || limit > 1048576)
     throw createError({ statusCode: 400 })
   if (!stream) throw createError({ statusCode: 400 })
   const reader = stream.getReader()

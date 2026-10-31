@@ -69,7 +69,6 @@ export default defineNuxtConfig({
       emailFrom: '',
       storageSecret: '',
       s3EndpointHosts: '',
-      workerSecret: '',
     },
   },
   css: ['~/assets/cloud.css'],

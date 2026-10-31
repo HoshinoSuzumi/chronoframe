@@ -19,7 +19,8 @@
     "./storage-diagnostics": "./src/storage-diagnostics.ts",
     "./gallery-settings": "./src/gallery-settings.ts",
     "./reactions": "./src/reactions.ts",
-    "./domains": "./src/domains.ts"
+    "./domains": "./src/domains.ts",
+    "./processor": "./src/processor.ts"
   },
   "scripts": {
     "type-check": "tsc --noEmit"

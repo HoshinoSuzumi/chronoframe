@@ -121,7 +121,7 @@ async function dropFiles(event: DragEvent) {
           class="sr-only"
           type="file"
           multiple
-          accept="image/*,.heic,.heif,.mov"
+          accept="image/*,.heic,.heif,.hif,.bmp,.tif,.tiff,.mov"
           :aria-label="$t('cloud.messages.choosePhotographs')"
           :disabled="uploading || !uploadAllowed || !admin"
           @change="upload"

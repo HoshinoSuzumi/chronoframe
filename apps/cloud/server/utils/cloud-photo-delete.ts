@@ -49,7 +49,7 @@ export async function deleteCloudPhotos(
       .bind(now + 360000, siteId, ids),
     db
       .prepare(
-        `INSERT INTO cloud_cleanup_requests(site_id,id,connection_id,connection_revision,object_key,provider_upload_id,available_at) SELECT site_id,'asset-'||photo_id||'-'||role,connection_id,connection_revision,object_key,NULL,? FROM cloud_media_assets WHERE site_id=? AND photo_id ${selection} ON CONFLICT DO NOTHING`,
+        `INSERT INTO cloud_cleanup_requests(site_id,id,connection_id,connection_revision,object_key,provider_upload_id,available_at) SELECT site_id,'asset-'||photo_id||'-'||source_version||'-'||pipeline_version||'-'||role,connection_id,connection_revision,object_key,NULL,? FROM cloud_media_assets WHERE site_id=? AND photo_id ${selection} ON CONFLICT DO NOTHING`,
       )
       .bind(now + 360000, siteId, ids),
   ])

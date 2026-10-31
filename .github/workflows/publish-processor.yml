@@ -1,0 +1,69 @@
+name: Publish private processing node
+on:
+  workflow_dispatch:
+  push:
+    tags: ['processor-v*']
+permissions:
+  contents: read
+concurrency:
+  group: publish-private-processor
+  cancel-in-progress: false
+jobs:
+  publish:
+    runs-on: ubuntu-24.04
+    environment: processor-release
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Verify registry credential and private visibility
+        id: registry
+        env:
+          GH_TOKEN: ${{ secrets.PROCESSOR_REGISTRY_TOKEN }}
+        run: |
+          set -euo pipefail
+          test -n "$GH_TOKEN" || { echo '::error::Configure PROCESSOR_REGISTRY_TOKEN with chronoframe organization package access'; exit 1; }
+          printf 'username=%s\n' "$(gh api user --jq .login)" >> "$GITHUB_OUTPUT"
+          status=$(gh api --include /orgs/chronoframe/packages/container/processor 2>/dev/null || true)
+          if [[ "$status" == *'"visibility"'* ]]; then
+            visibility=$(gh api /orgs/chronoframe/packages/container/processor --jq .visibility)
+            test "$visibility" = private || { echo '::error::Refusing to publish to a non-private package'; exit 1; }
+          elif [[ "$status" != *'404'* ]]; then
+            echo '::error::Unable to verify private registry access'
+            exit 1
+          fi
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ steps.registry.outputs.username }}
+          password: ${{ secrets.PROCESSOR_REGISTRY_TOKEN }}
+      - uses: docker/metadata-action@v5
+        id: metadata
+        with:
+          images: ghcr.io/chronoframe/processor
+          tags: |
+            type=sha,format=long
+            type=match,pattern=processor-v(.*),group=1
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/processor-v') }}
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: apps/worker/Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.metadata.outputs.tags }}
+          labels: ${{ steps.metadata.outputs.labels }}
+          build-args: |
+            PROCESSOR_VERSION=${{ github.sha }}
+          cache-from: type=gha,scope=processor
+          cache-to: type=gha,mode=max,scope=processor
+          provenance: mode=min
+      - name: Confirm package remains private
+        env:
+          GH_TOKEN: ${{ secrets.PROCESSOR_REGISTRY_TOKEN }}
+        run: |
+          set -euo pipefail
+          test "$(gh api /orgs/chronoframe/packages/container/processor --jq .visibility)" = private
+          echo 'Published private image ghcr.io/chronoframe/processor' >> "$GITHUB_STEP_SUMMARY"

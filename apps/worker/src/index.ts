@@ -1,12 +1,50 @@
+import os from 'node:os'
+import {
+  type ProcessorConfiguration,
+  type ProcessorEnvelope,
+} from '@chronoframe/contracts/processor'
+import { openProcessorConfiguration } from './configuration.ts'
 import { randomUUID } from 'node:crypto'
 import { createWorkerGateway } from './gateway.ts'
 import { setTimeout as delay } from 'node:timers/promises'
 import { processWork, WorkerProcessingError, type WorkItem } from './process.ts'
 import type { CloudMediaResult } from '@chronoframe/core'
-const workerId = process.env.CHRONOFRAME_WORKER_ID ?? randomUUID()
+const instanceId = randomUUID()
+const connectionKey = process.env.CHRONOFRAME_PROCESSOR_KEY ?? ''
+const version = process.env.CHRONOFRAME_PROCESSOR_VERSION ?? 'development'
+let configuration!: ProcessorConfiguration
+let lastStatus = 0
+async function reportStatus(register = false) {
+  if (!register && performance.now() - lastStatus < 30000) return
+  const nonce = randomUUID(),
+    started = performance.now()
+  const result = await rpc<ProcessorEnvelope>(
+    register ? 'register' : 'status',
+    {
+      nonce,
+      instanceId,
+      version,
+      hostname: os.hostname(),
+      metrics: {
+        cpuCount: os.cpus().length,
+        load1: os.loadavg()[0],
+        rss: process.memoryUsage().rss,
+        totalMemory: os.totalmem(),
+        freeMemory: os.freemem(),
+      },
+    },
+  )
+  configuration = await openProcessorConfiguration(
+    connectionKey,
+    result,
+    nonce,
+    performance.now() - started,
+  )
+  lastStatus = performance.now()
+}
 const rpc = createWorkerGateway({
   origin: process.env.CHRONOFRAME_PORTAL_ORIGIN ?? '',
-  secret: process.env.CHRONOFRAME_WORKER_SECRET ?? '',
+  secret: connectionKey,
   accessClientId: process.env.CHRONOFRAME_ACCESS_CLIENT_ID,
   accessClientSecret: process.env.CHRONOFRAME_ACCESS_CLIENT_SECRET,
 })
@@ -19,20 +57,26 @@ for (const signal of ['SIGINT', 'SIGTERM'] as const)
   })
 while (!stopping) {
   try {
-    const item = await rpc<WorkItem | { lease: null }>('claim', { workerId })
+    await reportStatus(!configuration)
+    const nonce = randomUUID(),
+      started = performance.now()
+    const item = await rpc<
+      (WorkItem & { configuration: ProcessorEnvelope }) | { lease: null }
+    >('claim', { nonce })
     if (!item.lease) {
       await rpc('cleanup', {})
       await delay(3000, undefined, { signal: shutdown.signal }).catch(() => {})
       continue
     }
-    const work = item as WorkItem,
-      controller = new AbortController(),
-      timeout = setTimeout(() => controller.abort('processing_timeout'), 180000)
+    const work = item as WorkItem & { configuration: ProcessorEnvelope },
+      controller = new AbortController()
+    let timeout: ReturnType<typeof setTimeout> | undefined
     let heartbeatRunning = false
     const timer = setInterval(() => {
       if (heartbeatRunning) return
       heartbeatRunning = true
-      void rpc<{ ok: boolean }>('heartbeat', { lease: work.lease })
+      void reportStatus()
+        .then(() => rpc<{ ok: boolean }>('heartbeat', { lease: work.lease }))
         .then((result) => {
           if (!result.ok) controller.abort('lease_lost')
         })
@@ -42,7 +86,35 @@ while (!stopping) {
         })
     }, 30000)
     try {
-      const processed = await processWork(work, controller.signal)
+      try {
+        configuration = await openProcessorConfiguration(
+          connectionKey,
+          work.configuration,
+          nonce,
+          performance.now() - started,
+        )
+      } catch {
+        throw new WorkerProcessingError('configuration_invalid', true)
+      }
+      timeout = setTimeout(
+        () => controller.abort('processing_timeout'),
+        configuration.limits.timeoutMs,
+      )
+      const workConfiguration = configuration
+      const processed = await processWork(
+        work,
+        controller.signal,
+        workConfiguration,
+        async () => {
+          const slot = await rpc<{ delayMs: number }>(
+            'geocoding-slot',
+            { provider: workConfiguration.geocoding.provider },
+            controller.signal,
+          )
+          if (slot.delayMs > 0)
+            await delay(slot.delayMs, undefined, { signal: controller.signal })
+        },
+      )
       controller.signal.throwIfAborted()
       const grants = await rpc<{
         outputs: (CloudMediaResult['assets'][number] & { url: string })[]
@@ -91,8 +163,22 @@ while (!stopping) {
           : error instanceof WorkerProcessingError
             ? error.message
             : 'processing_error',
+        requiredPixels:
+          error instanceof WorkerProcessingError
+            ? error.requiredPixels
+            : undefined,
+        requiredMetadataBytes:
+          error instanceof WorkerProcessingError
+            ? error.requiredMetadataBytes
+            : undefined,
+        requiredBytes:
+          error instanceof WorkerProcessingError
+            ? error.requiredBytes
+            : undefined,
         retryable: aborted
-          ? controller.signal.reason === 'processing_timeout'
+          ? ['processing_timeout', 'heartbeat_unavailable'].includes(
+              String(controller.signal.reason),
+            )
           : error instanceof WorkerProcessingError
             ? error.retryable
             : true,

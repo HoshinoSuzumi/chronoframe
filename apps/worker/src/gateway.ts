@@ -1,4 +1,7 @@
 type WorkerAction =
+  | 'register'
+  | 'status'
+  | 'geocoding-slot'
   | 'claim'
   | 'heartbeat'
   | 'grant'
@@ -62,9 +65,17 @@ export function createWorkerGateway(
     signal?: AbortSignal,
   ): Promise<T> {
     if (
-      !['claim', 'heartbeat', 'grant', 'complete', 'fail', 'cleanup'].includes(
-        action,
-      )
+      ![
+        'register',
+        'status',
+        'geocoding-slot',
+        'claim',
+        'heartbeat',
+        'grant',
+        'complete',
+        'fail',
+        'cleanup',
+      ].includes(action)
     )
       throw new Error('Invalid worker gateway action')
     const response = await transport(
