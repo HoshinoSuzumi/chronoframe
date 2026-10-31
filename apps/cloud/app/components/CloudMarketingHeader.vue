@@ -2,6 +2,7 @@
 import { ArrowUpRight, ArrowRight, Menu } from 'lucide-vue-next'
 import { PopoverRoot, PopoverTrigger, PopoverContent } from 'reka-ui'
 const route = useRoute()
+const { authenticated } = useCloudMarketingSession()
 const mobileMenuOpen = ref(false),
   links = useCloudLinks()
 </script>
@@ -27,32 +28,50 @@ const mobileMenuOpen = ref(false),
           class="cf-inline-icon" /></a
       ><CloudThemeToggle />
       <CfButton
-        as-child
-        variant="secondary"
-        size="sm"
-        ><NuxtLink
-          :to="links.signin"
-          external
-          >{{ $t('cloud.messages.logIn') }}</NuxtLink
-        ></CfButton
-      ><CfButton
+        v-if="authenticated"
         as-child
         size="sm"
         ><NuxtLink
-          :to="links.signup"
+          :to="links.console"
           external
-          >{{ $t('cloud.messages.getStarted')
+          >{{ $t('cloud.messages.visitConsole')
           }}<ArrowUpRight :size="14" /></NuxtLink
       ></CfButton>
+      <template v-else>
+        <CfButton
+          as-child
+          variant="secondary"
+          size="sm"
+          ><NuxtLink
+            :to="links.signin"
+            external
+            >{{ $t('cloud.messages.logIn') }}</NuxtLink
+          ></CfButton
+        ><CfButton
+          as-child
+          size="sm"
+          ><NuxtLink
+            :to="links.signup"
+            external
+            >{{ $t('cloud.messages.getStarted')
+            }}<ArrowUpRight :size="14" /></NuxtLink
+        ></CfButton>
+      </template>
     </nav>
     <div class="cf-mobile-header-actions">
       <CfButton
         as-child
         size="sm"
         ><NuxtLink
-          :to="links.signup"
+          :to="authenticated ? links.console : links.signup"
           external
-          >{{ $t('cloud.messages.signUp') }}</NuxtLink
+          >{{
+            $t(
+              authenticated
+                ? 'cloud.messages.visitConsole'
+                : 'cloud.messages.signUp',
+            )
+          }}</NuxtLink
         ></CfButton
       >
       <PopoverRoot v-model:open="mobileMenuOpen">
@@ -72,9 +91,15 @@ const mobileMenuOpen = ref(false),
         >
           <nav :aria-label="$t('cloud.messages.mobileNavigation')">
             <NuxtLink
-              :to="links.signin"
+              :to="authenticated ? links.console : links.signin"
               external
-              >{{ $t('cloud.messages.logIn') }}<ArrowRight :size="16"
+              >{{
+                $t(
+                  authenticated
+                    ? 'cloud.messages.visitConsole'
+                    : 'cloud.messages.logIn',
+                )
+              }}<ArrowRight :size="16"
             /></NuxtLink>
             <NuxtLink to="/pricing">{{ $t('cloud.billing.pricing') }}</NuxtLink
             ><a href="https://docs.chronoframe.art/"

@@ -9,6 +9,8 @@ export function useCloudLinks() {
     website: 'https://chronoframe.art/',
     signin: portal + '/signin',
     signup: portal + '/signup',
+    console: portal + '/workspace',
+    marketingSession: portal + '/api/auth/marketing-session',
     redeem: portal + '/account/redeem',
     portalPricing: portal + '/account/plan#plans',
     purchase: (plan: string, interval: 1 | 3) =>

@@ -21,6 +21,7 @@
   "browseTitle": "用喜欢的方式浏览"
 },
     "messages": {
+      "visitConsole": "访问控制台",
       "skipToContent": "跳转到主要内容",
       "albums": "相簿",
       "organizeYourPhotographsAndChooseHowTheyAreShared": "整理照片，并选择相簿的分享方式。",
