@@ -157,3 +157,58 @@ test('explicit MOV attachment overrides an embedded motion video and preserves e
     globalThis.fetch = originalFetch
   }
 })
+
+for (const operation of ['reindex', 'live-photo', 'geocoding'])
+  test(`location erasure wins over restored ${operation} metadata`, async () => {
+    const originalFetch = globalThis.fetch
+    try {
+      const input = await sharp({
+        create: { width: 16, height: 12, channels: 3, background: '#123456' },
+      })
+        .jpeg()
+        .toBuffer()
+      globalThis.fetch = async () => new Response(new Uint8Array(input))
+      const result = await processWork(
+        {
+          lease: { ...lease, expectedBytes: input.length },
+          sourceUrl: 'https://storage.example/source',
+          fileName: 'photo.jpg',
+          contentType: 'image/jpeg',
+          eraseLocation: true,
+          options: { operation, options_json: '{}' },
+          priorMetadata: {
+            title: 'Edited',
+            metadata_json: JSON.stringify({
+              latitude: 31,
+              longitude: 121,
+              country: 'Country',
+              city: 'City',
+              locationName: 'Place',
+              geocoding: { version: 1 },
+              exif: {
+                GPSLatitude: 31,
+                GPSLongitude: 121,
+                GPSCoordinates: '31,121',
+                Rating: 5,
+              },
+            }),
+          },
+        },
+        new AbortController().signal,
+      )
+      for (const key of [
+        'latitude',
+        'longitude',
+        'country',
+        'city',
+        'locationName',
+        'geocoding',
+      ])
+        assert.equal(result.result.metadata[key], null)
+      for (const key of ['GPSLatitude', 'GPSLongitude', 'GPSCoordinates'])
+        assert.equal((result.result.metadata.exif as any)?.[key], undefined)
+      assert.equal(result.result.metadata.locationErased, true)
+    } finally {
+      globalThis.fetch = originalFetch
+    }
+  })

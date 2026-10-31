@@ -159,6 +159,7 @@ test('registered node auth revokes old keys; full schema preserves assets and fe
       action: 'register',
       key,
       body: {
+        nonce: crypto.randomUUID(),
         version: 'test-build',
         instanceId: 'instance-a',
         hostname: 'host',
@@ -196,10 +197,20 @@ test('registered node auth revokes old keys; full schema preserves assets and fe
       }),
       { statusCode: 403 },
     )
-    const config = await processorEnvelope(db, 's'.repeat(32), key, node, 100)
+    const config = await processorEnvelope(
+      db,
+      's'.repeat(32),
+      key,
+      node,
+      100,
+      crypto.randomUUID(),
+    )
     const decoded = await (
       await processorCipher(key)
-    ).open<any>(config.envelope, `${id}:${config.revision}:${config.expiresAt}`)
+    ).open<any>(
+      config.envelope,
+      `${id}:${config.revision}:${config.issuedAt}:${config.expiresAt}:${config.nonce}`,
+    )
     assert.equal(decoded.limits.maxPixels, DEFAULT_PROCESSOR_LIMITS.maxPixels)
     await db
       .prepare('UPDATE platform_processor_nodes SET secret_hash=? WHERE id=?')

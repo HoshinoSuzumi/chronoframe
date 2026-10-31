@@ -220,7 +220,8 @@ export default definePlatformHandler(async (event) => {
           row.revision,
         )
         results.push({ id: row.id, queued: true })
-      } catch {
+      } catch (error) {
+        if ((error as { statusCode?: number })?.statusCode !== 409) throw error
         results.push({ id: row.id, queued: false })
       }
     }

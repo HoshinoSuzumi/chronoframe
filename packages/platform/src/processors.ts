@@ -43,6 +43,7 @@ export async function processorEnvelope(
   token: string,
   node: { id: string; limits_json: string; revision: number },
   now: number,
+  nonce: string,
 ) {
   const geocoding = await processingGeocoding(db, secret)
   const revision = `${node.revision}:${geocoding.revision}`,
@@ -59,8 +60,10 @@ export async function processorEnvelope(
     nodeId: node.id,
     revision,
     expiresAt,
+    issuedAt: now,
+    nonce,
     envelope: await (
       await processorCipher(token)
-    ).seal(config, `${node.id}:${revision}:${expiresAt}`),
+    ).seal(config, `${node.id}:${revision}:${now}:${expiresAt}:${nonce}`),
   }
 }

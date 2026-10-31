@@ -12,6 +12,7 @@ export function processingGeocoder(
   const logger = { info() {}, warn() {}, error() {}, success() {}, debug() {} }
   const localSlot = createGeocodingRateLimiter()
   const services = createGeocodingServices({
+    throwOnError: true,
     getLanguage: async () => config.language,
     request: (url, init) =>
       fetch(url, {
@@ -38,8 +39,6 @@ export function processingGeocoder(
       if (!provider) return null
       const result = await provider.reverseGeocode(lat, lon)
       signal.throwIfAborted()
-      // Explicitly configured providers must succeed; do not silently publish incomplete locations.
-      if (!result) throw new Error('reverse_geocoding_unavailable')
       return result
     },
   }

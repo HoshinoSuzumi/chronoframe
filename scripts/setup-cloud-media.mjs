@@ -1,3 +1,4 @@
+import { processorEnvironment } from './processor-environment.mjs'
 import { randomBytes } from 'node:crypto'
 import { mkdir, readFile, writeFile, realpath, chmod } from 'node:fs/promises'
 import path from 'node:path'
@@ -74,9 +75,19 @@ gh(
   secrets.storage,
 )
 const workerEnv = path.join(target, environment + '-processor.env')
+let existingEnv = ''
+try {
+  existingEnv = await readFile(workerEnv, 'utf8')
+} catch (error) {
+  if (error.code !== 'ENOENT') throw error
+}
 await writeFile(
   workerEnv,
-  `CHRONOFRAME_PORTAL_ORIGIN=${portal}\n# Register a node in the administration panel and paste its one-time connection key.\nCHRONOFRAME_PROCESSOR_KEY=${process.env.CHRONOFRAME_PROCESSOR_KEY || ''}\n`,
+  processorEnvironment(
+    portal,
+    process.env.CHRONOFRAME_PROCESSOR_KEY,
+    existingEnv,
+  ),
   { mode: 0o600 },
 )
 await chmod(workerEnv, 0o600)

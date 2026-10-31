@@ -4,10 +4,26 @@ import {
   workspaceEntitlements,
   workspaceUsageSQL,
 } from '@chronoframe/platform/entitlements'
+interface AttachmentSource {
+  id: string
+  connection_id: string
+  connection_revision: number
+  source_version: string
+  photo_revision: number
+}
+interface CompanionUpload {
+  id: string
+  state: string
+  expires_at: number
+  connection_id: string
+  connection_revision: number
+  object_key: string
+  expected_bytes: number
+}
 export async function cloudLiveAttachment(
   ctx: Awaited<ReturnType<typeof cloudMedia>>,
   photoId: string,
-  body: Record<string, any>,
+  body: Record<string, unknown>,
   now: number,
 ) {
   const { raw, siteId, userId, site } = ctx
@@ -20,12 +36,18 @@ export async function cloudLiveAttachment(
       .first()
     if (done) return { ok: true }
   }
+  if (
+    typeof body.revision !== 'number' ||
+    !Number.isSafeInteger(body.revision) ||
+    body.revision < 1
+  )
+    throw createError({ statusCode: 400 })
   const source = await raw
     .prepare(
       "SELECT u.*,p.revision AS photo_revision FROM cloud_uploads u JOIN cloud_processing_jobs j ON j.site_id=u.site_id AND j.upload_id=u.id JOIN cloud_photos p ON p.site_id=j.site_id AND p.id=j.photo_id AND p.source_version=j.source_version WHERE p.site_id=? AND p.id=? AND p.deleted=0 AND p.metadata_json IS NOT NULL AND j.state IN('succeeded','failed','cancelled')",
     )
     .bind(siteId, photoId)
-    .first<any>()
+    .first<AttachmentSource>()
   if (!source || source.photo_revision !== body.revision)
     throw createError({ statusCode: 409 })
   const { s3 } = await ctx.storage(
@@ -49,6 +71,7 @@ export async function cloudLiveAttachment(
       typeof body.fileName !== 'string' ||
       !body.fileName.toLowerCase().endsWith('.mov') ||
       body.fileName.length > 255 ||
+      typeof body.bytes !== 'number' ||
       !Number.isSafeInteger(body.bytes) ||
       body.bytes < 1 ||
       body.bytes > plan.limits.fileBytes ||
@@ -95,7 +118,7 @@ export async function cloudLiveAttachment(
       "SELECT * FROM cloud_uploads WHERE site_id=? AND id=? AND photo_id=? AND owner_id=? AND source_version=? AND content_type='video/quicktime'",
     )
     .bind(siteId, body.uploadId, photoId, userId, source.source_version)
-    .first<any>()
+    .first<CompanionUpload>()
   if (
     !upload ||
     upload.state !== 'pending' ||
@@ -111,6 +134,9 @@ export async function cloudLiveAttachment(
   )
     throw createError({ statusCode: 400 })
   const pipeline = `p_${String(Number(body.revision) + 1).padStart(16, '0')}_${crypto.randomUUID()}`
+  const currentPair =
+    "EXISTS(SELECT 1 FROM cloud_processing_jobs j JOIN cloud_photo_companions c ON c.site_id=j.site_id AND c.photo_id=j.photo_id WHERE j.site_id=? AND j.photo_id=? AND j.pipeline_version=? AND j.state='queued' AND c.upload_id=?)"
+  const pairValues = [siteId, photoId, pipeline, upload.id] as const
   const result = await raw.batch([
     raw
       .prepare(
@@ -144,6 +170,24 @@ export async function cloudLiveAttachment(
         photoId,
         source.source_version,
       ),
+    raw
+      .prepare(`INSERT INTO cloud_cleanup_requests(site_id,id,connection_id,connection_revision,object_key,available_at)
+      SELECT site_id,'superseded-companion-'||id,connection_id,connection_revision,object_key,? FROM cloud_uploads
+      WHERE site_id=? AND photo_id=? AND content_type='video/quicktime' AND id<>? AND state='completed' AND ${currentPair} ON CONFLICT DO NOTHING`)
+      .bind(now + 360000, siteId, photoId, upload.id, ...pairValues),
+    raw
+      .prepare(`UPDATE cloud_uploads SET state='cancelled' WHERE site_id=? AND photo_id=? AND content_type='video/quicktime' AND id<>? AND state='completed' AND ${currentPair}
+      AND EXISTS(SELECT 1 FROM cloud_cleanup_requests cleanup WHERE cleanup.site_id=cloud_uploads.site_id AND cleanup.id='superseded-companion-'||cloud_uploads.id AND cleanup.object_key=cloud_uploads.object_key)`)
+      .bind(siteId, photoId, upload.id, ...pairValues),
+    raw
+      .prepare(`INSERT INTO cloud_cleanup_requests(site_id,id,connection_id,connection_revision,object_key,available_at)
+      SELECT site_id,'superseded-source-video-'||id,connection_id,connection_revision,video_key,? FROM cloud_uploads
+      WHERE site_id=? AND id=? AND video_key IS NOT NULL AND ${currentPair} ON CONFLICT DO NOTHING`)
+      .bind(now + 360000, siteId, source.id, ...pairValues),
+    raw
+      .prepare(`UPDATE cloud_uploads SET video_key=NULL,video_etag=NULL,expected_video_bytes=0 WHERE site_id=? AND id=? AND video_key IS NOT NULL AND ${currentPair}
+      AND EXISTS(SELECT 1 FROM cloud_cleanup_requests cleanup WHERE cleanup.site_id=cloud_uploads.site_id AND cleanup.id='superseded-source-video-'||cloud_uploads.id AND cleanup.object_key=cloud_uploads.video_key)`)
+      .bind(siteId, source.id, ...pairValues),
   ])
   if (!result[4]?.meta.changes) throw createError({ statusCode: 409 })
   return { ok: true }

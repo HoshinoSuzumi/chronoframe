@@ -12,6 +12,7 @@ import { ExifTool } from 'exiftool-vendored'
 import {
   createPhotoProcessor,
   EXIF_LOCATION_KEYS,
+  stripLocationFromExif,
 } from '@chronoframe/processing'
 import { createExifService } from '@chronoframe/media'
 import type { StorageProvider } from '@chronoframe/storage'
@@ -369,7 +370,19 @@ export async function processWork(
       cleanMetadata.exif = previous.exif
       cleanMetadata.dateTaken = previous.dateTaken
     }
-    if (eraseLocation) cleanMetadata.locationErased = true
+    if (eraseLocation) {
+      for (const key of [
+        'latitude',
+        'longitude',
+        'country',
+        'city',
+        'locationName',
+        'geocoding',
+      ])
+        cleanMetadata[key] = null
+      cleanMetadata.exif = stripLocationFromExif(cleanMetadata.exif)
+      cleanMetadata.locationErased = true
+    }
     const metadataBytes = Buffer.byteLength(JSON.stringify(cleanMetadata))
     if (metadataBytes > limits.maxMetadataBytes)
       throw new WorkerProcessingError(

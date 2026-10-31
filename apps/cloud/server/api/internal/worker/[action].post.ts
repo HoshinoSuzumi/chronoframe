@@ -36,6 +36,11 @@ export default definePlatformHandler(async (event) => {
     ),
     action = getRouterParam(event, 'action'),
     now = Date.now()
+  if (
+    ['register', 'status', 'claim'].includes(action ?? '') &&
+    (typeof body.nonce !== 'string' || !/^[a-f0-9-]{36}$/.test(body.nonce))
+  )
+    throw createError({ statusCode: 400 })
   const limits = parseProcessorLimits(JSON.parse(node.limits_json))
   if (action === 'register' || action === 'status') {
     const short = (v: unknown, max = 128) =>
@@ -63,7 +68,14 @@ export default definePlatformHandler(async (event) => {
         node.id,
       )
       .run()
-    return processorEnvelope(raw, config.storageSecret, token, node, now)
+    return processorEnvelope(
+      raw,
+      config.storageSecret,
+      token,
+      node,
+      now,
+      String(body.nonce),
+    )
   }
   await raw
     .prepare(
@@ -226,6 +238,7 @@ export default definePlatformHandler(async (event) => {
           token,
           node,
           now,
+          String(body.nonce),
         ),
         etag: sanitized ? undefined : detail?.verified_etag,
         companion: detail?.video_key

@@ -44,6 +44,16 @@ test('post-upload MOV pairing verifies ownership, object metadata, quota and rev
         "INSERT INTO platform_sites(id,workspace_id,name) VALUES(1,1,'One')",
       )
       .run()
+    await db
+      .prepare(
+        "INSERT INTO platform_storage_pools(id,name,enabled,checked_at) VALUES('pool','Pool',1,1)",
+      )
+      .run()
+    await db
+      .prepare(
+        "INSERT INTO cloud_storage_connections(site_id,id,current_revision,pool_id) VALUES(1,'s3',1,'pool')",
+      )
+      .run()
     const media = createCloudMediaRepository(db, { id: 1 }),
       queue = createCloudExecutionRepository(db, { id: 1 })
     await media.reserveUpload({
@@ -84,6 +94,11 @@ test('post-upload MOV pairing verifies ownership, object metadata, quota and rev
       },
       20,
     )
+    await db
+      .prepare(
+        "UPDATE cloud_uploads SET video_key='old-initial.MOV',expected_video_bytes=40 WHERE id='photo'",
+      )
+      .run()
     const revision = (
       await db
         .prepare("SELECT revision FROM cloud_photos WHERE id='photo'")
@@ -196,6 +211,114 @@ test('post-upload MOV pairing verifies ownership, object metadata, quota and rev
     assert.equal(
       (await db.prepare('SELECT COUNT(*) n FROM cloud_usage_events').first()).n,
       2,
+    )
+
+    assert.equal(
+      (
+        await db
+          .prepare("SELECT video_key FROM cloud_uploads WHERE id='photo'")
+          .first()
+      ).video_key,
+      null,
+    )
+    assert(
+      await db
+        .prepare(
+          "SELECT id FROM cloud_cleanup_requests WHERE object_key='old-initial.MOV'",
+        )
+        .first(),
+    )
+    const firstVideoLease = await queue.claim('node', 'live-attempt', 70, 1000)
+    assert(firstVideoLease)
+    const prefix = `chronoframe/1/derived/photo/1/${firstVideoLease.pipelineVersion}/live-attempt/`
+    assert(
+      await queue.complete(
+        firstVideoLease,
+        {
+          width: 16,
+          height: 12,
+          metadata: {},
+          assets: [
+            {
+              role: 'thumbnail',
+              objectKey: prefix + 'thumbnail.webp',
+              bytes: 5,
+              contentType: 'image/webp',
+            },
+            {
+              role: 'live-video',
+              objectKey: prefix + 'live-video.mov',
+              bytes: 100,
+              contentType: 'video/quicktime',
+            },
+          ],
+        },
+        80,
+      ),
+    )
+    const nextRevision = (
+      await db
+        .prepare("SELECT revision FROM cloud_photos WHERE id='photo'")
+        .first()
+    ).revision
+    const replacement = await attach(
+      ctx,
+      'photo',
+      {
+        phase: 'prepare',
+        revision: nextRevision,
+        fileName: 'replacement.mov',
+        bytes: 120,
+      },
+      90,
+    )
+    bytes = 120
+    assert(
+      (
+        await attach(
+          ctx,
+          'photo',
+          {
+            phase: 'complete',
+            revision: nextRevision,
+            uploadId: replacement.id,
+          },
+          100,
+        )
+      ).ok,
+    )
+    assert.equal(
+      (
+        await db
+          .prepare('SELECT state FROM cloud_uploads WHERE id=?')
+          .bind(prepared.id)
+          .first()
+      ).state,
+      'cancelled',
+    )
+    assert.equal(
+      (await db.prepare('SELECT upload_id FROM cloud_photo_companions').first())
+        .upload_id,
+      replacement.id,
+    )
+    const cleanup = await db
+      .prepare(
+        'SELECT object_key,available_at FROM cloud_cleanup_requests WHERE id=?',
+      )
+      .bind('superseded-companion-' + prepared.id)
+      .first()
+    assert.equal(cleanup.object_key, signed[0])
+    assert(cleanup.available_at > 100)
+    const storage = (
+      await db
+        .prepare(`SELECT ${workspaceUsageSQL(1).storage} AS bytes`)
+        .bind(100)
+        .first()
+    ).bytes
+    assert.equal(
+      storage,
+      250,
+      'retained published derivatives count, but the superseded video source does not',
     )
   } finally {
     await mf.dispose()

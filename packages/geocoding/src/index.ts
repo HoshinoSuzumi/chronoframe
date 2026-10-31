@@ -29,6 +29,8 @@ export interface RetryOptions {
   delayStrategy?: 'exponential' | 'linear' | 'fixed'
 }
 export interface GeocodingDependencies {
+  /** Processing queues can distinguish provider failures from successful empty results. */
+  throwOnError?: boolean
   getLanguage(): Promise<string>
   request: typeof fetch
   waitForGeocodingSlot(
@@ -48,6 +50,7 @@ export interface GeocodingDependencies {
 /** Create reverse-geocoding providers using caller-owned transport, retry, language and rate limits. */
 export function createGeocodingServices({
   getLanguage,
+  throwOnError = false,
   request,
   waitForGeocodingSlot,
   withRetry,
@@ -138,6 +141,7 @@ export function createGeocodingServices({
           'Mapbox reverse geocoding failed after all retries:',
           error,
         )
+        if (throwOnError) throw error
         return null
       }
     }
@@ -183,6 +187,10 @@ export function createGeocodingServices({
               },
             })
 
+            if (response.status === 404) {
+              const empty = await response.json().catch(() => null)
+              if (empty?.error === 'Unable to geocode') return null
+            }
             if (!response.ok) {
               throw new Error(
                 `Nominatim API error: ${response.status} ${response.statusText}`,
@@ -191,9 +199,9 @@ export function createGeocodingServices({
 
             const data = await response.json()
 
-            if (!data || data.error) {
-              throw new Error(`Nominatim API returned error: ${data?.error}`)
-            }
+            if (!data || data.error === 'Unable to geocode') return null
+            if (data.error)
+              throw new Error(`Nominatim API returned error: ${data.error}`)
 
             const geocoding = normalizeNominatim(data, language)
             if (!geocoding) return null
@@ -218,6 +226,7 @@ export function createGeocodingServices({
           'Nominatim reverse geocoding failed after all retries:',
           error,
         )
+        if (throwOnError) throw error
         return null
       }
     }

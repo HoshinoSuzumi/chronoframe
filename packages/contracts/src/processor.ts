@@ -85,6 +85,14 @@ export function parseProcessorGeocoding(value: unknown): ProcessorGeocoding {
     language: result.language,
   }
 }
+export interface ProcessorEnvelope {
+  nodeId: string
+  revision: string
+  issuedAt: number
+  expiresAt: number
+  nonce: string
+  envelope: string
+}
 export interface ProcessorConfiguration {
   limits: ProcessorLimits
   geocoding: ProcessorGeocoding

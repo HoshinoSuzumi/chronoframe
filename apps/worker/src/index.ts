@@ -1,10 +1,9 @@
 import os from 'node:os'
 import {
-  processorCipher,
-  parseProcessorLimits,
-  parseProcessorGeocoding,
   type ProcessorConfiguration,
+  type ProcessorEnvelope,
 } from '@chronoframe/contracts/processor'
+import { openProcessorConfiguration } from './configuration.ts'
 import { randomUUID } from 'node:crypto'
 import { createWorkerGateway } from './gateway.ts'
 import { setTimeout as delay } from 'node:timers/promises'
@@ -15,46 +14,33 @@ const connectionKey = process.env.CHRONOFRAME_PROCESSOR_KEY ?? ''
 const version = process.env.CHRONOFRAME_PROCESSOR_VERSION ?? 'development'
 let configuration!: ProcessorConfiguration
 let lastStatus = 0
-async function acceptConfiguration(value: {
-  nodeId: string
-  revision: string
-  expiresAt: number
-  envelope: string
-}) {
-  if (
-    !value ||
-    value.nodeId !== connectionKey.split('.')[0]?.slice(3) ||
-    value.expiresAt <= Date.now() ||
-    value.expiresAt > Date.now() + 360000
-  )
-    throw new Error('invalid_configuration')
-  const decoded = await (
-    await processorCipher(connectionKey)
-  ).open<ProcessorConfiguration>(
-    value.envelope,
-    `${value.nodeId}:${value.revision}:${value.expiresAt}`,
-  )
-  configuration = {
-    limits: parseProcessorLimits(decoded.limits),
-    geocoding: parseProcessorGeocoding(decoded.geocoding),
-  }
-}
 async function reportStatus(register = false) {
-  if (!register && Date.now() - lastStatus < 30000) return
-  const result = await rpc<any>(register ? 'register' : 'status', {
-    instanceId,
-    version,
-    hostname: os.hostname(),
-    metrics: {
-      cpuCount: os.cpus().length,
-      load1: os.loadavg()[0],
-      rss: process.memoryUsage().rss,
-      totalMemory: os.totalmem(),
-      freeMemory: os.freemem(),
+  if (!register && performance.now() - lastStatus < 30000) return
+  const nonce = randomUUID(),
+    started = performance.now()
+  const result = await rpc<ProcessorEnvelope>(
+    register ? 'register' : 'status',
+    {
+      nonce,
+      instanceId,
+      version,
+      hostname: os.hostname(),
+      metrics: {
+        cpuCount: os.cpus().length,
+        load1: os.loadavg()[0],
+        rss: process.memoryUsage().rss,
+        totalMemory: os.totalmem(),
+        freeMemory: os.freemem(),
+      },
     },
-  })
-  await acceptConfiguration(result)
-  lastStatus = Date.now()
+  )
+  configuration = await openProcessorConfiguration(
+    connectionKey,
+    result,
+    nonce,
+    performance.now() - started,
+  )
+  lastStatus = performance.now()
 }
 const rpc = createWorkerGateway({
   origin: process.env.CHRONOFRAME_PORTAL_ORIGIN ?? '',
@@ -72,23 +58,19 @@ for (const signal of ['SIGINT', 'SIGTERM'] as const)
 while (!stopping) {
   try {
     await reportStatus(!configuration)
+    const nonce = randomUUID(),
+      started = performance.now()
     const item = await rpc<
-      (WorkItem & { configuration: any }) | { lease: null }
-    >('claim', {})
+      (WorkItem & { configuration: ProcessorEnvelope }) | { lease: null }
+    >('claim', { nonce })
     if (!item.lease) {
       await rpc('cleanup', {})
       await delay(3000, undefined, { signal: shutdown.signal }).catch(() => {})
       continue
     }
-    await acceptConfiguration(
-      (item as WorkItem & { configuration: any }).configuration,
-    )
-    const work = item as WorkItem,
-      controller = new AbortController(),
-      timeout = setTimeout(
-        () => controller.abort('processing_timeout'),
-        configuration.limits.timeoutMs,
-      )
+    const work = item as WorkItem & { configuration: ProcessorEnvelope },
+      controller = new AbortController()
+    let timeout: ReturnType<typeof setTimeout> | undefined
     let heartbeatRunning = false
     const timer = setInterval(() => {
       if (heartbeatRunning) return
@@ -104,6 +86,20 @@ while (!stopping) {
         })
     }, 30000)
     try {
+      try {
+        configuration = await openProcessorConfiguration(
+          connectionKey,
+          work.configuration,
+          nonce,
+          performance.now() - started,
+        )
+      } catch {
+        throw new WorkerProcessingError('configuration_invalid', true)
+      }
+      timeout = setTimeout(
+        () => controller.abort('processing_timeout'),
+        configuration.limits.timeoutMs,
+      )
       const workConfiguration = configuration
       const processed = await processWork(
         work,
@@ -180,7 +176,9 @@ while (!stopping) {
             ? error.requiredBytes
             : undefined,
         retryable: aborted
-          ? controller.signal.reason === 'processing_timeout'
+          ? ['processing_timeout', 'heartbeat_unavailable'].includes(
+              String(controller.signal.reason),
+            )
           : error instanceof WorkerProcessingError
             ? error.retryable
             : true,
