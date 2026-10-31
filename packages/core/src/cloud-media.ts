@@ -25,6 +25,7 @@ export interface MediaUpload {
   connection_id: string
   object_key: string
   provider_upload_id: string | null
+  album_ids_json: string
   expected_video_bytes: number
   expected_bytes: number
   expires_at: number

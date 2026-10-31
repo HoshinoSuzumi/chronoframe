@@ -21,9 +21,10 @@ function load(
   file: string,
   globals: Record<string, unknown>,
   imports: Record<string, unknown> = {},
+  source?: string,
 ) {
   const exports: Record<string, any> = {}
-  const code = ts.transpileModule(readFileSync(file, 'utf8'), {
+  const code = ts.transpileModule(source ?? readFileSync(file, 'utf8'), {
     compilerOptions: { module: ts.ModuleKind.CommonJS },
   }).outputText
   vm.runInNewContext(code, {
@@ -123,8 +124,9 @@ test('Live Photo validation rejects the combined size before reserving any uploa
   assert.equal(media.failed.value, false)
   const reservation = requests.find((r) => r.path.endsWith('/uploads'))!
   assert.equal(reservation.body.bytes, 60 * mib)
+  assert.deepEqual(Array.from(reservation.body.albumIds), [])
   assert.equal(reservation.body.liveVideo.bytes, 40 * mib)
-  assert.match(media.message.value, /Upload verified/)
+  assert.match(media.uploadSession.message, /Upload verified/)
 })
 
 test('subscription retains edits through network/503 failures and invalidates only authoritative denials', async () => {
@@ -736,5 +738,279 @@ test('explicit subscription-change checks refresh the plan without confusing the
     assert.equal(payments.data.value.planChange, null)
   } finally {
     scope.stop()
+  }
+})
+
+test('upload sessions capture their actual storage type and move progress out of the selection drawer', async () => {
+  for (const platform of [true, false]) {
+    let release!: () => void
+    const gate = new Promise<void>((resolve) => {
+      release = resolve
+    })
+    const reservations: any[] = []
+    const cacheKeys: string[] = []
+    const storage = new Map<string, string>()
+    const module = load(
+      'apps/cloud/app/composables/useCloudSiteMedia.ts',
+      {
+        useEntryContext: () => ({
+          value: { scope: 'site:1:user:1', siteId: 1 },
+        }),
+        onMounted: () => {},
+        onBeforeUnmount: () => {},
+        AbortController,
+        crypto,
+        setTimeout,
+        setInterval,
+        clearInterval,
+        localStorage: {
+          getItem: (k: string) => {
+            cacheKeys.push(k)
+            return storage.get(k)
+          },
+          setItem: (k: string, v: string) => storage.set(k, v),
+          removeItem: (k: string) => storage.delete(k),
+        },
+        $fetch: async (path: string, options?: { body?: unknown }) => {
+          if (path.endsWith('/uploads')) {
+            reservations.push(options?.body)
+            await gate
+          }
+          if (path.endsWith('/plan')) return { state: 'completed' }
+          if (path.endsWith('/storage')) return { connections: [] }
+          if (path.endsWith('/photos')) return { photos: [], jobs: [] }
+          if (path.endsWith('/albums'))
+            return { albums: [{ id: 1 }, { id: 2 }] }
+          if (path.endsWith('/usage'))
+            return { usage: { photos: 0 }, limits: {}, byosLimits: {} }
+          return {}
+        },
+      },
+      {
+        '@chronoframe/contracts/storage-diagnostics': {
+          STORAGE_CONNECTION_MESSAGES: {},
+        },
+      },
+    )
+    const media = module.useCloudMediaWorkspace({ siteId: 1, role: 'admin' })
+    media.connectionId.value = 'chosen'
+    media.connections.value = [
+      { id: 'chosen', pool_id: platform ? 'pool' : null },
+    ]
+    media.allowance.value = {
+      limits: { fileBytes: 100 },
+      byosLimits: { fileBytes: 100, byos: 1 },
+    }
+    media.selectedAlbumIds.value = [2, 1]
+    media.uploadOpen.value = true
+    const pending = media.upload({
+      target: {
+        files: [
+          { name: 'one.jpg', size: 10 },
+          { name: 'two.jpg', size: 10 },
+        ],
+        value: 'chosen',
+      },
+    })
+    media.connectionId.value = 'changed-during-preflight'
+    assert.equal(media.preparingUpload.value, true)
+    await new Promise((resolve) => setImmediate(resolve))
+    assert.equal(media.uploading.value, true)
+    assert.equal(media.uploadOpen.value, false)
+    assert.equal(media.uploadSession.storage, platform ? 'platform' : 'private')
+    media.connectionId.value = 'changed-during-upload'
+    media.selectedAlbumIds.value = [7]
+    media.connections.value = []
+    assert.equal(media.uploadSession.storage, platform ? 'platform' : 'private')
+    release()
+    await pending
+    assert.deepEqual(
+      reservations.map((body) => body.connectionId),
+      ['chosen', 'chosen'],
+    )
+    assert(
+      cacheKeys.length > 0 &&
+        cacheKeys.every((key) => key.includes(':chosen:albums:')),
+    )
+    assert.equal(media.uploadSession.total, 2)
+    assert.equal(media.uploadSession.completed, 2)
+    assert.equal(media.uploadSession.failed, false)
+    assert.match(media.uploadSession.message, /Upload verified/)
+    assert.deepEqual(
+      reservations.map((body) => Array.from(body.albumIds)),
+      [
+        [1, 2],
+        [1, 2],
+      ],
+    )
+  }
+})
+
+test('floating queue follows task completion and retry without showing historical successful jobs', async () => {
+  const removed: string[] = []
+  const media = {
+    jobs: ref<any[]>([{ id: 'old', state: 'succeeded' }]),
+    ready: ref(true),
+    removePhoto: (id: string) => {
+      removed.push(id)
+    },
+    photos: ref([]),
+    uploading: ref(false),
+    progress: ref(0),
+    currentFile: ref(''),
+    uploadSession: reactive({ total: 0, message: '' }),
+    admin: ref(true),
+    busy: ref(false),
+    action: () => {},
+    api: () => {},
+    base: ref(''),
+  }
+  const file = 'apps/cloud/app/components/CloudTransferPanel.vue'
+  const script = readFileSync(file, 'utf8')
+    .split('<script setup lang="ts">')[1]!
+    .split('</script>')[0]!
+  const state = load(
+    file,
+    { useCloudSiteMedia: () => media, useId: () => 'queue' },
+    {},
+    script +
+      '\nexport { visible, collapsed, processingJobs, processingActive, processingCompleted, dismiss, removeFailed }',
+  )
+  assert.equal(state.visible.value, false)
+  media.jobs.value = [{ id: 'j', state: 'queued', attempts: 0 }]
+  await nextTick()
+  assert.equal(state.processingActive.value, 1)
+  state.dismiss()
+  assert.equal(state.visible.value, true)
+  media.jobs.value = [{ id: 'j', state: 'succeeded', attempts: 1 }]
+  await nextTick()
+  assert.equal(state.processingCompleted.value, 1)
+  state.dismiss()
+  assert.equal(state.visible.value, false)
+  media.jobs.value = [{ id: 'j', state: 'failed', attempts: 2 }]
+  await nextTick()
+  assert.equal(state.visible.value, false)
+  media.jobs.value = [{ id: 'j', state: 'retry_wait', attempts: 2 }]
+  await nextTick()
+  assert.equal(state.processingActive.value, 1)
+  media.jobs.value = [{ id: 'j', state: 'failed', attempts: 3 }]
+  await nextTick()
+  assert.equal(state.processingJobs.value[0].state, 'failed')
+  const failedJob = {
+    id: 'failed',
+    photo_id: 'never-ready',
+    state: 'failed',
+    attempts: 7,
+  }
+  media.admin.value = false
+  state.removeFailed(failedJob)
+  assert.deepEqual(removed, [])
+  media.admin.value = true
+  media.busy.value = true
+  state.removeFailed(failedJob)
+  assert.deepEqual(removed, [])
+  media.busy.value = false
+  state.removeFailed(failedJob)
+  assert.deepEqual(removed, ['never-ready'])
+  media.jobs.value = [] // The server omits tombstoned photos after deletion.
+  await nextTick()
+  assert.equal(state.processingJobs.value.length, 0)
+  // A new visit keeps historical failures accessible, but starts collapsed.
+  media.ready.value = false
+  media.jobs.value = [failedJob]
+  const history = load(
+    file,
+    { useCloudSiteMedia: () => media, useId: () => 'history' },
+    {},
+    script + '\nexport { visible, collapsed }',
+  )
+  assert.equal(history.visible.value, false)
+  media.ready.value = true
+  await nextTick()
+  assert.equal(history.visible.value, true)
+  assert.equal(history.collapsed.value, true)
+})
+
+test('upload album preflight fails closed for new uploads, refreshes reservation races and preserves resumable choices', async () => {
+  for (const scenario of ['removed', 'offline', 'race', 'resume']) {
+    let reservations = 0,
+      albumReads = 0
+    const cache = new Map<string, string>()
+    const module = load(
+      'apps/cloud/app/composables/useCloudSiteMedia.ts',
+      {
+        useEntryContext: () => ({
+          value: { scope: 'site:1:user:1', siteId: 1 },
+        }),
+        onMounted: () => {},
+        onBeforeUnmount: () => {},
+        AbortController,
+        crypto,
+        setTimeout,
+        setInterval,
+        clearInterval,
+        localStorage: {
+          getItem: (k: string) =>
+            scenario === 'resume' ? 'existing' : cache.get(k),
+          setItem: (k: string, v: string) => cache.set(k, v),
+          removeItem: (k: string) => cache.delete(k),
+        },
+        $fetch: async (path: string) => {
+          if (path.endsWith('/albums')) {
+            albumReads++
+            if (scenario === 'offline') throw Error('offline')
+            return {
+              albums:
+                scenario === 'race' && albumReads === 1 ? [{ id: 1 }] : [],
+            }
+          }
+          if (path.endsWith('/uploads')) {
+            reservations++
+            if (scenario === 'race')
+              throw { data: { data: { code: 'upload_albums_unavailable' } } }
+          }
+          if (path.endsWith('/plan')) return { state: 'completed' }
+          if (path.endsWith('/storage')) return { connections: [] }
+          if (path.endsWith('/photos')) return { photos: [], jobs: [] }
+          if (path.endsWith('/usage'))
+            return { usage: {}, limits: {}, byosLimits: {} }
+          return {}
+        },
+      },
+      {
+        '@chronoframe/contracts/storage-diagnostics': {
+          STORAGE_CONNECTION_MESSAGES: {},
+        },
+      },
+    )
+    const media = module.useCloudMediaWorkspace({ siteId: 1, role: 'admin' })
+    media.connectionId.value = 'chosen'
+    media.allowance.value = {
+      byosLimits: { fileBytes: 100, byos: 1 },
+      limits: { fileBytes: 100 },
+    }
+    media.selectedAlbumIds.value = [1]
+    media.uploadOpen.value = true
+    await media.upload({
+      target: { files: [{ name: 'one.jpg', size: 10 }], value: 'chosen' },
+    })
+    assert.deepEqual(Array.from(media.selectedAlbumIds.value), [1])
+    assert.equal(media.preparingUpload.value, false)
+    assert.equal(
+      reservations,
+      ['removed', 'offline'].includes(scenario) ? 0 : 1,
+    )
+    if (scenario === 'resume') assert.equal(media.uploadSession.completed, 1)
+    else {
+      assert.equal(media.failed.value, true)
+      assert.match(
+        media.message.value,
+        scenario === 'offline'
+          ? /Unable to verify albums/
+          : /selected album is no longer available/,
+      )
+      assert.equal(media.uploadOpen.value, true)
+    }
+    if (scenario === 'race') assert(albumReads >= 2)
   }
 })

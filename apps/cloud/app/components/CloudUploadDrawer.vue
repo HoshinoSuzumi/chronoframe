@@ -2,15 +2,15 @@
 import { uploadQuotaGate } from '../utils/quota-gate'
 const {
   uploadOpen,
+  albums,
+  selectedAlbumIds,
   message,
   failed,
   connections,
   connectionId,
   upload,
   uploading,
-  progress,
-  currentFile,
-  cancel,
+  preparingUpload,
   usage,
   allowance,
   fileLimit,
@@ -38,6 +38,7 @@ async function dropFiles(event: DragEvent) {
   if (
     !input.value ||
     uploading.value ||
+    preparingUpload.value ||
     !uploadAllowed.value ||
     !admin.value ||
     !event.dataTransfer?.files.length
@@ -86,7 +87,7 @@ async function dropFiles(event: DragEvent) {
                 }))
             "
             class="w-full"
-            :disabled="uploading"
+            :disabled="uploading || preparingUpload"
         /></UFormField>
         <i18n-t
           v-if="!connections.length && allowance?.byosLimits.byos"
@@ -116,6 +117,25 @@ async function dropFiles(event: DragEvent) {
           :error="!!quota.error.value"
           @retry="quota.refresh()"
         />
+        <UFormField
+          :label="$t('cloud.transfer.albums')"
+          :description="$t('cloud.transfer.albumHelp')"
+        >
+          <USelectMenu
+            v-model="selectedAlbumIds"
+            multiple
+            value-key="value"
+            :items="
+              albums.map((album) => ({
+                label: album.title,
+                value: Number(album.id),
+              }))
+            "
+            :placeholder="$t('cloud.transfer.selectAlbums')"
+            :disabled="uploading || preparingUpload || !admin"
+            class="w-full"
+          />
+        </UFormField>
         <input
           ref="input"
           class="sr-only"
@@ -123,13 +143,13 @@ async function dropFiles(event: DragEvent) {
           multiple
           accept="image/*,.heic,.heif,.hif,.bmp,.tif,.tiff,.mov"
           :aria-label="$t('cloud.messages.choosePhotographs')"
-          :disabled="uploading || !uploadAllowed || !admin"
+          :disabled="uploading || preparingUpload || !uploadAllowed || !admin"
           @change="upload"
         /><button
           class="cf-upload-dropzone"
           @dragover.prevent
           @drop.prevent="dropFiles"
-          :disabled="uploading || !uploadAllowed || !admin"
+          :disabled="uploading || preparingUpload || !uploadAllowed || !admin"
           @click="input?.click()"
         >
           <UIcon
@@ -145,17 +165,6 @@ async function dropFiles(event: DragEvent) {
             })
           }}</span>
         </button>
-        <div
-          v-if="uploading"
-          role="status"
-          class="space-y-3"
-        >
-          <p class="text-sm break-all">{{ currentFile }}</p>
-          <UProgress :model-value="progress" />
-          <p class="text-xs text-muted">
-            {{ $t('cloud.ui.uploadProgress', { progress }) }}
-          </p>
-        </div>
         <p
           v-if="usage"
           class="text-xs text-muted"
@@ -174,12 +183,6 @@ async function dropFiles(event: DragEvent) {
       </div></template
     ><template #footer
       ><CfButton
-        variant="destructive"
-        v-if="uploading"
-        @click="cancel"
-        >{{ $t('cloud.messages.cancelUpload') }}</CfButton
-      ><CfButton
-        v-else
         variant="secondary"
         @click="uploadOpen = false"
         >{{ $t('cloud.messages.done') }}</CfButton

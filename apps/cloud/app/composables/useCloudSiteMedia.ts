@@ -41,6 +41,7 @@ export function useCloudMediaWorkspace(props: {
       {
         id: string
         photo_id: string
+        file_name?: string
         state: string
         attempts: number
         error_code: string | null
@@ -65,13 +66,22 @@ export function useCloudMediaWorkspace(props: {
     rating: null as number | null,
     revision: 0,
   })
+  const selectedAlbumIds = ref<number[]>([])
   const connectionId = ref(''),
     message = ref(''),
     failed = ref(false),
     busy = ref(false),
     uploading = ref(false),
+    preparingUpload = ref(false),
     progress = ref(0),
     currentFile = ref('')
+  const uploadSession = reactive({
+    total: 0,
+    completed: 0,
+    storage: 'private' as 'platform' | 'private',
+    message: '',
+    failed: false,
+  })
   const storage = reactive({
     endpoint: '',
     region: 'auto',
@@ -96,6 +106,7 @@ export function useCloudMediaWorkspace(props: {
   const loadError = ref('')
   const loading = ref(true),
     uploadOpen = ref(false)
+  let disposed = false
   let storageInitialized = false
   let reloadGeneration = 0
   async function reload() {
@@ -142,6 +153,7 @@ export function useCloudMediaWorkspace(props: {
       }
       loadError.value = ''
       canPoll.value = true
+      if (uploading.value || preparingUpload.value) return
       const uploadTargets = s.connections.filter(
         (c) => c.uploads_enabled !== 0 && (c.pool_id || u.byosLimits?.byos),
       )
@@ -172,6 +184,24 @@ export function useCloudMediaWorkspace(props: {
       canPoll.value = false
     } finally {
       if (generation === reloadGeneration) loading.value = false
+    }
+  }
+  let pollingProcessing = false
+  async function refreshProcessing() {
+    if (pollingProcessing) return
+    pollingProcessing = true
+    const generation = reloadGeneration
+    try {
+      const result = await api<{ photos: Photo[]; jobs: typeof jobs.value }>(
+        base.value + '/photos',
+      )
+      if (generation !== reloadGeneration) return
+      photos.value = result.photos
+      jobs.value = result.jobs
+    } catch {
+      // Keep the last known task state and retry on the next poll.
+    } finally {
+      pollingProcessing = false
     }
   }
   function refreshMedia() {
@@ -289,27 +319,35 @@ export function useCloudMediaWorkspace(props: {
     if (saved) await loadPhoto()
     return saved
   }
-  function resumeKey(file: File) {
-    return [
-      'chronoframe-upload',
-      context.value?.scope,
-      props.siteId,
-      file.name,
-      file.size,
-      file.lastModified,
-      connectionId.value,
-    ].join(':')
+  function resumeKey(file: File, albumIds: number[], connection: string) {
+    return (
+      [
+        'chronoframe-upload',
+        context.value?.scope,
+        props.siteId,
+        file.name,
+        file.size,
+        file.lastModified,
+        connection,
+      ].join(':') + (albumIds.length ? ':albums:' + albumIds.join(',') : '')
+    )
   }
-  async function sendFile(file: File, liveVideo?: File) {
-    const cache = resumeKey(file),
+  async function sendFile(
+    file: File,
+    liveVideo: File | undefined,
+    albumIds: number[],
+    connection: string,
+  ) {
+    const cache = resumeKey(file, albumIds, connection),
       id = localStorage.getItem(cache) || crypto.randomUUID()
     await api(base.value + '/uploads', {
       method: 'POST',
       body: {
         requestId: id,
-        connectionId: connectionId.value,
+        connectionId: connection,
         fileName: file.name,
         bytes: file.size,
+        albumIds,
         ...(liveVideo
           ? { liveVideo: { fileName: liveVideo.name, bytes: liveVideo.size } }
           : {}),
@@ -390,7 +428,18 @@ export function useCloudMediaWorkspace(props: {
   async function upload(event: Event) {
     const input = event.target as HTMLInputElement,
       files = Array.from(input.files ?? [])
-    if (!files.length || uploading.value || !connectionId.value) return
+    if (
+      !files.length ||
+      uploading.value ||
+      preparingUpload.value ||
+      !connectionId.value
+    )
+      return
+    const batchConnection = connectionId.value
+    const batchStorage = connections.value.find((c) => c.id === batchConnection)
+      ?.pool_id
+      ? 'platform'
+      : 'private'
     const isVideo = (file: File) => file.name.toLowerCase().endsWith('.mov')
     const companionFor = (photo: File) =>
       files.find(
@@ -415,6 +464,49 @@ export function useCloudMediaWorkspace(props: {
       input.value = ''
       return
     }
+    const chosenAlbums = [...selectedAlbumIds.value].sort((a, b) => a - b)
+    preparingUpload.value = true
+    try {
+      if (chosenAlbums.length) {
+        const result = await api<{ albums: typeof albums.value }>(
+          base.value + '/albums',
+        )
+        if (disposed) return
+        albums.value = result.albums
+        const unavailable = chosenAlbums.some(
+          (id) => !result.albums.some((album) => Number(album.id) === id),
+        )
+        // Existing reservations retain their original selection even if an album was removed.
+        const hasNewFiles = files
+          .filter((file) => !isVideo(file))
+          .some(
+            (file) =>
+              !localStorage.getItem(
+                resumeKey(file, chosenAlbums, batchConnection),
+              ),
+          )
+        if (unavailable && hasNewFiles) {
+          failed.value = true
+          message.value = t('cloud.transfer.albumsUnavailable')
+          input.value = ''
+          return
+        }
+      }
+    } catch {
+      failed.value = true
+      message.value = t('cloud.transfer.albumsCheckFailed')
+      input.value = ''
+      return
+    } finally {
+      preparingUpload.value = false
+    }
+    const albumIds = chosenAlbums
+    uploadSession.total = files.filter((f) => !isVideo(f)).length
+    uploadSession.completed = 0
+    uploadSession.storage = batchStorage
+    uploadSession.message = ''
+    uploadSession.failed = false
+    uploadOpen.value = false
     uploading.value = true
     failed.value = false
     message.value = ''
@@ -426,16 +518,33 @@ export function useCloudMediaWorkspace(props: {
         const companion = companionFor(file)
         currentFile.value = file.name
         progress.value = 0
-        await sendFile(file, companion)
+        await sendFile(file, companion, albumIds, batchConnection)
+        uploadSession.completed++
+        void refreshProcessing()
       }
-      message.value = t(
+      uploadSession.message = t(
         'cloud.messages.uploadVerifiedProcessingContinuesInTheBackground',
       )
-    } catch {
-      failed.value = true
-      message.value = controller.signal.aborted
-        ? t('cloud.messages.uploadCancelled')
-        : t('cloud.messages.uploadInterruptedSelectTheSameFileToResumeIts')
+    } catch (error) {
+      const albumUnavailable =
+        (error as { data?: { data?: { code?: string } } }).data?.data?.code ===
+        'upload_albums_unavailable'
+      if (albumUnavailable) {
+        await api<{ albums: typeof albums.value }>(base.value + '/albums')
+          .then((result) => {
+            albums.value = result.albums
+          })
+          .catch(() => {})
+        failed.value = true
+        message.value = t('cloud.transfer.albumsUnavailable')
+        uploadOpen.value = true
+      }
+      uploadSession.failed = true
+      uploadSession.message = albumUnavailable
+        ? t('cloud.transfer.albumsUnavailable')
+        : controller.signal.aborted
+          ? t('cloud.messages.uploadCancelled')
+          : t('cloud.messages.uploadInterruptedSelectTheSameFileToResumeIts')
     } finally {
       uploading.value = false
       input.value = ''
@@ -498,10 +607,14 @@ export function useCloudMediaWorkspace(props: {
   onMounted(() => {
     void reload()
     timer = setInterval(() => {
-      if (canPoll.value && !busy.value && !uploading.value) void reload()
+      if (canPoll.value && !busy.value && !preparingUpload.value) {
+        if (uploading.value) void refreshProcessing()
+        else void reload()
+      }
     }, 5000)
   })
   onBeforeUnmount(() => {
+    disposed = true
     reloadGeneration++
     if (timer) clearInterval(timer)
     controller?.abort()
@@ -522,8 +635,11 @@ export function useCloudMediaWorkspace(props: {
     failed,
     busy,
     uploading,
+    preparingUpload,
     progress,
     currentFile,
+    uploadSession,
+    selectedAlbumIds,
     storage,
     admin,
     photoLoaded,

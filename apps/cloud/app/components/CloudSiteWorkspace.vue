@@ -48,6 +48,6 @@ const status = computed(() => (loading.value ? 'pending' : 'success'))
       :tone="failed ? 'error' : 'info'"
       >{{ message }}</CfAlert
     >
-    <slot /><CloudUploadDrawer
-  /></PhotosProvider>
+    <slot /><CloudUploadDrawer /><CloudTransferPanel />
+  </PhotosProvider>
 </template>

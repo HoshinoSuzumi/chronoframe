@@ -448,7 +448,7 @@
       "photographCount": "{count} 张照片",
       "photoMembershipCount": "照片 · {count}",
       "securityFor": "管理 {email} 的登录方式。",
-      "uploadProgress": "{progress}% · 正在上传到你的私有存储桶",
+      "uploadProgress": "{progress}% · 正在上传到你的私有存储",
       "uploadUsage": "工作空间：{photos} / {photoLimit} 张照片 · 本配额月上传 {bytes} / {uploadLimit} GiB",
       "connectionRevision": "{bucket} · 凭证版本 {revision}",
       "admin": "管理员",
@@ -469,7 +469,8 @@
       "passwordSetupGuidance": "你使用邮箱验证码登录。请先{link}，再启用两步验证。",
       "connectStorageGuidance": "上传前，请先在{link}中连接私有存储。",
       "attemptCount": "尝试次数 {count}",
-      "chooseIcon": "选择图标"
+      "chooseIcon": "选择图标",
+      "uploadProgressPlatform": "{progress}% · 正在上传到平台存储"
     },
     "storageErrors": {
       "storage_configuration_failed": "请检查 S3 服务端点、区域、存储桶名称和凭证字段。",
@@ -840,6 +841,18 @@
     },
     "support": {
       "email": "联系客服：{email}"
+    },
+    "transfer": {
+      "title": "上传与处理队列",
+      "dismiss": "清除已结束的任务",
+      "upload": "上传进度",
+      "count": "{completed} / {total} 已完成",
+      "verifying": "上传完成，正在校验文件…",
+      "albums": "添加到相簿",
+      "selectAlbums": "选择相簿（可选，可多选）",
+      "albumHelp": "上传的照片将自动加入所选相簿；留空则仅加入照片库。",
+      "albumsUnavailable": "所选相簿已不可用，请更新相簿选择后重新上传。已上传的照片不受影响。",
+      "albumsCheckFailed": "无法核对相簿，请检查网络后重试。尚未开始上传。"
     }
   }
 }

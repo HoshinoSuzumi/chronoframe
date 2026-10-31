@@ -1,3 +1,7 @@
+import {
+  uploadAlbumIds,
+  validateUploadAlbums,
+} from '../apps/cloud/server/utils/cloud-upload-albums.ts'
 import { splitSqlQuery } from './helpers/sql.ts'
 import assert from 'node:assert/strict'
 import test from 'node:test'
@@ -117,6 +121,7 @@ for (const backend of ['SQLite', 'D1'] as const) {
       for (const file of [
         '0008_cloud_albums.sql',
         '0012_cloud_album_slugs.sql',
+        '0037_upload_albums.sql',
       ]) {
         const sql = await readFile(
           new URL('../packages/platform/migrations/' + file, import.meta.url),
@@ -217,6 +222,55 @@ for (const backend of ['SQLite', 'D1'] as const) {
         ]),
       )
       assert.equal(await a.album('rolled-back'), null)
+      assert.deepEqual(uploadAlbumIds([2, 1]), [1, 2])
+      for (const invalid of [
+        [1, 1],
+        [0],
+        ['1'],
+        null,
+        Array.from({ length: 101 }, (_, i) => i + 1),
+      ])
+        assert.throws(() => uploadAlbumIds(invalid), { statusCode: 400 })
+      await assert.rejects(validateUploadAlbums(db, 1, [2]), {
+        statusCode: 400,
+      })
+      assert.equal(await validateUploadAlbums(db, 1, [1]), '[1]')
+      await a.reserveUpload(reserve('album-upload'))
+      await run(
+        "UPDATE cloud_uploads SET album_ids_json='[1,2]' WHERE site_id=1 AND id='album-upload'",
+      )
+      await a.completeUpload(complete('album-upload'))
+      await a.completeUpload(complete('album-upload'))
+      const members = (
+        await db
+          .prepare(
+            "SELECT site_id,album_id,photo_id FROM cloud_album_photos WHERE photo_id='album-upload'",
+          )
+          .all<{ site_id: number; album_id: string; photo_id: string }>()
+      ).results
+      assert.equal(members.length, 1)
+      assert.equal(members[0]?.site_id, 1)
+      assert.equal(members[0]?.album_id, '1')
+      await a.createAlbum('3', 'Removed during upload')
+      await a.reserveUpload(reserve('removed-album'))
+      await run(
+        "UPDATE cloud_uploads SET album_ids_json='[3]' WHERE site_id=1 AND id='removed-album'",
+      )
+      await run(
+        "DELETE FROM cloud_album_slugs WHERE site_id=1 AND album_id='3'",
+      )
+      await run("DELETE FROM cloud_albums WHERE site_id=1 AND id='3'")
+      await a.completeUpload(complete('removed-album'))
+      assert.equal(
+        (
+          await db
+            .prepare(
+              "SELECT COUNT(*) AS n FROM cloud_album_photos WHERE photo_id='removed-album'",
+            )
+            .all<{ n: number }>()
+        ).results[0]?.n,
+        0,
+      )
       await a.reserveUpload(reserve('collision'))
       await assert.rejects(a.completeUpload(complete('collision', 'same')))
       assert.equal(await a.photo('collision'), null)
@@ -236,7 +290,10 @@ for (const backend of ['SQLite', 'D1'] as const) {
       assert.equal(await a.photo('same'), null)
       await assert.rejects(a.addToAlbum('1', 'same'), { statusCode: 404 })
       assert.equal((await a.job('same'))?.state, 'cancelled')
-      assert.equal((await a.albumPhotos('1')).length, 0)
+      assert.deepEqual(
+        (await a.albumPhotos('1')).map((photo) => photo.id),
+        ['album-upload'],
+      )
       assert.equal((await b.photo('same'))?.title, 'Other tenant')
       assert.equal(await a.completeUpload(complete('same')), 'same')
       assert.equal(await a.photo('same'), null) // retry cannot resurrect a tombstone
@@ -301,6 +358,22 @@ test('D1 media sessions and queued jobs survive a workerd restart', async () => 
       .map((s) => s.trim())
       .filter(Boolean))
       await db.prepare(sql).run()
+    for (const file of [
+      '0008_cloud_albums.sql',
+      '0012_cloud_album_slugs.sql',
+      '0037_upload_albums.sql',
+    ])
+      for (const sql of splitSqlQuery(
+        (
+          await readFile(
+            new URL('../packages/platform/migrations/' + file, import.meta.url),
+            'utf8',
+          )
+        ).replace(/^--.*$/gm, ''),
+      )
+        .map((s) => s.trim())
+        .filter(Boolean))
+        await db.prepare(sql).run()
     let repository = createCloudMediaRepository(db, { id: 1 })
     await repository.reserveUpload({
       id: 'upload',
