@@ -5,9 +5,14 @@ import vm from 'node:vm'
 import { createServer } from 'node:http'
 import { createRequire } from 'node:module'
 import ts from 'typescript'
+import {
+  mergeUploadFiles,
+  remainingUploadFiles,
+} from '../apps/cloud/app/utils/upload-selection.ts'
 import { isAlbumPagePath } from '../packages/gallery/shared/utils/albumPath.ts'
 import {
   ref,
+  shallowRef,
   reactive,
   computed,
   readonly,
@@ -30,6 +35,7 @@ function load(
   vm.runInNewContext(code, {
     exports,
     ref,
+    shallowRef,
     reactive,
     computed,
     readonly,
@@ -1013,4 +1019,87 @@ test('upload album preflight fails closed for new uploads, refreshes reservation
     }
     if (scenario === 'race') assert(albumReads >= 2)
   }
+})
+
+test('file selection and dropping only stage files; explicit start uploads once and retains unfinished photos', async () => {
+  const batches: File[][] = []
+  let release!: () => void
+  let gate = new Promise<void>((resolve) => {
+    release = resolve
+  })
+  let completed: number | undefined = 1
+  const media = {
+    uploadOpen: ref(true),
+    albums: ref([]),
+    selectedAlbumIds: ref([]),
+    message: ref(''),
+    failed: ref(false),
+    connections: ref([]),
+    connectionId: ref('storage'),
+    uploading: ref(false),
+    preparingUpload: ref(false),
+    usage: ref(null),
+    allowance: ref(null),
+    fileLimit: ref(1024),
+    admin: ref(true),
+    upload: async (files: File[]) => {
+      batches.push(files)
+      await gate
+      return completed === undefined ? undefined : { completed }
+    },
+  }
+  const file = 'apps/cloud/app/components/CloudUploadDrawer.vue'
+  const script = readFileSync(file, 'utf8')
+    .split('<script setup lang="ts">')[1]!
+    .split('</script>')[0]!
+  const state = load(
+    file,
+    {
+      useCloudSiteMedia: () => media,
+      useEntryContext: () => ref({ siteId: 1, workspaceId: 1 }),
+      useCloudQuota: () => ({ data: ref({}), error: ref(null) }),
+    },
+    {
+      '../utils/quota-gate': { uploadQuotaGate: () => ({ allowed: true }) },
+      '../utils/upload-selection': { mergeUploadFiles, remainingUploadFiles },
+    },
+    script +
+      '\nexport { selectedFiles, selectFiles, dropFiles, removeSelected, startUpload }',
+  )
+  const photo = new File(['photo'], 'one.HEIC', { lastModified: 1 })
+  const video = new File(['video'], 'one.MOV', { lastModified: 1 })
+  const other = new File(['other'], 'two.jpg', { lastModified: 1 })
+  const input = { files: [photo, video], value: 'chosen' }
+  state.selectFiles({ target: input })
+  assert.equal(input.value, '')
+  state.dropFiles({ dataTransfer: { files: [photo, other] } })
+  assert.equal(state.selectedFiles.value.length, 3)
+  assert.equal(batches.length, 0)
+  state.removeSelected(2)
+  const pending = state.startUpload()
+  await state.startUpload()
+  assert.equal(batches.length, 1)
+  assert.deepEqual(
+    Array.from(batches[0]!).map((f) => f.name),
+    ['one.HEIC', 'one.MOV'],
+  )
+  release()
+  await pending
+  assert.equal(state.selectedFiles.value.length, 0)
+  gate = Promise.resolve()
+  state.selectFiles({
+    target: { files: [photo, video, other], value: 'chosen' },
+  })
+  await state.startUpload()
+  assert.deepEqual(
+    Array.from(state.selectedFiles.value as File[]).map((f) => f.name),
+    ['two.jpg'],
+  )
+  completed = undefined // Admission/preflight rejection must not consume staged files.
+  await state.startUpload()
+  assert.equal(state.selectedFiles.value[0].name, 'two.jpg')
+  media.admin.value = false
+  const count = batches.length
+  await state.startUpload()
+  assert.equal(batches.length, count)
 })

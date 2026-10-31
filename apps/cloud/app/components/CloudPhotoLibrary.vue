@@ -349,7 +349,11 @@ watch(
       >
     </div>
     <CloudQuotaNotice
-      v-if="admin && (uploadAdmission.reason || quota.error.value)"
+      v-if="
+        admin &&
+        (quota.error.value ||
+          (uploadAdmission.reason && uploadAdmission.reason !== 'checking'))
+      "
       :reason="uploadAdmission.reason"
       :error="!!quota.error.value"
       @retry="quota.refresh()"

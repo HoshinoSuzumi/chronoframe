@@ -852,7 +852,14 @@
       "selectAlbums": "选择相簿（可选，可多选）",
       "albumHelp": "上传的照片将自动加入所选相簿；留空则仅加入照片库。",
       "albumsUnavailable": "所选相簿已不可用，请更新相簿选择后重新上传。已上传的照片不受影响。",
-      "albumsCheckFailed": "无法核对相簿，请检查网络后重试。尚未开始上传。"
+      "albumsCheckFailed": "无法核对相簿，请检查网络后重试。尚未开始上传。",
+      "selectedFiles": "待上传文件",
+      "selectedFilesCount": "已选择 {count} 个文件",
+      "clearSelection": "清空",
+      "removeSelected": "移除 {name}",
+      "selectPhotosForVideo": "请同时选择照片及其同名 MOV 配对视频。",
+      "closeSelection": "关闭",
+      "startUpload": "开始上传"
     }
   }
 }
