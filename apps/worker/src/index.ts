@@ -201,7 +201,7 @@ while (!stopping) {
           jobId: work.lease.id,
           siteId: work.lease.siteId,
           attemptId: work.lease.attemptId,
-          ...(error instanceof ProcessorConnectionError
+          ...(!aborted && error instanceof ProcessorConnectionError
             ? processorConnectionDiagnostic(error)
             : {
                 code: aborted

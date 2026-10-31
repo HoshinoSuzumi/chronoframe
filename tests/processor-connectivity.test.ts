@@ -198,3 +198,55 @@ test('connection retry logs retain safe diagnostics instead of swallowing gatewa
   assert.equal(event.hint, 'portal_unavailable')
   assert(!logs[0]!.includes(secret))
 })
+
+test('job cancellation takes precedence over transport diagnostics while normal transport failures retain them', async () => {
+  const source = await readFile('apps/worker/src/index.ts', 'utf8')
+  const start = source.indexOf(
+    '      const aborted = controller.signal.aborted',
+  )
+  const end = source.indexOf('    } finally {', start)
+  assert(start >= 0 && end > start)
+  const failureHandler = new Function(
+    'controller',
+    'rpc',
+    'work',
+    'WorkerProcessingError',
+    'ProcessorConnectionError',
+    'processorConnectionDiagnostic',
+    'console',
+    'error',
+    'return (async()=>{' + source.slice(start, end) + '})()',
+  )
+  for (const aborted of [true, false]) {
+    const controller = new AbortController()
+    if (aborted) controller.abort('processing_timeout')
+    const logs: string[] = [],
+      failures: Record<string, unknown>[] = []
+    await failureHandler(
+      controller,
+      async (_action: string, body: Record<string, unknown>) => {
+        failures.push(body)
+      },
+      { lease: { id: 1, siteId: 2, attemptId: 3 } },
+      class WorkerProcessingError extends Error {},
+      ProcessorConnectionError,
+      processorConnectionDiagnostic,
+      { log: (raw: string) => logs.push(raw) },
+      new ProcessorConnectionError('portal_transport_failed', 'geocoding-slot'),
+    )
+    assert.equal(logs.length, 1)
+    const event = JSON.parse(logs[0]!)
+    assert.equal(event.event, 'job.failed')
+    assert.equal(
+      event.code,
+      aborted ? 'lease_or_timeout' : 'portal_transport_failed',
+    )
+    assert.equal(event.action, aborted ? undefined : 'geocoding-slot')
+    assert.equal(event.hint, aborted ? undefined : 'portal_transport_failed')
+    assert.equal(
+      failures[0]?.code,
+      aborted ? 'processing_timeout' : 'processing_error',
+    )
+    assert.equal(failures[0]?.retryable, true)
+  }
+})
