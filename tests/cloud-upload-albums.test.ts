@@ -3,9 +3,16 @@ import assert from 'node:assert/strict'
 import { readFile, readdir } from 'node:fs/promises'
 import Database from 'better-sqlite3'
 import ts from 'typescript'
-import { createCloudMediaRepository } from '../packages/database/src/cloud-media.ts'
+import {
+  createCloudMediaRepository,
+  type MediaDatabase,
+  type MediaStatement,
+} from '../packages/database/src/cloud-media.ts'
 import { workspaceUsageSQL } from '../packages/platform/src/entitlements.ts'
-import { validateUploadAlbums } from '../apps/cloud/server/utils/cloud-upload-albums.ts'
+import {
+  uploadAlbumIds,
+  validateUploadAlbums,
+} from '../apps/cloud/server/utils/cloud-upload-albums.ts'
 
 test('upload reservation persists canonical site-owned albums and refuses changing choices on resume', async () => {
   const sqlite = new Database(':memory:')
@@ -20,13 +27,13 @@ test('upload reservation persists canonical site-owned albums and refuses changi
     sqlite.exec(
       "INSERT INTO platform_users(id,email,created_at) VALUES(1,'one@example.com',1); INSERT INTO platform_workspaces(id,name) VALUES(1,'Workspace'); INSERT INTO platform_sites(id,workspace_id,name) VALUES(1,1,'One'),(2,1,'Two'); INSERT INTO cloud_albums(site_id,id,title) VALUES(1,'1','First'),(1,'2','Second'),(2,'3','Foreign')",
     )
-    class Statement {
+    class Statement implements MediaStatement {
       sql: string
-      values: any[] = []
+      values: (string | number | null)[] = []
       constructor(sql: string) {
         this.sql = sql
       }
-      bind(...values: any[]) {
+      bind(...values: (string | number | null)[]) {
         this.values = values
         return this
       }
@@ -39,12 +46,17 @@ test('upload reservation persists canonical site-owned albums and refuses changi
     }
     const db = {
       prepare: (sql: string) => new Statement(sql),
-      async batch(statements: Statement[]) {
+      async batch(statements: MediaStatement[]) {
         sqlite.transaction(() => {
-          for (const s of statements) sqlite.prepare(s.sql).run(...s.values)
+          for (const s of statements) {
+            assert(s instanceof Statement)
+            sqlite.prepare(s.sql).run(...s.values)
+          }
         })()
       },
     }
+    db satisfies MediaDatabase
+    type RequestEvent = { method: string; body: Record<string, unknown> }
     const repository = createCloudMediaRepository(db, { id: 1 })
     const source = (
       await readFile(
@@ -59,7 +71,7 @@ test('upload reservation persists canonical site-owned albums and refuses changi
       },
     }).outputText
     const deps = {
-      definePlatformHandler: (f: any) => f,
+      definePlatformHandler: <T>(f: T) => f,
       cloudMedia: async () => ({
         siteId: 1,
         userId: 1,
@@ -73,7 +85,8 @@ test('upload reservation persists canonical site-owned albums and refuses changi
         },
       }),
       getRouterParam: () => 'uploads',
-      siteManagementBody: async (event: any) => event.body,
+      siteManagementBody: async (event: RequestEvent) => event.body,
+      uploadAlbumIds,
       validateUploadAlbums,
       workspaceUsageSQL,
       workspaceEntitlements: async () => ({
@@ -85,14 +98,19 @@ test('upload reservation persists canonical site-owned albums and refuses changi
         },
         quotaPeriod: { start: 1 },
       }),
-      createError: (value: any) =>
-        Object.assign(new Error(value.statusMessage), value),
+      createError: (value: {
+        statusCode: number
+        statusMessage?: string
+        data?: Record<string, unknown>
+      }) => Object.assign(new Error(value.statusMessage), value),
     }
     const api = new Function(
       'exports',
       ...Object.keys(deps),
       code + '; return exports.default',
-    )({}, ...Object.values(deps))
+    )({}, ...Object.values(deps)) as (
+      event: RequestEvent,
+    ) => Promise<{ id: string }>
     const body = {
       requestId: 'upload',
       connectionId: 'storage',
@@ -113,6 +131,12 @@ test('upload reservation persists canonical site-owned albums and refuses changi
       statusCode: 400,
     })
     assert.equal(await repository.upload('foreign', 1), null)
+    sqlite.prepare("DELETE FROM cloud_albums WHERE site_id=1 AND id='2'").run()
+    await post({ albumIds: [1, 2] })
+    await assert.rejects(post({ requestId: 'new-after-deletion' }), {
+      statusCode: 400,
+      data: { code: 'upload_albums_unavailable' },
+    })
     await repository.completeUpload({
       id: 'upload',
       ownerId: 1,
@@ -123,12 +147,12 @@ test('upload reservation persists canonical site-owned albums and refuses changi
     })
     assert.deepEqual(
       sqlite
-        .prepare(
+        .prepare<[], { album_id: string }>(
           'SELECT album_id FROM cloud_album_photos WHERE site_id=1 ORDER BY album_id',
         )
         .all()
-        .map((r: any) => r.album_id),
-      ['1', '2'],
+        .map((r) => r.album_id),
+      ['1'],
     )
   } finally {
     sqlite.close()

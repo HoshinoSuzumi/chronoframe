@@ -1,4 +1,7 @@
-import { validateUploadAlbums } from '../../../../utils/cloud-upload-albums'
+import {
+  uploadAlbumIds,
+  validateUploadAlbums,
+} from '../../../../utils/cloud-upload-albums'
 import { cloudLiveAttachment } from '../../../../utils/cloud-live-attachment'
 import { queuePhotoProcessing } from '../../../../utils/cloud-photo-processing'
 import {
@@ -328,11 +331,7 @@ export default definePlatformHandler(async (event) => {
     }
   }
   if (kind === 'uploads' && !id && event.method === 'POST') {
-    const albumIdsJson = await validateUploadAlbums(
-      raw as unknown as MediaDatabase,
-      siteId,
-      body.albumIds,
-    )
+    const albumIdsJson = JSON.stringify(uploadAlbumIds(body.albumIds))
     const uploadId = ID(body.requestId),
       connectionId = ID(body.connectionId),
       bytes = number(body.bytes),
@@ -381,6 +380,11 @@ export default definePlatformHandler(async (event) => {
       throw createError({ statusCode: 400 })
     let upload = await repository.upload(uploadId, userId)
     if (!upload) {
+      await validateUploadAlbums(
+        raw as unknown as MediaDatabase,
+        siteId,
+        body.albumIds,
+      )
       const stored = storedConnection
       const expression = workspaceUsageSQL(siteId)
       const objectKey = `chronoframe/${siteId}/originals/${uploadId}/1/source.${ext}`

@@ -1,6 +1,8 @@
 <script setup lang="ts">
 const {
   jobs,
+  ready,
+  removePhoto,
   photos,
   uploading,
   progress,
@@ -20,9 +22,17 @@ const tracked = ref<Record<string, Job>>({})
 const dismissed = new Set<string>()
 const active = (job: Job) =>
   ['queued', 'running', 'retry_wait'].includes(job.state)
+let initialSnapshot = true
 watch(
-  jobs,
-  (items) => {
+  [jobs, ready],
+  ([items, loaded]) => {
+    if (!loaded) return
+    if (initialSnapshot) {
+      // Keep historical failures reachable for cleanup without opening the panel on every visit.
+      collapsed.value =
+        !items.some(active) && items.some((job) => job.state === 'failed')
+      initialSnapshot = false
+    }
     const next = { ...tracked.value }
     for (const job of items) {
       if (active(job)) dismissed.delete(job.id)
@@ -57,6 +67,10 @@ function dismiss() {
   tracked.value = {}
   uploadSession.total = 0
   uploadSession.message = ''
+}
+function removeFailed(job: Job) {
+  if (admin.value && !busy.value && job.state === 'failed')
+    return removePhoto(job.photo_id)
 }
 function photoName(job: Job) {
   return (
@@ -234,7 +248,7 @@ function photoName(job: Job) {
                   </p>
                 </div>
                 <CfButton
-                  v-if="admin && job.state === 'failed'"
+                  v-if="admin && job.state === 'failed' && job.attempts <= 6"
                   variant="secondary"
                   size="sm"
                   :disabled="busy"
@@ -249,6 +263,14 @@ function photoName(job: Job) {
                     )
                   "
                   >{{ t('cloud.messages.retry') }}</CfButton
+                >
+                <CfButton
+                  v-if="admin && job.state === 'failed'"
+                  variant="destructive"
+                  size="sm"
+                  :disabled="busy"
+                  @click="removeFailed(job)"
+                  >{{ t('cloud.messages.remove') }}</CfButton
                 >
               </li>
             </ul>

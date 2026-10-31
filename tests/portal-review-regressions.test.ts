@@ -775,7 +775,8 @@ test('upload sessions capture their actual storage type and move progress out of
           if (path.endsWith('/plan')) return { state: 'completed' }
           if (path.endsWith('/storage')) return { connections: [] }
           if (path.endsWith('/photos')) return { photos: [], jobs: [] }
-          if (path.endsWith('/albums')) return { albums: [] }
+          if (path.endsWith('/albums'))
+            return { albums: [{ id: 1 }, { id: 2 }] }
           if (path.endsWith('/usage'))
             return { usage: { photos: 0 }, limits: {}, byosLimits: {} }
           return {}
@@ -807,6 +808,8 @@ test('upload sessions capture their actual storage type and move progress out of
         value: 'chosen',
       },
     })
+    assert.equal(media.preparingUpload.value, true)
+    await new Promise((resolve) => setImmediate(resolve))
     assert.equal(media.uploading.value, true)
     assert.equal(media.uploadOpen.value, false)
     assert.equal(media.uploadSession.storage, platform ? 'platform' : 'private')
@@ -830,8 +833,13 @@ test('upload sessions capture their actual storage type and move progress out of
 })
 
 test('floating queue follows task completion and retry without showing historical successful jobs', async () => {
+  const removed: string[] = []
   const media = {
     jobs: ref<any[]>([{ id: 'old', state: 'succeeded' }]),
+    ready: ref(true),
+    removePhoto: (id: string) => {
+      removed.push(id)
+    },
     photos: ref([]),
     uploading: ref(false),
     progress: ref(0),
@@ -852,7 +860,7 @@ test('floating queue follows task completion and retry without showing historica
     { useCloudSiteMedia: () => media, useId: () => 'queue' },
     {},
     script +
-      '\nexport { visible, collapsed, processingJobs, processingActive, processingCompleted, dismiss }',
+      '\nexport { visible, collapsed, processingJobs, processingActive, processingCompleted, dismiss, removeFailed }',
   )
   assert.equal(state.visible.value, false)
   media.jobs.value = [{ id: 'j', state: 'queued', attempts: 0 }]
@@ -874,4 +882,118 @@ test('floating queue follows task completion and retry without showing historica
   media.jobs.value = [{ id: 'j', state: 'failed', attempts: 3 }]
   await nextTick()
   assert.equal(state.processingJobs.value[0].state, 'failed')
+  const failedJob = {
+    id: 'failed',
+    photo_id: 'never-ready',
+    state: 'failed',
+    attempts: 7,
+  }
+  media.admin.value = false
+  state.removeFailed(failedJob)
+  assert.deepEqual(removed, [])
+  media.admin.value = true
+  media.busy.value = true
+  state.removeFailed(failedJob)
+  assert.deepEqual(removed, [])
+  media.busy.value = false
+  state.removeFailed(failedJob)
+  assert.deepEqual(removed, ['never-ready'])
+  // A new visit keeps historical failures accessible, but starts collapsed.
+  media.ready.value = false
+  media.jobs.value = [failedJob]
+  const history = load(
+    file,
+    { useCloudSiteMedia: () => media, useId: () => 'history' },
+    {},
+    script + '\nexport { visible, collapsed }',
+  )
+  assert.equal(history.visible.value, false)
+  media.ready.value = true
+  await nextTick()
+  assert.equal(history.visible.value, true)
+  assert.equal(history.collapsed.value, true)
+})
+
+test('upload album preflight fails closed for new uploads, refreshes reservation races and preserves resumable choices', async () => {
+  for (const scenario of ['removed', 'offline', 'race', 'resume']) {
+    let reservations = 0,
+      albumReads = 0
+    const cache = new Map<string, string>()
+    const module = load(
+      'apps/cloud/app/composables/useCloudSiteMedia.ts',
+      {
+        useEntryContext: () => ({
+          value: { scope: 'site:1:user:1', siteId: 1 },
+        }),
+        onMounted: () => {},
+        onBeforeUnmount: () => {},
+        AbortController,
+        crypto,
+        setTimeout,
+        setInterval,
+        clearInterval,
+        localStorage: {
+          getItem: (k: string) =>
+            scenario === 'resume' ? 'existing' : cache.get(k),
+          setItem: (k: string, v: string) => cache.set(k, v),
+          removeItem: (k: string) => cache.delete(k),
+        },
+        $fetch: async (path: string) => {
+          if (path.endsWith('/albums')) {
+            albumReads++
+            if (scenario === 'offline') throw Error('offline')
+            return {
+              albums:
+                scenario === 'race' && albumReads === 1 ? [{ id: 1 }] : [],
+            }
+          }
+          if (path.endsWith('/uploads')) {
+            reservations++
+            if (scenario === 'race')
+              throw { data: { data: { code: 'upload_albums_unavailable' } } }
+          }
+          if (path.endsWith('/plan')) return { state: 'completed' }
+          if (path.endsWith('/storage')) return { connections: [] }
+          if (path.endsWith('/photos')) return { photos: [], jobs: [] }
+          if (path.endsWith('/usage'))
+            return { usage: {}, limits: {}, byosLimits: {} }
+          return {}
+        },
+      },
+      {
+        '@chronoframe/contracts/storage-diagnostics': {
+          STORAGE_CONNECTION_MESSAGES: {},
+        },
+      },
+    )
+    const media = module.useCloudMediaWorkspace({ siteId: 1, role: 'admin' })
+    media.connectionId.value = 'chosen'
+    media.allowance.value = {
+      byosLimits: { fileBytes: 100, byos: 1 },
+      limits: { fileBytes: 100 },
+    }
+    media.selectedAlbumIds.value = [1]
+    media.uploadOpen.value = true
+    await media.upload({
+      target: { files: [{ name: 'one.jpg', size: 10 }], value: 'chosen' },
+    })
+    assert.deepEqual(Array.from(media.selectedAlbumIds.value), [1])
+    assert.equal(media.preparingUpload.value, false)
+    assert.equal(
+      reservations,
+      ['removed', 'offline'].includes(scenario) ? 0 : 1,
+    )
+    if (scenario === 'resume') assert.equal(media.uploadSession.completed, 1)
+    else {
+      assert.equal(media.failed.value, true)
+      assert.match(
+        media.message.value,
+        scenario === 'offline'
+          ? /Unable to verify albums/
+          : /selected album is no longer available/,
+      )
+      assert.equal(media.uploadOpen.value, true)
+    }
+    if (scenario === 'race') assert(albumReads >= 2)
+  }
 })

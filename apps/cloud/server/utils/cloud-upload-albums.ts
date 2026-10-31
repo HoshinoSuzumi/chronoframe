@@ -31,6 +31,7 @@ export async function validateUploadAlbums(
       throw createError({
         statusCode: 400,
         statusMessage: 'Selected upload albums are unavailable',
+        data: { code: 'upload_albums_unavailable' },
       })
   }
   return JSON.stringify(ids)

@@ -72,6 +72,7 @@ export function useCloudMediaWorkspace(props: {
     failed = ref(false),
     busy = ref(false),
     uploading = ref(false),
+    preparingUpload = ref(false),
     progress = ref(0),
     currentFile = ref('')
   const uploadSession = reactive({
@@ -105,6 +106,7 @@ export function useCloudMediaWorkspace(props: {
   const loadError = ref('')
   const loading = ref(true),
     uploadOpen = ref(false)
+  let disposed = false
   let storageInitialized = false
   let reloadGeneration = 0
   async function reload() {
@@ -151,6 +153,7 @@ export function useCloudMediaWorkspace(props: {
       }
       loadError.value = ''
       canPoll.value = true
+      if (uploading.value || preparingUpload.value) return
       const uploadTargets = s.connections.filter(
         (c) => c.uploads_enabled !== 0 && (c.pool_id || u.byosLimits?.byos),
       )
@@ -424,7 +427,13 @@ export function useCloudMediaWorkspace(props: {
   async function upload(event: Event) {
     const input = event.target as HTMLInputElement,
       files = Array.from(input.files ?? [])
-    if (!files.length || uploading.value || !connectionId.value) return
+    if (
+      !files.length ||
+      uploading.value ||
+      preparingUpload.value ||
+      !connectionId.value
+    )
+      return
     const isVideo = (file: File) => file.name.toLowerCase().endsWith('.mov')
     const companionFor = (photo: File) =>
       files.find(
@@ -449,7 +458,38 @@ export function useCloudMediaWorkspace(props: {
       input.value = ''
       return
     }
-    const albumIds = [...selectedAlbumIds.value].sort((a, b) => a - b)
+    const chosenAlbums = [...selectedAlbumIds.value].sort((a, b) => a - b)
+    preparingUpload.value = true
+    try {
+      if (chosenAlbums.length) {
+        const result = await api<{ albums: typeof albums.value }>(
+          base.value + '/albums',
+        )
+        if (disposed) return
+        albums.value = result.albums
+        const unavailable = chosenAlbums.some(
+          (id) => !result.albums.some((album) => Number(album.id) === id),
+        )
+        // Existing reservations retain their original selection even if an album was removed.
+        const hasNewFiles = files
+          .filter((file) => !isVideo(file))
+          .some((file) => !localStorage.getItem(resumeKey(file, chosenAlbums)))
+        if (unavailable && hasNewFiles) {
+          failed.value = true
+          message.value = t('cloud.transfer.albumsUnavailable')
+          input.value = ''
+          return
+        }
+      }
+    } catch {
+      failed.value = true
+      message.value = t('cloud.transfer.albumsCheckFailed')
+      input.value = ''
+      return
+    } finally {
+      preparingUpload.value = false
+    }
+    const albumIds = chosenAlbums
     uploadSession.total = files.filter((f) => !isVideo(f)).length
     uploadSession.completed = 0
     uploadSession.storage = connections.value.find(
@@ -478,11 +518,26 @@ export function useCloudMediaWorkspace(props: {
       uploadSession.message = t(
         'cloud.messages.uploadVerifiedProcessingContinuesInTheBackground',
       )
-    } catch {
+    } catch (error) {
+      const albumUnavailable =
+        (error as { data?: { data?: { code?: string } } }).data?.data?.code ===
+        'upload_albums_unavailable'
+      if (albumUnavailable) {
+        await api<{ albums: typeof albums.value }>(base.value + '/albums')
+          .then((result) => {
+            albums.value = result.albums
+          })
+          .catch(() => {})
+        failed.value = true
+        message.value = t('cloud.transfer.albumsUnavailable')
+        uploadOpen.value = true
+      }
       uploadSession.failed = true
-      uploadSession.message = controller.signal.aborted
-        ? t('cloud.messages.uploadCancelled')
-        : t('cloud.messages.uploadInterruptedSelectTheSameFileToResumeIts')
+      uploadSession.message = albumUnavailable
+        ? t('cloud.transfer.albumsUnavailable')
+        : controller.signal.aborted
+          ? t('cloud.messages.uploadCancelled')
+          : t('cloud.messages.uploadInterruptedSelectTheSameFileToResumeIts')
     } finally {
       uploading.value = false
       input.value = ''
@@ -545,13 +600,14 @@ export function useCloudMediaWorkspace(props: {
   onMounted(() => {
     void reload()
     timer = setInterval(() => {
-      if (canPoll.value && !busy.value) {
+      if (canPoll.value && !busy.value && !preparingUpload.value) {
         if (uploading.value) void refreshProcessing()
         else void reload()
       }
     }, 5000)
   })
   onBeforeUnmount(() => {
+    disposed = true
     reloadGeneration++
     if (timer) clearInterval(timer)
     controller?.abort()
@@ -572,6 +628,7 @@ export function useCloudMediaWorkspace(props: {
     failed,
     busy,
     uploading,
+    preparingUpload,
     progress,
     currentFile,
     uploadSession,

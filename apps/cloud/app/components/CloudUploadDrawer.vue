@@ -10,6 +10,7 @@ const {
   connectionId,
   upload,
   uploading,
+  preparingUpload,
   usage,
   allowance,
   fileLimit,
@@ -37,6 +38,7 @@ async function dropFiles(event: DragEvent) {
   if (
     !input.value ||
     uploading.value ||
+    preparingUpload.value ||
     !uploadAllowed.value ||
     !admin.value ||
     !event.dataTransfer?.files.length
@@ -85,7 +87,7 @@ async function dropFiles(event: DragEvent) {
                 }))
             "
             class="w-full"
-            :disabled="uploading"
+            :disabled="uploading || preparingUpload"
         /></UFormField>
         <i18n-t
           v-if="!connections.length && allowance?.byosLimits.byos"
@@ -130,7 +132,7 @@ async function dropFiles(event: DragEvent) {
               }))
             "
             :placeholder="$t('cloud.transfer.selectAlbums')"
-            :disabled="uploading || !admin"
+            :disabled="uploading || preparingUpload || !admin"
             class="w-full"
           />
         </UFormField>
@@ -141,13 +143,13 @@ async function dropFiles(event: DragEvent) {
           multiple
           accept="image/*,.heic,.heif,.hif,.bmp,.tif,.tiff,.mov"
           :aria-label="$t('cloud.messages.choosePhotographs')"
-          :disabled="uploading || !uploadAllowed || !admin"
+          :disabled="uploading || preparingUpload || !uploadAllowed || !admin"
           @change="upload"
         /><button
           class="cf-upload-dropzone"
           @dragover.prevent
           @drop.prevent="dropFiles"
-          :disabled="uploading || !uploadAllowed || !admin"
+          :disabled="uploading || preparingUpload || !uploadAllowed || !admin"
           @click="input?.click()"
         >
           <UIcon
