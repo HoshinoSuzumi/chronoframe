@@ -1,6 +1,9 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { hasValidCoordinates } from '@chronoframe/gallery/shared/utils/location'
+import {
+  hasValidCoordinates,
+  resolvePhotoCoordinates,
+} from '@chronoframe/gallery/shared/utils/location'
 import { albumPagePath } from '@chronoframe/gallery/shared/utils/albumPath'
 import { motion } from 'motion-v'
 import type { NeededExif } from '../../../shared/types/photo'
@@ -101,30 +104,9 @@ const formatGPSCoordinatesMultiLine = (
   return `${latDeg}°${latMin}'${latSec.toFixed(2)}"${latDirection}\n${lngDeg}°${lngMin}'${lngSec.toFixed(2)}"${lngDirection}`
 }
 
-const gpsCoordinates = computed(() => {
-  // 优先使用数据库中存储的坐标
-  if (
-    hasValidCoordinates(
-      props.currentPhoto.latitude,
-      props.currentPhoto.longitude,
-    )
-  ) {
-    return {
-      latitude: props.currentPhoto.latitude!,
-      longitude: props.currentPhoto.longitude!,
-    }
-  }
-
-  // 如果数据库中没有，尝试从EXIF数据中获取
-  if (!props.exifData) return null
-  const { GPSLatitude, GPSLongitude } = props.exifData
-  if (GPSLatitude != null && GPSLongitude != null) {
-    const latitude = parseFloat(`${GPSLatitude}`)
-    const longitude = parseFloat(`${GPSLongitude}`)
-    if (hasValidCoordinates(latitude, longitude)) return { latitude, longitude }
-  }
-  return null
-})
+const gpsCoordinates = computed(() =>
+  resolvePhotoCoordinates({ ...props.currentPhoto, exif: props.exifData }),
+)
 
 const formatedExifData = computed<Record<string, KVData[]>>(() => {
   const sections: Record<string, KVData[]> = {}

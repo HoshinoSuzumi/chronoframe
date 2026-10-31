@@ -1,3 +1,4 @@
+import { hasValidCoordinates } from '@chronoframe/contracts/location'
 import {
   locationLevels,
   type LocationLevel,
@@ -27,3 +28,28 @@ export function resolveLocationLabel(
 }
 
 export { hasValidCoordinates } from '@chronoframe/contracts/location'
+
+/** Resolve both persisted coordinates and legacy photos whose GPS exists only in EXIF. */
+export function resolvePhotoCoordinates(photo: {
+  latitude?: number | null
+  longitude?: number | null
+  exif?: {
+    GPSLatitude?: unknown
+    GPSLongitude?: unknown
+    GPSLatitudeRef?: unknown
+    GPSLongitudeRef?: unknown
+  } | null
+}): { latitude: number; longitude: number } | null {
+  if (hasValidCoordinates(photo.latitude, photo.longitude)) {
+    return { latitude: photo.latitude!, longitude: photo.longitude! }
+  }
+  const exif = photo.exif
+  if (exif?.GPSLatitude == null || exif.GPSLongitude == null) return null
+  let latitude = Number.parseFloat(String(exif.GPSLatitude))
+  let longitude = Number.parseFloat(String(exif.GPSLongitude))
+  if (exif.GPSLatitudeRef === 'S') latitude = -Math.abs(latitude)
+  if (exif.GPSLongitudeRef === 'W') longitude = -Math.abs(longitude)
+  return hasValidCoordinates(latitude, longitude)
+    ? { latitude, longitude }
+    : null
+}

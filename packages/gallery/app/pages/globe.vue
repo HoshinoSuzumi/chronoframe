@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { hasValidCoordinates } from '@chronoframe/gallery/shared/utils/location'
+import { resolvePhotoCoordinates } from '@chronoframe/gallery/shared/utils/location'
 import { motion } from 'motion-v'
 import { clusterMarkers, photosToMarkers } from '#gallery/utils/clustering'
 
@@ -14,9 +14,10 @@ const dayjs = useDayjs()
 const { photos } = usePhotos()
 
 const photosWithLocation = computed(() => {
-  return photos.value.filter((photo) =>
-    hasValidCoordinates(photo.latitude, photo.longitude),
-  )
+  return photos.value.flatMap((photo) => {
+    const coordinates = resolvePhotoCoordinates(photo)
+    return coordinates ? [{ ...photo, ...coordinates }] : []
+  })
 })
 
 const timelineProgress = ref(100)
