@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
+import { PROCESSOR_ACTIONS } from '../packages/contracts/src/processor.ts'
 import { createWorkerGateway } from '../apps/worker/src/gateway.ts'
 
 const origin = 'https://staging.portal.example'
@@ -20,21 +21,14 @@ test('Worker gateway scopes optional Access credentials to fixed portal actions 
     transport,
   )
   const controller = new AbortController()
-  for (const action of [
-    'claim',
-    'heartbeat',
-    'grant',
-    'complete',
-    'fail',
-    'cleanup',
-  ] as const)
+  for (const action of PROCESSOR_ACTIONS)
     assert.deepEqual(await rpc(action, { test: true }, controller.signal), {
       ok: true,
     })
   for (const request of requests) {
     assert.equal(new URL(request.url).origin, origin)
     assert.equal(request.method, 'POST')
-    assert.equal(request.redirect, 'error')
+    assert.equal(request.redirect, 'manual')
     assert.equal(request.headers.get('authorization'), 'Bearer ' + secret)
     assert.equal(
       request.headers.get('cf-access-client-id'),
@@ -52,7 +46,7 @@ test('Worker gateway scopes optional Access credentials to fixed portal actions 
   )
   assert.equal(
     requests.length,
-    6,
+    PROCESSOR_ACTIONS.length,
     'an invalid action cannot move credentials to another destination',
   )
   const ordinary = createWorkerGateway({ origin, secret }, transport)

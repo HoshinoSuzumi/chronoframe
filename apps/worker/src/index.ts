@@ -1,3 +1,7 @@
+import {
+  ProcessorConnectionError,
+  processorConnectionDiagnostic,
+} from './diagnostics.ts'
 import os from 'node:os'
 import {
   type ProcessorConfiguration,
@@ -34,12 +38,20 @@ async function reportStatus(register = false) {
       },
     },
   )
-  configuration = await openProcessorConfiguration(
-    connectionKey,
-    result,
-    nonce,
-    performance.now() - started,
-  )
+  try {
+    configuration = await openProcessorConfiguration(
+      connectionKey,
+      result,
+      nonce,
+      performance.now() - started,
+    )
+  } catch {
+    throw new ProcessorConnectionError(
+      'portal_configuration_invalid',
+      register ? 'register' : 'status',
+    )
+  }
+  if (register) console.log(JSON.stringify({ event: 'processor.connected' }))
   lastStatus = performance.now()
 }
 const rpc = createWorkerGateway({
@@ -189,7 +201,15 @@ while (!stopping) {
           jobId: work.lease.id,
           siteId: work.lease.siteId,
           attemptId: work.lease.attemptId,
-          code: aborted ? 'lease_or_timeout' : 'processing_error',
+          ...(error instanceof ProcessorConnectionError
+            ? processorConnectionDiagnostic(error)
+            : {
+                code: aborted
+                  ? 'lease_or_timeout'
+                  : error instanceof WorkerProcessingError
+                    ? error.message
+                    : 'processing_error',
+              }),
         }),
       )
     } finally {
@@ -197,9 +217,14 @@ while (!stopping) {
       clearTimeout(timeout)
     }
     await rpc('cleanup', {}).catch(() => {})
-  } catch {
+  } catch (error) {
     if (!stopping) {
-      console.log(JSON.stringify({ event: 'worker.connection_retry' }))
+      console.log(
+        JSON.stringify({
+          event: 'worker.connection_retry',
+          ...processorConnectionDiagnostic(error),
+        }),
+      )
       await delay(5000, undefined, { signal: shutdown.signal }).catch(() => {})
     }
   }

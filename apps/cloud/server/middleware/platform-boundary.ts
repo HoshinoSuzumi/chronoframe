@@ -1,3 +1,4 @@
+import { isProcessorAction } from '@chronoframe/contracts/processor'
 import { accountRouteAllowed } from '../utils/account-routes'
 /** Enable explicit platform endpoints only; never fall back to Self-hosted APIs. */
 export default defineEventHandler((event) => {
@@ -32,11 +33,10 @@ export default defineEventHandler((event) => {
     /^\/api\/sites\/[1-9][0-9]*\/(?:context|events|settings|domains|map)$/.test(
       path,
     )
+  const processorAction = /^\/api\/internal\/worker\/([a-z-]+)$/.exec(path)?.[1]
   if (
     /^\/api\/sites\/[1-9][0-9]*\/media(?:\/|$)/.test(path) ||
-    /^\/api\/internal\/worker\/(?:claim|heartbeat|grant|complete|fail|cleanup)$/.test(
-      path,
-    )
+    isProcessorAction(processorAction)
   )
     return
   if (platformRoute || accountRouteAllowed(path, event.method)) return

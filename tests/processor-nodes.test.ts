@@ -7,6 +7,7 @@ import { readFile, readdir } from 'node:fs/promises'
 import { splitSqlQuery } from './helpers/sql.ts'
 import {
   processorCipher,
+  isProcessorAction,
   type ProcessorConfiguration,
   processorKeyHash,
   DEFAULT_PROCESSOR_LIMITS,
@@ -147,11 +148,45 @@ test('registered node auth revokes old keys; full schema preserves assets and fe
         target: ts.ScriptTarget.ES2022,
       },
     }).outputText
-    const api = new Function(
+    const boundarySource = (
+      await readFile(
+        'apps/cloud/server/middleware/platform-boundary.ts',
+        'utf8',
+      )
+    ).replace(/^import[\s\S]*?from ['"][^'"]+['"]\s*\n/gm, '')
+    const boundaryCode = ts.transpileModule(boundarySource, {
+      compilerOptions: {
+        module: ts.ModuleKind.CommonJS,
+        target: ts.ScriptTarget.ES2022,
+      },
+    }).outputText
+    const boundaryDeps = {
+      exports: {},
+      defineEventHandler: (f: unknown) => f,
+      setResponseHeader: () => {},
+      getRequestURL: (event: { action: string }) =>
+        new URL('https://app.example/api/internal/worker/' + event.action),
+      accountRouteAllowed: () => false,
+      isProcessorAction,
+      createError: deps.createError,
+    }
+    const boundary = new Function(
+      ...Object.keys(boundaryDeps),
+      boundaryCode + ';return exports.default',
+    )(...Object.values(boundaryDeps))
+    const handler = new Function(
       'exports',
       ...Object.keys(deps),
       code + ';return exports.default',
     )({}, ...Object.values(deps))
+    const api = async (event: {
+      action: string
+      key: string
+      body?: unknown
+    }) => {
+      await boundary(event)
+      return handler(event)
+    }
     await assert.rejects(
       api({ action: 'register', key: 'legacy-shared-key' }),
       { statusCode: 401 },
