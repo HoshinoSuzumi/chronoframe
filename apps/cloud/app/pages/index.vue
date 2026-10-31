@@ -184,17 +184,19 @@ useSeoMeta({
         </div>
       </section>
       <section class="cf-story" aria-labelledby="story-heading">
-        <div class="cf-story-image">
-          <img src="/images/valley.jpg" alt="" loading="lazy" width="600" height="400" />
-          <span>{{ $t('cloud.home.storyCaption') }}</span>
-        </div>
-        <div class="cf-story-content">
-
+        <div class="cf-story-intro">
           <h2 id="story-heading">{{ $t('cloud.home.storyTitle') }}</h2>
           <p>{{ $t('cloud.home.storyDescription') }}</p>
+        </div>
+        <div class="cf-story-layout">
+          <div class="cf-story-gallery" aria-hidden="true">
+            <img src="/images/valley.jpg" alt="" loading="lazy" width="600" height="400" />
+            <img src="/images/forest.jpg" alt="" loading="lazy" width="400" height="300" />
+            <img src="/images/coast.jpg" alt="" loading="lazy" width="400" height="300" />
+          </div>
           <div class="cf-story-details">
-            <div><h3>{{ $t('cloud.home.browseTitle') }}</h3><p>{{ $t('cloud.home.browseDescription') }}</p></div>
-            <div><h3>{{ $t('cloud.home.detailTitle') }}</h3><p>{{ $t('cloud.home.detailDescription') }}</p></div>
+            <div><Image :size="21" :stroke-width="1.5" aria-hidden="true" /><h3>{{ $t('cloud.home.browseTitle') }}</h3><p>{{ $t('cloud.home.browseDescription') }}</p></div>
+            <div><Search :size="21" :stroke-width="1.5" aria-hidden="true" /><h3>{{ $t('cloud.home.detailTitle') }}</h3><p>{{ $t('cloud.home.detailDescription') }}</p></div>
           </div>
         </div>
       </section>
@@ -228,7 +230,7 @@ useSeoMeta({
         </div>
       </div>
       <div class="cf-footer-bottom">
-        <span>© {{ new Date().getFullYear() }} {{ $t('cloud.messages.chronoframeMadeForTheWayYouSee') }}</span>
+        <span>© {{ new Date().getFullYear() }} ChronoFrame.</span>
         <CloudLegalLinks />
       </div>
     </footer>
