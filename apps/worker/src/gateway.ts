@@ -1,13 +1,11 @@
-type WorkerAction =
-  | 'register'
-  | 'status'
-  | 'geocoding-slot'
-  | 'claim'
-  | 'heartbeat'
-  | 'grant'
-  | 'complete'
-  | 'fail'
-  | 'cleanup'
+import {
+  isProcessorAction,
+  type ProcessorAction as WorkerAction,
+} from '@chronoframe/contracts/processor'
+import {
+  ProcessorConnectionError,
+  connectionNetworkCodes,
+} from './diagnostics.ts'
 interface GatewayConfig {
   origin: string
   secret: string
@@ -64,35 +62,57 @@ export function createWorkerGateway(
     body: unknown,
     signal?: AbortSignal,
   ): Promise<T> {
-    if (
-      ![
-        'register',
-        'status',
-        'geocoding-slot',
-        'claim',
-        'heartbeat',
-        'grant',
-        'complete',
-        'fail',
-        'cleanup',
-      ].includes(action)
-    )
+    if (!isProcessorAction(action))
       throw new Error('Invalid worker gateway action')
-    const response = await transport(
-      origin + '/api/internal/worker/' + action,
-      {
+    let response: Response
+    try {
+      response = await transport(origin + '/api/internal/worker/' + action, {
         method: 'POST',
-        redirect: 'error',
+        redirect: 'manual',
         headers,
         body: JSON.stringify(body),
         signal: signal ?? AbortSignal.timeout(30000),
-      },
-    )
-    if (!response.ok) throw new Error('portal_request_failed')
+      })
+    } catch (error) {
+      throw new ProcessorConnectionError(
+        'portal_transport_failed',
+        action,
+        undefined,
+        undefined,
+        connectionNetworkCodes(error),
+      )
+    }
+    const ray = response.headers.get('cf-ray') ?? ''
+    const cfRay = /^[a-f0-9]{16,32}(?:-[a-z0-9]{3,10})?$/i.test(ray)
+      ? ray
+      : undefined
+    if (response.status >= 300 && response.status < 400) {
+      await response.body?.cancel().catch(() => {})
+      throw new ProcessorConnectionError(
+        'portal_redirect',
+        action,
+        response.status,
+        cfRay,
+      )
+    }
+    if (!response.ok) {
+      await response.body?.cancel().catch(() => {})
+      throw new ProcessorConnectionError(
+        'portal_request_failed',
+        action,
+        response.status,
+        cfRay,
+      )
+    }
     try {
       return (await response.json()) as T
     } catch {
-      throw new Error('portal_response_invalid')
+      throw new ProcessorConnectionError(
+        'portal_response_invalid',
+        action,
+        response.status,
+        cfRay,
+      )
     }
   }
 }

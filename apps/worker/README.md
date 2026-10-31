@@ -144,3 +144,21 @@ CHRONOFRAME_WORKER_ENV_FILE=/opt/chronoframe/processor/processor.env \
 这里的 `CHRONOFRAME_WORKER_ENV_FILE` 是现有 Compose 文件用于选择环境文件的变量名；文件内仍使用新的 `CHRONOFRAME_PROCESSOR_KEY`。
 
 源码 Compose 示例启用了只读根文件系统和 `/tmp` 临时内存盘，并配置了内存、CPU、进程数等限制。处理照片时需要临时文件空间，请按服务器资源及管理端阈值调整这些限制。
+
+## 连接排查
+
+查看容器日志：
+
+```bash
+docker compose logs --tail=100 processor
+```
+
+首次连接成功会输出 `processor.connected`。连接重试日志包含 `action`、`code`、`hint`，收到 HTTP 响应时还包含 `httpStatus` 和可用的 `cfRay`，便于与 Cloud 日志关联；不会输出连接密钥或远端响应正文。
+
+- `503` / `portal_unavailable`：检查 Cloud 服务、部署版本及处理端路由是否正常。
+- `401`：检查节点是否启用，以及连接密钥是否已轮换或配置错误。
+- `400`：检查 Cloud 与处理端的协议版本是否匹配。
+- `403` 或重定向：检查 Cloudflare Access、门户地址及访问策略。
+- `container_dns_failure`、`container_network_unreachable` 或 `container_tls_verification_failed`：检查容器内的 DNS、网络或证书配置。宿主机能 ping 通并不代表容器可以通过 HTTPS 连接。
+
+排查时可以提供上述诊断字段和镜像版本，不要发送连接密钥或完整环境文件。

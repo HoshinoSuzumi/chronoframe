@@ -1,3 +1,7 @@
+import {
+  ProcessorConnectionError,
+  processorConnectionDiagnostic,
+} from '../apps/worker/src/diagnostics.ts'
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { readFile } from 'node:fs/promises'
@@ -124,6 +128,8 @@ test('a bad post-claim configuration promptly fails the claimed attempt instead 
       }
     },
     WorkerProcessingError,
+    ProcessorConnectionError,
+    processorConnectionDiagnostic,
     processWork: async () => {
       processed = true
     },

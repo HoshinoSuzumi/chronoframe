@@ -1,3 +1,22 @@
+/** Shared allowlist for the Cloud boundary and processing-node transport. */
+export const PROCESSOR_ACTIONS = [
+  'register',
+  'status',
+  'geocoding-slot',
+  'claim',
+  'heartbeat',
+  'grant',
+  'complete',
+  'fail',
+  'cleanup',
+] as const
+export type ProcessorAction = (typeof PROCESSOR_ACTIONS)[number]
+export function isProcessorAction(value: unknown): value is ProcessorAction {
+  return (
+    typeof value === 'string' &&
+    PROCESSOR_ACTIONS.some((action) => action === value)
+  )
+}
 /** Server-owned processing policy; shared by Cloud and Docker processing nodes. */
 export interface ProcessorLimits {
   maxFileBytes: number
