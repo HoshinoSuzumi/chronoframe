@@ -1,5 +1,25 @@
 {
   "cloud": {
+    "home": {
+      "trialRibbon": "14 天试用",
+  "selfHostedTitle": "自部署",
+  "ctaDescription": "把照片聚在一起，打造真正属于你的图库。",
+  "detailDescription": "在专属照片查看器中打开画面，细细欣赏每处细节。",
+  "cloudDescription": "创建账号，即可开始使用托管的 ChronoFrame 图库。",
+  "storyEyebrow": "为回忆而设计",
+  "detailTitle": "靠近一点看",
+  "storyTitle": "以你的视角，呈现每一张照片。",
+  "storyCaption": "为值得珍藏的瞬间，留一个位置。",
+  "selfHostedDescription": "在自己的基础设施上运行 ChronoFrame。",
+  "waysDescription": "使用托管图库开始，或在自己的基础设施上为照片安家。",
+  "ctaEyebrow": "为照片留一处空间",
+  "ctaTitle": "从这里，开启下一章。",
+  "browseDescription": "在瀑布流图库中探索照片，或将相关的瞬间整理成相簿。",
+  "waysEyebrow": "你的图库，由你选择",
+  "storyDescription": "把照片聚在一起，用喜欢的方式浏览，细细欣赏每一张作品。",
+  "waysTitle": "选择故事安放的地方。",
+  "browseTitle": "用喜欢的方式浏览"
+},
     "messages": {
       "skipToContent": "跳转到主要内容",
       "albums": "相簿",
@@ -174,7 +194,7 @@
       "sendResetLink": "发送重设链接",
       "backToSignIn": "返回登录",
       "mainNavigation": "主导航",
-      "documentation": "文档",
+      "documentation": "自部署",
       "logIn": "登录",
       "getStarted": "立即注册",
       "signUp": "注册",
@@ -184,7 +204,7 @@
       "yourStory": "你的故事。",
       "aHomeForTheMomentsYouWantToShare": "为想要分享的时刻安一个家，将照片汇聚成一座属于自己的图库。",
       "createYourAccount": "创建账户",
-      "exploreSelfHosted": "了解自托管版",
+      "exploreSelfHosted": "自部署",
       "examplePhotographyGallery": "摄影图库示例",
       "fieldNotes": "影像手记",
       "aChronoframeGallery": "CHRONOFRAME 图库",

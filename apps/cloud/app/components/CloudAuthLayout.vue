@@ -50,14 +50,6 @@ const links = useCloudLinks()
         <p>{{ $t('cloud.legal.readBefore') }}</p>
         <CloudLegalLinks />
       </div>
-      <p class="cf-auth-bottom">
-        {{ $t('cloud.messages.aHomeForYourPhotographs')
-        }}<a
-          class="cf-text-link"
-          href="https://docs.chronoframe.art/"
-          >{{ $t('cloud.messages.aLittleGuidanceIfYouNeedIt') }}</a
-        >
-      </p>
     </main>
   </div>
 </template>

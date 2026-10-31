@@ -424,12 +424,6 @@ async function submitCheckout(plan: any, mode?: string) {
     :class="{ 'cf-pricing-embedded': embedded }"
   >
     <div :class="embedded ? 'cf-plan-options-heading' : 'cf-pricing-heading'">
-      <p
-        v-if="!embedded"
-        class="cf-eyebrow"
-      >
-        ChronoFrame Cloud
-      </p>
       <h2 v-if="embedded">{{ $t('cloud.billing.choosePlan') }}</h2>
       <h1 v-else>{{ $t('cloud.billing.pricing') }}</h1>
       <p>
@@ -839,13 +833,14 @@ async function submitCheckout(plan: any, mode?: string) {
         >
       </section></template
     >
-    <div class="cf-pricing-footer">
-      <CloudSupportLink /><NuxtLink
+    <footer class="cf-pricing-footer">
+      <div class="cf-pricing-footer-actions"><CloudSupportLink /><NuxtLink
         :to="links.redeem"
         :external="!portal"
         >{{ $t('cloud.billing.redeem') }}</NuxtLink
-      >
-    </div>
+      ></div>
+      <CloudLegalLinks />
+    </footer>
     <UModal
       v-model:open="checkoutOpen"
       :title="$t('cloud.payments.subscribeConfirm')"
@@ -1056,6 +1051,5 @@ async function submitCheckout(plan: any, mode?: string) {
         ></template
       >
     </UModal>
-    <CloudLegalLinks />
   </div>
 </template>
