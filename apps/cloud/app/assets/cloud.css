@@ -170,8 +170,9 @@
 .cf-ways-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 36px; }
 .cf-ways-grid .cf-way-card { display: block; color: var(--foreground); padding: 26px; border: 1px solid var(--border); border-radius: 8px; background: var(--card); }
 .cf-ways-grid .cf-way-card { position: relative; overflow: hidden; isolation: isolate; transition: border-color .2s ease, box-shadow .2s ease; }
-.cf-ways-grid .cf-way-card::after { content: ''; position: absolute; z-index: -1; right: -48px; top: -84px; width: 210px; height: 210px; border: 1px solid color-mix(in srgb, var(--accent) 20%, transparent); border-radius: 50%; box-shadow: 0 0 0 28px color-mix(in srgb, var(--accent) 4%, transparent), 0 0 0 56px color-mix(in srgb, var(--accent) 3%, transparent); pointer-events: none; }
-.cf-ways-grid .cf-way-server::after { border-radius: 28px; transform: rotate(45deg); }
+.cf-way-art { position: absolute; z-index: -1; right: 10px; bottom: -14px; width: 170px; height: 128px; color: var(--accent); opacity: .38; pointer-events: none; }
+
+@media (max-width: 420px) { .cf-way-art { right: -20px; opacity: .16; } }
 .cf-ways-grid .cf-way-card:hover { border-color: color-mix(in srgb, var(--accent) 45%, var(--border)); box-shadow: 0 12px 28px -22px color-mix(in srgb, var(--accent) 45%, transparent); }
 .cf-way-card:focus-visible { outline: 2px solid var(--ring); outline-offset: 3px; }
 .cf-way-ribbon { position: absolute; top: 22px; right: -38px; width: 160px; padding: 6px 0; transform: rotate(45deg); background: var(--accent); color: var(--card); text-align: center; font-size: 10px; font-weight: 650; letter-spacing: .02em; }
