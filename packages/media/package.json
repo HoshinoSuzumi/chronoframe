@@ -22,7 +22,7 @@
     "@chronoframe/contracts": "workspace:*",
     "@chronoframe/storage": "workspace:*",
     "@vingle/bmp-js": "^0.2.5",
-    "es-toolkit": "^1.52.0",
+    "es-toolkit": "^1.53.1",
     "exiftool-vendored": "^35.21.0",
     "heic-convert": "^2.1.0",
     "sharp": "^0.35.5",

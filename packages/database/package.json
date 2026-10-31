@@ -26,7 +26,7 @@
     "@chronoframe/jobs": "workspace:*",
     "better-sqlite3": "^12.11.1",
     "drizzle-orm": "^0.45.4",
-    "transliteration": "2.6.1"
+    "transliteration": "2.7.0"
   },
   "devDependencies": {
     "@types/better-sqlite3": "^9.6.0",
