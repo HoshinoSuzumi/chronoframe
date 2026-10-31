@@ -187,15 +187,22 @@ useSeoMeta({
       </section>
     </main>
     <footer class="cf-marketing-footer">
-      <span
-        >© {{ new Date().getFullYear()
-        }}{{ $t('cloud.messages.chronoframeMadeForTheWayYouSee') }}</span
-      ><a
-        href="https://github.com/HoshinoSuzumi/chronoframe/blob/main/LICENSING.md"
-        >{{ $t('cloud.messages.sourceAndLicensing') }}<ArrowUpRight :size="13"
-      /></a>
-      <CloudSupportLink />
-      <CloudLegalLinks />
+      <div class="cf-footer-main">
+        <div class="cf-footer-brand">
+          <CloudBrand />
+          <p>{{ $t('cloud.messages.aHomeForYourPhotographs') }}</p>
+        </div>
+        <div class="cf-footer-links">
+          <a href="https://github.com/HoshinoSuzumi/chronoframe/blob/main/LICENSING.md">
+            {{ $t('cloud.messages.sourceAndLicensing') }}<ArrowUpRight :size="13" />
+          </a>
+          <CloudSupportLink />
+        </div>
+      </div>
+      <div class="cf-footer-bottom">
+        <span>© {{ new Date().getFullYear() }} {{ $t('cloud.messages.chronoframeMadeForTheWayYouSee') }}</span>
+        <CloudLegalLinks />
+      </div>
     </footer>
   </div>
 </template>

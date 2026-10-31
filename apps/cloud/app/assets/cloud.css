@@ -157,18 +157,33 @@
   line-height: 1.8;
 }
 .cf-marketing-footer {
-  padding: 25px 0;
   border-top: 1px solid var(--border);
-  display: flex;
-  gap: 20px;
-  justify-content: space-between;
-  font-size: 11px;
   color: var(--muted-foreground);
 }
-.cf-marketing-footer a {
-  display: inline-flex;
+.cf-footer-main {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 32px;
+  padding: 36px 0 32px;
+}
+.cf-footer-brand p { margin-top: 10px; font-size: 12px; }
+.cf-footer-links { display: flex; flex-wrap: wrap; gap: 16px 28px; padding-top: 8px; font-size: 12px; }
+.cf-marketing-footer a { display: inline-flex; align-items: center; gap: 5px; }
+.cf-marketing-footer a:hover { color: var(--foreground); }
+.cf-footer-bottom {
+  display: flex;
+  justify-content: space-between;
   align-items: center;
-  gap: 5px;
+  gap: 16px;
+  padding: 20px 0 28px;
+  border-top: 1px solid var(--border);
+  font-size: 11px;
+}
+@media (max-width: 700px) {
+  .cf-footer-main { flex-direction: column; gap: 24px; padding: 30px 0; }
+  .cf-footer-links { padding-top: 0; }
+  .cf-footer-bottom { align-items: flex-start; flex-direction: column-reverse; }
 }
 /* Authentication */
 .cf-auth {
