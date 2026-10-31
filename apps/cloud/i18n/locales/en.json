@@ -21,6 +21,7 @@
   "browseTitle": "Browse your way"
 },
     "messages": {
+      "visitConsole": "Open console",
       "skipToContent": "Skip to content",
       "albums": "Albums",
       "organizeYourPhotographsAndChooseHowTheyAreShared": "Organize your photographs and choose how they are shared.",
