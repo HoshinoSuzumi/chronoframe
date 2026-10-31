@@ -14,12 +14,12 @@
     "markdown-it": "^14.3.3",
     "reka-ui": "^2.11.0",
     "tailwind-merge": "^3.7.0",
-    "vue": "3.5.43"
+    "vue": "3.5.44"
   },
   "devDependencies": {
-    "@types/markdown-it": "^14.1.2"
+    "@types/markdown-it": "^14.2.0"
   },
   "peerDependencies": {
-    "@nuxt/ui": "^4.11.3"
+    "@nuxt/ui": "^4.12.0"
   }
 }

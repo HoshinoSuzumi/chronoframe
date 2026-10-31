@@ -1,4 +1,4 @@
-FROM node:22.23.3-alpine AS base
+FROM node:22.23.4-alpine AS base
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
 RUN corepack enable
@@ -29,7 +29,7 @@ RUN pnpm run prepare \
     && pnpm run build \
     && find ./apps/self-hosted/.output -type f -name '*.map' -delete
 
-FROM node:22.23.3-alpine AS runtime_deps
+FROM node:22.23.4-alpine AS runtime_deps
 RUN apk add --no-cache ca-certificates perl exiftool \
 	&& install -Dm755 "$(readlink -f /usr/bin/perl)" /opt/runtime-bin/perl \
 	&& install -Dm755 "$(readlink -f /usr/bin/env)" /opt/runtime-bin/env \

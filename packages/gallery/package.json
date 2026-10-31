@@ -12,21 +12,21 @@
   "dependencies": {
     "@chronoframe/contracts": "workspace:*",
     "@chronoframe/webgl-image": "workspace:*",
-    "@iconify/vue": "5.0.3",
-    "@nuxt/ui": "^4.11.3",
+    "@iconify/vue": "5.0.4",
+    "@nuxt/ui": "^4.12.0",
     "@nuxtjs/i18n": "10.6.0",
     "@yeger/vue-masonry-wall": "^6.1.4",
     "dayjs-nuxt": "2.1.11",
-    "file-type": "^22.1.1",
+    "file-type": "^22.3.0",
     "maplibre-gl": "^5.24.0",
-    "motion-v": "^2.6.0",
+    "motion-v": "^2.10.0",
     "pinia": "^3.0.4",
     "swiper": "^12.2.0",
     "tailwind-merge": "^3.7.0",
     "thumbhash": "^0.1.1",
     "tippy.js": "^6.3.7",
-    "vue": "^3.5.43",
-    "vue-i18n": "^11.4.14",
-    "zod": "^4.6.6"
+    "vue": "^3.5.44",
+    "vue-i18n": "^11.4.16",
+    "zod": "^4.6.7"
   }
 }
