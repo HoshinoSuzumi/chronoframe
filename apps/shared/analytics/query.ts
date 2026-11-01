@@ -19,7 +19,11 @@ export async function analyticsReport(event: H3Event, filter: AnalyticsFilter) {
       window.end - window.start > 31 * 86400000 ||
       window.start < Date.now() - 89 * 86400000
     )
-      return await historicalAnalytics(platformDatabase(event), config, filter)
+      return await historicalAnalytics(platformDatabase(event), config, {
+        ...filter,
+        from: new Date(window.start).toISOString().slice(0, 10),
+        to: new Date(window.end - 1).toISOString().slice(0, 10),
+      })
     return await queryAnalytics(config, filter)
   } catch (error) {
     throw createError({

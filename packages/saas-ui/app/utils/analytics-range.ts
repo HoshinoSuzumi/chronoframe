@@ -27,10 +27,17 @@ export function relativeRange(
   }
 }
 // Daily archives cannot represent partial days; preserve half-open end semantics.
-export function archiveRange(range: AnalyticsDateRange): AnalyticsDateRange {
+export function archiveRange(
+  range: AnalyticsDateRange,
+  now = Date.now(),
+): AnalyticsDateRange {
   const start = Date.parse(range.from),
     end = Date.parse(range.to)
-  if (range.allTime || end - start <= 31 * 86400000) return range
+  if (
+    range.allTime ||
+    (end - start <= 31 * 86400000 && start >= now - 89 * 86400000)
+  )
+    return range
   return {
     ...range,
     from: new Date(start).toISOString().slice(0, 10),

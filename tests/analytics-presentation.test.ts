@@ -73,9 +73,10 @@ test('relative presets and local/UTC inputs retain actual instants across timezo
     else process.env.TZ = previous
   }
 })
-test('long picker ranges request full UTC archive days while short ranges stay precise', () => {
-  const year = relativeRange(365 * 86400, Date.parse('2026-11-01T12:00:00Z'))
-  assert.deepEqual(archiveRange(year), {
+test('long or old picker ranges request full UTC archive days while recent short ranges stay precise', () => {
+  const now = Date.parse('2026-11-01T12:00:00Z')
+  const year = relativeRange(365 * 86400, now)
+  assert.deepEqual(archiveRange(year, now), {
     ...year,
     from: '2025-11-01',
     to: '2026-11-01',
@@ -84,13 +85,26 @@ test('long picker ranges request full UTC archive days while short ranges stay p
     from: '2026-08-01T23:30:00.000Z',
     to: '2026-10-01T00:00:00.000Z',
   }
-  assert.deepEqual(archiveRange(custom), {
+  assert.deepEqual(archiveRange(custom, now), {
     from: '2026-08-01',
     to: '2026-09-30',
   })
-  const short = relativeRange(30 * 86400, Date.parse('2026-11-01T12:00:00Z'))
-  assert.deepEqual(archiveRange(short), short)
-  assert.deepEqual(archiveRange({ ...year, allTime: true }), {
+  const short = relativeRange(30 * 86400, now)
+  assert.deepEqual(archiveRange(short, now), short)
+  const cutoff = now - 89 * 86400000
+  const atCutoff = {
+    from: new Date(cutoff).toISOString(),
+    to: new Date(cutoff + 86400000).toISOString(),
+  }
+  assert.deepEqual(archiveRange(atCutoff, now), atCutoff)
+  assert.deepEqual(
+    archiveRange(
+      { from: '2026-07-01T23:30:00Z', to: '2026-07-03T00:00:00Z' },
+      now,
+    ),
+    { from: '2026-07-01', to: '2026-07-02' },
+  )
+  assert.deepEqual(archiveRange({ ...year, allTime: true }, now), {
     ...year,
     allTime: true,
   })

@@ -130,8 +130,8 @@ await load()
         <p class="cf-field-hint">
           {{
             tr(
-              'Custom ranges support the past year; ranges over 31 days use full UTC days.',
-              '自定义范围支持最近一年；超过 31 天的范围使用完整的 UTC 日期。',
+              'Custom ranges support the past year; ranges over 31 days or starting more than about 90 days ago use full UTC days.',
+              '自定义范围支持最近一年；超过 31 天或开始于约 90 天以前的范围使用完整的 UTC 日期。',
             )
           }}
         </p>
