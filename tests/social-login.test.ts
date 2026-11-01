@@ -1,3 +1,7 @@
+import {
+  accountConnections,
+  unlinkLoginAccount,
+} from '../packages/platform/src/account-connections.ts'
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import { createRequire } from 'node:module'
@@ -27,12 +31,13 @@ test('OAuth callbacks expose only the supported provider surface', () => {
     assert(!accountRouteAllowed(`/api/auth/callback/${provider}`, 'DELETE'))
   }
   assert(accountRouteAllowed('/api/auth/sign-in/social', 'POST'))
+  assert(accountRouteAllowed('/api/auth/link-social', 'POST'))
+  assert(!accountRouteAllowed('/api/auth/link-social', 'GET'))
   for (const path of [
     '/api/auth/callback/unknown',
     '/api/auth/callback/microsoft',
     '/api/auth/callback/github/extra',
     '/api/auth/update-user',
-    '/api/auth/link-social',
     '/api/auth/get-access-token',
   ])
     assert(!accountRouteAllowed(path, 'POST'))
@@ -337,6 +342,7 @@ test('credentials are root-only, encrypted, redacted, revision fenced and disabl
     }
     try {
       let attempt = 0
+      let loginCookies = new Map<string, string>()
       async function login(expectedRedirect: string) {
         const ip = `192.0.2.${++attempt}`
         const cookies = new Map<string, string>()
@@ -410,6 +416,7 @@ test('credentials are root-only, encrypted, redacted, revision fenced and disabl
             headers: headers(),
           }),
         )
+        loginCookies = cookies
         return (await session.json()) as TestSession
       }
       const session = await login('/workspace')
@@ -431,6 +438,140 @@ test('credentials are root-only, encrypted, redacted, revision fenced and disabl
         )
         .first()
       assert.notEqual(token.access_token, 'oauth-token')
+
+      const captureConnectionCookies = (response: Response) => {
+        for (const cookie of response.headers.getSetCookie()) {
+          const pair = cookie.split(';')[0]!,
+            index = pair.indexOf('=')
+          loginCookies.set(pair.slice(0, index), pair.slice(index + 1))
+        }
+      }
+      const connectionHeaders = () => ({
+        'content-type': 'application/json',
+        origin: 'https://app.chronoframe.art',
+        'cf-connecting-ip': `192.0.2.${++attempt}`,
+        cookie: [...loginCookies].map(([k, v]) => `${k}=${v}`).join('; '),
+      })
+      assert.equal(
+        (
+          await auth.handler(
+            new Request('https://app.chronoframe.art/api/auth/link-social', {
+              method: 'POST',
+              headers: {
+                'content-type': 'application/json',
+                origin: 'https://app.chronoframe.art',
+              },
+              body: JSON.stringify({
+                provider: 'github',
+                callbackURL:
+                  'https://app.chronoframe.art/account?connection=updated',
+              }),
+            }),
+          )
+        ).status,
+        401,
+      )
+      async function connect(expected: string) {
+        const response = await auth.handler(
+          new Request('https://app.chronoframe.art/api/auth/link-social', {
+            method: 'POST',
+            headers: connectionHeaders(),
+            body: JSON.stringify({
+              provider: 'github',
+              callbackURL:
+                'https://app.chronoframe.art/account?connection=updated',
+            }),
+          }),
+        )
+        assert.equal(response.status, 200)
+        captureConnectionCookies(response)
+        const url = new URL(((await response.json()) as { url: string }).url)
+        const result = await auth.handler(
+          new Request(
+            `https://app.chronoframe.art/api/auth/callback/github?code=link-code&state=${encodeURIComponent(url.searchParams.get('state')!)}`,
+            { headers: connectionHeaders() },
+          ),
+        )
+        captureConnectionCookies(result)
+        assert.equal(result.status, 302)
+        assert(
+          result.headers.get('location')?.includes(expected),
+          result.headers.get('location') ?? '',
+        )
+      }
+      githubId = 201
+      await connect('connection=updated')
+      const linked = await db
+        .prepare(
+          "SELECT id,user_id FROM platform_accounts WHERE provider_id='github' AND account_id='201'",
+        )
+        .first()
+      assert.equal(linked.user_id, 42)
+      assert.equal(
+        (
+          await db
+            .prepare('SELECT name FROM platform_users WHERE id=42')
+            .first()
+        ).name,
+        'Updated nickname',
+      )
+      const listing = await accountConnections(db, secret, 42)
+      assert.equal(listing.providers.length, 1)
+      assert.equal(listing.providers[0]?.id, 'github')
+      assert(!JSON.stringify(listing).includes('oauth-token'))
+      assert.equal(
+        (await accountConnections(db, secret, 43)).accounts.length,
+        0,
+      )
+      assert.equal(
+        await unlinkLoginAccount(db, secret, 43, String(linked.id)),
+        false,
+      )
+      assert.equal(
+        await unlinkLoginAccount(db, secret, 42, String(linked.id)),
+        true,
+      )
+      assert.equal(
+        await unlinkLoginAccount(
+          db,
+          secret,
+          42,
+          String(
+            (
+              await db
+                .prepare(
+                  "SELECT id FROM platform_accounts WHERE provider_id='github' AND account_id='101'",
+                )
+                .first()
+            ).id,
+          ),
+        ),
+        false,
+      )
+      githubId = 202
+      email = 'different@example.com'
+      await connect('connection=failed')
+      assert.equal(
+        await db
+          .prepare(
+            "SELECT id FROM platform_accounts WHERE account_id='202' AND provider_id='github'",
+          )
+          .first(),
+        null,
+      )
+      githubId = 203
+      email = 'existing@example.com'
+      verified = false
+      await connect('connection=failed')
+      assert.equal(
+        await db
+          .prepare(
+            "SELECT id FROM platform_accounts WHERE account_id='203' AND provider_id='github'",
+          )
+          .first(),
+        null,
+      )
+      verified = true
       email = 'mfa@example.com'
       githubId = 102
       const pending = await login('second=totp')
@@ -457,6 +598,56 @@ test('credentials are root-only, encrypted, redacted, revision fenced and disabl
     } finally {
       globalThis.fetch = originalFetch
     }
+    // Simultaneous disconnects cannot remove both available login methods.
+    await db
+      .prepare(
+        "INSERT INTO platform_users(id,email,name,email_verified,created_at) VALUES(900,'concurrent@example.com','Concurrent',1,1)",
+      )
+      .run()
+    await db
+      .prepare(
+        "INSERT INTO platform_accounts(account_id,provider_id,user_id,created_at,updated_at) VALUES('900','github',900,1,1),('900','google',900,1,1)",
+      )
+      .run()
+    await db
+      .prepare(
+        "UPDATE platform_social_login_providers SET client_id='google-test',credentials_ciphertext=?,revision=1 WHERE provider='google'",
+      )
+      .bind(
+        await cipher.seal(
+          { clientId: 'google-test', clientSecret: 'test-google-secret' },
+          'google:1',
+        ),
+      )
+      .run()
+    const concurrent = JSON.parse(
+      (
+        await db
+          .prepare(
+            'SELECT json_group_array(id) AS ids FROM platform_accounts WHERE user_id=900',
+          )
+          .first()
+      ).ids,
+    ) as number[]
+    const results = await Promise.all(
+      concurrent.map((id) => unlinkLoginAccount(db, secret, 900, String(id))),
+    )
+    assert.equal(results.filter(Boolean).length, 1)
+    assert.equal(
+      (
+        await db
+          .prepare(
+            'SELECT COUNT(*) AS count FROM platform_accounts WHERE user_id=900',
+          )
+          .first()
+      ).count,
+      1,
+    )
+    await db
+      .prepare(
+        "UPDATE platform_social_login_providers SET client_id='',credentials_ciphertext='' WHERE provider='google'",
+      )
+      .run()
     await saveSocialLoginProvider(db, secret, actor, {
       ...input,
       revision: 2,
@@ -495,6 +686,7 @@ test('auth forwarding checks web origins and rejects ID-token entry while accept
     },
   }).outputText
   let calls = 0
+  let authenticated = false
   const deps = {
     useRuntimeConfig: () => ({
       platform: { portalOrigin: 'https://app.chronoframe.art' },
@@ -509,6 +701,11 @@ test('auth forwarding checks web origins and rejects ID-token entry while accept
     ) => {
       if (required && e.origin !== 'https://app.chronoframe.art')
         throw Object.assign(new Error('Origin'), { statusCode: 403 })
+    },
+    requirePlatformSession: async () => {
+      if (!authenticated)
+        throw Object.assign(new Error('Unauthorized'), { statusCode: 401 })
+      return { userId: 42 }
     },
     accountRouteAllowed,
     socialLoginCallback: (path: string) =>
@@ -559,7 +756,17 @@ test('auth forwarding checks web origins and rejects ID-token entry while accept
     }),
     { statusCode: 400 },
   )
+  await assert.rejects(
+    forwardAccountRequest({ ...event, path: '/api/auth/link-social' }),
+    { statusCode: 401 },
+  )
   assert.equal(calls, 0)
+  authenticated = true
+  assert.equal(
+    (await forwardAccountRequest({ ...event, path: '/api/auth/link-social' }))
+      .status,
+    200,
+  )
   assert.equal((await forwardAccountRequest(event)).status, 200)
   assert.equal(
     (

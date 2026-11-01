@@ -106,6 +106,7 @@ export function accountAuthOptions(
     secret: config.secret,
     database,
     trustedOrigins: [origin.origin],
+    onAPIError: { errorURL: `${origin.origin}/account?connection=failed` },
     telemetry: { enabled: false },
     advanced: {
       database: { generateId: 'serial' },
@@ -159,6 +160,7 @@ export function accountAuthOptions(
       encryptOAuthTokens: true,
       accountLinking: {
         enabled: true,
+        allowDifferentEmails: false,
         requireLocalEmailVerified: true,
         trustedProviders: [],
       },

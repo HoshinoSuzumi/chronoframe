@@ -1,5 +1,24 @@
 {
   "cloud": {
+    "connections": {
+      "title": "Connected accounts",
+      "help": "Link an enabled sign-in provider using the same verified email as your account.",
+      "linked": "Connected",
+      "notLinked": "Not connected",
+      "disabled": "Connected · sign-in disabled by administrator",
+      "link": "Connect",
+      "unlink": "Disconnect",
+      "linkProvider": "Connect {provider}",
+      "unlinkProvider": "Disconnect {provider}",
+      "linkedNotice": "Account connected.",
+      "unlinkedNotice": "Account disconnected.",
+      "failed": "Unable to connect this account. Use the same verified email and ensure it is not linked to another account.",
+      "loadFailed": "Unable to load connected accounts. Please reload.",
+      "keepMethod": "Keep another available sign-in method. Set a password or connect another enabled provider before disconnecting.",
+      "empty": "No sign-in providers are currently available.",
+      "confirmTitle": "Disconnect {provider}?",
+      "confirmHelp": "You will need another available sign-in method to access your account. Your profile and photographs will be kept."
+    },
     "account": {
       "nickname": "Nickname",
       "nicknamePlaceholder": "Your display name",

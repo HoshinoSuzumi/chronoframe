@@ -49,6 +49,7 @@ const user = usePortalIdentity()
           <CloudThemeToggle /></div
       ></CfCard>
     </section>
+    <CloudAccountConnections />
     <CloudSecuritySettings />
   </div>
 </template>

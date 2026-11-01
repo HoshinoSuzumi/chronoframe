@@ -4,6 +4,7 @@ export const ACCOUNT_POST_ROUTES = new Set([
   '/sign-up/email',
   '/sign-in/email',
   '/sign-in/social',
+  '/link-social',
   '/sign-in/email-otp',
   '/sign-out',
   '/email-otp/send-verification-otp',

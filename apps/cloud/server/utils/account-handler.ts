@@ -12,6 +12,7 @@ import {
   platformPortalOrigin,
   platformRequestURL,
 } from '../../../shared/platform/runtime'
+import { requirePlatformSession } from '../../../shared/platform/context'
 import { createEmailCodeCrypto } from '../../../shared/platform/crypto'
 import { cloudAccount } from './cloud-account'
 import { isSocialLoginProvider } from '../../../../packages/contracts/src/social-login'
@@ -33,7 +34,7 @@ export async function forwardAccountRequest(event: H3Event, rewrite?: string) {
   const raw = event.method === 'GET' ? undefined : await readRawBody(event)
   if (raw && new TextEncoder().encode(raw).length > 32 * 1024)
     throw createError({ statusCode: 400 })
-  if (path === '/api/auth/sign-in/social') {
+  if (path === '/api/auth/sign-in/social' || path === '/api/auth/link-social') {
     let body: Record<string, unknown>
     try {
       body = JSON.parse(raw || '{}')
@@ -47,6 +48,8 @@ export async function forwardAccountRequest(event: H3Event, rewrite?: string) {
     )
       throw createError({ statusCode: 400 })
   }
+  if (path === '/api/auth/link-social')
+    await requirePlatformSession(event, config)
   if (
     raw &&
     [

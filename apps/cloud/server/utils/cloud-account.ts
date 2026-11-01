@@ -14,6 +14,7 @@ export async function cloudAccount(event: H3Event) {
     const path = getRequestURL(event).pathname
     const providers =
       path === '/api/auth/sign-in/social' ||
+      path === '/api/auth/link-social' ||
       path.startsWith('/api/auth/callback/')
         ? await socialLoginProviders(
             platformDatabase(event),
