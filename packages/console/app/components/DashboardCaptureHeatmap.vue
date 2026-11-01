@@ -144,7 +144,7 @@ const yearOptions = computed(() => {
         </template>
       </CalendarHeatmap>
       <template #placeholder>
-        <div class="flex items-center justify-center h-[164.5px]">
+        <div class="heatmap-placeholder flex items-center justify-center">
           <Icon
             name="svg-spinners:180-ring-with-bg"
             class="size-8 opacity-50"
@@ -157,6 +157,7 @@ const yearOptions = computed(() => {
 </template>
 <style>
 .heatmap-container {
+  height: 164.5px;
   overflow-x: auto;
   overflow-y: hidden;
   min-width: 100%;
@@ -198,6 +199,22 @@ const yearOptions = computed(() => {
 
 .heatmap-container .vch__container {
   min-width: 720px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.heatmap-container .heatmap-placeholder {
+  height: 100%;
+}
+
+.heatmap-container .vch__wrapper {
+  flex: 1;
+  min-height: 0;
+}
+
+.heatmap-container .vch__container > .vch__legend {
+  flex-shrink: 0;
 }
 
 .vch__day__label,
