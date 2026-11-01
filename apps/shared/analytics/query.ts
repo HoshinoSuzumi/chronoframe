@@ -1,18 +1,30 @@
 import type { H3Event } from 'h3'
 import { createError } from 'h3'
+import { historicalAnalytics } from '../../../packages/platform/src/analytics-archive'
+import { analyticsWindow } from '../../../packages/platform/src/analytics'
+import { platformDatabase } from '../platform/runtime'
 import { queryAnalytics } from '../../../packages/platform/src/analytics'
 import type { AnalyticsFilter } from '../../../packages/platform/src/analytics'
 export async function analyticsReport(event: H3Event, filter: AnalyticsFilter) {
   const env = event.context.cloudflare?.env ?? {}
   try {
-    return await queryAnalytics(
-      {
-        accountId: String(env.ANALYTICS_ACCOUNT_ID ?? ''),
-        token: String(env.ANALYTICS_API_TOKEN ?? ''),
-        dataset: String(env.ANALYTICS_DATASET ?? ''),
-      },
-      filter,
+    const config = {
+      accountId: String(env.ANALYTICS_ACCOUNT_ID ?? ''),
+      token: String(env.ANALYTICS_API_TOKEN ?? ''),
+      dataset: String(env.ANALYTICS_DATASET ?? ''),
+    }
+    const window = analyticsWindow(filter.from, filter.to)
+    if (
+      filter.allTime ||
+      window.end - window.start > 31 * 86400000 ||
+      window.start < Date.now() - 89 * 86400000
     )
+      return await historicalAnalytics(platformDatabase(event), config, {
+        ...filter,
+        from: new Date(window.start).toISOString().slice(0, 10),
+        to: new Date(window.end - 1).toISOString().slice(0, 10),
+      })
+    return await queryAnalytics(config, filter)
   } catch (error) {
     throw createError({
       statusCode: 503,

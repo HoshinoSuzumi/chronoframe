@@ -4,6 +4,7 @@ import { readFile } from 'node:fs/promises'
 import { createRequire } from 'node:module'
 import {
   analyticsFilter,
+  analyticsWindow,
   analyticsQueries,
   visitPath,
   visitReferrer,
@@ -16,6 +17,7 @@ import {
   validatePolicy,
 } from '../packages/platform/src/entitlements.ts'
 import { configureAnalyticsDeployment } from '../scripts/analytics-deployment.mjs'
+import { archiveRange } from '../packages/saas-ui/app/utils/analytics-range.ts'
 const require = createRequire(import.meta.url),
   ts = require('typescript')
 async function module(file: string, deps: Record<string, unknown>) {
@@ -113,8 +115,7 @@ test('analytics filters reject SQL injection and unbounded queries; every query 
   }
   for (const input of [
     { from: "2026-11-01' OR 1=1" },
-    { from: '2026-01-01' },
-    { from: '2026-09-01' },
+    { from: '2025-01-01' },
     { to: '2026-11-02' },
     { workspaceId: '1 OR 1=1' },
     { siteId: '-1' },
@@ -259,6 +260,49 @@ test('portal report checks membership, live entitlement and selected-site owners
   await assert.rejects(report({}), { statusCode: 403 })
   assert.equal(reports, 1)
 })
+test('archive routing sends UTC dates even when a short range crosses the cutoff in transit', async () => {
+  const now = Date.now()
+  const range = {
+    from: new Date(now - 89 * 86400000 - 60000).toISOString(),
+    to: new Date(now - 88 * 86400000).toISOString(),
+    workspaceId: 7,
+  }
+  const sent = archiveRange(range, now - 120000)
+  assert.deepEqual(sent, range)
+  const { analyticsReport } = await module(
+    '../apps/shared/analytics/query.ts',
+    {
+      analyticsWindow,
+      platformDatabase: () => ({}),
+      historicalAnalytics: async (
+        _db: unknown,
+        _config: unknown,
+        filter: unknown,
+      ) => filter,
+      queryAnalytics: async (_config: unknown, filter: unknown) => filter,
+      createError: (value: any) => Object.assign(new Error(), value),
+    },
+  )
+  const event = { context: { cloudflare: { env: {} } } }
+  assert.deepEqual(await analyticsReport(event, sent), {
+    ...range,
+    from: new Date(Date.parse(range.from)).toISOString().slice(0, 10),
+    to: new Date(Date.parse(range.to) - 1).toISOString().slice(0, 10),
+  })
+  const dates = { from: '2025-01-01', to: '2025-01-02', workspaceId: 7 }
+  assert.deepEqual(await analyticsReport(event, dates), dates)
+  const recent = {
+    from: new Date(now - 3600000).toISOString(),
+    to: new Date(now).toISOString(),
+  }
+  assert.deepEqual(await analyticsReport(event, recent), recent)
+  const allTime = { ...recent, allTime: true }
+  assert.deepEqual(await analyticsReport(event, allTime), {
+    ...allTime,
+    from: new Date(Date.parse(allTime.from)).toISOString().slice(0, 10),
+    to: new Date(Date.parse(allTime.to) - 1).toISOString().slice(0, 10),
+  })
+})
 test('SQL API failures are not empty reports; sampled results preserve weighted PV and observed UV', async () => {
   const accountId = 'a'.repeat(32),
     filter = analyticsFilter({ workspaceId: 91, kind: 'site' })
@@ -375,4 +419,31 @@ test('browser tracker counts initial entry and path navigation once, skips query
   navigator.globalPrivacyControl = true
   hooks['page:finish']!()
   assert.equal(events.length, 3)
+})
+
+test('relative minute/hour ranges preserve exact UTC boundaries and support a year or all time', () => {
+  const now = Date.parse('2026-11-01T12:00:00Z')
+  const short = analyticsFilter(
+    { from: '2026-11-01T11:30:00.000Z', to: '2026-11-01T12:00:00.000Z' },
+    now,
+  )
+  const query = analyticsQueries('chronoframe_visits', short)
+  assert.match(query.summary, /2026-11-01 11:30:00/)
+  assert.match(query.summary, /2026-11-01 12:00:00/)
+  assert.match(query.daily, /toStartOfMinute/)
+  const hours = analyticsFilter(
+    { from: '2026-10-31T12:00:00.000Z', to: '2026-11-01T12:00:00.000Z' },
+    now,
+  )
+  assert.match(
+    analyticsQueries('chronoframe_visits', hours).daily,
+    /toStartOfHour/,
+  )
+  assert.doesNotThrow(() =>
+    analyticsFilter({ from: '2025-11-01', to: '2026-11-01' }, now),
+  )
+  assert.equal(analyticsFilter({ allTime: '1' }, now).allTime, true)
+  assert.throws(() =>
+    analyticsFilter({ from: '2025-10-31', to: '2026-11-01' }, now),
+  )
 })

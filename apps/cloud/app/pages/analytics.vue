@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { archiveRange, relativeRange } from '#saas-ui/utils/analytics-range'
 definePageMeta({ layout: 'portal' })
 const { locale } = useI18n()
 const zh = computed(() => locale.value.startsWith('zh'))
@@ -23,12 +24,18 @@ const sites = computed(() =>
     (s: any) => s.workspaceId === billing.selected.value,
   ),
 )
-const siteId = ref(''),
-  to = ref(new Date().toISOString().slice(0, 10)),
-  from = ref(new Date(Date.now() - 6 * 86400000).toISOString().slice(0, 10))
+const siteId = ref('')
+const range = useState('workspace-analytics-range', () =>
+  relativeRange(7 * 86400),
+)
 const report = ref<any>(),
   loading = ref(false),
   error = ref('')
+function refreshRange() {
+  if (range.value.preset && !range.value.allTime)
+    range.value = relativeRange(range.value.preset)
+  void load()
+}
 let generation = 0
 async function load() {
   const request = ++generation
@@ -36,12 +43,14 @@ async function load() {
   error.value = ''
   report.value = null
   try {
+    const bounds = archiveRange(range.value)
     const result = await fetcher('/api/analytics/report', {
       query: {
         workspaceId: billing.selected.value,
         siteId: siteId.value || undefined,
-        from: from.value,
-        to: to.value,
+        from: bounds.from,
+        to: bounds.to,
+        allTime: range.value.allTime ? '1' : undefined,
       },
       timeout: 20000,
     })
@@ -62,6 +71,8 @@ async function load() {
     if (request === generation) loading.value = false
   }
 }
+if (range.value.preset && !range.value.allTime)
+  range.value = relativeRange(range.value.preset)
 await load()
 </script>
 <template>
@@ -86,6 +97,7 @@ await load()
           >{{ tr('Site', '站点')
           }}<select
             v-model="siteId"
+            @change="load"
             class="cf-input"
           >
             <option value="">{{ tr('All sites', '全部站点') }}</option>
@@ -98,32 +110,28 @@ await load()
             </option>
           </select></label
         >
-        <label class="grid gap-2"
-          >{{ tr('From (UTC)', '开始日期（UTC）')
-          }}<input
-            v-model="from"
-            type="date"
-            required
-            class="cf-input"
-        /></label>
-        <label class="grid gap-2"
-          >{{ tr('To (UTC)', '结束日期（UTC）')
-          }}<input
-            v-model="to"
-            type="date"
-            required
-            class="cf-input"
-        /></label>
-        <CfButton
-          type="submit"
+        <CfAnalyticsRange
+          v-model="range"
+          :zh="zh"
           :disabled="loading"
-          >{{ tr('Apply', '应用') }}</CfButton
-        >
+          @apply="load"
+        />
+        <CfButton
+          type="button"
+          variant="secondary"
+          :disabled="loading"
+          :aria-label="tr('Refresh', '刷新')"
+          :title="tr('Refresh', '刷新')"
+          @click="refreshRange"
+          ><UIcon
+            name="i-lucide-refresh-cw"
+            class="size-4"
+        /></CfButton>
         <p class="cf-field-hint">
           {{
             tr(
-              'Select up to 31 days within the last 90 days.',
-              '可查询最近 90 天内、最长 31 天的数据。',
+              'Custom ranges support the past year; ranges over 31 days or starting more than about 90 days ago use full UTC days.',
+              '自定义范围支持最近一年；超过 31 天或开始于约 90 天以前的范围使用完整的 UTC 日期。',
             )
           }}
         </p>
