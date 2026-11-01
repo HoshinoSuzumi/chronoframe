@@ -1,6 +1,6 @@
 <script setup lang="ts">
 const { t } = useI18n()
-const { allowance } = useCloudSiteMedia()
+const { allowance, loadError } = useCloudSiteMedia()
 
 definePageMeta({ layout: 'portal' })
 useSeoMeta({
@@ -18,17 +18,10 @@ useSeoMeta({
         </p>
       </div>
     </div>
-    <CfCard
-      ><div class="cf-panel-heading">
-        <h2>{{ $t('cloud.messages.platformStorage') }}</h2>
-        <CfBadge>{{ allowance?.plan.name ?? '—' }}</CfBadge>
-        <p>{{ $t('cloud.storageAllowance.description') }}</p>
-        <p v-if="allowance">
-          {{ (allowance.storageBytes / 1048576).toFixed(1) }} MiB /
-          {{ (allowance.limits.storageBytes! / 1048576).toFixed(0) }} MiB
-        </p>
-      </div></CfCard
-    >
+    <CloudPlatformStorageCard
+      :allowance="allowance"
+      :error="loadError"
+    />
     <CloudStorageSettings />
   </div>
 </template>

@@ -295,19 +295,22 @@ function changeZone() {
           {{ error }}
         </p>
         <footer class="cf-range-footer">
-          <CfSelect
-            v-model="utc"
-            class="cf-input"
-            :aria-label="tr('Time zone', '时区')"
-            @change="changeZone"
-          >
-            <option :value="false">
-              {{
-                zoneLabel === 'UTC' ? tr('Local time', '本地时间') : zoneLabel
-              }}
-            </option>
-            <option :value="true">UTC</option></CfSelect
-          ><CfButton
+          <div class="cf-range-zone">
+            <CfSelect
+              v-model="utc"
+              class="cf-input"
+              :aria-label="tr('Time zone', '时区')"
+              @change="changeZone"
+            >
+              <option :value="false">
+                {{
+                  zoneLabel === 'UTC' ? tr('Local time', '本地时间') : zoneLabel
+                }}
+              </option>
+              <option :value="true">UTC</option></CfSelect
+            >
+          </div>
+          <CfButton
             type="button"
             @click="apply"
             >{{ tr('Apply', '应用') }}</CfButton
@@ -386,20 +389,16 @@ function changeZone() {
   font-size: 12px;
 }
 .cf-range-footer {
-  display: flex;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
   gap: 16px;
   padding: 12px 16px;
   border-top: 1px solid var(--border);
   background: var(--background);
 }
-.cf-range-footer .cf-select {
-  width: auto;
-  max-width: 70%;
-  font-size: 12px;
-  border: 0;
-  background: transparent;
+.cf-range-zone {
+  min-width: 0;
 }
 .cf-range-error {
   font-size: 12px;

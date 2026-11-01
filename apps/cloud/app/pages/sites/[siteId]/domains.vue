@@ -349,15 +349,6 @@ async function copy(value: string) {
           }}
         </p>
       </section>
-      <details
-        v-if="data.legacyHostname"
-        class="cf-domain-technical"
-      >
-        <summary>{{ t('cloud.domainFlow.previousAddress') }}</summary>
-        <p class="cf-field-hint">
-          {{ t('cloud.domains.legacy', { hostname: data.legacyHostname }) }}
-        </p>
-      </details>
     </template>
     <UModal
       v-model:open="addOpen"

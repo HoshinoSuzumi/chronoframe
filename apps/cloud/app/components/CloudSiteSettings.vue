@@ -9,6 +9,11 @@ const { t } = useI18n()
 
 const props = defineProps<{ siteId: number }>()
 const context = useEntryContext()
+const iconInput = useTemplateRef<{ inputRef: HTMLInputElement }>('iconInput')
+const presentationChoiceUi = {
+  fieldset: 'flex-wrap gap-2',
+  item: 'min-h-[var(--cf-control-height)] items-center px-3 py-1.5 pointer-coarse:min-h-11',
+}
 const {
   data,
   error: loadError,
@@ -259,12 +264,16 @@ async function save() {
               width="64"
               height="64"
               class="cf-gallery-icon"
-            /><label
-              for="gallery-icon"
-              class="cf-icon-picker"
-              >{{ $t('cloud.ui.chooseIcon') }}</label
-            ><UInput
-              class="cf-icon-file"
+            /><CfButton
+              variant="secondary"
+              class="justify-self-start"
+              :disabled="busy || iconBusy"
+              @click="iconInput?.inputRef.click()"
+              >{{ $t('cloud.ui.chooseIcon') }}</CfButton
+            >
+            <UInput
+              ref="iconInput"
+              class="hidden"
               id="gallery-icon"
               type="file"
               accept="image/png,image/jpeg,image/webp"
@@ -277,7 +286,7 @@ async function save() {
             <CfButton
               v-if="profile.avatarUrl"
               variant="secondary"
-              size="sm"
+              class="justify-self-start"
               :disabled="busy || iconBusy"
               @click="profile.avatarUrl = ''"
               >{{ $t('cloud.messages.removeIcon') }}</CfButton
@@ -301,6 +310,8 @@ async function save() {
               :aria-label="$t('cloud.presentation.theme')"
               orientation="horizontal"
               variant="card"
+              size="sm"
+              :ui="presentationChoiceUi"
               :items="
                 (['light', 'dark', 'system'] as const).map((value) => ({
                   value,
@@ -320,6 +331,8 @@ async function save() {
               :aria-label="$t('cloud.presentation.layout')"
               orientation="horizontal"
               variant="card"
+              size="sm"
+              :ui="presentationChoiceUi"
               :items="
                 (['embedded', 'fixed'] as const).map((value) => ({
                   value,
