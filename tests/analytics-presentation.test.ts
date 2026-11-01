@@ -8,6 +8,7 @@ import {
 } from '../packages/saas-ui/app/utils/traffic-chart.ts'
 import {
   relativeRange,
+  archiveRange,
   rangeInput,
   inputInstant,
   ANALYTICS_PRESETS,
@@ -71,6 +72,28 @@ test('relative presets and local/UTC inputs retain actual instants across timezo
     if (previous === undefined) delete process.env.TZ
     else process.env.TZ = previous
   }
+})
+test('long picker ranges request full UTC archive days while short ranges stay precise', () => {
+  const year = relativeRange(365 * 86400, Date.parse('2026-11-01T12:00:00Z'))
+  assert.deepEqual(archiveRange(year), {
+    ...year,
+    from: '2025-11-01',
+    to: '2026-11-01',
+  })
+  const custom = {
+    from: '2026-08-01T23:30:00.000Z',
+    to: '2026-10-01T00:00:00.000Z',
+  }
+  assert.deepEqual(archiveRange(custom), {
+    from: '2026-08-01',
+    to: '2026-09-30',
+  })
+  const short = relativeRange(30 * 86400, Date.parse('2026-11-01T12:00:00Z'))
+  assert.deepEqual(archiveRange(short), short)
+  assert.deepEqual(archiveRange({ ...year, allTime: true }), {
+    ...year,
+    allTime: true,
+  })
 })
 test('the registered ECharts modules render a single-day report as a valid colored SVG without browser globals', async () => {
   const require = createRequire(

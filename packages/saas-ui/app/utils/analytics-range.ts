@@ -26,6 +26,17 @@ export function relativeRange(
     preset: seconds,
   }
 }
+// Daily archives cannot represent partial days; preserve half-open end semantics.
+export function archiveRange(range: AnalyticsDateRange): AnalyticsDateRange {
+  const start = Date.parse(range.from),
+    end = Date.parse(range.to)
+  if (range.allTime || end - start <= 31 * 86400000) return range
+  return {
+    ...range,
+    from: new Date(start).toISOString().slice(0, 10),
+    to: new Date(end - 1).toISOString().slice(0, 10),
+  }
+}
 export function rangeInput(value: string, utc: boolean) {
   const date = new Date(value)
   return new Date(date.getTime() - (utc ? 0 : date.getTimezoneOffset() * 60000))

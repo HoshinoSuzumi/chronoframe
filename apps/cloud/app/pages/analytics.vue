@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { relativeRange } from '#saas-ui/utils/analytics-range'
+import { archiveRange, relativeRange } from '#saas-ui/utils/analytics-range'
 definePageMeta({ layout: 'portal' })
 const { locale } = useI18n()
 const zh = computed(() => locale.value.startsWith('zh'))
@@ -43,12 +43,13 @@ async function load() {
   error.value = ''
   report.value = null
   try {
+    const bounds = archiveRange(range.value)
     const result = await fetcher('/api/analytics/report', {
       query: {
         workspaceId: billing.selected.value,
         siteId: siteId.value || undefined,
-        from: range.value.from,
-        to: range.value.to,
+        from: bounds.from,
+        to: bounds.to,
         allTime: range.value.allTime ? '1' : undefined,
       },
       timeout: 20000,
@@ -129,8 +130,8 @@ await load()
         <p class="cf-field-hint">
           {{
             tr(
-              'Custom ranges support the past year; all-time reports use daily archives.',
-              '自定义范围支持最近一年；所有时间使用按天归档数据。',
+              'Custom ranges support the past year; ranges over 31 days use full UTC days.',
+              '自定义范围支持最近一年；超过 31 天的范围使用完整的 UTC 日期。',
             )
           }}
         </p>

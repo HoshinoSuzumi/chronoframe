@@ -165,7 +165,7 @@ export async function archiveAnalytics(
       const [dimension, column] = dimensions[Math.floor(state.phase / 2)]!
       const perSite = state.phase % 2 === 1
       const end = isoDay(Date.parse(state.cursor_day) + DAY)
-      const sql = `SELECT * FROM (SELECT blob2 AS kind,blob3 AS workspaceId,${perSite ? 'blob4' : "'0'"} AS siteId,${column} AS label,SUM(_sample_interval) AS pv,COUNT(DISTINCT blob7) AS uv,MAX(_sample_interval) AS sampleInterval FROM ${config.dataset} WHERE blob1='v1' AND timestamp>=toDateTime('${state.cursor_day} 00:00:00') AND timestamp<toDateTime('${end} 00:00:00')${perSite ? " AND blob2='site'" : ''} GROUP BY kind,workspaceId,siteId,label ORDER BY pv DESC,kind,workspaceId,siteId,label LIMIT ${DETAIL_LIMIT}) ORDER BY kind,workspaceId,siteId,label LIMIT ${PAGE} OFFSET ${state.page_offset} FORMAT JSON`
+      const sql = `SELECT blob2 AS kind,blob3 AS workspaceId,${perSite ? 'blob4' : "'0'"} AS siteId,${column} AS label,SUM(_sample_interval) AS pv,COUNT(DISTINCT blob7) AS uv,MAX(_sample_interval) AS sampleInterval FROM ${config.dataset} WHERE blob1='v1' AND timestamp>=toDateTime('${state.cursor_day} 00:00:00') AND timestamp<toDateTime('${end} 00:00:00')${perSite ? " AND blob2='site'" : ''} GROUP BY kind,workspaceId,siteId,label ORDER BY kind,workspaceId,siteId,label LIMIT ${PAGE} OFFSET ${state.page_offset} FORMAT JSON`
       const rows = await sqlRows(config, sql, fetcher)
       if (
         rows.some(
@@ -192,6 +192,20 @@ export async function archiveAnalytics(
             state.cursor_day,
             dimension,
             JSON.stringify(rows),
+            config.dataset,
+            token,
+          ),
+        // Keep the best labels per scope, including those seen on earlier pages.
+        db
+          .prepare(
+            `DELETE FROM platform_analytics_archive_rows WHERE rowid IN (SELECT rowid FROM (SELECT r.rowid,ROW_NUMBER() OVER (PARTITION BY r.kind,r.workspace_id,r.site_id ORDER BY r.pv DESC,r.label) AS rank FROM platform_analytics_archive_rows r WHERE r.dataset=? AND r.snapshot=? AND r.dimension=? AND (r.kind,r.workspace_id,r.site_id) IN (SELECT json_extract(value,'$.kind'),CAST(json_extract(value,'$.workspaceId') AS INTEGER),CAST(json_extract(value,'$.siteId') AS INTEGER) FROM json_each(?))) WHERE rank>?) AND EXISTS(SELECT 1 FROM platform_analytics_archive_state WHERE dataset=? AND lease_token=?)`,
+          )
+          .bind(
+            config.dataset,
+            state.snapshot,
+            dimension,
+            JSON.stringify(rows),
+            DETAIL_LIMIT,
             config.dataset,
             token,
           ),
