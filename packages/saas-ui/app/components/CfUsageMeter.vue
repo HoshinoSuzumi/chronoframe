@@ -10,7 +10,8 @@ defineProps<{
 <template>
   <div class="cf-usage-meter">
     <div class="cf-usage-heading">
-      <span>{{ label }}</span
+      <span
+        ><slot name="label">{{ label }}</slot></span
       ><CfSkeleton
         v-if="loading"
         class="h-4 w-20"

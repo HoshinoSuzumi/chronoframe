@@ -208,7 +208,7 @@ const date = (time: number) => new Date(time).toLocaleString(locale.value)
             :key="key"
             class="cf-quota-card"
           >
-            <h3>{{ $t('cloud.billing.' + key) }}</h3>
+            <h3><CloudQuotaLabel :quota="key" /></h3>
             <p v-if="used(key) === null">
               <strong>{{
                 allowance(key, data.plan.limits[key], locale)

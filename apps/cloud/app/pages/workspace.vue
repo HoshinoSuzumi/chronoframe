@@ -79,7 +79,8 @@ useSeoMeta({
           data ? allowance(key, data.plan.limits[key], locale) : undefined
         "
         :progress="data ? progress(key) : undefined"
-      />
+        ><template #label><CloudQuotaLabel :quota="key" /></template
+      ></CfUsageMeter>
     </section>
     <section
       class="cf-workspace-sites"
