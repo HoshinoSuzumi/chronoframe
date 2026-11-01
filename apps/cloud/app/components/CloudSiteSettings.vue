@@ -325,20 +325,9 @@ async function save() {
             <p class="cf-field-hint">
               {{ $t('cloud.presentation.layoutHelp') }}
             </p>
-            <URadioGroup
+            <CloudHeaderLayoutChoice
               v-model="homeHeaderLayout"
               :disabled="busy"
-              :aria-label="$t('cloud.presentation.layout')"
-              orientation="horizontal"
-              variant="card"
-              size="sm"
-              :ui="presentationChoiceUi"
-              :items="
-                (['embedded', 'fixed'] as const).map((value) => ({
-                  value,
-                  label: $t('cloud.presentation.' + value),
-                }))
-              "
             />
           </section>
           <section class="cf-gallery-presentation">

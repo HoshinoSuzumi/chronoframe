@@ -132,6 +132,7 @@
       "createASite": "创建站点",
       "startWithAPrivateDraftYourAddressIsReserved": "创建后站点会立即发布，无需先上传照片或配置存储。",
       "siteName": "站点名称",
+      "siteNamePlaceholder": "例如：我的摄影集",
       "siteAddress": "站点地址",
       "use340LowercaseLettersNumbersOrHyphensSome": "使用 3–40 个小写字母、数字或连字符。部分地址已被保留，此处暂不支持修改地址。",
       "viewSite": "访问站点",

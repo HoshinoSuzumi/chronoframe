@@ -132,6 +132,7 @@
       "createASite": "Create a site",
       "startWithAPrivateDraftYourAddressIsReserved": "Your site is published immediately after creation. No photographs or storage setup are required.",
       "siteName": "Site name",
+      "siteNamePlaceholder": "My photo gallery",
       "siteAddress": "Site address",
       "use340LowercaseLettersNumbersOrHyphensSome": "Use 3–40 lowercase letters, numbers or hyphens. Some addresses are reserved. The address cannot be changed here.",
       "viewSite": "View site",

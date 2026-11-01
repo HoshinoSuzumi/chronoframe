@@ -121,22 +121,37 @@ async function create() {
       @submit.prevent="create"
     >
       <div class="cf-create-fields">
-        <div class="cf-field">
-          <label for="site-name">{{ $t('cloud.messages.siteName') }}</label
-          ><CfInput
+        <UFormField
+          :label="$t('cloud.messages.siteName')"
+          name="name"
+        >
+          <CfInput
             id="site-name"
             v-model="name"
+            :placeholder="$t('cloud.messages.siteNamePlaceholder')"
             required
             maxlength="80"
             autocomplete="off"
             :disabled="busy"
           />
-        </div>
-        <div class="cf-field">
-          <label for="site-slug">{{ $t('cloud.messages.siteAddress') }}</label
-          ><CfInput
+        </UFormField>
+        <UFormField
+          :label="$t('cloud.messages.siteAddress')"
+          :help="
+            $t('cloud.messages.use340LowercaseLettersNumbersOrHyphensSome')
+          "
+          name="slug"
+        >
+          <UInput
             id="site-slug"
             v-model="slug"
+            class="w-full"
+            :style="{ '--site-domain-width': `${siteBaseDomain.length + 1}ch` }"
+            :ui="{
+              base: 'font-mono pe-[calc(var(--site-domain-width)+1.5rem)]',
+              trailing: 'pointer-events-none',
+            }"
+            placeholder="your-site"
             required
             minlength="3"
             maxlength="40"
@@ -144,23 +159,16 @@ async function create() {
             autocomplete="off"
             autocapitalize="none"
             spellcheck="false"
-            aria-describedby="site-address-help site-address-preview"
             :disabled="busy"
-          />
-        </div>
+          >
+            <template #trailing>
+              <span class="font-mono text-sm text-muted"
+                >.{{ siteBaseDomain }}</span
+              >
+            </template>
+          </UInput>
+        </UFormField>
       </div>
-      <p
-        id="site-address-preview"
-        class="cf-address-preview"
-      >
-        {{ slug || 'your-site' }}.{{ siteBaseDomain }}
-      </p>
-      <p
-        id="site-address-help"
-        class="cf-field-hint"
-      >
-        {{ $t('cloud.messages.use340LowercaseLettersNumbersOrHyphensSome') }}
-      </p>
       <p
         v-if="error"
         role="alert"
