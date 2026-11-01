@@ -607,6 +607,7 @@
       "checksPaused": "Checks are paused for this domain."
     },
     "storageAllowance": {
+      "used": "Used storage",
       "description": "Storage is provided by your plan. Empty galleries are published automatically; uploading photographs is optional.",
       "fileLimit": "Up to {size} MiB per photograph, including its paired video.",
       "noCustomDomains": "Your plan does not include custom domains. Your default site address remains available.",

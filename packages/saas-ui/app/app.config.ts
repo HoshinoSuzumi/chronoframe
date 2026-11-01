@@ -50,7 +50,26 @@ export default defineAppConfig({
       },
     },
     textarea: { slots: { root: 'w-full', base: 'pointer-coarse:text-base' } },
-    button: { slots: { base: 'cursor-pointer rounded-md font-medium' } },
+    button: {
+      slots: {
+        base: 'cursor-pointer rounded-md font-medium whitespace-nowrap shrink-0',
+      },
+      variants: {
+        size: {
+          md: {
+            base: 'min-h-[var(--cf-control-height)] pointer-coarse:min-h-11',
+          },
+        },
+      },
+      compoundVariants: [
+        {
+          size: 'md',
+          square: true,
+          class:
+            'size-[var(--cf-control-height)] pointer-coarse:size-11 p-0 justify-center',
+        },
+      ],
+    },
     modal: {
       variants: { overlay: { true: { overlay: 'bg-black/55' } } },
       slots: {
@@ -75,11 +94,15 @@ export default defineAppConfig({
       variants: {
         variant: {
           outline: {
-            root: 'bg-elevated ring ring-default divide-y divide-default',
+            root: 'bg-[var(--card)] ring ring-default divide-y divide-default',
+          },
+          soft: { root: 'bg-[var(--card)] divide-y divide-default' },
+          subtle: {
+            root: 'bg-[var(--card)] ring ring-default divide-y divide-default',
           },
           // Compatibility for inherited gallery/console surfaces, without glass.
           glassmorphism: {
-            root: 'bg-default ring ring-default rounded-lg divide-y divide-default',
+            root: 'bg-[var(--card)] ring ring-default rounded-lg divide-y divide-default',
             header: 'p-4 font-medium',
             body: 'p-4',
             footer: 'p-4',

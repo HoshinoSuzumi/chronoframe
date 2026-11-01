@@ -120,6 +120,7 @@ await load()
           type="button"
           variant="secondary"
           :disabled="loading"
+          size="icon"
           :aria-label="tr('Refresh', '刷新')"
           :title="tr('Refresh', '刷新')"
           @click="refreshRange"

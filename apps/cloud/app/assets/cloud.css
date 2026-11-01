@@ -1462,6 +1462,8 @@
   max-width: 100%;
 }
 .cf-library-thumb {
+  padding: 0;
+  flex-shrink: 0;
   display: flex;
   width: 52px;
   height: 44px;
@@ -2618,23 +2620,6 @@ a.cf-domain-address:hover {
   margin-bottom: 8px;
 }
 
-.cf-icon-picker {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: fit-content;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 8px 14px;
-  background: var(--secondary);
-  color: var(--foreground);
-  cursor: pointer;
-  font-size: 13px;
-  font-weight: 500;
-}
-.cf-icon-picker:focus-within {
-  outline: 2px solid var(--primary);
-}
 .cf-site-address-block {
   background: var(--card);
   border: 1px solid var(--border);
@@ -2670,25 +2655,6 @@ a.cf-domain-address:hover {
 }
 .cf-icon-field {
   position: relative;
-}
-.cf-site-settings input.cf-icon-file {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  border: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip-path: inset(50%);
-  white-space: nowrap;
-}
-.cf-field:has(.cf-icon-file:focus-visible) .cf-icon-picker {
-  outline: 2px solid var(--primary);
-  outline-offset: 2px;
-}
-.cf-field:has(.cf-icon-file:disabled) .cf-icon-picker {
-  opacity: 0.5;
-  pointer-events: none;
 }
 @media (max-width: 560px) {
   .cf-storage-option {
