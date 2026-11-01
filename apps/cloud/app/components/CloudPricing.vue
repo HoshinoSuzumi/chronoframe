@@ -739,8 +739,7 @@ async function submitCheckout(plan: any, mode?: string) {
               v-for="key in BILLING_LIMITS"
               :key="key"
             >
-              <span>{{ $t('cloud.billing.' + key) }}</span
-              ><strong
+              <CloudQuotaLabel :quota="key" /><strong
                 ><UIcon
                   v-if="key === 'byos'"
                   :name="
