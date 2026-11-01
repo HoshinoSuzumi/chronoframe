@@ -1,7 +1,11 @@
 <script setup lang="ts">
-import type { AnalyticsRow } from '../../../platform/src/analytics'
+type PageLink = { title: string; href?: string; kind?: string }
+type PageRow = {
+  label: string
+  page?: { site: PageLink; segments: PageLink[] }
+}
 const props = defineProps<{
-  row: AnalyticsRow
+  row: PageRow
   admin?: boolean
   zh?: boolean
 }>()

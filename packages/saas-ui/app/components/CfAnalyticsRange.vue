@@ -401,7 +401,7 @@ function changeZone() {
   border-top: 1px solid var(--border);
   background: var(--background);
 }
-.cf-range-footer select {
+.cf-range-footer .cf-select {
   width: auto;
   max-width: 70%;
   font-size: 12px;

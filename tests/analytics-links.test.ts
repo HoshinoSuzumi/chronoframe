@@ -88,14 +88,14 @@ test('album photo tracking records only a validated photo identity and never arb
   )
 })
 
-test('popular photo ranking includes every current photo, merges path variants in SQL and ranks across chunks', async () => {
+test('popular ranking queries one page for a large current catalog and merges path variants', async () => {
   const ids = Array.from(
-    { length: 205 },
+    { length: 2005 },
     (_, i) => `12345678-1234-1234-1234-${String(i).padStart(12, '0')}`,
   )
   let requests = 0
   const rows = await popularPhotos(
-    { accountId: 'a'.repeat(32), token: 'test', dataset: 'visits' },
+    { accountId: 'a'.repeat(32), token: 'test', dataset: 'large_catalog' },
     {
       kind: 'site',
       workspaceId: 7,
@@ -111,23 +111,63 @@ test('popular photo ranking includes every current photo, merges path variants i
       assert.match(sql, /blob4 = '1'/)
       assert.match(sql, /substring\(blob6, length\(blob6\) - 35, 36\)/)
       assert.match(sql, /startsWith\(blob6, '\/albums\/'\)/)
-      const group = [...sql.matchAll(/'(12345678[^']+)'/g)].map((m) => m[1]!)
+      assert.doesNotMatch(sql, / IN \(/)
+      assert.match(sql, /LIMIT 200 OFFSET 0/)
       return Response.json({
-        data: group
-          .map((id) => ({
+        data: ids
+          .slice(0, 200)
+          .map((id, i) => ({
             label: id,
-            pv: Number(id.slice(-12)) + 1,
+            pv: 200 - i,
             uv: 1,
             sampleInterval: 1,
-          }))
-          .sort((a, b) => b.pv - a.pv)
-          .slice(0, 5),
+          })),
       })
     },
   )
-  assert.equal(requests, 3)
+  assert.equal(requests, 1)
   assert.deepEqual(
     rows.map((r) => r.pv),
-    [205, 204, 203, 202, 201],
+    [200, 199, 198, 197, 196],
   )
+})
+test('popular ranking pages past deleted photos and stops at exhausted results', async () => {
+  const id = (i: number) =>
+    `12345678-1234-1234-1234-${String(i).padStart(12, '0')}`
+  for (const [dataset, count] of [
+    ['deleted_first', 5],
+    ['exhausted', 2],
+  ] as const) {
+    let requests = 0
+    const rows = await popularPhotos(
+      { accountId: 'a'.repeat(32), token: 'test', dataset },
+      {
+        kind: 'site',
+        workspaceId: 7,
+        siteId: 1,
+        from: '2026-11-01',
+        to: '2026-11-01',
+      },
+      Array.from({ length: count }, (_, i) => id(200 + i)),
+      async (_url, opts) => {
+        const sql = String(opts?.body),
+          offset = requests++ * 200
+        assert.ok(sql.includes(`OFFSET ${offset}`))
+        const length = offset === 0 ? 200 : count
+        return Response.json({
+          data: Array.from({ length }, (_, i) => ({
+            label: id(offset + i),
+            pv: 1000 - offset - i,
+            uv: 1,
+            sampleInterval: 1,
+          })),
+        })
+      },
+    )
+    assert.equal(requests, 2)
+    assert.deepEqual(
+      rows.map((r) => r.label),
+      Array.from({ length: count }, (_, i) => `/${id(200 + i)}`),
+    )
+  }
 })

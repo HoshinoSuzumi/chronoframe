@@ -805,6 +805,10 @@
       "cancelCheckoutSummary": "核验并取消这次尚未付款的结账。"
     },
     "dashboard": {
+      "mostPopular": "最受欢迎",
+      "popularRange": "近 7 天 · 访问量",
+      "popularError": "暂时无法加载访问排名。",
+      "popularEmpty": "近 7 天暂无照片访问记录。",
       "workspaceOverview": "工作区概览",
       "workspaceHelp": "在这里查看站点、资源用量与下一步操作。",
       "resources": "工作区资源",

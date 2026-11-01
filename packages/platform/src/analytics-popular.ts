@@ -5,7 +5,7 @@ import {
   type AnalyticsRow,
 } from './analytics.ts'
 const cache = new Map<string, { until: number; rows: AnalyticsRow[] }>()
-/** Query every current photo, merging root and album views before ranking. Each chunk's top five suffices for the global top five. */
+/** Rank merged root/album photo views, paging past deleted photos only when necessary. */
 export async function popularPhotos(
   config: AnalyticsConfig,
   filter: AnalyticsFilter,
@@ -27,53 +27,48 @@ export async function popularPhotos(
     '',
   )
   const photo = 'substring(blob6, length(blob6) - 35, 36)'
-  const chunks: string[][] = []
-  for (let i = 0; i < valid.length; i += 100)
-    chunks.push(valid.slice(i, i + 100))
+  const current = new Set(valid)
   const rows: AnalyticsRow[] = []
-  let cursor = 0
-  await Promise.all(
-    Array.from({ length: Math.min(4, chunks.length) }, async () => {
-      while (cursor < chunks.length) {
-        const chunk = chunks[cursor++]!
-        const sql =
-          base.replace('SELECT ', `SELECT ${photo} AS label, `) +
-          ` AND (length(blob6) = 37 OR startsWith(blob6, '/albums/')) AND ${photo} IN (${chunk.map((id) => `'${id}'`).join(',')}) GROUP BY label ORDER BY pv DESC, label LIMIT 5 FORMAT JSON`
-        const response = await fetcher(
-          `https://api.cloudflare.com/client/v4/accounts/${config.accountId}/analytics_engine/sql`,
-          {
-            method: 'POST',
-            headers: { Authorization: `Bearer ${config.token}` },
-            body: sql,
-            signal: AbortSignal.timeout(10000),
-          },
+  const pageSize = 200
+  for (let offset = 0; current.size && rows.length < 5; offset += pageSize) {
+    const sql =
+      base.replace('SELECT ', `SELECT ${photo} AS label, `) +
+      ` AND (length(blob6) = 37 OR startsWith(blob6, '/albums/')) GROUP BY label ORDER BY pv DESC, label LIMIT ${pageSize} OFFSET ${offset} FORMAT JSON`
+    const response = await fetcher(
+      `https://api.cloudflare.com/client/v4/accounts/${config.accountId}/analytics_engine/sql`,
+      {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${config.token}` },
+        body: sql,
+        signal: AbortSignal.timeout(10000),
+      },
+    )
+    if (!response.ok) {
+      const message = await response.text()
+      if (
+        response.status === 400 &&
+        /(?:unknown table|table[^\n]*(?:does not exist|not found))/i.test(
+          message,
         )
-        if (!response.ok) {
-          const message = await response.text()
-          if (
-            response.status === 400 &&
-            /(?:unknown table|table[^\n]*(?:does not exist|not found))/i.test(
-              message,
-            )
-          )
-            continue
-          throw new Error('analytics_query_failed')
-        }
-        const data = (await response.json()) as {
-          data?: Record<string, unknown>[]
-        }
-        if (!Array.isArray(data.data)) throw new Error('analytics_query_failed')
-        for (const row of data.data)
-          if (chunk.includes(String(row.label)))
-            rows.push({
-              label: `/${row.label}`,
-              pv: Number(row.pv) || 0,
-              uv: Number(row.uv) || 0,
-              sampleInterval: Number(row.sampleInterval) || 1,
-            })
-      }
-    }),
-  )
+      )
+        break
+      throw new Error('analytics_query_failed')
+    }
+    const data = (await response.json()) as { data?: Record<string, unknown>[] }
+    if (!Array.isArray(data.data)) throw new Error('analytics_query_failed')
+    for (const row of data.data) {
+      const id = String(row.label)
+      if (current.delete(id))
+        rows.push({
+          label: `/${id}`,
+          pv: Number(row.pv ?? 0),
+          uv: Number(row.uv ?? 0),
+          sampleInterval: Number(row.sampleInterval ?? 1),
+        })
+    }
+    if (data.data.length < pageSize) break
+  }
+
   if (
     rows.some(
       (row) =>

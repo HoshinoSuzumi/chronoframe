@@ -165,9 +165,9 @@ const {
           class="cf-dashboard-panel"
         >
           <div class="cf-dashboard-section-heading">
-            <h2>{{ zh ? '最受欢迎' : 'Most popular' }}</h2>
+            <h2>{{ $t('cloud.dashboard.mostPopular') }}</h2>
             <span class="cf-field-hint">{{
-              zh ? '近 7 天 · 访问量' : 'Past 7 days · Page views'
+              $t('cloud.dashboard.popularRange')
             }}</span>
           </div>
           <CfSkeleton
@@ -179,16 +179,14 @@ const {
             role="status"
           >
             <p class="cf-field-hint">
-              {{
-                zh ? '暂时无法加载访问排名。' : 'Unable to load popular photos.'
-              }}
+              {{ $t('cloud.dashboard.popularError') }}
             </p>
             <button
               type="button"
               class="cf-text-link"
               @click="refreshPopular()"
             >
-              {{ zh ? '重试' : 'Retry' }}
+              {{ $t('cloud.messages.retry') }}
             </button>
           </div>
           <ol
@@ -212,11 +210,7 @@ const {
             v-else
             class="cf-field-hint"
           >
-            {{
-              zh
-                ? '近 7 天暂无照片访问记录。'
-                : 'No photo views in the past 7 days.'
-            }}
+            {{ $t('cloud.dashboard.popularEmpty') }}
           </p>
         </CfCard>
         <CfCard class="cf-dashboard-panel"
