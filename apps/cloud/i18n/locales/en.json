@@ -806,7 +806,7 @@
     },
     "dashboard": {
       "mostPopular": "Most popular",
-      "popularRange": "Past 7 days · Page views",
+      "popularRange": "Past 7 days Page views",
       "popularError": "Unable to load popular photos.",
       "popularEmpty": "No photo views in the past 7 days.",
       "workspaceOverview": "Workspace overview",

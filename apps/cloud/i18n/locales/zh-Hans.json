@@ -806,7 +806,7 @@
     },
     "dashboard": {
       "mostPopular": "最受欢迎",
-      "popularRange": "近 7 天 · 访问量",
+      "popularRange": "近 7 天 访问量",
       "popularError": "暂时无法加载访问排名。",
       "popularEmpty": "近 7 天暂无照片访问记录。",
       "workspaceOverview": "工作区概览",
