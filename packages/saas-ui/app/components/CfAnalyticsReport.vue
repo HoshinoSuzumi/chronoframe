@@ -1,5 +1,5 @@
 <script setup lang="ts">
-const props = defineProps<{ report: any; zh?: boolean }>()
+const props = defineProps<{ report: any; zh?: boolean; admin?: boolean }>()
 const tr = (en: string, zh: string) => (props.zh ? zh : en)
 const format = (value: number) =>
   new Intl.NumberFormat(props.zh ? 'zh-CN' : 'en-US', {
@@ -8,14 +8,14 @@ const format = (value: number) =>
 const groups = computed(() => [
   ['pages', tr('Pages', '页面')],
   ['sources', tr('Referrer hosts', '来源域名')],
-  ['countries', tr('Countries / regions', '国家／地区')],
+  ['countries', tr('Countries / regions', '国家/地区')],
   ['sites', tr('Site hosts', '站点域名')],
   ['browsers', tr('Browsers', '浏览器')],
   ['devices', tr('Devices', '设备')],
   ['systems', tr('Operating systems', '操作系统')],
   [
     'campaigns',
-    tr('Campaigns (source / medium / campaign)', '推广来源／媒介／活动'),
+    tr('Campaigns (source / medium / campaign)', '推广来源/媒介/活动'),
   ],
 ])
 </script>
@@ -113,7 +113,7 @@ const groups = computed(() => [
           <tbody>
             <tr
               v-for="row in report.daily"
-              :key="row.label"
+              :key="row.page?.key ?? row.label"
             >
               <td>{{ row.label }}</td>
               <td>{{ format(row.pv) }}</td>
@@ -155,9 +155,16 @@ const groups = computed(() => [
             <tbody>
               <tr
                 v-for="row in report[key]"
-                :key="row.label"
+                :key="row.page?.key ?? row.label"
               >
-                <td>{{ row.label }}</td>
+                <td>
+                  <CfAnalyticsPageLink
+                    v-if="key === 'pages'"
+                    :row="row"
+                    :admin="admin"
+                    :zh="zh"
+                  /><template v-else>{{ row.label }}</template>
+                </td>
                 <td>{{ format(row.pv) }}</td>
                 <td>{{ format(row.uv) }}</td>
               </tr>
@@ -193,8 +200,10 @@ const groups = computed(() => [
   margin-bottom: 16px;
 }
 .cf-analytics-table-wrap {
-  overflow-x: auto;
+  overflow: auto;
   max-height: 360px;
+  margin: 0 -20px -20px;
+  padding: 0 20px 20px;
 }
 .cf-analytics-table {
   width: 100%;

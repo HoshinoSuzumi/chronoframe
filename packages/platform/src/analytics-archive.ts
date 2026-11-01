@@ -1,3 +1,4 @@
+import { PAGE_LABEL_SQL } from './analytics-pages.ts'
 import type { PlatformD1 } from './index.ts'
 import { allRows } from './subscriptions.ts'
 import {
@@ -13,7 +14,7 @@ const DAY = 86400000,
   DETAIL_LIMIT = 5000
 const dimensions = [
   ['summary', "''"],
-  ['pages', 'blob6'],
+  ['pages', PAGE_LABEL_SQL],
   ['sources', 'blob8'],
   ['countries', 'blob9'],
   ['browsers', 'blob10'],

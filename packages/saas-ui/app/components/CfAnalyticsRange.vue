@@ -291,7 +291,7 @@ function changeZone() {
           {{ error }}
         </p>
         <footer class="cf-range-footer">
-          <select
+          <CfSelect
             v-model="utc"
             class="cf-input"
             :aria-label="tr('Time zone', '时区')"
@@ -302,7 +302,7 @@ function changeZone() {
                 zoneLabel === 'UTC' ? tr('Local time', '本地时间') : zoneLabel
               }}
             </option>
-            <option :value="true">UTC</option></select
+            <option :value="true">UTC</option></CfSelect
           ><CfButton
             type="button"
             @click="apply"

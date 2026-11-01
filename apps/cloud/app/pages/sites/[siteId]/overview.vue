@@ -67,6 +67,33 @@ const actions = computed(() => [
     help: t('cloud.dashboard.storageHelp'),
   },
 ])
+const { locale } = useI18n()
+const zh = computed(() => locale.value.startsWith('zh'))
+const billing = useWorkspaceBilling()
+const analyticsEnabled = computed(
+  () =>
+    !!billing.data.value?.plan?.analytics &&
+    billing.selected.value === site.value.workspaceId,
+)
+const requestFetch = useRequestFetch()
+const {
+  data: popular,
+  status: popularStatus,
+  error: popularError,
+  refresh: refreshPopular,
+} = useAsyncData(
+  () => `site-popular-${site.value.siteId}-${analyticsEnabled.value}`,
+  async () =>
+    analyticsEnabled.value
+      ? requestFetch<any>('/api/analytics/report', {
+          query: {
+            workspaceId: site.value.workspaceId,
+            siteId: site.value.siteId,
+            popular: '1',
+          },
+        })
+      : null,
+)
 </script>
 <template>
   <div class="cf-dashboard cf-site-dashboard">
@@ -132,68 +159,144 @@ const actions = computed(() => [
             /></NuxtLink></div
         ></CfCard>
       </div>
-      <CfCard class="cf-dashboard-panel"
-        ><h2>{{ $t('cloud.dashboard.siteHealth') }}</h2>
-        <CfSkeleton
-          v-if="!ready && !loadError"
-          class="h-32 w-full"
-        />
-        <ul
-          v-else-if="ready"
-          class="cf-site-health-list"
+      <div class="min-w-0 space-y-4">
+        <CfCard
+          v-if="analyticsEnabled"
+          class="cf-dashboard-panel"
         >
-          <li>
-            <component
-              :is="failed ? CircleAlert : CheckCircle2"
-              :size="17"
-            />
-            <div>
-              <strong>{{
-                $t(
-                  failed
-                    ? 'cloud.dashboard.needsAttention'
-                    : 'cloud.dashboard.processingHealthy',
-                )
-              }}</strong>
-              <p>
-                {{
-                  failed
-                    ? $t('cloud.dashboard.failedJobs', { count: failed })
-                    : $t('cloud.dashboard.processingHelp')
-                }}
-              </p>
-            </div>
-          </li>
-          <li>
-            <HardDrive :size="17" />
-            <div>
-              <strong>{{
-                $t(
-                  connection?.pool_id
-                    ? 'cloud.messages.platformStorage'
-                    : connection
-                      ? 'cloud.billing.byos'
-                      : 'cloud.dashboard.storagePending',
-                )
-              }}</strong>
-              <p>{{ $t('cloud.dashboard.storageHelp') }}</p>
-            </div>
-          </li>
-          <li>
-            <Globe :size="17" />
-            <div>
-              <strong>{{
-                $t(
-                  site.published
-                    ? 'cloud.messages.publishedGallery'
-                    : 'cloud.messages.privateDraft',
-                )
-              }}</strong>
-              <p>{{ $t('cloud.dashboard.publicationHelp') }}</p>
-            </div>
-          </li>
-        </ul></CfCard
-      >
+          <div class="cf-dashboard-section-heading">
+            <h2>{{ zh ? '最受欢迎' : 'Most popular' }}</h2>
+            <span class="cf-field-hint">{{
+              zh ? '近 7 天 · 访问量' : 'Past 7 days · Page views'
+            }}</span>
+          </div>
+          <CfSkeleton
+            v-if="popularStatus === 'pending'"
+            class="h-32 w-full"
+          />
+          <div
+            v-else-if="popularError"
+            role="status"
+          >
+            <p class="cf-field-hint">
+              {{
+                zh ? '暂时无法加载访问排名。' : 'Unable to load popular photos.'
+              }}
+            </p>
+            <button
+              type="button"
+              class="cf-text-link"
+              @click="refreshPopular()"
+            >
+              {{ zh ? '重试' : 'Retry' }}
+            </button>
+          </div>
+          <ol
+            v-else-if="popular?.pages?.length"
+            class="cf-popular-photos"
+          >
+            <li
+              v-for="(photo, index) in popular.pages"
+              :key="photo.label"
+            >
+              <span class="cf-field-hint">{{ index + 1 }}</span
+              ><CfAnalyticsPageLink
+                :row="photo"
+                :zh="zh"
+              /><span class="cf-field-hint">{{
+                photo.pv.toLocaleString()
+              }}</span>
+            </li>
+          </ol>
+          <p
+            v-else
+            class="cf-field-hint"
+          >
+            {{
+              zh
+                ? '近 7 天暂无照片访问记录。'
+                : 'No photo views in the past 7 days.'
+            }}
+          </p>
+        </CfCard>
+        <CfCard class="cf-dashboard-panel"
+          ><h2>{{ $t('cloud.dashboard.siteHealth') }}</h2>
+          <CfSkeleton
+            v-if="!ready && !loadError"
+            class="h-32 w-full"
+          />
+          <ul
+            v-else-if="ready"
+            class="cf-site-health-list"
+          >
+            <li>
+              <component
+                :is="failed ? CircleAlert : CheckCircle2"
+                :size="17"
+              />
+              <div>
+                <strong>{{
+                  $t(
+                    failed
+                      ? 'cloud.dashboard.needsAttention'
+                      : 'cloud.dashboard.processingHealthy',
+                  )
+                }}</strong>
+                <p>
+                  {{
+                    failed
+                      ? $t('cloud.dashboard.failedJobs', { count: failed })
+                      : $t('cloud.dashboard.processingHelp')
+                  }}
+                </p>
+              </div>
+            </li>
+            <li>
+              <HardDrive :size="17" />
+              <div>
+                <strong>{{
+                  $t(
+                    connection?.pool_id
+                      ? 'cloud.messages.platformStorage'
+                      : connection
+                        ? 'cloud.billing.byos'
+                        : 'cloud.dashboard.storagePending',
+                  )
+                }}</strong>
+                <p>{{ $t('cloud.dashboard.storageHelp') }}</p>
+              </div>
+            </li>
+            <li>
+              <Globe :size="17" />
+              <div>
+                <strong>{{
+                  $t(
+                    site.published
+                      ? 'cloud.messages.publishedGallery'
+                      : 'cloud.messages.privateDraft',
+                  )
+                }}</strong>
+                <p>{{ $t('cloud.dashboard.publicationHelp') }}</p>
+              </div>
+            </li>
+          </ul></CfCard
+        >
+      </div>
     </div>
   </div>
 </template>
+
+<style scoped>
+.cf-popular-photos {
+  display: grid;
+  gap: 12px;
+  margin-top: 16px;
+}
+.cf-popular-photos li {
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: baseline;
+  overflow-wrap: anywhere;
+}
+</style>
