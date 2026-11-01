@@ -214,7 +214,7 @@ function photoName(job: Job) {
                   "
                   class="mt-0.5 size-4 shrink-0"
                   :class="{
-                    'animate-spin': job.state === 'running',
+                    'animate-spin': active(job),
                     'text-error': job.state === 'failed',
                   }"
                 />
