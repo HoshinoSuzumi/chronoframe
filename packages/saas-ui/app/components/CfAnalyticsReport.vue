@@ -18,9 +18,6 @@ const groups = computed(() => [
     tr('Campaigns (source / medium / campaign)', '推广来源／媒介／活动'),
   ],
 ])
-const peak = computed(() =>
-  Math.max(1, ...props.report.daily.map((r: any) => r.pv)),
-)
 </script>
 <template>
   <div class="cf-analytics-report">
@@ -54,6 +51,25 @@ const peak = computed(() =>
         )
       }}
     </p>
+    <p
+      v-if="report.archived"
+      class="cf-field-hint"
+    >
+      {{ tr('Daily archive range: ', '按日归档统计范围：') }}{{ report.from }} —
+      {{ report.to }} (UTC) · {{ tr('Collection started: ', '采集起始日：')
+      }}{{ report.coverageStart }}
+    </p>
+    <p
+      v-if="report.archiveGap || report.detailsLimited"
+      role="status"
+    >
+      {{
+        tr(
+          'Some historical detail may be incomplete. Recent traffic is still included; contact support to check archive coverage.',
+          '部分历史明细可能不完整。近期访问仍计入，请联系支持检查归档覆盖情况。',
+        )
+      }}
+    </p>
     <div class="cf-analytics-metrics">
       <CfStatCard
         label="PV"
@@ -72,33 +88,26 @@ const peak = computed(() =>
       />
     </div>
     <CfCard class="cf-analytics-card">
-      <h2>{{ tr('Daily traffic', '每日访问趋势') }}</h2>
-      <div
-        v-if="report.daily.length"
-        class="cf-analytics-trend"
-        role="img"
-        :aria-label="
-          tr(
-            'Daily page views; exact figures are in the table below.',
-            '每日浏览量，具体数值见下表。',
-          )
-        "
-      >
-        <div
-          v-for="row in report.daily"
-          :key="row.label"
-          :title="`${row.label}: ${format(row.pv)} PV · ${format(row.uv)} UV`"
-          class="cf-analytics-bar"
-          :style="{ height: `${Math.max(1, (row.pv / peak) * 100)}%` }"
-        ></div>
-      </div>
+      <h2>{{ tr('Traffic trend', '访问趋势') }}</h2>
+      <ClientOnly>
+        <LazyCfTrafficChart
+          :bucket="report.bucket"
+          :rows="report.daily"
+          :from="report.from"
+          :to="report.to"
+          :zh="zh"
+        />
+        <template #fallback
+          ><CfSkeleton class="cf-traffic-chart-placeholder"
+        /></template>
+      </ClientOnly>
       <div class="cf-analytics-table-wrap">
         <table class="cf-analytics-table">
           <thead>
             <tr>
-              <th>{{ tr('Date (UTC)', '日期（UTC）') }}</th>
+              <th>{{ tr('Time (UTC)', '时间（UTC）') }}</th>
               <th>PV</th>
-              <th>{{ tr('Daily UV', '每日 UV') }}</th>
+              <th>UV</th>
             </tr>
           </thead>
           <tbody>
@@ -206,19 +215,9 @@ const peak = computed(() =>
   text-align: right;
   white-space: nowrap;
 }
-.cf-analytics-trend {
-  display: flex;
-  align-items: flex-end;
-  gap: 4px;
-  height: 140px;
-  padding: 8px 0;
-  margin-bottom: 16px;
-}
-.cf-analytics-bar {
-  flex: 1;
-  background: var(--ui-primary);
-  border-radius: 3px 3px 0 0;
-  min-width: 2px;
+.cf-traffic-chart-placeholder {
+  width: 100%;
+  height: 260px;
 }
 @media (max-width: 700px) {
   .cf-analytics-metrics,

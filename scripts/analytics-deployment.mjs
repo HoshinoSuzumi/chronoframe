@@ -14,6 +14,10 @@ export function configureAnalyticsDeployment(config, environment, env) {
     )
   const preview = environment === 'staging'
   const target = preview ? (config.previews ??= {}) : config
+  if (config.name === 'chronoframe-cloud' && !preview)
+    target.triggers = {
+      crons: [...new Set([...(target.triggers?.crons ?? []), '* * * * *'])],
+    }
   target.analytics_engine_datasets = [
     {
       binding: 'VISIT_ANALYTICS',

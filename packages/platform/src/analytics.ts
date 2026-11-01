@@ -12,32 +12,75 @@ export type AnalyticsConfig = {
 export type AnalyticsFilter = {
   from: string
   to: string
+  allTime?: boolean
   kind?: VisitScope['kind']
   workspaceId?: number
   siteId?: number
+}
+export type AnalyticsBucket = 'minute' | 'hour' | 'day'
+/** Legacy date-only ranges include the end date; timestamp ranges are half-open. */
+export function analyticsWindow(from: string, to: string) {
+  const pattern = /^\d{4}-\d{2}-\d{2}(?:T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z)?$/
+  if (!pattern.test(from) || !pattern.test(to))
+    throw new Error('invalid_analytics_range')
+  const start = Date.parse(from),
+    end = Date.parse(to) + (to.length === 10 ? 86400000 : 0)
+  if (
+    !Number.isFinite(start) ||
+    !Number.isFinite(end) ||
+    start >= end ||
+    end - start > 367 * 86400000
+  )
+    throw new Error('invalid_analytics_range')
+  if (
+    new Date(start).toISOString().slice(0, 10) !== from.slice(0, 10) ||
+    new Date(Date.parse(to)).toISOString().slice(0, 10) !== to.slice(0, 10)
+  )
+    throw new Error('invalid_analytics_range')
+  const bucket: AnalyticsBucket =
+    end - start <= 3600000
+      ? 'minute'
+      : end - start <= 2 * 86400000
+        ? 'hour'
+        : 'day'
+  return { start, end, bucket }
 }
 export function analyticsFilter(
   input: Record<string, unknown>,
   now = Date.now(),
 ): AnalyticsFilter {
+  const allTime = [true, '1', 'true'].includes(
+    input.allTime as boolean | string,
+  )
   const today = new Date(now).toISOString().slice(0, 10)
   const from = String(
-    input.from ?? new Date(now - 6 * 86400000).toISOString().slice(0, 10),
+    (!allTime ? input.from : undefined) ??
+      new Date(now - 6 * 86400000).toISOString().slice(0, 10),
   )
-  const to = String(input.to ?? today)
-  const date = (s: string) =>
-    /^\d{4}-\d{2}-\d{2}$/.test(s) &&
-    new Date(s).toISOString().slice(0, 10) === s
+  const to = String((!allTime ? input.to : undefined) ?? today)
+  const window = analyticsWindow(from, to)
   if (
-    !date(from) ||
-    !date(to) ||
-    from > to ||
-    to > today ||
-    Date.parse(to) - Date.parse(from) > 30 * 86400000 ||
-    Date.parse(from) < Date.parse(today) - 89 * 86400000
+    window.start <
+      Date.UTC(
+        new Date(now).getUTCFullYear() - 1,
+        new Date(now).getUTCMonth(),
+        new Date(now).getUTCDate(),
+      ) ||
+    (to.length === 10 ? to > today : window.end > now + 60000)
   )
     throw new Error('invalid_analytics_range')
   const filter: AnalyticsFilter = { from, to }
+  if (input.allTime !== undefined) {
+    if (
+      ![true, false, '1', '0', 'true', 'false'].includes(
+        input.allTime as boolean | string,
+      )
+    )
+      throw new Error('invalid_analytics_range')
+    filter.allTime = [true, '1', 'true'].includes(
+      input.allTime as boolean | string,
+    )
+  }
   if (input.kind !== undefined && input.kind !== '') {
     if (!['website', 'portal', 'site'].includes(String(input.kind)))
       throw new Error('invalid_analytics_kind')
@@ -175,18 +218,25 @@ export async function visitorHash(
     b.toString(16).padStart(2, '0'),
   ).join('')
 }
-export function analyticsQueries(dataset: string, filter: AnalyticsFilter) {
+export function analyticsQueries(
+  dataset: string,
+  filter: AnalyticsFilter,
+  options: { bucket?: AnalyticsBucket; limit?: number } = {},
+) {
   if (!/^[a-z][a-z0-9_]{0,63}$/.test(dataset))
     throw new Error('invalid_analytics_dataset')
-  if (
-    !/^\d{4}-\d{2}-\d{2}$/.test(filter.from) ||
-    !/^\d{4}-\d{2}-\d{2}$/.test(filter.to) ||
-    (filter.kind && !['website', 'portal', 'site'].includes(filter.kind))
-  )
+  const window = analyticsWindow(filter.from, filter.to)
+  if (options.bucket) window.bucket = options.bucket
+  const limit = options.limit ?? 20
+  if (!Number.isInteger(limit) || limit < 1 || limit > 5000)
+    throw new Error('invalid_analytics_limit')
+  if (filter.kind && !['website', 'portal', 'site'].includes(filter.kind))
     throw new Error('invalid_analytics_filter')
+  const sqlDate = (value: number) =>
+    new Date(value).toISOString().slice(0, 19).replace('T', ' ')
   const terms = [
-    `timestamp >= toDateTime('${filter.from} 00:00:00')`,
-    `timestamp < toDateTime('${new Date(Date.parse(filter.to) + 86400000).toISOString().slice(0, 10)} 00:00:00')`,
+    `timestamp >= toDateTime('${sqlDate(window.start)}')`,
+    `timestamp < toDateTime('${sqlDate(window.end)}')`,
     `blob1 = 'v1'`,
   ]
   if (filter.kind) terms.push(`blob2 = '${filter.kind}'`)
@@ -205,10 +255,10 @@ export function analyticsQueries(dataset: string, filter: AnalyticsFilter) {
   const metrics =
     'SUM(_sample_interval) AS pv, COUNT(DISTINCT blob7) AS uv, MAX(_sample_interval) AS sampleInterval'
   const group = (column: string) =>
-    `SELECT ${column} AS label, ${metrics} FROM ${where} GROUP BY label ORDER BY pv DESC LIMIT 20 FORMAT JSON`
+    `SELECT ${column} AS label, ${metrics} FROM ${where} GROUP BY label ORDER BY pv DESC LIMIT ${limit} FORMAT JSON`
   return {
     summary: `SELECT ${metrics} FROM ${where} FORMAT JSON`,
-    daily: `SELECT toDate(timestamp) AS label, ${metrics} FROM ${where} GROUP BY label ORDER BY label FORMAT JSON`,
+    daily: `SELECT ${window.bucket === 'minute' ? 'toStartOfMinute(timestamp)' : window.bucket === 'hour' ? 'toStartOfHour(timestamp)' : 'toDate(timestamp)'} AS label, ${metrics} FROM ${where} GROUP BY label ORDER BY label FORMAT JSON`,
     pages: group('blob6'),
     sources: group('blob8'),
     countries: group('blob9'),
@@ -226,6 +276,11 @@ export type AnalyticsRow = {
   sampleInterval: number
 }
 export type AnalyticsReport = {
+  archived?: boolean
+  coverageStart?: string
+  detailsLimited?: boolean
+  archiveGap?: boolean
+  bucket: AnalyticsBucket
   from: string
   to: string
   summary: AnalyticsRow
@@ -245,11 +300,17 @@ export async function queryAnalytics(
   config: AnalyticsConfig,
   filter: AnalyticsFilter,
   fetcher: typeof fetch = fetch,
+  options: { bucket?: AnalyticsBucket; limit?: number } = {},
 ): Promise<AnalyticsReport> {
   if (!/^[a-f0-9]{32}$/.test(config.accountId) || !config.token)
     throw new Error('analytics_not_configured')
-  const queries = analyticsQueries(config.dataset, filter)
-  const cacheKey = JSON.stringify([config.accountId, config.dataset, filter])
+  const queries = analyticsQueries(config.dataset, filter, options)
+  const cacheKey = JSON.stringify([
+    config.accountId,
+    config.dataset,
+    filter,
+    options,
+  ])
   const cached = cache.get(cacheKey)
   if (cached && cached.until > Date.now()) return cached.value
   let notInitialized = false
@@ -303,6 +364,7 @@ export async function queryAnalytics(
   const data = Object.fromEntries(result)
   const report = {
     ...data,
+    bucket: options.bucket ?? analyticsWindow(filter.from, filter.to).bucket,
     from: filter.from,
     to: filter.to,
     summary: data.summary?.[0] ?? {

@@ -113,8 +113,7 @@ test('analytics filters reject SQL injection and unbounded queries; every query 
   }
   for (const input of [
     { from: "2026-11-01' OR 1=1" },
-    { from: '2026-01-01' },
-    { from: '2026-09-01' },
+    { from: '2025-01-01' },
     { to: '2026-11-02' },
     { workspaceId: '1 OR 1=1' },
     { siteId: '-1' },
@@ -375,4 +374,31 @@ test('browser tracker counts initial entry and path navigation once, skips query
   navigator.globalPrivacyControl = true
   hooks['page:finish']!()
   assert.equal(events.length, 3)
+})
+
+test('relative minute/hour ranges preserve exact UTC boundaries and support a year or all time', () => {
+  const now = Date.parse('2026-11-01T12:00:00Z')
+  const short = analyticsFilter(
+    { from: '2026-11-01T11:30:00.000Z', to: '2026-11-01T12:00:00.000Z' },
+    now,
+  )
+  const query = analyticsQueries('chronoframe_visits', short)
+  assert.match(query.summary, /2026-11-01 11:30:00/)
+  assert.match(query.summary, /2026-11-01 12:00:00/)
+  assert.match(query.daily, /toStartOfMinute/)
+  const hours = analyticsFilter(
+    { from: '2026-10-31T12:00:00.000Z', to: '2026-11-01T12:00:00.000Z' },
+    now,
+  )
+  assert.match(
+    analyticsQueries('chronoframe_visits', hours).daily,
+    /toStartOfHour/,
+  )
+  assert.doesNotThrow(() =>
+    analyticsFilter({ from: '2025-11-01', to: '2026-11-01' }, now),
+  )
+  assert.equal(analyticsFilter({ allTime: '1' }, now).allTime, true)
+  assert.throws(() =>
+    analyticsFilter({ from: '2025-10-31', to: '2026-11-01' }, now),
+  )
 })

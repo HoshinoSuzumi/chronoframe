@@ -1,0 +1,99 @@
+import test from 'node:test'
+import assert from 'node:assert/strict'
+import { createRequire } from 'node:module'
+import { pathToFileURL } from 'node:url'
+import {
+  trafficDays,
+  trafficChartOption,
+} from '../packages/saas-ui/app/utils/traffic-chart.ts'
+import {
+  relativeRange,
+  rangeInput,
+  inputInstant,
+  ANALYTICS_PRESETS,
+} from '../packages/saas-ui/app/utils/analytics-range.ts'
+test('sparse day/minute/hour reports preserve the selected UTC axis and their real values', () => {
+  const days = trafficDays(
+    [{ label: '2026-11-01', pv: 2, uv: 1 }],
+    '2026-10-26',
+    '2026-11-01',
+  )
+  assert.equal(days.length, 7)
+  assert.equal(days[0]!.pv, 0)
+  assert.equal(days[6]!.pv, 2)
+  const minutes = trafficDays(
+    [{ label: '2026-11-01 11:31:00', pv: 3, uv: 1 }],
+    '2026-11-01T11:30:00Z',
+    '2026-11-01T12:00:00Z',
+    'minute',
+  )
+  assert.equal(minutes.length, 30)
+  assert.equal(minutes[1]!.pv, 3)
+  assert.equal(minutes[1]!.label, '2026-11-01T11:31:00Z')
+  assert.equal(trafficDays([], '2025-11-01', '2026-11-01').length, 366)
+})
+test('relative presets and local/UTC inputs retain actual instants across timezone changes', () => {
+  assert.deepEqual(
+    ANALYTICS_PRESETS,
+    [1800, 3600, 21600, 43200, 86400, 604800, 2592000],
+  )
+  const range = relativeRange(1800, Date.parse('2026-11-01T12:00:39Z'))
+  assert.equal(range.from, '2026-11-01T11:30:00.000Z')
+  assert.equal(range.to, '2026-11-01T12:00:00.000Z')
+  const previous = process.env.TZ
+  try {
+    process.env.TZ = 'Asia/Hong_Kong'
+    const instant = '2026-11-01T04:00:00.000Z'
+    assert.equal(rangeInput(instant, false), '2026-11-01T12:00')
+    assert.equal(inputInstant('2026-11-01T12:00', false), Date.parse(instant))
+    assert.equal(
+      inputInstant('2026-11-01T12:00', true),
+      Date.parse('2026-11-01T12:00Z'),
+    )
+  } finally {
+    if (previous === undefined) delete process.env.TZ
+    else process.env.TZ = previous
+  }
+})
+test('the registered ECharts modules render a single-day report as a valid colored SVG without browser globals', async () => {
+  const require = createRequire(
+    new URL('../packages/saas-ui/package.json', import.meta.url),
+  )
+  const load = (name: string) =>
+    import(pathToFileURL(require.resolve(name)).href)
+  const [core, charts, components, renderers] = await Promise.all(
+    [
+      'echarts/core',
+      'echarts/charts',
+      'echarts/components',
+      'echarts/renderers',
+    ].map(load),
+  )
+  core.use([
+    charts.LineChart,
+    components.GridComponent,
+    components.LegendComponent,
+    components.TooltipComponent,
+    components.AriaComponent,
+    renderers.SVGRenderer,
+  ])
+  const chart = core.init(null, undefined, {
+    renderer: 'svg',
+    ssr: true,
+    width: 900,
+    height: 260,
+  })
+  try {
+    chart.setOption(
+      trafficChartOption([{ label: '2026-11-01', pv: 2, uv: 1 }], false, true),
+    )
+    const svg = chart.renderToSVGString()
+    assert.match(svg, /<svg/)
+    assert.match(svg, /PV/)
+    assert.match(svg, /#3b82f6/)
+    assert.match(svg, /#0d9488/)
+    assert.ok(!svg.includes('NaN'))
+  } finally {
+    chart.dispose()
+  }
+})
