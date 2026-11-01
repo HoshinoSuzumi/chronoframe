@@ -16,6 +16,7 @@ export interface AccountAuthConfig {
   portalOrigin: string
   secret: string
   emailFrom: string
+  socialProviders?: BetterAuthOptions['socialProviders']
 }
 /** Request-scoped Workers/D1 auth. Existing platform user IDs and memberships stay intact. */
 export function accountAuthOptions(
@@ -50,6 +51,7 @@ export function accountAuthOptions(
   }
   return {
     appName: 'ChronoFrame Cloud',
+    socialProviders: config.socialProviders ?? {},
     databaseHooks: {
       user: {
         create: {
@@ -154,6 +156,12 @@ export function accountAuthOptions(
     },
     account: {
       modelName: 'platform_accounts',
+      encryptOAuthTokens: true,
+      accountLinking: {
+        enabled: true,
+        requireLocalEmailVerified: true,
+        trustedProviders: [],
+      },
       fields: {
         userId: 'user_id',
         accountId: 'account_id',

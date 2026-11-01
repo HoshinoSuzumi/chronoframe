@@ -10,9 +10,9 @@ export default definePlatformHandler(async (event) => {
   const session = await platformSession(event, config.secret)
   if (!session) return { authenticated: false, user: null }
   const profile = await platformDatabase(event)
-    .prepare('SELECT name,email FROM platform_users WHERE id=?')
+    .prepare('SELECT name,email,image FROM platform_users WHERE id=?')
     .bind(session.userId)
-    .first<{ name: string | null; email: string }>()
+    .first<{ name: string | null; email: string; image: string | null }>()
   return profile
     ? { authenticated: true, user: { id: session.userId, ...profile } }
     : { authenticated: false, user: null }

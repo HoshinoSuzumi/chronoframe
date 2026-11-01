@@ -5,10 +5,19 @@ import {
   type DispatchContext,
 } from 'better-auth/api'
 
+import { isSocialLoginProvider } from '../../../../packages/contracts/src/social-login.ts'
+
 /** Reuse Better Auth's challenge/session lifecycle for verified email-code logins too. */
 export function accountFactors(options: Parameters<typeof twoFactor>[0]) {
   const emailEntry = (path: string | undefined) =>
     ['/sign-in/email-otp', '/email-otp/verify-email'].includes(path ?? '')
+  const socialEntry = (ctx: {
+    path?: string
+    params?: Record<string, unknown>
+  }) =>
+    (ctx.path === '/callback/:id' && isSocialLoginProvider(ctx.params?.id)) ||
+    (!!ctx.path?.startsWith('/callback/') &&
+      isSocialLoginProvider(ctx.path.slice('/callback/'.length)))
   const plugin = twoFactor(options)
   const credentialGate = plugin.hooks.after[0]!
   return {
@@ -58,7 +67,10 @@ export function accountFactors(options: Parameters<typeof twoFactor>[0]) {
       after: [
         {
           matcher: (ctx: Parameters<typeof credentialGate.matcher>[0]) =>
-            credentialGate.matcher(ctx) || emailEntry(ctx.path),
+            ctx.path === '/sign-in/social' ||
+            credentialGate.matcher(ctx) ||
+            emailEntry(ctx.path) ||
+            socialEntry(ctx),
           handler: Object.assign(
             async (input: Parameters<typeof credentialGate.handler>[0]) => {
               const ctx = input as typeof input & DispatchContext
@@ -74,7 +86,39 @@ export function accountFactors(options: Parameters<typeof twoFactor>[0]) {
                 if (!authenticator?.verified)
                   return { response: undefined, headers: undefined }
               }
-              return credentialGate.handler(ctx)
+              const callback = ctx.context.responseHeaders?.get('location')
+              const result = await credentialGate.handler(ctx)
+              const challenge = result.response as
+                | { twoFactorRedirect?: boolean; twoFactorMethods?: string[] }
+                | undefined
+              if (socialEntry(ctx) && challenge?.twoFactorRedirect) {
+                const target = new URL('/signin', ctx.context.baseURL)
+                target.searchParams.set(
+                  'second',
+                  challenge.twoFactorMethods?.includes('totp')
+                    ? 'totp'
+                    : 'email',
+                )
+                if (callback) {
+                  const destination = new URL(callback, ctx.context.baseURL)
+                  if (destination.origin === target.origin)
+                    target.searchParams.set(
+                      'next',
+                      destination.pathname +
+                        destination.search +
+                        destination.hash,
+                    )
+                }
+                const headers = new Headers(result.headers)
+                headers.set('location', target.toString())
+                return {
+                  response: new APIError('FOUND', undefined, {
+                    location: target.toString(),
+                  }),
+                  headers,
+                }
+              }
+              return result
             },
             { options: credentialGate.handler.options },
           ),

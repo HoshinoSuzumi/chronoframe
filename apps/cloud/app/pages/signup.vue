@@ -14,7 +14,7 @@ const email = ref(''),
   sent = ref(false),
   busy = ref(false),
   error = ref('')
-const codeInput = ref<{ $el: HTMLInputElement }>()
+const codeInput = ref<{ focus(): void }>()
 async function submit() {
   busy.value = true
   error.value = ''
@@ -43,7 +43,7 @@ async function submit() {
     busy.value = false
     if (sent.value) {
       await nextTick()
-      codeInput.value?.$el?.focus()
+      codeInput.value?.focus()
     }
   }
 }
@@ -73,7 +73,10 @@ async function resend() {
           : $t('cloud.messages.aHomeForYourPhotographs')
       }}
     </h1>
-    <template v-if="status?.enabled"
+    <template
+      v-if="
+        status?.enabled && (status.emailEnabled || status.providers?.length)
+      "
       ><p>
         {{
           sent
@@ -82,6 +85,7 @@ async function resend() {
         }}
       </p>
       <form
+        v-if="status.emailEnabled"
         @submit.prevent="submit"
         :aria-busy="busy"
       >
@@ -151,7 +155,20 @@ async function resend() {
           }}</CfButton
         >
       </form>
-      <p class="cf-auth-hint">
+      <div
+        v-if="!sent && status.providers?.length"
+        class="cf-auth-alternatives"
+      >
+        <USeparator
+          v-if="status.emailEnabled"
+          :label="$t('cloud.account.orContinueWith')"
+        />
+        <CloudSocialLogin
+          v-model:busy="busy"
+          :providers="status.providers"
+        />
+      </div>
+      <p class="cf-auth-footer">
         {{ $t('cloud.messages.alreadyHaveAnAccount')
         }}<NuxtLink
           :to="authLink('/signin')"

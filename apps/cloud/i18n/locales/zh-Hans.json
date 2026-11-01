@@ -1,5 +1,17 @@
 {
   "cloud": {
+    "account": {
+      "nickname": "昵称",
+      "nicknamePlaceholder": "填写你的昵称",
+      "avatar": "头像",
+      "avatarHelp": "支持 PNG、JPEG 或 WebP，最大 2 MiB，将裁剪为正方形。",
+      "chooseAvatar": "选择图片",
+      "removeAvatar": "移除图片",
+      "profileSaved": "个人资料已更新。",
+      "profileFailed": "保存失败，请填写不超过 80 个字符的昵称并使用支持的图片。",
+      "socialLoginFailed": "第三方登录失败，请重试，或使用邮箱验证码验证邮箱后登录。",
+      "orContinueWith": "或使用其他方式"
+    },
     "home": {
       "trialRibbon": "14 天试用",
   "selfHostedTitle": "自部署",

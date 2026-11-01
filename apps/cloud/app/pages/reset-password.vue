@@ -97,7 +97,7 @@ async function submit() {
       }}</NuxtLink
       >.
     </p>
-    <p class="cf-auth-hint">
+    <p class="cf-auth-footer">
       <NuxtLink
         to="/signin"
         class="cf-text-link"

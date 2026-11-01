@@ -1,5 +1,17 @@
 {
   "cloud": {
+    "account": {
+      "nickname": "Nickname",
+      "nicknamePlaceholder": "Your display name",
+      "avatar": "Avatar",
+      "avatarHelp": "PNG, JPEG or WebP, up to 2 MiB. Images are cropped to a square.",
+      "chooseAvatar": "Choose image",
+      "removeAvatar": "Remove image",
+      "profileSaved": "Profile updated.",
+      "profileFailed": "Unable to save your profile. Use a nickname of up to 80 characters and a supported image.",
+      "socialLoginFailed": "Unable to sign in with this provider. Try again, or verify your email using an email code.",
+      "orContinueWith": "Or continue with"
+    },
     "home": {
       "trialRibbon": "14-day trial",
   "selfHostedTitle": "Self-hosted",

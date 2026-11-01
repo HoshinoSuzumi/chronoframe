@@ -14,13 +14,18 @@ import {
 } from '../../../shared/platform/runtime'
 import { createEmailCodeCrypto } from '../../../shared/platform/crypto'
 import { cloudAccount } from './cloud-account'
-import { accountRouteAllowed } from './account-routes'
+import { isSocialLoginProvider } from '../../../../packages/contracts/src/social-login'
+import { accountRouteAllowed, socialLoginCallback } from './account-routes'
 
 /** Keep credentials on the canonical origin and share account-level limits across Workers. */
 export async function forwardAccountRequest(event: H3Event, rewrite?: string) {
   const config = useRuntimeConfig(event).platform
-  platformPortalOrigin(event, config.portalOrigin, event.method !== 'GET')
   const path = rewrite ? '/api/auth' + rewrite : getRequestURL(event).pathname
+  platformPortalOrigin(
+    event,
+    config.portalOrigin,
+    event.method !== 'GET' && !socialLoginCallback(path),
+  )
   if (!accountRouteAllowed(path, event.method))
     throw createError({ statusCode: 404 })
   if (Number(getHeader(event, 'content-length')) > 32 * 1024)
@@ -28,6 +33,20 @@ export async function forwardAccountRequest(event: H3Event, rewrite?: string) {
   const raw = event.method === 'GET' ? undefined : await readRawBody(event)
   if (raw && new TextEncoder().encode(raw).length > 32 * 1024)
     throw createError({ statusCode: 400 })
+  if (path === '/api/auth/sign-in/social') {
+    let body: Record<string, unknown>
+    try {
+      body = JSON.parse(raw || '{}')
+    } catch {
+      throw createError({ statusCode: 400 })
+    }
+    if (
+      !body ||
+      !isSocialLoginProvider(body.provider) ||
+      body.idToken !== undefined
+    )
+      throw createError({ statusCode: 400 })
+  }
   if (
     raw &&
     [
@@ -70,7 +89,7 @@ export async function forwardAccountRequest(event: H3Event, rewrite?: string) {
     headers: new Headers(getRequestHeaders(event) as HeadersInit),
     ...(raw ? { body: raw } : {}),
   })
-  const response = await cloudAccount(event).handler(request)
+  const response = await (await cloudAccount(event)).handler(request)
   response.headers.set('cache-control', 'no-store')
   response.headers.set('referrer-policy', 'no-referrer')
   return sendWebResponse(event, response)
