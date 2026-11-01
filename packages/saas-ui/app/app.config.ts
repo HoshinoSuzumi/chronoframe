@@ -1,7 +1,7 @@
 // Select and searchable SelectMenu share the upload drawer's neutral surface.
 // Explicit radii avoid Nuxt UI scaling --ui-radius into oversized menu corners.
 const selectSlots = {
-  base: 'min-h-[var(--cf-control-height)] rounded-[6px]',
+  base: 'min-h-[var(--cf-control-height)] pointer-coarse:min-h-11 pointer-coarse:text-base rounded-[6px]',
   content: 'bg-default text-default ring ring-default rounded-[6px] shadow-lg',
   item: 'before:rounded-[4px] data-highlighted:not-data-disabled:before:bg-muted',
 }
@@ -23,7 +23,7 @@ export default defineAppConfig({
       slots: {
         content:
           'bg-default text-default ring ring-default rounded-[6px] shadow-lg',
-        item: 'before:rounded-[4px]',
+        item: 'before:rounded-[4px] data-highlighted:text-highlighted data-[state=open]:text-highlighted data-highlighted:before:bg-muted data-[state=open]:before:bg-muted',
       },
       variants: {
         active: {
