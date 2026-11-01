@@ -20,6 +20,7 @@ const section = computed(() => {
     domains: 'cloud.messages.domains',
     storage: 'cloud.messages.storage',
     sites: 'cloud.messages.sites',
+    analytics: 'cloud.billing.analytics',
     plan: 'cloud.dashboard.planUsage',
     redeem: 'cloud.billing.redeem',
     account: 'cloud.messages.accountSecurity',

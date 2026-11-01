@@ -202,6 +202,7 @@ export async function workspaceBilling(
       id: plan.id,
       name: plan.name,
       limits: plan.limits,
+      analytics: plan.analytics,
       byosLimits: byos.limits,
     },
     subscription: current.subscription,
