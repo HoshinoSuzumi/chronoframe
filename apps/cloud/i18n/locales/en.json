@@ -664,7 +664,7 @@
       "fileBytes": "Maximum file size",
       "sites": "Sites",
       "photos": "Photographs",
-      "analytics": "Site analytics",
+      "analytics": "Analytics",
       "photosQuotaHelp": "Photo usage includes uploaded photographs and reserved slots for uploads that have been requested but are not yet complete. Reservations prevent concurrent uploads from exceeding your plan limit; they do not mean those uploads have completed.",
       "customDomains": "Custom domains",
       "byos": "Custom S3 storage",
@@ -805,6 +805,10 @@
       "cancelCheckoutSummary": "Verify and cancel this unpaid checkout."
     },
     "dashboard": {
+      "mostPopular": "Most popular",
+      "popularRange": "Past 7 days · Page views",
+      "popularError": "Unable to load popular photos.",
+      "popularEmpty": "No photo views in the past 7 days.",
       "workspaceOverview": "Workspace overview",
       "workspaceHelp": "Your galleries, resources and next steps in one place.",
       "resources": "Workspace resources",

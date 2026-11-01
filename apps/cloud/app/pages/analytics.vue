@@ -95,7 +95,7 @@ await load()
       >
         <label class="grid gap-2"
           >{{ tr('Site', '站点')
-          }}<select
+          }}<CfSelect
             v-model="siteId"
             @change="load"
             class="cf-input"
@@ -108,7 +108,7 @@ await load()
             >
               {{ site.name }}
             </option>
-          </select></label
+          </CfSelect></label
         >
         <CfAnalyticsRange
           v-model="range"

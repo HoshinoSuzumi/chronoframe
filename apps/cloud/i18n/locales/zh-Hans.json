@@ -664,7 +664,7 @@
       "fileBytes": "单文件上限",
       "sites": "站点数量",
       "photos": "照片数量",
-      "analytics": "站点分析",
+      "analytics": "分析",
       "photosQuotaHelp": "照片配额按已上传的照片与已申请上传但尚未完成的预留名额合计。预留名额用于防止并发上传超出套餐上限，不代表这些照片已上传完成。",
       "customDomains": "自定义域名",
       "byos": "自定义 S3 存储",
@@ -805,6 +805,10 @@
       "cancelCheckoutSummary": "核验并取消这次尚未付款的结账。"
     },
     "dashboard": {
+      "mostPopular": "最受欢迎",
+      "popularRange": "近 7 天 · 访问量",
+      "popularError": "暂时无法加载访问排名。",
+      "popularEmpty": "近 7 天暂无照片访问记录。",
       "workspaceOverview": "工作区概览",
       "workspaceHelp": "在这里查看站点、资源用量与下一步操作。",
       "resources": "工作区资源",

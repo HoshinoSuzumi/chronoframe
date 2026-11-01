@@ -1,3 +1,17 @@
+/** Only the album photo identity is retained; arbitrary query parameters never enter paths. */
+export function visitRoutePath(route: {
+  path: string
+  query: Record<string, unknown>
+}) {
+  const photo = route.query.photo
+  return /^\/albums\/[^/]+\/?$/.test(route.path) &&
+    typeof photo === 'string' &&
+    /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(
+      photo,
+    )
+    ? `${route.path.replace(/\/$/, '')}/${photo}`
+    : route.path
+}
 /** Explicit page views cover SSR entry and SPA navigation; assets and prefetches are excluded. */
 export function installVisitTracking(
   app: {
@@ -37,4 +51,5 @@ export function installVisitTracking(
   }
   app.hook('app:mounted', track)
   app.hook('page:finish', track)
+  return track
 }

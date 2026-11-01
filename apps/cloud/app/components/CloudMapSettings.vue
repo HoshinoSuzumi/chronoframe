@@ -56,7 +56,7 @@ async function save() {
         {{
           t(
             'Use platform maps or your own Mapbox / MapTiler browser keys for this site. These keys and style URLs are public. Restrict them to your gallery domains; never enter a secret key.',
-            '此站点可使用平台地图，或配置自己的 Mapbox／MapTiler 浏览器公共密钥。密钥及样式地址会公开发送到浏览器，请限制允许的图库域名，切勿填写服务端密钥。',
+            '此站点可使用平台地图，或配置自己的 Mapbox/MapTiler 浏览器公共密钥。密钥及样式地址会公开发送到浏览器，请限制允许的图库域名，切勿填写服务端密钥。',
           )
         }}
       </p>

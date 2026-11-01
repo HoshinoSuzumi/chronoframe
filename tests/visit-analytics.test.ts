@@ -232,6 +232,7 @@ test('portal report checks membership, live entitlement and selected-site owners
     platformDatabase: () => db,
     workspaceEntitlements: async () => ({ analytics: entitled }),
     analyticsFilter,
+    resolveAnalyticsPages: async (_db: any, report: any) => report,
     analyticsReport: async (_: any, f: any) => {
       reports++
       return f

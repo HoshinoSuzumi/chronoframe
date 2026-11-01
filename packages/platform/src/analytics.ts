@@ -1,3 +1,4 @@
+import { PAGE_LABEL_SQL } from './analytics-pages.ts'
 /** Workers Analytics Engine visit schema v1. No raw IP, query strings or full user agent. */
 export type VisitScope = {
   kind: 'website' | 'portal' | 'site'
@@ -259,7 +260,7 @@ export function analyticsQueries(
   return {
     summary: `SELECT ${metrics} FROM ${where} FORMAT JSON`,
     daily: `SELECT ${window.bucket === 'minute' ? 'toStartOfMinute(timestamp)' : window.bucket === 'hour' ? 'toStartOfHour(timestamp)' : 'toDate(timestamp)'} AS label, ${metrics} FROM ${where} GROUP BY label ORDER BY label FORMAT JSON`,
-    pages: group('blob6'),
+    pages: group(PAGE_LABEL_SQL),
     sources: group('blob8'),
     countries: group('blob9'),
     browsers: group('blob10'),
@@ -270,6 +271,7 @@ export function analyticsQueries(
   }
 }
 export type AnalyticsRow = {
+  page?: import('./analytics-pages.ts').AnalyticsPage
   label: string
   pv: number
   uv: number

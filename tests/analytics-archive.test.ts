@@ -47,7 +47,8 @@ test('daily archive resumes failures, publishes complete snapshots atomically, a
       if (sql.includes('MIN(timestamp)'))
         return new Response(JSON.stringify({ data: [{ day: '2026-10-28' }] }))
       if (sql.includes('AS workspaceId')) {
-        if (sql.includes('blob6 AS label')) pageSql = sql
+        if (sql.includes("format('{}|{}|{}',blob4,blob5,blob6) AS label"))
+          pageSql = sql
         if (fail && sql.includes('blob9 AS label')) {
           fail = false
           return new Response('Temporary failure', { status: 503 })
@@ -55,7 +56,7 @@ test('daily archive resumes failures, publishes complete snapshots atomically, a
         const match = sql.includes("timestamp>=toDateTime('2026-10-28")
         const label = sql.includes("'' AS label")
           ? ''
-          : sql.includes('blob6 AS label')
+          : sql.includes("format('{}|{}|{}',blob4,blob5,blob6) AS label")
             ? '/'
             : 'example'
         return new Response(
@@ -82,7 +83,7 @@ test('daily archive resumes failures, publishes complete snapshots atomically, a
             {
               label: sql.includes('toDate(timestamp) AS label')
                 ? '2026-11-01'
-                : sql.includes('blob6 AS label')
+                : sql.includes("format('{}|{}|{}',blob4,blob5,blob6) AS label")
                   ? '/'
                   : '',
               pv: 2,
@@ -287,10 +288,18 @@ test('archive pages keep the top labels independently per workspace and site', a
       '2026-10-28 12:00:00',
       1,
     )
+    sqlite.exec(
+      "ALTER TABLE archive_fixture ADD COLUMN blob5 TEXT DEFAULT 'site.example'",
+    )
+    sqlite.function('format', { varargs: true }, (pattern, ...values) => {
+      let i = 0
+      return String(pattern).replace(/\{\}/g, () => String(values[i++]))
+    })
     const offsets: number[] = []
     const fetcher: typeof fetch = async (_url, opts) => {
       const sql = String(opts?.body)
-      if (!sql.includes('blob6 AS label')) return Response.json({ data: [] })
+      if (!sql.includes("format('{}|{}|{}',blob4,blob5,blob6) AS label"))
+        return Response.json({ data: [] })
       assert.doesNotMatch(sql, /FROM \(/)
       offsets.push(Number(/OFFSET (\d+)/.exec(sql)![1]))
       return Response.json({
@@ -317,12 +326,14 @@ test('archive pages keep the top labels independently per workspace and site', a
         .all()
     ).results as any[]
     assert.equal(rows.length, 5002)
-    assert.ok(rows.some((r) => r.label === 'label-5000'))
-    assert.ok(!rows.some((r) => r.label === 'label-4999'))
+    assert.ok(rows.some((r) => r.label.endsWith('|label-5000')))
+    assert.ok(!rows.some((r) => r.label.endsWith('|label-4999')))
     assert.ok(
       rows.some(
         (r) =>
-          r.workspace_id === 1 && r.site_id === 12 && r.label === 'other-site',
+          r.workspace_id === 1 &&
+          r.site_id === 12 &&
+          r.label.endsWith('|other-site'),
       ),
     )
     assert.ok(
@@ -330,7 +341,7 @@ test('archive pages keep the top labels independently per workspace and site', a
         (r) =>
           r.workspace_id === 2 &&
           r.site_id === 21 &&
-          r.label === 'other-workspace',
+          r.label.endsWith('|other-workspace'),
       ),
     )
     await db
@@ -354,13 +365,13 @@ test('archive pages keep the top labels independently per workspace and site', a
     ).results as any[]
     assert.equal(workspaceRows.length, 5001)
     assert.equal(workspaceRows.filter((r) => r.workspace_id === 1).length, 5000)
-    assert.ok(workspaceRows.some((r) => r.label === 'label-5000'))
+    assert.ok(workspaceRows.some((r) => r.label.endsWith('|label-5000')))
     assert.ok(
       workspaceRows.some(
         (r) =>
           r.workspace_id === 2 &&
           r.site_id === 0 &&
-          r.label === 'other-workspace',
+          r.label.endsWith('|other-workspace'),
       ),
     )
   } finally {
