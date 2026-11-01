@@ -742,6 +742,7 @@ async function submitCheckout(plan: any, mode?: string) {
                   :name="
                     plan.policy.analytics ? 'i-lucide-check' : 'i-lucide-minus'
                   "
+                  role="img"
                   :aria-label="
                     $t(
                       plan.policy.analytics

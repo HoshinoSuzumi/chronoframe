@@ -125,9 +125,6 @@ jobs:
       PLATFORM_DOMAIN_SITE_WORKER: ${{ vars.PLATFORM_DOMAIN_SITE_WORKER }}
       PLATFORM_DOMAIN_RESOURCE_LIMIT: ${{ vars.PLATFORM_DOMAIN_RESOURCE_LIMIT }}
       PLATFORM_DOMAIN_PROVIDER_TOKEN: ${{ secrets.PLATFORM_DOMAIN_PROVIDER_TOKEN }}
-      ANALYTICS_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-      ANALYTICS_API_TOKEN: ${{ secrets.ANALYTICS_API_TOKEN }}
-      ANALYTICS_VISITOR_SECRET: ${{ secrets.ANALYTICS_VISITOR_SECRET }}
     steps:
       - name: Checkout approved immutable source
         uses: actions/checkout@v7
@@ -175,6 +172,9 @@ jobs:
           NODE
       - name: Build and verify all selected Workers before deploying any
         env:
+          ANALYTICS_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          ANALYTICS_API_TOKEN: ${{ secrets.ANALYTICS_API_TOKEN }}
+          ANALYTICS_VISITOR_SECRET: ${{ secrets.ANALYTICS_VISITOR_SECRET }}
           ENTRIES: ${{ needs.plan.outputs.entries }}
           DEPLOY_ENVIRONMENT: ${{ inputs.environment }}
           PLATFORM_D1_DATABASE_ID: ${{ vars.PLATFORM_D1_DATABASE_ID }}
@@ -269,6 +269,8 @@ jobs:
           fi
       - name: Publish approved Workers
         env:
+          ANALYTICS_API_TOKEN: ${{ secrets.ANALYTICS_API_TOKEN }}
+          ANALYTICS_VISITOR_SECRET: ${{ secrets.ANALYTICS_VISITOR_SECRET }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           ENTRIES: ${{ needs.plan.outputs.entries }}

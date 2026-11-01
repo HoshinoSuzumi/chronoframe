@@ -1,6 +1,8 @@
 /** Explicit page views cover SSR entry and SPA navigation; assets and prefetches are excluded. */
 export function installVisitTracking(
-  app: { hook: (name: any, callback: () => void) => void },
+  app: {
+    hook: (name: 'app:mounted' | 'page:finish', callback: () => void) => void
+  },
   path: () => string,
 ) {
   let previous = ''
