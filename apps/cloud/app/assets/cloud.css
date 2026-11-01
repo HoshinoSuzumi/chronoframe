@@ -2117,33 +2117,52 @@ a.cf-domain-address:hover {
 }
 .cf-billing-toggle {
   display: inline-flex;
+  width: fit-content;
   margin: 18px 0 4px;
   padding: 4px;
   border: 1px solid var(--border);
-  border-radius: 10px;
-  background: var(--secondary);
-  gap: 4px;
+  border-radius: 8px;
+  background: var(--muted);
 }
-.cf-billing-toggle label {
-  position: relative;
-  padding: 8px 18px;
-  border-radius: 7px;
+.cf-billing-toggle [data-slot='fieldset'] {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 3px;
+}
+.cf-billing-toggle [data-slot='item'] {
+  align-items: center;
+  justify-content: center;
+  min-height: 34px;
+  padding: 7px 13px;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--muted-foreground);
+  box-shadow: none;
   cursor: pointer;
-  font-size: 13px;
 }
-.cf-billing-toggle label.active {
+.cf-billing-toggle [data-slot='label'] {
+  color: inherit;
+  font-size: 12px;
+  line-height: 20px;
+}
+.cf-billing-toggle [data-slot='item']:has([data-state='checked']) {
   background: var(--card);
-  box-shadow: 0 1px 4px #00000012;
   color: var(--foreground);
+  box-shadow: 0 1px 3px #0000000a;
 }
-.cf-billing-toggle input {
-  position: absolute;
-  inset: 0;
-  opacity: 0;
-  cursor: pointer;
-}
-.cf-billing-toggle label:has(input:focus-visible) {
+.cf-billing-toggle [data-slot='item']:has(:focus-visible) {
   outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+.cf-billing-toggle [data-slot='item']:has(:disabled) {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+@media (pointer: coarse) {
+  .cf-billing-toggle [data-slot='item'] {
+    min-height: 44px;
+  }
 }
 .cf-pricing-grid {
   display: grid;
@@ -2161,6 +2180,21 @@ a.cf-domain-address:hover {
   padding: 26px;
   border: 1px solid var(--border);
   border-radius: 14px;
+}
+.cf-pricing-card > .cf-button {
+  width: 100%;
+  min-height: var(--cf-control-height);
+  justify-content: center;
+  gap: 6px;
+  padding-inline: 12px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 550;
+}
+@media (pointer: coarse) {
+  .cf-pricing-card > .cf-button {
+    min-height: 44px;
+  }
 }
 .cf-pricing-card.is-featured {
   border-color: var(--primary);

@@ -435,10 +435,14 @@ async function submitCheckout(plan: any, mode?: string) {
           )
         }}
       </p>
-      <CfRadioGroup
+      <URadioGroup
         v-model="billingPeriod"
-        :label="$t('cloud.billing.interval')"
-        :options="
+        class="cf-billing-toggle"
+        orientation="horizontal"
+        variant="card"
+        indicator="hidden"
+        :aria-label="$t('cloud.billing.interval')"
+        :items="
           [1, 3].map((n) => ({
             value: String(n),
             label: $t('cloud.billing.' + (n === 1 ? 'monthly' : 'quarterly')),
