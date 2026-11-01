@@ -54,12 +54,8 @@ const socialErrors = computed(() => {
     }
   })
 })
-function socialLabel(value: string) {
-  try {
-    return resolveSocialPlatform(value.trim()).label
-  } catch {
-    return ''
-  }
+function socialIcon(value: string) {
+  return resolveSocialPlatform(value.trim()).icon
 }
 const iconError = ref(''),
   iconBusy = ref(false)
@@ -325,20 +321,9 @@ async function save() {
             <p class="cf-field-hint">
               {{ $t('cloud.presentation.layoutHelp') }}
             </p>
-            <URadioGroup
+            <CloudHeaderLayoutChoice
               v-model="homeHeaderLayout"
               :disabled="busy"
-              :aria-label="$t('cloud.presentation.layout')"
-              orientation="horizontal"
-              variant="card"
-              size="sm"
-              :ui="presentationChoiceUi"
-              :items="
-                (['embedded', 'fixed'] as const).map((value) => ({
-                  value,
-                  label: $t('cloud.presentation.' + value),
-                }))
-              "
             />
           </section>
           <section class="cf-gallery-presentation">
@@ -353,16 +338,18 @@ async function save() {
               :key="index"
               class="cf-field"
             >
-              <label :for="'social-link-' + index"
-                >{{ $t('cloud.presentation.slot', { number: index + 1 })
-                }}<small v-if="socialDraft[index] && !socialErrors[index]">
-                  · {{ socialLabel(socialDraft[index]!) }}</small
-                ></label
+              <label
+                :for="'social-link-' + index"
+                class="sr-only"
+                >{{
+                  $t('cloud.presentation.slot', { number: index + 1 })
+                }}</label
               >
               <div class="cf-social-input-row">
                 <CfInput
                   :id="'social-link-' + index"
                   v-model="socialDraft[index]"
+                  :leading-icon="socialIcon(socialDraft[index]!)"
                   type="url"
                   placeholder="https://…"
                   maxlength="2048"
