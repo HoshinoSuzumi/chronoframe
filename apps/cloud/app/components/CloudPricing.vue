@@ -630,13 +630,10 @@ async function submitCheckout(plan: any, mode?: string) {
           </p>
           <CfButton
             v-if="redeemOnly"
-            as-child
             :variant="plan.featured ? 'default' : 'secondary'"
-            ><NuxtLink
-              :to="links.redeem"
-              :external="!portal"
-              >{{ $t('cloud.billing.redeem') }}</NuxtLink
-            ></CfButton
+            :to="links.redeem"
+            :external="!portal"
+            >{{ $t('cloud.billing.redeem') }}</CfButton
           >
           <CfButton
             v-else-if="portal && !payment && payments?.error.value"
@@ -722,17 +719,14 @@ async function submitCheckout(plan: any, mode?: string) {
           >
           <CfButton
             v-else
-            as-child
             :variant="plan.featured ? 'default' : 'secondary'"
-            ><NuxtLink
-              :to="action(plan)"
-              external
-              >{{
-                amount(plan) === 0
-                  ? $t('cloud.billing.createAccount')
-                  : $t('cloud.billing.buyPlan', { plan: plan.name })
-              }}</NuxtLink
-            ></CfButton
+            :to="action(plan)"
+            external
+            >{{
+              amount(plan) === 0
+                ? $t('cloud.billing.createAccount')
+                : $t('cloud.billing.buyPlan', { plan: plan.name })
+            }}</CfButton
           >
           <ul class="cf-plan-features">
             <li>
@@ -880,20 +874,27 @@ async function submitCheckout(plan: any, mode?: string) {
               })
             }}
           </p>
-          <label v-if="checkoutPlan.id !== entitlement.planId"
-            ><input
-              v-model="startMode"
-              type="radio"
-              value="immediate"
-            />{{ $t('cloud.payments.startImmediately') }}</label
-          >
-          <label v-if="entitlement.expiresAt !== null"
-            ><input
-              v-model="startMode"
-              type="radio"
-              value="after_entitlement"
-            />{{ $t('cloud.payments.startAfterEntitlement') }}</label
-          >
+          <URadioGroup
+            v-model="startMode"
+            :items="[
+              ...(checkoutPlan.id !== entitlement.planId
+                ? [
+                    {
+                      value: 'immediate',
+                      label: $t('cloud.payments.startImmediately'),
+                    },
+                  ]
+                : []),
+              ...(entitlement.expiresAt !== null
+                ? [
+                    {
+                      value: 'after_entitlement',
+                      label: $t('cloud.payments.startAfterEntitlement'),
+                    },
+                  ]
+                : []),
+            ]"
+          />
           <p>
             {{
               $t(
@@ -904,10 +905,9 @@ async function submitCheckout(plan: any, mode?: string) {
             }}
           </p>
           <label v-if="startMode === 'immediate'"
-            ><input
-              v-model="replaceConfirmed"
-              type="checkbox"
-            />{{ $t('cloud.payments.replaceConsent') }}</label
+            ><CfCheckbox v-model="replaceConfirmed" />{{
+              $t('cloud.payments.replaceConsent')
+            }}</label
           >
           <p
             v-if="paymentError"

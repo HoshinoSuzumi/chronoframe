@@ -477,7 +477,9 @@ watch(
             (v) => (selection[row.original.id] = !!v)
           " /></template
       ><template #thumbnailUrl-cell="{ row }"
-        ><button
+        ><UButton
+          variant="ghost"
+          color="neutral"
           class="cf-library-thumb"
           :aria-label="
             $t('cloud.ui.previewNamed', { title: row.original.title })
@@ -493,13 +495,15 @@ watch(
             class="cf-live-label"
             >{{ $t('cloud.messages.live') }}</span
           >
-        </button></template
+        </UButton></template
       ><template #title-cell="{ row }"
-        ><button
+        ><UButton
+          variant="ghost"
+          color="neutral"
           class="cf-photo-title"
           @click="preview = row.original"
         >
-          {{ row.original.title }}</button
+          {{ row.original.title }}</UButton
         ><span class="cf-photo-dimensions"
           >{{ row.original.width }} × {{ row.original.height }}</span
         ></template
@@ -787,7 +791,7 @@ watch(
         <p>{{ livePhoto?.title }}</p>
         <label class="cf-field"
           >{{ processingText('MOV companion video', 'MOV 配对视频')
-          }}<input
+          }}<UInput
             type="file"
             accept=".mov,video/quicktime"
             :disabled="attaching"

@@ -93,7 +93,9 @@ function photoName(job: Job) {
         :aria-label="t('cloud.transfer.title')"
       >
         <header class="flex items-center gap-2 border-b border-default p-4">
-          <button
+          <UButton
+            variant="ghost"
+            color="neutral"
             class="flex min-w-0 flex-1 items-center gap-3 text-left"
             type="button"
             :aria-expanded="!collapsed"
@@ -116,7 +118,7 @@ function photoName(job: Job) {
               "
               class="size-4 shrink-0"
             />
-          </button>
+          </UButton>
           <UButton
             v-if="!hasActive"
             icon="i-lucide-x"

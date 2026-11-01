@@ -89,15 +89,13 @@ async function unpublish() {
     <div class="cf-site-page-actions">
       <CfButton
         v-if="context?.published && address"
-        as-child
         variant="secondary"
         size="sm"
-        ><a
-          :href="address"
-          target="_blank"
-          rel="noopener noreferrer"
-          >{{ $t('cloud.messages.viewSite') }}<ArrowUpRight :size="14" /></a
-      ></CfButton>
+        :href="address"
+        target="_blank"
+        rel="noopener noreferrer"
+        >{{ $t('cloud.messages.viewSite') }}<ArrowUpRight :size="14"
+      /></CfButton>
       <CfButton
         v-if="admin"
         :variant="context?.published ? 'ghost' : 'default'"
@@ -124,11 +122,13 @@ async function unpublish() {
       v-if="domainError"
       tone="error"
       >{{ $t('cloud.domains.loadFailed')
-      }}<CfButton
-        size="sm"
-        variant="secondary"
-        @click="refreshDomains()"
-        >{{ $t('cloud.messages.retry') }}</CfButton
+      }}<template #actions
+        ><CfButton
+          size="sm"
+          variant="secondary"
+          @click="refreshDomains()"
+          >{{ $t('cloud.messages.retry') }}</CfButton
+        ></template
       ></CfAlert
     >
     <div class="cf-site-address-block">

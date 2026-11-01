@@ -171,10 +171,10 @@ test('desktop and mobile marketing navigation reflect login presence and point a
   const vue = await import('vue')
   const { parse, compileScript } = await import('vue/compiler-sfc')
   const { renderToString } = await import('vue/server-renderer')
-  const passthrough = (
+  const popover = (
     _props: unknown,
-    context: { slots: { default?: () => unknown } },
-  ) => vue.h('div', context.slots.default?.())
+    context: { slots: { default?: () => unknown; content?: () => unknown } },
+  ) => vue.h('div', [context.slots.default?.(), context.slots.content?.()])
   const icon = () => vue.h('span')
   const filename = 'apps/cloud/app/components/CloudMarketingHeader.vue'
   const { descriptor } = parse(readFileSync(filename, 'utf8'), { filename })
@@ -205,19 +205,17 @@ test('desktop and mobile marketing navigation reflect login presence and point a
           ? vue
           : name === 'lucide-vue-next'
             ? { ArrowUpRight: icon, ArrowRight: icon, Menu: icon }
-            : {
-                PopoverRoot: passthrough,
-                PopoverContent: passthrough,
-                PopoverTrigger: passthrough,
-              },
+            : (() => {
+                throw new Error(`Unexpected import: ${name}`)
+              })(),
     })
     const app = vue.createSSRApp(exports.default)
     app.config.globalProperties.$t = (key: string) =>
       key === 'cloud.messages.visitConsole' ? '访问控制台' : key
     app.component('CloudBrand', icon)
     app.component('CloudThemeToggle', icon)
-    app.component('CfButton', passthrough)
-    app.component('NuxtLink', {
+    app.component('UPopover', popover)
+    const link = {
       props: ['to'],
       setup:
         (
@@ -225,8 +223,14 @@ test('desktop and mobile marketing navigation reflect login presence and point a
           context: { slots: { default?: () => unknown } },
         ) =>
         () =>
-          vue.h('a', { href: props.to }, context.slots.default?.()),
-    })
+          vue.h(
+            props.to ? 'a' : 'button',
+            { href: props.to },
+            context.slots.default?.(),
+          ),
+    }
+    app.component('CfButton', link)
+    app.component('NuxtLink', link)
     const html = await renderToString(app)
     if (authenticated) {
       assert.equal((html.match(/访问控制台/g) ?? []).length, 3)

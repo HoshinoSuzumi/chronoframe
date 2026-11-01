@@ -17,20 +17,21 @@ const emit = defineEmits<{ retry: [] }>()
       }}</strong>
       <p v-if="reason === 'upgrade'">{{ $t('cloud.dashboard.quotaHelp') }}</p>
     </div>
-    <CfButton
-      v-if="error"
-      variant="secondary"
-      size="sm"
-      @click="emit('retry')"
-      >{{ $t('cloud.messages.retry') }}</CfButton
-    ><CfButton
-      v-else-if="reason === 'upgrade'"
-      as-child
-      variant="secondary"
-      size="sm"
-      ><NuxtLink to="/account/plan#plans">{{
-        $t('cloud.dashboard.viewPlans')
-      }}</NuxtLink></CfButton
+    <template #actions
+      ><CfButton
+        v-if="error"
+        variant="secondary"
+        size="sm"
+        @click="emit('retry')"
+        >{{ $t('cloud.messages.retry') }}</CfButton
+      >
+      <CfButton
+        v-else-if="reason === 'upgrade'"
+        variant="secondary"
+        size="sm"
+        to="/account/plan#plans"
+        >{{ $t('cloud.dashboard.viewPlans') }}</CfButton
+      ></template
     ></CfAlert
   >
 </template>

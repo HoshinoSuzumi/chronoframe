@@ -263,7 +263,7 @@ async function save() {
               for="gallery-icon"
               class="cf-icon-picker"
               >{{ $t('cloud.ui.chooseIcon') }}</label
-            ><input
+            ><UInput
               class="cf-icon-file"
               id="gallery-icon"
               type="file"
@@ -295,48 +295,38 @@ async function save() {
             <p class="cf-field-hint">
               {{ $t('cloud.presentation.themeHelp') }}
             </p>
-            <fieldset :disabled="busy">
-              <legend class="sr-only">
-                {{ $t('cloud.presentation.theme') }}
-              </legend>
-              <label
-                v-for="option in ['light', 'dark', 'system'] as const"
-                :key="option"
-                class="cf-layout-option"
-              >
-                <input
-                  v-model="theme"
-                  type="radio"
-                  name="gallery-theme"
-                  :value="option"
-                />
-                <span>{{
-                  $t('cloud.presentation.themeOptions.' + option)
-                }}</span>
-              </label>
-            </fieldset>
+            <URadioGroup
+              v-model="theme"
+              :disabled="busy"
+              :aria-label="$t('cloud.presentation.theme')"
+              orientation="horizontal"
+              variant="card"
+              :items="
+                (['light', 'dark', 'system'] as const).map((value) => ({
+                  value,
+                  label: $t('cloud.presentation.themeOptions.' + value),
+                }))
+              "
+            />
           </section>
           <section class="cf-gallery-presentation">
             <h3>{{ $t('cloud.presentation.layout') }}</h3>
             <p class="cf-field-hint">
               {{ $t('cloud.presentation.layoutHelp') }}
             </p>
-            <fieldset :disabled="busy">
-              <legend class="sr-only">
-                {{ $t('cloud.presentation.layout') }}
-              </legend>
-              <label
-                v-for="option in ['embedded', 'fixed'] as const"
-                :key="option"
-                class="cf-layout-option"
-                ><input
-                  v-model="homeHeaderLayout"
-                  type="radio"
-                  name="home-header-layout"
-                  :value="option"
-                /><span>{{ $t('cloud.presentation.' + option) }}</span></label
-              >
-            </fieldset>
+            <URadioGroup
+              v-model="homeHeaderLayout"
+              :disabled="busy"
+              :aria-label="$t('cloud.presentation.layout')"
+              orientation="horizontal"
+              variant="card"
+              :items="
+                (['embedded', 'fixed'] as const).map((value) => ({
+                  value,
+                  label: $t('cloud.presentation.' + value),
+                }))
+              "
+            />
           </section>
           <section class="cf-gallery-presentation">
             <h3>{{ $t('cloud.presentation.social') }}</h3>

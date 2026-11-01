@@ -8,7 +8,9 @@ defineProps<{ quota: string }>()
       v-if="quota === 'photos'"
       :ui="{ content: 'max-w-xs h-auto whitespace-normal' }"
     >
-      <button
+      <UButton
+        variant="ghost"
+        color="neutral"
         type="button"
         class="inline-flex shrink-0 items-center text-muted focus-visible:outline-2 focus-visible:outline-offset-2"
         :aria-label="$t('cloud.billing.photosQuotaHelp')"
@@ -17,7 +19,7 @@ defineProps<{ quota: string }>()
           name="i-lucide-info"
           class="size-3.5"
         />
-      </button>
+      </UButton>
       <template #content>
         <span class="block whitespace-normal break-words py-1 leading-relaxed">
           {{ $t('cloud.billing.photosQuotaHelp') }}

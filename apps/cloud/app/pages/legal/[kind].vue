@@ -67,11 +67,11 @@ const updated = computed(() =>
         v-if="error"
         tone="error"
         >{{ $t('cloud.legal.loadFailed')
-        }}<CfButton
+        }}<template #actions><CfButton
           variant="secondary"
           @click="refresh()"
           >{{ $t('cloud.messages.retry') }}</CfButton
-        ></CfAlert
+        ></template></CfAlert
       >
       <article
         v-else-if="document"

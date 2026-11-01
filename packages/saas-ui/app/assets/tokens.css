@@ -21,6 +21,7 @@
   --destructive: #b13f48;
   --success: #297451;
   --radius: 0.5rem;
+  --cf-link: #3b6b9a;
   --cf-primary: var(--accent);
   --cf-ink: var(--foreground);
   --cf-muted: var(--muted-foreground);
@@ -52,7 +53,7 @@
   --ui-border: var(--border);
   --ui-border-muted: var(--border);
   --ui-border-accented: var(--input);
-  --ui-radius: var(--radius);
+  --ui-radius: 0.25rem;
 }
 .dark {
   color-scheme: dark;
@@ -72,6 +73,7 @@
   --accent: #c2a56f;
   --destructive: #ed959e;
   --success: #8bc6a7;
+  --cf-link: #8fb2d6;
 }
 html,
 body {

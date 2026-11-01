@@ -4,11 +4,14 @@ withDefaults(defineProps<{ tone?: 'info' | 'error' | 'success' }>(), {
 })
 </script>
 <template>
-  <div
+  <UAlert
+    :color="tone === 'info' ? 'neutral' : tone"
+    variant="subtle"
     :role="tone === 'error' ? 'alert' : 'status'"
-    class="cf-alert"
-    :data-tone="tone"
-  >
-    <slot />
-  </div>
+    ><template #description><slot /></template
+    ><template
+      v-if="$slots.actions"
+      #actions
+      ><slot name="actions" /></template
+  ></UAlert>
 </template>

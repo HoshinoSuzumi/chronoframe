@@ -58,11 +58,13 @@ useSeoMeta({
       v-if="billing.error.value"
       tone="error"
       >{{ $t('cloud.dashboard.quotaUnavailable')
-      }}<CfButton
-        size="sm"
-        variant="secondary"
-        @click="billing.refresh()"
-        >{{ $t('cloud.messages.retry') }}</CfButton
+      }}<template #actions
+        ><CfButton
+          size="sm"
+          variant="secondary"
+          @click="billing.refresh()"
+          >{{ $t('cloud.messages.retry') }}</CfButton
+        ></template
       ></CfAlert
     >
     <section
@@ -90,13 +92,11 @@ useSeoMeta({
         <h2>{{ $t('cloud.dashboard.galleries') }}</h2>
         <CfButton
           v-if="sites.length > 1"
-          as-child
           variant="ghost"
           size="sm"
-          ><NuxtLink to="/sites"
-            >{{ $t('cloud.messages.allSites')
-            }}<ArrowUpRight :size="14" /></NuxtLink
-        ></CfButton>
+          to="/sites"
+          >{{ $t('cloud.messages.allSites') }}<ArrowUpRight :size="14"
+        /></CfButton>
       </div>
       <ul
         v-if="sites.length"
@@ -128,13 +128,12 @@ useSeoMeta({
               </div>
               <CfButton
                 v-if="!site.suspended"
-                as-child
                 variant="secondary"
                 size="sm"
-                ><NuxtLink :to="`/sites/${site.siteId}/overview`"
-                  >{{ $t('cloud.dashboard.manageGallery')
-                  }}<ChevronRight :size="14" /></NuxtLink
-              ></CfButton>
+                :to="`/sites/${site.siteId}/overview`"
+                >{{ $t('cloud.dashboard.manageGallery')
+                }}<ChevronRight :size="14"
+              /></CfButton>
             </div>
             <div
               v-if="!site.suspended"

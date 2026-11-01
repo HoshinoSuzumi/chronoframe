@@ -10,14 +10,7 @@ import {
   RefreshCw,
   ShieldCheck,
 } from 'lucide-vue-next'
-import {
-  DropdownMenuRoot,
-  DropdownMenuTrigger,
-  DropdownMenuPortal,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-} from 'reka-ui'
+
 const props = defineProps<{
   domain: CustomDomain
   admin: boolean
@@ -93,6 +86,66 @@ const guidance = computed(() =>
                 : 'cloud.domainFlow.routeHelp',
   ),
 )
+const menuItems = computed(() => [
+  ...(props.domain.status === 'active'
+    ? [
+        ...(!props.domain.primary
+          ? [
+              {
+                label: t('cloud.domains.makePrimary'),
+                onSelect: () => emit('action', props.domain, 'primary'),
+              },
+            ]
+          : []),
+        ...(props.domain.primary
+          ? [
+              {
+                label: t(
+                  props.domain.redirects
+                    ? 'cloud.domains.disableRedirects'
+                    : 'cloud.domains.enableRedirects',
+                ),
+                onSelect: () =>
+                  emit(
+                    'action',
+                    props.domain,
+                    'redirects',
+                    !props.domain.redirects,
+                  ),
+              },
+            ]
+          : []),
+      ]
+    : []),
+  ...(!['deleting', 'expired'].includes(props.domain.status)
+    ? [
+        {
+          label: t(
+            props.domain.status === 'paused'
+              ? 'cloud.domains.resume'
+              : 'cloud.domains.pause',
+          ),
+          disabled:
+            props.domain.status === 'paused' &&
+            (!props.enabled ||
+              (!!props.domain.holdReason &&
+                props.domain.holdReason !== 'manual')),
+          onSelect: () =>
+            emit(
+              'action',
+              props.domain,
+              props.domain.status === 'paused' ? 'resume' : 'pause',
+            ),
+        },
+      ]
+    : []),
+  {
+    label: t('cloud.domains.remove'),
+    color: 'error' as const,
+    disabled: props.domain.status === 'deleting',
+    onSelect: () => emit('remove', props.domain),
+  },
+])
 </script>
 <template>
   <article
@@ -136,73 +189,21 @@ const guidance = computed(() =>
       <CfBadge :tone="domain.status === 'active' ? 'success' : 'neutral'">{{
         statusLabel
       }}</CfBadge>
-      <DropdownMenuRoot v-if="admin && domain.status !== 'deleting'"
-        ><DropdownMenuTrigger as-child
-          ><CfButton
-            size="icon"
-            variant="ghost"
-            :aria-label="
-              t('cloud.domainFlow.actions', { hostname: domain.hostname })
-            "
-            :disabled="busy"
-            ><MoreHorizontal :size="17" /></CfButton
-        ></DropdownMenuTrigger>
-        <DropdownMenuPortal
-          ><DropdownMenuContent
-            class="cf-account-menu"
-            align="end"
-            :side-offset="6"
-            :collision-padding="12"
-          >
-            <template v-if="domain.status === 'active'">
-              <DropdownMenuItem
-                v-if="!domain.primary"
-                @select="emit('action', domain, 'primary')"
-                >{{ t('cloud.domains.makePrimary') }}</DropdownMenuItem
-              >
-              <DropdownMenuItem
-                v-if="domain.primary"
-                @select="emit('action', domain, 'redirects', !domain.redirects)"
-                >{{
-                  t(
-                    domain.redirects
-                      ? 'cloud.domains.disableRedirects'
-                      : 'cloud.domains.enableRedirects',
-                  )
-                }}</DropdownMenuItem
-              >
-              <DropdownMenuSeparator class="cf-menu-separator" />
-            </template>
-            <DropdownMenuItem
-              v-if="!['deleting', 'expired'].includes(domain.status)"
-              :disabled="
-                domain.status === 'paused' &&
-                (!enabled ||
-                  (!!domain.holdReason && domain.holdReason !== 'manual'))
-              "
-              @select="
-                emit(
-                  'action',
-                  domain,
-                  domain.status === 'paused' ? 'resume' : 'pause',
-                )
-              "
-              >{{
-                t(
-                  domain.status === 'paused'
-                    ? 'cloud.domains.resume'
-                    : 'cloud.domains.pause',
-                )
-              }}</DropdownMenuItem
-            >
-            <DropdownMenuItem
-              :disabled="domain.status === 'deleting'"
-              @select="emit('remove', domain)"
-              >{{ t('cloud.domains.remove') }}</DropdownMenuItem
-            >
-          </DropdownMenuContent></DropdownMenuPortal
-        >
-      </DropdownMenuRoot>
+      <UDropdownMenu
+        v-if="admin && domain.status !== 'deleting'"
+        :items="menuItems"
+        :content="{ align: 'end', sideOffset: 6, collisionPadding: 12 }"
+      >
+        <CfButton
+          size="icon"
+          variant="ghost"
+          :aria-label="
+            t('cloud.domainFlow.actions', { hostname: domain.hostname })
+          "
+          :disabled="busy"
+          ><MoreHorizontal :size="17"
+        /></CfButton>
+      </UDropdownMenu>
     </div>
     <p class="cf-field-hint cf-domain-guidance">{{ guidance }}</p>
     <div class="cf-domain-card-toolbar">
@@ -220,15 +221,13 @@ const guidance = computed(() =>
       <div class="cf-domain-inline-actions">
         <CfButton
           v-if="domain.status === 'active' && published"
-          as-child
           size="sm"
           variant="ghost"
-          ><a
-            :href="'https://' + domain.hostname"
-            target="_blank"
-            rel="noopener noreferrer"
-            >{{ t('cloud.messages.viewSite') }}<ExternalLink :size="13" /></a
-        ></CfButton>
+          :href="'https://' + domain.hostname"
+          target="_blank"
+          rel="noopener noreferrer"
+          >{{ t('cloud.messages.viewSite') }}<ExternalLink :size="13"
+        /></CfButton>
         <CfButton
           v-if="
             admin && !['paused', 'deleting', 'expired'].includes(domain.status)

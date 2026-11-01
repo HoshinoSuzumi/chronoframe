@@ -50,9 +50,8 @@ async function save() {
         @submit.prevent="save"
       >
         <label class="processing-toggle"
-          ><input
+          ><CfCheckbox
             v-model="erase"
-            type="checkbox"
             :disabled="busy || !!error"
           /><span>{{
             t(

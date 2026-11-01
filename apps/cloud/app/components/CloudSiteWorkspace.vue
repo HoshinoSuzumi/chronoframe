@@ -33,15 +33,17 @@ const status = computed(() => (loading.value ? 'pending' : 'success'))
       v-if="loadError"
       tone="error"
     >
-      {{ loadError
-      }}<CfButton
-        size="sm"
-        variant="secondary"
-        :loading="loading"
-        @click="refreshMedia"
-        >{{ $t('cloud.messages.retry') }}</CfButton
-      >
-    </CfAlert>
+      {{ loadError }}
+      <template #actions
+        ><CfButton
+          size="sm"
+          variant="secondary"
+          :loading="loading"
+          @click="refreshMedia"
+          >{{ $t('cloud.messages.retry') }}</CfButton
+        ></template
+      ></CfAlert
+    >
     <CfAlert
       class="mb-4"
       v-if="message && message !== loadError"
