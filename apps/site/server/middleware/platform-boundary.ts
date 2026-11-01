@@ -12,6 +12,7 @@ export default defineEventHandler((event) => {
   }
   if (
     [
+      '/api/analytics/visit',
       '/api/public/context',
       '/api/public/system/settings/all',
       '/api/public/photos',

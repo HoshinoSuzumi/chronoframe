@@ -40,6 +40,7 @@ export type PlanFeature = {
   value?: string | number
 }
 export interface PlanPolicy {
+  analytics?: boolean
   features?: PlanFeature[]
   limits: Limits
   rules: { when: Condition; limits: Partial<Limits> }[]
@@ -52,9 +53,13 @@ export function validatePolicy(value: unknown): PlanPolicy {
     !plain(value.limits) ||
     !Array.isArray(value.rules) ||
     value.rules.length > 32 ||
-    Object.keys(value).some((k) => !['limits', 'rules', 'features'].includes(k))
+    Object.keys(value).some(
+      (k) => !['limits', 'rules', 'features', 'analytics'].includes(k),
+    )
   )
     throw new Error('Invalid policy')
+  if (value.analytics !== undefined && typeof value.analytics !== 'boolean')
+    throw new Error('Invalid analytics entitlement')
   if (value.features !== undefined) {
     if (!Array.isArray(value.features) || value.features.length > 32)
       throw new Error('Invalid plan features')
@@ -185,6 +190,7 @@ export async function workspaceEntitlements(
   now = Date.now(),
 ) {
   const row = await resolveSubscription(db, workspaceId, now)
+  const policy = validatePolicy(JSON.parse(row.policy_json))
   const context: PolicyContext = {
     storageMode,
     workspaceAgeDays: Math.max(
@@ -199,10 +205,8 @@ export async function workspaceEntitlements(
     revision: row.revision,
     subscription: row.subscription,
     quotaPeriod: row.quotaPeriod,
-    limits: evaluatePolicy(
-      validatePolicy(JSON.parse(row.policy_json)),
-      context,
-    ),
+    analytics: policy.analytics === true,
+    limits: evaluatePolicy(policy, context),
   }
 }
 

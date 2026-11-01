@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import {
   ArrowLeft,
+  ChartNoAxesCombined,
   Images,
   LibraryBig,
   PanelsTopLeft,
@@ -9,6 +10,7 @@ import {
   Globe,
   HardDrive,
 } from 'lucide-vue-next'
+const billing = useWorkspaceBilling()
 const route = useRoute(),
   context = useEntryContext()
 const site = computed(() =>
@@ -130,6 +132,15 @@ watch(mode, (next) => {
               :aria-current="route.path === '/sites' ? 'page' : undefined"
               ><PanelsTopLeft :size="17" />{{
                 $t('cloud.messages.sites')
+              }}</NuxtLink
+            >
+            <NuxtLink
+              v-if="billing.data.value?.plan?.analytics"
+              to="/analytics"
+              :class="{ active: route.path === '/analytics' }"
+              :aria-current="route.path === '/analytics' ? 'page' : undefined"
+              ><ChartNoAxesCombined :size="17" />{{
+                $t('cloud.billing.analytics')
               }}</NuxtLink
             >
           </nav></template

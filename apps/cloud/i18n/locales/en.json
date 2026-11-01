@@ -664,6 +664,7 @@
       "fileBytes": "Maximum file size",
       "sites": "Sites",
       "photos": "Photographs",
+      "analytics": "Site analytics",
       "photosQuotaHelp": "Photo usage includes uploaded photographs and reserved slots for uploads that have been requested but are not yet complete. Reservations prevent concurrent uploads from exceeding your plan limit; they do not mean those uploads have completed.",
       "customDomains": "Custom domains",
       "byos": "Custom S3 storage",

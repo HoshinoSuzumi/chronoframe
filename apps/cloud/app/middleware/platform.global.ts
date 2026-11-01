@@ -27,6 +27,7 @@ export default defineNuxtRouteMiddleware(async (to) => {
     (path === '/pricing' &&
       (useCloudRequestURL().hostname === 'app.chronoframe.art' ||
         to.query.portal === '1')) ||
+    path === '/analytics' ||
     path === '/workspace' ||
     path === '/account' ||
     path.startsWith('/account/') ||

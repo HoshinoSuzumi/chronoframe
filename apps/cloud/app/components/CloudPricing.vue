@@ -735,6 +735,22 @@ async function submitCheckout(plan: any, mode?: string) {
             ></CfButton
           >
           <ul class="cf-plan-features">
+            <li>
+              <span>{{ $t('cloud.billing.analytics') }}</span
+              ><strong
+                ><UIcon
+                  :name="
+                    plan.policy.analytics ? 'i-lucide-check' : 'i-lucide-minus'
+                  "
+                  :aria-label="
+                    $t(
+                      plan.policy.analytics
+                        ? 'cloud.billing.yes'
+                        : 'cloud.billing.no',
+                    )
+                  "
+              /></strong>
+            </li>
             <li
               v-for="key in BILLING_LIMITS"
               :key="key"
@@ -833,11 +849,13 @@ async function submitCheckout(plan: any, mode?: string) {
       </section></template
     >
     <footer class="cf-pricing-footer">
-      <div class="cf-pricing-footer-actions"><CloudSupportLink /><NuxtLink
-        :to="links.redeem"
-        :external="!portal"
-        >{{ $t('cloud.billing.redeem') }}</NuxtLink
-      ></div>
+      <div class="cf-pricing-footer-actions">
+        <CloudSupportLink /><NuxtLink
+          :to="links.redeem"
+          :external="!portal"
+          >{{ $t('cloud.billing.redeem') }}</NuxtLink
+        >
+      </div>
       <CloudLegalLinks />
     </footer>
     <UModal

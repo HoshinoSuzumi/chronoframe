@@ -14,6 +14,8 @@ export default defineEventHandler((event) => {
   }
   const platformRoute =
     [
+      '/api/analytics/visit',
+      '/api/analytics/report',
       '/api/auth/status',
       '/api/auth/session',
       '/api/auth/marketing-session',
