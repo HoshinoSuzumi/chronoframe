@@ -61,14 +61,6 @@ async function save() {
             )
           }}</span></label
         >
-        <p class="cf-field-hint">
-          {{
-            t(
-              'Use the photo library processing actions to erase locations on existing photos. Live Photo companion videos are retained as uploaded, as in the self-hosted edition.',
-              '已有照片可在照片库的处理操作中擦除位置。与自部署版一致，实况照片的配对视频保持上传内容。',
-            )
-          }}
-        </p>
         <p
           v-if="error"
           role="alert"

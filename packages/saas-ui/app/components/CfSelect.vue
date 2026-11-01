@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, useSlots, type VNode } from 'vue'
+import { computed, normalizeClass, useSlots, type VNode } from 'vue'
 defineOptions({ inheritAttrs: false })
 const props = withDefaults(
   defineProps<{ value?: string | number | boolean | null }>(),
@@ -58,11 +58,16 @@ function update(id: string) {
 </script>
 <template>
   <USelect
-    v-bind="$attrs"
+    v-bind="{ ...$attrs, class: undefined }"
     :items="items"
     value-key="id"
     :model-value="selected"
-    class="cf-select"
+    :class="[
+      'cf-select',
+      normalizeClass($attrs.class)
+        .split(' ')
+        .filter((name) => name !== 'cf-input'),
+    ]"
     @update:model-value="update"
   />
 </template>
