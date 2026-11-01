@@ -1,8 +1,8 @@
-/** Provider identifiers are fixed; arbitrary OAuth endpoints cannot be configured. */
+/** Microsoft is excluded until email ownership can be established independently.
+ * Provider identifiers are fixed; arbitrary OAuth endpoints cannot be configured. */
 export const SOCIAL_LOGIN_PROVIDERS = [
   { id: 'github', name: 'GitHub', icon: 'i-tabler-brand-github' },
   { id: 'google', name: 'Google', icon: 'i-tabler-brand-google' },
-  { id: 'microsoft', name: 'Microsoft', icon: 'i-tabler-brand-windows' },
   { id: 'discord', name: 'Discord', icon: 'i-tabler-brand-discord' },
 ] as const
 export type SocialLoginProvider = (typeof SOCIAL_LOGIN_PROVIDERS)[number]['id']

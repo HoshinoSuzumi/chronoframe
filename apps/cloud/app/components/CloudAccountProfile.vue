@@ -29,20 +29,23 @@ async function chooseImage(event: Event) {
       const canvas = document.createElement('canvas')
       canvas.width = canvas.height = 128
       const size = Math.min(bitmap.width, bitmap.height)
-      canvas
-        .getContext('2d')!
-        .drawImage(
-          bitmap,
-          (bitmap.width - size) / 2,
-          (bitmap.height - size) / 2,
-          size,
-          size,
-          0,
-          0,
-          128,
-          128,
-        )
-      const result = canvas.toDataURL('image/webp', 0.85)
+      const drawing = canvas.getContext('2d')!
+      drawing.fillStyle = '#ffffff'
+      drawing.fillRect(0, 0, 128, 128)
+      drawing.drawImage(
+        bitmap,
+        (bitmap.width - size) / 2,
+        (bitmap.height - size) / 2,
+        size,
+        size,
+        0,
+        0,
+        128,
+        128,
+      )
+      let result = canvas.toDataURL('image/webp', 0.85)
+      if (!result.startsWith('data:image/webp;'))
+        result = canvas.toDataURL('image/jpeg', 0.85)
       if (result.length > 65536) throw new Error('Image too large')
       image.value = result
     } finally {

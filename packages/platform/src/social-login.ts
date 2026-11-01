@@ -94,17 +94,27 @@ export async function saveSocialLoginProvider(
   if (input.operation === 'save') {
     let clientSecret = input.clientSecret
     if (clientSecret === '' && row.credentials_ciphertext) {
-      clientSecret = (
-        await (
-          await socialLoginCipher(secret)
-        ).open(row.credentials_ciphertext, `${provider}:${row.revision}`)
-      ).clientSecret
-      // Reusing a secret for a different OAuth application is almost always a mistake.
-      if (input.clientId !== row.client_id)
+      // Check the application identity before attempting to reuse its secret.
+      if (
+        typeof input.clientId !== 'string' ||
+        input.clientId.trim() !== row.client_id
+      )
         throw new SocialLoginError(
           400,
           'Provide a new secret when changing the client ID',
         )
+      try {
+        clientSecret = (
+          await (
+            await socialLoginCipher(secret)
+          ).open(row.credentials_ciphertext, `${provider}:${row.revision}`)
+        ).clientSecret
+      } catch {
+        throw new SocialLoginError(
+          400,
+          'Stored secret is unreadable; provide a new secret',
+        )
+      }
     }
     try {
       credentials = parseSocialLoginCredentials({

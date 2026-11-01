@@ -12,13 +12,16 @@ import {
   saveSocialLoginProvider,
 } from '../packages/platform/src/social-login.ts'
 import { parseAccountProfile } from '../packages/contracts/src/account-profile.ts'
+type TestEvent = { path: string; origin?: string; raw?: string }
+type TestError = { statusMessage?: string; statusCode?: number }
+type TestSession = { user: { id: string; emailVerified: boolean } } | null
 const require = createRequire(import.meta.url)
 const { Miniflare, convertV4MiniflareOptions } = createRequire(
   require.resolve('wrangler/package.json'),
 )('miniflare')
 
 test('OAuth callbacks expose only the supported provider surface', () => {
-  for (const provider of ['github', 'google', 'microsoft', 'discord']) {
+  for (const provider of ['github', 'google', 'discord']) {
     assert(accountRouteAllowed(`/api/auth/callback/${provider}`, 'GET'))
     assert(accountRouteAllowed(`/api/auth/callback/${provider}`, 'POST'))
     assert(!accountRouteAllowed(`/api/auth/callback/${provider}`, 'DELETE'))
@@ -26,6 +29,7 @@ test('OAuth callbacks expose only the supported provider surface', () => {
   assert(accountRouteAllowed('/api/auth/sign-in/social', 'POST'))
   for (const path of [
     '/api/auth/callback/unknown',
+    '/api/auth/callback/microsoft',
     '/api/auth/callback/github/extra',
     '/api/auth/update-user',
     '/api/auth/link-social',
@@ -151,8 +155,88 @@ test('credentials are root-only, encrypted, redacted, revision fenced and disabl
     await saveSocialLoginProvider(db, secret, actor, {
       ...input,
       revision: 1,
+      clientId: ' client-test ',
       clientSecret: '',
     })
+    // Wrong/malformed application IDs are rejected before opening an unreadable secret.
+    for (const clientId of ['another-client', null]) {
+      await assert.rejects(
+        saveSocialLoginProvider(db, 'wrong-key'.repeat(5), actor, {
+          ...input,
+          revision: 2,
+          clientId,
+          clientSecret: '',
+        }),
+        {
+          status: 400,
+          message: 'Provide a new secret when changing the client ID',
+        },
+      )
+    }
+    await assert.rejects(
+      saveSocialLoginProvider(db, 'wrong-key'.repeat(5), actor, {
+        ...input,
+        revision: 2,
+        clientSecret: '',
+      }),
+      {
+        status: 400,
+        message: 'Stored secret is unreadable; provide a new secret',
+      },
+    )
+    const beforeFailure = await db
+      .prepare(
+        "SELECT revision,credentials_ciphertext FROM platform_social_login_providers WHERE provider='github'",
+      )
+      .first()
+    assert.equal(beforeFailure.revision, 2)
+    for (const key of ['', 'short'])
+      await assert.rejects(
+        saveSocialLoginProvider(db, key, actor, {
+          ...input,
+          revision: 2,
+          clientSecret: '',
+        }),
+        {
+          status: 400,
+          message: 'Stored secret is unreadable; provide a new secret',
+        },
+      )
+    await db
+      .prepare(
+        "UPDATE platform_social_login_providers SET credentials_ciphertext='corrupt' WHERE provider='github'",
+      )
+      .run()
+    await assert.rejects(
+      saveSocialLoginProvider(db, secret, actor, {
+        ...input,
+        revision: 2,
+        clientSecret: '',
+      }),
+      {
+        status: 400,
+        message: 'Stored secret is unreadable; provide a new secret',
+      },
+    )
+    await db
+      .prepare(
+        "UPDATE platform_social_login_providers SET credentials_ciphertext=? WHERE provider='github'",
+      )
+      .bind(beforeFailure.credentials_ciphertext)
+      .run()
+    assert.equal(
+      (await cipher.open(beforeFailure.credentials_ciphertext, 'github:2'))
+        .clientSecret,
+      'secret-test',
+    )
+    // Unsupported providers cannot be configured, even by root.
+    await assert.rejects(
+      saveSocialLoginProvider(db, secret, actor, {
+        ...input,
+        provider: 'microsoft',
+      }),
+      { status: 400 },
+    )
     const audit = await db
       .prepare(
         "SELECT json_group_array(json_object('before',before_json,'after',after_json)) AS rows FROM platform_admin_audit",
@@ -187,9 +271,9 @@ test('credentials are root-only, encrypted, redacted, revision fenced and disabl
       platformPortalOrigin: () => {},
       requirePlatformSession: async () => ({ userId: 42 }),
       platformDatabase: () => db,
-      siteManagementBody: async (event: any) => event.body,
+      siteManagementBody: async (event: { body: unknown }) => event.body,
       parseAccountProfile,
-      createError: (value: any) =>
+      createError: (value: TestError) =>
         Object.assign(new Error(value.statusMessage), value),
     }
     const profileHandler = new Function(
@@ -326,9 +410,10 @@ test('credentials are root-only, encrypted, redacted, revision fenced and disabl
             headers: headers(),
           }),
         )
-        return (await session.json()) as any
+        return (await session.json()) as TestSession
       }
       const session = await login('/workspace')
+      assert(session)
       assert.equal(Number(session.user.id), 42)
       assert.equal(
         (
@@ -357,6 +442,7 @@ test('credentials are root-only, encrypted, redacted, revision fenced and disabl
       email = 'new@example.com'
       githubId = 103
       const newUser = await login('/workspace')
+      assert(newUser)
       assert(newUser.user.emailVerified)
       assert(
         await db
@@ -413,19 +499,24 @@ test('auth forwarding checks web origins and rejects ID-token entry while accept
     useRuntimeConfig: () => ({
       platform: { portalOrigin: 'https://app.chronoframe.art' },
     }),
-    getRequestURL: (e: any) => new URL(e.path, 'https://app.chronoframe.art'),
+    getRequestURL: (e: TestEvent) =>
+      new URL(e.path, 'https://app.chronoframe.art'),
     platformRequestURL: () => new URL('https://app.chronoframe.art'),
-    platformPortalOrigin: (e: any, _origin: string, required: boolean) => {
+    platformPortalOrigin: (
+      e: TestEvent,
+      _origin: string,
+      required: boolean,
+    ) => {
       if (required && e.origin !== 'https://app.chronoframe.art')
         throw Object.assign(new Error('Origin'), { statusCode: 403 })
     },
     accountRouteAllowed,
     socialLoginCallback: (path: string) =>
-      /^\/api\/auth\/callback\/(github|google|microsoft|discord)$/.test(path),
+      /^\/api\/auth\/callback\/(github|google|discord)$/.test(path),
     isSocialLoginProvider: (id: string) =>
-      ['github', 'google', 'microsoft', 'discord'].includes(id),
+      ['github', 'google', 'discord'].includes(id),
     getHeader: () => undefined,
-    readRawBody: async (e: any) => e.raw,
+    readRawBody: async (e: TestEvent) => e.raw,
     getRequestHeaders: () => ({}),
     cloudAccount: async () => ({
       handler: async () => {
@@ -433,8 +524,8 @@ test('auth forwarding checks web origins and rejects ID-token entry while accept
         return new Response('ok')
       },
     }),
-    sendWebResponse: (_e: any, r: Response) => r,
-    createError: (v: any) => Object.assign(new Error(v.statusMessage), v),
+    sendWebResponse: (_e: TestEvent, r: Response) => r,
+    createError: (v: TestError) => Object.assign(new Error(v.statusMessage), v),
   }
   const { forwardAccountRequest } = new Function(
     'exports',
