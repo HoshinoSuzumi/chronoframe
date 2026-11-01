@@ -12,6 +12,7 @@ const items = computed(() =>
 <template>
   <URadioGroup
     v-model="model"
+    class="cf-header-layout-choice"
     :disabled="disabled"
     :aria-label="t('cloud.presentation.layout')"
     :items="items"
@@ -34,74 +35,74 @@ const items = computed(() =>
       >
         <span
           v-if="item.value === 'fixed'"
-          class="flex h-1/4 shrink-0 items-center gap-[6%] rounded-sm bg-[var(--input)] p-[2%]"
+          class="flex h-1/4 shrink-0 items-center gap-[6%] cf-layout-identity rounded-sm p-[2%]"
         >
           <USkeleton
             as="span"
-            class="aspect-square h-full shrink-0 animate-none rounded-full"
+            class="cf-layout-skeleton aspect-square h-full shrink-0 animate-none rounded-full"
           />
           <span class="flex h-full flex-1 flex-col justify-center gap-[20%]">
             <USkeleton
               as="span"
-              class="h-1/4 w-1/2 animate-none"
+              class="cf-layout-skeleton h-1/4 w-1/2 animate-none"
             />
             <USkeleton
               as="span"
-              class="h-1/5 w-1/3 animate-none"
+              class="cf-layout-skeleton h-1/5 w-1/3 animate-none"
             />
           </span>
           <USkeleton
             as="span"
-            class="h-1/3 w-1/6 animate-none"
+            class="cf-layout-skeleton h-1/3 w-1/6 animate-none"
           />
         </span>
         <span class="grid min-h-0 flex-1 grid-cols-3 gap-[5%]">
           <span class="flex min-h-0 flex-col gap-[8%]">
             <span
               v-if="item.value === 'embedded'"
-              class="flex h-3/5 shrink-0 flex-col items-center justify-center gap-[10%] rounded-sm bg-[var(--input)] p-[6%]"
+              class="flex h-3/5 shrink-0 flex-col items-center justify-center gap-[10%] cf-layout-identity rounded-sm p-[6%]"
             >
               <USkeleton
                 as="span"
-                class="aspect-square h-1/2 animate-none rounded-full"
+                class="cf-layout-skeleton aspect-square h-1/2 animate-none rounded-full"
               />
               <USkeleton
                 as="span"
-                class="h-[10%] w-3/4 animate-none"
+                class="cf-layout-skeleton h-[10%] w-3/4 animate-none"
               />
               <USkeleton
                 as="span"
-                class="h-[8%] w-1/2 animate-none"
+                class="cf-layout-skeleton h-[8%] w-1/2 animate-none"
               />
             </span>
             <USkeleton
               as="span"
-              class="min-h-0 flex-1 animate-none rounded-sm"
+              class="cf-layout-skeleton min-h-0 flex-1 animate-none rounded-sm"
             />
             <USkeleton
               v-if="item.value === 'fixed'"
               as="span"
-              class="h-2/5 animate-none rounded-sm"
+              class="cf-layout-skeleton h-2/5 animate-none rounded-sm"
             />
           </span>
           <span class="flex min-h-0 flex-col gap-[8%]">
             <USkeleton
               as="span"
-              class="h-2/5 animate-none rounded-sm"
+              class="cf-layout-skeleton h-2/5 animate-none rounded-sm"
             />
             <USkeleton
               as="span"
-              class="min-h-0 flex-1 animate-none rounded-sm"
+              class="cf-layout-skeleton min-h-0 flex-1 animate-none rounded-sm"
             />
           </span>
           <span class="flex min-h-0 flex-col gap-[8%]">
             <USkeleton
               as="span"
-              class="h-3/5 animate-none rounded-sm"
+              class="cf-layout-skeleton h-3/5 animate-none rounded-sm"
             />
             <USkeleton
               as="span"
-              class="min-h-0 flex-1 animate-none rounded-sm"
+              class="cf-layout-skeleton min-h-0 flex-1 animate-none rounded-sm"
             />
           </span>
         </span>
@@ -109,3 +110,37 @@ const items = computed(() =>
     </template>
   </URadioGroup>
 </template>
+
+<style>
+.cf-header-layout-choice {
+  --layout-photo: var(--secondary);
+  --layout-header: var(--input);
+  --layout-detail: #f4f5f7;
+}
+.cf-header-layout-choice .cf-layout-skeleton {
+  background-color: var(--layout-photo);
+}
+.cf-header-layout-choice .cf-layout-identity {
+  background-color: var(--layout-header);
+  --layout-photo: var(--layout-detail);
+}
+.cf-header-layout-choice [data-slot='item']:has([data-state='checked']) {
+  border-color: #416f9f;
+  background-color: #edf4fc;
+  box-shadow: inset 0 0 0 1px #416f9f;
+  --layout-photo: #9bb5d4;
+  --layout-header: #5f7fa6;
+  --layout-detail: #edf3fb;
+}
+.dark .cf-header-layout-choice {
+  --layout-detail: #c4c8d0;
+}
+.dark .cf-header-layout-choice [data-slot='item']:has([data-state='checked']) {
+  border-color: #8bb5e8;
+  background-color: #1f3045;
+  box-shadow: inset 0 0 0 1px #8bb5e8;
+  --layout-photo: #57769b;
+  --layout-header: #8babd1;
+  --layout-detail: #22364f;
+}
+</style>
