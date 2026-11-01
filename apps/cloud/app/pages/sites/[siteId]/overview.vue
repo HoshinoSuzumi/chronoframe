@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import DashboardCaptureHeatmap from '#console/components/DashboardCaptureHeatmap.vue'
 import {
   CheckCircle2,
   Images,
@@ -106,6 +107,9 @@ const actions = computed(() => [
         "
       />
     </section>
+    <CfCard class="cf-dashboard-panel min-w-0">
+      <DashboardCaptureHeatmap :photos="photos" />
+    </CfCard>
     <div class="cf-dashboard-columns">
       <CfCard class="cf-dashboard-panel"
         ><div class="cf-dashboard-section-heading">
