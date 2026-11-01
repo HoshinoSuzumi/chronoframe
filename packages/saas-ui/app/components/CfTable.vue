@@ -42,7 +42,7 @@ const renderedColumns = computed(() =>
     :data="data"
     :columns="renderedColumns"
     :ui="{
-      root: 'cf-data-table min-w-0 rounded-lg border border-[var(--border)] bg-[var(--card)]',
+      root: 'cf-data-table min-w-0 rounded-lg bg-[var(--card)]',
       base: 'cf-table table-auto border-collapse',
       tr: 'hover:bg-[var(--cf-table-hover)] transition-colors',
       th: 'bg-[var(--secondary)] text-[var(--muted-foreground)] text-xs font-medium whitespace-nowrap px-4 py-3',

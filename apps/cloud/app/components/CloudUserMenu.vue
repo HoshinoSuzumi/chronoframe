@@ -1,21 +1,8 @@
 <script setup lang="ts">
 const { t } = useI18n()
 
-import {
-  ChevronsUpDown,
-  UserRound,
-  LogOut,
-  CreditCard,
-  Ticket,
-} from 'lucide-vue-next'
-import {
-  DropdownMenuRoot,
-  DropdownMenuTrigger,
-  DropdownMenuPortal,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-} from 'reka-ui'
+import { ChevronsUpDown } from 'lucide-vue-next'
+
 const user = usePortalIdentity(),
   { busy, error, signOut } = useCloudSignOut()
 const label = computed(
@@ -30,6 +17,41 @@ const initials = computed(() =>
     .join('')
     .toUpperCase(),
 )
+const menuItems = computed(() => [
+  [{ type: 'label' as const, label: label.value }],
+  [
+    {
+      label: t('cloud.messages.accountSecurity'),
+      icon: 'i-lucide-user-round',
+      to: '/account',
+    },
+    {
+      label: t('cloud.billing.plan'),
+      icon: 'i-lucide-credit-card',
+      to: '/account/plan',
+    },
+    {
+      label: t('cloud.billing.redeem'),
+      icon: 'i-lucide-ticket',
+      to: '/account/redeem',
+    },
+    {
+      label: 'support@chronoframe.art',
+      icon: 'i-lucide-mail',
+      href: 'mailto:support@chronoframe.art',
+    },
+  ],
+  [
+    {
+      label: busy.value
+        ? t('cloud.messages.signingOut')
+        : t('cloud.messages.signOut'),
+      icon: 'i-lucide-log-out',
+      disabled: busy.value,
+      onSelect: () => signOut(),
+    },
+  ],
+])
 </script>
 <template>
   <div class="cf-user-menu">
@@ -40,63 +62,33 @@ const initials = computed(() =>
     >
       {{ error }}
     </p>
-    <DropdownMenuRoot
-      ><DropdownMenuTrigger as-child
-        ><button
-          class="cf-user-trigger"
-          :aria-label="$t('cloud.messages.openUserMenu')"
-        >
-          <span class="cf-user-avatar">{{ initials }}</span
-          ><span class="cf-user-identity"
-            ><strong>{{ label }}</strong
-            ><span>{{
-              user?.email || $t('cloud.messages.accountSettings')
-            }}</span></span
-          ><ChevronsUpDown :size="15" /></button
-      ></DropdownMenuTrigger>
-      <DropdownMenuPortal
-        ><DropdownMenuContent
-          class="cf-account-menu"
-          side="top"
-          align="start"
-          :side-offset="8"
-          :collision-padding="12"
-          :aria-label="$t('cloud.messages.userMenu')"
-        >
-          <div class="cf-account-menu-label">
-            <strong>{{ label }}</strong
-            ><span>{{ user?.email }}</span>
-          </div>
-          <DropdownMenuSeparator class="cf-menu-separator" />
-          <DropdownMenuItem as-child
-            ><NuxtLink to="/account"
-              ><UserRound :size="16" />{{
-                $t('cloud.messages.accountSecurity')
-              }}</NuxtLink
-            ></DropdownMenuItem
-          >
-          <DropdownMenuItem as-child
-            ><NuxtLink to="/account/plan"
-              ><CreditCard :size="16" />{{ $t('cloud.billing.plan') }}</NuxtLink
-            ></DropdownMenuItem
-          ><DropdownMenuItem as-child
-            ><NuxtLink to="/account/redeem"
-              ><Ticket :size="16" />{{ $t('cloud.billing.redeem') }}</NuxtLink
-            ></DropdownMenuItem
-          >
-          <DropdownMenuItem as-child><CloudSupportLink /></DropdownMenuItem>
-          <DropdownMenuSeparator class="cf-menu-separator" />
-          <DropdownMenuItem
-            :disabled="busy"
-            @select="signOut"
-            ><LogOut :size="16" />{{
-              busy
-                ? $t('cloud.messages.signingOut')
-                : $t('cloud.messages.signOut')
-            }}</DropdownMenuItem
-          >
-        </DropdownMenuContent></DropdownMenuPortal
+    <UDropdownMenu
+      :items="menuItems"
+      :content="{
+        side: 'top',
+        align: 'start',
+        sideOffset: 8,
+        collisionPadding: 12,
+      }"
+    >
+      <UButton
+        color="neutral"
+        variant="ghost"
+        class="cf-user-trigger"
+        :aria-label="$t('cloud.messages.openUserMenu')"
       >
-    </DropdownMenuRoot>
+        <UAvatar
+          :text="initials"
+          size="sm"
+        />
+        <span class="cf-user-identity"
+          ><strong>{{ label }}</strong
+          ><span>{{
+            user?.email || $t('cloud.messages.accountSettings')
+          }}</span></span
+        >
+        <ChevronsUpDown :size="15" />
+      </UButton>
+    </UDropdownMenu>
   </div>
 </template>

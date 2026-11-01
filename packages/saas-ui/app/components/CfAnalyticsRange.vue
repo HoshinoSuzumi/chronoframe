@@ -192,8 +192,9 @@ function changeZone() {
         :aria-label="tr('Select time range', '选择时间段')"
       >
         <div class="cf-range-custom">
-          <input
+          <CfInput
             v-model="custom"
+            variant="none"
             class="cf-input"
             :aria-label="tr('Custom duration', '自定义时长')"
             :placeholder="
@@ -224,30 +225,33 @@ function changeZone() {
             />
           </div>
           <div class="cf-range-presets">
-            <button
+            <UButton
+              color="neutral"
               v-for="seconds in ANALYTICS_PRESETS"
               :key="seconds"
               type="button"
-              :class="{ active: preset === seconds && !allTime }"
+              :variant="preset === seconds && !allTime ? 'soft' : 'ghost'"
               @click="choose(seconds)"
             >
               {{ title(seconds) }}
-            </button>
+            </UButton>
             <div class="cf-range-long-divider"></div>
-            <button
+            <UButton
+              color="neutral"
               type="button"
-              :class="{ active: preset === 365 * 86400 && !allTime }"
+              :variant="preset === 365 * 86400 && !allTime ? 'soft' : 'ghost'"
               @click="choose(365 * 86400)"
             >
               {{ tr('Past year', '过去一年') }}
-            </button>
-            <button
+            </UButton>
+            <UButton
+              color="neutral"
               type="button"
-              :class="{ active: allTime }"
+              :variant="allTime ? 'soft' : 'ghost'"
               @click="chooseAll"
             >
               {{ tr('All time', '所有时间') }}
-            </button>
+            </UButton>
           </div>
         </div>
         <p
@@ -267,7 +271,7 @@ function changeZone() {
         >
           <label
             >{{ tr('Start', '开始')
-            }}<input
+            }}<CfInput
               v-model="draftFrom"
               type="datetime-local"
               class="cf-input"
@@ -275,7 +279,7 @@ function changeZone() {
               @change="syncCalendar" /></label
           ><label
             >{{ tr('End', '结束')
-            }}<input
+            }}<CfInput
               v-model="draftTo"
               type="datetime-local"
               class="cf-input"
@@ -317,7 +321,7 @@ function changeZone() {
 .cf-range-picker {
   width: min(540px, calc(100vw - 24px));
   background: var(--card);
-  border-radius: 12px;
+  border-radius: 8px;
   overflow-y: auto;
   max-height: min(90dvh, var(--reka-popover-content-available-height, 90dvh));
 }
@@ -349,19 +353,8 @@ function changeZone() {
   gap: 2px;
   padding: 16px 12px;
 }
-.cf-range-presets button {
-  text-align: left;
-  border: 0;
-  background: transparent;
-  border-radius: 6px;
-  padding: 7px 12px;
-  font-size: 13px;
-  color: var(--foreground);
-  cursor: pointer;
-}
-.cf-range-presets button:hover,
-.cf-range-presets button.active {
-  background: var(--secondary);
+.cf-range-presets :deep(button) {
+  justify-content: flex-start;
 }
 .cf-range-all-time {
   padding: 16px;

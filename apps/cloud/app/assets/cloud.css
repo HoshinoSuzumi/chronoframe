@@ -968,11 +968,6 @@
   z-index: 60;
   width: 240px;
   padding: 8px;
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  background: var(--card);
-  color: var(--foreground);
-  box-shadow: 0 12px 32px #20281f14;
 }
 .cf-mobile-menu nav {
   display: grid;

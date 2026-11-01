@@ -341,7 +341,9 @@ function menu(album: Album) {
       :columns="columns"
       :loading="loading && !albums.length"
       ><template #cover-cell="{ row }"
-        ><button
+        ><UButton
+          variant="ghost"
+          color="neutral"
           class="cf-library-thumb"
           :aria-label="$t('cloud.ui.editNamed', { title: row.original.title })"
           :disabled="!admin"
@@ -350,20 +352,20 @@ function menu(album: Album) {
           <ThumbImage
             v-if="cover(row.original)"
             :src="cover(row.original)?.thumbnailUrl || ''"
-            :alt="row.original.title"
-          /><UIcon
+            :alt="row.original.title" /><UIcon
             v-else
             name="i-lucide-images"
-            class="size-5"
-          /></button></template
+            class="size-5" /></UButton></template
       ><template #title-cell="{ row }"
-        ><button
+        ><UButton
+          variant="ghost"
+          color="neutral"
           class="cf-photo-title"
           :disabled="!admin"
           @click="edit(row.original)"
         >
           {{ row.original.title }}
-        </button></template
+        </UButton></template
       ><template #description-cell="{ row }"
         ><p class="cf-table-description">
           {{ row.original.description || '—' }}
@@ -604,7 +606,9 @@ function menu(album: Album) {
             class="w-full mb-4"
           />
           <div class="cf-photo-picker">
-            <button
+            <UButton
+              variant="ghost"
+              color="neutral"
               v-for="photo in choices"
               :key="photo.id"
               class="cf-picker-photo"
@@ -622,7 +626,7 @@ function menu(album: Album) {
                 name="i-lucide-circle-check"
                 class="cf-picker-check"
               />
-            </button>
+            </UButton>
           </div>
           <div class="flex items-center justify-between gap-3 mt-4">
             <span class="text-sm text-muted">{{

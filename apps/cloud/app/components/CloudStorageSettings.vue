@@ -177,7 +177,7 @@ const byosAdmission = computed(() => quota.gate('byos'))
         >
           <label
             >{{ $t('cloud.messages.newAccessKeyId')
-            }}<input
+            }}<CfInput
               v-model="rotation.accessKeyId"
               class="cf-input"
               autocomplete="off"
@@ -185,7 +185,7 @@ const byosAdmission = computed(() => quota.gate('byos'))
           /></label>
           <label
             >{{ $t('cloud.messages.newSecretAccessKey')
-            }}<input
+            }}<CfInput
               v-model="rotation.secretAccessKey"
               class="cf-input"
               type="password"
@@ -211,7 +211,7 @@ const byosAdmission = computed(() => quota.gate('byos'))
         >
           <label
             >{{ $t('cloud.messages.endpoint')
-            }}<input
+            }}<CfInput
               v-model="storage.endpoint"
               class="cf-input"
               type="url"
@@ -220,21 +220,21 @@ const byosAdmission = computed(() => quota.gate('byos'))
           /></label>
           <label
             >{{ $t('cloud.messages.region')
-            }}<input
+            }}<CfInput
               v-model="storage.region"
               class="cf-input"
               required
           /></label>
           <label
             >{{ $t('cloud.messages.bucket')
-            }}<input
+            }}<CfInput
               v-model="storage.bucket"
               class="cf-input"
               required
           /></label>
           <label
             >{{ $t('cloud.messages.accessKeyId')
-            }}<input
+            }}<CfInput
               v-model="storage.accessKeyId"
               class="cf-input"
               autocomplete="off"
@@ -242,7 +242,7 @@ const byosAdmission = computed(() => quota.gate('byos'))
           /></label>
           <label
             >{{ $t('cloud.messages.secretAccessKey')
-            }}<input
+            }}<CfInput
               v-model="storage.secretAccessKey"
               class="cf-input"
               type="password"

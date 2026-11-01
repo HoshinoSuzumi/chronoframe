@@ -14,6 +14,14 @@ const parts = computed(() =>
     ? [
         ...(props.admin ? [props.row.page.site] : []),
         ...props.row.page.segments,
+        ...(props.admin && !props.row.page.segments.length
+          ? [
+              {
+                title: props.zh ? '首页' : 'Home',
+                href: props.row.page.site.href,
+              },
+            ]
+          : []),
       ]
     : [],
 )
@@ -29,8 +37,8 @@ const parts = computed(() =>
         :href="row.page.site.href"
         target="_blank"
         rel="noopener noreferrer"
-        >/</a
-      ><span v-else>/</span></template
+        >{{ zh ? '首页' : 'Home' }}</a
+      ><span v-else>{{ zh ? '首页' : 'Home' }}</span></template
     >
     <template
       v-for="(part, index) in parts"
@@ -49,17 +57,17 @@ const parts = computed(() =>
       }}</span>
     </template>
   </span>
-  <span v-else>{{ row.label }}</span>
+  <span v-else>{{
+    row.label === '/' ? (zh ? '首页' : 'Home') : row.label
+  }}</span>
 </template>
 <style scoped>
 .cf-page-links a {
-  color: var(--color-blue-600, #2563eb);
+  color: var(--cf-link);
+  font-weight: 500;
   text-decoration: none;
 }
 .cf-page-links a:hover {
   text-decoration: underline;
-}
-:global(.dark .cf-page-links a) {
-  color: #60a5fa;
 }
 </style>

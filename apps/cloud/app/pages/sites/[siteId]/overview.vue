@@ -181,13 +181,15 @@ const {
             <p class="cf-field-hint">
               {{ $t('cloud.dashboard.popularError') }}
             </p>
-            <button
+            <UButton
+              variant="ghost"
+              color="neutral"
               type="button"
               class="cf-text-link"
               @click="refreshPopular()"
             >
               {{ $t('cloud.messages.retry') }}
-            </button>
+            </UButton>
           </div>
           <ol
             v-else-if="popular?.pages?.length"

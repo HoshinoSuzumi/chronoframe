@@ -8,7 +8,8 @@ import ts from 'typescript'
 
 const require = createRequire(resolve('packages/saas-ui/package.json'))
 const { parse, compileScript } = require('vue/compiler-sfc')
-const { createSSRApp, h, computed } = require('vue')
+const vue = require('vue')
+const { createSSRApp, h, computed, defineComponent } = vue
 const { renderToString } = require('vue/server-renderer')
 function evaluate(code: string) {
   const exports: Record<string, any> = {}
@@ -21,11 +22,10 @@ function evaluate(code: string) {
     }).outputText,
     {
       exports,
+      ...vue,
+      Event,
       computed,
-      require: (name: string) =>
-        name === '../utils/cn'
-          ? evaluate(readFileSync('packages/saas-ui/app/utils/cn.ts', 'utf8'))
-          : require(name),
+      require,
     },
   )
   return exports
@@ -44,49 +44,144 @@ function component(name: string) {
     }).content,
   ).default
 }
-const render = (name: string, props = {}, children?: () => any) =>
-  renderToString(
-    createSSRApp({ render: () => h(component(name), props, children) }),
+// Probe the adapter boundary; real Nuxt UI interactions are also exercised in the browser.
+async function render(
+  name: string,
+  props: Record<string, any> = {},
+  target = 'UButton',
+) {
+  let received: Record<string, any> = {}
+  const app = createSSRApp({ render: () => h(component(name), props) })
+  app.component(
+    target,
+    defineComponent({
+      inheritAttrs: false,
+      props: ['modelValue', 'max'],
+      setup(_props: unknown, { attrs }: any) {
+        received = { ...attrs, ...(_props as object) }
+        return () => h('span')
+      },
+    }),
   )
-
-test('Shared buttons preserve form semantics and a single pending polymorphic link', async () => {
-  assert.match(await render('CfButton'), /type="button"/)
-  assert.match(await render('CfButton', { type: 'submit' }), /type="submit"/)
-  const pending = await render(
-    'CfButton',
-    { asChild: true, loading: true },
-    () => h('a', { href: '/sites' }, 'Sites'),
-  )
-  assert.equal(pending.match(/<([a-z][a-z0-9]*)\b/i)?.[1], 'a')
-  assert.match(pending, /aria-busy="true"/)
-  assert.match(pending, /aria-disabled="true"/)
-  assert.match(pending, /tabindex="-1"/)
-  assert.match(pending, /href="\/sites"/)
-  assert.doesNotMatch(pending, /<button|<svg/)
-})
-test('Shared native input forwards labels, validation and required form attributes', async () => {
-  const html = await render('CfInput', {
-    id: 'gallery-name',
-    modelValue: 'Local Gallery',
-    required: true,
-    maxlength: 80,
-    'aria-invalid': true,
+  const html = await renderToString(app)
+  return { html, received }
+}
+test('button adapters preserve submit, pending and disabled navigation props through Nuxt UI', async () => {
+  const submit = await render('CfButton', { type: 'submit' })
+  assert.equal(submit.received.type, 'submit')
+  assert.equal(submit.received.variant, 'solid')
+  const pending = await render('CfButton', {
+    to: '/sites',
+    loading: true,
+    disabled: true,
+    variant: 'secondary',
   })
-  for (const attribute of [
-    'id="gallery-name"',
-    'value="Local Gallery"',
-    'required',
-    'maxlength="80"',
-    'aria-invalid="true"',
-  ])
-    assert.ok(html.includes(attribute), attribute)
+  assert.equal(pending.received.to, '/sites')
+  assert.equal(pending.received.loading, true)
+  assert.equal(pending.received.disabled, true)
+  assert.equal(pending.received.variant, 'outline')
+  assert.equal(pending.received.color, 'neutral')
 })
-test('Shared progress clamps invalid and over-limit usage while retaining accessible labels', async () => {
-  const over = await render('CfProgress', { value: 125, 'aria-label': 'Sites' })
-  assert.match(over, /aria-valuenow="100"/)
-  assert.match(over, /aria-label="Sites"/)
-  assert.match(over, /width:100%/)
-  const unknown = await render('CfProgress', { value: Number.NaN, max: 0 })
-  assert.match(unknown, /aria-valuenow="0"/)
-  assert.match(unknown, /aria-valuemax="100"/)
+test('input adapters forward controlled values, validation and labels to Nuxt UI', async () => {
+  const { received } = await render(
+    'CfInput',
+    {
+      id: 'gallery-name',
+      value: 'Local Gallery',
+      required: true,
+      maxlength: 80,
+      'aria-invalid': true,
+    },
+    'UInput',
+  )
+  assert.equal(received.id, 'gallery-name')
+  assert.equal(received.modelValue, 'Local Gallery')
+  assert.equal(received.required, true)
+  assert.equal(received.maxlength, 80)
+  assert.equal(received['aria-invalid'], true)
+})
+test('progress adapters clamp invalid usage and expose exactly one labeled progressbar', async () => {
+  const over = await render(
+    'CfProgress',
+    { value: 125, 'aria-label': 'Sites' },
+    'UProgress',
+  )
+  assert.equal(over.received.modelValue, 100)
+  assert.match(over.html, /aria-valuenow="100"/)
+  assert.match(over.html, /aria-label="Sites"/)
+  const invalid = await render(
+    'CfProgress',
+    { value: Number.NaN, max: 0 },
+    'UProgress',
+  )
+  assert.equal(invalid.received.modelValue, 0)
+  assert.equal(invalid.received.max, 100)
+})
+test('checkbox adapters retain array membership and native change handlers without mutating the input', async () => {
+  const original = ['a']
+  let updated: unknown
+  let event: Event | undefined
+  const { received } = await render(
+    'CfCheckbox',
+    {
+      modelValue: original,
+      value: 'b',
+      'onUpdate:modelValue': (value: unknown) => (updated = value),
+      onChange: (value: Event) => (event = value),
+    },
+    'UCheckbox',
+  )
+  assert.equal(received.modelValue, false)
+  received['onUpdate:modelValue'](true)
+  assert.deepEqual(Array.from(updated as string[]), ['a', 'b'])
+  assert.deepEqual(original, ['a'])
+  assert.equal((event?.target as HTMLInputElement)?.checked, true)
+})
+
+test('resolved home paths display a localized home label and retain independent site links', async () => {
+  const row = {
+    label: '/',
+    page: {
+      site: { title: 'Gallery', href: 'https://gallery.example/' },
+      segments: [],
+    },
+  }
+  const home = await render('CfAnalyticsPageLink', { row, zh: true })
+  assert.match(home.html, /首页/)
+  assert.ok(home.html.includes('href="https://gallery.example/"'))
+  const admin = await render('CfAnalyticsPageLink', {
+    row,
+    admin: true,
+    zh: true,
+  })
+  assert.match(admin.html, /Gallery/)
+  assert.match(admin.html, /首页/)
+  assert.equal((admin.html.match(/<a /g) ?? []).length, 2)
+})
+
+test('input validation callbacks observe the updated model for fields and textareas', async () => {
+  for (const [componentName, target] of [
+    ['CfInput', 'UInput'],
+    ['CfTextarea', 'UTextarea'],
+  ]) {
+    let model = 'before',
+      observed = ''
+    const { received } = await render(
+      componentName,
+      {
+        modelValue: model,
+        'onUpdate:modelValue': (value: string) => {
+          model = value
+        },
+        onInput: () => {
+          observed = model
+        },
+      },
+      target,
+    )
+    received.onInput(new Event('input'))
+    received['onUpdate:modelValue']('after')
+    await vue.nextTick()
+    assert.equal(observed, 'after')
+  }
 })

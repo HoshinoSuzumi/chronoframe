@@ -184,7 +184,9 @@ async function startUpload() {
           :aria-label="$t('cloud.messages.choosePhotographs')"
           :disabled="selectionLocked || !uploadAllowed || !admin"
           @change="selectFiles"
-        /><button
+        /><UButton
+          variant="ghost"
+          color="neutral"
           class="cf-upload-dropzone"
           @dragover.prevent
           @drop.prevent="dropFiles"
@@ -203,7 +205,7 @@ async function startUpload() {
               size: (fileLimit / 1048576).toFixed(0),
             })
           }}</span>
-        </button>
+        </UButton>
         <section
           v-if="selectedFiles.length"
           class="space-y-3"

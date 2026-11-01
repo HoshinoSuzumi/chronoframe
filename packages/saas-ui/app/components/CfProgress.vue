@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { ProgressRoot, ProgressIndicator } from 'reka-ui'
 const props = withDefaults(defineProps<{ value?: number; max?: number }>(), {
   value: 0,
   max: 100,
@@ -15,16 +14,18 @@ const normalized = computed(() =>
 )
 </script>
 <template>
-  <ProgressRoot
-    :model-value="normalized"
-    :max="maximum"
-    class="cf-progress"
+  <div
+    role="progressbar"
+    :aria-valuenow="normalized"
+    :aria-valuemin="0"
+    :aria-valuemax="maximum"
   >
-    <ProgressIndicator
-      class="cf-progress-indicator"
-      :style="{
-        width: (normalized / maximum) * 100 + '%',
-      }"
+    <UProgress
+      :model-value="normalized"
+      :max="maximum"
+      size="xs"
+      color="neutral"
+      aria-hidden="true"
     />
-  </ProgressRoot>
+  </div>
 </template>

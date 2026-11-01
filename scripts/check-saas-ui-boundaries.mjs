@@ -18,9 +18,31 @@ async function sources(directory) {
     )
   ).flat()
 }
+function checkNuxtFoundation(file, source) {
+  if (!file.endsWith('.vue')) return
+  if (/from\s*['"](?:reka-ui|class-variance-authority)['"]/.test(source))
+    failures.push(
+      `${file}: use Nuxt UI components rather than a separate primitive system`,
+    )
+  for (const match of source.matchAll(
+    /<(input|textarea|button|table)\b[^>]*>/g,
+  )) {
+    // The upload transport is hidden; its visible trigger and all form controls use Nuxt UI.
+    if (
+      match[1] === 'input' &&
+      /type="file"/.test(match[0]) &&
+      /class="sr-only"/.test(match[0])
+    )
+      continue
+    failures.push(
+      `${file}: native ${match[1]} bypasses the shared Nuxt UI theme`,
+    )
+  }
+}
 const failures = []
 for (const file of await sources(root)) {
   const source = await readFile(file, 'utf8')
+  checkNuxtFoundation(file, source)
   if (file.endsWith('.css')) continue // Tailwind @source deliberately scans consumers.
   for (const match of source.matchAll(
     /(?:from\s*|import\s*(?:\(\s*)?)['"]([^'"]+)['"]/g,
@@ -46,6 +68,7 @@ if (!cloud.includes('../../packages/saas-ui'))
   failures.push('Cloud must extend the SaaS UI layer')
 for (const file of await sources(resolve('apps/cloud/app'))) {
   const source = await readFile(file, 'utf8')
+  checkNuxtFoundation(file, source)
   if (
     /<Cloud(?:Button|Input|Select|Card|Badge|Progress|Alert|Skeleton|Separator|RadioGroup|StatCard|PageHeader)\b/.test(
       source,
@@ -56,6 +79,8 @@ for (const file of await sources(resolve('apps/cloud/app'))) {
 // When Admin is implemented, opting into the same foundation is mandatory.
 try {
   const admin = await readFile('apps/admin/nuxt.config.ts', 'utf8')
+  for (const file of await sources(resolve('apps/admin/app')))
+    checkNuxtFoundation(file, await readFile(file, 'utf8'))
   if (!/packages\/saas-ui|@chronoframe\/saas-ui/.test(admin))
     failures.push('Admin must extend the SaaS UI layer')
 } catch (error) {

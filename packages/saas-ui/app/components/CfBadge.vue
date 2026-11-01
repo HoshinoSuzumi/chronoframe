@@ -4,9 +4,10 @@ withDefaults(defineProps<{ tone?: 'neutral' | 'success' | 'warning' }>(), {
 })
 </script>
 <template>
-  <span
+  <UBadge
+    :color="tone"
+    variant="subtle"
     class="cf-badge"
-    :class="`cf-badge-${tone}`"
     ><slot
-  /></span>
+  /></UBadge>
 </template>

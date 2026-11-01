@@ -18,6 +18,22 @@ const groups = computed(() => [
     tr('Campaigns (source / medium / campaign)', '推广来源/媒介/活动'),
   ],
 ])
+const columns = (time = false) => [
+  {
+    accessorKey: 'label',
+    header: time ? tr('Time (UTC)', '时间（UTC）') : tr('Dimension', '维度'),
+  },
+  {
+    accessorKey: 'pv',
+    header: 'PV',
+    meta: { class: { th: 'text-right', td: 'text-right whitespace-nowrap' } },
+  },
+  {
+    accessorKey: 'uv',
+    header: time ? 'UV' : tr('Daily UV total', '每日 UV 合计'),
+    meta: { class: { th: 'text-right', td: 'text-right whitespace-nowrap' } },
+  },
+]
 </script>
 <template>
   <div class="cf-analytics-report">
@@ -102,35 +118,21 @@ const groups = computed(() => [
         /></template>
       </ClientOnly>
       <div class="cf-analytics-table-wrap">
-        <table class="cf-analytics-table">
-          <thead>
-            <tr>
-              <th>{{ tr('Time (UTC)', '时间（UTC）') }}</th>
-              <th>PV</th>
-              <th>UV</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr
-              v-for="row in report.daily"
-              :key="row.page?.key ?? row.label"
-            >
-              <td>{{ row.label }}</td>
-              <td>{{ format(row.pv) }}</td>
-              <td>{{ format(row.uv) }}</td>
-            </tr>
-            <tr v-if="!report.daily.length">
-              <td colspan="3">
-                {{
-                  tr(
-                    'No visits in this date range.',
-                    '此日期范围内暂无访问记录。',
-                  )
-                }}
-              </td>
-            </tr>
-          </tbody>
-        </table>
+        <UTable
+          :data="report.daily"
+          :columns="columns(true)"
+          :ui="{
+            root: 'overflow-visible',
+            td: 'whitespace-normal break-words text-[13px] px-2 py-2.5',
+            th: 'text-[13px] px-2 py-2.5',
+          }"
+        >
+          <template #pv-cell="{ row }">{{ format(row.original.pv) }}</template>
+          <template #uv-cell="{ row }">{{ format(row.original.uv) }}</template>
+          <template #empty>{{
+            tr('No visits in this date range.', '此日期范围内暂无访问记录。')
+          }}</template>
+        </UTable>
       </div>
     </CfCard>
     <div class="cf-analytics-breakdowns">
@@ -144,35 +146,32 @@ const groups = computed(() => [
           <small class="cf-field-hint">{{ tr('Top 20', '前 20 项') }}</small>
         </h2>
         <div class="cf-analytics-table-wrap">
-          <table class="cf-analytics-table">
-            <thead>
-              <tr>
-                <th>{{ tr('Dimension', '维度') }}</th>
-                <th>PV</th>
-                <th>{{ tr('Daily UV total', '每日 UV 合计') }}</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr
-                v-for="row in report[key]"
-                :key="row.page?.key ?? row.label"
-              >
-                <td>
-                  <CfAnalyticsPageLink
-                    v-if="key === 'pages'"
-                    :row="row"
-                    :admin="admin"
-                    :zh="zh"
-                  /><template v-else>{{ row.label }}</template>
-                </td>
-                <td>{{ format(row.pv) }}</td>
-                <td>{{ format(row.uv) }}</td>
-              </tr>
-              <tr v-if="!report[key].length">
-                <td colspan="3">{{ tr('No data', '暂无数据') }}</td>
-              </tr>
-            </tbody>
-          </table>
+          <UTable
+            :data="report[key]"
+            :columns="columns()"
+            :get-row-id="(row) => row.page?.key ?? row.label"
+            :ui="{
+              root: 'overflow-visible',
+              td: 'whitespace-normal break-words text-[13px] px-2 py-2.5',
+              th: 'text-[13px] px-2 py-2.5',
+            }"
+          >
+            <template #label-cell="{ row }"
+              ><CfAnalyticsPageLink
+                v-if="key === 'pages'"
+                :row="row.original"
+                :admin="admin"
+                :zh="zh"
+              /><template v-else>{{ row.original.label }}</template></template
+            >
+            <template #pv-cell="{ row }">{{
+              format(row.original.pv)
+            }}</template>
+            <template #uv-cell="{ row }">{{
+              format(row.original.uv)
+            }}</template>
+            <template #empty>{{ tr('No data', '暂无数据') }}</template>
+          </UTable>
         </div>
       </CfCard>
     </div>
@@ -204,25 +203,6 @@ const groups = computed(() => [
   max-height: 360px;
   margin: 0 -20px -20px;
   padding: 0 20px 20px;
-}
-.cf-analytics-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 13px;
-}
-.cf-analytics-table th,
-.cf-analytics-table td {
-  text-align: left;
-  padding: 10px 8px;
-  border-bottom: 1px solid var(--ui-border);
-}
-.cf-analytics-table td:first-child {
-  overflow-wrap: anywhere;
-}
-.cf-analytics-table th:not(:first-child),
-.cf-analytics-table td:not(:first-child) {
-  text-align: right;
-  white-space: nowrap;
 }
 .cf-traffic-chart-placeholder {
   width: 100%;

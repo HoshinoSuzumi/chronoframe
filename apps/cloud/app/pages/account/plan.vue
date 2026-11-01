@@ -167,11 +167,9 @@ const date = (time: number) => new Date(time).toLocaleString(locale.value)
           </p>
           <CfButton
             v-if="data.workspace.role === 'admin'"
-            as-child
             variant="secondary"
-            ><NuxtLink :to="links.redeem">{{
-              $t('cloud.billing.redeem')
-            }}</NuxtLink></CfButton
+            :to="links.redeem"
+            >{{ $t('cloud.billing.redeem') }}</CfButton
           >
         </div>
         <p

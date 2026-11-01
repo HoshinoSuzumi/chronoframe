@@ -2,7 +2,10 @@
 // Explicit radii avoid Nuxt UI scaling --ui-radius into oversized menu corners.
 const selectSlots = {
   base: 'min-h-[var(--cf-control-height)] pointer-coarse:min-h-11 pointer-coarse:text-base rounded-[6px]',
-  content: 'bg-default text-default ring ring-default rounded-[6px] shadow-lg',
+  content:
+    'w-max min-w-(--reka-select-trigger-width) max-w-[min(32rem,calc(100vw-2rem))] bg-default text-default ring ring-default rounded-[6px] shadow-lg',
+  itemLabel: 'whitespace-normal overflow-visible text-clip break-words',
+  itemDescription: 'whitespace-normal overflow-visible text-clip break-words',
   item: 'before:rounded-[4px] data-highlighted:not-data-disabled:before:bg-muted',
 }
 
@@ -18,7 +21,13 @@ export default defineAppConfig({
       error: 'red',
     },
     select: { slots: selectSlots },
-    selectMenu: { slots: selectSlots },
+    selectMenu: {
+      slots: {
+        ...selectSlots,
+        content:
+          'w-max min-w-(--reka-combobox-trigger-width) max-w-[min(32rem,calc(100vw-2rem))] bg-default text-default ring ring-default rounded-[6px] shadow-lg',
+      },
+    },
     dropdownMenu: {
       slots: {
         content:
@@ -34,6 +43,13 @@ export default defineAppConfig({
         },
       },
     },
+    input: {
+      slots: {
+        root: 'w-full',
+        base: 'min-h-[var(--cf-control-height)] pointer-coarse:min-h-11 pointer-coarse:text-base',
+      },
+    },
+    textarea: { slots: { root: 'w-full', base: 'pointer-coarse:text-base' } },
     button: { slots: { base: 'cursor-pointer rounded-md font-medium' } },
     modal: {
       variants: { overlay: { true: { overlay: 'bg-black/55' } } },
@@ -58,6 +74,9 @@ export default defineAppConfig({
     card: {
       variants: {
         variant: {
+          outline: {
+            root: 'bg-elevated ring ring-default divide-y divide-default',
+          },
           // Compatibility for inherited gallery/console surfaces, without glass.
           glassmorphism: {
             root: 'bg-default ring ring-default rounded-lg divide-y divide-default',
