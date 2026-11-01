@@ -107,29 +107,31 @@ const actions = computed(() => [
         "
       />
     </section>
-    <CfCard class="cf-dashboard-panel min-w-0">
-      <DashboardCaptureHeatmap :photos="photos" />
-    </CfCard>
     <div class="cf-dashboard-columns">
-      <CfCard class="cf-dashboard-panel"
-        ><div class="cf-dashboard-section-heading">
-          <h2>{{ $t('cloud.dashboard.manageGallery') }}</h2>
-          <span class="cf-field-hint">{{ site.name }}</span>
-        </div>
-        <div class="cf-site-actions-list">
-          <NuxtLink
-            v-for="action in actions"
-            :key="action.path"
-            :to="`/sites/${site.siteId}/${action.path}`"
-            class="cf-dashboard-tool"
-            ><component
-              :is="action.icon"
-              :size="18" /><span class="min-w-0 flex-1"
-              ><strong>{{ action.title }}</strong
-              ><small>{{ action.help }}</small></span
-            ><ArrowUpRight :size="15"
-          /></NuxtLink></div
-      ></CfCard>
+      <div class="min-w-0 space-y-4">
+        <CfCard class="cf-dashboard-panel min-w-0">
+          <DashboardCaptureHeatmap :photos="photos" />
+        </CfCard>
+        <CfCard class="cf-dashboard-panel"
+          ><div class="cf-dashboard-section-heading">
+            <h2>{{ $t('cloud.dashboard.manageGallery') }}</h2>
+            <span class="cf-field-hint">{{ site.name }}</span>
+          </div>
+          <div class="cf-site-actions-list">
+            <NuxtLink
+              v-for="action in actions"
+              :key="action.path"
+              :to="`/sites/${site.siteId}/${action.path}`"
+              class="cf-dashboard-tool"
+              ><component
+                :is="action.icon"
+                :size="18" /><span class="min-w-0 flex-1"
+                ><strong>{{ action.title }}</strong
+                ><small>{{ action.help }}</small></span
+              ><ArrowUpRight :size="15"
+            /></NuxtLink></div
+        ></CfCard>
+      </div>
       <CfCard class="cf-dashboard-panel"
         ><h2>{{ $t('cloud.dashboard.siteHealth') }}</h2>
         <CfSkeleton
