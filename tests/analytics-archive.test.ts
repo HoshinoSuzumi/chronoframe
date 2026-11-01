@@ -2,6 +2,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import { createRequire } from 'node:module'
 import { readFile } from 'node:fs/promises'
+import { DatabaseSync } from 'node:sqlite'
 import { splitSqlQuery } from './helpers/sql.ts'
 import {
   archiveAnalytics,
@@ -39,11 +40,13 @@ test('daily archive resumes failures, publishes complete snapshots atomically, a
       },
       now = Date.parse('2026-11-01T12:00:00Z')
     let fail = true
+    let pageSql = ''
     const fetcher: typeof fetch = async (_url, opts) => {
       const sql = String(opts?.body)
       if (sql.includes('MIN(timestamp)'))
         return new Response(JSON.stringify({ data: [{ day: '2026-10-28' }] }))
       if (sql.includes('AS workspaceId')) {
+        if (sql.includes('blob6 AS label')) pageSql = sql
         if (fail && sql.includes('blob9 AS label')) {
           fail = false
           return new Response('Temporary failure', { status: 503 })
@@ -111,8 +114,8 @@ test('daily archive resumes failures, publishes complete snapshots atomically, a
       db,
       config,
       {
-        from: '2025-11-01',
-        to: '2026-11-01',
+        from: '2025-11-01T12:00:00Z',
+        to: '2026-11-01T12:00:00Z',
         allTime: true,
         kind: 'site',
         workspaceId: 1,
@@ -165,7 +168,84 @@ test('daily archive resumes failures, publishes complete snapshots atomically, a
     )
     assert.equal(historic.summary.pv, 10)
     assert.equal(historic.summary.uv, 3)
+    // Execute the generated ranking and pagination over more labels than the cap.
+    const sqlite = new DatabaseSync(':memory:')
+    try {
+      sqlite.function('toDateTime', (value) => value)
+      sqlite.exec(
+        'CREATE TABLE archive_fixture (blob1, blob2, blob3, blob4, blob6, blob7, timestamp, _sample_interval)',
+      )
+      const insert = sqlite.prepare(
+        'INSERT INTO archive_fixture VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+      )
+      for (let i = 0; i < 5001; i++)
+        insert.run(
+          'v1',
+          'site',
+          '1',
+          '11',
+          `label-${String(i).padStart(4, '0')}`,
+          `visitor-${i}`,
+          '2026-10-28 12:00:00',
+          i === 5000 ? 10 : 1,
+        )
+      const query = pageSql
+        .replace(
+          /timestamp>=toDateTime\('[^']+'\)/,
+          "timestamp>=toDateTime('2026-10-28 00:00:00')",
+        )
+        .replace(
+          /timestamp<toDateTime\('[^']+'\)/,
+          "timestamp<toDateTime('2026-10-29 00:00:00')",
+        )
+        .replace(' FORMAT JSON', '')
+      const labels: string[] = []
+      for (let offset = 0; offset < 5000; offset += 250)
+        labels.push(
+          ...sqlite
+            .prepare(query.replace(/OFFSET \d+/, `OFFSET ${offset}`))
+            .all()
+            .map((row) => String(row.label)),
+        )
+      assert.equal(labels.length, 5000)
+      assert.equal(new Set(labels).size, 5000)
+      assert.ok(labels.includes('label-5000'))
+      assert.ok(!labels.includes('label-4999'))
+      assert.deepEqual(labels, [...labels].sort())
+    } finally {
+      sqlite.close()
+    }
   } finally {
     await mf.dispose()
   }
+})
+
+test('historical timestamp bounds are rejected before archive or live queries', async () => {
+  const db = {
+    prepare: () => {
+      throw new Error('archive queried')
+    },
+  } as any
+  const config = {
+    accountId: 'a'.repeat(32),
+    token: 'fixture',
+    dataset: 'archive_fixture',
+  }
+  const fetcher: typeof fetch = async () => {
+    throw new Error('live queried')
+  }
+  for (const [from, to] of [
+    ['2026-10-01T12:00:00Z', '2026-10-02'],
+    ['2026-10-01', '2026-10-02T00:00:00Z'],
+  ])
+    await assert.rejects(
+      historicalAnalytics(
+        db,
+        config,
+        { from: from!, to: to! },
+        Date.now(),
+        fetcher,
+      ),
+      { message: 'analytics_range_precision_unavailable' },
+    )
 })

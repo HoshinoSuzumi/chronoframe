@@ -2,6 +2,7 @@
 import { parseDate, type CalendarDate } from '@internationalized/date'
 import {
   ANALYTICS_PRESETS,
+  analyticsYearBoundary,
   inputInstant,
   rangeInput,
   relativeRange,
@@ -104,6 +105,7 @@ function customRange() {
         : ['h', '小时'].includes(unit)
           ? 3600
           : 86400)
+  const now = Date.now()
   if (seconds < 60 || seconds > 366 * 86400) {
     error.value = tr(
       'Choose between one minute and one year.',
@@ -111,7 +113,15 @@ function customRange() {
     )
     return
   }
-  choose(seconds)
+  const range = relativeRange(seconds, now)
+  if (Date.parse(range.from) < analyticsYearBoundary(now)) {
+    error.value = tr(
+      'Choose between one minute and one year.',
+      '请选择一分钟至一年之间的时间段。',
+    )
+    return
+  }
+  useRange(range)
 }
 function chooseAll() {
   useRange({ ...relativeRange(365 * 86400), allTime: true })
@@ -131,12 +141,7 @@ function apply() {
     !Number.isFinite(end) ||
     start >= end ||
     end > Date.now() + 60000 ||
-    start <
-      Date.UTC(
-        new Date().getUTCFullYear() - 1,
-        new Date().getUTCMonth(),
-        new Date().getUTCDate(),
-      )
+    start < analyticsYearBoundary()
   ) {
     error.value = tr(
       'Choose a valid range within the past year.',

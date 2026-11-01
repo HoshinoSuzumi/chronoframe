@@ -70,6 +70,8 @@ async function load() {
     if (request === generation) loading.value = false
   }
 }
+if (range.value.preset && !range.value.allTime)
+  range.value = relativeRange(range.value.preset)
 await load()
 </script>
 <template>

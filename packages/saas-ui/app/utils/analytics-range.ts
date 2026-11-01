@@ -7,6 +7,14 @@ export type AnalyticsDateRange = {
 export const ANALYTICS_PRESETS = [
   1800, 3600, 21600, 43200, 86400, 604800, 2592000,
 ] as const
+export function analyticsYearBoundary(now = Date.now()) {
+  const date = new Date(now)
+  return Date.UTC(
+    date.getUTCFullYear() - 1,
+    date.getUTCMonth(),
+    date.getUTCDate(),
+  )
+}
 export function relativeRange(
   seconds: number,
   now = Date.now(),

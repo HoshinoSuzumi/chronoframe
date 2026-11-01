@@ -9,7 +9,8 @@ import {
   type AnalyticsRow,
 } from './analytics.ts'
 const DAY = 86400000,
-  PAGE = 250
+  PAGE = 250,
+  DETAIL_LIMIT = 5000
 const dimensions = [
   ['summary', "''"],
   ['pages', 'blob6'],
@@ -164,7 +165,7 @@ export async function archiveAnalytics(
       const [dimension, column] = dimensions[Math.floor(state.phase / 2)]!
       const perSite = state.phase % 2 === 1
       const end = isoDay(Date.parse(state.cursor_day) + DAY)
-      const sql = `SELECT blob2 AS kind,blob3 AS workspaceId,${perSite ? 'blob4' : "'0'"} AS siteId,${column} AS label,SUM(_sample_interval) AS pv,COUNT(DISTINCT blob7) AS uv,MAX(_sample_interval) AS sampleInterval FROM ${config.dataset} WHERE blob1='v1' AND timestamp>=toDateTime('${state.cursor_day} 00:00:00') AND timestamp<toDateTime('${end} 00:00:00')${perSite ? " AND blob2='site'" : ''} GROUP BY kind,workspaceId,siteId,label ORDER BY kind,workspaceId,siteId,label LIMIT ${PAGE} OFFSET ${state.page_offset} FORMAT JSON`
+      const sql = `SELECT * FROM (SELECT blob2 AS kind,blob3 AS workspaceId,${perSite ? 'blob4' : "'0'"} AS siteId,${column} AS label,SUM(_sample_interval) AS pv,COUNT(DISTINCT blob7) AS uv,MAX(_sample_interval) AS sampleInterval FROM ${config.dataset} WHERE blob1='v1' AND timestamp>=toDateTime('${state.cursor_day} 00:00:00') AND timestamp<toDateTime('${end} 00:00:00')${perSite ? " AND blob2='site'" : ''} GROUP BY kind,workspaceId,siteId,label ORDER BY pv DESC,kind,workspaceId,siteId,label LIMIT ${DETAIL_LIMIT}) ORDER BY kind,workspaceId,siteId,label LIMIT ${PAGE} OFFSET ${state.page_offset} FORMAT JSON`
       const rows = await sqlRows(config, sql, fetcher)
       if (
         rows.some(
@@ -223,6 +224,8 @@ export async function historicalAnalytics(
   now = Date.now(),
   fetcher: typeof fetch = fetch,
 ): Promise<AnalyticsReport> {
+  if (!filter.allTime && (filter.from.includes('T') || filter.to.includes('T')))
+    throw new Error('analytics_range_precision_unavailable')
   configuration(config)
   const state = await db
     .prepare('SELECT * FROM platform_analytics_archive_state WHERE dataset=?')

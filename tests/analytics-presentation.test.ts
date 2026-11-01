@@ -11,6 +11,7 @@ import {
   rangeInput,
   inputInstant,
   ANALYTICS_PRESETS,
+  analyticsYearBoundary,
 } from '../packages/saas-ui/app/utils/analytics-range.ts'
 test('sparse day/minute/hour reports preserve the selected UTC axis and their real values', () => {
   const days = trafficDays(
@@ -31,6 +32,22 @@ test('sparse day/minute/hour reports preserve the selected UTC axis and their re
   assert.equal(minutes[1]!.pv, 3)
   assert.equal(minutes[1]!.label, '2026-11-01T11:31:00Z')
   assert.equal(trafficDays([], '2025-11-01', '2026-11-01').length, 366)
+})
+test('year boundary accepts a leap year and excludes durations before the UTC calendar boundary', () => {
+  const leapNow = Date.parse('2024-12-31T00:00:00Z')
+  assert.equal(
+    Date.parse(relativeRange(366 * 86400, leapNow).from),
+    analyticsYearBoundary(leapNow),
+  )
+  const ordinaryNow = Date.parse('2025-12-31T00:00:00Z')
+  assert.ok(
+    Date.parse(relativeRange(366 * 86400, ordinaryNow).from) <
+      analyticsYearBoundary(ordinaryNow),
+  )
+  assert.equal(
+    Date.parse(relativeRange(365 * 86400, ordinaryNow).from),
+    analyticsYearBoundary(ordinaryNow),
+  )
 })
 test('relative presets and local/UTC inputs retain actual instants across timezone changes', () => {
   assert.deepEqual(
