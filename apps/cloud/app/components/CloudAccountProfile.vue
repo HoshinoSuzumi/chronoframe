@@ -30,8 +30,6 @@ async function chooseImage(event: Event) {
       canvas.width = canvas.height = 128
       const size = Math.min(bitmap.width, bitmap.height)
       const drawing = canvas.getContext('2d')!
-      drawing.fillStyle = '#ffffff'
-      drawing.fillRect(0, 0, 128, 128)
       drawing.drawImage(
         bitmap,
         (bitmap.width - size) / 2,
@@ -44,8 +42,12 @@ async function chooseImage(event: Event) {
         128,
       )
       let result = canvas.toDataURL('image/webp', 0.85)
-      if (!result.startsWith('data:image/webp;'))
+      if (!result.startsWith('data:image/webp;')) {
+        drawing.globalCompositeOperation = 'destination-over'
+        drawing.fillStyle = '#ffffff'
+        drawing.fillRect(0, 0, 128, 128)
         result = canvas.toDataURL('image/jpeg', 0.85)
+      }
       if (result.length > 65536) throw new Error('Image too large')
       image.value = result
     } finally {
