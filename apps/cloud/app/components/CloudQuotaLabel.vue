@@ -6,7 +6,6 @@ defineProps<{ quota: string }>()
     {{ $t('cloud.billing.' + quota) }}
     <UTooltip
       v-if="quota === 'photos'"
-      :text="$t('cloud.billing.photosQuotaHelp')"
       :ui="{ content: 'max-w-xs h-auto whitespace-normal' }"
     >
       <button
@@ -19,6 +18,11 @@ defineProps<{ quota: string }>()
           class="size-3.5"
         />
       </button>
+      <template #content>
+        <span class="block whitespace-normal break-words py-1 leading-relaxed">
+          {{ $t('cloud.billing.photosQuotaHelp') }}
+        </span>
+      </template>
     </UTooltip>
   </span>
 </template>
