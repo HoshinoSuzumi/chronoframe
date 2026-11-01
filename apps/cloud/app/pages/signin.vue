@@ -12,16 +12,29 @@ const email = ref(''),
   password = ref(''),
   code = ref('')
 const mode = ref<'password' | 'email'>('password')
-const step = ref<'credentials' | 'code' | 'second'>('credentials')
+const route = useRoute()
+const second = ['totp', 'email'].includes(String(route.query.second))
+  ? String(route.query.second)
+  : ''
+const step = ref<'credentials' | 'code' | 'second'>(
+  second ? 'second' : 'credentials',
+)
 function setMode(value: 'email' | 'password') {
   mode.value = value
   error.value = ''
 }
-const authenticatorRequired = ref(false)
-const factor = ref<'email' | 'totp' | 'recovery'>('email')
+const authenticatorRequired = ref(second === 'totp')
+const factor = ref<'email' | 'totp' | 'recovery'>(
+  second === 'totp' ? 'totp' : 'email',
+)
 const busy = ref(false),
-  error = ref('')
-const codeInput = ref<{ $el: HTMLInputElement }>()
+  error = ref(
+    route.query.oauthError ? t('cloud.account.socialLoginFailed') : '',
+  )
+const codeInput = ref<{ focus(): void }>()
+onMounted(() => {
+  if (second === 'email') void resend()
+})
 async function sendSecond() {
   await $fetch('/api/auth/two-factor/send-otp', { method: 'POST', body: {} })
 }
@@ -84,7 +97,7 @@ async function submit() {
     busy.value = false
     if (step.value !== 'credentials') {
       await nextTick()
-      codeInput.value?.$el?.focus()
+      codeInput.value?.focus()
     }
   }
 }
@@ -139,7 +152,7 @@ async function resend() {
         }}
       </p>
       <div
-        v-if="step === 'credentials'"
+        v-if="step === 'credentials' && status.emailEnabled"
         class="cf-auth-tabs"
         :aria-label="$t('cloud.messages.signInMethod')"
       >
@@ -156,6 +169,7 @@ async function resend() {
         >
       </div>
       <form
+        v-if="status.emailEnabled || step === 'second'"
         @submit.prevent="submit"
         :aria-busy="busy"
       >
@@ -180,7 +194,7 @@ async function resend() {
             required
           /><NuxtLink
             class="cf-text-link"
-            to="/forgot-password"
+            :to="authLink('/forgot-password')"
             >{{ $t('cloud.messages.forgotYourPassword') }}</NuxtLink
           ></template
         >
@@ -261,15 +275,34 @@ async function resend() {
           >{{ $t('cloud.messages.sendANewCode') }}</CfButton
         >
       </form>
-      <CfButton
-        v-if="step === 'credentials'"
-        class="cf-action-spaced"
-        variant="secondary"
-        :disabled="busy"
-        @click="passkeySignIn"
-        >{{ $t('cloud.messages.signInWithAPasskey') }}</CfButton
+      <p
+        v-if="error && !status.emailEnabled && step !== 'second'"
+        class="cf-error-message"
+        role="alert"
       >
-      <p class="cf-auth-hint">
+        {{ error }}
+      </p>
+      <div
+        v-if="step === 'credentials'"
+        class="cf-auth-alternatives"
+      >
+        <USeparator
+          v-if="status.emailEnabled"
+          :label="$t('cloud.account.orContinueWith')"
+        />
+        <CfButton
+          variant="outline"
+          :disabled="busy"
+          leading-icon="i-lucide-key-round"
+          @click="passkeySignIn"
+          >{{ $t('cloud.messages.signInWithAPasskey') }}</CfButton
+        >
+        <CloudSocialLogin
+          v-model:busy="busy"
+          :providers="status.providers ?? []"
+        />
+      </div>
+      <p class="cf-auth-footer">
         {{ $t('cloud.messages.newHere')
         }}<NuxtLink
           :to="authLink('/signup')"

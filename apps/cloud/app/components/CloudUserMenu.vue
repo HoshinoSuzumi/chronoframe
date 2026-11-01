@@ -79,6 +79,7 @@ const menuItems = computed(() => [
       >
         <UAvatar
           :text="initials"
+          :src="user?.image || undefined"
           size="sm"
         />
         <span class="cf-user-identity"

@@ -21,6 +21,7 @@ export default defineEventHandler((event) => {
       '/api/auth/marketing-session',
       '/api/auth/logout',
       '/api/auth/security',
+      '/api/account/profile',
       '/api/sites',
       '/api/billing/catalog',
       '/api/legal/terms',

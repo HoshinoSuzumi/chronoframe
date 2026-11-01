@@ -4,7 +4,7 @@ export function useCloudAuthDestination() {
   const destination = computed(
     () => purchaseReturnPath(route.query.next) ?? '/workspace',
   )
-  function authLink(path: '/signin' | '/signup') {
+  function authLink(path: '/signin' | '/signup' | '/forgot-password') {
     const next = purchaseReturnPath(route.query.next)
     return { path, query: next ? { next } : {} }
   }

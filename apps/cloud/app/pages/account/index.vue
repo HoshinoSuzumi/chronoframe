@@ -29,7 +29,8 @@ const user = usePortalIdentity()
         {{ $t('cloud.messages.profile') }}
       </h2>
       <CfCard class="cf-settings-card"
-        ><div class="cf-setting-row">
+        ><CloudAccountProfile />
+        <div class="cf-setting-row">
           <div>
             <h3>{{ $t('cloud.messages.emailAddress') }}</h3>
             <p>{{ user?.email }}</p>

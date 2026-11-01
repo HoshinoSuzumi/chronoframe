@@ -5,7 +5,9 @@ import { cloudAccount } from '../utils/cloud-account'
 export default defineEventHandler((event) => {
   event.context.platformSessionResolver = async () => {
     if (!getCookie(event, '__Host-chronoframe-auth')) return null
-    const session = await cloudAccount(event).api.getSession({
+    const session = await (
+      await cloudAccount(event)
+    ).api.getSession({
       headers: new Headers(getRequestHeaders(event) as HeadersInit),
     })
     const id = Number(session?.user.id)

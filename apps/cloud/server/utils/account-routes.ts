@@ -1,7 +1,9 @@
+import { isSocialLoginProvider } from '../../../../packages/contracts/src/social-login.ts'
 /** Explicit public account surface; internal OTP retrieval and unrelated plugin APIs stay closed. */
 export const ACCOUNT_POST_ROUTES = new Set([
   '/sign-up/email',
   '/sign-in/email',
+  '/sign-in/social',
   '/sign-in/email-otp',
   '/sign-out',
   '/email-otp/send-verification-otp',
@@ -26,8 +28,17 @@ export const ACCOUNT_GET_ROUTES = new Set([
   '/passkey/generate-authenticate-options',
   '/passkey/list-user-passkeys',
 ])
+export function socialLoginCallback(path: string) {
+  const match = /^\/api\/auth\/callback\/([^/]+)$/.exec(path)
+  return !!match && isSocialLoginProvider(match[1])
+}
 export function accountRouteAllowed(path: string, method?: string) {
   const endpoint = path.replace(/^\/api\/auth/, '')
+  if (
+    socialLoginCallback(path) &&
+    (!method || ['GET', 'POST'].includes(method))
+  )
+    return true
   return (
     ((!method || method === 'POST') && ACCOUNT_POST_ROUTES.has(endpoint)) ||
     ((!method || method === 'GET') &&

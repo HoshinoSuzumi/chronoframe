@@ -20,7 +20,9 @@
     "./gallery-settings": "./src/gallery-settings.ts",
     "./reactions": "./src/reactions.ts",
     "./domains": "./src/domains.ts",
-    "./processor": "./src/processor.ts"
+    "./processor": "./src/processor.ts",
+    "./social-login": "./src/social-login.ts",
+    "./account-profile": "./src/account-profile.ts"
   },
   "scripts": {
     "type-check": "tsc --noEmit"

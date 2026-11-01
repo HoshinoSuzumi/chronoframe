@@ -307,15 +307,16 @@
 .cf-auth-form form {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  margin-top: 30px;
+  gap: 8px;
+  margin-top: 24px;
 }
 .cf-auth-form label {
   font-size: 12px;
   font-weight: 550;
 }
 .cf-auth-form .cf-button[type='submit'] {
-  margin-top: 8px;
+  justify-content: center;
+  margin-top: 16px;
   width: 100%;
 }
 .cf-auth-hint {
@@ -3139,3 +3140,15 @@ a.cf-domain-address:hover {
 .cf-handover-options input {
   flex-shrink: 0;
 }
+
+/* Keep primary actions, alternative methods and account navigation in distinct rows. */
+.cf-auth-form form > label:not(:first-child) { margin-top: 12px; }
+.cf-auth-form form > .cf-text-link { align-self: flex-end; font-size: 12px; margin: 2px 0 4px; }
+.cf-auth-form form > .cf-auth-hint { margin: 0; line-height: 1.6; }
+.cf-auth-form form > .cf-button:not([type='submit']) { justify-content: center; white-space: normal; text-align: center; }
+.cf-auth-alternatives { display: grid; gap: 16px; margin-top: 24px; }
+.cf-auth-alternatives > .cf-button { width: 100%; justify-content: center; }
+.cf-social-login { display: grid; gap: 12px; }
+.cf-social-login-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.cf-social-login-grid > .cf-button { width: 100%; min-width: 0; justify-content: center; }
+.cf-auth-form > .cf-auth-footer { display: flex; flex-wrap: wrap; justify-content: center; align-items: baseline; gap: 6px; margin: 24px 0 0; font-size: 13px; line-height: 1.6; }
