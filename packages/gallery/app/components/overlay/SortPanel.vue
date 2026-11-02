@@ -1,10 +1,12 @@
 <script lang="ts" setup>
+import { photoOverlayCardUi } from '../../utils/photoOverlayPresentation'
 const { currentSortLabel, availableSorts, setSortOption } = usePhotoSort()
 </script>
 
 <template>
   <UCard
     variant="glassmorphism"
+    :ui="photoOverlayCardUi"
     class="w-3xs"
   >
     <template #header>
