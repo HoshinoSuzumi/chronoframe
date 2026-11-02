@@ -45,7 +45,6 @@ jobs:
     outputs:
       version: ${{ steps.version.outputs.version }}
       prerelease: ${{ steps.version.outputs.prerelease }}
-      changelog: ${{ steps.changelog.outputs.changelog }}
       commit: ${{ steps.source.outputs.commit }}
       tag: ${{ steps.version.outputs.tag }}
       publish: ${{ steps.trigger.outputs.publish }}
@@ -165,50 +164,6 @@ jobs:
         id: source
         if: steps.trigger.outputs.publish == 'true'
         run: echo "commit=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
-
-      - name: 📝 Generate changelog
-        id: changelog
-        if: steps.trigger.outputs.publish == 'true'
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
-          RELEASE_TAG: ${{ steps.version.outputs.tag }}
-          IS_PRERELEASE: ${{ steps.version.outputs.prerelease }}
-        run: |
-          set -euo pipefail
-          echo "Generating changelog..."
-
-          echo "All tags:"
-          git tag -l --sort=-version:refname
-
-          PREVIOUS_TAG=""
-          while IFS= read -r candidate; do
-            [[ "$candidate" == "$RELEASE_TAG" ]] && continue
-            if [[ "$IS_PRERELEASE" != true && "$candidate" == *-* ]]; then continue; fi
-            if git merge-base --is-ancestor "$candidate" HEAD; then
-              PREVIOUS_TAG="$candidate"
-              break
-            fi
-          done < <(git tag -l 'v*' --sort=-version:refname)
-
-          echo "Previous tag: $PREVIOUS_TAG"
-
-          if [ -n "$PREVIOUS_TAG" ]; then
-            echo "Generating changelog from $PREVIOUS_TAG to current"
-            changelog=$(npx @uniiem/changelogen@0.7.2 --from="$PREVIOUS_TAG" --no-output --noMerges --noAuthors)
-            contributors=$(node scripts/changelog-contributors.mjs "$PREVIOUS_TAG..HEAD")
-          else
-            echo "No previous tag found, generating full changelog"
-            changelog=$(npx @uniiem/changelogen@0.7.2 --no-output --noMerges --noAuthors)
-            contributors=$(node scripts/changelog-contributors.mjs HEAD)
-          fi
-
-          changelog=$(echo "$changelog" | sed 's/^\[log\][[:space:]]*//')
-          changelog="$changelog
-          $contributors"
-
-          echo "changelog<<EOF" >> $GITHUB_OUTPUT
-          echo "$changelog" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
 
   build-and-push:
     needs: prepare
@@ -374,12 +329,66 @@ jobs:
       VERSION: ${{ needs.prepare.outputs.version }}
       IS_PRERELEASE: ${{ needs.prepare.outputs.prerelease }}
     steps:
+      - name: Checkout immutable release source
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.prepare.outputs.commit }}
+          fetch-depth: 0
+          fetch-tags: true
+          persist-credentials: false
+
+      - name: 📝 Generate changelog
+        id: changelog
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          RELEASE_NOTES_FILE: ${{ runner.temp }}/release-notes.md
+          RELEASE_TAG: ${{ needs.prepare.outputs.tag }}
+          IS_PRERELEASE: ${{ needs.prepare.outputs.prerelease }}
+        run: |
+          set -euo pipefail
+          echo "Generating changelog..."
+
+          echo "All tags:"
+          git tag -l --sort=-version:refname
+
+          PREVIOUS_TAG=""
+          while IFS= read -r candidate; do
+            [[ "$candidate" == "$RELEASE_TAG" ]] && continue
+            if [[ "$IS_PRERELEASE" != true && "$candidate" == *-* ]]; then continue; fi
+            if git merge-base --is-ancestor "$candidate" HEAD; then
+              PREVIOUS_TAG="$candidate"
+              break
+            fi
+          done < <(git tag -l 'v*' --sort=-version:refname)
+
+          echo "Previous tag: $PREVIOUS_TAG"
+
+          if [ -n "$PREVIOUS_TAG" ]; then
+            echo "Generating changelog from $PREVIOUS_TAG to current"
+            changelog=$(npx @uniiem/changelogen@0.7.2 --from="$PREVIOUS_TAG" --no-output --noMerges --noAuthors)
+            contributors=$(node scripts/changelog-contributors.mjs "$PREVIOUS_TAG..HEAD")
+          else
+            echo "No previous tag found, generating full changelog"
+            changelog=$(npx @uniiem/changelogen@0.7.2 --no-output --noMerges --noAuthors)
+            contributors=$(node scripts/changelog-contributors.mjs HEAD)
+          fi
+
+          changelog=$(echo "$changelog" | sed 's/^\[log\][[:space:]]*//')
+          changelog="$changelog
+          $contributors"
+
+          if [[ -z "$(printf '%s' "$changelog" | tr -d '[:space:]')" ]]; then
+            echo "::error::Generated release notes are empty."
+            exit 1
+          fi
+          printf '%s\n' "$changelog" > "$RELEASE_NOTES_FILE"
+
       - name: 📝 Create Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ needs.prepare.outputs.tag }}
           target_commitish: ${{ needs.prepare.outputs.commit }}
           name: Release v${{ env.VERSION }}
-          body: ${{ needs.prepare.outputs.changelog }}
+          body_path: ${{ runner.temp }}/release-notes.md
           prerelease: ${{ env.IS_PRERELEASE == 'true' }}
           draft: true
