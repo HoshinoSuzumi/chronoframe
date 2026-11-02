@@ -282,8 +282,12 @@ test('a release whose package version is already correct still marks its annotat
 
 test('release notes are validated before image publication and transferred as an artifact', async () => {
   assert.equal(workflow.jobs.prepare.outputs.changelog, undefined)
-  const generate = steps.findIndex((s: any) => s.name === '📝 Generate changelog')
-  const resolve = steps.findIndex((s: any) => s.name === 'Resolve immutable release commit')
+  const generate = steps.findIndex(
+    (s: any) => s.name === '📝 Generate changelog',
+  )
+  const resolve = steps.findIndex(
+    (s: any) => s.name === 'Resolve immutable release commit',
+  )
   const upload = steps.findIndex((s: any) => s.name === 'Upload release notes')
   assert(generate > resolve)
   assert(upload > generate)
