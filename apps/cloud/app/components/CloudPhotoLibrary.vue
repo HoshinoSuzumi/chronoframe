@@ -2,6 +2,8 @@
 import {
   ArrowUpDown as ButtonIconArrowUpDown,
   Columns3,
+  LayoutList,
+  LayoutGrid,
   Ellipsis as ButtonIconEllipsis,
   Filter as ButtonIconFilter,
   FolderPlus as ButtonIconFolderPlus,
@@ -9,6 +11,7 @@ import {
   Trash2 as ButtonIconTrash2,
   Upload as ButtonIconUpload,
 } from 'lucide-vue-next'
+import { useLocalStorage } from '@vueuse/core'
 import { uploadQuotaGate } from '../utils/quota-gate'
 import { DASHBOARD_PHOTO_COLUMN_IDS } from '#console/composables/useDashboardPhotoColumnVisibility'
 const { t, locale } = useI18n()
@@ -60,6 +63,11 @@ function openUpload() {
     void quota.refresh()
   }
 }
+const layout = useLocalStorage<'list' | 'masonry'>(
+  'cloud-photos-layout',
+  'list',
+  { initOnMounted: true },
+)
 const search = ref(''),
   selection = ref<Record<string, boolean>>({}),
   editor = ref(false),
@@ -384,7 +392,28 @@ watch(
         :loading="loading"
         @click="refreshMedia"
       />
+      <div
+        role="group"
+        :aria-label="$t('cloud.ui.libraryLayout')"
+        class="flex gap-1"
+      >
+        <CfButton
+          :variant="layout === 'list' ? 'soft' : 'secondary'"
+          :icon="LayoutList"
+          :aria-pressed="layout !== 'masonry'"
+          @click="layout = 'list'"
+          >{{ $t('cloud.ui.listLayout') }}</CfButton
+        >
+        <CfButton
+          :variant="layout === 'masonry' ? 'soft' : 'secondary'"
+          :icon="LayoutGrid"
+          :aria-pressed="layout === 'masonry'"
+          @click="layout = 'masonry'"
+          >{{ $t('cloud.ui.masonryLayout') }}</CfButton
+        >
+      </div>
       <UDropdownMenu
+        v-if="layout !== 'masonry'"
         :items="
           columns
             .filter(
@@ -444,7 +473,15 @@ watch(
         >{{ processingText('Process selected', '处理所选照片') }}</CfButton
       >
     </ConsoleSelectionToolbar>
+    <CloudPhotoMasonry
+      v-if="layout === 'masonry' && rows.length"
+      v-model:selection="selection"
+      :photos="rows"
+      :actions="actions"
+      @preview="preview = $event"
+    />
     <CfTable
+      v-else
       class="cf-library-table"
       v-model:column-visibility="columnVisibility"
       :data="rows"
