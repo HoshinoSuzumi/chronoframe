@@ -30,7 +30,7 @@
 
 ChronoFrame 是一个可以自行部署的照片画廊。上传照片后，应用会提取 EXIF、生成预览并整理拍摄地点；访客可以按时间、相册或地图浏览，也能查看大图和播放实况照片。
 
-[在线演示](https://lens.bh8.ga) · [使用文档](https://docs.chronoframe.art/zh/) · [更新日志](https://docs.chronoframe.art/zh/changelog.html)
+[Cloud 官网](https://chronoframe.art) · [在线演示](https://lens.bh8.ga) · [使用文档](https://docs.chronoframe.art/zh/) · [更新日志](https://docs.chronoframe.art/zh/changelog.html)
 
 ## ✨ 功能
 
@@ -42,6 +42,10 @@ ChronoFrame 是一个可以自行部署的照片画廊。上传照片后，应�
 - **地图与地点**：MapLibre / Mapbox 地图，反向地理编码和可选的地名语言。
 - **设置向导**：首次启动在网页中创建管理员、设置站点与存储；日常设置在后台修改，无需维护一长串环境变量。
 - **多语言与登录**：后台语言切换，邮箱密码登录，可选 GitHub OAuth；支持自定义统计脚本和上传隐私设置。
+
+## ☁️ ChronoFrame Cloud
+
+[ChronoFrame Cloud](https://chronoframe.art) 无需部署或维护服务器。打开 [Cloud 控制台](https://app.chronoframe.art)，注册或登录账号，创建画廊，即可在浏览器中上传和管理照片。
 
 ## 🐳 部署
 

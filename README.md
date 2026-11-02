@@ -30,7 +30,7 @@
 
 ChronoFrame is a self-hosted photo gallery. Upload your photos and it extracts EXIF, creates previews and identifies shooting locations. Visitors can browse by time, album or map, zoom into large images and play Live Photos.
 
-[Live demo](https://lens.bh8.ga) · [Documentation](https://docs.chronoframe.art/) · [Changelog](https://docs.chronoframe.art/changelog.html)
+[Cloud](https://chronoframe.art) · [Live demo](https://lens.bh8.ga) · [Documentation](https://docs.chronoframe.art/) · [Changelog](https://docs.chronoframe.art/changelog.html)
 
 ## ✨ Features
 
@@ -42,6 +42,10 @@ ChronoFrame is a self-hosted photo gallery. Upload your photos and it extracts E
 - **Maps and locations**: MapLibre / Mapbox maps, reverse geocoding and a choice of place-name language.
 - **Setup wizard**: create an administrator and configure your site and storage in the browser. Manage everyday settings in the dashboard.
 - **Languages and login**: dashboard language switching, email/password login and optional GitHub OAuth, custom analytics scripts and upload privacy settings.
+
+## ☁️ ChronoFrame Cloud
+
+Use [ChronoFrame Cloud](https://chronoframe.art) without deploying or maintaining a server. Open the [Cloud console](https://app.chronoframe.art), sign up or sign in, create a gallery, and upload and organize your photos in the browser.
 
 ## 🐳 Deployment
 

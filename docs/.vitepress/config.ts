@@ -40,6 +40,7 @@ export default defineConfig({
       { text: 'Development', link: '/development/contributing' },
       { text: 'Changelog', link: '/changelog' },
       { text: 'Demo Sites', link: '/demo-sites' },
+      { text: 'Cloud', link: 'https://chronoframe.art' },
     ],
 
     sidebar: [
