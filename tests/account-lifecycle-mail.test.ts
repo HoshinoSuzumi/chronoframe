@@ -1,3 +1,7 @@
+import {
+  recordAccountActivity,
+  replayAccountActivity,
+} from '../packages/platform/src/account-activity.ts'
 import { splitSqlQuery } from './helpers/sql.ts'
 import test from 'node:test'
 import assert from 'node:assert/strict'
@@ -1493,6 +1497,294 @@ test('Retry-budget migration preserves delivery history and terminates already-e
         )
         .first(),
       { state: 'failed', attempts: 3, lease_token: null },
+    )
+  } finally {
+    await mf.dispose()
+  }
+})
+
+test('authenticated API activity racing the scanner prevents automatic freezing', async () => {
+  const { mf, db } = await fixture()
+  try {
+    const now = Date.now(),
+      old = now - 100 * DAY
+    await db
+      .prepare(
+        'UPDATE platform_lifecycle_settings SET enabled=1,activated_at=1 WHERE id=1',
+      )
+      .run()
+    await db
+      .prepare(
+        "INSERT INTO platform_users(id,email,email_verified,created_at,last_login_at,last_active_at) VALUES(1,'active@example.com',1,?,?,?)",
+      )
+      .bind(old, old, old)
+      .run()
+    const raced = {
+      prepare: db.prepare.bind(db),
+      batch: async (statements: any[]) => {
+        await db
+          .prepare('UPDATE platform_users SET last_active_at=? WHERE id=1')
+          .bind(now)
+          .run()
+        return db.batch(statements)
+      },
+    }
+    assert.equal(
+      await markAccount(
+        raced as any,
+        1,
+        'Inactive account',
+        'inactive',
+        null,
+        now,
+        { login: old, activity: old, verified: 1, settingsRevision: 1 },
+      ),
+      false,
+    )
+    assert.equal(
+      await db
+        .prepare(
+          'SELECT user_id FROM platform_account_deletions WHERE user_id=1',
+        )
+        .first(),
+      null,
+    )
+    await scanAccounts(db, now)
+    assert.equal(
+      await db
+        .prepare(
+          'SELECT user_id FROM platform_account_deletions WHERE user_id=1',
+        )
+        .first(),
+      null,
+    )
+    assert.equal(
+      (
+        await db
+          .prepare('SELECT last_login_at FROM platform_users WHERE id=1')
+          .first()
+      ).last_login_at,
+      old,
+    )
+  } finally {
+    await mf.dispose()
+  }
+})
+
+test('failed activity writes are durable, block stale scans until replay, and never revive frozen accounts', async (t) => {
+  const { mf, db } = await fixture()
+  try {
+    const now = Date.now(),
+      old = now - 100 * DAY
+    const logs: unknown[][] = []
+    t.mock.method(console, 'error', (...args: unknown[]) => logs.push(args))
+    await db
+      .prepare(
+        'UPDATE platform_lifecycle_settings SET enabled=1,activated_at=1 WHERE id=1',
+      )
+      .run()
+    await db
+      .prepare(
+        "INSERT INTO platform_users(id,email,email_verified,created_at,last_login_at,last_active_at) VALUES(1,'retry@example.com',1,?,?,?),(2,'warn@example.com',1,?,?,?)",
+      )
+      .bind(old, old, old, now - 89 * DAY, now - 89 * DAY, now - 89 * DAY)
+      .run()
+    await db
+      .prepare(
+        "CREATE TRIGGER fail_activity_update BEFORE UPDATE OF last_active_at ON platform_users BEGIN SELECT RAISE(ABORT,'secret activity SQL details'); END",
+      )
+      .run()
+    assert.equal(await recordAccountActivity(db, 1, now), true)
+    assert.equal(await recordAccountActivity(db, 2, now), true)
+    assert.equal(
+      (
+        await db
+          .prepare('SELECT last_active_at FROM platform_users WHERE id=1')
+          .first()
+      ).last_active_at,
+      old,
+    )
+    assert.equal(
+      (
+        await db
+          .prepare(
+            'SELECT active_at FROM platform_account_activity_retries WHERE user_id=1',
+          )
+          .first()
+      ).active_at,
+      now,
+    )
+    assert.equal(
+      await markAccount(db, 1, 'Stale inactivity scan', 'inactive', null, now, {
+        login: old,
+        activity: old,
+        verified: 1,
+        settingsRevision: 1,
+      }),
+      false,
+    )
+    await scanAccounts(db, now)
+    assert.equal(
+      await db
+        .prepare(
+          'SELECT user_id FROM platform_account_deletions WHERE user_id=1',
+        )
+        .first(),
+      null,
+    )
+    assert.ok(
+      await db
+        .prepare(
+          "SELECT scope FROM platform_lifecycle_errors WHERE scope='activity-retries'",
+        )
+        .first(),
+    )
+    await db
+      .prepare(
+        "INSERT INTO platform_mail_outbox(id,user_id,kind,cycle,to_email,payload_json,available_at) VALUES('old-warning',2,'deletion-warning','old','warn@example.com',?,?)",
+      )
+      .bind(JSON.stringify({ deadline: now + DAY }), now)
+      .run()
+    const sent: unknown[] = []
+    await deliverLifecycleMail(
+      db,
+      {
+        send: async (m: unknown) => {
+          sent.push(m)
+          return { messageId: 'test' }
+        },
+      },
+      'https://app.chronoframe.art',
+      now,
+    )
+    assert.equal(sent.length, 0)
+    assert.equal(
+      (
+        await db
+          .prepare(
+            "SELECT state FROM platform_mail_outbox WHERE id='old-warning'",
+          )
+          .first()
+      ).state,
+      'cancelled',
+    )
+    await db
+      .prepare(
+        "CREATE TRIGGER fail_activity_retry BEFORE INSERT ON platform_account_activity_retries BEGIN SELECT RAISE(ABORT,'secret retry details'); END",
+      )
+      .run()
+    await assert.rejects(recordAccountActivity(db, 1, now + DAY), {
+      statusCode: 503,
+      code: 'account_activity_unavailable',
+    })
+    assert(!JSON.stringify(logs).includes('secret'))
+    await db.prepare('DROP TRIGGER fail_activity_retry').run()
+    await db.prepare('DROP TRIGGER fail_activity_update').run()
+    await scanAccounts(db, now)
+    assert.equal(
+      (
+        await db
+          .prepare('SELECT last_active_at FROM platform_users WHERE id=1')
+          .first()
+      ).last_active_at,
+      now,
+    )
+    assert.equal(
+      (
+        await db
+          .prepare('SELECT last_login_at FROM platform_users WHERE id=1')
+          .first()
+      ).last_login_at,
+      old,
+    )
+    assert.equal(
+      (
+        await db
+          .prepare(
+            'SELECT COUNT(*) AS n FROM platform_account_activity_retries',
+          )
+          .first()
+      ).n,
+      0,
+    )
+    assert.equal(
+      await db
+        .prepare(
+          'SELECT user_id FROM platform_account_deletions WHERE user_id=1',
+        )
+        .first(),
+      null,
+    )
+    assert.equal(
+      await db
+        .prepare(
+          "SELECT scope FROM platform_lifecycle_errors WHERE scope='activity-retries'",
+        )
+        .first(),
+      null,
+    )
+    await db
+      .prepare(
+        'INSERT INTO platform_account_activity_retries(user_id,active_at) VALUES(1,?)',
+      )
+      .bind(now - 1000)
+      .run()
+    const concurrent = {
+      prepare: db.prepare.bind(db),
+      batch: async (statements: any[]) => {
+        await db
+          .prepare(
+            'UPDATE platform_account_activity_retries SET active_at=? WHERE user_id=1',
+          )
+          .bind(now + 1000)
+          .run()
+        return db.batch(statements)
+      },
+    }
+    await replayAccountActivity(concurrent as any)
+    assert.equal(
+      (
+        await db
+          .prepare('SELECT last_active_at FROM platform_users WHERE id=1')
+          .first()
+      ).last_active_at,
+      now + 1000,
+    )
+    await db
+      .prepare(
+        'INSERT INTO platform_account_activity_retries(user_id,active_at) VALUES(1,?)',
+      )
+      .bind(now + 2000)
+      .run()
+    await markAccount(db, 1, 'Manual freeze still applies', 'manual', null, now)
+    await replayAccountActivity(db)
+    assert.equal(
+      (
+        await db
+          .prepare(
+            'SELECT suspended FROM platform_account_controls WHERE user_id=1',
+          )
+          .first()
+      ).suspended,
+      1,
+    )
+    assert.equal(
+      (
+        await db
+          .prepare('SELECT last_active_at FROM platform_users WHERE id=1')
+          .first()
+      ).last_active_at,
+      now + 1000,
+    )
+    assert.equal(
+      (
+        await db
+          .prepare(
+            'SELECT COUNT(*) AS n FROM platform_account_activity_retries',
+          )
+          .first()
+      ).n,
+      0,
     )
   } finally {
     await mf.dispose()
