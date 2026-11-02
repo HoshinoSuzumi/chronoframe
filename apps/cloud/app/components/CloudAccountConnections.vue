@@ -10,7 +10,6 @@ const {
   data,
   error: loadError,
   refresh,
-  status,
 } = await useFetch<{ providers: Provider[]; accounts: Connection[] }>(
   '/api/account/connections',
   { key: `account-connections-${identity.value?.id}` },
@@ -141,12 +140,6 @@ async function unlink() {
       >
         {{ notice }}
       </p>
-      <p
-        v-if="status === 'pending'"
-        class="cf-field-hint"
-      >
-        {{ $t('cloud.billing.loading') }}
-      </p>
       <div
         v-for="row in rows"
         :key="row.account?.id ?? row.provider.id"
@@ -209,14 +202,6 @@ async function unlink() {
       >
         {{ $t('cloud.connections.empty') }}
       </p>
-      <div>
-        <CfButton
-          variant="ghost"
-          :disabled="!!busy || status === 'pending'"
-          @click="refresh()"
-          >{{ $t('cloud.messages.reloadSettings') }}</CfButton
-        >
-      </div>
     </div>
     <UModal
       :open="!!removing"
