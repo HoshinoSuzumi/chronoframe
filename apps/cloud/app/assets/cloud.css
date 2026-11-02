@@ -1659,6 +1659,9 @@
 }
 .cf-upload-dropzone {
   width: 100%;
+  min-width: 0;
+  grid-template-columns: minmax(0, 1fr);
+  white-space: normal;
   display: grid;
   justify-items: center;
   gap: 10px;
@@ -1670,6 +1673,9 @@
   cursor: pointer;
 }
 .cf-upload-dropzone span {
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
   font-size: 12px;
   color: var(--ui-text-muted);
 }

@@ -94,9 +94,9 @@ async function startUpload() {
     :description="
       $t('cloud.messages.addPhotographsToYourLibraryJpegPngHeicAnd')
     "
-    :ui="{ footer: 'justify-end' }"
+    :ui="{ footer: 'justify-end', header: 'pe-16', body: 'min-w-0' }"
     ><template #body
-      ><div class="space-y-5">
+      ><div class="min-w-0 space-y-5">
         <p
           v-if="message"
           :role="failed ? 'alert' : 'status'"

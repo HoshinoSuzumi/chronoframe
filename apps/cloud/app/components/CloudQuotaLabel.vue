@@ -1,18 +1,22 @@
 <script setup lang="ts">
 defineProps<{ quota: string }>()
+const open = ref(false)
 </script>
 <template>
   <span class="inline-flex items-center gap-1">
     {{ $t('cloud.billing.' + quota) }}
     <UTooltip
       v-if="quota === 'photos'"
+      v-model:open="open"
+      :disable-closing-trigger="true"
       :ui="{ content: 'max-w-xs h-auto whitespace-normal' }"
     >
       <UButton
         variant="ghost"
         color="neutral"
         type="button"
-        class="inline-flex shrink-0 items-center text-muted focus-visible:outline-2 focus-visible:outline-offset-2"
+        class="cf-quota-info shrink-0 text-muted focus-visible:outline-2 focus-visible:outline-offset-2"
+        @click="open = true"
         :aria-label="$t('cloud.billing.photosQuotaHelp')"
       >
         <UIcon
@@ -28,3 +32,16 @@ defineProps<{ quota: string }>()
     </UTooltip>
   </span>
 </template>
+
+<style scoped>
+.cf-quota-info {
+  display: inline-flex;
+  width: 16px;
+  height: 16px;
+  min-height: 0;
+  padding: 0;
+  align-items: center;
+  justify-content: center;
+  vertical-align: middle;
+}
+</style>

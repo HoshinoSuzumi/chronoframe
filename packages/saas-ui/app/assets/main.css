@@ -1,6 +1,7 @@
 @import 'tailwindcss';
 @import '@nuxt/ui';
 @import './tokens.css';
+@import './scrollbars.css';
 @import './primitives.css' layer(components);
 @import './shell.css';
 @import './identity.css';
