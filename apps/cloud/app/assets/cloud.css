@@ -65,6 +65,19 @@
   color: var(--accent);
   font-weight: 400;
 }
+@font-face {
+  font-family: 'Ma Shan Zheng';
+  src: url('/fonts/ma-shan-zheng/story.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+3002, U+4E8B, U+4F60, U+6545, U+7684;
+}
+.cf-hero-title em.cf-hero-story-zh {
+  font-family: 'Ma Shan Zheng', 'Noto Serif SC', serif;
+  font-style: normal;
+  font-synthesis: none;
+}
 .cf-hero-copy {
   max-width: 380px;
   color: var(--muted-foreground);

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-const { t } = useI18n()
+const { t, locale } = useI18n()
 
 import { motion } from 'motion-v'
 import {
@@ -121,9 +121,10 @@ useSeoMeta({
       <section class="cf-hero">
         <motion.div v-bind="entrance">
           <h1 class="cf-hero-title">
-            {{ $t('cloud.messages.everyFrame') }}<br /><em>{{
-              $t('cloud.messages.yourStory')
-            }}</em>
+            {{ $t('cloud.messages.everyFrame') }}<br /><em
+              :class="{ 'cf-hero-story-zh': locale === 'zh-Hans' }"
+              >{{ $t('cloud.messages.yourStory') }}</em
+            >
           </h1>
           <p class="cf-hero-copy">
             {{ $t('cloud.messages.aHomeForTheMomentsYouWantToShare') }}
