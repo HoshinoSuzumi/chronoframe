@@ -14,15 +14,14 @@ const emit = defineEmits<{ preview: [Photo] }>()
 const selectedCount = computed(
   () => props.photos.filter((photo) => selection.value[photo.id]).length,
 )
+const selectionId = useId()
 const isMobile = useMediaQuery('(max-width: 768px)')
 
 function selectAll(value: boolean | 'indeterminate') {
-  const next = { ...selection.value }
-  for (const photo of props.photos) {
-    if (value === true) next[photo.id] = true
-    else delete next[photo.id]
-  }
-  selection.value = next
+  selection.value =
+    value === true
+      ? Object.fromEntries(props.photos.map((photo) => [photo.id, true]))
+      : {}
 }
 </script>
 
@@ -57,13 +56,17 @@ function selectAll(value: boolean | 'indeterminate') {
             :index="index"
             @open-viewer="emit('preview', photo)"
           />
-          <div class="cf-masonry-select">
+          <label
+            class="cf-masonry-select"
+            :for="`${selectionId}-${photo.id}`"
+          >
             <UCheckbox
+              :id="`${selectionId}-${photo.id}`"
               :model-value="!!selection[photo.id]"
               :aria-label="$t('cloud.ui.selectNamed', { title: photo.title })"
               @update:model-value="selection[photo.id] = $event === true"
             />
-          </div>
+          </label>
           <UDropdownMenu :items="actions(photo)">
             <CfButton
               class="cf-masonry-actions"
