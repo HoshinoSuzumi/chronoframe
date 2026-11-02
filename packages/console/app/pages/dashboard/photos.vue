@@ -2419,7 +2419,6 @@ onUnmounted(() => {
                 }}</span>
               </UButton>
 
-              <ConsolePhotoLayoutSwitch v-model="layout" />
               <!-- 列可见性按钮 -->
               <UDropdownMenu
                 v-if="layout !== 'masonry'"
@@ -2463,6 +2462,7 @@ onUnmounted(() => {
                   }}</span>
                 </UButton>
               </UDropdownMenu>
+              <ConsolePhotoLayoutSwitch v-model="layout" />
             </div>
           </div>
 

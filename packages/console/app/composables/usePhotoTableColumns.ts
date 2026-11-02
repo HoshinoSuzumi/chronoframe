@@ -1,8 +1,8 @@
-import { h, resolveComponent, computed } from 'vue'
+import { h, computed } from 'vue'
 import type { Ref } from 'vue'
 import type { TableColumn } from '@nuxt/ui'
 import type { Photo } from '@chronoframe/contracts/resources'
-import { Icon, UBadge } from '#components'
+import { Icon, UBadge, Rating } from '#components'
 import ThumbImage from '#gallery/components/ui/ThumbImage.vue'
 
 export function usePhotoTableColumns(options: {
@@ -12,7 +12,6 @@ export function usePhotoTableColumns(options: {
   const { t: $t } = useI18n()
   const dayjs = useDayjs()
   const locationLabel = useLocationLabel()
-  const Rating = resolveComponent('Rating')
   const openImagePreview = options.preview
   const reactionsData = options.reactions
   return computed<TableColumn<Photo>[]>(() => [

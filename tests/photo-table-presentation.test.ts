@@ -28,7 +28,7 @@ test('shared photo columns render empty metadata and reaction breakdowns consist
         id === 'vue'
           ? { h, computed, resolveComponent: (name: string) => name }
           : id === '#components'
-            ? { Icon: 'icon', UBadge: 'badge' }
+            ? { Icon: 'icon', UBadge: 'badge', Rating: 'rating' }
             : { default: 'thumbnail' },
       useI18n: () => ({ t: (key: string) => key }),
       useDayjs: () => () => ({ format: () => 'formatted date' }),
@@ -67,6 +67,10 @@ test('shared photo columns render empty metadata and reaction breakdowns consist
     render('reactions').children,
     'dashboard.photos.table.cells.noReactions',
   )
+  photo.exif = { Rating: 0 }
+  const rating = childrenOf(render('rating'))[0]
+  assert.equal(rating.type, 'rating')
+  assert.equal(rating.props?.modelValue, 0)
   reactions.value = { p: { like: 3, love: 1 } }
   const reactionCells = childrenOf(render('reactions'))
   assert.equal(reactionCells.length, 2)

@@ -55,21 +55,22 @@ function selectAll(value: boolean | 'indeterminate') {
             :index="index"
             @open-viewer="emit('preview', photo)"
           />
-          <label
+          <input
+            :id="`${selectionId}-${photo.id}`"
+            type="checkbox"
             class="cf-masonry-select"
             :class="{ 'cf-masonry-control-selected': selection[photo.id] }"
-            :for="`${selectionId}-${photo.id}`"
-          >
-            <UCheckbox
-              :id="`${selectionId}-${photo.id}`"
-              :model-value="!!selection[photo.id]"
-              :aria-label="`${$t('dashboard.photos.table.selectRowAria')} ${photo.title ?? photo.id}`"
-              @update:model-value="selection[photo.id] = $event === true"
-            />
-          </label>
+            :checked="!!selection[photo.id]"
+            :aria-label="`${$t('dashboard.photos.table.selectRowAria')} ${photo.title ?? photo.id}`"
+            @change="
+              selection[photo.id] = ($event.target as HTMLInputElement).checked
+            "
+          />
           <UDropdownMenu :items="actions(photo)">
             <UButton
               class="cf-masonry-actions"
+              size="xs"
+              square
               variant="outline"
               color="neutral"
               icon="tabler:dots-vertical"
@@ -92,12 +93,12 @@ function selectAll(value: boolean | 'indeterminate') {
   position: absolute;
   top: 0.5rem;
   z-index: 1;
-  color: white;
-  background: rgb(20 20 24 / 35%);
-  border: 1px solid rgb(255 255 255 / 25%);
-  border-radius: 0.625rem;
+  color: #262626;
+  background: rgb(255 255 255 / 50%);
+  border: 1px solid rgb(245 245 245 / 80%);
+  border-radius: 0.375rem;
   box-shadow: 0 2px 10px rgb(0 0 0 / 15%);
-  backdrop-filter: blur(14px) saturate(140%);
+  backdrop-filter: blur(12px);
   opacity: 0;
   pointer-events: none;
   transition:
@@ -106,12 +107,31 @@ function selectAll(value: boolean | 'indeterminate') {
 }
 .cf-masonry-select {
   left: 0.5rem;
-  display: flex;
-  padding: 0.375rem;
+  appearance: none;
+  width: 24px;
+  height: 24px;
+  margin: 0;
+  padding: 0;
   cursor: pointer;
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 18px;
+}
+.cf-masonry-select:checked {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23262626' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m5 12 4 4 10-10'/%3E%3C/svg%3E");
+}
+.cf-masonry-select:focus-visible {
+  outline: 2px solid var(--ui-primary);
+  outline-offset: 2px;
 }
 .cf-masonry-actions {
   right: 0.5rem;
+  width: 24px;
+  height: 24px;
+  min-width: 24px;
+  min-height: 24px;
+  padding: 0;
+  justify-content: center;
 }
 .cf-masonry-photo:hover .cf-masonry-select,
 .cf-masonry-photo:hover .cf-masonry-actions,
@@ -124,15 +144,26 @@ function selectAll(value: boolean | 'indeterminate') {
 }
 .cf-masonry-actions:hover,
 .cf-masonry-select:hover {
-  background: rgb(20 20 24 / 55%);
+  background-color: rgb(255 255 255 / 70%);
+}
+:global(.dark .cf-masonry-select),
+:global(.dark .cf-masonry-actions) {
+  color: white;
+  background-color: rgb(0 0 0 / 50%);
+  border-color: rgb(64 64 64 / 80%);
+}
+:global(.dark .cf-masonry-select:checked) {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m5 12 4 4 10-10'/%3E%3C/svg%3E");
+}
+:global(.dark .cf-masonry-select:hover),
+:global(.dark .cf-masonry-actions:hover) {
+  background-color: rgb(0 0 0 / 70%);
 }
 @media (hover: none), (pointer: coarse) {
   .cf-masonry-select,
   .cf-masonry-actions {
     opacity: 1;
     pointer-events: auto;
-    min-width: 44px;
-    min-height: 44px;
     align-items: center;
     justify-content: center;
   }

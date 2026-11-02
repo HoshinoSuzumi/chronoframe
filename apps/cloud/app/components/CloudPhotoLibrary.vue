@@ -318,6 +318,8 @@ watch(
       <template #right>
         <UButton
           v-if="admin"
+          size="sm"
+          class="min-h-8!"
           icon="tabler:cloud-upload"
           :disabled="!uploadAdmission.allowed || !!quota.error.value"
           @click="openUpload"
@@ -339,9 +341,14 @@ watch(
           @retry="quota.refresh()"
         />
         <div :class="photoLibraryPresentation.panel">
-          <div :class="photoLibraryPresentation.toolbar">
+          <div
+            class="cf-photo-library-toolbar"
+            :class="photoLibraryPresentation.toolbar"
+          >
             <ConsolePhotoLibrarySummary :photos="rows" />
-            <div class="min-w-0 flex flex-wrap items-center gap-2">
+            <div
+              class="cf-photo-library-tools min-w-0 flex flex-wrap items-center gap-2"
+            >
               <UInput
                 v-model="search"
                 icon="i-lucide-search"
@@ -351,25 +358,37 @@ watch(
               /><OverlayFilterPopover
                 ><UButton
                   size="sm"
+                  class="h-7 min-h-7!"
                   :variant="'soft'"
                   :color="hasActiveFilters ? 'info' : 'neutral'"
                   icon="tabler:filter"
-                  >{{ $t('cloud.messages.filters') }}</UButton
+                  :aria-label="$t('cloud.messages.filters')"
+                  ><span class="hidden sm:inline">{{
+                    $t('cloud.messages.filters')
+                  }}</span></UButton
                 ></OverlayFilterPopover
               ><OverlaySortPopover
                 ><UButton
-                  variant="outline"
+                  size="sm"
+                  color="neutral"
+                  variant="soft"
                   icon="tabler:arrows-sort"
-                  >{{ $t('cloud.messages.sort') }}</UButton
+                  class="h-7 min-h-7!"
+                  :aria-label="$t('cloud.messages.sort')"
+                  ><span class="hidden sm:inline">{{
+                    $t('cloud.messages.sort')
+                  }}</span></UButton
                 ></OverlaySortPopover
               ><UButton
                 variant="ghost"
+                size="sm"
+                class="h-7 min-h-7! w-7 min-w-7!"
+                square
                 icon="tabler:refresh"
                 :aria-label="$t('cloud.messages.refreshPhotographs')"
                 :loading="loading"
                 @click="refreshMedia"
               />
-              <ConsolePhotoLayoutSwitch v-model="layout" />
               <UDropdownMenu
                 v-if="layout !== 'masonry'"
                 :items="
@@ -402,13 +421,20 @@ watch(
                 "
               >
                 <UButton
-                  variant="outline"
+                  size="sm"
+                  color="neutral"
+                  variant="soft"
                   icon="tabler:columns-3"
-                  >{{
+                  class="h-7 min-h-7!"
+                  :aria-label="
                     $t('dashboard.photos.table.columnVisibility.button')
-                  }}</UButton
+                  "
+                  ><span class="hidden sm:inline">{{
+                    $t('dashboard.photos.table.columnVisibility.button')
+                  }}</span></UButton
                 >
               </UDropdownMenu>
+              <ConsolePhotoLayoutSwitch v-model="layout" />
             </div>
           </div>
           <div :class="photoLibraryPresentation.content">
@@ -754,3 +780,38 @@ watch(
     ></UModal
   >
 </template>
+
+<style scoped>
+@media (max-width: 639px) {
+  .cf-photo-library-toolbar {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) repeat(5, auto);
+    align-items: center;
+    gap: 8px 4px;
+  }
+  .cf-photo-library-tools {
+    display: contents;
+  }
+  .cf-photo-library-tools :deep(button) {
+    width: 28px;
+    min-width: 28px;
+    height: 28px;
+    min-height: 28px;
+    padding: 0;
+    justify-content: center;
+  }
+  .cf-photo-library-tools :deep(.cf-photo-layout-switch) {
+    grid-column: -2 / -1;
+    grid-row: 1;
+  }
+  .cf-library-search {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    width: 100%;
+  }
+  .cf-library-search :deep(input) {
+    min-height: 34px;
+    font-size: 14px;
+  }
+}
+</style>
