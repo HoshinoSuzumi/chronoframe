@@ -48,16 +48,52 @@ jobs:
       changelog: ${{ steps.changelog.outputs.changelog }}
       commit: ${{ steps.source.outputs.commit }}
       tag: ${{ steps.version.outputs.tag }}
+      publish: ${{ steps.trigger.outputs.publish }}
     steps:
+      - name: Validate manual release credential
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          RELEASE_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+        run: |
+          if [[ -z "$RELEASE_TOKEN" ]]; then
+            echo "::error::Configure RELEASE_TOKEN with repository Contents read/write and an administrator identity allowed to bypass branch and release-tag rules."
+            exit 1
+          fi
+
       - name: Checkout repository
         uses: actions/checkout@v7
         with:
           ref: ${{ github.event_name == 'workflow_dispatch' && format('refs/heads/{0}', inputs.branch) || github.ref }}
           fetch-depth: 0
           fetch-tags: true
+          token: ${{ github.event_name == 'workflow_dispatch' && secrets.RELEASE_TOKEN || github.token }}
+
+      - name: Select publishing run
+        id: trigger
+        env:
+          RELEASE_EVENT: ${{ github.event_name }}
+        run: |
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs'
+          import { execFileSync } from 'node:child_process'
+          const git = (...args) => execFileSync('git', args, { encoding: 'utf8' }).trim()
+          let owner
+          if (process.env.RELEASE_EVENT === 'push' && git('cat-file', '-t', process.env.GITHUB_REF) === 'tag') {
+            owner = git('for-each-ref', '--format=%(contents)', process.env.GITHUB_REF)
+              .match(/^ChronoFrame-Publish-Images-Run: ([0-9]+)$/m)?.[1]
+          }
+          if (process.env.RELEASE_EVENT === 'workflow_dispatch' && !fs.readFileSync('.github/workflows/publish-images.yml', 'utf8').includes('ChronoFrame-Publish-Images-Run:')) {
+            throw new Error('The release source branch must include the current publication workflow; backport it before releasing this branch.')
+          }
+          fs.appendFileSync(process.env.GITHUB_OUTPUT, `publish=${!owner}\n`)
+          if (owner) {
+            fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, `Publishing is owned by the [manual release run](https://github.com/${process.env.GITHUB_REPOSITORY}/actions/runs/${owner}); this tag-triggered duplicate is skipped.\n`)
+          }
+          NODE
 
       - name: Validate release version and targets
         id: version
+        if: steps.trigger.outputs.publish == 'true'
         env:
           RELEASE_VERSION: ${{ inputs.version }}
           RELEASE_BRANCH: ${{ inputs.branch }}
@@ -92,33 +128,47 @@ jobs:
           RELEASE_TAG: ${{ steps.version.outputs.tag }}
           RELEASE_BRANCH: ${{ inputs.branch }}
         run: |
-          set -euo pipefail
-          if git show-ref --verify --quiet "refs/tags/$RELEASE_TAG"; then
-            echo "::error::Release tag already exists; refusing to overwrite."
-            exit 1
-          fi
           node --input-type=module <<'NODE'
           import fs from 'node:fs'
-          const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'))
-          pkg.version = process.env.RELEASE_VERSION
-          fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n')
+          import { execFileSync, spawnSync } from 'node:child_process'
+          const git = (...args) => execFileSync('git', args, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'inherit'] }).trim()
+          const { RELEASE_VERSION: version, RELEASE_TAG: tag, RELEASE_BRANCH: branch, GITHUB_RUN_ID: runId } = process.env
+          if (!/^[0-9]+$/.test(runId)) throw new Error('Invalid release run ID')
+          const ref = `refs/tags/${tag}`
+          const marker = `ChronoFrame-Publish-Images-Run: ${runId}`
+          const exists = spawnSync('git', ['show-ref', '--verify', '--quiet', ref]).status
+          if (exists === 0) {
+            const owned = git('cat-file', '-t', ref) === 'tag' && git('for-each-ref', '--format=%(contents)', ref).split('\n').includes(marker)
+            if (!owned) throw new Error('Release tag already exists; refusing to overwrite.')
+            const pkg = JSON.parse(git('show', `${ref}:package.json`))
+            if (pkg.version !== version) throw new Error('Existing release tag has a different version')
+            git('checkout', '--detach', `${ref}^{commit}`)
+            console.log(`Resuming ${tag} at its original immutable commit`)
+          } else {
+            if (exists !== 1) throw new Error('Unable to inspect release tag')
+            const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'))
+            pkg.version = version
+            fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n')
+            git('config', 'user.name', 'HoshinoSuzumi')
+            git('config', 'user.email', '26276464+HoshinoSuzumi@users.noreply.github.com')
+            git('add', '--', 'package.json')
+            const changed = spawnSync('git', ['diff', '--cached', '--quiet']).status
+            if (changed === 1) git('commit', '-m', `chore(release): ${tag}`)
+            else if (changed !== 0) throw new Error('Unable to inspect version changes')
+            git('tag', '-a', tag, '-m', `Release ${tag}`, '-m', marker)
+            // Reject concurrent branch updates without leaving a partial release tag.
+            git('push', '--atomic', 'origin', `HEAD:refs/heads/${branch}`, ref)
+          }
           NODE
-          git config user.name 'HoshinoSuzumiBot'
-          git config user.email 'boxlab2017@gmail.com'
-          git add package.json
-          if ! git diff --cached --quiet; then
-            git commit -m "chore(release): $RELEASE_TAG"
-          fi
-          git tag "$RELEASE_TAG"
-          # Both refs advance together; a concurrent branch update rejects the push.
-          git push --atomic origin "HEAD:refs/heads/$RELEASE_BRANCH" "refs/tags/$RELEASE_TAG"
 
       - name: Resolve immutable release commit
         id: source
+        if: steps.trigger.outputs.publish == 'true'
         run: echo "commit=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 
       - name: 📝 Generate changelog
         id: changelog
+        if: steps.trigger.outputs.publish == 'true'
         env:
           GITHUB_TOKEN: ${{ github.token }}
           RELEASE_TAG: ${{ steps.version.outputs.tag }}
@@ -162,6 +212,7 @@ jobs:
 
   build-and-push:
     needs: prepare
+    if: needs.prepare.outputs.publish == 'true'
     strategy:
       matrix:
         include:
