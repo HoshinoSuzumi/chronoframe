@@ -25,7 +25,7 @@ export default defineEventHandler((event) => {
     const db = platformDatabase(event)
     const control = await db
       .prepare(
-        'SELECT COALESCE(c.suspended,0) AS suspended,u.last_active_at FROM platform_users u LEFT JOIN platform_account_controls c ON c.user_id=u.id WHERE u.id=?',
+        'SELECT COALESCE(c.suspended,0) AS suspended,NULLIF(MAX(COALESCE(u.last_active_at,0),COALESCE(a.active_at,0)),0) AS last_active_at FROM platform_users u LEFT JOIN platform_account_controls c ON c.user_id=u.id LEFT JOIN platform_account_activity_retries a ON a.user_id=u.id WHERE u.id=?',
       )
       .bind(id)
       .first<{ suspended: number; last_active_at: number | null }>()
@@ -35,9 +35,7 @@ export default defineEventHandler((event) => {
       control.last_active_at === null ||
       control.last_active_at <= now - ACCOUNT_ACTIVITY_INTERVAL
     )
-      await recordAccountActivity(db, id, now).catch(() => {
-        console.error('Account activity write failed')
-      })
+      await recordAccountActivity(db, id, now)
     return {
       userId: id,
       expiresAt: new Date(session.session.expiresAt).getTime(),

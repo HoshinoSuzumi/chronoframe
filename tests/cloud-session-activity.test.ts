@@ -23,7 +23,7 @@ const code = transpileModule(
   },
 ).outputText
 
-test('session activity validates identities, throttles writes and tolerates write failures without leaking details', async (t) => {
+test('session activity validates identities and throttles writes; unavailable durable tracking remains an error', async (t) => {
   let cookie = true
   let verified = true
   let suspended = 0
@@ -74,8 +74,7 @@ test('session activity validates identities, throttles writes and tolerates writ
     }),
     async (_db: unknown, id: number, now: number) => {
       assert.equal(id, 1)
-      if (failWrite)
-        throw new Error('secret session details must not be logged')
+      if (failWrite) throw new Error('account_activity_unavailable')
       writes++
       lastActive = now
     },
@@ -118,20 +117,16 @@ test('session activity validates identities, throttles writes and tolerates writ
   failWrite = true
   const logged: unknown[][] = []
   t.mock.method(console, 'error', (...args: unknown[]) => logged.push(args))
-  assert.equal(
-    (await request()).userId,
-    1,
-    'activity write failure cannot invalidate a valid session',
-  )
+  await assert.rejects(request(), /account_activity_unavailable/)
   assert.equal(writes, 2)
   assert.equal(lastActive, null)
-  assert.deepEqual(logged, [['Account activity write failed']])
+  assert.deepEqual(logged, [])
   failWrite = false
   failRead = true
   await assert.rejects(request(), /Account control lookup failed/)
   assert.equal(
     logged.length,
-    1,
+    0,
     'critical account control errors are not swallowed',
   )
 })
