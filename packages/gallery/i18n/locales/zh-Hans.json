@@ -603,6 +603,7 @@
   },
   "dashboard": {
     "photos": {
+      "layouts": { "label": "照片库布局", "list": "列表", "masonry": "瀑布流" },
       "title": "照片上传",
       "subtitle": "上传后照片会自动处理并添加到库中。您可以随后在 {0} 中组织您的照片。",
       "supportedFormats": "JPEG / PNG / HEIC / 实况视频 / Motion Photo",

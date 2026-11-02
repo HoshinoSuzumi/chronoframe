@@ -525,6 +525,7 @@
   },
   "dashboard": {
     "photos": {
+      "layouts": { "label": "相片庫版面", "list": "列表", "masonry": "瀑布流" },
       "title": "上傳照片",
       "subtitle": "上傳後照片會自動處理並新增到您的圖庫。您稍後可以在 {0} 中組織您的照片。",
       "supportedFormats": "JPEG / PNG / HEIC / 原況照片 / 動態照片",

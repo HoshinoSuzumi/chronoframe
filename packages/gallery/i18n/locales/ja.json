@@ -525,6 +525,11 @@
   },
   "dashboard": {
     "photos": {
+      "layouts": {
+        "label": "写真ライブラリのレイアウト",
+        "list": "リスト",
+        "masonry": "メイソンリー"
+      },
       "title": "写真をアップロード",
       "subtitle": "アップロードされた写真は自動的に処理され、ライブラリに追加されます。その後、{0}セクションで写真を整理できます。",
       "supportedFormats": "JPEG / PNG / HEIC / ライブフォト / モーションフォト",

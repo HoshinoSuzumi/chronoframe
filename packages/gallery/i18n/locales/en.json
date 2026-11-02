@@ -603,6 +603,11 @@
   },
   "dashboard": {
     "photos": {
+      "layouts": {
+        "label": "Photo library layout",
+        "list": "List",
+        "masonry": "Masonry"
+      },
       "title": "Photo Upload",
       "subtitle": "Photos will be automatically processed and added to your library. You can organize your photos in the {0} section afterwards.",
       "supportedFormats": "JPEG / PNG / HEIC / Live Photo / Motion Photo",

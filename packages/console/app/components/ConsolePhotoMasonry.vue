@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { Ellipsis } from 'lucide-vue-next'
 import type { Photo } from '@chronoframe/contracts/resources'
 import type { DropdownMenuItem } from '@nuxt/ui'
 
@@ -34,7 +33,7 @@ function selectAll(value: boolean | 'indeterminate') {
           ? 'indeterminate'
           : selectedCount > 0
       "
-      :label="$t('cloud.messages.selectAllPhotographs')"
+      :label="$t('dashboard.photos.table.selectAllAria')"
       @update:model-value="selectAll"
     />
     <MasonryWall
@@ -48,7 +47,7 @@ function selectAll(value: boolean | 'indeterminate') {
     >
       <template #default="{ item: photo, index }">
         <div
-          class="relative"
+          class="relative cf-masonry-photo"
           :class="{ 'cf-masonry-selected': selection[photo.id] }"
         >
           <MasonryItemPhoto
@@ -58,21 +57,23 @@ function selectAll(value: boolean | 'indeterminate') {
           />
           <label
             class="cf-masonry-select"
+            :class="{ 'cf-masonry-control-selected': selection[photo.id] }"
             :for="`${selectionId}-${photo.id}`"
           >
             <UCheckbox
               :id="`${selectionId}-${photo.id}`"
               :model-value="!!selection[photo.id]"
-              :aria-label="$t('cloud.ui.selectNamed', { title: photo.title })"
+              :aria-label="`${$t('dashboard.photos.table.selectRowAria')} ${photo.title ?? photo.id}`"
               @update:model-value="selection[photo.id] = $event === true"
             />
           </label>
           <UDropdownMenu :items="actions(photo)">
-            <CfButton
+            <UButton
               class="cf-masonry-actions"
-              variant="secondary"
-              :icon="Ellipsis"
-              :aria-label="$t('cloud.ui.actionsNamed', { title: photo.title })"
+              variant="outline"
+              color="neutral"
+              icon="tabler:dots-vertical"
+              :aria-label="`${$t('dashboard.photos.table.columns.actions')} ${photo.title ?? photo.id}`"
             />
           </UDropdownMenu>
         </div>
@@ -86,29 +87,60 @@ function selectAll(value: boolean | 'indeterminate') {
   outline: 3px solid var(--ui-primary);
   outline-offset: -3px;
 }
-.cf-masonry-select {
-  position: absolute;
-  top: 0.5rem;
-  left: 0.5rem;
-  z-index: 1;
-  display: flex;
-  padding: 0.375rem;
-  border-radius: 0.5rem;
-  background: var(--ui-bg);
-  box-shadow: 0 1px 4px rgb(0 0 0 / 20%);
-}
+.cf-masonry-select,
 .cf-masonry-actions {
   position: absolute;
   top: 0.5rem;
-  right: 0.5rem;
   z-index: 1;
+  color: white;
+  background: rgb(20 20 24 / 35%);
+  border: 1px solid rgb(255 255 255 / 25%);
+  border-radius: 0.625rem;
+  box-shadow: 0 2px 10px rgb(0 0 0 / 15%);
+  backdrop-filter: blur(14px) saturate(140%);
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    opacity 150ms ease,
+    background-color 150ms ease;
 }
-@media (pointer: coarse) {
-  .cf-masonry-select {
+.cf-masonry-select {
+  left: 0.5rem;
+  display: flex;
+  padding: 0.375rem;
+  cursor: pointer;
+}
+.cf-masonry-actions {
+  right: 0.5rem;
+}
+.cf-masonry-photo:hover .cf-masonry-select,
+.cf-masonry-photo:hover .cf-masonry-actions,
+.cf-masonry-photo:focus-within .cf-masonry-select,
+.cf-masonry-photo:focus-within .cf-masonry-actions,
+.cf-masonry-actions[data-state='open'],
+.cf-masonry-control-selected {
+  opacity: 1;
+  pointer-events: auto;
+}
+.cf-masonry-actions:hover,
+.cf-masonry-select:hover {
+  background: rgb(20 20 24 / 55%);
+}
+@media (hover: none), (pointer: coarse) {
+  .cf-masonry-select,
+  .cf-masonry-actions {
+    opacity: 1;
+    pointer-events: auto;
     min-width: 44px;
     min-height: 44px;
     align-items: center;
     justify-content: center;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cf-masonry-select,
+  .cf-masonry-actions {
+    transition: none;
   }
 }
 </style>

@@ -8,7 +8,10 @@ import { computed, ref } from 'vue'
 
 test('masonry select-all replaces hidden selections and deselect-all clears them like the list view', () => {
   const { descriptor } = parse(
-    readFileSync('apps/cloud/app/components/CloudPhotoMasonry.vue', 'utf8'),
+    readFileSync(
+      'packages/console/app/components/ConsolePhotoMasonry.vue',
+      'utf8',
+    ),
   )
   const selection = ref<Record<string, boolean>>({ hidden: true })
   const props = { photos: [{ id: 'visible' }], actions: () => [] }

@@ -1,7 +1,8 @@
 <script lang="ts" setup>
+import { photoLibraryPresentation } from '../../utils/photoLibraryPresentation'
 const consoleApi = useConsoleApi()
 
-import type { FormSubmitEvent, TableColumn } from '@nuxt/ui'
+import type { FormSubmitEvent, TableColumn, DropdownMenuItem } from '@nuxt/ui'
 import type { UploadPreparationResponse } from '@chronoframe/contracts/upload'
 import type { Album, Photo } from '@chronoframe/contracts/resources'
 import type { UploadingFile } from '@chronoframe/gallery/shared/types/uploading-file'
@@ -18,11 +19,9 @@ import {
   isInFlightTransportStatus,
 } from '@chronoframe/gallery/shared/utils/upload-status'
 import { h, resolveComponent } from 'vue'
-import { Icon, UBadge } from '#components'
-import ThumbImage from '#gallery/components/ui/ThumbImage.vue'
+import { Icon } from '#components'
 
 const UCheckbox = resolveComponent('UCheckbox')
-const Rating = resolveComponent('Rating')
 const route = useRoute()
 const router = useRouter()
 
@@ -61,10 +60,7 @@ const systemUploadEraseLocationDefault = computed(() => {
   return typeof val === 'boolean' ? val : false
 })
 
-const dayjs = useDayjs()
-const locationLabel = useLocationLabel()
-
-const { status, refresh } = usePhotos()
+const { photos, status, refresh } = usePhotos()
 const { filteredPhotos, selectedCounts, hasActiveFilters } = usePhotoFilters()
 const { currentSortIcon, currentSortOption } = usePhotoSort()
 
@@ -702,7 +698,12 @@ watch(isEditModalOpen, (open) => {
 })
 
 // 表格多选状态
-const rowSelection = ref({})
+const rowSelection = ref<Record<string, boolean>>({})
+const layout = useLocalStorage<'list' | 'masonry'>(
+  'dashboard-photos-layout',
+  'list',
+  { initOnMounted: true },
+)
 const table: any = useTemplateRef('table')
 const getPhotoRowId = (photo: Photo) => photo.id
 const rowRangeSelection = useShiftRangeSelection()
@@ -736,8 +737,7 @@ const formatAddToAlbumResult = (
 const openAddToAlbum = () => {
   if (isAddingToAlbum.value) return
 
-  const selectedRows =
-    table.value?.tableApi?.getFilteredSelectedRowModel().rows || []
+  const selectedRows = selectedPhotoRows.value
   selectedBulkPhotoIds.value = selectedRows.map(
     (row: { original: Photo }) => row.original.id,
   )
@@ -835,23 +835,11 @@ watch(
 const columnVisibility = useDashboardPhotoColumnVisibility()
 
 const selectedRowsCount = computed((): number => {
-  return table.value?.tableApi?.getFilteredSelectedRowModel().rows.length || 0
+  return selectedPhotoRows.value.length
 })
 
 const totalRowsCount = computed((): number => {
-  return table.value?.tableApi?.getFilteredRowModel().rows.length || 0
-})
-
-const livePhotoStats = computed(() => {
-  if (!filteredPhotos.value) return { total: 0, livePhotos: 0, staticPhotos: 0 }
-
-  const total = filteredPhotos.value.length
-  const livePhotos = filteredPhotos.value.filter(
-    (photo: Photo) => photo.isLivePhoto,
-  ).length
-  const staticPhotos = total - livePhotos
-
-  return { total, livePhotos, staticPhotos }
+  return filteredData.value.length
 })
 
 const photoFilter = ref<'all' | 'livephoto' | 'static'>('all')
@@ -868,6 +856,21 @@ const filteredData = computed(() => {
       return filteredPhotos.value
   }
 })
+
+const selectedPhotoRows = computed(() =>
+  filteredData.value
+    .filter((photo: Photo) => rowSelection.value[photo.id])
+    .map((photo: Photo) => ({ original: photo })),
+)
+watch(
+  () => photos.value?.map((photo: Photo) => photo.id),
+  (ids) => {
+    const available = new Set(ids ?? [])
+    rowSelection.value = Object.fromEntries(
+      Object.entries(rowSelection.value).filter(([id]) => available.has(id)),
+    )
+  },
+)
 
 // 监听过滤后的照片变化，自动获取表态数据
 watch(
@@ -1061,6 +1064,11 @@ const clearAllUploads = () => {
   }
 }
 
+const photoColumns = usePhotoTableColumns({
+  preview: (photo) => openImagePreview(photo),
+  reactions: reactionsData,
+})
+
 const columns = computed<TableColumn<Photo>[]>(() => [
   {
     id: 'select',
@@ -1090,256 +1098,7 @@ const columns = computed<TableColumn<Photo>[]>(() => [
       ),
     enableHiding: false,
   },
-  {
-    id: 'thumbnailUrl',
-    accessorKey: 'thumbnailUrl',
-    header: $t('dashboard.photos.table.columns.thumbnail.title'),
-    cell: ({ row }) => {
-      const url = row.original.thumbnailUrl
-      return h(ThumbImage, {
-        src: url || row.original.originalUrl || '',
-        alt: row.original.title || $t('dashboard.photos.table.thumbnailAlt'),
-        key: row.original.id,
-        thumbhash: row.original.thumbnailHash || '',
-        class: 'size-16 min-w-[100px] object-cover rounded-md shadow',
-        onClick: () => openImagePreview(row.original),
-        style: { cursor: url ? 'pointer' : 'default' },
-      })
-    },
-    enableHiding: false,
-  },
-  {
-    id: 'id',
-    accessorKey: 'id',
-    header: $t('dashboard.photos.table.columns.id'),
-    enableHiding: false,
-  },
-  {
-    accessorKey: 'title',
-    header: $t('dashboard.photos.table.columns.title'),
-  },
-  {
-    accessorKey: 'tags',
-    header: $t('dashboard.photos.table.columns.tags'),
-    cell: ({ row }) => {
-      const tags = row.original.tags
-      return h('div', { class: 'flex items-center gap-1' }, [
-        tags && tags.length
-          ? tags.map((tag) =>
-              h(
-                UBadge,
-                {
-                  size: 'sm',
-                  variant: 'soft',
-                  color: 'neutral',
-                },
-                () => tag,
-              ),
-            )
-          : h(
-              'span',
-              { class: 'text-neutral-400 text-xs' },
-              $t('dashboard.photos.table.cells.noTags'),
-            ),
-      ])
-    },
-  },
-  {
-    accessorKey: 'rating',
-    header: $t('dashboard.photos.table.columns.rating'),
-    cell: ({ row }) => {
-      const rating = row.original.exif?.Rating
-      return h('div', { class: 'flex items-center' }, [
-        rating !== undefined && rating !== null
-          ? h(Rating, {
-              modelValue: rating,
-              readonly: true,
-              size: 'xs',
-            })
-          : h(
-              'span',
-              { class: 'text-neutral-400 text-xs' },
-              $t('dashboard.photos.table.cells.noRating'),
-            ),
-      ])
-    },
-  },
-  {
-    accessorKey: 'isLivePhoto',
-    header: $t('dashboard.photos.table.columns.isLivePhoto'),
-    cell: ({ row }) => {
-      const isLivePhoto = row.original.isLivePhoto
-      return h('div', { class: 'flex items-center gap-2' }, [
-        isLivePhoto
-          ? h('div', { class: 'flex items-center gap-1' }, [
-              h(Icon, {
-                name: 'tabler:live-photo',
-                class: 'size-4 text-yellow-600 dark:text-yellow-400',
-              }),
-              h(
-                'span',
-                {
-                  class:
-                    'text-yellow-600 dark:text-yellow-400 text-xs font-medium',
-                },
-                $t('ui.livePhoto'),
-              ),
-            ])
-          : h(
-              'span',
-              {
-                class: 'text-neutral-400 text-xs',
-              },
-              $t('dashboard.photos.table.cells.staticPhoto'),
-            ),
-      ])
-    },
-    sortingFn: (rowA, rowB) => {
-      const valueA = rowA.original.isLivePhoto ? 1 : 0
-      const valueB = rowB.original.isLivePhoto ? 1 : 0
-      return valueB - valueA // LivePhoto 优先排序
-    },
-  },
-  {
-    accessorKey: 'location',
-    header: $t('dashboard.photos.table.columns.location'),
-    cell: ({ row }) => {
-      const { exif, country } = row.original
-
-      if (!exif?.GPSLongitude && !exif?.GPSLatitude) {
-        return h(
-          'span',
-          { class: 'text-neutral-400 text-xs' },
-          $t('dashboard.photos.table.cells.noGps'),
-        )
-      }
-
-      const location = [
-        ...new Set([locationLabel(row.original), country].filter(Boolean)),
-      ].join(', ')
-      return h(
-        'span',
-        {
-          class: location ? 'text-xs' : 'text-neutral-400 text-xs',
-        },
-        location || $t('dashboard.photos.table.cells.unknown'),
-      )
-    },
-  },
-  {
-    accessorKey: 'dateTaken',
-    header: $t('dashboard.photos.table.columns.dateTaken'),
-    cell: (info) => {
-      const date = info.getValue() as string
-      return h(
-        'span',
-        { class: 'font-mono text-xs' },
-        date
-          ? dayjs(date).format('YYYY-MM-DD HH:mm:ss')
-          : $t('dashboard.photos.table.cells.unknown'),
-      )
-    },
-  },
-  {
-    accessorKey: 'lastModified',
-    header: $t('dashboard.photos.table.columns.lastModified'),
-    cell: (info) => {
-      const date = info.getValue() as string
-      return h(
-        'span',
-        { class: 'font-mono text-xs' },
-        date
-          ? dayjs(date).format('YYYY-MM-DD HH:mm:ss')
-          : $t('dashboard.photos.table.cells.unknown'),
-      )
-    },
-  },
-  {
-    accessorKey: 'fileSize',
-    header: $t('dashboard.photos.table.columns.fileSize'),
-    cell: (info) => formatBytes(info.getValue() as number),
-  },
-  {
-    id: 'colorSpace',
-    accessorFn: (row) => row.exif?.ColorSpace,
-    header: $t('dashboard.photos.table.columns.colorSpace'),
-  },
-  {
-    accessorKey: 'reactions',
-    header: $t('dashboard.photos.table.columns.reactions'),
-    cell: ({ row }) => {
-      const photoId = row.original.id
-      const reactions = reactionsData.value[photoId] || {}
-      const totalReactions = Object.values(reactions).reduce(
-        (sum: number, count) => sum + (count as number),
-        0,
-      )
-
-      if (totalReactions === 0) {
-        return h(
-          'span',
-          { class: 'text-neutral-400 text-xs' },
-          $t('dashboard.photos.table.cells.noReactions'),
-        )
-      }
-
-      const reactionIcons: Record<string, string> = {
-        like: 'fluent-emoji-flat:thumbs-up',
-        love: 'fluent-emoji-flat:red-heart',
-        amazing: 'fluent-emoji-flat:smiling-face-with-heart-eyes',
-        funny: 'fluent-emoji-flat:face-with-tears-of-joy',
-        wow: 'fluent-emoji-flat:face-with-open-mouth',
-        sad: 'fluent-emoji-flat:crying-face',
-        fire: 'fluent-emoji-flat:fire',
-        sparkle: 'fluent-emoji-flat:sparkles',
-      }
-
-      // 显示前3个有数据的表态
-      const topReactions = Object.entries(reactions)
-        .filter(([_, count]) => (count as number) > 0)
-        .sort((a, b) => (b[1] as number) - (a[1] as number))
-        .slice(0, 3)
-
-      return h(
-        'div',
-        { class: 'flex items-center gap-2' },
-        [
-          ...topReactions.map(([type, count]) =>
-            h('div', { class: 'flex items-center gap-0.5' }, [
-              h(Icon, {
-                name:
-                  reactionIcons[type] ||
-                  'fluent-emoji-flat:face-with-tears-of-joy',
-                class: 'size-4',
-                mode: 'svg',
-              }),
-              h(
-                'span',
-                {
-                  class:
-                    'text-xs font-medium text-neutral-700 dark:text-neutral-300',
-                },
-                count,
-              ),
-            ]),
-          ),
-          totalReactions > topReactions.length
-            ? h(
-                'span',
-                { class: 'text-xs text-neutral-400' },
-                `+${totalReactions - topReactions.reduce((sum, [_, count]) => sum + (count as number), 0)}`,
-              )
-            : null,
-        ].filter(Boolean),
-      )
-    },
-  },
-  {
-    id: 'actions',
-    accessorKey: 'actions',
-    header: $t('dashboard.photos.table.columns.actions'),
-    enableHiding: false,
-  },
+  ...photoColumns.value,
 ])
 
 // 文件验证函数
@@ -1863,7 +1622,7 @@ const handleReprocessSingle = async (photo: Photo) => {
   }
 }
 
-const getRowActions = (photo: Photo) => {
+const getRowActions = (photo: Photo): DropdownMenuItem[][] => {
   const isReverseLoading = !!reverseGeocodeLoading.value[photo.id]
   const isEraseLocationLoading = !!eraseLocationLoading.value[photo.id]
 
@@ -1952,7 +1711,7 @@ const handleSingleDeleteRequest = (photo: Photo) => {
 
 // 批量删除功能
 const handleBatchDelete = () => {
-  const selectedRowModel = table.value?.tableApi?.getFilteredSelectedRowModel()
+  const selectedRowModel = { rows: selectedPhotoRows.value }
   const selectedPhotos =
     selectedRowModel?.rows.map((row: any) => row.original) || []
 
@@ -2049,7 +1808,7 @@ const confirmDelete = async () => {
 
 // 批量重新处理照片功能
 const handleBatchReprocess = async () => {
-  const selectedRowModel = table.value?.tableApi?.getFilteredSelectedRowModel()
+  const selectedRowModel = { rows: selectedPhotoRows.value }
   const selectedPhotos =
     selectedRowModel?.rows.map((row: any) => row.original) || []
 
@@ -2128,7 +1887,7 @@ const handleBatchReprocess = async () => {
 
 // 批量抹除位置信息
 const handleBatchEraseLocation = async () => {
-  const selectedRowModel = table.value?.tableApi?.getFilteredSelectedRowModel()
+  const selectedRowModel = { rows: selectedPhotoRows.value }
   const selectedPhotos =
     selectedRowModel?.rows.map((row: any) => row.original) || []
 
@@ -2213,7 +1972,7 @@ const handleBatchEraseLocation = async () => {
 
 // 批量下载照片
 const handleBatchDownload = async () => {
-  const selectedRowModel = table.value?.tableApi?.getFilteredSelectedRowModel()
+  const selectedRowModel = { rows: selectedPhotoRows.value }
   const selectedPhotos =
     selectedRowModel?.rows.map((row: any) => row.original) || []
 
@@ -2375,7 +2134,7 @@ onUnmounted(() => {
     </template>
 
     <template #body>
-      <div class="flex flex-col gap-4 h-full flex-1 min-h-0">
+      <div :class="photoLibraryPresentation.body">
         <!-- 上传队列容器 -->
         <UploadQueuePanel
           :uploading-files="uploadingFiles"
@@ -2572,58 +2331,10 @@ onUnmounted(() => {
         </USlideover>
 
         <!-- 统合容器：工具栏 + 照片列表 -->
-        <div
-          class="relative flex-1 min-h-0 flex flex-col bg-white dark:bg-neutral-900 border border-neutral-200/80 dark:border-neutral-800/80 rounded-2xl shadow-sm overflow-hidden"
-        >
+        <div :class="photoLibraryPresentation.panel">
           <!-- 工具栏 -->
-          <div
-            class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 sm:px-4 sm:py-3 bg-neutral-50/50 dark:bg-neutral-900/50 backdrop-blur-sm border-b border-neutral-200/80 dark:border-neutral-800/80 z-20"
-          >
-            <div class="flex items-center gap-3">
-              <div
-                class="flex size-8 items-center justify-center rounded-[10px] bg-neutral-200/50 dark:bg-neutral-800/50 border border-neutral-200/50 dark:border-neutral-700/50"
-              >
-                <UIcon
-                  name="tabler:photo"
-                  class="size-4.5 text-neutral-600 dark:text-neutral-400"
-                />
-              </div>
-              <span
-                class="font-semibold text-sm text-neutral-700 dark:text-neutral-300 hidden sm:inline"
-              >
-                {{ $t('dashboard.photos.toolbar.title') }}
-              </span>
-              <div class="flex items-center gap-1 sm:gap-2 sm:ml-1">
-                <UBadge
-                  v-if="livePhotoStats.staticPhotos > 0"
-                  variant="soft"
-                  color="neutral"
-                  size="sm"
-                >
-                  <span class="hidden sm:inline"
-                    >{{ livePhotoStats.staticPhotos }}
-                    {{ $t('dashboard.photos.stats.photos') }}</span
-                  >
-                  <span class="sm:hidden"
-                    >{{ livePhotoStats.staticPhotos }}P</span
-                  >
-                </UBadge>
-                <UBadge
-                  v-if="livePhotoStats.livePhotos > 0"
-                  variant="soft"
-                  color="warning"
-                  size="sm"
-                >
-                  <span class="hidden sm:inline"
-                    >{{ livePhotoStats.livePhotos }}
-                    {{ $t('dashboard.photos.stats.livePhotos') }}</span
-                  >
-                  <span class="sm:hidden"
-                    >{{ livePhotoStats.livePhotos }}LP</span
-                  >
-                </UBadge>
-              </div>
-            </div>
+          <div :class="photoLibraryPresentation.toolbar">
+            <ConsolePhotoLibrarySummary :photos="filteredPhotos ?? []" />
 
             <div class="flex items-center gap-2">
               <OverlayFilterPopover>
@@ -2708,8 +2419,10 @@ onUnmounted(() => {
                 }}</span>
               </UButton>
 
+              <ConsolePhotoLayoutSwitch v-model="layout" />
               <!-- 列可见性按钮 -->
               <UDropdownMenu
+                v-if="layout !== 'masonry'"
                 :items="
                   table?.tableApi
                     ?.getAllColumns()
@@ -2754,8 +2467,17 @@ onUnmounted(() => {
           </div>
 
           <!-- 照片列表 -->
-          <div class="relative flex-1 min-h-0 flex flex-col">
-            <ConsoleMediaTable
+          <div :class="photoLibraryPresentation.content">
+            <ConsolePhotoMasonry
+              v-if="layout === 'masonry' && filteredData.length"
+              class="overflow-auto p-3"
+              v-model:selection="rowSelection"
+              :photos="filteredData as Photo[]"
+              :actions="getRowActions"
+              @preview="openImagePreview"
+            />
+            <ConsolePhotoTable
+              v-else
               ref="table"
               v-model:row-selection="rowSelection"
               v-model:column-visibility="columnVisibility"
@@ -2768,51 +2490,13 @@ onUnmounted(() => {
               :loading="status === 'pending'"
               sticky
               class="h-full flex-1"
-              :ui="{
-                wrapper: 'relative scroll-smooth h-full overflow-auto',
-                base: 'min-w-full table-fixed',
-                divide:
-                  'divide-y divide-neutral-200/80 dark:divide-neutral-800/80',
-                thead:
-                  'bg-neutral-50/80 dark:bg-neutral-900/80 backdrop-blur-md sticky top-0 z-10 whitespace-nowrap',
-                tbody:
-                  'divide-y divide-neutral-200/80 dark:divide-neutral-800/80 bg-white dark:bg-neutral-900',
-                tr: {
-                  base: 'hover:bg-neutral-50/50 dark:hover:bg-neutral-800/50 transition-colors',
-                  selected: 'bg-primary-50/50 dark:bg-primary-900/20',
-                },
-                th: {
-                  base: 'text-left rtl:text-right ',
-                  padding: 'px-4 py-3.5',
-                  color: 'text-neutral-500 dark:text-neutral-400',
-                  font: 'font-medium text-sm',
-                },
-                td: {
-                  padding: 'px-4 py-3',
-                  color: 'text-neutral-700 dark:text-neutral-300 text-sm',
-                },
-                separator: 'bg-neutral-200/80 dark:bg-neutral-800/80',
-              }"
             >
               <template #actions-cell="{ row }">
-                <div class="flex justify-end">
-                  <UDropdownMenu
-                    size="sm"
-                    :content="{
-                      align: 'end',
-                    }"
-                    :items="getRowActions(row.original)"
-                  >
-                    <UButton
-                      variant="outline"
-                      color="neutral"
-                      size="sm"
-                      icon="tabler:dots-vertical"
-                    />
-                  </UDropdownMenu>
-                </div>
+                <ConsolePhotoTableActions
+                  :items="getRowActions(row.original)"
+                />
               </template>
-            </ConsoleMediaTable>
+            </ConsolePhotoTable>
 
             <ConsoleSelectionToolbar
               :count="selectedRowsCount"

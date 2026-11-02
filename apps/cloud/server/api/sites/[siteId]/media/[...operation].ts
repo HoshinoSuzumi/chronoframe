@@ -622,11 +622,24 @@ export default definePlatformHandler(async (event) => {
     !action &&
     event.method === 'GET'
   ) {
-    const counts = await sql<{ photo_id: string; total: number }>(
-      'SELECT r.photo_id, COUNT(*) AS total FROM platform_photo_reactions r JOIN cloud_photos p ON p.site_id=r.site_id AND p.id=r.photo_id WHERE r.site_id=? AND p.deleted=0 GROUP BY r.photo_id',
+    const counts = await sql<{
+      photo_id: string
+      reaction_type: string
+      total: number
+    }>(
+      'SELECT r.photo_id, r.reaction_type, COUNT(*) AS total FROM platform_photo_reactions r JOIN cloud_photos p ON p.site_id=r.site_id AND p.id=r.photo_id WHERE r.site_id=? AND p.deleted=0 GROUP BY r.photo_id,r.reaction_type',
       siteId,
     )
-    return Object.fromEntries(counts.map((row) => [row.photo_id, row.total]))
+    if (getQuery(event).detailed === '1') {
+      const breakdown: Record<string, Record<string, number>> = {}
+      for (const row of counts)
+        (breakdown[row.photo_id] ??= {})[row.reaction_type] = row.total
+      return breakdown
+    }
+    const totals: Record<string, number> = {}
+    for (const row of counts)
+      totals[row.photo_id] = (totals[row.photo_id] ?? 0) + row.total
+    return totals
   }
   if (kind === 'photos' && !id && event.method === 'GET')
     return {

@@ -1,24 +1,14 @@
 <script setup lang="ts">
 import {
-  ArrowUpDown as ButtonIconArrowUpDown,
-  Columns3,
-  LayoutList,
-  LayoutGrid,
-  Ellipsis as ButtonIconEllipsis,
-  Filter as ButtonIconFilter,
   FolderPlus as ButtonIconFolderPlus,
-  RefreshCw as ButtonIconRefreshCw,
   Trash2 as ButtonIconTrash2,
-  Upload as ButtonIconUpload,
 } from 'lucide-vue-next'
 import { useLocalStorage } from '@vueuse/core'
 import { uploadQuotaGate } from '../utils/quota-gate'
-import { DASHBOARD_PHOTO_COLUMN_IDS } from '#console/composables/useDashboardPhotoColumnVisibility'
+import { photoLibraryPresentation } from '#console/utils/photoLibraryPresentation'
 const { t, locale } = useI18n()
 const processingText = (en: string, zh: string) =>
   locale.value === 'zh-Hans' ? zh : en
-const dayjs = useDayjs()
-const locationLabel = useLocationLabel()
 
 import type { Photo } from '@chronoframe/contracts/resources'
 import type { TableColumn } from '@nuxt/ui'
@@ -27,7 +17,6 @@ const {
   message,
   failed,
   albums,
-  jobs,
   loading,
   ready,
   admin,
@@ -93,10 +82,9 @@ const rows = computed(() => {
 const columnVisibility = useDashboardPhotoColumnVisibility({
   storageKey: 'cloud-photos-column-visibility',
   legacyStorageKey: 'dashboard-photos-column-visibility',
-  hidden: ['id'],
-  locked: ['thumbnailUrl', 'actions'],
+  locked: ['thumbnailUrl', 'id', 'actions'],
 })
-const reactions = ref<Record<string, number> | null>(null)
+const reactions = ref<Record<string, Record<string, number>>>({})
 watch(
   photos,
   async (_, __, onCleanup) => {
@@ -105,12 +93,12 @@ watch(
       active = false
     })
     try {
-      const counts = await api<Record<string, number>>(
-        base.value + '/photos/reactions',
+      const counts = await api<Record<string, Record<string, number>>>(
+        base.value + '/photos/reactions?detailed=1',
       )
       if (active) reactions.value = counts
     } catch {
-      if (active) reactions.value = null
+      if (active) reactions.value = {}
     }
   },
   { immediate: true },
@@ -122,29 +110,16 @@ function openPreviewOriginal() {
   if (url) window.open(url, '_blank', 'noopener,noreferrer')
 }
 const chosen = computed(() => rows.value.filter((p) => selection.value[p.id]))
+const photoColumns = usePhotoTableColumns({
+  preview: (photo) => {
+    preview.value = photo
+  },
+  reactions,
+})
 const columns = computed<TableColumn<Photo>[]>(() => [
   { id: 'select', header: '', size: 32, enableHiding: false },
-  ...DASHBOARD_PHOTO_COLUMN_IDS.filter(
-    (key) => key !== 'actions' && key !== 'lastModified',
-  ).map((key) => ({
-    id: key,
-    enableHiding: key !== 'thumbnailUrl',
-    accessorFn: (photo: Photo) =>
-      key === 'colorSpace' ? photo.exif?.ColorSpace : photo[key as keyof Photo],
-    header: t(
-      'dashboard.photos.table.columns.' +
-        (key === 'thumbnailUrl' ? 'thumbnail.title' : key),
-    ),
-  })),
-  {
-    id: 'actions',
-    enableHiding: false,
-    header: () => h('span', { class: 'sr-only' }, t('cloud.dashboard.actions')),
-  },
+  ...photoColumns.value,
 ])
-const pendingJobs = computed(() =>
-  jobs.value.filter((j) => j.state !== 'succeeded'),
-)
 async function edit(photo: Photo) {
   editPhoto.id = photo.id
   editor.value = true
@@ -333,312 +308,234 @@ watch(
 </script>
 <template>
   <section
-    aria-labelledby="library-heading"
-    class="cf-library"
+    :aria-label="$t('cloud.messages.photoLibrary')"
+    class="min-w-0 font-sans flex h-full min-h-0 flex-col"
   >
-    <div class="cf-library-heading">
-      <div>
-        <h2 id="library-heading">{{ $t('cloud.messages.photoLibrary') }}</h2>
-        <p>
-          {{
-            $t('cloud.ui.photoQueue', {
-              count: photos.length,
-              processing: pendingJobs.length,
-            })
-          }}
-        </p>
-      </div>
-      <CfButton
-        v-if="admin"
-        :icon="ButtonIconUpload"
-        :disabled="!uploadAdmission.allowed || !!quota.error.value"
-        @click="openUpload"
-        >{{ $t('cloud.messages.upload') }}</CfButton
-      >
-    </div>
-    <CloudQuotaNotice
-      v-if="
-        admin &&
-        (quota.error.value ||
-          (uploadAdmission.reason && uploadAdmission.reason !== 'checking'))
-      "
-      :reason="uploadAdmission.reason"
-      :error="!!quota.error.value"
-      @retry="quota.refresh()"
-    />
-    <div class="cf-library-toolbar">
-      <UInput
-        v-model="search"
-        icon="i-lucide-search"
-        :placeholder="$t('cloud.messages.searchPhotographs')"
-        :aria-label="$t('cloud.messages.searchPhotographs2')"
-        class="cf-library-search"
-      /><OverlayFilterPopover
-        ><CfButton
-          :variant="hasActiveFilters ? 'soft' : 'secondary'"
-          :icon="ButtonIconFilter"
-          >{{ $t('cloud.messages.filters') }}</CfButton
-        ></OverlayFilterPopover
-      ><OverlaySortPopover
-        ><CfButton
-          variant="secondary"
-          :icon="ButtonIconArrowUpDown"
-          >{{ $t('cloud.messages.sort') }}</CfButton
-        ></OverlaySortPopover
-      ><CfButton
-        variant="ghost"
-        :icon="ButtonIconRefreshCw"
-        :aria-label="$t('cloud.messages.refreshPhotographs')"
-        :loading="loading"
-        @click="refreshMedia"
-      />
-      <div
-        role="group"
-        :aria-label="$t('cloud.ui.libraryLayout')"
-        class="flex gap-1"
-      >
-        <CfButton
-          :variant="layout === 'list' ? 'soft' : 'secondary'"
-          :icon="LayoutList"
-          :aria-pressed="layout !== 'masonry'"
-          @click="layout = 'list'"
-          >{{ $t('cloud.ui.listLayout') }}</CfButton
-        >
-        <CfButton
-          :variant="layout === 'masonry' ? 'soft' : 'secondary'"
-          :icon="LayoutGrid"
-          :aria-pressed="layout === 'masonry'"
-          @click="layout = 'masonry'"
-          >{{ $t('cloud.ui.masonryLayout') }}</CfButton
-        >
-      </div>
-      <UDropdownMenu
-        v-if="layout !== 'masonry'"
-        :items="
-          columns
-            .filter(
-              (c) =>
-                c.id && !['select', 'thumbnailUrl', 'actions'].includes(c.id),
-            )
-            .map((c) => ({
-              label: String(c.header),
-              type: 'checkbox' as const,
-              checked: columnVisibility[c.id as keyof typeof columnVisibility],
-              onUpdateChecked: (checked: boolean) => {
-                columnVisibility[c.id as keyof typeof columnVisibility] =
-                  checked
-              },
-              onSelect: (event: Event) => event.preventDefault(),
-            }))
-        "
-      >
-        <CfButton
-          variant="secondary"
-          :icon="Columns3"
-          >{{ $t('dashboard.photos.table.columnVisibility.button') }}</CfButton
-        >
-      </UDropdownMenu>
-    </div>
-    <ConsoleSelectionToolbar
-      :count="chosen.length"
-      :total="rows.length"
-      teleport
+    <UDashboardNavbar
+      :toggle="false"
+      :title="$t('dashboard.photos.toolbar.title')"
     >
-      <CfButton
-        v-if="admin"
-        size="sm"
-        variant="ghost"
-        :icon="ButtonIconFolderPlus"
-        @click="albumOpen = true"
-        >{{ $t('cloud.messages.addToAlbum') }}</CfButton
-      ><CfButton
-        variant="ghost"
-        class="cf-bulk-delete"
-        v-if="admin"
-        size="sm"
-        :icon="ButtonIconTrash2"
-        @click="deleteOpen = true"
-        >{{ $t('cloud.messages.delete') }}</CfButton
-      ><CfButton
-        size="sm"
-        variant="ghost"
-        @click="selection = {}"
-        >{{ $t('cloud.messages.clear') }}</CfButton
-      >
-      <CfButton
-        v-if="admin"
-        size="sm"
-        variant="ghost"
-        @click="openProcessing(chosen)"
-        >{{ processingText('Process selected', '处理所选照片') }}</CfButton
-      >
-    </ConsoleSelectionToolbar>
-    <CloudPhotoMasonry
-      v-if="layout === 'masonry' && rows.length"
-      v-model:selection="selection"
-      :photos="rows"
-      :actions="actions"
-      @preview="preview = $event"
-    />
-    <CfTable
-      v-else
-      class="cf-library-table"
-      v-model:column-visibility="columnVisibility"
-      :data="rows"
-      :columns="columns"
-      :loading="loading && !photos.length"
-      :get-row-id="(row: Photo) => row.id"
-      ><template #select-header
-        ><UCheckbox
-          :model-value="
-            chosen.length && chosen.length < rows.length
-              ? 'indeterminate'
-              : rows.length > 0 && chosen.length === rows.length
-          "
-          :aria-label="$t('cloud.messages.selectAllPhotographs')"
-          @update:model-value="
-            (v) => {
-              selection =
-                v === true
-                  ? Object.fromEntries(rows.map((p) => [p.id, true]))
-                  : {}
-            }
-          " /></template
-      ><template #select-cell="{ row }"
-        ><UCheckbox
-          :model-value="!!selection[row.original.id]"
-          :aria-label="
-            $t('cloud.ui.selectNamed', { title: row.original.title })
-          "
-          @update:model-value="
-            (v) => (selection[row.original.id] = !!v)
-          " /></template
-      ><template #thumbnailUrl-cell="{ row }"
-        ><UButton
-          variant="ghost"
-          color="neutral"
-          class="cf-library-thumb"
-          :aria-label="
-            $t('cloud.ui.previewNamed', { title: row.original.title })
-          "
-          @click="preview = row.original"
+      <template #right>
+        <UButton
+          v-if="admin"
+          icon="tabler:cloud-upload"
+          :disabled="!uploadAdmission.allowed || !!quota.error.value"
+          @click="openUpload"
         >
-          <ThumbImage
-            :src="row.original.thumbnailUrl || row.original.originalUrl || ''"
-            :thumbhash="row.original.thumbnailHash || ''"
-            :alt="row.original.title"
-          /><span
-            v-if="row.original.isLivePhoto"
-            class="cf-live-label"
-            >{{ $t('cloud.messages.live') }}</span
-          >
-        </UButton></template
-      ><template #title-cell="{ row }"
-        ><UButton
-          variant="ghost"
-          color="neutral"
-          class="cf-photo-title"
-          @click="preview = row.original"
-        >
-          {{ row.original.title }}</UButton
-        ><span class="cf-photo-dimensions"
-          >{{ row.original.width }} × {{ row.original.height }}</span
-        ></template
-      ><template #tags-cell="{ row }"
-        ><div class="cf-tag-list">
-          <UBadge
-            v-for="tag in (row.original.tags ?? []).slice(0, 3)"
-            :key="tag"
-            color="neutral"
-            variant="soft"
-            size="sm"
-            >{{ tag }}</UBadge
-          ><span
-            v-if="!row.original.tags?.length"
-            class="text-muted"
-            >—</span
-          >
-        </div></template
-      ><template #rating-cell="{ row }">
-        <Rating
-          v-if="row.original.exif?.Rating != null"
-          :model-value="row.original.exif.Rating"
-          readonly
-          size="xs"
-        />
-        <span v-else>—</span> </template
-      ><template #isLivePhoto-cell="{ row }">
-        <span>{{
-          row.original.isLivePhoto
-            ? $t('ui.livePhoto')
-            : $t('dashboard.photos.table.cells.staticPhoto')
-        }}</span> </template
-      ><template #location-cell="{ row }">
-        <span>{{
-          row.original.exif?.GPSLongitude != null &&
-          row.original.exif?.GPSLatitude != null
-            ? locationLabel(row.original) ||
-              $t('dashboard.photos.table.cells.unknown')
-            : $t('dashboard.photos.table.cells.noGps')
-        }}</span> </template
-      ><template #dateTaken-cell="{ row }">
-        <span class="cf-library-date">{{
-          row.original.dateTaken
-            ? dayjs(row.original.dateTaken).format('YYYY-MM-DD HH:mm:ss')
-            : '—'
-        }}</span> </template
-      ><template #colorSpace-cell="{ row }">
-        <span>{{ row.original.exif?.ColorSpace ?? '—' }}</span> </template
-      ><template #reactions-cell="{ row }"
-        ><span>{{
-          reactions ? reactions[row.original.id] || 0 : '—'
-        }}</span></template
-      >
-      <template #fileSize-cell="{ row }">
-        <span>{{
-          row.original.fileSize != null
-            ? formatBytes(row.original.fileSize)
-            : '—'
-        }}</span>
+          {{ $t('dashboard.photos.buttons.upload') }}
+        </UButton>
       </template>
-      <template #actions-cell="{ row }"
-        ><UDropdownMenu :items="actions(row.original)"
-          ><CfButton
-            variant="ghost"
-            :icon="ButtonIconEllipsis"
-            :aria-label="
-              $t('cloud.ui.actionsNamed', { title: row.original.title })
-            " /></UDropdownMenu></template
-      ><template #empty
-        ><div class="cf-library-empty">
-          <UIcon
-            name="i-lucide-images"
-            class="size-8"
-          />
-          <h3>
-            {{
-              search
-                ? $t('cloud.messages.noMatchingPhotographs')
-                : $t('cloud.messages.yourLibraryStartsHere')
-            }}
-          </h3>
-          <p>
-            {{
-              search
-                ? $t('cloud.messages.tryAnotherSearchOrClearYourFilters')
-                : $t('cloud.messages.uploadPhotographsToStartTellingYourStory')
-            }}
-          </p>
-          <CfButton
-            v-if="admin && !photos.length"
-            variant="soft"
-            :disabled="!uploadAdmission.allowed || !!quota.error.value"
-            @click="openUpload"
-            >{{ $t('cloud.messages.upload') }}</CfButton
-          >
-        </div></template
-      ></CfTable
-    >
+    </UDashboardNavbar>
+    <div class="flex flex-1 min-w-0 min-h-0 p-4 sm:p-6">
+      <div :class="photoLibraryPresentation.body">
+        <CloudQuotaNotice
+          v-if="
+            admin &&
+            (quota.error.value ||
+              (uploadAdmission.reason && uploadAdmission.reason !== 'checking'))
+          "
+          :reason="uploadAdmission.reason"
+          :error="!!quota.error.value"
+          @retry="quota.refresh()"
+        />
+        <div :class="photoLibraryPresentation.panel">
+          <div :class="photoLibraryPresentation.toolbar">
+            <ConsolePhotoLibrarySummary :photos="rows" />
+            <div class="min-w-0 flex flex-wrap items-center gap-2">
+              <UInput
+                v-model="search"
+                icon="i-lucide-search"
+                :placeholder="$t('cloud.messages.searchPhotographs')"
+                :aria-label="$t('cloud.messages.searchPhotographs2')"
+                class="cf-library-search"
+              /><OverlayFilterPopover
+                ><UButton
+                  size="sm"
+                  :variant="'soft'"
+                  :color="hasActiveFilters ? 'info' : 'neutral'"
+                  icon="tabler:filter"
+                  >{{ $t('cloud.messages.filters') }}</UButton
+                ></OverlayFilterPopover
+              ><OverlaySortPopover
+                ><UButton
+                  variant="outline"
+                  icon="tabler:arrows-sort"
+                  >{{ $t('cloud.messages.sort') }}</UButton
+                ></OverlaySortPopover
+              ><UButton
+                variant="ghost"
+                icon="tabler:refresh"
+                :aria-label="$t('cloud.messages.refreshPhotographs')"
+                :loading="loading"
+                @click="refreshMedia"
+              />
+              <ConsolePhotoLayoutSwitch v-model="layout" />
+              <UDropdownMenu
+                v-if="layout !== 'masonry'"
+                :items="
+                  columns
+                    .filter(
+                      (c) =>
+                        !['select', 'thumbnailUrl', 'id', 'actions'].includes(
+                          String(
+                            c.id ?? ('accessorKey' in c ? c.accessorKey : ''),
+                          ),
+                        ),
+                    )
+                    .map((c) => {
+                      const id = String(
+                        c.id ?? ('accessorKey' in c ? c.accessorKey : ''),
+                      )
+                      return {
+                        label: String(c.header),
+                        type: 'checkbox' as const,
+                        checked:
+                          columnVisibility[id as keyof typeof columnVisibility],
+                        onUpdateChecked: (checked: boolean) => {
+                          columnVisibility[
+                            id as keyof typeof columnVisibility
+                          ] = checked
+                        },
+                        onSelect: (event: Event) => event.preventDefault(),
+                      }
+                    })
+                "
+              >
+                <UButton
+                  variant="outline"
+                  icon="tabler:columns-3"
+                  >{{
+                    $t('dashboard.photos.table.columnVisibility.button')
+                  }}</UButton
+                >
+              </UDropdownMenu>
+            </div>
+          </div>
+          <div :class="photoLibraryPresentation.content">
+            <ConsoleSelectionToolbar
+              :count="chosen.length"
+              :total="rows.length"
+              teleport
+            >
+              <CfButton
+                v-if="admin"
+                size="sm"
+                variant="ghost"
+                :icon="ButtonIconFolderPlus"
+                @click="albumOpen = true"
+                >{{ $t('cloud.messages.addToAlbum') }}</CfButton
+              ><CfButton
+                variant="ghost"
+                class="cf-bulk-delete"
+                v-if="admin"
+                size="sm"
+                :icon="ButtonIconTrash2"
+                @click="deleteOpen = true"
+                >{{ $t('cloud.messages.delete') }}</CfButton
+              ><CfButton
+                size="sm"
+                variant="ghost"
+                @click="selection = {}"
+                >{{ $t('cloud.messages.clear') }}</CfButton
+              >
+              <CfButton
+                v-if="admin"
+                size="sm"
+                variant="ghost"
+                @click="openProcessing(chosen)"
+                >{{
+                  processingText('Process selected', '处理所选照片')
+                }}</CfButton
+              >
+            </ConsoleSelectionToolbar>
+            <ConsolePhotoMasonry
+              class="overflow-auto p-3"
+              v-if="layout === 'masonry' && rows.length"
+              v-model:selection="selection"
+              :photos="rows"
+              :actions="actions"
+              @preview="preview = $event"
+            />
+            <ConsolePhotoTable
+              v-else
+              v-model:row-selection="selection"
+              v-model:column-visibility="columnVisibility"
+              :data="rows"
+              :columns="columns"
+              :loading="loading && !photos.length"
+              :get-row-id="(row: Photo) => row.id"
+              ><template #select-header
+                ><UCheckbox
+                  :model-value="
+                    chosen.length && chosen.length < rows.length
+                      ? 'indeterminate'
+                      : rows.length > 0 && chosen.length === rows.length
+                  "
+                  :aria-label="$t('cloud.messages.selectAllPhotographs')"
+                  @update:model-value="
+                    (v) => {
+                      selection =
+                        v === true
+                          ? Object.fromEntries(rows.map((p) => [p.id, true]))
+                          : {}
+                    }
+                  " /></template
+              ><template #select-cell="{ row }"
+                ><UCheckbox
+                  :model-value="!!selection[row.original.id]"
+                  :aria-label="
+                    $t('cloud.ui.selectNamed', { title: row.original.title })
+                  "
+                  @update:model-value="
+                    (v) => (selection[row.original.id] = !!v)
+                  "
+              /></template>
+              <template #actions-cell="{ row }">
+                <ConsolePhotoTableActions
+                  :items="actions(row.original)"
+                  :label="
+                    $t('cloud.ui.actionsNamed', { title: row.original.title })
+                  "
+                />
+              </template>
+              <template #empty
+                ><div class="cf-library-empty">
+                  <UIcon
+                    name="i-lucide-images"
+                    class="size-8"
+                  />
+                  <h3>
+                    {{
+                      search
+                        ? $t('cloud.messages.noMatchingPhotographs')
+                        : $t('cloud.messages.yourLibraryStartsHere')
+                    }}
+                  </h3>
+                  <p>
+                    {{
+                      search
+                        ? $t(
+                            'cloud.messages.tryAnotherSearchOrClearYourFilters',
+                          )
+                        : $t(
+                            'cloud.messages.uploadPhotographsToStartTellingYourStory',
+                          )
+                    }}
+                  </p>
+                  <CfButton
+                    v-if="admin && !photos.length"
+                    variant="soft"
+                    :disabled="!uploadAdmission.allowed || !!quota.error.value"
+                    @click="openUpload"
+                    >{{ $t('cloud.messages.upload') }}</CfButton
+                  >
+                </div></template
+              ></ConsolePhotoTable
+            >
+          </div>
+        </div>
+      </div>
+    </div>
     <USlideover
       v-model:open="editor"
       :title="$t('cloud.messages.editPhotograph')"

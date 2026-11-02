@@ -603,6 +603,11 @@
   },
   "dashboard": {
     "photos": {
+      "layouts": {
+        "label": "Вид фототеки",
+        "list": "Список",
+        "masonry": "Мозаика"
+      },
       "title": "Загрузка фотографий",
       "subtitle": "Фотографии будут автоматически обработаны и добавлены в вашу библиотеку. После этого их можно упорядочить в разделе {0}.",
       "supportedFormats": "JPEG / PNG / HEIC / Live Photo / Motion Photo",
