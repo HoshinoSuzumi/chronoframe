@@ -18,7 +18,9 @@ import {
 import { parseAccountProfile } from '../packages/contracts/src/account-profile.ts'
 type TestEvent = { path: string; origin?: string; raw?: string }
 type TestError = { statusMessage?: string; statusCode?: number }
-type TestSession = { user: { id: string; emailVerified: boolean } } | null
+type TestSession = {
+  user: { id: string; email: string; emailVerified: boolean }
+} | null
 const require = createRequire(import.meta.url)
 const { Miniflare, convertV4MiniflareOptions } = createRequire(
   require.resolve('wrangler/package.json'),
@@ -550,14 +552,54 @@ test('credentials are root-only, encrypted, redacted, revision fenced and disabl
       )
       githubId = 202
       email = 'different@example.com'
-      await connect('connection=failed')
+      await connect('connection=updated')
+      assert.equal(
+        (
+          await db
+            .prepare(
+              "SELECT user_id FROM platform_accounts WHERE account_id='202' AND provider_id='github'",
+            )
+            .first()
+        ).user_id,
+        42,
+      )
+      assert.equal(
+        (
+          await db
+            .prepare('SELECT email FROM platform_users WHERE id=42')
+            .first()
+        ).email,
+        'existing@example.com',
+      )
       assert.equal(
         await db
           .prepare(
-            "SELECT id FROM platform_accounts WHERE account_id='202' AND provider_id='github'",
+            "SELECT id FROM platform_users WHERE email='different@example.com'",
           )
           .first(),
         null,
+      )
+      const alternateEmailSession = await login('/workspace')
+      assert(alternateEmailSession)
+      assert.equal(Number(alternateEmailSession.user.id), 42)
+      assert.equal(alternateEmailSession.user.email, 'existing@example.com')
+      // A verified third-party account owned by someone else cannot be reassigned.
+      await db
+        .prepare(
+          "INSERT INTO platform_accounts(account_id,provider_id,user_id,created_at,updated_at) VALUES('204','github',43,1,1)",
+        )
+        .run()
+      githubId = 204
+      await connect('connection=failed')
+      assert.equal(
+        (
+          await db
+            .prepare(
+              "SELECT user_id FROM platform_accounts WHERE account_id='204' AND provider_id='github'",
+            )
+            .first()
+        ).user_id,
+        43,
       )
       githubId = 203
       email = 'existing@example.com'

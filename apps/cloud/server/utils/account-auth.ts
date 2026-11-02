@@ -160,7 +160,7 @@ export function accountAuthOptions(
       encryptOAuthTokens: true,
       accountLinking: {
         enabled: true,
-        allowDifferentEmails: false,
+        allowDifferentEmails: true,
         requireLocalEmailVerified: true,
         trustedProviders: [],
       },
