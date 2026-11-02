@@ -280,12 +280,22 @@ test('a release whose package version is already correct still marks its annotat
   }
 })
 
-test('release notes stay in the release job and are passed as a Markdown file rather than a secret-filtered output', async () => {
+test('release notes are validated before image publication and transferred as an artifact', async () => {
   assert.equal(workflow.jobs.prepare.outputs.changelog, undefined)
-  const checkout = workflow.jobs.release.steps.find(
-    (s: any) => s.name === 'Checkout immutable release source',
+  const generate = steps.findIndex((s: any) => s.name === '📝 Generate changelog')
+  const resolve = steps.findIndex((s: any) => s.name === 'Resolve immutable release commit')
+  const upload = steps.findIndex((s: any) => s.name === 'Upload release notes')
+  assert(generate > resolve)
+  assert(upload > generate)
+  assert.equal(workflow.jobs['build-and-push'].needs, 'prepare')
+  assert.equal(steps[upload].uses, 'actions/upload-artifact@v4')
+  assert.equal(steps[upload].with['if-no-files-found'], 'error')
+  const download = workflow.jobs.release.steps.find(
+    (s: any) => s.name === 'Download validated release notes',
   )
-  assert.equal(checkout.with.ref, '${{ needs.prepare.outputs.commit }}')
+  assert.equal(download.uses, 'actions/download-artifact@v4')
+  assert.equal(download.with.name, steps[upload].with.name)
+  assert.equal(download.with.path, '${{ runner.temp }}')
   const create = workflow.jobs.release.steps.find(
     (s: any) => s.name === '📝 Create Release',
   )
