@@ -14,7 +14,7 @@ const targetLabel = computed(() =>
     color="neutral"
     variant="soft"
     square
-    :icon="layout === 'masonry' ? 'tabler:layout-grid' : 'tabler:list'"
+    :icon="layout === 'masonry' ? 'tabler:list' : 'tabler:layout-grid'"
     :aria-label="targetLabel"
     :title="targetLabel"
     @click="layout = layout === 'masonry' ? 'list' : 'masonry'"

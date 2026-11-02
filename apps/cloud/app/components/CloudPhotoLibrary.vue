@@ -54,7 +54,7 @@ function openUpload() {
 }
 const layout = useLocalStorage<'list' | 'masonry'>(
   'cloud-photos-layout',
-  'list',
+  'masonry',
   { initOnMounted: true },
 )
 const search = ref(''),

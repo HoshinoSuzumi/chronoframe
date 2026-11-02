@@ -701,7 +701,7 @@ watch(isEditModalOpen, (open) => {
 const rowSelection = ref<Record<string, boolean>>({})
 const layout = useLocalStorage<'list' | 'masonry'>(
   'dashboard-photos-layout',
-  'list',
+  'masonry',
   { initOnMounted: true },
 )
 const table: any = useTemplateRef('table')
