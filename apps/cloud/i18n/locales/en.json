@@ -2,7 +2,7 @@
   "cloud": {
     "connections": {
       "title": "Connected accounts",
-      "help": "Link an enabled sign-in provider. Its verified email can differ from your account email.",
+      "help": "Connect a third-party account for more ways to sign in.",
       "linked": "Connected",
       "notLinked": "Not connected",
       "disabled": "Connected · sign-in disabled by administrator",
