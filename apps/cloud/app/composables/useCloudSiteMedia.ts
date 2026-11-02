@@ -188,7 +188,7 @@ export function useCloudMediaWorkspace(props: {
   }
   let pollingProcessing = false
   async function refreshProcessing() {
-    if (pollingProcessing) return
+    if (pollingProcessing || loading.value || disposed) return
     pollingProcessing = true
     const generation = reloadGeneration
     try {
@@ -610,10 +610,23 @@ export function useCloudMediaWorkspace(props: {
   onMounted(() => {
     void reload()
     timer = setInterval(() => {
-      if (canPoll.value && !busy.value && !preparingUpload.value) {
-        if (uploading.value) void refreshProcessing()
-        else void reload()
-      }
+      if (
+        document.visibilityState !== 'visible' ||
+        !canPoll.value ||
+        busy.value ||
+        loading.value ||
+        preparingUpload.value ||
+        uploadOpen.value
+      )
+        return
+      // Idle libraries stay still; only in-flight uploads and processing need polling.
+      if (
+        uploading.value ||
+        jobs.value.some((job) =>
+          ['queued', 'running', 'retry_wait'].includes(job.state),
+        )
+      )
+        void refreshProcessing()
     }, 5000)
   })
   onBeforeUnmount(() => {

@@ -51,13 +51,13 @@ const uploadAdmission = computed(() => {
     connectionId.value,
   )
 })
-async function openUpload() {
-  await quota.refresh()
+function openUpload() {
   if (uploadAdmission.value.allowed && !quota.error.value) {
     const target = uploadAdmission.value
     if ('connectionId' in target && target.connectionId)
       connectionId.value = target.connectionId
     uploadOpen.value = true
+    void quota.refresh()
   }
 }
 const search = ref(''),

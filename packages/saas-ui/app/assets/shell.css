@@ -211,6 +211,16 @@
   color: var(--foreground);
   border-right: 1px solid var(--border);
 }
+.cf-mobile-sidebar {
+  min-height: 0;
+  overflow: hidden;
+  padding: 14px 10px;
+  padding-bottom: max(14px, env(safe-area-inset-bottom));
+}
+.cf-mobile-sidebar > .cf-drawer-heading,
+.cf-mobile-sidebar > .cf-sidebar-bottom {
+  flex-shrink: 0;
+}
 .cf-drawer-heading {
   display: flex;
   justify-content: space-between;

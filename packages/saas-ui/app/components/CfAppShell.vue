@@ -31,7 +31,7 @@ watch(
           :description="navigationDescription"
           :ui="{
             content: 'w-72',
-            body: 'p-0 flex flex-col',
+            body: 'cf-mobile-sidebar flex flex-col',
             header: 'sr-only',
           }"
         >
