@@ -23,13 +23,15 @@ const code = transpileModule(
   },
 ).outputText
 
-test('valid authenticated API requests record activity; fresh timestamps, anonymous/unverified/suspended identities do not write', async () => {
+test('session activity validates identities, throttles writes and tolerates write failures without leaking details', async (t) => {
   let cookie = true
   let verified = true
   let suspended = 0
   let lastActive: number | null = null
   let writes = 0
   let reads = 0
+  let failWrite = false
+  let failRead = false
   const db = {
     prepare() {
       reads++
@@ -37,6 +39,7 @@ test('valid authenticated API requests record activity; fresh timestamps, anonym
         bind() {
           return {
             async first() {
+              if (failRead) throw new Error('Account control lookup failed')
               return { suspended, last_active_at: lastActive }
             },
           }
@@ -71,6 +74,8 @@ test('valid authenticated API requests record activity; fresh timestamps, anonym
     }),
     async (_db: unknown, id: number, now: number) => {
       assert.equal(id, 1)
+      if (failWrite)
+        throw new Error('secret session details must not be logged')
       writes++
       lastActive = now
     },
@@ -107,4 +112,26 @@ test('valid authenticated API requests record activity; fresh timestamps, anonym
   cookie = false
   assert.equal(await request(), null)
   assert.equal(reads, before, 'anonymous requests do not access activity state')
+  cookie = true
+  verified = true
+  lastActive = null
+  failWrite = true
+  const logged: unknown[][] = []
+  t.mock.method(console, 'error', (...args: unknown[]) => logged.push(args))
+  assert.equal(
+    (await request()).userId,
+    1,
+    'activity write failure cannot invalidate a valid session',
+  )
+  assert.equal(writes, 2)
+  assert.equal(lastActive, null)
+  assert.deepEqual(logged, [['Account activity write failed']])
+  failWrite = false
+  failRead = true
+  await assert.rejects(request(), /Account control lookup failed/)
+  assert.equal(
+    logged.length,
+    1,
+    'critical account control errors are not swallowed',
+  )
 })

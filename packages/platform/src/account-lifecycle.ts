@@ -65,6 +65,7 @@ export async function lifecycleSettings(db: PlatformD1) {
 }
 export const timeValue = (value: number | string) =>
   typeof value === 'number' ? value : new Date(value).getTime()
+/** Resolve inactivity or verification deadlines, including activation and account grace periods. */
 export function deletionDeadline(
   user: any,
   s: Awaited<ReturnType<typeof lifecycleSettings>>,
@@ -88,6 +89,7 @@ export const automaticReason = (verified: boolean, days: number) =>
     : `Your email address is still unverified ${days} days after registration.`
 const date = (v: number) =>
   new Date(v).toISOString().replace('T', ' ').replace('.000Z', ' UTC')
+/** Freeze atomically; automatic scans must still match the observed activity and policy snapshot. */
 export async function markAccount(
   db: PlatformD1,
   userId: number,
@@ -320,6 +322,7 @@ export async function lifecycleStages(
     }
   }
 }
+/** Scan one account page for expiry, preserving exemptions and scheduling lifecycle warnings. */
 export async function scanAccounts(
   db: PlatformD1,
   now = Date.now(),

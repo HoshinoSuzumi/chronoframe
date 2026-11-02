@@ -35,7 +35,9 @@ export default defineEventHandler((event) => {
       control.last_active_at === null ||
       control.last_active_at <= now - ACCOUNT_ACTIVITY_INTERVAL
     )
-      await recordAccountActivity(db, id, now)
+      await recordAccountActivity(db, id, now).catch(() => {
+        console.error('Account activity write failed')
+      })
     return {
       userId: id,
       expiresAt: new Date(session.session.expiresAt).getTime(),
