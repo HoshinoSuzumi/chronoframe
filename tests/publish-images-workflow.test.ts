@@ -1,6 +1,13 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { mkdtemp, mkdir, readFile, writeFile, rm } from 'node:fs/promises'
+import {
+  mkdtemp,
+  mkdir,
+  readFile,
+  writeFile,
+  rm,
+  chmod,
+} from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join, dirname } from 'node:path'
 import { execFileSync, spawnSync } from 'node:child_process'
@@ -38,7 +45,9 @@ const git = (cwd: string, ...args: string[]) =>
     stdio: ['ignore', 'pipe', 'pipe'],
   }).trim()
 function runStep(name: string, cwd: string, env: Record<string, string> = {}) {
-  const step = steps.find((s: any) => s.name === name)
+  const step = [...steps, ...workflow.jobs.release.steps].find(
+    (s: any) => s.name === name,
+  )
   assert(step?.run, name)
   return spawnSync('bash', ['-e', '-o', 'pipefail', '-c', step.run], {
     cwd,
@@ -266,6 +275,88 @@ test('a release whose package version is already correct still marks its annotat
       await readFile(join(f.work, 'output'), 'utf8'),
       'publish=false\n',
     )
+  } finally {
+    await rm(f.root, { recursive: true, force: true })
+  }
+})
+
+test('release notes are validated before image publication and transferred as an artifact', async () => {
+  assert.equal(workflow.jobs.prepare.outputs.changelog, undefined)
+  const generate = steps.findIndex(
+    (s: any) => s.name === '📝 Generate changelog',
+  )
+  const resolve = steps.findIndex(
+    (s: any) => s.name === 'Resolve immutable release commit',
+  )
+  const upload = steps.findIndex((s: any) => s.name === 'Upload release notes')
+  assert(generate > resolve)
+  assert(upload > generate)
+  assert.equal(workflow.jobs['build-and-push'].needs, 'prepare')
+  assert.equal(steps[upload].uses, 'actions/upload-artifact@v4')
+  assert.equal(steps[upload].with['if-no-files-found'], 'error')
+  const download = workflow.jobs.release.steps.find(
+    (s: any) => s.name === 'Download validated release notes',
+  )
+  assert.equal(download.uses, 'actions/download-artifact@v4')
+  assert.equal(download.with.name, steps[upload].with.name)
+  assert.equal(download.with.path, '${{ runner.temp }}')
+  const create = workflow.jobs.release.steps.find(
+    (s: any) => s.name === '📝 Create Release',
+  )
+  assert.equal(create.with.body, undefined)
+  assert.equal(create.with.body_path, '${{ runner.temp }}/release-notes.md')
+  const f = await fixture()
+  try {
+    git(f.work, 'tag', 'v1.0.2')
+    success(runStep('Commit version and create release tag', f.work))
+    const bin = join(f.root, 'bin'),
+      scripts = join(f.work, 'scripts')
+    await mkdir(bin)
+    await mkdir(scripts)
+    await writeFile(
+      join(bin, 'npx'),
+      `#!/bin/sh
+printf '%s\\n' "$@" > "$NPX_ARGUMENTS_FILE"
+if [ "$RELEASE_NOTE_FIXTURE_EMPTY" != true ]; then
+  printf '[log] ## Features\\n[log] \\n[log] - Public release changes (@PublicMaintainer)\\n'
+fi
+`,
+    )
+    await chmod(join(bin, 'npx'), 0o755)
+    await writeFile(
+      join(scripts, 'changelog-contributors.mjs'),
+      `import fs from 'node:fs';fs.writeFileSync(process.env.CONTRIBUTOR_RANGE_FILE,process.argv[2]);if(process.env.RELEASE_NOTE_FIXTURE_EMPTY!=='true')console.log('### ❤️ Contributors\\n\\n- Public Maintainer (@PublicMaintainer)')`,
+    )
+    const notes = join(f.root, 'notes.md')
+    const env = {
+      PATH: bin + ':' + environment.PATH,
+      RELEASE_NOTES_FILE: notes,
+      IS_PRERELEASE: 'false',
+      NPX_ARGUMENTS_FILE: join(f.root, 'args'),
+      CONTRIBUTOR_RANGE_FILE: join(f.root, 'range'),
+    }
+    success(runStep('📝 Generate changelog', f.work, env))
+    const body = await readFile(notes, 'utf8')
+    assert.match(body, /## Features/)
+    assert.match(body, /### ❤️ Contributors/)
+    assert.match(body, /@PublicMaintainer/)
+    assert(!body.includes('[log]'))
+    assert(!body.includes('ChronoFrame-Publish-Images-Run'))
+    assert.equal(await readFile(join(f.root, 'range'), 'utf8'), 'v1.0.2..HEAD')
+    assert(
+      (await readFile(join(f.root, 'args'), 'utf8')).includes('--from=v1.0.2'),
+    )
+    const output = await readFile(join(f.work, 'output'), 'utf8').catch(
+      () => '',
+    )
+    assert(!output.includes('changelog'))
+    const empty = runStep('📝 Generate changelog', f.work, {
+      ...env,
+      RELEASE_NOTES_FILE: join(f.root, 'empty.md'),
+      RELEASE_NOTE_FIXTURE_EMPTY: 'true',
+    })
+    assert.notEqual(empty.status, 0)
+    assert.match(empty.stdout, /Generated release notes are empty/)
   } finally {
     await rm(f.root, { recursive: true, force: true })
   }

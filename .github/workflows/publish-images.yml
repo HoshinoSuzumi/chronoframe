@@ -45,7 +45,6 @@ jobs:
     outputs:
       version: ${{ steps.version.outputs.version }}
       prerelease: ${{ steps.version.outputs.prerelease }}
-      changelog: ${{ steps.changelog.outputs.changelog }}
       commit: ${{ steps.source.outputs.commit }}
       tag: ${{ steps.version.outputs.tag }}
       publish: ${{ steps.trigger.outputs.publish }}
@@ -171,6 +170,7 @@ jobs:
         if: steps.trigger.outputs.publish == 'true'
         env:
           GITHUB_TOKEN: ${{ github.token }}
+          RELEASE_NOTES_FILE: ${{ runner.temp }}/release-notes.md
           RELEASE_TAG: ${{ steps.version.outputs.tag }}
           IS_PRERELEASE: ${{ steps.version.outputs.prerelease }}
         run: |
@@ -206,9 +206,20 @@ jobs:
           changelog="$changelog
           $contributors"
 
-          echo "changelog<<EOF" >> $GITHUB_OUTPUT
-          echo "$changelog" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
+          if [[ -z "$(printf '%s' "$changelog" | tr -d '[:space:]')" ]]; then
+            echo "::error::Generated release notes are empty."
+            exit 1
+          fi
+          printf '%s\n' "$changelog" > "$RELEASE_NOTES_FILE"
+
+      - name: Upload release notes
+        if: steps.trigger.outputs.publish == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-notes
+          path: ${{ runner.temp }}/release-notes.md
+          if-no-files-found: error
+          retention-days: 7
 
   build-and-push:
     needs: prepare
@@ -374,12 +385,18 @@ jobs:
       VERSION: ${{ needs.prepare.outputs.version }}
       IS_PRERELEASE: ${{ needs.prepare.outputs.prerelease }}
     steps:
+      - name: Download validated release notes
+        uses: actions/download-artifact@v4
+        with:
+          name: release-notes
+          path: ${{ runner.temp }}
+
       - name: 📝 Create Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ needs.prepare.outputs.tag }}
           target_commitish: ${{ needs.prepare.outputs.commit }}
           name: Release v${{ env.VERSION }}
-          body: ${{ needs.prepare.outputs.changelog }}
+          body_path: ${{ runner.temp }}/release-notes.md
           prerelease: ${{ env.IS_PRERELEASE == 'true' }}
           draft: true
