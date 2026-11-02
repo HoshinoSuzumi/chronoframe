@@ -71,7 +71,10 @@ export function deletionDeadline(
 ) {
   const verified = !!user.email_verified,
     anchor = verified
-      ? (user.last_login_at ?? timeValue(user.created_at))
+      ? Math.max(
+          user.last_active_at ?? 0,
+          user.last_login_at ?? timeValue(user.created_at),
+        )
       : timeValue(user.created_at)
   return Math.max(
     anchor + (verified ? s.inactiveDays : s.unverifiedDays) * DAY,
@@ -81,7 +84,7 @@ export function deletionDeadline(
 }
 export const automaticReason = (verified: boolean, days: number) =>
   verified
-    ? `No sign-in has been recorded for ${days} days.`
+    ? `No account activity has been recorded for ${days} days.`
     : `Your email address is still unverified ${days} days after registration.`
 const date = (v: number) =>
   new Date(v).toISOString().replace('T', ' ').replace('.000Z', ' UTC')
@@ -94,6 +97,7 @@ export async function markAccount(
   now = Date.now(),
   expected?: {
     login: number | null
+    activity?: number | null
     verified: number
     settingsRevision: number
   },
@@ -124,7 +128,7 @@ export async function markAccount(
   await db.batch([
     db
       .prepare(
-        `INSERT INTO platform_account_deletions(user_id,generation,source,reason,marked_at,purge_at,previous_suspended,previous_reason) SELECT u.id,?,?,?,?,?,COALESCE(c.suspended,0),COALESCE(c.public_reason,'') FROM platform_users u LEFT JOIN platform_account_controls c ON c.user_id=u.id WHERE u.id=? AND NOT EXISTS(SELECT 1 FROM platform_account_deletions WHERE user_id=u.id) ${expected ? 'AND u.last_login_at IS ? AND u.email_verified=? AND EXISTS(SELECT 1 FROM platform_lifecycle_settings WHERE id=1 AND enabled=1 AND revision=?) AND EXISTS(SELECT 1 FROM platform_policy_epoch WHERE id=1 AND revision=?)' : ''}`,
+        `INSERT INTO platform_account_deletions(user_id,generation,source,reason,marked_at,purge_at,previous_suspended,previous_reason) SELECT u.id,?,?,?,?,?,COALESCE(c.suspended,0),COALESCE(c.public_reason,'') FROM platform_users u LEFT JOIN platform_account_controls c ON c.user_id=u.id WHERE u.id=? AND NOT EXISTS(SELECT 1 FROM platform_account_deletions WHERE user_id=u.id) ${expected ? 'AND u.last_login_at IS ? AND u.last_active_at IS ? AND u.email_verified=? AND EXISTS(SELECT 1 FROM platform_lifecycle_settings WHERE id=1 AND enabled=1 AND revision=?) AND EXISTS(SELECT 1 FROM platform_policy_epoch WHERE id=1 AND revision=?)' : ''}`,
       )
       .bind(
         generation,
@@ -136,6 +140,7 @@ export async function markAccount(
         ...(expected
           ? [
               expected.login,
+              expected.activity ?? null,
               expected.verified,
               expected.settingsRevision,
               policyEpoch!.revision,
@@ -368,6 +373,7 @@ export async function scanAccounts(
         now,
         {
           login: u.last_login_at,
+          activity: u.last_active_at,
           verified: u.email_verified,
           settingsRevision: s.revision,
         },

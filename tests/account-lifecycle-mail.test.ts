@@ -1498,3 +1498,71 @@ test('Retry-budget migration preserves delivery history and terminates already-e
     await mf.dispose()
   }
 })
+
+test('authenticated API activity racing the scanner prevents automatic freezing', async () => {
+  const { mf, db } = await fixture()
+  try {
+    const now = Date.now(),
+      old = now - 100 * DAY
+    await db
+      .prepare(
+        'UPDATE platform_lifecycle_settings SET enabled=1,activated_at=1 WHERE id=1',
+      )
+      .run()
+    await db
+      .prepare(
+        "INSERT INTO platform_users(id,email,email_verified,created_at,last_login_at,last_active_at) VALUES(1,'active@example.com',1,?,?,?)",
+      )
+      .bind(old, old, old)
+      .run()
+    const raced = {
+      prepare: db.prepare.bind(db),
+      batch: async (statements: any[]) => {
+        await db
+          .prepare('UPDATE platform_users SET last_active_at=? WHERE id=1')
+          .bind(now)
+          .run()
+        return db.batch(statements)
+      },
+    }
+    assert.equal(
+      await markAccount(
+        raced as any,
+        1,
+        'Inactive account',
+        'inactive',
+        null,
+        now,
+        { login: old, activity: old, verified: 1, settingsRevision: 1 },
+      ),
+      false,
+    )
+    assert.equal(
+      await db
+        .prepare(
+          'SELECT user_id FROM platform_account_deletions WHERE user_id=1',
+        )
+        .first(),
+      null,
+    )
+    await scanAccounts(db, now)
+    assert.equal(
+      await db
+        .prepare(
+          'SELECT user_id FROM platform_account_deletions WHERE user_id=1',
+        )
+        .first(),
+      null,
+    )
+    assert.equal(
+      (
+        await db
+          .prepare('SELECT last_login_at FROM platform_users WHERE id=1')
+          .first()
+      ).last_login_at,
+      old,
+    )
+  } finally {
+    await mf.dispose()
+  }
+})
