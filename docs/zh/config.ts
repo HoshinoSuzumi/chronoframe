@@ -11,6 +11,7 @@ export default defineConfig({
       { text: '开发文档', link: '/zh/development/contributing' },
       { text: '更新日志', link: '/zh/changelog' },
       { text: '演示站点', link: '/zh/demo-sites' },
+      { text: 'Cloud 官网', link: 'https://chronoframe.art' },
     ],
 
     sidebar: [

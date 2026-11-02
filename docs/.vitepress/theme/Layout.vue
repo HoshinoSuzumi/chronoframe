@@ -1,5 +1,6 @@
 <script setup>
 import DefaultTheme from 'vitepress/theme'
+import CloudAnnouncement from './components/CloudAnnouncement.vue'
 import AdsenseToc from './components/AdsenseToc.vue'
 
 const { Layout } = DefaultTheme
@@ -7,6 +8,7 @@ const { Layout } = DefaultTheme
 
 <template>
   <Layout>
+    <template #layout-top><CloudAnnouncement /></template>
     <template #sidebar-nav-after>
       <div class="ads-box deep">
         <AdsenseToc />
