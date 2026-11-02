@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import { motion, AnimatePresence } from 'motion-v'
+import { siteFooterLink } from '../../../utils/site-footer-link'
 
 const props = withDefaults(
   defineProps<{
@@ -10,6 +11,15 @@ const props = withDefaults(
 )
 
 const isFixed = computed(() => props.variant === 'fixed')
+const entry = useEntryContext()
+const capabilities = useEntryCapabilities()
+const websiteHref = computed(() =>
+  siteFooterLink(
+    entry.value?.capabilities.edition ?? capabilities.edition,
+    props.variant,
+    entry.value?.siteId,
+  ),
+)
 const isRepoLinkHovering = ref(false)
 const copyrightName = computed(
   () => getSetting('app:author') || getSetting('app:title'),
@@ -39,7 +49,7 @@ const copyrightName = computed(
       © {{ $dayjs().format('YYYY') }} {{ copyrightName }}
     </p>
     <a
-      href="https://github.com/HoshinoSuzumi/chronoframe"
+      :href="websiteHref || 'https://github.com/HoshinoSuzumi/chronoframe'"
       target="_blank"
       rel="noopener noreferrer"
       :class="
@@ -49,17 +59,17 @@ const copyrightName = computed(
             : 'inline-flex items-center gap-1 whitespace-nowrap hover:underline'
           : 'group inline-flex items-center gap-0.5 text-xs font-medium text-neutral-500/60 hover:underline dark:text-neutral-500/80'
       "
-      @mouseenter="isRepoLinkHovering = true"
+      @mouseenter="isRepoLinkHovering = !websiteHref"
       @mouseleave="isRepoLinkHovering = false"
     >
       <Icon
-        name="mdi:github"
+        :name="websiteHref ? 'tabler:external-link' : 'mdi:github'"
         mode="svg"
         :class="isFixed ? '' : '-mt-px inline-block text-sm'"
       />
       ChronoFrame
       <template v-if="isFixed">{{ ' ' }}{{ $config.public.VERSION }}</template>
-      <AnimatePresence v-else>
+      <AnimatePresence v-else-if="!websiteHref">
         <motion.span
           v-if="isRepoLinkHovering"
           :initial="{ width: 0, opacity: 0 }"
