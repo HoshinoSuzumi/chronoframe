@@ -225,6 +225,9 @@ export function usePhotoTableColumns(options: {
           .filter(([, count]) => (count as number) > 0)
           .sort((a, b) => (b[1] as number) - (a[1] as number))
           .slice(0, 3)
+        const hiddenReactions =
+          totalReactions -
+          topReactions.reduce((sum, [, count]) => sum + count, 0)
 
         return h(
           'div',
@@ -249,11 +252,11 @@ export function usePhotoTableColumns(options: {
                 ),
               ]),
             ),
-            totalReactions > topReactions.length
+            hiddenReactions > 0
               ? h(
                   'span',
                   { class: 'text-xs text-neutral-400' },
-                  `+${totalReactions - topReactions.reduce((sum, [, count]) => sum + (count as number), 0)}`,
+                  `+${hiddenReactions}`,
                 )
               : null,
           ].filter(Boolean),

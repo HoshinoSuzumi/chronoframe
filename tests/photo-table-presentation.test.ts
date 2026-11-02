@@ -3,10 +3,17 @@ import { readFileSync } from 'node:fs'
 import test from 'node:test'
 import vm from 'node:vm'
 import ts from 'typescript'
-import { computed, h, ref } from 'vue'
+import { computed, h, ref, type Ref, type VNode } from 'vue'
+
+interface TestColumn {
+  id?: string
+  accessorKey?: string
+  cell: (context: unknown) => VNode
+}
+const childrenOf = (node: VNode) => node.children as VNode[]
 
 test('shared photo columns render empty metadata and reaction breakdowns consistently', () => {
-  const exports: Record<string, any> = {}
+  const exports: Record<string, unknown> = {}
   vm.runInNewContext(
     ts.transpileModule(
       readFileSync(
@@ -31,37 +38,47 @@ test('shared photo columns render empty metadata and reaction breakdowns consist
   )
   let previewed: unknown
   const reactions = ref<Record<string, Record<string, number>>>({})
-  const columns = exports.usePhotoTableColumns({
+  const createColumns = exports.usePhotoTableColumns as (options: {
+    preview: (photo: unknown) => void
+    reactions: Ref<Record<string, Record<string, number>>>
+  }) => { value: TestColumn[] }
+  const columns = createColumns({
     preview: (photo: unknown) => {
       previewed = photo
     },
     reactions,
   }).value
   const photo = { id: 'p', title: 'Photo', tags: [], exif: {} }
-  const render = (id: string) =>
-    columns
-      .find((c: any) => (c.id ?? c.accessorKey) === id)
-      .cell({
-        row: { original: photo },
-        getValue: () => null,
-      })
+  const render = (id: string) => {
+    const column = columns.find((c) => (c.id ?? c.accessorKey) === id)
+    assert(column, id)
+    return column.cell({ row: { original: photo }, getValue: () => null })
+  }
   for (const [column, key] of [
     ['tags', 'noTags'],
     ['rating', 'noRating'],
     ['isLivePhoto', 'staticPhoto'],
   ]) {
-    const child = render(column).children[0]
+    const child = childrenOf(render(column))[0]
     assert.equal(child.children, `dashboard.photos.table.cells.${key}`)
-    assert.match(child.props.class, /text-neutral-400 text-xs/)
+    assert.match(String(child.props?.class), /text-neutral-400 text-xs/)
   }
   assert.equal(
     render('reactions').children,
     'dashboard.photos.table.cells.noReactions',
   )
   reactions.value = { p: { like: 3, love: 1 } }
-  const reactionCells = render('reactions').children
-  assert.equal(reactionCells[0].children[1].children, '3')
-  assert.equal(reactionCells[1].children[1].children, '1')
-  render('thumbnailUrl').props.onClick()
+  const reactionCells = childrenOf(render('reactions'))
+  assert.equal(reactionCells.length, 2)
+  assert.equal(childrenOf(reactionCells[0])[1].children, '3')
+  assert.equal(childrenOf(reactionCells[1])[1].children, '1')
+  reactions.value = { p: { like: 5, love: 4, wow: 3 } }
+  assert.equal(childrenOf(render('reactions')).length, 3)
+  reactions.value = { p: { like: 5, love: 4, wow: 3, fire: 2, sad: 1 } }
+  const overflow = childrenOf(render('reactions'))
+  assert.equal(overflow.length, 4)
+  assert.equal(overflow[3].children, '+3')
+  const onPreview = render('thumbnailUrl').props?.onClick as () => void
+  onPreview()
   assert.equal(previewed, photo)
 })

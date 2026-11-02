@@ -63,7 +63,7 @@ function selectAll(value: boolean | 'indeterminate') {
             <UCheckbox
               :id="`${selectionId}-${photo.id}`"
               :model-value="!!selection[photo.id]"
-              :aria-label="`${$t('dashboard.photos.table.selectRowAria')} ${photo.title}`"
+              :aria-label="`${$t('dashboard.photos.table.selectRowAria')} ${photo.title ?? photo.id}`"
               @update:model-value="selection[photo.id] = $event === true"
             />
           </label>
@@ -73,7 +73,7 @@ function selectAll(value: boolean | 'indeterminate') {
               variant="outline"
               color="neutral"
               icon="tabler:dots-vertical"
-              :aria-label="`${$t('dashboard.photos.table.columns.actions')} ${photo.title}`"
+              :aria-label="`${$t('dashboard.photos.table.columns.actions')} ${photo.title ?? photo.id}`"
             />
           </UDropdownMenu>
         </div>
