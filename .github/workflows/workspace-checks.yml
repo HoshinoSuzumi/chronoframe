@@ -27,7 +27,7 @@ jobs:
           version: 10.34.6
       - uses: actions/setup-node@v6
         with:
-          node-version: 22.23.3
+          node-version: 22.23.4
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm check:packages
@@ -52,7 +52,7 @@ jobs:
           version: 10.34.6
       - uses: actions/setup-node@v6
         with:
-          node-version: 22.23.3
+          node-version: 22.23.4
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm check:entries
