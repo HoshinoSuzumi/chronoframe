@@ -8,6 +8,7 @@ const galleryPages = fileURLToPath(
 export default defineNuxtConfig({
   ...sharedUi,
   modules: [...sharedUi.modules, '@nuxt/fonts'],
+  gtag: { enabled: true, initMode: 'manual' },
   fonts: {
     provider: 'local',
     defaults: { preload: false },

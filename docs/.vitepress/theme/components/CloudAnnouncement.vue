@@ -13,7 +13,7 @@ const text = computed(() =>
 <template>
   <a
     class="cloud-announcement"
-    href="https://app.chronoframe.art"
+    href="https://chronoframe.art/?utm_source=docs&utm_medium=referral&utm_campaign=docs_to_website&utm_content=top_announcement"
   >
     {{ text }} <span aria-hidden="true">↗</span>
   </a>

@@ -14,6 +14,7 @@ export default defineEventHandler((event) => {
   }
   const platformRoute =
     [
+      '/api/cloud-analytics',
       '/api/analytics/visit',
       '/api/analytics/report',
       '/api/auth/status',
