@@ -7,7 +7,30 @@ const galleryPages = fileURLToPath(
 )
 export default defineNuxtConfig({
   ...sharedUi,
-  modules: sharedUi.modules,
+  modules: [...sharedUi.modules, '@nuxt/fonts'],
+  fonts: {
+    provider: 'local',
+    defaults: { preload: false },
+    families: [
+      {
+        name: 'Ma Shan Zheng',
+        src: '/fonts/ma-shan-zheng/story.ttf',
+        weight: 400,
+        style: 'normal',
+        display: 'swap',
+        fallbacks: [],
+        preload: false,
+      },
+      // Preserve the existing device font stacks and English slogan typography.
+      ...[
+        'Inter',
+        'Noto Sans SC',
+        'Noto Serif SC',
+        'Georgia',
+        'Times New Roman',
+      ].map((name) => ({ name, provider: 'none' as const })),
+    ],
+  },
   i18n: {
     strategy: 'no_prefix',
     defaultLocale: 'en',

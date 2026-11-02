@@ -21,6 +21,7 @@
     "@chronoframe/platform": "workspace:*",
     "@chronoframe/saas-ui": "workspace:*",
     "@chronoframe/storage": "workspace:*",
+    "@nuxt/fonts": "0.14.0",
     "@nuxt/icon": "2.5.1",
     "@nuxt/ui": "^4.11.3",
     "@nuxtjs/color-mode": "4.0.1",
