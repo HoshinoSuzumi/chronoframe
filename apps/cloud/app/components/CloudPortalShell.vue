@@ -32,6 +32,9 @@ useCloudSiteSubscription()
 </script>
 <template>
   <CfAppShell
+    :class="{
+      'cf-photo-library-shell': /^\/sites\/\d+\/photos\/?$/.test(route.path),
+    }"
     :navigation-label="$t('cloud.messages.navigation')"
     :navigation-description="
       $t('cloud.messages.yourWorkspaceAndSiteNavigation')
@@ -60,3 +63,22 @@ useCloudSiteSubscription()
     <slot />
   </CfAppShell>
 </template>
+
+<style scoped>
+.cf-photo-library-shell {
+  height: 100dvh;
+  overflow: hidden;
+}
+.cf-photo-library-shell :deep(.cf-portal-main) {
+  min-height: 0;
+  padding: 0;
+  overflow: hidden;
+}
+.cf-photo-library-shell :deep(.cf-portal-content) {
+  max-width: none;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+</style>
