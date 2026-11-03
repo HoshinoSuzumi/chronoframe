@@ -50,8 +50,8 @@ export const sharedUi = {
     'nuxt-og-image',
     'nuxt-gtag',
   ],
-  // Enable dynamic OG only after selecting a Worker-compatible WASM/remote renderer.
-  ogImage: { enabled: false },
+  // Takumi renders through its WASM binding on Workers; no native sharp needed.
+  ogImage: { enabled: true },
   ui: { fonts: false },
   icon: {
     clientBundle: {
