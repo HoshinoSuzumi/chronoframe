@@ -9,10 +9,14 @@ import {
   isSkippedOrBlockedUploadStatus,
 } from '@chronoframe/gallery/shared/utils/upload-status'
 
-const props = defineProps<{
-  uploadingFiles: Map<string, UploadingFile>
-  collapsed?: boolean
-}>()
+const props = withDefaults(
+  defineProps<{
+    uploadingFiles: Map<string, UploadingFile>
+    collapsed?: boolean
+    showQueueLink?: boolean
+  }>(),
+  { showQueueLink: true },
+)
 
 const emit = defineEmits<{
   removeFile: [fileId: string]
@@ -335,6 +339,7 @@ const clearAllFiles = () => {
             </UButton>
 
             <UButton
+              v-if="showQueueLink"
               size="xs"
               variant="soft"
               color="info"

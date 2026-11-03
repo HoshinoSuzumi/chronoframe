@@ -497,8 +497,21 @@ export function useUpload(options: UseUploadOptions = {}) {
         callbacks.onError?.(message, (failureXHR || currentXHR)!)
       if (managedSession && (cancelled || !multipart?.preserveOnError)) {
         try {
-          if (multipart?.abort) await multipart.abort()
-          else await $fetch(signedUrl, { method: 'DELETE' })
+          // A stalled cleanup request must not hold a queue slot.
+          const cleanup = multipart?.abort
+            ? multipart.abort()
+            : $fetch(signedUrl, { method: 'DELETE', timeout: 10000 })
+          let deadline: ReturnType<typeof setTimeout> | undefined
+          try {
+            await Promise.race([
+              cleanup,
+              new Promise<void>((resolve) => {
+                deadline = setTimeout(resolve, 10000)
+              }),
+            ])
+          } finally {
+            clearTimeout(deadline)
+          }
         } catch (cleanupError) {
           console.error('Failed to abort upload session:', cleanupError)
         }

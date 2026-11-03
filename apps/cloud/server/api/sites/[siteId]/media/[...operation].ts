@@ -492,11 +492,18 @@ export default definePlatformHandler(async (event) => {
           .bind(token, now + 30000, siteId, id, now)
           .first()
         if (!lock) throw createError({ statusCode: 409 })
+        let initiating = false
         try {
           const recovered = await s3.recoverMultipart(upload.object_key)
-          providerId =
-            recovered[0] ??
-            (await s3.multipart(upload.object_key, detail.content_type))
+          if (recovered[0]) providerId = recovered[0]
+          else {
+            initiating = true
+            providerId = await s3.multipart(
+              upload.object_key,
+              detail.content_type,
+            )
+            initiating = false
+          }
           for (const abandoned of recovered.slice(1))
             await s3.abort(upload.object_key, abandoned)
           const updated = await raw
@@ -510,7 +517,8 @@ export default definePlatformHandler(async (event) => {
             throw createError({ statusCode: 409 })
           }
         } catch (error) {
-          if (!providerId && canFallbackToSingleUpload(error)) {
+          // Recovery failures must surface: an unlisted session could be orphaned.
+          if (initiating && canFallbackToSingleUpload(error)) {
             console.warn('[upload] s3.multipart.fallback.single', {
               siteId,
               uploadId: id,

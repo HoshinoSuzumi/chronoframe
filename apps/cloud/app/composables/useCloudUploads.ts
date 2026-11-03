@@ -75,6 +75,7 @@ function createCloudUploads() {
     context: CloudUploadContext,
     path: string,
     body?: Record<string, unknown>,
+    signal?: AbortSignal,
   ): Promise<T> {
     // Navigation changes the active Site, not the authority of an admitted upload.
     if (disposed || userId.value !== context.userId)
@@ -84,6 +85,7 @@ function createCloudUploads() {
       {
         method: body ? 'POST' : 'GET',
         ...(body ? { body } : {}),
+        ...(signal ? { signal } : {}),
       },
     )
     if (disposed || userId.value !== context.userId)
@@ -127,8 +129,6 @@ function createCloudUploads() {
     }
     for (const job of jobs) {
       const key = `${context.scope}:${job.id}`
-      if (['queued', 'running', 'retry_wait'].includes(job.state))
-        dismissed.delete(key)
       const existing = [...tracked].filter(
         ([, item]) =>
           item.context.scope === context.scope && item.jobId === job.id,
@@ -184,6 +184,7 @@ function createCloudUploads() {
       return
     }
     const id = localStorage.getItem(cache) || crypto.randomUUID()
+    dismissed.delete(`${context.scope}:${id}`)
     activeReservations.add(cache)
     let reserved = false
     let cancellation: Promise<unknown> | undefined
@@ -202,16 +203,21 @@ function createCloudUploads() {
     queue.notify()
     try {
       signal.throwIfAborted()
-      await api(context, '/uploads', {
-        requestId: id,
-        connectionId: connection,
-        fileName: file.name,
-        bytes: file.size,
-        albumIds,
-        ...(liveVideo
-          ? { liveVideo: { fileName: liveVideo.name, bytes: liveVideo.size } }
-          : {}),
-      })
+      await api(
+        context,
+        '/uploads',
+        {
+          requestId: id,
+          connectionId: connection,
+          fileName: file.name,
+          bytes: file.size,
+          albumIds,
+          ...(liveVideo
+            ? { liveVideo: { fileName: liveVideo.name, bytes: liveVideo.size } }
+            : {}),
+        },
+        signal,
+      )
       reserved = true
       localStorage.setItem(cache, id)
       signal.throwIfAborted()
@@ -219,6 +225,7 @@ function createCloudUploads() {
         context,
         `/uploads/${id}/plan`,
         {},
+        signal,
       )
       signal.throwIfAborted()
       if (plan.state !== 'completed') {

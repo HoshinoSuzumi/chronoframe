@@ -50,10 +50,10 @@ async function jobAction(fileId: string, operation: 'retry' | 'delete') {
     <Teleport to="body">
       <UploadQueuePanel
         :uploading-files="uploadingFiles"
+        :show-queue-link="false"
         @remove-file="remove"
         @clear-completed="clearCompleted"
         @clear-all="clearAll"
-        @go-to-queue="navigateTo('/sites')"
       >
         <template #file-details="{ fileId }">
           <NuxtLink

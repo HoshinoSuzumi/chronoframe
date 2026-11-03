@@ -443,9 +443,12 @@ test('shared floating queue tracks processing, retry and deletion without resurr
     queue.trackJobs(context, [job])
     assert.equal(queue.uploadingFiles.value.size, 0)
     queue.trackJobs(context, [{ ...job, state: 'retry_wait' }])
+    assert.equal(queue.uploadingFiles.value.size, 0)
+    const other = { ...job, id: 'k', photo_id: 'photo-2' }
+    queue.trackJobs(context, [{ ...other, state: 'retry_wait' }])
     assert.equal(queue.uploadingFiles.value.size, 1)
     queue.trackJobs(context, [
-      { ...job, state: 'failed', error_code: 'processing_failed' },
+      { ...other, state: 'failed', error_code: 'processing_failed' },
     ])
     assert.equal([...queue.uploadingFiles.value.values()][0].status, 'error')
     queue.trackJobs(context, [])
@@ -463,6 +466,7 @@ test('Self-hosted and edge use the same narrow multipart fallback policy', () =>
     'AccessDenied',
   ])
     assert.equal(canFallbackToSingleUpload({ name }), true)
+  assert.equal(canFallbackToSingleUpload({ Code: 'NotImplemented' }), true)
   for (const status of [405, 501])
     assert.equal(
       canFallbackToSingleUpload({ $metadata: { httpStatusCode: status } }),
@@ -489,6 +493,7 @@ test('Self-hosted and edge use the same narrow multipart fallback policy', () =>
 test('Cloud plan falls back only before a multipart session exists and always releases its initialization lease', async () => {
   for (const failure of [
     { name: 'AccessDenied' },
+    { name: 'AccessDenied', at: 'recover' },
     { name: 'NotImplemented' },
     { name: 'ServiceUnavailable', $metadata: { httpStatusCode: 503 } },
   ]) {
@@ -552,7 +557,10 @@ test('Cloud plan falls back only before a multipart session exists and always re
             ],
             storage: async () => ({
               s3: {
-                recoverMultipart: async () => [],
+                recoverMultipart: async () => {
+                  if (failure.at === 'recover') throw failure
+                  return []
+                },
                 multipart: async () => {
                   throw failure
                 },
@@ -567,7 +575,7 @@ test('Cloud plan falls back only before a multipart session exists and always re
       },
     )
 
-    if (failure.name === 'ServiceUnavailable') {
+    if (failure.name === 'ServiceUnavailable' || failure.at === 'recover') {
       await assert.rejects(module.default({ method: 'POST' }))
       assert.equal(signed, 0)
     } else {

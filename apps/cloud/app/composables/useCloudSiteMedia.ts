@@ -356,7 +356,14 @@ export function useCloudMediaWorkspace(props: {
           !isVideo(file) &&
           file.size + (companionFor(file)?.size ?? 0) > fileLimit.value,
       ) ||
-      files.every(isVideo)
+      files.every(isVideo) ||
+      files.some(
+        (video) =>
+          isVideo(video) &&
+          !files.some(
+            (photo) => !isVideo(photo) && companionFor(photo) === video,
+          ),
+      )
     ) {
       failed.value = true
       message.value = t(
