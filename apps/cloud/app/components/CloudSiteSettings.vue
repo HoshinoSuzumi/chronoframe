@@ -34,6 +34,9 @@ const theme = ref<'light' | 'dark' | 'system'>(
 const homeHeaderLayout = ref<'embedded' | 'fixed'>(
   data.value?.site.presentation.homeHeaderLayout ?? 'embedded',
 )
+const reactionsEnabled = ref(
+  data.value?.site.presentation.reactionsEnabled ?? true,
+)
 const socialDraft = ref(
   Array.from(
     { length: MAX_SOCIAL_LINKS },
@@ -128,6 +131,8 @@ async function reload() {
   theme.value = data.value?.site.presentation.theme ?? 'dark'
   homeHeaderLayout.value =
     data.value?.site.presentation.homeHeaderLayout ?? 'embedded'
+  reactionsEnabled.value =
+    data.value?.site.presentation.reactionsEnabled ?? true
   socialDraft.value = Array.from(
     { length: MAX_SOCIAL_LINKS },
     (_, i) => data.value?.site.presentation.socialLinks.links[i] ?? '',
@@ -156,6 +161,7 @@ async function save() {
         presentation: {
           theme: theme.value,
           homeHeaderLayout: homeHeaderLayout.value,
+          reactionsEnabled: reactionsEnabled.value,
           socialLinks: {
             links: parseSocialLinks({
               links: socialDraft.value.map((v) => v.trim()).filter(Boolean),
@@ -332,6 +338,22 @@ async function save() {
             <CloudHeaderLayoutChoice
               v-model="homeHeaderLayout"
               :disabled="busy"
+            />
+          </section>
+          <section class="cf-gallery-presentation">
+            <h3>{{ $t('cloud.presentation.reactions') }}</h3>
+            <p
+              id="gallery-reactions-help"
+              class="cf-field-hint"
+            >
+              {{ $t('cloud.presentation.reactionsHelp') }}
+            </p>
+            <USwitch
+              v-model="reactionsEnabled"
+              class="justify-self-start"
+              :disabled="busy"
+              :aria-label="$t('cloud.presentation.reactions')"
+              aria-describedby="gallery-reactions-help"
             />
           </section>
           <section class="cf-gallery-presentation">

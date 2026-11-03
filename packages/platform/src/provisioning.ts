@@ -234,9 +234,12 @@ export function createD1Provisioning(
       if (input.presentation !== undefined) {
         try {
           const parsed = parseGalleryPresentation(input.presentation)
-          // Older clients do not send a theme; retain the stored preference.
-          if (!Object.hasOwn(input.presentation as object, 'theme'))
+          const properties = input.presentation as object
+          // Older clients omit newer fields; retain the stored preferences.
+          if (!Object.hasOwn(properties, 'theme'))
             parsed.theme = current.presentation.theme
+          if (!Object.hasOwn(properties, 'reactionsEnabled'))
+            parsed.reactionsEnabled = current.presentation.reactionsEnabled
           presentation = parsed
         } catch {
           throw new ProvisioningError(400, 'Invalid gallery presentation')

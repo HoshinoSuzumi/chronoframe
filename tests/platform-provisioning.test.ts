@@ -195,6 +195,23 @@ test('Real D1 provisioning preserves old tenants, serializes defaults and enforc
       2,
     )
     assert.equal((await store.get(42, 8)).published, 1)
+    const legacyPresentation = await db
+      .prepare(
+        'SELECT gallery_presentation AS presentation FROM platform_sites WHERE id=8',
+      )
+      .first<{ presentation: string }>()
+    assert.equal(
+      Object.hasOwn(
+        JSON.parse(legacyPresentation!.presentation),
+        'reactionsEnabled',
+      ),
+      false,
+    )
+    assert.equal(
+      (await store.get(42, 8)).presentation.reactionsEnabled,
+      true,
+      'legacy stored presentations default reactions to enabled',
+    )
     const oldUpdated = await store.update(42, 8, {
       name: 'Original renamed',
       published: true,
@@ -231,6 +248,7 @@ test('Real D1 provisioning preserves old tenants, serializes defaults and enforc
             'https://example.com/portfolio',
           ],
         },
+        reactionsEnabled: true,
       },
     })
     assert.deepEqual(profiled.presentation, {
@@ -239,13 +257,31 @@ test('Real D1 provisioning preserves old tenants, serializes defaults and enforc
       socialLinks: {
         links: ['https://github.com/example', 'https://example.com/portfolio'],
       },
+      reactionsEnabled: true,
     })
     assert.equal(profiled.title, profile.title)
     assert.equal((await store.get(42, 8)).avatarUrl, profile.avatarUrl)
-    const preserved = await store.update(42, 8, {
+    const disabled = await store.update(42, 8, {
       name: 'Renamed workspace',
       published: false,
       revision: 4,
+      presentation: {
+        theme: profiled.presentation.theme,
+        homeHeaderLayout: 'fixed',
+        socialLinks: profiled.presentation.socialLinks,
+        reactionsEnabled: false,
+      },
+    })
+    assert.equal(disabled.presentation.reactionsEnabled, false)
+    assert.equal(
+      (await store.get(42, 8)).presentation.reactionsEnabled,
+      false,
+      'explicit false persists',
+    )
+    const preserved = await store.update(42, 8, {
+      name: 'Renamed workspace',
+      published: false,
+      revision: 5,
       presentation: {
         homeHeaderLayout: 'fixed',
         socialLinks: profiled.presentation.socialLinks,
@@ -258,7 +294,7 @@ test('Real D1 provisioning preserves old tenants, serializes defaults and enforc
     )
     assert.deepEqual(
       preserved.presentation,
-      profiled.presentation,
+      disabled.presentation,
       'legacy updates retain gallery presentation',
     )
     for (const presentation of [
@@ -278,18 +314,29 @@ test('Real D1 provisioning preserves old tenants, serializes defaults and enforc
         homeHeaderLayout: 'fixed',
         socialLinks: { links: Array(5).fill('https://example.com') },
       },
+      ...[null, 'false', 0, [], {}].map((reactionsEnabled) => ({
+        homeHeaderLayout: 'fixed',
+        socialLinks: { links: [] },
+        reactionsEnabled,
+      })),
     ]) {
       await assert.rejects(
         store.update(42, 8, {
           name: 'Must not change',
           published: true,
-          revision: 5,
+          revision: 6,
           presentation,
         }),
         { statusCode: 400 },
       )
     }
-    assert.equal((await store.get(42, 8)).name, preserved.name)
+    const afterInvalidPresentation = await store.get(42, 8)
+    assert.equal(afterInvalidPresentation.name, preserved.name)
+    assert.equal(afterInvalidPresentation.revision, preserved.revision)
+    assert.deepEqual(
+      afterInvalidPresentation.presentation,
+      preserved.presentation,
+    )
 
     await assert.rejects(
       store.update(42, 8, {
@@ -304,7 +351,7 @@ test('Real D1 provisioning preserves old tenants, serializes defaults and enforc
       store.update(43, 8, {
         name: 'Member edit',
         published: false,
-        revision: 5,
+        revision: 6,
         profile,
       }),
       { statusCode: 403 },
@@ -313,7 +360,7 @@ test('Real D1 provisioning preserves old tenants, serializes defaults and enforc
       store.update(44, 8, {
         name: 'Foreign',
         published: false,
-        revision: 5,
+        revision: 6,
         profile,
       }),
       { statusCode: 404 },
