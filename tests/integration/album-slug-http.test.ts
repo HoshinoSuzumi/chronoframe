@@ -193,6 +193,12 @@ test(
         assert.equal(trailing.headers.get('location'), '/albums/visible-album')
         assert.equal((await request('/albums/hidden-album')).status, 404)
 
+        // This upload control is rendered by the photos page inside the admin layout.
+        const photoPageMarker = /<button\b[^>]*\bdata-tour="photo-upload"/
+        const guestConsole = await request('/dashboard/photos')
+        assert.equal(guestConsole.status, 200, output)
+        assert.doesNotMatch(await guestConsole.text(), photoPageMarker, output)
+
         const login = await jsonPost('/api/login', {
           email: 'admin@example.test',
           password: 'test-password-123',
@@ -208,6 +214,7 @@ test(
         })
         const consoleHtml = await consolePage.text()
         assert.equal(consolePage.status, 200, `${consoleHtml}\n${output}`)
+        assert.match(consoleHtml, photoPageMarker, `${consoleHtml}\n${output}`)
         assert.doesNotMatch(consoleHtml, /Cannot redefine property/i, output)
         assert.equal(
           (await request('/albums/hidden-album', { headers: { cookie } }))
