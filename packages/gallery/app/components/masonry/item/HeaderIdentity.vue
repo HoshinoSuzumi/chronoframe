@@ -65,7 +65,6 @@ const avatarUrl = computed(
             ? '-translate-y-2 opacity-0'
             : 'translate-y-0 opacity-100'
         "
-        :aria-hidden="isFixed && condensed ? 'true' : undefined"
       >
         <h1
           :class="

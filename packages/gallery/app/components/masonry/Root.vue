@@ -356,7 +356,10 @@ const scrollToPhoto = (photoIndex: number) => {
     <DateRangeIndicator
       :date-range="dateRange"
       :locations="visibleCities"
-      :is-visible="!!dateRange && showFloatingActions && !isMobile"
+      :is-visible="
+        !!dateRange && showFloatingActions && !(isMobile && isFixedHeader)
+      "
+      :is-mobile="isMobile"
       :top-offset="isFixedHeader ? fixedHeaderHeight : undefined"
     />
 

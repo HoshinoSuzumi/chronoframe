@@ -5,6 +5,7 @@ const props = defineProps<{
   dateRange?: string
   locations?: string
   isVisible: boolean
+  isMobile?: boolean
   topOffset?: number
   class?: string
 }>()
@@ -26,8 +27,21 @@ const dateRangeVariants = {
   },
 }
 
-// Keep a gap below the fixed header, mirroring the default top-4/top-6
-// offset used when the page has no fixed header.
+const mobileVariants = {
+  initial: {
+    opacity: 0,
+    y: -20,
+  },
+  animate: {
+    opacity: 1,
+    y: 0,
+  },
+}
+
+// The desktop indicator is a floating card, so it keeps a gap below the fixed
+// header, mirroring the default top-4/top-6 offset it uses without a header.
+// The mobile indicator is an edge-to-edge bar; it intentionally sits flush
+// against the bottom edge of the fixed header instead of using this gap.
 const DESKTOP_TOP_GAP = 16
 </script>
 
@@ -35,7 +49,7 @@ const DESKTOP_TOP_GAP = 16
   <div>
     <AnimatePresence>
       <motion.div
-        v-if="shouldShow"
+        v-if="shouldShow && !isMobile"
         class="fixed left-4 z-50 lg:left-6 flex flex-col gap-1 bg-black/40 backdrop-blur-3xl rounded-xl border border-white/10 px-4 py-2 pb-4 shadow-2xl"
         :class="topOffset == null ? 'top-4 lg:top-6' : ''"
         :style="
@@ -61,6 +75,32 @@ const DESKTOP_TOP_GAP = 16
           class="text-white/80 text-xl font-bold"
           >{{ locations }}</span
         >
+      </motion.div>
+
+      <motion.div
+        v-if="shouldShow && isMobile"
+        class="fixed inset-x-0 bottom-auto z-50"
+        :class="topOffset == null ? 'top-0' : ''"
+        :style="topOffset == null ? undefined : { top: `${topOffset}px` }"
+        :initial="mobileVariants.initial"
+        :animate="mobileVariants.animate"
+        :exit="mobileVariants.initial"
+        :transition="{
+          type: 'spring',
+          duration: 0.3,
+          bounce: 0.1,
+        }"
+      >
+        <div
+          class="bg-black/60 backdrop-blur-3xl border-b border-white/10 px-4 py-2 shadow-2xl flex flex-col"
+        >
+          <span class="text-white text-lg font-medium">{{ dateRange }}</span>
+          <span
+            v-if="locations"
+            class="text-white/80 text-xs"
+            >{{ locations }}</span
+          >
+        </div>
       </motion.div>
     </AnimatePresence>
   </div>
