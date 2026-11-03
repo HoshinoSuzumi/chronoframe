@@ -27,7 +27,7 @@ const isFixed = computed(() => props.variant === 'fixed')
       compact
         ? ''
         : isFixed
-          ? 'hidden min-w-0 flex-1 flex-col justify-center border-l border-neutral-200 pl-5 text-xs text-neutral-600 dark:border-neutral-800 dark:text-neutral-300 lg:flex'
+          ? 'hidden min-h-8 min-w-0 flex-1 flex-col justify-center border-l border-neutral-200/80 pl-4 text-[11px] leading-4 text-neutral-600 dark:border-white/10 dark:text-neutral-300 lg:flex'
           : 'space-y-1 text-center text-neutral-600 dark:text-white/30'
     "
   >
@@ -44,14 +44,8 @@ const isFixed = computed(() => props.variant === 'fixed')
       {{ photoSummary }}
     </p>
     <p
-      v-if="getSetting('app:slogan')"
-      :class="
-        isFixed
-          ? compact
-            ? 'mt-1'
-            : 'truncate font-[Pacifico] text-sm text-neutral-500 dark:text-neutral-400'
-          : 'font-[Pacifico]'
-      "
+      v-if="!isFixed && getSetting('app:slogan')"
+      class="font-[Pacifico]"
     >
       {{ getSetting('app:slogan') }}
     </p>

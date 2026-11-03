@@ -1,10 +1,6 @@
 <script setup lang="ts">
 import { motion } from 'motion-v'
-import {
-  FIXED_HEADER_HEIGHT_PX,
-  FIXED_HEADER_SOCIAL_ROW_HEIGHT_PX,
-} from '#gallery/utils'
-import { parseSocialLinks } from '@chronoframe/contracts/social-links'
+import { FIXED_HEADER_HEIGHT_PX } from '#gallery/utils'
 interface Props {
   photos: Photo[]
   columns?: number | 'auto'
@@ -23,14 +19,6 @@ const { filteredPhotos, hasActiveFilters } = usePhotoFilters()
 const { sortedPhotos } = usePhotoSort()
 const homeHeaderLayout = useSettingRef('app:appearance.homeHeaderLayout')
 const isFixedHeader = computed(() => homeHeaderLayout.value === 'fixed')
-const socialLinksSetting = useSettingRef('app:socialLinks')
-const hasSocialLinks = computed(() => {
-  try {
-    return parseSocialLinks(socialLinksSetting.value).length > 0
-  } catch {
-    return false
-  }
-})
 
 const displayPhotos = computed(() => {
   return hasActiveFilters.value ? filteredPhotos.value : sortedPhotos.value
@@ -45,6 +33,7 @@ const MASONRY_GAP = 4
 const masonryWrapper = ref<HTMLElement>()
 const hasAnimated = ref(false)
 const showFloatingActions = ref(false)
+const isHeaderCondensed = ref(false)
 const dateRange = ref<string>()
 const visiblePhotos = ref(new Set<number>())
 
@@ -299,6 +288,7 @@ const updateDateRange = () => {
 
 const handleScroll = () => {
   const scrollTop = window.pageYOffset || document.documentElement.scrollTop
+  isHeaderCondensed.value = scrollTop > 32
   showFloatingActions.value = scrollTop > 500
 }
 
@@ -311,6 +301,7 @@ const scrollToTop = () => {
 
 onMounted(() => {
   window.addEventListener('scroll', handleScroll, { passive: true })
+  handleScroll()
 
   nextTick(() => {
     updateEmbeddedHeaderWidth()
@@ -358,7 +349,6 @@ const scrollToPhoto = (photoIndex: number) => {
     })
   }
 }
-
 </script>
 
 <template>
@@ -366,8 +356,7 @@ const scrollToPhoto = (photoIndex: number) => {
     <DateRangeIndicator
       :date-range="dateRange"
       :locations="visibleCities"
-      :is-visible="!!dateRange && showFloatingActions"
-      :is-mobile="isMobile"
+      :is-visible="!!dateRange && showFloatingActions && !isMobile"
       :top-offset="isFixedHeader ? fixedHeaderHeight : undefined"
     />
 
@@ -379,17 +368,16 @@ const scrollToPhoto = (photoIndex: number) => {
       <MasonryItemHeaderFixed
         :stats="photoStats"
         :date-range-text
+        :visible-date-range="dateRange"
+        :visible-locations="visibleCities"
+        :condensed="isMobile && isHeaderCondensed && !!dateRange"
       />
     </div>
 
     <div
       v-if="isFixedHeader"
       aria-hidden="true"
-      :class="{ 'fixed-header-spacer-with-social-links': hasSocialLinks }"
-      :style="{
-        height: `${fixedHeaderHeight}px`,
-        '--fixed-header-mobile-min-height': `${FIXED_HEADER_HEIGHT_PX + FIXED_HEADER_SOCIAL_ROW_HEIGHT_PX}px`,
-      }"
+      :style="{ height: `${fixedHeaderHeight}px` }"
     />
 
     <!-- Back to Top Button -->
@@ -416,12 +404,12 @@ const scrollToPhoto = (photoIndex: number) => {
 
     <div
       class="lg:px-0 lg:pb-0"
-      :class="isMobile ? 'px-1 pb-1' : 'p-1'"
+      :class="isFixedHeader || isMobile ? 'px-1 pb-1' : 'p-1'"
     >
       <div
         ref="masonryWrapper"
         class="relative"
-        :class="{ 'pt-2': isMobile }"
+        :class="{ 'pt-2': isMobile && !isFixedHeader }"
         :style="{ '--masonry-header-offset': `${embeddedHeaderOffset}px` }"
       >
         <div
@@ -471,12 +459,6 @@ const scrollToPhoto = (photoIndex: number) => {
 </template>
 
 <style scoped>
-@media (max-width: 1023px) {
-  .fixed-header-spacer-with-social-links {
-    min-height: var(--fixed-header-mobile-min-height);
-  }
-}
-
 .masonry-header-wrapper {
   z-index: 1;
 }
