@@ -509,31 +509,43 @@ useHead({
             </div>
           </div>
 
-          <MasonryWall
-            v-else
-            :items="masonryItems"
-            :column-width="columnWidth"
-            :gap="MASONRY_GAP"
-            :min-columns="minColumns"
-            :max-columns="maxColumns"
-            :ssr-columns="2"
-            :key-mapper="
-              (_item, _column, _row, index) =>
-                masonryItems[index]?.originalIndex ?? index
-            "
-          >
-            <template #default="{ item }">
-              <MasonryItem
-                v-if="item.photo && typeof item.originalIndex === 'number'"
-                :key="item.photo.id"
-                :photo="item.photo"
-                :index="item.originalIndex"
-                :has-animated="false"
-                :first-screen-items="50"
-                @open-viewer="handleOpenViewer($event)"
-              />
+          <ClientOnly v-else>
+            <MasonryWall
+              :items="masonryItems"
+              :column-width="columnWidth"
+              :gap="MASONRY_GAP"
+              :min-columns="minColumns"
+              :max-columns="maxColumns"
+              :ssr-columns="2"
+              :key-mapper="
+                (_item, _column, _row, index) =>
+                  masonryItems[index]?.originalIndex ?? index
+              "
+            >
+              <template #default="{ item }">
+                <MasonryItem
+                  v-if="item.photo && typeof item.originalIndex === 'number'"
+                  :key="item.photo.id"
+                  :photo="item.photo"
+                  :index="item.originalIndex"
+                  :has-animated="false"
+                  :first-screen-items="50"
+                  @open-viewer="handleOpenViewer($event)"
+                />
+              </template>
+            </MasonryWall>
+            <template #fallback>
+              <div
+                role="status"
+                class="min-h-64 flex flex-col items-center justify-center gap-4"
+              >
+                <LoaderAvatar />
+                <span class="text-sm text-neutral-500 dark:text-neutral-400">{{
+                  $t('ui.loading')
+                }}</span>
+              </div>
             </template>
-          </MasonryWall>
+          </ClientOnly>
         </motion.div>
       </div>
     </template>

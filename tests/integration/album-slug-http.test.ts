@@ -23,7 +23,7 @@ async function unusedPort(): Promise<number> {
 }
 
 test(
-  'self-hosted album URLs use permanent numeric and temporary historical redirects',
+  'self-hosted populated albums render on direct requests and preserve slug redirects',
   { timeout: 45_000 },
   async () => {
     const temporary = await mkdtemp(join(tmpdir(), 'chronoframe-album-http-'))
@@ -33,9 +33,35 @@ test(
     try {
       const visible = connection.db
         .insert(tables.albums)
-        .values({ title: 'Visible Album' })
+        .values({
+          title: 'Visible Album',
+          description: 'Populated album SSR regression',
+        })
         .returning({ id: tables.albums.id })
         .get()
+      const photoId = 'album-ssr-photo'
+      connection.db
+        .insert(tables.photos)
+        .values({
+          id: photoId,
+          siteId: 1,
+          title: 'SSR photo',
+          width: 640,
+          height: 480,
+          aspectRatio: 0.75,
+          thumbnailUrl: '/favicon.ico',
+          originalUrl: '/favicon.ico',
+        })
+        .run()
+      connection.db
+        .insert(tables.albumPhotos)
+        .values({
+          siteId: 1,
+          albumId: visible.id,
+          photoId,
+          position: 0,
+        })
+        .run()
       connection.db
         .insert(tables.albumSlugs)
         .values([
@@ -135,9 +161,24 @@ test(
           .returning({ id: tables.albums.id })
           .get()
 
+        const albumResponse = await request(`/api/albums/${visible.id}`)
+        assert.equal(albumResponse.status, 200, output)
+        const album = (await albumResponse.json()) as {
+          photos: { id: string }[]
+        }
+        assert.ok(album.photos.some((photo) => photo.id === photoId))
         const canonical = await request('/albums/visible-album')
-        assert.equal(canonical.status, 200)
+        const html = await canonical.text()
+        assert.equal(canonical.status, 200, `${html}\n${output}`)
+        assert.match(html, /<h1[^>]*>Visible Album<\/h1>/, output)
+        assert.match(html, /Populated album SSR regression/, output)
+        assert.doesNotMatch(
+          html,
+          /Cannot redefine property|Failed to load album/i,
+          output,
+        )
         assert.equal((await request(`/albums/${slugless.id}`)).status, 200)
+        assert.equal((await request('/')).status, 200, output)
         const numeric = await request(`/albums/${visible.id}`)
         assert.equal(numeric.status, 301)
         assert.equal(numeric.headers.get('location'), '/albums/visible-album')
@@ -152,6 +193,12 @@ test(
         assert.equal(trailing.headers.get('location'), '/albums/visible-album')
         assert.equal((await request('/albums/hidden-album')).status, 404)
 
+        // This upload control is rendered by the photos page inside the admin layout.
+        const photoPageMarker = /<button\b[^>]*\bdata-tour="photo-upload"/
+        const guestConsole = await request('/dashboard/photos')
+        assert.equal(guestConsole.status, 200, output)
+        assert.doesNotMatch(await guestConsole.text(), photoPageMarker, output)
+
         const login = await jsonPost('/api/login', {
           email: 'admin@example.test',
           password: 'test-password-123',
@@ -162,6 +209,13 @@ test(
           .map((value) => value.split(';')[0])
           .join('; ')
         assert.ok(cookie)
+        const consolePage = await request('/dashboard/photos', {
+          headers: { cookie },
+        })
+        const consoleHtml = await consolePage.text()
+        assert.equal(consolePage.status, 200, `${consoleHtml}\n${output}`)
+        assert.match(consoleHtml, photoPageMarker, `${consoleHtml}\n${output}`)
+        assert.doesNotMatch(consoleHtml, /Cannot redefine property/i, output)
         assert.equal(
           (await request('/albums/hidden-album', { headers: { cookie } }))
             .status,

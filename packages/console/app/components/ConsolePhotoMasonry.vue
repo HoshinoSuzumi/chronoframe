@@ -36,50 +36,66 @@ function selectAll(value: boolean | 'indeterminate') {
       :label="$t('dashboard.photos.table.selectAllAria')"
       @update:model-value="selectAll"
     />
-    <MasonryWall
-      :items="photos"
-      :column-width="280"
-      :gap="4"
-      :min-columns="2"
-      :max-columns="isMobile ? 2 : 8"
-      :ssr-columns="2"
-      :key-mapper="(photo: Photo) => photo.id"
-    >
-      <template #default="{ item: photo, index }">
-        <div
-          class="relative cf-masonry-photo"
-          :class="{ 'cf-masonry-selected': selection[photo.id] }"
-        >
-          <MasonryItemPhoto
-            :photo="photo"
-            :index="index"
-            @open-viewer="emit('preview', photo)"
-          />
-          <input
-            :id="`${selectionId}-${photo.id}`"
-            type="checkbox"
-            class="cf-masonry-select"
-            :class="{ 'cf-masonry-control-selected': selection[photo.id] }"
-            :checked="!!selection[photo.id]"
-            :aria-label="`${$t('dashboard.photos.table.selectRowAria')} ${photo.title ?? photo.id}`"
-            @change="
-              selection[photo.id] = ($event.target as HTMLInputElement).checked
-            "
-          />
-          <UDropdownMenu :items="actions(photo)">
-            <UButton
-              class="cf-masonry-actions"
-              size="xs"
-              square
-              variant="outline"
-              color="neutral"
-              icon="tabler:dots-vertical"
-              :aria-label="`${$t('dashboard.photos.table.columns.actions')} ${photo.title ?? photo.id}`"
+    <ClientOnly>
+      <MasonryWall
+        :items="photos"
+        :column-width="280"
+        :gap="4"
+        :min-columns="2"
+        :max-columns="isMobile ? 2 : 8"
+        :ssr-columns="2"
+        :key-mapper="(photo: Photo) => photo.id"
+      >
+        <template #default="{ item: photo, index }">
+          <div
+            class="relative cf-masonry-photo"
+            :class="{ 'cf-masonry-selected': selection[photo.id] }"
+          >
+            <MasonryItemPhoto
+              :photo="photo"
+              :index="index"
+              @open-viewer="emit('preview', photo)"
             />
-          </UDropdownMenu>
+            <input
+              :id="`${selectionId}-${photo.id}`"
+              type="checkbox"
+              class="cf-masonry-select"
+              :class="{ 'cf-masonry-control-selected': selection[photo.id] }"
+              :checked="!!selection[photo.id]"
+              :aria-label="`${$t('dashboard.photos.table.selectRowAria')} ${photo.title ?? photo.id}`"
+              @change="
+                selection[photo.id] = (
+                  $event.target as HTMLInputElement
+                ).checked
+              "
+            />
+            <UDropdownMenu :items="actions(photo)">
+              <UButton
+                class="cf-masonry-actions"
+                size="xs"
+                square
+                variant="outline"
+                color="neutral"
+                icon="tabler:dots-vertical"
+                :aria-label="`${$t('dashboard.photos.table.columns.actions')} ${photo.title ?? photo.id}`"
+              />
+            </UDropdownMenu>
+          </div>
+        </template>
+      </MasonryWall>
+      <template #fallback>
+        <div
+          role="status"
+          class="min-h-48 flex items-center justify-center gap-2 text-sm text-neutral-500 dark:text-neutral-400"
+        >
+          <UIcon
+            name="tabler:loader-2"
+            class="size-5 animate-spin"
+          />
+          {{ $t('ui.loading') }}
         </div>
       </template>
-    </MasonryWall>
+    </ClientOnly>
   </div>
 </template>
 
