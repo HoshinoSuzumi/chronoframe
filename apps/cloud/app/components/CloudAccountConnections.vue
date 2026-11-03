@@ -23,6 +23,17 @@ const busy = ref(''),
       ? t('cloud.connections.linkedNotice')
       : '',
   )
+const toast = useToast()
+watch(error, (text) => text && toast.add({ title: text, color: 'error' }), {
+  flush: 'sync',
+})
+watch(notice, (text) => text && toast.add({ title: text, color: 'success' }), {
+  flush: 'sync',
+})
+onMounted(() => {
+  if (error.value) toast.add({ title: error.value, color: 'error' })
+  if (notice.value) toast.add({ title: notice.value, color: 'success' })
+})
 const removing = ref<{ account: Connection; name: string } | null>(null)
 type ConnectionRow = {
   provider: Provider
@@ -127,18 +138,11 @@ async function unlink() {
     </div>
     <div class="cf-settings-body cf-connections-body">
       <p
-        v-if="error || loadError"
+        v-if="loadError"
         class="cf-error-message"
         role="alert"
       >
-        {{ error || $t('cloud.connections.loadFailed') }}
-      </p>
-      <p
-        v-if="notice"
-        class="cf-notice"
-        role="status"
-      >
-        {{ notice }}
+        {{ $t('cloud.connections.loadFailed') }}
       </p>
       <div
         v-for="row in rows"

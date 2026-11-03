@@ -4,8 +4,6 @@ const {
   uploadOpen,
   albums,
   selectedAlbumIds,
-  message,
-  failed,
   connections,
   connectionId,
   upload,
@@ -63,14 +61,6 @@ async function startUpload() {
     @upload="startUpload"
   >
     <template #before-files>
-      <p
-        v-if="message"
-        :role="failed ? 'alert' : 'status'"
-        class="cf-notice"
-        :class="{ 'cf-notice-error': failed }"
-      >
-        {{ message }}
-      </p>
       <UFormField :label="$t('cloud.messages.storageConnection')">
         <USelect
           v-model="connectionId"

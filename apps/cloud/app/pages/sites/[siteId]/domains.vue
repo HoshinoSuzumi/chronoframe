@@ -31,15 +31,14 @@ const addOpen = ref(false),
   renameOpen = ref(false),
   removal = shallowRef<CustomDomain | null>(null),
   expandedHost = ref('')
-watch([addOpen, renameOpen, () => !!removal.value], (current, previous) => {
-  if (
-    failure.value &&
-    current.some((open, index) => previous[index] && !open)
-  ) {
-    failure.value = false
-    notice.value = ''
-  }
-})
+const toast = useToast()
+watch(
+  notice,
+  (text) =>
+    text &&
+    toast.add({ title: text, color: failure.value ? 'error' : 'success' }),
+  { flush: 'sync' },
+)
 watch(result, (value) => {
   if (value) data.value = value
 })
@@ -170,6 +169,7 @@ async function rename() {
   })
 }
 async function copy(value: string) {
+  notice.value = ''
   try {
     await navigator.clipboard.writeText(value)
     failure.value = false
@@ -208,14 +208,6 @@ async function copy(value: string) {
         @click="refreshAll()"
         >{{ t('cloud.messages.retry') }}</CfButton
       >
-    </p>
-    <p
-      v-if="notice && !addOpen && !renameOpen && !removal"
-      :role="failure ? 'alert' : 'status'"
-      class="cf-notice"
-      :class="{ 'cf-notice-error': failure }"
-    >
-      {{ notice }}
     </p>
     <template v-if="data">
       <CfCard
@@ -376,13 +368,6 @@ async function copy(value: string) {
             required
           />
           <p class="cf-field-hint">{{ t('cloud.domains.addHint') }}</p>
-          <p
-            v-if="failure"
-            role="alert"
-            class="cf-notice cf-notice-error"
-          >
-            {{ notice }}
-          </p>
           <div class="cf-domain-modal-actions">
             <CfButton
               variant="secondary"
@@ -432,13 +417,6 @@ async function copy(value: string) {
           <p class="cf-field-hint">
             {{ t('cloud.domains.slugHint', { base: data?.baseDomain }) }}
           </p>
-          <p
-            v-if="failure"
-            role="alert"
-            class="cf-notice cf-notice-error"
-          >
-            {{ notice }}
-          </p>
           <div class="cf-domain-modal-actions">
             <CfButton
               variant="secondary"
@@ -468,14 +446,7 @@ async function copy(value: string) {
         }
       "
       ><template #body
-        ><p
-          v-if="failure"
-          role="alert"
-          class="cf-notice cf-notice-error"
-        >
-          {{ notice }}
-        </p>
-        <div class="cf-domain-modal-actions">
+        ><div class="cf-domain-modal-actions">
           <CfButton
             variant="secondary"
             :disabled="busy"

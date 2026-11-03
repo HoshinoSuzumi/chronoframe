@@ -16,14 +16,11 @@ const draft = ref({
   'maplibre.style': '',
   ...data.value?.config,
 })
-const busy = ref(false),
-  message = ref(''),
-  failed = ref(false)
+const busy = ref(false)
+const toast = useToast()
 async function save() {
   if (!data.value || busy.value) return
   busy.value = true
-  message.value = ''
-  failed.value = false
   try {
     const result = await $fetch(`/api/sites/${props.siteId}/map`, {
       method: 'PUT',
@@ -36,13 +33,18 @@ async function save() {
     error.value = null
     if (context.value?.siteId === props.siteId && data.value)
       store.data.map = { ...data.value.effective }
-    message.value = t('Map settings saved.', '地图设置已保存。')
+    toast.add({
+      title: t('Map settings saved.', '地图设置已保存。'),
+      color: 'success',
+    })
   } catch {
-    failed.value = true
-    message.value = t(
-      'Unable to save. Check public tokens and style URLs, then reload if someone else changed these settings.',
-      '保存失败，请检查公共令牌和样式地址；如设置已被他人更改，请刷新后重试。',
-    )
+    toast.add({
+      title: t(
+        'Unable to save. Check public tokens and style URLs, then reload if someone else changed these settings.',
+        '保存失败，请检查公共令牌和样式地址；如设置已被他人更改，请刷新后重试。',
+      ),
+      color: 'error',
+    })
   } finally {
     busy.value = false
   }
@@ -136,11 +138,6 @@ async function save() {
             >
           </div>
         </fieldset>
-        <CfAlert
-          v-if="message"
-          :tone="failed ? 'error' : 'info'"
-          >{{ message }}</CfAlert
-        >
       </form>
     </div>
   </CfCard>

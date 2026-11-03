@@ -23,6 +23,12 @@ const latestSubscription = computed(() => {
 })
 const portalBusy = ref(false),
   portalError = ref('')
+const toast = useToast()
+watch(
+  portalError,
+  (text) => text && toast.add({ title: text, color: 'error' }),
+  { flush: 'sync' },
+)
 async function openBillingPortal() {
   if (portalBusy.value) return
   portalBusy.value = true
@@ -158,13 +164,6 @@ const date = (time: number) => new Date(time).toLocaleString(locale.value)
             @click="openBillingPortal"
             >{{ $t('cloud.payments.manage') }}</CfButton
           >
-          <p
-            v-if="portalError"
-            class="cf-error-message"
-            role="alert"
-          >
-            {{ portalError }}
-          </p>
           <CfButton
             v-if="data.workspace.role === 'admin'"
             variant="secondary"

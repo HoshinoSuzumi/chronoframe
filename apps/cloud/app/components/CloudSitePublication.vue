@@ -9,7 +9,7 @@ const context = shallowRef(activeContext.value)
 watch(activeContext, (next) => {
   if (next?.scope === context.value?.scope) context.value = next
 })
-const { admin, busy, failed, message, publish } = useCloudSiteMedia()
+const { admin, busy, publish } = useCloudSiteMedia()
 const { data, status, error, refresh } = useFetch<{
   site: {
     slug: string | null
@@ -23,8 +23,7 @@ const {
   refresh: refreshDomains,
 } = useFetch<DomainOverview>(`/api/sites/${context.value?.siteId}/domains`)
 const customHost = computed(() => {
-  if (!domainOverview.value?.enabled || !domainOverview.value.routingReady)
-    return undefined
+  if (!domainOverview.value?.enabled) return undefined
   const eligible =
     domainOverview.value?.domains.filter(
       (d) => d.status === 'active' && !d.holdReason && !d.cleanupPending,
@@ -40,14 +39,13 @@ const host = computed(
 )
 const address = computed(() => (host.value ? `https://${host.value}` : ''))
 const copied = ref(false),
-  copyError = ref(false),
-  unpublishOpen = ref(false),
-  unpublishError = ref('')
+  unpublishOpen = ref(false)
+const toast = useToast()
+const { t } = useI18n()
 let copiedTimer: ReturnType<typeof setTimeout> | undefined
 onBeforeUnmount(() => clearTimeout(copiedTimer))
 async function copyAddress() {
   copied.value = false
-  copyError.value = false
   try {
     await navigator.clipboard.writeText(address.value)
     copied.value = true
@@ -56,16 +54,14 @@ async function copyAddress() {
       copied.value = false
     }, 2500)
   } catch {
-    copyError.value = true
+    toast.add({
+      title: t('cloud.messages.couldNotCopyTheLinkSelectAndCopyThe'),
+      color: 'error',
+    })
   }
 }
-watch(unpublishOpen, () => {
-  unpublishError.value = ''
-})
 async function unpublish() {
-  unpublishError.value = ''
   await publish(false)
-  if (failed.value) unpublishError.value = message.value
   if (!context.value?.published) unpublishOpen.value = false
 }
 </script>
@@ -136,11 +132,6 @@ async function unpublish() {
         v-if="address"
         class="cf-site-address-row"
       >
-        <span class="cf-site-address-label">{{
-          context?.published
-            ? $t('cloud.messages.publicAddress')
-            : $t('cloud.messages.reservedAddress')
-        }}</span>
         <span class="cf-site-address-value">{{ address }}</span>
         <CfButton
           variant="ghost"
@@ -187,23 +178,6 @@ async function unpublish() {
       >
         {{ $t('cloud.messages.noDefaultAddressIsAvailableForThisSite') }}
       </p>
-      <p
-        v-if="!context?.published"
-        class="cf-draft-hint"
-      >
-        {{ $t(admin ? 'cloud.ui.draftReady' : 'cloud.ui.draftAskAdmin') }}
-      </p>
-      <p
-        v-if="copied || copyError"
-        class="cf-draft-hint"
-        role="status"
-      >
-        {{
-          copyError
-            ? $t('cloud.messages.couldNotCopyTheLinkSelectAndCopyThe')
-            : $t('cloud.messages.siteAddressCopiedToClipboard')
-        }}
-      </p>
     </div>
     <UModal
       v-model:open="unpublishOpen"
@@ -213,16 +187,6 @@ async function unpublish() {
       "
       :dismissible="!busy"
     >
-      <template
-        v-if="unpublishError"
-        #body
-        ><p
-          role="alert"
-          class="cf-notice cf-notice-error"
-        >
-          {{ unpublishError }}
-        </p></template
-      >
       <template #footer>
         <CfButton
           variant="secondary"

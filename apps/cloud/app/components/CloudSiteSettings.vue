@@ -108,6 +108,14 @@ async function chooseIcon(event: Event) {
 const busy = ref(false)
 const message = ref('')
 const failed = ref(false)
+const toast = useToast()
+watch(
+  message,
+  (text) =>
+    text &&
+    toast.add({ title: text, color: failed.value ? 'error' : 'success' }),
+  { flush: 'sync' },
+)
 async function reload() {
   await refresh()
   name.value = data.value?.site.name ?? ''
@@ -408,13 +416,6 @@ async function save() {
               'cloud.messages.onlyWorkspaceAdministratorsCanChangeTheseSettings',
             )
           }}
-        </p>
-        <p
-          v-if="message"
-          :role="failed ? 'alert' : 'status'"
-          class="cf-notice"
-        >
-          {{ message }}
         </p>
       </div>
     </template>

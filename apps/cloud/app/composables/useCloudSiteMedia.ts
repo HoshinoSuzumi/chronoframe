@@ -174,13 +174,14 @@ export function useCloudMediaWorkspace(props: {
       )
         return
       failed.value = true
-      message.value =
+      const text =
         (error as { statusCode?: number }).statusCode === 503
           ? t(
               'cloud.messages.mediaServicesNeedDeploymentConfigurationYourExistingSiteSettings',
             )
           : t('cloud.messages.couldNotRefreshMediaCheckYourAccessAndRetry')
-      loadError.value = message.value
+      loadError.value = text
+      message.value = text
       canPoll.value = false
     } finally {
       if (generation === reloadGeneration) loading.value = false
@@ -301,6 +302,7 @@ export function useCloudMediaWorkspace(props: {
     } catch {
       if (editPhoto.id !== id || generation !== photoLoadGeneration) return
       failed.value = true
+      message.value = ''
       message.value = t(
         'cloud.messages.couldNotLoadPhotographSettingsSelectItAgainTo',
       )
@@ -366,6 +368,7 @@ export function useCloudMediaWorkspace(props: {
       )
     ) {
       failed.value = true
+      message.value = ''
       message.value = t(
         'cloud.messages.eachPhotographAndItsMatchingLivePhotoMovMust',
       )
@@ -395,6 +398,7 @@ export function useCloudMediaWorkspace(props: {
           )
         if (unavailable && hasNewFiles) {
           failed.value = true
+          message.value = ''
           message.value = t('cloud.transfer.albumsUnavailable')
           input.value = ''
           return
@@ -402,6 +406,7 @@ export function useCloudMediaWorkspace(props: {
       }
     } catch {
       failed.value = true
+      message.value = ''
       message.value = t('cloud.transfer.albumsCheckFailed')
       input.value = ''
       return

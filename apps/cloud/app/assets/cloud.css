@@ -1417,20 +1417,20 @@
   font-size: 11px;
   color: var(--muted-foreground);
 }
+.cf-site-address-row {
+  flex-wrap: nowrap;
+}
+.cf-site-address-row > button,
+.cf-site-address-row > a {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
 .cf-site-address-value {
   flex: 1;
   min-width: 0;
   font-size: 12px;
   overflow-wrap: anywhere;
   user-select: text;
-}
-@media (max-width: 600px) {
-  .cf-site-address-label {
-    flex-basis: 100%;
-  }
-  .cf-site-address-value {
-    flex-basis: calc(100% - 90px);
-  }
 }
 .cf-site-settings-stack {
   display: grid;

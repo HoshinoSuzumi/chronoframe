@@ -28,11 +28,15 @@ test('successful map PUT updates revision, role and the live map without a follo
       target: ts.ScriptTarget.ES2022,
     },
   }).outputText
+  const toasts: { title: string; color: string }[] = []
   const form = (await vm.runInNewContext(
-    `(async()=>{${code};return {save,own,draft,busy,message,failed}})()`,
+    `(async()=>{${code};return {save,own,draft,busy}})()`,
     {
       ref,
       defineProps: () => ({ siteId: 1 }),
+      useToast: () => ({
+        add: (t: { title: string; color: string }) => toasts.push(t),
+      }),
       useI18n: () => ({ locale: ref('en') }),
       useSettingsStore: () => store,
       useEntryContext: () => ref({ siteId: 1 }),
@@ -61,8 +65,6 @@ test('successful map PUT updates revision, role and the live map without a follo
     own: { value: boolean }
     draft: { value: Record<string, string> }
     busy: { value: boolean }
-    message: { value: string }
-    failed: { value: boolean }
   }
   form.own.value = true
   form.draft.value['maplibre.token'] = 'new_public_browser_key'
@@ -73,6 +75,7 @@ test('successful map PUT updates revision, role and the live map without a follo
   assert.equal(data.value.role, 'admin')
   assert.equal(store.data.map['maplibre.token'], 'new_public_browser_key')
   assert.equal(form.busy.value, false)
-  assert.equal(form.failed.value, false)
-  assert.equal(form.message.value, 'Map settings saved.')
+  assert.deepEqual(JSON.parse(JSON.stringify(toasts)), [
+    { title: 'Map settings saved.', color: 'success' },
+  ])
 })

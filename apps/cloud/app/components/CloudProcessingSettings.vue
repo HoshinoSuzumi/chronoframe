@@ -2,6 +2,10 @@
 const props = defineProps<{ siteId: number }>()
 const { locale } = useI18n(),
   t = (en: string, zh: string) => (locale.value === 'zh-Hans' ? zh : en)
+const saveFailed = t(
+  'Unable to save; reload and retry.',
+  '保存失败，请重新加载后重试。',
+)
 const endpoint = `/api/sites/${props.siteId}/media/processing-settings`
 const { data, error, refresh } = await useFetch<{
   eraseLocation: boolean | number
@@ -10,6 +14,14 @@ const { data, error, refresh } = await useFetch<{
 const erase = ref(!!data.value?.eraseLocation),
   busy = ref(false),
   message = ref('')
+const toast = useToast()
+watch(message, (text) => {
+  if (text)
+    toast.add({
+      title: text,
+      color: text === saveFailed ? 'error' : 'success',
+    })
+})
 async function save() {
   if (!data.value || busy.value) return
   busy.value = true
@@ -22,10 +34,7 @@ async function save() {
     await refresh()
     message.value = t('Processing settings saved.', '处理设置已保存。')
   } catch {
-    message.value = t(
-      'Unable to save; reload and retry.',
-      '保存失败，请重新加载后重试。',
-    )
+    message.value = saveFailed
   } finally {
     busy.value = false
   }
@@ -65,12 +74,6 @@ async function save() {
           role="alert"
         >
           {{ t('Unable to load processing settings.', '无法加载处理设置。') }}
-        </p>
-        <p
-          v-if="message"
-          role="status"
-        >
-          {{ message }}
         </p>
         <div class="cf-site-actions">
           <CfButton
