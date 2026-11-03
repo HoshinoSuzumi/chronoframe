@@ -20,6 +20,7 @@ import { cloudMedia, checkStorage } from '../../../../utils/cloud-media'
 import { siteManagementBody } from '../../../../utils/site-management'
 import { createResourceReader } from '@chronoframe/core'
 import { visitorPasswordHash } from '../../../../../../shared/platform/crypto'
+import { canFallbackToSingleUpload } from '@chronoframe/storage/s3-edge'
 
 const types: Record<string, string> = {
   jpg: 'image/jpeg',
@@ -469,18 +470,18 @@ export default definePlatformHandler(async (event) => {
             'video/quicktime',
           )
         : null
-      if (upload.expected_bytes <= 10485760)
-        return {
-          state: 'pending',
-          mode: 'single',
-          videoUrl,
-          url: await s3.signPut(
-            upload.object_key,
-            upload.expected_bytes,
-            detail.content_type,
-          ),
-          contentType: detail.content_type,
-        }
+      const single = async () => ({
+        state: 'pending',
+        mode: 'single',
+        videoUrl,
+        url: await s3.signPut(
+          upload.object_key,
+          upload.expected_bytes,
+          detail.content_type,
+        ),
+        contentType: detail.content_type,
+      })
+      if (upload.expected_bytes <= 10485760) return single()
       let providerId = upload.provider_upload_id
       if (!providerId) {
         const token = crypto.randomUUID()
@@ -491,21 +492,39 @@ export default definePlatformHandler(async (event) => {
           .bind(token, now + 30000, siteId, id, now)
           .first()
         if (!lock) throw createError({ statusCode: 409 })
-        const recovered = await s3.recoverMultipart(upload.object_key)
-        providerId =
-          recovered[0] ??
-          (await s3.multipart(upload.object_key, detail.content_type))
-        for (const abandoned of recovered.slice(1))
-          await s3.abort(upload.object_key, abandoned)
-        const updated = await raw
-          .prepare(
-            `UPDATE cloud_uploads SET provider_upload_id=?,transport_token=NULL,transport_lease_until=NULL WHERE site_id=? AND id=? AND transport_token=? AND state='pending' RETURNING id`,
-          )
-          .bind(providerId, siteId, id, token)
-          .first()
-        if (!updated) {
-          await s3.abort(upload.object_key, providerId)
-          throw createError({ statusCode: 409 })
+        try {
+          const recovered = await s3.recoverMultipart(upload.object_key)
+          providerId =
+            recovered[0] ??
+            (await s3.multipart(upload.object_key, detail.content_type))
+          for (const abandoned of recovered.slice(1))
+            await s3.abort(upload.object_key, abandoned)
+          const updated = await raw
+            .prepare(
+              `UPDATE cloud_uploads SET provider_upload_id=?,transport_token=NULL,transport_lease_until=NULL WHERE site_id=? AND id=? AND transport_token=? AND state='pending' RETURNING id`,
+            )
+            .bind(providerId, siteId, id, token)
+            .first()
+          if (!updated) {
+            await s3.abort(upload.object_key, providerId)
+            throw createError({ statusCode: 409 })
+          }
+        } catch (error) {
+          if (!providerId && canFallbackToSingleUpload(error)) {
+            console.warn('[upload] s3.multipart.fallback.single', {
+              siteId,
+              uploadId: id,
+            })
+            return single()
+          }
+          throw error
+        } finally {
+          await raw
+            .prepare(
+              'UPDATE cloud_uploads SET transport_token=NULL,transport_lease_until=NULL WHERE site_id=? AND id=? AND transport_token=?',
+            )
+            .bind(siteId, id, token)
+            .run()
         }
       }
       const parts = await s3.parts(upload.object_key, providerId),

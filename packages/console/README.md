@@ -15,3 +15,10 @@ on a Site/account switch. Authorization is always rechecked by server adapters.
 Self-hosted retains instance sessions, SQLite, Local/S3/OpenList, custom scripts,
 and unlimited quota. Cloud advertises only implemented platform capabilities;
 media management and plan enforcement are delivered by later SaaS phases.
+
+Uploads share `PhotoUploadSlideover`, `UploadQueuePanel`, `useUploadQueue` and
+`useUpload`. The queue owner determines its lifetime: Self-hosted owns it in the
+photo page; Cloud provides it from the application root. Transport retries,
+concurrency, progress and cancellation are shared. Cloud's adapter supplies
+server-verified resume parts and keeps failed reservations available for retry;
+its admission, tenant scope and job publication remain Cloud API concerns.

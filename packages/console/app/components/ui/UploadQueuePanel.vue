@@ -270,7 +270,20 @@ const clearAllFiles = () => {
                 :uploading-file="uploadingFile"
                 :file-id="fileId"
                 @remove-file="emit('removeFile', $event)"
-              />
+              >
+                <template #details>
+                  <slot
+                    name="file-details"
+                    :file-id="fileId"
+                  />
+                </template>
+                <template #actions>
+                  <slot
+                    name="file-actions"
+                    :file-id="fileId"
+                  />
+                </template>
+              </UploadQueueItem>
             </AnimatePresence>
           </div>
         </motion.div>

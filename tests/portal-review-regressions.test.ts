@@ -5,10 +5,7 @@ import vm from 'node:vm'
 import { createServer } from 'node:http'
 import { createRequire } from 'node:module'
 import ts from 'typescript'
-import {
-  mergeUploadFiles,
-  remainingUploadFiles,
-} from '../apps/cloud/app/utils/upload-selection.ts'
+import { createCloudUploadHarness } from './helpers/upload-runtime.ts'
 import { isAlbumPagePath } from '../packages/gallery/shared/utils/albumPath.ts'
 import {
   ref,
@@ -29,9 +26,32 @@ function load(
   source?: string,
 ) {
   const exports: Record<string, any> = {}
-  const code = ts.transpileModule(source ?? readFileSync(file, 'utf8'), {
-    compilerOptions: { module: ts.ModuleKind.CommonJS },
-  }).outputText
+  if (file === 'apps/cloud/app/composables/useCloudSiteMedia.ts') {
+    const harness = createCloudUploadHarness(globals)
+    globals = {
+      useState: () => harness.user,
+      useCloudUploads: () => harness.uploads,
+      ...globals,
+    }
+    imports = {
+      './useCloudUploads': {
+        ...harness.module,
+        useCloudUploads: () => harness.uploads,
+      },
+      ...imports,
+    }
+    exports.uploads = harness.uploads
+    exports.flushUploads = harness.flush
+  }
+  const code = ts.transpileModule(
+    (source ?? readFileSync(file, 'utf8')).replaceAll(
+      'import.meta.client',
+      'false',
+    ),
+    {
+      compilerOptions: { module: ts.ModuleKind.CommonJS },
+    },
+  ).outputText
   vm.runInNewContext(code, {
     exports,
     ref,
@@ -118,7 +138,7 @@ test('Live Photo validation rejects the combined size before reserving any uploa
     assert.equal(input.value, '')
     assert.equal(requests.length, 0)
   }
-  await media.upload({
+  const result = await media.upload({
     target: {
       files: [
         { name: 'IMG.HEIC', size: 60 * mib },
@@ -127,12 +147,17 @@ test('Live Photo validation rejects the combined size before reserving any uploa
       value: 'chosen',
     },
   })
+  assert.equal(result.queued, true)
+  await module.flushUploads()
   assert.equal(media.failed.value, false)
   const reservation = requests.find((r) => r.path.endsWith('/uploads'))!
   assert.equal(reservation.body.bytes, 60 * mib)
   assert.deepEqual(Array.from(reservation.body.albumIds), [])
   assert.equal(reservation.body.liveVideo.bytes, 40 * mib)
-  assert.match(media.uploadSession.message, /Upload verified/)
+  assert.equal(
+    [...module.uploads.uploadingFiles.value.values()][0].status,
+    'processing',
+  )
 })
 
 test('subscription retains edits through network/503 failures and invalidates only authoritative denials', async () => {
@@ -747,7 +772,7 @@ test('explicit subscription-change checks refresh the plan without confusing the
   }
 })
 
-test('upload sessions capture their actual storage type and move progress out of the selection drawer', async () => {
+test('upload batches capture storage and albums before leaving the selection drawer', async () => {
   for (const platform of [true, false]) {
     let release!: () => void
     const gate = new Promise<void>((resolve) => {
@@ -821,15 +846,14 @@ test('upload sessions capture their actual storage type and move progress out of
     media.connectionId.value = 'changed-during-preflight'
     assert.equal(media.preparingUpload.value, true)
     await new Promise((resolve) => setImmediate(resolve))
-    assert.equal(media.uploading.value, true)
     assert.equal(media.uploadOpen.value, false)
-    assert.equal(media.uploadSession.storage, platform ? 'platform' : 'private')
+    assert.equal(module.uploads.uploadingFiles.value.size, 2)
     media.connectionId.value = 'changed-during-upload'
     media.selectedAlbumIds.value = [7]
     media.connections.value = []
-    assert.equal(media.uploadSession.storage, platform ? 'platform' : 'private')
     release()
     await pending
+    await module.flushUploads()
     assert.deepEqual(
       reservations.map((body) => body.connectionId),
       ['chosen', 'chosen'],
@@ -838,10 +862,12 @@ test('upload sessions capture their actual storage type and move progress out of
       cacheKeys.length > 0 &&
         cacheKeys.every((key) => key.includes(':chosen:albums:')),
     )
-    assert.equal(media.uploadSession.total, 2)
-    assert.equal(media.uploadSession.completed, 2)
-    assert.equal(media.uploadSession.failed, false)
-    assert.match(media.uploadSession.message, /Upload verified/)
+    assert.deepEqual(
+      [...module.uploads.uploadingFiles.value.values()].map(
+        (item) => item.status,
+      ),
+      ['processing', 'processing'],
+    )
     assert.deepEqual(
       reservations.map((body) => Array.from(body.albumIds)),
       [
@@ -852,92 +878,7 @@ test('upload sessions capture their actual storage type and move progress out of
   }
 })
 
-test('floating queue follows task completion and retry without showing historical successful jobs', async () => {
-  const removed: string[] = []
-  const media = {
-    jobs: ref<any[]>([{ id: 'old', state: 'succeeded' }]),
-    ready: ref(true),
-    removePhoto: (id: string) => {
-      removed.push(id)
-    },
-    photos: ref([]),
-    uploading: ref(false),
-    progress: ref(0),
-    currentFile: ref(''),
-    uploadSession: reactive({ total: 0, message: '' }),
-    admin: ref(true),
-    busy: ref(false),
-    action: () => {},
-    api: () => {},
-    base: ref(''),
-  }
-  const file = 'apps/cloud/app/components/CloudTransferPanel.vue'
-  const script = readFileSync(file, 'utf8')
-    .split('<script setup lang="ts">')[1]!
-    .split('</script>')[0]!
-  const state = load(
-    file,
-    { useCloudSiteMedia: () => media, useId: () => 'queue' },
-    {},
-    script +
-      '\nexport { visible, collapsed, processingJobs, processingActive, processingCompleted, dismiss, removeFailed }',
-  )
-  assert.equal(state.visible.value, false)
-  media.jobs.value = [{ id: 'j', state: 'queued', attempts: 0 }]
-  await nextTick()
-  assert.equal(state.processingActive.value, 1)
-  state.dismiss()
-  assert.equal(state.visible.value, true)
-  media.jobs.value = [{ id: 'j', state: 'succeeded', attempts: 1 }]
-  await nextTick()
-  assert.equal(state.processingCompleted.value, 1)
-  state.dismiss()
-  assert.equal(state.visible.value, false)
-  media.jobs.value = [{ id: 'j', state: 'failed', attempts: 2 }]
-  await nextTick()
-  assert.equal(state.visible.value, false)
-  media.jobs.value = [{ id: 'j', state: 'retry_wait', attempts: 2 }]
-  await nextTick()
-  assert.equal(state.processingActive.value, 1)
-  media.jobs.value = [{ id: 'j', state: 'failed', attempts: 3 }]
-  await nextTick()
-  assert.equal(state.processingJobs.value[0].state, 'failed')
-  const failedJob = {
-    id: 'failed',
-    photo_id: 'never-ready',
-    state: 'failed',
-    attempts: 7,
-  }
-  media.admin.value = false
-  state.removeFailed(failedJob)
-  assert.deepEqual(removed, [])
-  media.admin.value = true
-  media.busy.value = true
-  state.removeFailed(failedJob)
-  assert.deepEqual(removed, [])
-  media.busy.value = false
-  state.removeFailed(failedJob)
-  assert.deepEqual(removed, ['never-ready'])
-  media.jobs.value = [] // The server omits tombstoned photos after deletion.
-  await nextTick()
-  assert.equal(state.processingJobs.value.length, 0)
-  // A new visit keeps historical failures accessible, but starts collapsed.
-  media.ready.value = false
-  media.jobs.value = [failedJob]
-  const history = load(
-    file,
-    { useCloudSiteMedia: () => media, useId: () => 'history' },
-    {},
-    script + '\nexport { visible, collapsed }',
-  )
-  assert.equal(history.visible.value, false)
-  media.ready.value = true
-  await nextTick()
-  assert.equal(history.visible.value, true)
-  assert.equal(history.collapsed.value, true)
-})
-
-test('upload album preflight fails closed for new uploads, refreshes reservation races and preserves resumable choices', async () => {
+test('upload album preflight fails closed for new uploads and preserves resumable choices', async () => {
   for (const scenario of ['removed', 'offline', 'race', 'resume']) {
     let reservations = 0,
       albumReads = 0
@@ -1000,14 +941,23 @@ test('upload album preflight fails closed for new uploads, refreshes reservation
     await media.upload({
       target: { files: [{ name: 'one.jpg', size: 10 }], value: 'chosen' },
     })
+    await module.flushUploads()
     assert.deepEqual(Array.from(media.selectedAlbumIds.value), [1])
     assert.equal(media.preparingUpload.value, false)
     assert.equal(
       reservations,
       ['removed', 'offline'].includes(scenario) ? 0 : 1,
     )
-    if (scenario === 'resume') assert.equal(media.uploadSession.completed, 1)
-    else {
+    if (scenario === 'resume')
+      assert.equal(
+        [...module.uploads.uploadingFiles.value.values()][0].status,
+        'processing',
+      )
+    else if (scenario === 'race') {
+      const item = [...module.uploads.uploadingFiles.value.values()][0]
+      assert.equal(item.status, 'error')
+      assert.equal(item.error, 'cloud.transfer.albumsUnavailable')
+    } else {
       assert.equal(media.failed.value, true)
       assert.match(
         media.message.value,
@@ -1017,17 +967,16 @@ test('upload album preflight fails closed for new uploads, refreshes reservation
       )
       assert.equal(media.uploadOpen.value, true)
     }
-    if (scenario === 'race') assert(albumReads >= 2)
   }
 })
 
-test('file selection and dropping only stage files; explicit start uploads once and retains unfinished photos', async () => {
+test('shared upload drawer stages files and consumes them only after queue admission', async () => {
   const batches: File[][] = []
   let release!: () => void
   let gate = new Promise<void>((resolve) => {
     release = resolve
   })
-  let completed: number | undefined = 1
+  let admitted = true
   const media = {
     uploadOpen: ref(true),
     albums: ref([]),
@@ -1036,7 +985,6 @@ test('file selection and dropping only stage files; explicit start uploads once 
     failed: ref(false),
     connections: ref([]),
     connectionId: ref('storage'),
-    uploading: ref(false),
     preparingUpload: ref(false),
     usage: ref(null),
     allowance: ref(null),
@@ -1045,7 +993,7 @@ test('file selection and dropping only stage files; explicit start uploads once 
     upload: async (files: File[]) => {
       batches.push(files)
       await gate
-      return completed === undefined ? undefined : { completed }
+      return admitted ? { queued: true } : undefined
     },
   }
   const file = 'apps/cloud/app/components/CloudUploadDrawer.vue'
@@ -1061,21 +1009,14 @@ test('file selection and dropping only stage files; explicit start uploads once 
     },
     {
       '../utils/quota-gate': { uploadQuotaGate: () => ({ allowed: true }) },
-      '../utils/upload-selection': { mergeUploadFiles, remainingUploadFiles },
     },
-    script +
-      '\nexport { selectedFiles, selectFiles, dropFiles, removeSelected, startUpload }',
+    script + '\nexport { selectedFiles, startUpload }',
   )
   const photo = new File(['photo'], 'one.HEIC', { lastModified: 1 })
   const video = new File(['video'], 'one.MOV', { lastModified: 1 })
   const other = new File(['other'], 'two.jpg', { lastModified: 1 })
-  const input = { files: [photo, video], value: 'chosen' }
-  state.selectFiles({ target: input })
-  assert.equal(input.value, '')
-  state.dropFiles({ dataTransfer: { files: [photo, other] } })
-  assert.equal(state.selectedFiles.value.length, 3)
+  state.selectedFiles.value = [photo, video]
   assert.equal(batches.length, 0)
-  state.removeSelected(2)
   const pending = state.startUpload()
   await state.startUpload()
   assert.equal(batches.length, 1)
@@ -1087,36 +1028,12 @@ test('file selection and dropping only stage files; explicit start uploads once 
   await pending
   assert.equal(state.selectedFiles.value.length, 0)
   gate = Promise.resolve()
-  state.selectFiles({
-    target: { files: [photo, video, other], value: 'chosen' },
-  })
-  await state.startUpload()
-  assert.deepEqual(
-    Array.from(state.selectedFiles.value as File[]).map((f) => f.name),
-    ['two.jpg'],
-  )
-  completed = undefined // Admission/preflight rejection must not consume staged files.
+  state.selectedFiles.value = [other]
+  admitted = false // Admission/preflight rejection must not consume staged files.
   await state.startUpload()
   assert.equal(state.selectedFiles.value[0].name, 'two.jpg')
   media.admin.value = false
   const count = batches.length
   await state.startUpload()
   assert.equal(batches.length, count)
-})
-
-test('partial upload cleanup retains shared MOV companions until every matching photo completes', () => {
-  const heic = new File(['heic'], 'One.HEIC', { lastModified: 1 })
-  const video = new File(['video'], 'one.MOV', { lastModified: 1 })
-  const jpeg = new File(['jpeg'], 'ONE.jpg', { lastModified: 1 })
-  const orphan = new File(['orphan'], 'other.MOV', { lastModified: 1 })
-  const selected = [heic, video, jpeg, orphan]
-  assert.deepEqual(remainingUploadFiles(selected, 0), selected)
-  const remaining = remainingUploadFiles(selected, 1)
-  assert.deepEqual(remaining, [video, jpeg, orphan])
-  assert.equal(
-    remaining.find((file) => file.name.toLowerCase().endsWith('.mov')),
-    video,
-  )
-  assert.deepEqual(remainingUploadFiles(remaining, 1), [orphan])
-  assert.deepEqual(remainingUploadFiles(selected, 2), [orphan])
 })

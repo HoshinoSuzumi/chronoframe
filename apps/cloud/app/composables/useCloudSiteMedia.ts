@@ -1,10 +1,16 @@
 import { STORAGE_CONNECTION_MESSAGES } from '@chronoframe/contracts/storage-diagnostics'
 import type { Album, Photo } from '@chronoframe/contracts/resources'
+import {
+  cloudUploadResumeKey,
+  useCloudUploads,
+  type CloudUploadContext,
+} from './useCloudUploads'
 export function useCloudMediaWorkspace(props: {
   siteId: number
   role?: string
 }) {
   const { t } = useI18n()
+  const uploads = useCloudUploads()
   const entryContext = useEntryContext(),
     snapshot = entryContext.value?.scope
   const api = async <T = unknown>(
@@ -25,6 +31,13 @@ export function useCloudMediaWorkspace(props: {
   }
   const context = useEntryContext(),
     base = computed(() => `/api/sites/${props.siteId}/media`)
+  const uploadContext: CloudUploadContext = {
+    siteId: props.siteId,
+    scope: snapshot ?? '',
+    userId: useState<number | null>('platform-user-id', () => null).value!,
+    name: context.value?.name ?? '',
+    admin: props.role === 'admin',
+  }
   const connections = ref<
       {
         id: string
@@ -71,17 +84,7 @@ export function useCloudMediaWorkspace(props: {
     message = ref(''),
     failed = ref(false),
     busy = ref(false),
-    uploading = ref(false),
-    preparingUpload = ref(false),
-    progress = ref(0),
-    currentFile = ref('')
-  const uploadSession = reactive({
-    total: 0,
-    completed: 0,
-    storage: 'private' as 'platform' | 'private',
-    message: '',
-    failed: false,
-  })
+    preparingUpload = ref(false)
   const storage = reactive({
     endpoint: '',
     region: 'auto',
@@ -97,10 +100,7 @@ export function useCloudMediaWorkspace(props: {
         : allowance.value?.byosLimits
       )?.fileBytes ?? 0,
   )
-  let timer: ReturnType<typeof setInterval> | undefined,
-    controller: AbortController | undefined,
-    activeUpload: string | undefined,
-    activeResumeKey: string | undefined
+  let timer: ReturnType<typeof setInterval> | undefined
   const canPoll = ref(true)
   const ready = ref(false)
   const loadError = ref('')
@@ -153,7 +153,7 @@ export function useCloudMediaWorkspace(props: {
       }
       loadError.value = ''
       canPoll.value = true
-      if (uploading.value || preparingUpload.value) return
+      if (preparingUpload.value) return
       const uploadTargets = s.connections.filter(
         (c) => c.uploads_enabled !== 0 && (c.pool_id || u.byosLimits?.byos),
       )
@@ -208,6 +208,12 @@ export function useCloudMediaWorkspace(props: {
     canPoll.value = true
     void reload()
   }
+  watch(jobs, (items) => {
+    if (import.meta.client) uploads.trackJobs(uploadContext, items)
+  })
+  watch(uploads.revision, () => {
+    if (!disposed) void refreshProcessing()
+  })
   async function action(run: () => Promise<unknown>, success: string) {
     if (busy.value) return
     busy.value = true
@@ -320,110 +326,7 @@ export function useCloudMediaWorkspace(props: {
     return saved
   }
   function resumeKey(file: File, albumIds: number[], connection: string) {
-    return (
-      [
-        'chronoframe-upload',
-        context.value?.scope,
-        props.siteId,
-        file.name,
-        file.size,
-        file.lastModified,
-        connection,
-      ].join(':') + (albumIds.length ? ':albums:' + albumIds.join(',') : '')
-    )
-  }
-  async function sendFile(
-    file: File,
-    liveVideo: File | undefined,
-    albumIds: number[],
-    connection: string,
-  ) {
-    const cache = resumeKey(file, albumIds, connection),
-      id = localStorage.getItem(cache) || crypto.randomUUID()
-    await api(base.value + '/uploads', {
-      method: 'POST',
-      body: {
-        requestId: id,
-        connectionId: connection,
-        fileName: file.name,
-        bytes: file.size,
-        albumIds,
-        ...(liveVideo
-          ? { liveVideo: { fileName: liveVideo.name, bytes: liveVideo.size } }
-          : {}),
-      },
-    })
-    localStorage.setItem(cache, id)
-    activeResumeKey = cache
-    if (controller?.signal.aborted) {
-      await api(base.value + '/uploads/' + id + '/cancel', {
-        method: 'POST',
-        body: {},
-      }).catch(() => {})
-      localStorage.removeItem(cache)
-      throw new Error('cancelled')
-    }
-    activeUpload = id
-    const plan = await api<{
-      state: string
-      mode?: string
-      url?: string
-      contentType?: string
-      videoUrl?: string | null
-      partBytes?: number
-      parts?: { partNumber: number; bytes: number }[]
-      urls?: string[]
-    }>(base.value + '/uploads/' + id + '/plan', { method: 'POST', body: {} })
-    if (plan.state === 'completed') {
-      localStorage.removeItem(cache)
-      return
-    }
-    if (plan.state !== 'pending' || !plan.mode) {
-      localStorage.removeItem(cache)
-      activeResumeKey = undefined
-      activeUpload = undefined
-      throw new Error(t('cloud.messages.uploadUnavailable'))
-    }
-    async function put(url: string, body: Blob, type?: string) {
-      for (let attempt = 0; attempt < 3; attempt++) {
-        controller?.signal.throwIfAborted()
-        const response = await fetch(url, {
-          method: 'PUT',
-          body,
-          headers: type ? { 'Content-Type': type } : {},
-          signal: controller?.signal,
-          redirect: 'error',
-        })
-        if (response.ok) return
-        if (attempt === 2) throw new Error(t('cloud.messages.uploadFailed'))
-        await new Promise((resolve) => setTimeout(resolve, 500 * 2 ** attempt))
-      }
-    }
-    if (plan.mode === 'single') await put(plan.url!, file, plan.contentType)
-    else {
-      const partBytes = plan.partBytes!,
-        count = plan.urls!.length
-      for (let i = 0; i < count; i++) {
-        const start = i * partBytes,
-          end = Math.min(file.size, start + partBytes)
-        if (
-          !plan.parts?.some(
-            (p) => p.partNumber === i + 1 && p.bytes === end - start,
-          )
-        )
-          await put(plan.urls![i]!, file.slice(start, end))
-        progress.value = Math.round((end / file.size) * 100)
-      }
-    }
-    if (liveVideo && plan.videoUrl)
-      await put(plan.videoUrl, liveVideo, 'video/quicktime')
-    progress.value = 100
-    await api(base.value + '/uploads/' + id + '/complete', {
-      method: 'POST',
-      body: {},
-    })
-    localStorage.removeItem(cache)
-    activeUpload = undefined
+    return cloudUploadResumeKey(uploadContext, file, albumIds, connection)
   }
   async function upload(event: Event | File[]) {
     const input = Array.isArray(event)
@@ -432,16 +335,12 @@ export function useCloudMediaWorkspace(props: {
       files = Array.from(input.files ?? [])
     if (
       !files.length ||
-      uploading.value ||
       preparingUpload.value ||
-      !connectionId.value
+      !connectionId.value ||
+      !admin.value
     )
       return
     const batchConnection = connectionId.value
-    const batchStorage = connections.value.find((c) => c.id === batchConnection)
-      ?.pool_id
-      ? 'platform'
-      : 'private'
     const isVideo = (file: File) => file.name.toLowerCase().endsWith('.mov')
     const companionFor = (photo: File) =>
       files.find(
@@ -470,11 +369,11 @@ export function useCloudMediaWorkspace(props: {
     preparingUpload.value = true
     try {
       if (chosenAlbums.length) {
-        const result = await api<{ albums: typeof albums.value }>(
-          base.value + '/albums',
+        const result = await uploads.api<{ albums: typeof albums.value }>(
+          uploadContext,
+          '/albums',
         )
-        if (disposed) return
-        albums.value = result.albums
+        if (!disposed) albums.value = result.albums
         const unavailable = chosenAlbums.some(
           (id) => !result.albums.some((album) => Number(album.id) === id),
         )
@@ -502,69 +401,12 @@ export function useCloudMediaWorkspace(props: {
     } finally {
       preparingUpload.value = false
     }
-    const albumIds = chosenAlbums
-    uploadSession.total = files.filter((f) => !isVideo(f)).length
-    uploadSession.completed = 0
-    uploadSession.storage = batchStorage
-    uploadSession.message = ''
-    uploadSession.failed = false
+    void uploads.enqueue(uploadContext, files, batchConnection, chosenAlbums)
     uploadOpen.value = false
-    uploading.value = true
     failed.value = false
     message.value = ''
-    controller = new AbortController()
-    try {
-      for (const file of files.filter(
-        (f) => !f.name.toLowerCase().endsWith('.mov'),
-      )) {
-        const companion = companionFor(file)
-        currentFile.value = file.name
-        progress.value = 0
-        await sendFile(file, companion, albumIds, batchConnection)
-        uploadSession.completed++
-        void refreshProcessing()
-      }
-      uploadSession.message = t(
-        'cloud.messages.uploadVerifiedProcessingContinuesInTheBackground',
-      )
-    } catch (error) {
-      const albumUnavailable =
-        (error as { data?: { data?: { code?: string } } }).data?.data?.code ===
-        'upload_albums_unavailable'
-      if (albumUnavailable) {
-        await api<{ albums: typeof albums.value }>(base.value + '/albums')
-          .then((result) => {
-            albums.value = result.albums
-          })
-          .catch(() => {})
-        failed.value = true
-        message.value = t('cloud.transfer.albumsUnavailable')
-        uploadOpen.value = true
-      }
-      uploadSession.failed = true
-      uploadSession.message = albumUnavailable
-        ? t('cloud.transfer.albumsUnavailable')
-        : controller.signal.aborted
-          ? t('cloud.messages.uploadCancelled')
-          : t('cloud.messages.uploadInterruptedSelectTheSameFileToResumeIts')
-    } finally {
-      uploading.value = false
-      input.value = ''
-      currentFile.value = ''
-      await reload()
-    }
-    return { completed: uploadSession.completed }
-  }
-  async function cancel() {
-    controller?.abort()
-    if (activeResumeKey) localStorage.removeItem(activeResumeKey)
-    activeResumeKey = undefined
-    if (activeUpload)
-      await api(base.value + '/uploads/' + activeUpload + '/cancel', {
-        method: 'POST',
-        body: {},
-      }).catch(() => {})
-    activeUpload = undefined
+    input.value = ''
+    return { queued: true }
   }
   async function removePhoto(id: string) {
     if (
@@ -621,7 +463,6 @@ export function useCloudMediaWorkspace(props: {
         return
       // Idle libraries stay still; only in-flight uploads and processing need polling.
       if (
-        uploading.value ||
         jobs.value.some((job) =>
           ['queued', 'running', 'retry_wait'].includes(job.state),
         )
@@ -633,7 +474,6 @@ export function useCloudMediaWorkspace(props: {
     disposed = true
     reloadGeneration++
     if (timer) clearInterval(timer)
-    controller?.abort()
   })
 
   return {
@@ -650,11 +490,7 @@ export function useCloudMediaWorkspace(props: {
     message,
     failed,
     busy,
-    uploading,
     preparingUpload,
-    progress,
-    currentFile,
-    uploadSession,
     selectedAlbumIds,
     storage,
     admin,
@@ -667,7 +503,6 @@ export function useCloudMediaWorkspace(props: {
     loadPhoto,
     savePhoto,
     upload,
-    cancel,
     removePhoto,
     publish,
     base,

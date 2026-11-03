@@ -1,5 +1,5 @@
 import type { UploadPreparationResponse } from '@chronoframe/contracts/upload'
-import type { UploadQueueStatus } from '~~/shared/utils/upload-status'
+import type { UploadQueueStatus } from '../utils/upload-status'
 
 export interface UploadingFile {
   file: File
