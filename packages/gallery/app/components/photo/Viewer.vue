@@ -44,6 +44,7 @@ const zoomLevel = ref(0)
 const showZoomLevel = ref(false)
 const zoomLevelTimer = ref<NodeJS.Timeout | null>(null)
 
+const reactionsEnabled = useViewerReactionsEnabled()
 const showReactionPicker = ref(false)
 const reactionButtonRef = ref<HTMLButtonElement | null>(null)
 const shouldCloseReactionPickerOnClick = ref(false)
@@ -67,10 +68,21 @@ const totalReactions = computed(() => {
   )
 })
 
+const clearTransientReactionUi = () => {
+  showReactionPicker.value = false
+  shouldCloseReactionPickerOnClick.value = false
+  selectedReaction.value = null
+  reactionCounts.value = {}
+  confettiIcon.value = null
+  confettiTriggerCount.value = 0
+}
+
 // 加载照片表态数据
 const loadPhotoReactions = async (photoId: string) => {
+  if (!reactionsEnabled.value) return
   try {
     const data = (await galleryApi(`/api/photos/${photoId}/reactions`)) as any
+    if (!reactionsEnabled.value || currentPhoto.value?.id !== photoId) return
     selectedReaction.value = data.userReaction || null
     reactionCounts.value = data.reactions || {}
   } catch (error) {
@@ -584,7 +596,8 @@ const decreaseReactionCountSafely = (reactionId: string) => {
 
 // Reaction handlers
 const handleReactionSelect = async (reactionId: string, iconName: string) => {
-  if (!currentPhoto.value || isLoadingReaction.value) return
+  if (!reactionsEnabled.value || !currentPhoto.value || isLoadingReaction.value)
+    return
 
   const photoId = currentPhoto.value.id
   const previousSelectedReaction = selectedReaction.value
@@ -608,6 +621,11 @@ const handleReactionSelect = async (reactionId: string, iconName: string) => {
   }
 
   try {
+    if (!reactionsEnabled.value) {
+      selectedReaction.value = previousSelectedReaction
+      reactionCounts.value = previousReactionCounts
+      return
+    }
     if (isRemovingCurrentReaction) {
       await galleryApi(`/api/photos/${photoId}/reactions`, {
         method: 'DELETE',
@@ -655,6 +673,7 @@ const handleReactionSelect = async (reactionId: string, iconName: string) => {
 }
 
 const toggleReactionPicker = () => {
+  if (!reactionsEnabled.value) return
   if (shouldCloseReactionPickerOnClick.value) {
     showReactionPicker.value = false
     shouldCloseReactionPickerOnClick.value = false
@@ -665,19 +684,17 @@ const toggleReactionPicker = () => {
 }
 
 const handleReactionButtonPointerDown = () => {
+  if (!reactionsEnabled.value) return
   shouldCloseReactionPickerOnClick.value = showReactionPicker.value
 }
 
-// 监听当前照片变化，加载表态数据
-watch(
-  () => currentPhoto.value?.id,
-  (newPhotoId) => {
-    if (newPhotoId) {
-      loadPhotoReactions(newPhotoId)
-    }
-  },
-  { immediate: true },
-)
+const currentPhotoId = computed(() => currentPhoto.value?.id)
+bindViewerReactionsAvailability({
+  reactionsEnabled,
+  photoId: currentPhotoId,
+  load: loadPhotoReactions,
+  clearTransient: clearTransientReactionUi,
+})
 
 defineShortcuts({
   escape: () => {
@@ -1006,7 +1023,11 @@ const swiperModules = [Navigation, Keyboard, Virtual]
                     <!-- 表态按钮 -->
                     <AnimatePresence>
                       <motion.div
-                        v-if="!isImageZoomed && !isLivePhotoPlaying"
+                        v-if="
+                          reactionsEnabled &&
+                          !isImageZoomed &&
+                          !isLivePhotoPlaying
+                        "
                         :initial="{ opacity: 0, scale: 0.8, y: 20 }"
                         :animate="{ opacity: 1, scale: 1, y: 0 }"
                         :exit="{ opacity: 0, scale: 0.8, y: 20 }"
