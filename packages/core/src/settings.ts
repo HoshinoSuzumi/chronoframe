@@ -57,6 +57,12 @@ export function validateSettingWrite(input: {
   if (namespace === 'system' && key === 'queue.workerCount')
     validateQueueWorkerCount(value)
   if (namespace === 'app' && key === 'socialLinks') parseSocialLinks(value)
+  if (
+    namespace === 'app' &&
+    key === 'reactionsEnabled' &&
+    typeof value !== 'boolean'
+  )
+    throw new Error('Public reactions setting must be a boolean')
 }
 
 /** Resolve the configured connection through an injected persistence boundary. */
