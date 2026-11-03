@@ -169,6 +169,7 @@ async function rename() {
   })
 }
 async function copy(value: string) {
+  notice.value = ''
   try {
     await navigator.clipboard.writeText(value)
     failure.value = false

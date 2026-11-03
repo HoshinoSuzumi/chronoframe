@@ -301,6 +301,7 @@ export function useCloudMediaWorkspace(props: {
     } catch {
       if (editPhoto.id !== id || generation !== photoLoadGeneration) return
       failed.value = true
+      message.value = ''
       message.value = t(
         'cloud.messages.couldNotLoadPhotographSettingsSelectItAgainTo',
       )
@@ -366,6 +367,7 @@ export function useCloudMediaWorkspace(props: {
       )
     ) {
       failed.value = true
+      message.value = ''
       message.value = t(
         'cloud.messages.eachPhotographAndItsMatchingLivePhotoMovMust',
       )

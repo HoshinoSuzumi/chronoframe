@@ -9,7 +9,7 @@ const context = shallowRef(activeContext.value)
 watch(activeContext, (next) => {
   if (next?.scope === context.value?.scope) context.value = next
 })
-const { admin, busy, failed, message, publish } = useCloudSiteMedia()
+const { admin, busy, publish } = useCloudSiteMedia()
 const { data, status, error, refresh } = useFetch<{
   site: {
     slug: string | null
@@ -23,6 +23,7 @@ const {
   refresh: refreshDomains,
 } = useFetch<DomainOverview>(`/api/sites/${context.value?.siteId}/domains`)
 const customHost = computed(() => {
+  if (!domainOverview.value?.enabled) return undefined
   const eligible =
     domainOverview.value?.domains.filter(
       (d) => d.status === 'active' && !d.holdReason && !d.cleanupPending,
@@ -59,20 +60,22 @@ async function copyAddress() {
     })
   }
 }
-watch(domainError, (err) => {
-  if (err)
-    toast.add({
-      title: t('cloud.domains.loadFailed'),
-      color: 'error',
-      actions: [
-        { label: t('cloud.messages.retry'), onClick: () => refreshDomains() },
-      ],
-    })
-})
+watch(
+  domainError,
+  (err) => {
+    if (err)
+      toast.add({
+        title: t('cloud.domains.loadFailed'),
+        color: 'error',
+        actions: [
+          { label: t('cloud.messages.retry'), onClick: () => refreshDomains() },
+        ],
+      })
+  },
+  { immediate: true },
+)
 async function unpublish() {
   await publish(false)
-  if (failed.value)
-    toast.add({ title: message.value, color: 'error' })
   if (!context.value?.published) unpublishOpen.value = false
 }
 </script>

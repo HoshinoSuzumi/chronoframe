@@ -22,10 +22,14 @@ const { photos, loading, message, failed, reload, loadError, refreshMedia } =
   media
 const status = computed(() => (loading.value ? 'pending' : 'success'))
 const toast = useToast()
-watch(message, (text) => {
-  if (text && text !== loadError.value)
-    toast.add({ title: text, color: failed.value ? 'error' : 'success' })
-})
+watch(
+  message,
+  (text) => {
+    if (text && text !== loadError.value)
+      toast.add({ title: text, color: failed.value ? 'error' : 'success' })
+  },
+  { flush: 'sync' },
+)
 </script>
 <template>
   <PhotosProvider
