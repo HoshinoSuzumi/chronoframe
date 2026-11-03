@@ -354,13 +354,13 @@ function createCloudUploads() {
           let deadline: ReturnType<typeof setTimeout> | undefined
           try {
             await Promise.race([
-              cancelSession(),
+              cancelSession().catch((cancelError) => {
+                console.error('Failed to cancel Cloud upload:', cancelError)
+              }),
               new Promise<void>((resolve) => {
                 deadline = setTimeout(resolve, 10000)
               }),
             ])
-          } catch (cancelError) {
-            console.error('Failed to cancel Cloud upload:', cancelError)
           } finally {
             clearTimeout(deadline)
           }
