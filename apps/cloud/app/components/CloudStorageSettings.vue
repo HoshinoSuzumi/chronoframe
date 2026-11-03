@@ -144,10 +144,6 @@ const byosAdmission = computed(() => quota.gate('byos'))
             if (!value) removal = null
           }
         "
-        ><template
-          v-if="failed"
-          #body
-          ><CfAlert tone="error">{{ message }}</CfAlert></template
         ><template #footer
           ><CfButton
             variant="secondary"

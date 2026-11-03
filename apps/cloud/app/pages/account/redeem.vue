@@ -21,6 +21,12 @@ watch([code, selected], () => {
   requestId.value = ''
   failure.value = ''
 })
+const toast = useToast()
+watch(
+  failure,
+  (text) => text && toast.add({ title: text, color: 'error' }),
+  { flush: 'sync' },
+)
 async function inspect() {
   busy.value = true
   failure.value = ''
@@ -185,13 +191,7 @@ const date = (time: number) => new Date(time).toLocaleString(locale.value)
       >
         {{ $t('cloud.billing.failed') }}
       </p>
-      <p
-        v-if="failure"
-        role="alert"
-        class="cf-error-message"
-      >
-        {{ failure }}
-      </p></CfCard
+</CfCard
     >
     <CloudLegalLinks />
   </div>

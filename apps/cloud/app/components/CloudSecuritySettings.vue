@@ -20,6 +20,13 @@ const busy = ref(false),
   qr = ref(''),
   totpURI = ref(''),
   backupCodes = ref<string[]>([])
+const toast = useToast()
+watch(error, (text) => text && toast.add({ title: text, color: 'error' }), {
+  flush: 'sync',
+})
+watch(notice, (text) => text && toast.add({ title: text, color: 'success' }), {
+  flush: 'sync',
+})
 async function run(action: () => Promise<void>) {
   if (busy.value) return
   busy.value = true
@@ -151,20 +158,6 @@ async function deletePasskey(id: number) {
         </p>
       </div>
     </div>
-    <p
-      v-if="error"
-      class="cf-error-message"
-      role="alert"
-    >
-      {{ error }}
-    </p>
-    <p
-      v-if="notice"
-      class="cf-notice"
-      role="status"
-    >
-      {{ notice }}
-    </p>
     <CfCard class="cf-security-card"
       ><div class="cf-settings-intro">
         <h2>{{ $t('cloud.messages.password') }}</h2>

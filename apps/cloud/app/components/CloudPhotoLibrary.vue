@@ -14,8 +14,6 @@ import type { Photo } from '@chronoframe/contracts/resources'
 import type { TableColumn } from '@nuxt/ui'
 const {
   photos,
-  message,
-  failed,
   albums,
   loading,
   ready,
@@ -569,13 +567,6 @@ watch(
       :ui="{ footer: 'justify-end' }"
       ><template #body
         ><p
-          v-if="failed && message"
-          role="alert"
-          class="cf-notice cf-notice-error"
-        >
-          {{ message }}
-        </p>
-        <p
           v-if="photoLoaded !== editPhoto.id"
           role="status"
         >

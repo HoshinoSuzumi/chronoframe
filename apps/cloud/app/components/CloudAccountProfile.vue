@@ -8,6 +8,13 @@ const busy = ref(false),
   processing = ref(false),
   error = ref(''),
   notice = ref('')
+const toast = useToast()
+watch(error, (text) => text && toast.add({ title: text, color: 'error' }), {
+  flush: 'sync',
+})
+watch(notice, (text) => text && toast.add({ title: text, color: 'success' }), {
+  flush: 'sync',
+})
 async function chooseImage(event: Event) {
   const input = event.target as HTMLInputElement
   const file = input.files?.[0]
@@ -136,20 +143,6 @@ async function save() {
         @change="chooseImage"
       />
     </UFormField>
-    <p
-      v-if="error"
-      class="cf-error-message"
-      role="alert"
-    >
-      {{ error }}
-    </p>
-    <p
-      v-if="notice"
-      class="cf-notice"
-      role="status"
-    >
-      {{ notice }}
-    </p>
     <div>
       <CfButton
         type="submit"

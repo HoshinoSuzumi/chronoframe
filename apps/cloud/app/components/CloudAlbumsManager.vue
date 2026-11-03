@@ -16,8 +16,6 @@ import type { Album, Photo } from '@chronoframe/contracts/resources'
 import type { TableColumn } from '@nuxt/ui'
 const {
   albums,
-  message,
-  failed,
   photos,
   admin,
   busy,
@@ -463,13 +461,6 @@ function menu(album: Album) {
       :ui="{ footer: 'justify-end' }"
       ><template #body
         ><p
-          v-if="failed && message"
-          role="alert"
-          class="cf-notice cf-notice-error"
-        >
-          {{ message }}
-        </p>
-        <p
           v-if="!loaded"
           role="status"
         >
