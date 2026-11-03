@@ -1192,6 +1192,11 @@
         "photos": "相片牆",
         "albums": "相簿"
       },
+      "reactionsEnabled": {
+        "label": "啟用表態",
+        "description": "允許訪客對相片表態",
+        "help": "關閉後會隱藏表態功能，亦會阻止新增表態，但唔會刪除現有嘅表態資料。"
+      },
       "appearance": {
         "theme": {
           "label": "主題",
