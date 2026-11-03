@@ -60,20 +60,6 @@ async function copyAddress() {
     })
   }
 }
-watch(
-  domainError,
-  (err) => {
-    if (err)
-      toast.add({
-        title: t('cloud.domains.loadFailed'),
-        color: 'error',
-        actions: [
-          { label: t('cloud.messages.retry'), onClick: () => refreshDomains() },
-        ],
-      })
-  },
-  { immediate: true },
-)
 async function unpublish() {
   await publish(false)
   if (!context.value?.published) unpublishOpen.value = false
@@ -128,6 +114,19 @@ async function unpublish() {
     >
       {{ $t('cloud.domains.routingPending') }}
     </p>
+    <CfAlert
+      v-if="domainError"
+      tone="error"
+      >{{ $t('cloud.domains.loadFailed')
+      }}<template #actions
+        ><CfButton
+          size="sm"
+          variant="secondary"
+          @click="refreshDomains()"
+          >{{ $t('cloud.messages.retry') }}</CfButton
+        ></template
+      ></CfAlert
+    >
     <div class="cf-site-address-block">
       <div
         v-if="address"
