@@ -278,6 +278,7 @@ const generateParticleStyle = (index: number) => {
               {{ uploadingFile.fileName }}
             </p>
           </div>
+          <slot name="details" />
 
           <div
             class="flex items-center gap-1 text-xs text-neutral-500 dark:text-neutral-400"
@@ -295,6 +296,7 @@ const generateParticleStyle = (index: number) => {
 
       <!-- 操作按钮 -->
       <div class="flex items-center gap-2 ml-2">
+        <slot name="actions" />
         <!-- 中止上传按钮 -->
         <motion.div
           v-if="

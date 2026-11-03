@@ -42,6 +42,13 @@ export interface UseUploadOptions {
   speedSampleSize?: number // 速度平均窗口（秒）
   maxRetries?: number // 最大重试次数
   retryDelay?: number // 重试延迟（毫秒）
+  contentType?: string
+  multipart?: {
+    uploadedParts?: { partNumber: number; bytes: number }[]
+    verifyPartsOnServer?: boolean
+    preserveOnError?: boolean
+    abort?: () => Promise<void>
+  }
 }
 
 export function useUpload(options: UseUploadOptions = {}) {
@@ -60,6 +67,8 @@ export function useUpload(options: UseUploadOptions = {}) {
     speedSampleSize = 5,
     maxRetries = 3,
     retryDelay = 1000,
+    contentType,
+    multipart,
   } = options
 
   // 响应式状态
@@ -277,7 +286,7 @@ export function useUpload(options: UseUploadOptions = {}) {
               requestXHR.setRequestHeader(
                 'Content-Type',
                 filePayload
-                  ? file.type || 'application/octet-stream'
+                  ? contentType || file.type || 'application/octet-stream'
                   : 'application/json',
               )
             Object.entries({ ...headers, ...requestHeaders }).forEach(
@@ -394,6 +403,18 @@ export function useUpload(options: UseUploadOptions = {}) {
             while (!cancelled && !stopped && nextIndex < count) {
               const index = nextIndex++
               const offset = index * partSize
+              const size = Math.min(partSize, file.size - offset)
+              if (
+                plan.mode === 'multipart' &&
+                multipart?.verifyPartsOnServer &&
+                multipart.uploadedParts?.some(
+                  (part) =>
+                    part.partNumber === index + 1 && part.bytes === size,
+                )
+              ) {
+                recordProgress(index, size)
+                continue
+              }
               const partResponse = await request(
                 'PUT',
                 plan.mode === 'multipart'
@@ -404,8 +425,9 @@ export function useUpload(options: UseUploadOptions = {}) {
               )
               if (plan.mode === 'multipart') {
                 const etag = partResponse.getResponseHeader('ETag')
-                if (!etag) throw new Error(t('upload.runtimeError.missingEtag'))
-                parts[index] = { partNumber: index + 1, etag }
+                if (!etag && !multipart?.verifyPartsOnServer)
+                  throw new Error(t('upload.runtimeError.missingEtag'))
+                if (etag) parts[index] = { partNumber: index + 1, etag }
               }
             }
           } catch (error) {
@@ -429,9 +451,16 @@ export function useUpload(options: UseUploadOptions = {}) {
           'POST',
           signedUrl,
           plan.mode === 'multipart'
-            ? new Blob([JSON.stringify({ parts })], {
-                type: 'application/json',
-              })
+            ? new Blob(
+                [
+                  JSON.stringify(
+                    multipart?.verifyPartsOnServer ? {} : { parts },
+                  ),
+                ],
+                {
+                  type: 'application/json',
+                },
+              )
             : undefined,
           0,
           {},
@@ -466,8 +495,27 @@ export function useUpload(options: UseUploadOptions = {}) {
       if (cancelled) callbacks.onAbort?.()
       else if (failureXHR || currentXHR)
         callbacks.onError?.(message, (failureXHR || currentXHR)!)
-      if (managedSession)
-        void $fetch(signedUrl, { method: 'DELETE' }).catch(() => {})
+      if (managedSession && (cancelled || !multipart?.preserveOnError)) {
+        try {
+          // A stalled cleanup request must not hold a queue slot.
+          const cleanup = multipart?.abort
+            ? multipart.abort()
+            : $fetch(signedUrl, { method: 'DELETE', timeout: 10000 })
+          let deadline: ReturnType<typeof setTimeout> | undefined
+          try {
+            await Promise.race([
+              cleanup,
+              new Promise<void>((resolve) => {
+                deadline = setTimeout(resolve, 10000)
+              }),
+            ])
+          } finally {
+            clearTimeout(deadline)
+          }
+        } catch (cleanupError) {
+          console.error('Failed to abort upload session:', cleanupError)
+        }
+      }
       throw error
     } finally {
       clearInterval(progressTimer)
@@ -544,13 +592,11 @@ export function useUpload(options: UseUploadOptions = {}) {
   })
 
   // 清理函数（仅在组件上下文中可用）
-  try {
+  if (getCurrentInstance()) {
     onUnmounted(() => {
       abortUpload()
       currentXHR = null
     })
-  } catch {
-    /* empty */
   }
 
   return {

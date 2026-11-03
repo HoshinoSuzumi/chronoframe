@@ -25,6 +25,7 @@ import type {
 } from '../interfaces.ts'
 import { UPLOAD_CHUNK_SIZE } from '@chronoframe/contracts/upload'
 import { logUpload } from '../upload-log.ts'
+import { canFallbackToSingleUpload } from '../multipart-fallback.ts'
 
 const createClient = (config: S3StorageConfig): S3Client => {
   if (config.provider !== 's3') {
@@ -284,15 +285,7 @@ export class S3StorageProvider implements StorageProvider {
         Code?: string
         $metadata?: { httpStatusCode?: number }
       }
-      if (
-        [405, 501].includes(unsupported.$metadata?.httpStatusCode ?? 0) ||
-        [
-          'NotImplemented',
-          'NotSupported',
-          'UnsupportedOperation',
-          'AccessDenied',
-        ].includes(unsupported.name || unsupported.Code || '')
-      ) {
+      if (canFallbackToSingleUpload(error)) {
         // A provider can allow ordinary PUT uploads while denying multipart
         // initiation. Keep the file on the direct path in that case.
         logUpload(this.logger, 's3.multipart.fallback.single', {

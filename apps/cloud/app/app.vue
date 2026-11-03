@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { en, zh_cn } from '@nuxt/ui/locale'
+import { provideCloudUploads } from './composables/useCloudUploads'
 const { locale } = useI18n()
+provideCloudUploads()
 const componentLocale = computed(() =>
   locale.value === 'zh-Hans' ? zh_cn : en,
 )
@@ -20,6 +22,7 @@ useHead(() => ({
       ><NuxtLoadingIndicator color="var(--cf-primary)" /><NuxtLayout
         ><NuxtPage
       /></NuxtLayout>
+      <CloudTransferPanel />
     </div>
   </UApp>
 </template>

@@ -4,6 +4,15 @@ Cloud owns its marketing, sign-in, portal and error presentation. Server authori
 Host routing and tenant context remain authoritative. Cloud-only styles and components
 must not change the Self-hosted or Site editions.
 
+Photo uploads reuse the Console upload drawer, floating queue, scheduler and
+multipart transport. The application root owns the queue so portal navigation,
+including switching Sites, does not interrupt admitted uploads. Each batch keeps
+its original Site, account, storage connection and album selection; signing out
+or changing accounts clears the queue. Reloading/closing the browser is not
+background uploading: select the same files again to resume a retained reservation.
+Multipart initialization uses the same unsupported-operation fallback to signed
+PUT as Self-hosted, without proxying file bodies through the edge application.
+
 ## Design language
 
 Cloud uses the shared [SaaS UI layer](../../packages/saas-ui/README.md), also the
