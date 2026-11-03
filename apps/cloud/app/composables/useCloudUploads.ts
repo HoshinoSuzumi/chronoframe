@@ -203,6 +203,8 @@ function createCloudUploads() {
     queue.notify()
     try {
       signal.throwIfAborted()
+      // Stored before the request so an aborted reservation is reused by requestId.
+      localStorage.setItem(cache, id)
       await api(
         context,
         '/uploads',
@@ -219,7 +221,6 @@ function createCloudUploads() {
         signal,
       )
       reserved = true
-      localStorage.setItem(cache, id)
       signal.throwIfAborted()
       const plan = await api<CloudUploadPlan>(
         context,
@@ -306,6 +307,7 @@ function createCloudUploads() {
         entry.status = UploadQueueStatus.Finalizing
         entry.canAbort = false
         queue.notify()
+        // No abort signal: the server may already have published, so cancelling here would mislabel it.
         if (plan.mode === 'single')
           await api(context, `/uploads/${id}/complete`, {})
       }
@@ -336,12 +338,31 @@ function createCloudUploads() {
         entry.warning = t(
           'cloud.messages.uploadInterruptedSelectTheSameFileToResumeIts',
         )
+      const status = error as { statusCode?: number; status?: number } | null
+      const code = status?.statusCode ?? status?.status
+      if (
+        !reserved &&
+        !signal.aborted &&
+        typeof code === 'number' &&
+        code >= 400 &&
+        code < 500
+      )
+        localStorage.removeItem(cache)
       if (signal.aborted) {
         if (reserved) {
+          // A stalled cancel request must not hold a queue slot.
+          let deadline: ReturnType<typeof setTimeout> | undefined
           try {
-            await cancelSession()
+            await Promise.race([
+              cancelSession(),
+              new Promise<void>((resolve) => {
+                deadline = setTimeout(resolve, 10000)
+              }),
+            ])
           } catch (cancelError) {
             console.error('Failed to cancel Cloud upload:', cancelError)
+          } finally {
+            clearTimeout(deadline)
           }
         }
       }
