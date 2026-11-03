@@ -4,6 +4,7 @@ import { DEFAULT_SITE } from '@chronoframe/core'
 import type { H3Event } from 'h3'
 import { eq, and, sql } from 'drizzle-orm'
 import { assertPhotoIdAccess } from '../../../utils/album-access'
+import { settingsManager } from '../../../services/settings/settingsManager'
 
 const RATE_LIMIT_WINDOW = 60 * 1000 // 1分钟
 const MAX_REACTIONS_PER_WINDOW = 10 // 每分钟最多10次表态
@@ -57,6 +58,17 @@ export default defineEventHandler(async (event) => {
   }
 
   await assertPhotoIdAccess(event, photoId)
+
+  const reactionsEnabled = await settingsManager.get<boolean>(
+    'app',
+    'reactionsEnabled',
+  )
+  if (reactionsEnabled === false) {
+    throw createError({
+      statusCode: 403,
+      message: 'Photo reactions are disabled',
+    })
+  }
 
   const db = useDB()
   const method = event.method

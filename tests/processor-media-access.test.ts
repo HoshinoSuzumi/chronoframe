@@ -1,4 +1,5 @@
 import { REACTION_TYPES } from '../packages/contracts/src/reactions.ts'
+import { parseGalleryPresentation } from '../packages/contracts/src/gallery-settings.ts'
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import Database from 'better-sqlite3'
@@ -100,6 +101,7 @@ test('published photo streams remain available throughout maintenance and after 
       createResourceReader: () => ({ listAlbums: async () => [album] }),
       createEmailCodeCrypto: async () => ({ mac: async () => 'visitor' }),
       platformRequestURL: () => new URL('https://gallery.example'),
+      parseGalleryPresentation,
       REACTION_TYPES,
     }
     const publicApi = new Function(
