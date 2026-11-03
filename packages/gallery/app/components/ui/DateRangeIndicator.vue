@@ -48,7 +48,6 @@ const DESKTOP_TOP_GAP = 16
 <template>
   <div>
     <AnimatePresence>
-      <!-- Desktop Date Range Indicator -->
       <motion.div
         v-if="shouldShow && !isMobile"
         class="fixed left-4 z-50 lg:left-6 flex flex-col gap-1 bg-black/40 backdrop-blur-3xl rounded-xl border border-white/10 px-4 py-2 pb-4 shadow-2xl"
@@ -78,7 +77,6 @@ const DESKTOP_TOP_GAP = 16
         >
       </motion.div>
 
-      <!-- Mobile Date Range Indicator -->
       <motion.div
         v-if="shouldShow && isMobile"
         class="fixed inset-x-0 bottom-auto z-50"

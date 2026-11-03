@@ -41,7 +41,7 @@ defineProps<{
           />
         </template>
       </AuthState>
-      <MasonryItemHeaderSocialLinks />
+      <MasonryItemHeaderSocialLinks variant="embedded" />
       <MasonryItemHeaderFooter variant="embedded" />
     </div>
   </div>
