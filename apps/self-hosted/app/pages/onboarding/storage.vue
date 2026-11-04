@@ -139,16 +139,11 @@ function onSubmit() {
               type="password"
               :placeholder="$t(field.ui.placeholder || '')"
             />
-            <div
+            <WizardCheckbox
               v-else-if="field.ui.type === 'toggle'"
-              class="flex items-center justify-end"
-            >
-              <USwitch
-                v-model="state[field.key]"
-                :name="field.key"
-                :aria-label="$t(field.label || '')"
-              />
-            </div>
+              v-model="state[field.key]"
+              :label="$t(field.label || '')"
+            />
             <WizardInput
               v-else
               v-model="state[field.key]"
