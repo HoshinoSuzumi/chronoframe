@@ -171,7 +171,13 @@ const stamp = (x: number, y: number) => {
 
 const onPointerMove = (event: PointerEvent) => {
   const canvas = canvasRef.value
-  if (!canvas || !visible || !isActive.value || event.pointerType === 'touch')
+  if (
+    !canvas ||
+    !visible ||
+    !isActive.value ||
+    !toHash ||
+    event.pointerType === 'touch'
+  )
     return
 
   const rect = canvas.getBoundingClientRect()
@@ -268,6 +274,7 @@ watch(
     queue = []
     if (toHash && !candidateHashes().includes(toHash)) {
       fromHash = toHash = ''
+      heat.fill(0)
       rebuildPalettes()
     }
     initPalette()
