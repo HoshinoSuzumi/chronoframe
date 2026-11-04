@@ -166,14 +166,15 @@ const dateRangeText = computed(() => {
   return `${range.start} - ${range.end}`
 })
 
-const footerSummary = computed(() =>
-  photoStats.value.total
-    ? $t('ui.stats.totalPhotosWithRange', {
-        range: dateRangeText.value,
-        count: photoStats.value.total,
-      })
-    : '',
-)
+const footerSummary = computed(() => {
+  const count = photoStats.value.total
+  if (!count) return ''
+  if (!dateRangeText.value) return $t('plural.photo', { count }, count)
+  return $t('ui.stats.totalPhotosWithRange', {
+    range: dateRangeText.value,
+    count,
+  })
+})
 
 const handleVisibilityChange = ({
   index,

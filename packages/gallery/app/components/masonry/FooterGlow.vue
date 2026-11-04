@@ -207,7 +207,8 @@ const resetPointer = () => {
 
 const switchPhoto = () => {
   if (!visible || !isActive.value || document.hidden) return
-  const hash = nextHash()
+  let hash = nextHash()
+  if (hash === toHash) hash = nextHash()
   if (!hash || hash === toHash) return
 
   fromHash = toHash
@@ -252,9 +253,25 @@ watch(isDark, () => {
   ensureLoop()
 })
 
+watch(isActive, (active) => {
+  if (active) return
+  cancelAnimationFrame(raf)
+  raf = 0
+  heat.fill(0)
+  mix = 1
+  draw()
+})
+
 watch(
   () => props.photos,
-  () => initPalette(),
+  () => {
+    queue = []
+    if (toHash && !candidateHashes().includes(toHash)) {
+      fromHash = toHash = ''
+      rebuildPalettes()
+    }
+    initPalette()
+  },
 )
 
 onMounted(() => {
