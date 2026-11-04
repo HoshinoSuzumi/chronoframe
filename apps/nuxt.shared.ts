@@ -5,6 +5,14 @@ import { fileURLToPath } from 'node:url'
 import { dayjsLocales } from '../packages/gallery/i18n/i18n.options'
 
 const require = createRequire(import.meta.url)
+// Declared in code so Dashboard toggles are not reset by wrangler deploys.
+export const workerRuntimeSettings = {
+  placement: { mode: 'smart' as const },
+  observability: {
+    enabled: true,
+    logs: { enabled: true, invocation_logs: true, head_sampling_rate: 1 },
+  },
+}
 const nuxtRequire = createRequire(require.resolve('nuxt/package.json'))
 // Fully bundled Workers must use Nuxt's Unhead version, not the legacy root v2.
 const unheadAliases = Object.fromEntries(

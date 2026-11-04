@@ -1,6 +1,6 @@
 import { galleryFontFamilies } from '../../packages/gallery/fonts'
 import { SITE_CAPABILITIES } from '../../packages/contracts/src/entry'
-import { sharedUi } from '../nuxt.shared'
+import { sharedUi, workerRuntimeSettings } from '../nuxt.shared'
 export default defineNuxtConfig({
   ...sharedUi,
   modules: [...sharedUi.modules, '@nuxt/fonts'],
@@ -16,7 +16,11 @@ export default defineNuxtConfig({
     ...sharedUi.nitro,
     cloudflare: {
       ...sharedUi.nitro.cloudflare,
-      wrangler: { name: 'chronoframe-site', compatibility_date: '2026-10-22' },
+      wrangler: {
+        name: 'chronoframe-site',
+        compatibility_date: '2026-10-22',
+        ...workerRuntimeSettings,
+      },
     },
   },
   extends: ['../../packages/gallery'],
