@@ -1,5 +1,5 @@
 import { CLOUD_CAPABILITIES } from '../../packages/contracts/src/entry'
-import { sharedUi } from '../nuxt.shared'
+import { sharedUi, workerRuntimeSettings } from '../nuxt.shared'
 import { fileURLToPath } from 'node:url'
 import { mkdirSync } from 'node:fs'
 const galleryPages = fileURLToPath(
@@ -63,7 +63,11 @@ export default defineNuxtConfig({
     },
     cloudflare: {
       ...sharedUi.nitro.cloudflare,
-      wrangler: { name: 'chronoframe-cloud', compatibility_date: '2026-10-22' },
+      wrangler: {
+        name: 'chronoframe-cloud',
+        compatibility_date: '2026-10-22',
+        ...workerRuntimeSettings,
+      },
     },
   },
   extends: [
