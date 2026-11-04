@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import test from 'node:test'
 import Database from 'better-sqlite3'
-import { and, eq, sql } from 'drizzle-orm'
+import { and, eq, inArray, sql } from 'drizzle-orm'
 import { drizzle } from 'drizzle-orm/better-sqlite3'
 import { migrate } from 'drizzle-orm/better-sqlite3/migrator'
 import ts from 'typescript'
@@ -28,6 +28,26 @@ function loadHandler(deps: Record<string, unknown>) {
     method: string
     photoId?: string
     body?: unknown
+  }) => Promise<unknown>
+}
+
+function loadBatchHandler(deps: Record<string, unknown>) {
+  const source = readFileSync(
+    'apps/self-hosted/server/api/photos/reactions.get.ts',
+    'utf8',
+  ).replace(/^import[\s\S]*?from ['"][^'"]+['"]\s*\n/gm, '')
+  const code = ts.transpileModule(source, {
+    compilerOptions: {
+      module: ts.ModuleKind.CommonJS,
+      target: ts.ScriptTarget.ES2022,
+    },
+  }).outputText
+  return new Function(
+    'exports',
+    ...Object.keys(deps),
+    code + ';return exports.default',
+  )({}, ...Object.values(deps)) as (event: {
+    query: { ids?: string | string[] }
   }) => Promise<unknown>
 }
 
@@ -158,6 +178,69 @@ test('Self-hosted photo reactions enforce the public setting without deleting hi
   }
   assert.equal(restored.userReaction, 'like')
   assert.equal(restored.reactions.like, 1)
+
+  sqlite.close()
+})
+
+test('Self-hosted batch reaction reads require a session and retain historical counts', async () => {
+  const sqlite = new Database(':memory:')
+  const db = drizzle(sqlite, { schema: tables })
+  migrate(db, {
+    migrationsFolder: './apps/self-hosted/server/database/migrations',
+  })
+
+  db.insert(tables.photos)
+    .values({
+      id: 'photo',
+      title: 'Photo',
+      storageKey: 'photo.jpg',
+    })
+    .run()
+  db.insert(tables.photoReactions)
+    .values({
+      photoId: 'photo',
+      reactionType: 'like',
+      fingerprint: 'historical-visitor',
+    })
+    .run()
+
+  let authenticated = false
+  let accessCalls = 0
+  const handler = loadBatchHandler({
+    defineEventHandler: (f: unknown) => f,
+    requireUserSession: async () => {
+      if (!authenticated)
+        throw Object.assign(new Error('Unauthorized'), { statusCode: 401 })
+      return { user: { id: 'admin' } }
+    },
+    getQuery: (event: { query: { ids?: string | string[] } }) => event.query,
+    filterAccessiblePhotoIds: async (_event: unknown, ids: string[]) => {
+      accessCalls++
+      return new Set(ids)
+    },
+    createError: (value: { statusCode: number; message?: string }) =>
+      Object.assign(new Error(value.message ?? 'error'), value),
+    useDB: () => db,
+    tables,
+    inArray,
+    sql,
+    siteAnd: and,
+    siteEq: eq,
+    DEFAULT_SITE: { id: 1 },
+  })
+
+  await assert.rejects(handler({ query: { ids: ['photo'] } }), {
+    statusCode: 401,
+  })
+  assert.equal(accessCalls, 0)
+
+  authenticated = true
+  const result = (await handler({ query: { ids: ['photo'] } })) as Record<
+    string,
+    Record<string, number>
+  >
+  assert.equal(result.photo?.like, 1)
+  assert.equal(accessCalls, 1)
 
   sqlite.close()
 })

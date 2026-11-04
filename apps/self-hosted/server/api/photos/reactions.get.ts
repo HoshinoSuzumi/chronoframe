@@ -4,6 +4,8 @@ import { sql, inArray } from 'drizzle-orm'
 import { filterAccessiblePhotoIds } from '../../utils/album-access'
 
 export default defineEventHandler(async (event) => {
+  await requireUserSession(event)
+
   const query = getQuery(event)
   const photoIds = query.ids
 
