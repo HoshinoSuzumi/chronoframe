@@ -48,6 +48,7 @@ test('public reactions setting defaults to true and uses the General Settings to
   })
   assert.deepEqual(getSettingUIConfig('app', 'reactionsEnabled'), {
     type: 'toggle',
+    help: 'settings.app.reactionsEnabled.help',
   })
 })
 
