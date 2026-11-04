@@ -166,6 +166,16 @@ const dateRangeText = computed(() => {
   return `${range.start} - ${range.end}`
 })
 
+const footerSummary = computed(() => {
+  const count = photoStats.value.total
+  if (!count) return ''
+  if (!dateRangeText.value) return $t('plural.photo', { count }, count)
+  return $t('ui.stats.totalPhotosWithRange', {
+    range: dateRangeText.value,
+    count,
+  })
+})
+
 const handleVisibilityChange = ({
   index,
   isVisible,
@@ -352,7 +362,7 @@ const scrollToPhoto = (photoIndex: number) => {
 </script>
 
 <template>
-  <div class="relative w-full">
+  <div class="relative isolate flex min-h-dvh w-full flex-col">
     <DateRangeIndicator
       :date-range="dateRange"
       :locations="visibleCities"
@@ -458,6 +468,11 @@ const scrollToPhoto = (photoIndex: number) => {
         </MasonryWall>
       </div>
     </div>
+
+    <MasonryFooter
+      :summary="footerSummary"
+      :photos="displayPhotos"
+    />
   </div>
 </template>
 
