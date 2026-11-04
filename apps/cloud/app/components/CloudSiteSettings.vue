@@ -341,20 +341,28 @@ async function save() {
             />
           </section>
           <section class="cf-gallery-presentation">
-            <h3>{{ $t('cloud.presentation.reactions') }}</h3>
-            <p
-              id="gallery-reactions-help"
-              class="cf-field-hint"
+            <div
+              class="flex items-start justify-between gap-6 rounded-md border border-neutral-200 bg-neutral-50/50 px-4 py-3 dark:border-neutral-800 dark:bg-neutral-900/40"
             >
-              {{ $t('cloud.presentation.reactionsHelp') }}
-            </p>
-            <USwitch
-              v-model="reactionsEnabled"
-              class="justify-self-start"
-              :disabled="busy"
-              :aria-label="$t('cloud.presentation.reactions')"
-              aria-describedby="gallery-reactions-help"
-            />
+              <div class="space-y-1">
+                <h3 class="!mb-0">
+                  {{ $t('cloud.presentation.reactions') }}
+                </h3>
+                <p
+                  id="gallery-reactions-help"
+                  class="cf-field-hint !mt-0"
+                >
+                  {{ $t('cloud.presentation.reactionsHelp') }}
+                </p>
+              </div>
+              <USwitch
+                v-model="reactionsEnabled"
+                class="shrink-0"
+                :disabled="busy"
+                :aria-label="$t('cloud.presentation.reactions')"
+                aria-describedby="gallery-reactions-help"
+              />
+            </div>
           </section>
           <section class="cf-gallery-presentation">
             <h3>{{ $t('cloud.presentation.social') }}</h3>

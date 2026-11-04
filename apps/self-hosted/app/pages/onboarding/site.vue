@@ -84,6 +84,38 @@ function onSubmit() {
             :options="(field.ui.options as ProviderOption[]) || []"
           />
         </WizardFormField>
+        <div
+          v-else-if="
+            isFieldVisible(field) &&
+            (field.ui.type === 'toggle' || field.type === 'boolean')
+          "
+          class="rounded-md border border-white/10 bg-white/5 px-4 py-3"
+        >
+          <div class="flex items-start justify-between gap-6">
+            <div class="space-y-1">
+              <p class="text-sm font-medium text-neutral-300">
+                {{ $t(field.label || '') }}
+              </p>
+              <p
+                v-if="field.description"
+                class="text-sm text-neutral-500"
+              >
+                {{ $t(field.description) }}
+              </p>
+              <p
+                v-if="field.ui.help"
+                class="text-xs text-neutral-500"
+              >
+                {{ $t(field.ui.help) }}
+              </p>
+            </div>
+            <USwitch
+              v-model="state[field.key]"
+              :name="field.key"
+              :aria-label="$t(field.label || '')"
+            />
+          </div>
+        </div>
         <WizardFormField
           v-else-if="isFieldVisible(field) && isTextEditable(field)"
           :label="$t(field.label || '')"
