@@ -2,7 +2,7 @@ import { computed, watch, type Ref, type WatchStopHandle } from 'vue'
 
 /** Missing/null public setting means reactions stay enabled for legacy galleries. */
 export function isReactionsEnabledSetting(value: unknown): boolean {
-  return value !== false
+  return value !== false && value !== 'false' && value !== 0 && value !== '0'
 }
 
 /** Reactive public `app:reactionsEnabled` preference for the photo viewer. */

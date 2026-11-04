@@ -16,7 +16,12 @@ test('missing and true public reactions settings mean enabled', () => {
   assert.equal(isReactionsEnabledSetting(undefined), true)
   assert.equal(isReactionsEnabledSetting(null), true)
   assert.equal(isReactionsEnabledSetting(true), true)
-  assert.equal(isReactionsEnabledSetting(false), false)
+})
+
+test('false-like public reactions settings keep the viewer disabled', () => {
+  for (const value of [false, 'false', 0, '0']) {
+    assert.equal(isReactionsEnabledSetting(value), false)
+  }
 })
 
 test('Site public settings project presentation reactions with a legacy true fallback', () => {
