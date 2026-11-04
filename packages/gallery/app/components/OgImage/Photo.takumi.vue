@@ -2,6 +2,7 @@
 import { Icon as IconifyIcon, addIcon } from '@iconify/vue'
 import { init as initIconBundle } from '#build/nuxt-icon-client-bundle'
 import { formatCameraInfo } from '#gallery/utils/camera'
+import { resolveShareThumbnail } from '#gallery/utils/open-graph'
 
 initIconBundle(addIcon)
 
@@ -45,10 +46,9 @@ const title = computed(() =>
 const description = computed(() =>
   (photo ? photo.description || '' : resolvedAppTitle.value).slice(0, 200),
 )
+const capabilities = useEntryCapabilities()
 const thumbnailUrl = computed(() =>
-  photo?.thumbnailKey && photo.thumbnailUrl
-    ? `/thumb/${encodeURIComponent(photo.thumbnailUrl)}`
-    : undefined,
+  resolveShareThumbnail(photo?.thumbnailUrl, capabilities.edition),
 )
 </script>
 

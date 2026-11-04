@@ -1,5 +1,18 @@
 const OG_AVATAR_FALLBACK = '/web-app-manifest-512x512.png'
 
+/** Keep media authorization at the entry's existing thumbnail endpoint. */
+export function resolveShareThumbnail(
+  value: string | null | undefined,
+  edition: 'self-hosted' | 'cloud' | 'site',
+): string | undefined {
+  if (!value) return undefined
+  // Only Self-hosted supplies the Sharp-backed JPEG proxy. Edge entries serve
+  // their thumbnails through Site-scoped media routes instead.
+  return edition === 'self-hosted'
+    ? `/thumb/${encodeURIComponent(value)}`
+    : value
+}
+
 export function cleanShareText(value: unknown, maxLength: number): string {
   if (typeof value !== 'string') return ''
   return value.replace(/\s+/g, ' ').trim().slice(0, maxLength)

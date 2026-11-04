@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { resolveShareThumbnail } from '#gallery/utils/open-graph'
+
 const props = defineProps<{
   appTitle?: string
   slogan?: string
@@ -18,7 +20,12 @@ const countLabel = computed(() => {
   if (typeof props.photoCount !== 'number') return ''
   return $i18n.t('plural.photo', { count: props.photoCount }, props.photoCount)
 })
-const covers = computed(() => (props.thumbnails || []).slice(0, 3))
+const capabilities = useEntryCapabilities()
+const covers = computed(() =>
+  (props.thumbnails || [])
+    .slice(0, 3)
+    .map((url) => resolveShareThumbnail(url, capabilities.edition)),
+)
 </script>
 
 <template>
@@ -62,7 +69,7 @@ const covers = computed(() => (props.thumbnails || []).slice(0, 3))
       <div class="og-home__frame">
         <img
           v-if="covers[0]"
-          :src="'/thumb/' + encodeURIComponent(covers[0] || '')"
+          :src="covers[0]"
           class="og-home__image"
         />
         <div
@@ -76,7 +83,7 @@ const covers = computed(() => (props.thumbnails || []).slice(0, 3))
       <div class="og-home__frame og-home__tall">
         <img
           v-if="covers[1]"
-          :src="'/thumb/' + encodeURIComponent(covers[1] || '')"
+          :src="covers[1]"
           class="og-home__image"
         />
         <div
@@ -90,7 +97,7 @@ const covers = computed(() => (props.thumbnails || []).slice(0, 3))
       <div class="og-home__frame">
         <img
           v-if="covers[2]"
-          :src="'/thumb/' + encodeURIComponent(covers[2] || '')"
+          :src="covers[2]"
           class="og-home__image"
         />
         <div
