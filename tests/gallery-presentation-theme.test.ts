@@ -40,11 +40,23 @@ test('gallery reactions reject non-boolean values', () => {
   }
 })
 
+test('gallery home view defaults to photos and validates values', () => {
+  assert.equal(parseGalleryPresentation(base).homeView, 'photos')
+  assert.equal(
+    parseGalleryPresentation({ ...base, homeView: 'albums' }).homeView,
+    'albums',
+  )
+  for (const homeView of [null, 'tags', 1, []]) {
+    assert.throws(() => parseGalleryPresentation({ ...base, homeView }))
+  }
+})
+
 test('existing legacy gallery presentations still parse', () => {
   assert.deepEqual(parseGalleryPresentation(base), {
     theme: 'dark',
     homeHeaderLayout: 'embedded',
     socialLinks: { links: [] },
     reactionsEnabled: true,
+    homeView: 'photos',
   })
 })

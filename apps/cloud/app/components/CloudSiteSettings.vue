@@ -37,6 +37,9 @@ const homeHeaderLayout = ref<'embedded' | 'fixed'>(
 const reactionsEnabled = ref(
   data.value?.site.presentation.reactionsEnabled ?? true,
 )
+const homeView = ref<'photos' | 'albums'>(
+  data.value?.site.presentation.homeView ?? 'photos',
+)
 const socialDraft = ref(
   Array.from(
     { length: MAX_SOCIAL_LINKS },
@@ -133,6 +136,7 @@ async function reload() {
     data.value?.site.presentation.homeHeaderLayout ?? 'embedded'
   reactionsEnabled.value =
     data.value?.site.presentation.reactionsEnabled ?? true
+  homeView.value = data.value?.site.presentation.homeView ?? 'photos'
   socialDraft.value = Array.from(
     { length: MAX_SOCIAL_LINKS },
     (_, i) => data.value?.site.presentation.socialLinks.links[i] ?? '',
@@ -162,6 +166,7 @@ async function save() {
           theme: theme.value,
           homeHeaderLayout: homeHeaderLayout.value,
           reactionsEnabled: reactionsEnabled.value,
+          homeView: homeView.value,
           socialLinks: {
             links: parseSocialLinks({
               links: socialDraft.value.map((v) => v.trim()).filter(Boolean),
@@ -326,6 +331,27 @@ async function save() {
                 (['light', 'dark', 'system'] as const).map((value) => ({
                   value,
                   label: $t('cloud.presentation.themeOptions.' + value),
+                }))
+              "
+            />
+          </section>
+          <section class="cf-gallery-presentation">
+            <h3>{{ $t('cloud.presentation.homeView') }}</h3>
+            <p class="cf-field-hint">
+              {{ $t('cloud.presentation.homeViewHelp') }}
+            </p>
+            <URadioGroup
+              v-model="homeView"
+              :disabled="busy"
+              :aria-label="$t('cloud.presentation.homeView')"
+              orientation="horizontal"
+              variant="card"
+              size="sm"
+              :ui="presentationChoiceUi"
+              :items="
+                (['photos', 'albums'] as const).map((value) => ({
+                  value,
+                  label: $t('cloud.presentation.homeViewOptions.' + value),
                 }))
               "
             />
