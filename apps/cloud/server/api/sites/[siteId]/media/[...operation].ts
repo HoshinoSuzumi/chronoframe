@@ -10,6 +10,7 @@ import {
 } from '@chronoframe/platform/entitlements'
 import { DomainError } from '@chronoframe/platform/domains'
 import { defaultSiteHost, validSiteSlug } from '@chronoframe/contracts/domains'
+import { photoTitleFromFileName } from '@chronoframe/contracts/photo'
 import type { MediaDatabase } from '@chronoframe/database/cloud-media'
 import { createCloudAlbumWithSlug } from '@chronoframe/database/cloud-album-slugs'
 import { deleteCloudPhotos } from '../../../../utils/cloud-photo-delete'
@@ -637,7 +638,7 @@ export default definePlatformHandler(async (event) => {
         ownerId: userId,
         jobId: id,
         pipelineVersion: '1',
-        title: detail.file_name,
+        title: photoTitleFromFileName(detail.file_name),
         now,
       })
       return { jobId: id }

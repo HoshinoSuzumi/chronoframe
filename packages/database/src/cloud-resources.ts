@@ -6,6 +6,7 @@ import {
   type AlbumReadRecord,
 } from '@chronoframe/core'
 import type { Photo } from '@chronoframe/contracts/resources'
+import { photoTitleFromFileName } from '@chronoframe/contracts/photo'
 import type { MediaDatabase } from './cloud-media.ts'
 /** Shared read contract; private media endpoints are emitted, never signed URLs.
  * Cloud HTTP assembly applies the same core visibility/access rules as SQLite.
@@ -31,7 +32,11 @@ export function createCloudResourceRepository(
       base = mediaPrefix + '/' + encodeURIComponent(id)
     return {
       id,
-      title: String(row.title),
+      // Older uploads stored the complete filename as their default title.
+      // Normalize those on read as well, without changing manually edited titles.
+      title: row.is_upload_title
+        ? photoTitleFromFileName(String(row.title))
+        : String(row.title),
       description: typeof m.description === 'string' ? m.description : null,
       width: typeof m.width === 'number' ? m.width : null,
       height: typeof m.height === 'number' ? m.height : null,
@@ -61,7 +66,7 @@ export function createCloudResourceRepository(
       livePhotoVideoUrl: row.has_video ? base + '/live-video' : null,
     }
   }
-  const columns = `p.*,EXISTS(SELECT 1 FROM cloud_media_assets a WHERE a.site_id=p.site_id AND a.photo_id=p.id AND a.source_version=p.source_version AND a.role='live-video') AS has_video`
+  const columns = `p.*,EXISTS(SELECT 1 FROM cloud_uploads u WHERE u.site_id=p.site_id AND u.photo_id=p.id AND u.source_version=p.source_version AND u.file_name=p.title) AS is_upload_title,EXISTS(SELECT 1 FROM cloud_media_assets a WHERE a.site_id=p.site_id AND a.photo_id=p.id AND a.source_version=p.source_version AND a.role='live-video') AS has_video`
   const ready = `p.deleted=0 AND p.metadata_json IS NOT NULL AND EXISTS(SELECT 1 FROM cloud_media_assets a WHERE a.site_id=p.site_id AND a.photo_id=p.id AND a.source_version=p.source_version AND a.role='thumbnail')`
   const album = (r: Record<string, unknown>): AlbumReadRecord => ({
     resource: {

@@ -6,6 +6,7 @@ import { mkdir, unlink, writeFile } from 'node:fs/promises'
 import type { Metadata } from 'sharp'
 import sharp from 'sharp'
 import type { NeededExif, PhotoInfo } from '@chronoframe/contracts/photo'
+import { photoTitleFromFileName } from '@chronoframe/contracts/photo'
 import type { ExifDateTime, Tags } from 'exiftool-vendored'
 import { noop } from 'es-toolkit'
 import { withRetry, RetryPresets, RetryConditions } from './retry.ts'
@@ -523,14 +524,8 @@ export function createExifService({
     )
 
     let title = titleFromExif
-    const cleanedFileName = fileName
-      .replaceAll(/\d{4}-\d{2}-\d{2}[_-]?/g, '')
-      .replaceAll(/[_-]?\d+views?/gi, '')
-      .replaceAll(/[_-]+/g, ' ')
-      .trim()
-
     if (!title) {
-      title = cleanedFileName || path.basename(s3key, path.extname(s3key))
+      title = photoTitleFromFileName(s3key)
     }
 
     const description =

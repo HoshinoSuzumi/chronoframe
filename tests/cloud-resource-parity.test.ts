@@ -7,6 +7,7 @@ import Database from 'better-sqlite3'
 import { drizzle } from 'drizzle-orm/better-sqlite3'
 import { migrate } from 'drizzle-orm/better-sqlite3/migrator'
 import { createResourceReader } from '@chronoframe/core'
+import { photoTitleFromFileName } from '@chronoframe/contracts/photo'
 import * as schema from '../packages/database/src/schema.ts'
 import { createSqliteResourceRepository } from '../packages/database/src/sqlite-resources.ts'
 import { backfillAlbumSlugs } from '../packages/database/src/album-slugs.ts'
@@ -74,12 +75,18 @@ test('Cloud D1 and Self-hosted SQLite share ordering, visibility and protected-a
         expectedBytes: 32,
         expiresAt: 10000,
       })
+      await db
+        .prepare(
+          'UPDATE cloud_uploads SET file_name=? WHERE site_id=1 AND id=?',
+        )
+        .bind(p.title + '.jpeg', p.id)
+        .run()
       await media.completeUpload({
         id: p.id,
         ownerId: 1,
         jobId: p.id,
         pipelineVersion: '1',
-        title: p.title,
+        title: photoTitleFromFileName(p.title + '.jpeg'),
         now: 1,
       })
       const lease = (await queue.claim('worker', 'attempt-' + p.id, 2, 1000))!
@@ -150,6 +157,7 @@ test('Cloud D1 and Self-hosted SQLite share ordering, visibility and protected-a
         createCloudResourceRepository(db, { id: 1 }, '/api/public/media'),
       ),
     ]
+    assert.equal((await media.photo('new'))?.title, 'New')
     for (const reader of readers) {
       assert.deepEqual(
         (await reader.listPhotos({ admin: true })).slice(0, 2).map((p) => p.id),
@@ -198,6 +206,55 @@ test('Cloud D1 and Self-hosted SQLite share ordering, visibility and protected-a
       '/api/public/media/locked/display',
     )
     assert(!JSON.stringify(unlocked).includes('source/locked'))
+    // Legacy filename titles are corrected for both portal and public gallery
+    // consumers, including album/viewer collections. User edits stay literal.
+    await db
+      .prepare(
+        "UPDATE cloud_uploads SET file_name='IMG_4963.jpeg' WHERE site_id=1 AND id='old'",
+      )
+      .run()
+    await db
+      .prepare(
+        "UPDATE cloud_photos SET title='IMG_4963.jpeg' WHERE site_id=1 AND id='old'",
+      )
+      .run()
+    for (const prefix of ['/api/public/media', '/api/sites/1/media']) {
+      const repository = createCloudResourceRepository(db, { id: 1 }, prefix)
+      assert.equal(
+        (await repository.listPhotos()).find((p) => p.id === 'old')?.title,
+        'IMG 4963',
+      )
+      assert.equal(
+        (await repository.listAlbumPhotos(1)).find((p) => p.id === 'old')
+          ?.title,
+        'IMG 4963',
+      )
+    }
+    await db
+      .prepare(
+        "UPDATE cloud_photos SET title='A custom title.jpeg' WHERE site_id=1 AND id='old'",
+      )
+      .run()
+    const titles = createCloudResourceRepository(
+      db,
+      { id: 1 },
+      '/api/public/media',
+    )
+    assert.equal(
+      (await titles.listPhotos()).find((p) => p.id === 'old')?.title,
+      'A custom title.jpeg',
+    )
+    // Upload defaults from an old source generation must not change a title.
+    await db
+      .prepare(
+        "UPDATE cloud_uploads SET file_name='A custom title.jpeg',source_version='obsolete' WHERE site_id=1 AND id='old'",
+      )
+      .run()
+    assert.equal(
+      (await titles.listPhotos()).find((p) => p.id === 'old')?.title,
+      'A custom title.jpeg',
+    )
+    assert.equal((await media.photo('old'))?.title, 'A custom title.jpeg')
     await db
       .prepare(
         "UPDATE cloud_albums SET cover_photo_id='old' WHERE site_id=1 AND id='1'",
