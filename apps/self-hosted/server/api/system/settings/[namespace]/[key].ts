@@ -6,6 +6,7 @@ import {
 } from '~~/server/services/settings/contants'
 import { settingsManager } from '~~/server/services/settings/settingsManager'
 import { useDB, tables, eq } from '~~/server/utils/db'
+import { requireAdminSession } from '../../../../utils/require-admin.ts'
 
 export default eventHandler(async (event) => {
   const { namespace, key } = await getValidatedRouterParams(
@@ -24,6 +25,7 @@ export default eventHandler(async (event) => {
   }
 
   if (event.method === 'GET') {
+    await requireAdminSession(event)
     try {
       const value = await settingsManager.get(namespace, key)
       return { namespace, key, value }
