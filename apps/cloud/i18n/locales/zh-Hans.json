@@ -670,6 +670,8 @@
       "duplicate": "该个人主页已添加。",
       "theme": "默认主题",
       "themeHelp": "设置公开图库的默认外观，访客仍可切换明暗主题。",
+      "reactions": "照片表态",
+      "reactionsHelp": "允许访客对照片表态。关闭后将隐藏表态控件并阻止新的表态，但不会删除已有的历史表态数据。",
       "themeOptions": {
         "light": "浅色",
         "dark": "深色",

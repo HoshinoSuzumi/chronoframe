@@ -99,6 +99,15 @@ export const DEFAULT_SETTINGS = [
   },
   {
     namespace: 'app',
+    key: 'reactionsEnabled',
+    type: 'boolean',
+    defaultValue: PUBLIC_GALLERY_DEFAULTS['app']['reactionsEnabled'],
+    label: 'settings.app.reactionsEnabled.label',
+    description: 'settings.app.reactionsEnabled.description',
+    isPublic: true,
+  },
+  {
+    namespace: 'app',
     key: 'appearance.theme',
     type: 'string',
     defaultValue: PUBLIC_GALLERY_DEFAULTS['app']['appearance.theme'],

@@ -1274,6 +1274,11 @@
         "photos": "Photo wall",
         "albums": "Albums"
       },
+      "reactionsEnabled": {
+        "label": "Enable reactions",
+        "description": "Allow visitors to react to photos",
+        "help": "Turning this off hides reaction controls and prevents new reactions without deleting existing reaction data."
+      },
       "appearance": {
         "theme": {
           "label": "Theme",

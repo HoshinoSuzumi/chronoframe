@@ -670,6 +670,8 @@
       "duplicate": "This profile is already listed.",
       "theme": "Default theme",
       "themeHelp": "Choose the initial appearance of your public gallery. Visitors can switch between light and dark themes.",
+      "reactions": "Photo reactions",
+      "reactionsHelp": "Allow visitors to react to photos. Disabling reactions hides the controls and prevents new reactions without deleting historical reaction data.",
       "themeOptions": {
         "light": "Light",
         "dark": "Dark",

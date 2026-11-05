@@ -1,5 +1,6 @@
 import { createError, getRouterParam, getHeader, getRequestWebStream } from 'h3'
 import { REACTION_TYPES } from '@chronoframe/contracts/reactions'
+import { parseGalleryPresentation } from '@chronoframe/contracts/gallery-settings'
 import { createResourceReader } from '@chronoframe/core'
 import { createCloudResourceRepository } from '@chronoframe/database/cloud-resources'
 import type { MediaDatabase } from '@chronoframe/database/cloud-media'
@@ -42,6 +43,24 @@ export default definePlatformHandler(async (event) => {
     !['GET', 'POST', 'DELETE'].includes(event.method)
   )
     throw createError({ statusCode: 405 })
+  const presentationRow = await db
+    .prepare(
+      'SELECT gallery_presentation AS presentation FROM platform_sites WHERE id=?',
+    )
+    .bind(context.site.id)
+    .first<{ presentation: string }>()
+  const presentation = parseGalleryPresentation(
+    JSON.parse(
+      presentationRow?.presentation ||
+        '{"homeHeaderLayout":"embedded","socialLinks":{"links":[]}}',
+    ),
+  )
+  if (!presentation.reactionsEnabled) {
+    throw createError({
+      statusCode: 403,
+      message: 'Photo reactions are disabled',
+    })
+  }
   const mac = await createEmailCodeCrypto(
       useRuntimeConfig(event).platform.secret,
     ),

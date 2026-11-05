@@ -68,13 +68,26 @@ export function useWizardForm(namespace: string) {
       // We create a temporary object to hold default values
       const defaults: Record<string, any> = {}
       response.fields.forEach((field) => {
-        defaults[field.key] = field.value ?? field.defaultValue ?? ''
+        const raw = field.value ?? field.defaultValue
+        if (field.type === 'boolean' || field.ui?.type === 'toggle') {
+          defaults[field.key] = raw === true || raw === 'true'
+        } else {
+          defaults[field.key] = raw ?? ''
+        }
       })
 
       // Merge defaults with existing store state
       // Existing store state takes precedence
       const currentState = state.value
       const newState = { ...defaults, ...currentState }
+      // Coerce booleans after merge so stale localStorage strings (e.g. "true")
+      // from older text inputs do not break toggle controls.
+      response.fields.forEach((field) => {
+        if (field.type === 'boolean' || field.ui?.type === 'toggle') {
+          const raw = newState[field.key]
+          newState[field.key] = raw === true || raw === 'true'
+        }
+      })
 
       // Update store
       state.value = newState

@@ -7,6 +7,7 @@ export const wizardSiteSchema = z.object({
   avatarUrl: z.string().optional(),
   author: z.string().optional(),
   homeView: z.enum(['photos', 'albums']).optional(),
+  reactionsEnabled: z.boolean().optional(),
   'appearance.theme': z.enum(['light', 'dark', 'system']).optional(),
   'appearance.homeHeaderLayout': z.enum(['embedded', 'fixed']).optional(),
 })
@@ -23,6 +24,8 @@ export async function persistWizardSiteSettings(
   if (site.author) await settingsManager.set('app', 'author', site.author)
   if (site.homeView !== undefined)
     await settingsManager.set('app', 'homeView', site.homeView)
+  if (site.reactionsEnabled !== undefined)
+    await settingsManager.set('app', 'reactionsEnabled', site.reactionsEnabled)
   if (site['appearance.theme'] !== undefined)
     await settingsManager.set(
       'app',

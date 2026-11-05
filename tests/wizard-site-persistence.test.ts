@@ -15,6 +15,7 @@ function wizardPayload(
     avatarUrl: 'https://example.com/avatar.jpg',
     author: 'Example author',
     homeView: 'albums',
+    reactionsEnabled: false,
     'appearance.theme': 'dark',
     'appearance.homeHeaderLayout': 'fixed',
   },
@@ -146,6 +147,7 @@ test('wizard submit persists non-default Site Info preferences', async () => {
       ['app', 'avatarUrl', 'https://example.com/avatar.jpg'],
       ['app', 'author', 'Example author'],
       ['app', 'homeView', 'albums'],
+      ['app', 'reactionsEnabled', false],
       ['app', 'appearance.theme', 'dark'],
       ['app', 'appearance.homeHeaderLayout', 'fixed'],
     ],
@@ -171,6 +173,7 @@ test('wizard Site Info endpoint shares preference persistence behavior', async (
     {
       title: 'Example gallery',
       homeView: 'albums',
+      reactionsEnabled: true,
       'appearance.theme': 'dark',
       'appearance.homeHeaderLayout': 'fixed',
     },
@@ -182,7 +185,21 @@ test('wizard Site Info endpoint shares preference persistence behavior', async (
   assert.deepEqual(settingWrites, [
     ['app', 'title', 'Example gallery'],
     ['app', 'homeView', 'albums'],
+    ['app', 'reactionsEnabled', true],
     ['app', 'appearance.theme', 'dark'],
     ['app', 'appearance.homeHeaderLayout', 'fixed'],
   ])
+})
+
+test('wizard Site Info rejects non-boolean reactionsEnabled values', async () => {
+  const { route, settingWrites } = loadWizardRoute(
+    {
+      title: 'Example gallery',
+      reactionsEnabled: 'false',
+    },
+    'apps/self-hosted/server/api/wizard/site.post.ts',
+  )
+
+  await assert.rejects(route({}))
+  assert.deepEqual(settingWrites, [])
 })

@@ -8,6 +8,7 @@ export const PUBLIC_GALLERY_DEFAULTS = {
     avatarUrl: '',
     homeView: 'photos',
     socialLinks: { links: [] },
+    reactionsEnabled: true,
     'appearance.theme': 'system',
     'appearance.homeHeaderLayout': 'embedded',
   },
@@ -45,6 +46,7 @@ export interface GalleryPresentation {
   theme: 'light' | 'dark' | 'system'
   homeHeaderLayout: 'embedded' | 'fixed'
   socialLinks: { links: string[] }
+  reactionsEnabled: boolean
 }
 export function parseGalleryPresentation(value: unknown): GalleryPresentation {
   if (!value || typeof value !== 'object' || Array.isArray(value))
@@ -52,7 +54,13 @@ export function parseGalleryPresentation(value: unknown): GalleryPresentation {
   const data = value as Record<string, unknown>
   if (
     Object.keys(data).some(
-      (k) => !['homeHeaderLayout', 'socialLinks', 'theme'].includes(k),
+      (k) =>
+        ![
+          'homeHeaderLayout',
+          'reactionsEnabled',
+          'socialLinks',
+          'theme',
+        ].includes(k),
     ) ||
     (data.homeHeaderLayout !== 'embedded' && data.homeHeaderLayout !== 'fixed')
   )
@@ -62,10 +70,14 @@ export function parseGalleryPresentation(value: unknown): GalleryPresentation {
     !['light', 'dark', 'system'].includes(data.theme as string)
   )
     throw new Error('Invalid gallery theme')
+  const reactionsEnabled = data.reactionsEnabled
+  if (reactionsEnabled !== undefined && typeof reactionsEnabled !== 'boolean')
+    throw new Error('Invalid gallery reactions setting')
   return {
     theme: (data.theme ?? 'dark') as GalleryPresentation['theme'],
     homeHeaderLayout:
       data.homeHeaderLayout as GalleryPresentation['homeHeaderLayout'],
     socialLinks: { links: parseSocialLinks(data.socialLinks) },
+    reactionsEnabled: reactionsEnabled ?? true,
   }
 }

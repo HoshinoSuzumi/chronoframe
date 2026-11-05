@@ -45,6 +45,10 @@ export const APP_SETTINGS_UI: Record<string, FieldUIConfig> = {
       },
     ],
   },
+  reactionsEnabled: {
+    type: 'toggle',
+    help: 'settings.app.reactionsEnabled.help',
+  },
   'appearance.theme': {
     type: 'tabs',
     options: [

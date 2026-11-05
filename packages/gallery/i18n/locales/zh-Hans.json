@@ -1270,6 +1270,11 @@
         "photos": "照片墙",
         "albums": "相簿"
       },
+      "reactionsEnabled": {
+        "label": "启用表态",
+        "description": "允许访客对照片表态",
+        "help": "关闭后将隐藏表态功能并阻止新的表态，但不会删除已有的表态数据。"
+      },
       "appearance": {
         "theme": {
           "label": "主题",
