@@ -66,6 +66,15 @@ test('ExifTool extraction receives an explicit work directory and cleans tempora
       service.extractPhotoInfo('album/2025-04-03.jpeg', exif).dateTaken,
       '2025-04-03T00:00:00.000Z',
     )
+    assert.equal(
+      service.extractPhotoInfo('album/IMG_4963.jpeg', null).title,
+      'IMG 4963',
+    )
+    assert.equal(
+      service.extractPhotoInfo('album/IMG_4963.jpeg', { Title: 'My title' })
+        .title,
+      'My title',
+    )
   } finally {
     await tool.end()
     await rm(directory, { recursive: true, force: true })

@@ -10,6 +10,7 @@ import {
 } from '@chronoframe/platform/entitlements'
 import { DomainError } from '@chronoframe/platform/domains'
 import { defaultSiteHost, validSiteSlug } from '@chronoframe/contracts/domains'
+import { photoTitleFromFileName } from '@chronoframe/contracts/photo'
 import type { MediaDatabase } from '@chronoframe/database/cloud-media'
 import { createCloudAlbumWithSlug } from '@chronoframe/database/cloud-album-slugs'
 import { deleteCloudPhotos } from '../../../../utils/cloud-photo-delete'
@@ -637,7 +638,7 @@ export default definePlatformHandler(async (event) => {
         ownerId: userId,
         jobId: id,
         pipelineVersion: '1',
-        title: detail.file_name,
+        title: photoTitleFromFileName(detail.file_name),
         now,
       })
       return { jobId: id }
@@ -741,7 +742,7 @@ export default definePlatformHandler(async (event) => {
     }
     const changed = await raw
       .prepare(
-        'UPDATE cloud_photos SET title=?,metadata_json=?,revision=revision+1 WHERE site_id=? AND id=? AND revision=? AND deleted=0 RETURNING id',
+        'UPDATE cloud_photos SET title=?,title_is_custom=1,metadata_json=?,revision=revision+1 WHERE site_id=? AND id=? AND revision=? AND deleted=0 RETURNING id',
       )
       .bind(title, JSON.stringify(metadata), siteId, ID(id), revision)
       .first()

@@ -99,3 +99,16 @@ export interface PhotoInfo {
   tags: string[]
   description: string
 }
+/** The shared filename fallback used when a photo has no explicit title. */
+export function photoTitleFromFileName(fileName: string): string {
+  const base = fileName.split(/[\\/]/).pop() || fileName
+  const dot = base.lastIndexOf('.')
+  const stem = dot > 0 ? base.slice(0, dot) : base
+  return (
+    stem
+      .replaceAll(/\d{4}-\d{2}-\d{2}[_-]?/g, '')
+      .replaceAll(/[_-]?\d+views?/gi, '')
+      .replaceAll(/[_-]+/g, ' ')
+      .trim() || stem
+  )
+}
