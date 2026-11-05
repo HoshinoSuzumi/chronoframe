@@ -66,7 +66,7 @@ export function createCloudResourceRepository(
       livePhotoVideoUrl: row.has_video ? base + '/live-video' : null,
     }
   }
-  const columns = `p.*,EXISTS(SELECT 1 FROM cloud_uploads u WHERE u.site_id=p.site_id AND u.photo_id=p.id AND u.source_version=p.source_version AND u.file_name=p.title) AS is_upload_title,EXISTS(SELECT 1 FROM cloud_media_assets a WHERE a.site_id=p.site_id AND a.photo_id=p.id AND a.source_version=p.source_version AND a.role='live-video') AS has_video`
+  const columns = `p.*,(p.title_is_custom=0 AND EXISTS(SELECT 1 FROM cloud_uploads u WHERE u.site_id=p.site_id AND u.photo_id=p.id AND u.source_version=p.source_version AND u.file_name=p.title)) AS is_upload_title,EXISTS(SELECT 1 FROM cloud_media_assets a WHERE a.site_id=p.site_id AND a.photo_id=p.id AND a.source_version=p.source_version AND a.role='live-video') AS has_video`
   const ready = `p.deleted=0 AND p.metadata_json IS NOT NULL AND EXISTS(SELECT 1 FROM cloud_media_assets a WHERE a.site_id=p.site_id AND a.photo_id=p.id AND a.source_version=p.source_version AND a.role='thumbnail')`
   const album = (r: Record<string, unknown>): AlbumReadRecord => ({
     resource: {

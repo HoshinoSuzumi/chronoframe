@@ -9,6 +9,8 @@ import {
   type MediaStatement,
 } from '../packages/database/src/cloud-media.ts'
 import { workspaceUsageSQL } from '../packages/platform/src/entitlements.ts'
+import { photoTitleFromFileName } from '../packages/contracts/src/photo.ts'
+import { createCloudResourceRepository } from '../packages/database/src/cloud-resources.ts'
 import {
   uploadAlbumIds,
   validateUploadAlbums,
@@ -42,6 +44,13 @@ test('upload reservation persists canonical site-owned albums and refuses changi
       }
       async first() {
         return sqlite.prepare(this.sql).get(...this.values) ?? null
+      }
+      async run() {
+        return {
+          meta: {
+            changes: sqlite.prepare(this.sql).run(...this.values).changes,
+          },
+        }
       }
     }
     const db = {
@@ -80,6 +89,15 @@ test('upload reservation persists canonical site-owned albums and refuses changi
         db,
         raw: db,
         repository,
+        storage: async () => ({
+          s3: {
+            head: async () => ({
+              bytes: 10,
+              contentType: 'image/jpeg',
+              etag: 'verified',
+            }),
+          },
+        }),
         resources: { listPhotos: async () => [] },
         sql: async (query: string, ...values: (string | number | null)[]) =>
           (
@@ -98,6 +116,7 @@ test('upload reservation persists canonical site-owned albums and refuses changi
       uploadAlbumIds,
       validateUploadAlbums,
       workspaceUsageSQL,
+      photoTitleFromFileName,
       workspaceEntitlements: async () => ({
         limits: {
           fileBytes: 1000,
@@ -117,9 +136,7 @@ test('upload reservation persists canonical site-owned albums and refuses changi
       'exports',
       ...Object.keys(deps),
       code + '; return exports.default',
-    )({}, ...Object.values(deps)) as (
-      event: RequestEvent,
-    ) => Promise<{
+    )({}, ...Object.values(deps)) as (event: RequestEvent) => Promise<{
       id?: string
       jobs?: { id: string; photo_id: string; state: string }[]
     }>
@@ -149,14 +166,44 @@ test('upload reservation persists canonical site-owned albums and refuses changi
       statusCode: 400,
       data: { code: 'upload_albums_unavailable' },
     })
-    await repository.completeUpload({
-      id: 'upload',
-      ownerId: 1,
-      jobId: 'job',
-      pipelineVersion: '1',
-      title: 'Photo',
-      now: Date.now(),
-    })
+    operation = 'uploads/upload/complete'
+    await api({ method: 'POST', body: {} })
+    assert.equal((await repository.photo('upload'))?.title, 'one')
+    assert.equal((await repository.upload('upload', 1))?.state, 'completed')
+    assert.equal(
+      sqlite
+        .prepare<[], { file_name: string }>(
+          "SELECT file_name FROM cloud_uploads WHERE site_id=1 AND id='upload'",
+        )
+        .get()?.file_name,
+      'one.jpg',
+    )
+
+    // Explicitly choosing the original filename is still a custom title.
+    sqlite
+      .prepare(
+        "UPDATE cloud_photos SET metadata_json='{}' WHERE site_id=1 AND id='upload'",
+      )
+      .run()
+    operation = 'photos/upload'
+    await api({ method: 'PATCH', body: { title: 'one.jpg', revision: 1 } })
+    const edited = sqlite
+      .prepare(
+        "SELECT title,title_is_custom FROM cloud_photos WHERE site_id=1 AND id='upload'",
+      )
+      .get() as { title: string; title_is_custom: number }
+    assert.equal(edited.title, 'one.jpg')
+    assert.equal(edited.title_is_custom, 1)
+    sqlite
+      .prepare(
+        "INSERT INTO cloud_media_assets(site_id,photo_id,source_version,pipeline_version,role,connection_id,object_key,bytes,content_type) VALUES(1,'upload',(SELECT source_version FROM cloud_photos WHERE site_id=1 AND id='upload'),'1','thumbnail','storage','thumb',10,'image/webp')",
+      )
+      .run()
+    for (const prefix of ['/api/public/media', '/api/sites/1/media']) {
+      const resources = createCloudResourceRepository(db, { id: 1 }, prefix)
+      assert.equal((await resources.listPhotos())[0]?.title, 'one.jpg')
+      assert.equal((await resources.listAlbumPhotos(1))[0]?.title, 'one.jpg')
+    }
     assert.deepEqual(
       sqlite
         .prepare<[], { album_id: string }>(
@@ -166,10 +213,15 @@ test('upload reservation persists canonical site-owned albums and refuses changi
         .map((r) => r.album_id),
       ['1'],
     )
+    sqlite
+      .prepare(
+        "UPDATE cloud_photos SET metadata_json=NULL WHERE site_id=1 AND id='upload'",
+      )
+      .run()
     operation = 'photos'
     sqlite
       .prepare(
-        "UPDATE cloud_processing_jobs SET state='failed' WHERE site_id=1 AND id='job'",
+        "UPDATE cloud_processing_jobs SET state='failed' WHERE site_id=1 AND id='upload'",
       )
       .run()
     const beforeDelete = await api({ method: 'GET', body: {} })
@@ -190,7 +242,7 @@ test('upload reservation persists canonical site-owned albums and refuses changi
       (
         sqlite
           .prepare(
-            "SELECT COUNT(*) AS total FROM cloud_processing_jobs WHERE site_id=1 AND id='job'",
+            "SELECT COUNT(*) AS total FROM cloud_processing_jobs WHERE site_id=1 AND id='upload'",
           )
           .get() as { total: number }
       ).total,
@@ -203,7 +255,7 @@ test('upload reservation persists canonical site-owned albums and refuses changi
       .run()
     sqlite
       .prepare(
-        "UPDATE cloud_processing_jobs SET state='running',created_at=1 WHERE site_id=1 AND id='job'",
+        "UPDATE cloud_processing_jobs SET state='running',created_at=1 WHERE site_id=1 AND id='upload'",
       )
       .run()
     sqlite.transaction(() => {
@@ -234,7 +286,7 @@ test('upload reservation persists canonical site-owned albums and refuses changi
     })()
     const jobs = (await api({ method: 'GET', body: {} })).jobs!
     assert.equal(jobs.length, 103) // All three older active jobs plus 100 history rows.
-    for (const id of ['job', 'more-0', 'more-1'])
+    for (const id of ['upload', 'more-0', 'more-1'])
       assert(jobs.some((job) => job.id === id))
     assert.equal(jobs.filter((job) => job.state === 'succeeded').length, 100)
     sqlite
@@ -244,7 +296,7 @@ test('upload reservation persists canonical site-owned albums and refuses changi
       .run()
     const afterDelete = (await api({ method: 'GET', body: {} })).jobs!
     assert.equal(afterDelete.length, 102)
-    assert(!afterDelete.some((job) => job.id === 'job'))
+    assert(!afterDelete.some((job) => job.id === 'upload'))
   } finally {
     sqlite.close()
   }

@@ -232,7 +232,24 @@ test('Cloud D1 and Self-hosted SQLite share ordering, visibility and protected-a
     }
     await db
       .prepare(
-        "UPDATE cloud_photos SET title='A custom title.jpeg' WHERE site_id=1 AND id='old'",
+        "UPDATE cloud_photos SET title_is_custom=1 WHERE site_id=1 AND id='old'",
+      )
+      .run()
+    for (const prefix of ['/api/public/media', '/api/sites/1/media']) {
+      const repository = createCloudResourceRepository(db, { id: 1 }, prefix)
+      assert.equal(
+        (await repository.listPhotos()).find((p) => p.id === 'old')?.title,
+        'IMG_4963.jpeg',
+      )
+      assert.equal(
+        (await repository.listAlbumPhotos(1)).find((p) => p.id === 'old')
+          ?.title,
+        'IMG_4963.jpeg',
+      )
+    }
+    await db
+      .prepare(
+        "UPDATE cloud_photos SET title='A custom title.jpeg',title_is_custom=0 WHERE site_id=1 AND id='old'",
       )
       .run()
     const titles = createCloudResourceRepository(

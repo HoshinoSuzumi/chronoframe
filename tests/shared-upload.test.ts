@@ -7,6 +7,7 @@ import {
   loadUploadCode,
 } from './helpers/upload-runtime.ts'
 import { canFallbackToSingleUpload } from '../packages/storage/src/multipart-fallback.ts'
+import { photoTitleFromFileName } from '../packages/contracts/src/photo.ts'
 
 const tick = () => new Promise<void>((resolve) => setImmediate(resolve))
 const context = {
@@ -521,6 +522,7 @@ test('Cloud plan falls back only before a multipart session exists and always re
         '@chronoframe/platform/entitlements': {},
         '@chronoframe/platform/domains': {},
         '@chronoframe/contracts/domains': {},
+        '@chronoframe/contracts/photo': { photoTitleFromFileName },
         '@chronoframe/database/cloud-album-slugs': {},
         '../../../../utils/cloud-photo-delete': {},
         '../../../../utils/cloud-album-editor': {},

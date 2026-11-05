@@ -742,7 +742,7 @@ export default definePlatformHandler(async (event) => {
     }
     const changed = await raw
       .prepare(
-        'UPDATE cloud_photos SET title=?,metadata_json=?,revision=revision+1 WHERE site_id=? AND id=? AND revision=? AND deleted=0 RETURNING id',
+        'UPDATE cloud_photos SET title=?,title_is_custom=1,metadata_json=?,revision=revision+1 WHERE site_id=? AND id=? AND revision=? AND deleted=0 RETURNING id',
       )
       .bind(title, JSON.stringify(metadata), siteId, ID(id), revision)
       .first()
