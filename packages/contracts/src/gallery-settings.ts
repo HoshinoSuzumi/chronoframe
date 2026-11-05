@@ -47,6 +47,7 @@ export interface GalleryPresentation {
   homeHeaderLayout: 'embedded' | 'fixed'
   socialLinks: { links: string[] }
   reactionsEnabled: boolean
+  homeView: 'photos' | 'albums'
 }
 export function parseGalleryPresentation(value: unknown): GalleryPresentation {
   if (!value || typeof value !== 'object' || Array.isArray(value))
@@ -57,6 +58,7 @@ export function parseGalleryPresentation(value: unknown): GalleryPresentation {
       (k) =>
         ![
           'homeHeaderLayout',
+          'homeView',
           'reactionsEnabled',
           'socialLinks',
           'theme',
@@ -73,7 +75,11 @@ export function parseGalleryPresentation(value: unknown): GalleryPresentation {
   const reactionsEnabled = data.reactionsEnabled
   if (reactionsEnabled !== undefined && typeof reactionsEnabled !== 'boolean')
     throw new Error('Invalid gallery reactions setting')
+  const homeView = data.homeView
+  if (homeView !== undefined && homeView !== 'photos' && homeView !== 'albums')
+    throw new Error('Invalid gallery home view')
   return {
+    homeView: homeView ?? 'photos',
     theme: (data.theme ?? 'dark') as GalleryPresentation['theme'],
     homeHeaderLayout:
       data.homeHeaderLayout as GalleryPresentation['homeHeaderLayout'],

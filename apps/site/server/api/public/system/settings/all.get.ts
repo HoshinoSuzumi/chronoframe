@@ -43,6 +43,7 @@ export default definePlatformHandler(async (event) => {
     data.app!['appearance.homeHeaderLayout'] = presentation.homeHeaderLayout
     data.app!.socialLinks = presentation.socialLinks
     data.app!.reactionsEnabled = presentation.reactionsEnabled
+    data.app!.homeView = presentation.homeView
   }
   data.map = {
     ...(await siteMaps(platformDatabase(event), context.siteId)).effective,

@@ -238,6 +238,8 @@ export function createD1Provisioning(
           // Older clients omit newer fields; retain the stored preferences.
           if (!Object.hasOwn(properties, 'theme'))
             parsed.theme = current.presentation.theme
+          if (!Object.hasOwn(properties, 'homeView'))
+            parsed.homeView = current.presentation.homeView
           if (!Object.hasOwn(properties, 'reactionsEnabled'))
             parsed.reactionsEnabled = current.presentation.reactionsEnabled
           presentation = parsed

@@ -671,6 +671,12 @@
       "theme": "默认主题",
       "themeHelp": "设置公开图库的默认外观，访客仍可切换明暗主题。",
       "reactions": "照片表态",
+      "homeView": "首页",
+      "homeViewHelp": "选择访客访问站点根路径时看到的内容。",
+      "homeViewOptions": {
+        "photos": "照片墙",
+        "albums": "相簿"
+      },
       "reactionsHelp": "允许访客对照片表态。关闭后将隐藏表态控件并阻止新的表态，但不会删除已有的历史表态数据。",
       "themeOptions": {
         "light": "浅色",

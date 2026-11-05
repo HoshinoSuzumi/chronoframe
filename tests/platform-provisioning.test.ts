@@ -258,6 +258,7 @@ test('Real D1 provisioning preserves old tenants, serializes defaults and enforc
         links: ['https://github.com/example', 'https://example.com/portfolio'],
       },
       reactionsEnabled: true,
+      homeView: 'photos',
     })
     assert.equal(profiled.title, profile.title)
     assert.equal((await store.get(42, 8)).avatarUrl, profile.avatarUrl)
