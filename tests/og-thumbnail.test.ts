@@ -74,6 +74,18 @@ for (const edition of ['site', 'cloud', 'self-hosted'] as const) {
     const html = await render('Home', edition, { thumbnails: [url] })
     assert.ok(html.includes(`src="${resolveShareThumbnail(url, edition)}"`))
   })
+
+  test(`${edition}: home OG without avatar or thumbnails uses the default avatar and no empty frames`, async () => {
+    const html = await render('Home', edition, {
+      appTitle: 'Empty Gallery 摄影',
+      avatarUrl: '',
+      thumbnails: [],
+    })
+    assert.ok(html.includes('src="/web-app-manifest-512x512.png"'))
+    assert.ok(html.includes('Empty Gallery 摄影'))
+    assert.ok(!html.includes('og-home__gallery'))
+    assert.ok(!html.includes('src=""'))
+  })
 }
 
 test('photo OG without a thumbnail keeps its text fallback', async () => {
