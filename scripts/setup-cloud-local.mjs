@@ -15,6 +15,7 @@ try {
   env = ''
 }
 const defaults = {
+  NUXT_APP_SECRET: randomBytes(32).toString('base64url'),
   NUXT_PLATFORM_PORTAL_ORIGIN: 'http://localhost:3001',
   NUXT_SESSION_PASSWORD: randomBytes(32).toString('hex'),
   NUXT_PLATFORM_SECRET: randomBytes(32).toString('hex'),

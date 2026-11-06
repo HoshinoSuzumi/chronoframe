@@ -89,8 +89,24 @@ never the Self-hosted root `.env`. Generated output is local to this app.
 Production targets Cloudflare Workers (`cloudflare-module`). Building never deploys;
 the approved SaaS workflow publishes code and isolated environment bindings. Native
 SQLite/media processors, filesystem storage and embedded queues are not Cloud
-fallbacks. Dynamic OG remains disabled until a compatible renderer is selected.
+fallbacks. Shared OG Image rendering uses Takumi WASM on Workers; it does not
+enable additional gallery routes or bypass platform authorization.
 
 The marketing host and portal share this app; trusted Host/session/Membership checks
 still gate platform APIs. Default Site provisioning and media management remain P4.
 The public Site Worker and Self-hosted application retain their own presentation.
+
+Keep indexing route-specific: marketing pages remain discoverable; authentication
+and rendered private portal pages retain `noindex`. Preserve authentication
+redirects and access checks rather than adding a global indexability override.
+
+## OG image signing
+
+See the [shared signing guide](../shared/platform/README.md#og-image-signing)
+for Worker bindings and deployment/rollback configuration, and the
+[Update Guide](../../docs/guide/updates.md#og-image-signing) for v7 signed-URL
+invalidation and cache refresh.
+
+For local Cloud development, `pnpm setup:cloud` adds a missing app-local secret
+without replacing existing values. Site has its own
+[local app secret instructions](../site/README.md#local-app-secret).

@@ -21,6 +21,8 @@ const worker = spawn(
     cli,
     'dev',
     '--local',
+    '--var',
+    `NUXT_APP_SECRET:chronoframe-${entry}-smoke-only-signing-key`,
     ...(originHost ? ['--local-upstream', originHost] : []),
     '--config',
     `apps/${entry}/.output/server/wrangler.json`,

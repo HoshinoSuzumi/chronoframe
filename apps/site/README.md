@@ -37,6 +37,46 @@ to rely on arbitrary Node APIs or writable local storage. Future bindings and
 secrets must be configured per worker, independently from Self-hosted credentials.
 Other edge providers require their own Nitro preset and runtime validation.
 
-Dynamic OG image endpoints are disabled in this bootstrap. Enable them only with
-a Worker-compatible WASM renderer or a dedicated remote rendering service;
-Self-hosted native renderers are not a fallback for the edge runtime.
+OG Image is enabled by the shared configuration and uses Takumi WASM on Workers.
+Public Site routing and authorization still determine which pages are available;
+the module does not enable bootstrap-only or unauthorized gallery routes. Native
+Self-hosted renderers are not a fallback for the edge runtime.
+
+Preserve route-specific indexing and access checks: published galleries and public
+album password prompts remain discoverable. Protected album data returns 403;
+hidden albums and unpublished Sites return 404. This migration does not add a
+global indexability override or make password prompts `noindex`.
+
+## OG image signing
+
+See the [shared signing guide](../shared/platform/README.md#og-image-signing)
+for Worker bindings and deployment/rollback configuration, and the
+[Update Guide](../../docs/guide/updates.md#og-image-signing) for v7 signed-URL
+invalidation and cache refresh.
+
+### Local app secret
+
+Site intentionally has no equivalent of `pnpm setup:cloud`: that command also
+migrates Cloud's local D1 database and provisions its developer account. It does
+not configure Site. Site's launcher already reads `apps/site/.env` independently
+of Cloud and Self-hosted; leaving its app secret unset uses Nuxt's generated
+development app secret. No additional setup command is required for that signing mode.
+
+For a stable local Site app secret, run this command from the repository root:
+
+```sh
+node -e "console.log(require('node:crypto').randomBytes(48).toString('base64url'))"
+```
+
+Create or edit `apps/site/.env` and set only the following value to the generated
+output, preserving other configuration:
+
+```dotenv
+NUXT_APP_SECRET=<generated-output>
+```
+
+Keep an existing valid app secret instead of regenerating it. Generate a separate
+value from Cloud's app secret, keep the file uncommitted, and restart `pnpm dev:site`
+after changing it. An app secret does not provision Site data or verified Host mappings.
+This local file does not configure the deployed Worker; follow the shared signing
+guide for production configuration.

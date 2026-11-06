@@ -73,7 +73,15 @@ Local storage is ready to use. The service guides explain S3 credentials and COR
 
 ## Keep your data
 
-Keep the `./data:/app/data` mount. The default database is `/app/data/app.sqlite3`; a session secret is generated automatically and saved to `/app/data/.session-password`. With the local path above, originals and derived files also live under this directory.
+Keep the `./data:/app/data` mount and back up the complete directory, including hidden key files:
+
+- `/app/data/app.sqlite3`: photo metadata and settings.
+- `/app/data/.session-password`: automatically generated session secret.
+- `/app/data/.app-secret`: automatically generated app secret for OG image signing when no explicit app secret is configured.
+
+`NUXT_APP_SECRET` is optional; supply a private value of at least 32 characters in the container environment to manage the app secret yourself. It does not replace the session password. Keep the app secret and session password consistent across replicas, and retain any environment-supplied secrets in your backup configuration. See the [update guide](/guide/updates#og-image-signing) for upgrades and rollback.
+
+With the local storage path above, originals and derived files also live under this directory.
 
 ::: warning Preserve data when updating
 Keep the data directory when replacing a container. Files stored in S3 or OpenList need their own backup; a database backup alone cannot restore missing originals.

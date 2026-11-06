@@ -9,7 +9,7 @@ Read the [changelog](/changelog) before choosing a target version and review its
 ::: warning Stop and back up first
 Stop the container, then back up:
 
-- The complete data directory and Compose file.
+- The complete data directory and Compose file, including `app.sqlite3`, `.session-password` and `.app-secret` when present. Include hidden key files, not just the database.
 - `.env`, if your older deployment still uses it.
 - Local photos outside `data`, plus files in S3 or OpenList.
 
@@ -42,6 +42,13 @@ Database migrations run automatically at startup. Manual migration commands are 
 
 For a `docker run` deployment, stop and remove the old container, then recreate it with the new tag and the same data mount. Preserve your ports, networks and any deployment environment variables you still need.
 
+## OG image signing
+
+- If you configured `NUXT_OG_IMAGE_SECRET`, rename it to `NUXT_APP_SECRET` and keep the same value. The old name remains a deprecated fallback. With neither configured, startup creates and reuses `data/.app-secret`; preserve it alongside `.session-password`.
+- OG Image v7 invalidates v6 signed image URLs even when the app secret is unchanged. Refresh cached HTML containing OG image URLs after upgrading, then check gallery and public-photo share previews.
+- This SEO change requires no database migration. Keep app secrets stable; invalid explicit app secrets or key-file read/write failures stop startup instead of silently choosing a new app secret.
+- To roll back this change, restore the previous image tag and environment configuration, retain the persistent data volume and its key files, and refresh affected cached HTML again. If other changes in the release migrated the database, follow the backup-restoration steps below.
+
 ## From v0.14.1 to 1.0.0
 
 - Use `v1.0.0` to pin this release or `latest` to follow stable releases.
@@ -53,7 +60,7 @@ For a `docker run` deployment, stop and remove the old container, then recreate 
 ## Roll back
 
 ::: danger Restore the database when rolling back
-Migrations may change the database schema. To roll back, stop the new container, restore the complete backup from before the upgrade and start the original image tag. Downgrading only the image while retaining a migrated database is not a reliable rollback.
+If the upgrade applied database schema migrations, stop the new container, restore the complete backup from before the upgrade and start the original image tag with its previous environment configuration. Downgrading only the image while retaining a migrated database is not a reliable rollback. For the SEO-only change above, preserve the existing data volume and key files when reverting the image and environment.
 
 :::
 
