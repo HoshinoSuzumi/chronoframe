@@ -44,7 +44,9 @@ For a `docker run` deployment, stop and remove the old container, then recreate 
 
 ## OG image signing
 
-- If you configured `NUXT_OG_IMAGE_SECRET`, rename it to `NUXT_APP_SECRET` and keep the same value. The old name remains a deprecated fallback. Without an explicit app secret, startup creates and reuses `data/.app-secret`; preserve it alongside `.session-password`.
+- For v6-to-v6 upgrades, keep `NUXT_OG_IMAGE_SECRET` and its existing value. Renaming it can change the signing secret and break verification of cached image URLs.
+- When upgrading to OG Image v7, rename `NUXT_OG_IMAGE_SECRET` to `NUXT_APP_SECRET` with the same value only if neither `NITRO_APP_SECRET` nor `NUXT_APP_SECRET` is already configured. If both Nuxt variables are configured and `NITRO_APP_SECRET` is unset, `NUXT_APP_SECRET` takes precedence: preserve its value and do not overwrite it with the legacy value. `NITRO_APP_SECRET`, when set, has the highest precedence.
+- In v7, the legacy name remains a deprecated fallback. Without an explicit app secret, startup creates and reuses `data/.app-secret`; preserve it alongside `.session-password`.
 - OG Image v7 invalidates v6 signed image URLs even when the app secret is unchanged. Refresh cached HTML containing OG image URLs after upgrading, then check gallery and public-photo share previews.
 - This SEO change requires no database migration. Keep app secrets stable; invalid explicit app secrets or key-file read/write failures stop startup instead of silently choosing a new app secret.
 - To roll back this change, restore the previous image tag and environment configuration, retain the persistent data volume and its key files, and refresh affected cached HTML again. If other changes in the release migrated the database, follow the backup-restoration steps below.

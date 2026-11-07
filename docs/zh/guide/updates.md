@@ -44,7 +44,9 @@ docker compose logs -f chronoframe
 
 ## OG 图片签名
 
-- 如果已配置 `NUXT_OG_IMAGE_SECRET`，将变量名改为 `NUXT_APP_SECRET`，保留原值。旧名称仍作为弃用的兼容配置使用。未显式配置应用密钥时，启动会创建并复用 `data/.app-secret`；请将其与 `.session-password` 一起保留。
+- v6 到 v6 的升级应保留 `NUXT_OG_IMAGE_SECRET` 及其原值。重命名可能改变签名密钥，导致缓存图片 URL 无法通过验证。
+- 仅在升级到 OG Image v7，且尚未配置 `NITRO_APP_SECRET` 和 `NUXT_APP_SECRET` 时，将 `NUXT_OG_IMAGE_SECRET` 改名为 `NUXT_APP_SECRET` 并保留原值。如果两个 Nuxt 变量均已配置，而 `NITRO_APP_SECRET` 未设置，则 `NUXT_APP_SECRET` 优先：保留其现有值，不要用旧变量的值覆盖它。设置了 `NITRO_APP_SECRET` 时，该变量的优先级最高。
+- 在 v7 中，旧名称仍作为弃用的兼容配置使用。未显式配置应用密钥时，启动会创建并复用 `data/.app-secret`；请将其与 `.session-password` 一起保留。
 - 即使应用密钥不变，OG Image v7 也会使 v6 签名图片 URL 失效。升级后刷新包含 OG 图片 URL 的 HTML 缓存，再检查画廊及公开照片的分享预览。
 - 本次 SEO 变更不需要数据库迁移。保持应用密钥稳定；无效的显式应用密钥或密钥文件读写失败会阻止启动，不会自动选择新应用密钥。
 - 回退本次变更时，恢复旧镜像标签和环境配置，保留持久化数据卷及密钥文件，并再次刷新相关 HTML 缓存。如果同一版本的其他变更迁移了数据库，请按照下方说明恢复备份。
