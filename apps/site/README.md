@@ -11,13 +11,15 @@ it does not load the root Self-hosted `.env` or start its server plugins, databa
 storage, migrations, worker pool, OAuth routes, or tenant scripts. Generated files
 stay under this application's `.nuxt` and `.output` directories.
 
-This is the P3.4 composition boundary, not a usable multi-tenant service.
-`GET /api/health` identifies the entry as `bootstrap`; all other API requests return
-503 with no-store, including authentication and Self-hosted onboarding endpoints.
-Gallery routes remain unavailable until trusted Host-to-Site resolution and visitor authorization are implemented.
-No environment flag or root administrator session enables access. P3.5 must
-replace these explicit boundaries with platform authorization and Site-aware
-repositories before any real data can be served.
+`GET /api/health` reports `bootstrap`. With platform bindings and an active,
+verified Host mapping to a published Site, public galleries and public album
+password prompts are available. Allowlisted public APIs provide Site-scoped
+context, settings, photos, albums, media and visitor access checks.
+
+Unsupported APIs, including Self-hosted authentication, onboarding and management
+endpoints, remain blocked with 503 and no-store. Gallery requests also return 503
+when required platform bindings are missing. A Self-hosted administrator session
+does not grant Site access.
 
 No console layer, platform login UI, or tenant-provided scripts are included.
 This entry does not change the Self-hosted root commands or data paths.
@@ -38,8 +40,8 @@ secrets must be configured per worker, independently from Self-hosted credential
 Other edge providers require their own Nitro preset and runtime validation.
 
 OG Image is enabled by the shared configuration and uses Takumi WASM on Workers.
-Public Site routing and authorization still determine which pages are available;
-the module does not enable bootstrap-only or unauthorized gallery routes. Native
+Public Site routing and authorization determine which pages are available;
+the module does not bypass Site or visitor access checks. Native
 Self-hosted renderers are not a fallback for the edge runtime.
 
 Preserve route-specific indexing and access checks: published galleries and public
