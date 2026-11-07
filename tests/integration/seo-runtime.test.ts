@@ -160,8 +160,10 @@ test(
           assert.equal((html.match(/property="og:image"/g) || []).length, 1)
           assert.match(html, /summary_large_image/)
           const image = imageUrl(html)
+          const imageURL = new URL(image)
+          const imagePath = imageURL.pathname + imageURL.search
           if (name === 'home') homeImage = image
-          const result = await first.request(image)
+          const result = await first.request(imagePath)
           assert.equal(result.status, 200, first.output())
           assert.match(result.headers.get('content-type') || '', /image\/png/)
           const png = Buffer.from(await result.arrayBuffer())
@@ -182,11 +184,11 @@ test(
             )
           }
           assert.equal(
-            (await first.request(image)).status,
+            (await first.request(imagePath)).status,
             200,
             'cached image must remain accessible',
           )
-          const decodedImage = decodeURIComponent(image)
+          const decodedImage = decodeURIComponent(imagePath)
           assert.match(
             decodedImage,
             /,s_[^,/.]+\.png/,
