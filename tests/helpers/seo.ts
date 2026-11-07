@@ -1,6 +1,31 @@
 import assert from 'node:assert/strict'
+import type { ChildProcess } from 'node:child_process'
 import { once } from 'node:events'
 import { createServer } from 'node:net'
+
+/** Cancellation must not release fixture cleanup while a child is still running. */
+export async function waitForChildExit(
+  child: ChildProcess,
+  signal: AbortSignal,
+) {
+  const exited = once(child, 'exit')
+  let forceKill: NodeJS.Timeout | undefined
+  const terminate = () => {
+    child.kill('SIGTERM')
+    forceKill = setTimeout(() => child.kill('SIGKILL'), 5000)
+    forceKill.unref()
+  }
+  signal.addEventListener('abort', terminate, { once: true })
+  try {
+    if (signal.aborted) terminate()
+    const result = await exited
+    signal.throwIfAborted()
+    return result
+  } finally {
+    signal.removeEventListener('abort', terminate)
+    clearTimeout(forceKill)
+  }
+}
 
 export async function unusedPort() {
   const listener = createServer()

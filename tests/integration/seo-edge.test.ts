@@ -24,7 +24,7 @@ import type { EntrySiteContext } from '../../packages/contracts/src/entry.ts'
 import { splitSqlQuery } from '../helpers/sql.ts'
 import { createEmailCodeCrypto } from '../../apps/shared/platform/crypto.ts'
 import { galleryFontFamilies } from '../../packages/gallery/fonts.ts'
-import { imageUrl, unusedPort } from '../helpers/seo.ts'
+import { imageUrl, unusedPort, waitForChildExit } from '../helpers/seo.ts'
 
 const root = process.cwd()
 const require = createRequire(import.meta.url)
@@ -104,7 +104,7 @@ async function withBuiltEntry(
 test(
   'Worker OG font resolution, signing bindings and Site Config build overrides are preserved',
   { timeout: 180_000 },
-  async () => {
+  async (t) => {
     const directory = await mkdtemp(join(tmpdir(), 'chronoframe-seo-edge-'))
     try {
       await symlink(
@@ -197,7 +197,7 @@ export default config`,
         stream.on('data', (chunk) => {
           buildOutput = (buildOutput + chunk).slice(-8000)
         })
-      const [buildCode] = await once(build, 'exit')
+      const [buildCode] = await waitForChildExit(build, t.signal)
       assert.equal(buildCode, 0, buildOutput)
       const fontEvents = JSON.parse(
         await readFile(join(directory, 'font-events.json'), 'utf8'),
