@@ -222,8 +222,13 @@ test('the production entry initializes a single root before frozen config import
       'restart must reuse the persisted root',
     )
     // A persisted string must not become a number through Nitro's env parsing.
-    writeFileSync(join(directory, 'data/.app-secret'), '1'.repeat(40))
-    assert.match(await start(), /^[a-f0-9]{64}$/)
+    const numericSecret = '1'.repeat(40)
+    writeFileSync(join(directory, 'data/.app-secret'), numericSecret)
+    assert.equal(
+      await start(),
+      createHash('sha256').update(numericSecret).digest('hex'),
+      'bootstrap must preserve the exact persisted string through config initialization',
+    )
     const nitroSecret = 'nitro-bootstrap-secret'.repeat(3)
     assert.equal(
       await start({

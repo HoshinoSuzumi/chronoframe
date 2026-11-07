@@ -1,5 +1,8 @@
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
+import { createRequire } from 'node:module'
+import { dirname, resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import test from 'node:test'
 import vm from 'node:vm'
 import ts from 'typescript'
@@ -13,11 +16,63 @@ import {
   resolveShareAvatar,
 } from '../packages/gallery/app/utils/open-graph.ts'
 import { defaultLocationFallback } from '../packages/gallery/shared/utils/location.ts'
+import { imageUrl } from './helpers/seo.ts'
 
-// Exercise the real composable, Vue watchers and Unhead's client reactivity.
-// Nuxt route/fetch/lifecycle adapters and the OG image registration are test doubles;
-// this does not claim browser-router or generated image DOM coverage.
-test('route changes update a single canonical/social head and register the current OG props', async () => {
+// Compile the installed OG modules with Nuxt's client flags in the same realm as
+// Vue/Unhead. Only Nuxt adapters and generated virtual modules are supplied here.
+function loadClientOgImage(adapters: Record<string, unknown>) {
+  const runtime = resolve(
+    dirname(fileURLToPath(import.meta.resolve('nuxt-og-image'))),
+    'runtime',
+  )
+  const modules = new Map<string, { exports: Record<string, unknown> }>()
+  function load(file: string): Record<string, unknown> {
+    const cached = modules.get(file)
+    if (cached) return cached.exports
+    const module = { exports: {} }
+    modules.set(file, module)
+    const source = ts.transpileModule(
+      readFileSync(file, 'utf8').replace(
+        /import\.meta\.(client|server|dev|prerender)/g,
+        (_, flag) => String(flag === 'client'),
+      ),
+      {
+        compilerOptions: {
+          module: ts.ModuleKind.CommonJS,
+          target: ts.ScriptTarget.ES2022,
+        },
+      },
+    ).outputText
+    vm.compileFunction(source, ['exports', 'require', 'module'])(
+      module.exports,
+      (name: string) =>
+        name in adapters
+          ? adapters[name]
+          : name.startsWith('.')
+            ? load(resolve(dirname(file), name))
+            : createRequire(file)(name),
+      module,
+    )
+    return module.exports
+  }
+  return load(resolve(runtime, 'app/composables/defineOgImage.js'))
+    .defineOgImage as (
+    component: string,
+    props: Record<string, unknown>,
+    options?: Record<string, unknown>,
+  ) => unknown
+}
+
+test('route changes update a single canonical/social head and register the current OG props', () =>
+  checkNavigation(false))
+
+test('route changes update one current OG image using the real defineOgImage client module', () =>
+  checkNavigation(true))
+
+// Exercise the real Gallery composable, Vue watchers and Unhead client reactivity
+// with both a props recorder and the installed OG client. Nuxt route/fetch/lifecycle
+// adapters remain fixtures; this does not claim browser-router or DOM coverage.
+async function checkNavigation(realOgImage: boolean) {
   const route = reactive({ path: '/', params: {} as { slug?: string } })
   const homeView = ref('photos')
   const head = createHead()
@@ -38,6 +93,28 @@ test('route changes update a single canonical/social head and register the curre
     thumbnailUrl: '/fixture.png',
   }
   const images: { component: string; props: Record<string, unknown> }[] = []
+  const defineOgImage = realOgImage
+    ? loadClientOgImage({
+        'nuxt/app': {
+          useNuxtApp: () => ({ isHydrating: false }),
+          useRoute: () => route,
+          useRuntimeConfig: () => ({
+            app: { baseURL: '/' },
+            public: { 'nuxt-og-image': {} },
+          }),
+          injectHead: () => head,
+          useHead: (input: Parameters<typeof useHead>[0]) =>
+            useHead(input, { head }),
+        },
+        '#build/nuxt-og-image/client-config.mjs': { hasServerRuntime: true },
+        '#build/nuxt-og-image/components.mjs': { componentNames: [] },
+        '#site-config/app': {
+          createSitePathResolver: () => (path: string) =>
+            new URL(path, 'https://gallery.example.test').href,
+        },
+      })
+    : (component: string, props: Record<string, unknown>) =>
+        images.push({ component, props })
   let mounted: (() => void) | undefined
   const exports: {
     useInstanceOpenGraph?: (
@@ -86,8 +163,7 @@ test('route changes update a single canonical/social head and register the curre
     useHead: (input: Parameters<typeof useHead>[0]) => useHead(input, { head }),
     useSeoMeta: (input: Parameters<typeof useSeoMeta>[0]) =>
       useSeoMeta(input, { head }),
-    defineOgImage: (component: string, props: Record<string, unknown>) =>
-      images.push({ component, props }),
+    defineOgImage,
     onMounted: (run: () => void) => {
       mounted = run
     },
@@ -141,10 +217,34 @@ test('route changes update a single canonical/social head and register the curre
         ),
         path,
       )
-      const image = images.at(-1)!
-      assert.equal(image.component, component, path)
-      if (slug) assert.equal((image.props.photo as typeof photo).id, slug)
-      else assert.equal(image.props.appTitle, 'Gallery 摄影')
+      if (realOgImage) {
+        assert.equal(
+          (headTags.match(/property="og:image"/g) || []).length,
+          1,
+          path,
+        )
+        assert.equal(
+          imageUrl(headTags),
+          `https://gallery.example.test/_og/r${path === '/' ? '' : path}.png`,
+          path,
+        )
+        assert.equal(
+          (headTags.match(/name="twitter:image"/g) || []).length,
+          1,
+          path,
+        )
+        assert.ok(
+          headTags.includes(
+            `name="twitter:image" content="${imageUrl(headTags)}"`,
+          ),
+          path,
+        )
+      } else {
+        const image = images.at(-1)!
+        assert.equal(image.component, component, path)
+        if (slug) assert.equal((image.props.photo as typeof photo).id, slug)
+        else assert.equal(image.props.appTitle, 'Gallery 摄影')
+      }
     }
     homeView.value = 'albums'
     route.path = '/albums'
@@ -157,4 +257,4 @@ test('route changes update a single canonical/social head and register the curre
   } finally {
     scope.stop()
   }
-})
+}

@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 import { spawn, type ChildProcess } from 'node:child_process'
 import { once } from 'node:events'
+import { createHash, hkdfSync } from 'node:crypto'
 import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -313,6 +314,61 @@ test(
               } finally {
                 await stop(restarted.server)
               }
+            }
+            const rotatedSecret = 'rotated-explicit-test-secret'.repeat(3)
+            const rotated = await start(directory, {
+              ...env,
+              [key]: rotatedSecret,
+            })
+            try {
+              assert.equal(
+                (await rotated.request(imagePath!)).status,
+                403,
+                `${key} rotation must reject URLs signed with the old secret`,
+              )
+              const page = await rotated.request('/')
+              assert.equal(page.status, 200)
+              const image = new URL(imageUrl(await page.text()))
+              const rotatedPath = image.pathname + image.search
+              assert.notEqual(rotatedPath, imagePath!)
+              const signed = decodeURIComponent(image.pathname).match(
+                /^\/_og\/d\/(.+),s_([^,/.]+)\.png$/,
+              )
+              assert.ok(
+                signed,
+                'rotated URL must contain signed image parameters',
+              )
+              // Verify v7's signature independently of the running server:
+              // Nuxt derives the signing key from this exact app secret.
+              const signingKey = Buffer.from(
+                hkdfSync(
+                  'sha256',
+                  rotatedSecret,
+                  'nuxt',
+                  'nuxt-og-image:url-signing',
+                  32,
+                ),
+              ).toString('hex')
+              assert.equal(
+                signed[2],
+                createHash('sha256')
+                  .update(`${signingKey}:${signed[1]}`)
+                  .digest('base64url')
+                  .slice(0, 16),
+              )
+              const response = await rotated.request(rotatedPath)
+              assert.equal(response.status, 200, rotated.output())
+              assert.match(
+                response.headers.get('content-type') || '',
+                /image\/png/,
+              )
+              if (legacy) {
+                await assert.rejects(readFile(secretFile), { code: 'ENOENT' })
+              } else {
+                assert.equal(await readFile(secretFile, 'utf8'), persisted)
+              }
+            } finally {
+              await stop(rotated.server)
             }
           },
         )
