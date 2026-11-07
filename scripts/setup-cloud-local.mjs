@@ -23,6 +23,14 @@ const defaults = {
   NUXT_PLATFORM_EMAIL_FROM: 'verify@localhost.test',
 }
 for (const [key, value] of Object.entries(defaults)) {
+  if (key === 'NUXT_APP_SECRET') {
+    env = env.replace(
+      /^([ \t]*(?:export[ \t]+)?NUXT_APP_SECRET[ \t]*=)[ \t]*(?:""|''|``)?[ \t]*(#[^\r\n]*)?(?=\r?$)/gm,
+      (_assignment, prefix, comment) =>
+        `${prefix}${value}${comment ? ` ${comment}` : ''}`,
+    )
+    if (/^[ \t]*(?:export[ \t]+)?NUXT_APP_SECRET[ \t]*=/m.test(env)) continue
+  }
   if (!new RegExp(`^\\s*${key}\\s*=`, 'm').test(env))
     env += `\n${key}=${value}\n`
 }
