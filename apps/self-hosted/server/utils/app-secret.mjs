@@ -25,7 +25,7 @@ function readSecret(file) {
   }
 }
 
-function environmentSecret(value) {
+function environmentSecret(value, name) {
   let parsed = value
   try {
     parsed = JSON.parse(value)
@@ -33,17 +33,20 @@ function environmentSecret(value) {
     // Unquoted ordinary strings are also supported by Nitro's env parser.
   }
   if (typeof parsed !== 'string')
-    throw new Error(
-      'NUXT_APP_SECRET must be a string with at least 32 characters.',
-    )
-  return validate(parsed, 'NUXT_APP_SECRET')
+    throw new Error(`${name} must be a string with at least 32 characters.`)
+  return validate(parsed, name)
 }
 
 /** Standalone Node utility: resolve the app secret before Nitro freezes runtime config. */
 export function ensureAppSecret(file, env = process.env) {
+  if (env.NITRO_APP_SECRET !== undefined)
+    return {
+      secret: environmentSecret(env.NITRO_APP_SECRET, 'NITRO_APP_SECRET'),
+      source: 'env',
+    }
   if (env.NUXT_APP_SECRET)
     return {
-      secret: environmentSecret(env.NUXT_APP_SECRET),
+      secret: environmentSecret(env.NUXT_APP_SECRET, 'NUXT_APP_SECRET'),
       source: 'env',
     }
   if (env.NUXT_OG_IMAGE_SECRET)

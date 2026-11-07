@@ -7,7 +7,8 @@ import {
   writeFileSync,
 } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { dirname, join } from 'node:path'
+import { createHash } from 'node:crypto'
 import test from 'node:test'
 import { ensureAppSecret } from '../apps/self-hosted/server/utils/app-secret.mjs'
 import { prepareSelfHostedRuntime } from '../apps/self-hosted/build/prepare-runtime.mjs'
@@ -48,6 +49,58 @@ test('explicit app secrets take precedence and create no file', () => {
       }),
       { secret, source: 'env' },
     )
+    assert.throws(() => readFileSync(file), { code: 'ENOENT' })
+  })
+})
+
+test('Nitro app secret precedes Nuxt, legacy and persisted secrets without creating a file', () => {
+  fixture((file) => {
+    const secret = 'nitro-secret'.repeat(4)
+    const env = {
+      NITRO_APP_SECRET: JSON.stringify(secret),
+      NUXT_APP_SECRET: 'invalid-lower-priority',
+      NUXT_OG_IMAGE_SECRET: 'legacy'.repeat(8),
+    }
+    assert.deepEqual(ensureAppSecret(file, env), { secret, source: 'env' })
+    assert.throws(() => readFileSync(file), { code: 'ENOENT' })
+    mkdirSync(dirname(file), { recursive: true })
+    writeFileSync(file, 'invalid-persisted-secret')
+    assert.equal(ensureAppSecret(file, env).secret, secret)
+    assert.equal(readFileSync(file, 'utf8'), 'invalid-persisted-secret')
+    assert.equal(
+      ensureAppSecret(file, {
+        ...env,
+        NUXT_APP_SECRET: 'nuxt-secret'.repeat(4),
+      }).secret,
+      secret,
+    )
+  })
+})
+
+test('invalid Nitro app secrets fail before lower-priority secrets without leaking values', () => {
+  fixture((file) => {
+    for (const value of [
+      '',
+      'short-nitro-value',
+      'x'.repeat(31),
+      '1'.repeat(40),
+      JSON.stringify(['private'.repeat(8)]),
+    ]) {
+      assert.throws(
+        () =>
+          ensureAppSecret(file, {
+            NITRO_APP_SECRET: value,
+            NUXT_APP_SECRET: 'valid-nuxt-secret'.repeat(4),
+            NUXT_OG_IMAGE_SECRET: 'valid-legacy-secret'.repeat(4),
+          }),
+        (error: unknown) => {
+          assert.ok(error instanceof Error)
+          assert.match(error.message, /NITRO_APP_SECRET.*(?:32|string)/)
+          if (value) assert.ok(!error.message.includes(value))
+          return true
+        },
+      )
+    }
     assert.throws(() => readFileSync(file), { code: 'ENOENT' })
   })
 })
@@ -126,7 +179,7 @@ test('the production entry initializes a single root before frozen config import
       join(serverDir, 'index.mjs'),
       `
       import { createHash } from 'node:crypto'
-      let appSecret = process.env.NUXT_APP_SECRET
+      let appSecret = process.env.NITRO_APP_SECRET ?? process.env.NUXT_APP_SECRET
       try { appSecret = JSON.parse(appSecret) } catch {}
       const config = Object.freeze({ appSecret })
       if (typeof config.appSecret !== 'string' || config.appSecret.length < 32) throw new Error('Root missing before config initialization')
@@ -139,12 +192,13 @@ test('the production entry initializes a single root before frozen config import
     await prepareSelfHostedRuntime(serverDir)
     assert.equal(readFileSync(join(serverDir, 'index.mjs'), 'utf8'), wrapped)
     const env = { ...process.env }
+    delete env.NITRO_APP_SECRET
     delete env.NUXT_APP_SECRET
     delete env.NUXT_OG_IMAGE_SECRET
-    const start = async () => {
+    const start = async (overrides: NodeJS.ProcessEnv = {}) => {
       const child = spawn(process.execPath, [join(serverDir, 'index.mjs')], {
         cwd: directory,
-        env,
+        env: { ...env, ...overrides },
         stdio: ['ignore', 'pipe', 'pipe'],
       })
       let output = '',
@@ -170,6 +224,15 @@ test('the production entry initializes a single root before frozen config import
     // A persisted string must not become a number through Nitro's env parsing.
     writeFileSync(join(directory, 'data/.app-secret'), '1'.repeat(40))
     assert.match(await start(), /^[a-f0-9]{64}$/)
+    const nitroSecret = 'nitro-bootstrap-secret'.repeat(3)
+    assert.equal(
+      await start({
+        NITRO_APP_SECRET: JSON.stringify(nitroSecret),
+        NUXT_APP_SECRET: 'invalid-nuxt-secret',
+      }),
+      createHash('sha256').update(nitroSecret).digest('hex'),
+      'bootstrap must validate the secret Nitro actually selects before config freezes',
+    )
   } finally {
     rmSync(directory, { recursive: true, force: true })
   }

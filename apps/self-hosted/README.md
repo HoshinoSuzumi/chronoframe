@@ -21,9 +21,13 @@ source directories or copy it into build contexts.
 
 Production OG signing uses an app secret in this order:
 
-1. `NUXT_APP_SECRET`: an explicit app secret of at least 32 characters.
-2. `NUXT_OG_IMAGE_SECRET`: the deprecated fallback when `NUXT_APP_SECRET` is unset.
-3. `data/.app-secret`: automatically created with mode 0600 and reused when neither environment variable is configured.
+1. `NITRO_APP_SECRET`: Nitro's higher-priority environment override, if set.
+2. `NUXT_APP_SECRET`: the Nuxt app secret when no Nitro override is set.
+3. `NUXT_OG_IMAGE_SECRET`: the deprecated fallback when neither app-secret override is configured.
+4. `data/.app-secret`: automatically created with mode 0600 and reused when none of these environment variables is configured.
+
+Explicit app secrets must be strings of at least 32 characters. An invalid
+`NITRO_APP_SECRET` stops startup even if a valid lower-priority secret exists.
 
 Keep `data/.app-secret` with the persistent data volume and back it up securely.
 Replicas must use the same app secret. It does not replace the independent session

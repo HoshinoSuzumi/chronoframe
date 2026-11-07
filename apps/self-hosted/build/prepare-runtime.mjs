@@ -23,7 +23,10 @@ export async function prepareSelfHostedRuntime(serverDir) {
 import { resolve } from 'node:path'
 import { ensureAppSecret } from './app-secret.mjs'
 const { secret, source } = ensureAppSecret(resolve(process.cwd(), 'data/.app-secret'))
-if (source !== 'legacy') process.env.NUXT_APP_SECRET = JSON.stringify(secret)
+if (source !== 'legacy') {
+  const key = process.env.NITRO_APP_SECRET !== undefined ? 'NITRO_APP_SECRET' : 'NUXT_APP_SECRET'
+  process.env[key] = JSON.stringify(secret)
+}
 const runtime = await import('./index.runtime.mjs')
 export default runtime.default
 `,

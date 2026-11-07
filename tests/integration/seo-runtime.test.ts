@@ -249,7 +249,11 @@ test(
         await stop(second.server)
       }
 
-      for (const key of ['NUXT_APP_SECRET', 'NUXT_OG_IMAGE_SECRET']) {
+      for (const key of [
+        'NUXT_APP_SECRET',
+        'NITRO_APP_SECRET',
+        'NUXT_OG_IMAGE_SECRET',
+      ]) {
         await t.test(
           `${key} signs and validates production OG images`,
           async () => {
@@ -257,7 +261,12 @@ test(
             const secretFile = join(directory, 'data/.app-secret')
             // The legacy-only case must not be rescued by a persisted app secret.
             if (legacy) await rm(secretFile)
-            const env = { [key]: 'explicit-test-root'.repeat(4) }
+            const env = {
+              ...(key === 'NITRO_APP_SECRET'
+                ? { NUXT_APP_SECRET: 'invalid-lower-priority' }
+                : {}),
+              [key]: 'explicit-test-root'.repeat(4),
+            }
             const server = await start(directory, env)
             let imagePath: string
             try {
