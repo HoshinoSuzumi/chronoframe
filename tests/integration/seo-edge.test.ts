@@ -171,6 +171,7 @@ export default config`,
       )
       const childEnv = { ...process.env }
       delete childEnv.NODE_TEST_CONTEXT
+      delete childEnv.NUXT_SITE_INDEXABLE
       // Raw NUXT_SITE_* values are resolved during this Worker build; signing
       // must additionally resolve its private binding for each runtime instance.
       const build = spawn(
