@@ -106,11 +106,16 @@ export async function useInstanceOpenGraph(photos: ComputedRef<Photo[]>) {
 
   function updateOgImage() {
     const id = photoId.value
+    const siteProps =
+      entryContext.value?.capabilities.edition === 'site'
+        ? { originSiteId: entryContext.value.siteId }
+        : {}
     nuxtApp.runWithContext(() => {
       if (id) {
         defineOgImage(
           'Photo',
           {
+            ...siteProps,
             photo:
               currentPhoto.value?.id === id ? currentPhoto.value : undefined,
             appTitle: siteName.value,
@@ -134,6 +139,7 @@ export async function useInstanceOpenGraph(photos: ComputedRef<Photo[]>) {
       defineOgImage(
         'Home',
         {
+          ...siteProps,
           appTitle: siteName.value,
           slogan: slogan.value,
           author: author.value,
@@ -170,6 +176,7 @@ export async function useInstanceOpenGraph(photos: ComputedRef<Photo[]>) {
       locationFallbackOrder,
       shareTitle,
       () => i18n?.locale.value,
+      () => entryContext.value?.siteId,
     ],
     updateOgImage,
   )

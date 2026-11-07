@@ -69,10 +69,18 @@ test('route changes update a single canonical/social head and register the curre
 test('route changes update one current OG image using the real defineOgImage client module', () =>
   checkNavigation(true))
 
+for (const edition of ['cloud', 'self-hosted'] as const) {
+  test(`${edition}: shared OG registration does not acquire a Site binding`, () =>
+    checkNavigation(false, edition))
+}
+
 // Exercise the real Gallery composable, Vue watchers and Unhead client reactivity
 // with both a props recorder and the installed OG client. Nuxt route/fetch/lifecycle
 // adapters remain fixtures; this does not claim browser-router or DOM coverage.
-async function checkNavigation(realOgImage: boolean) {
+async function checkNavigation(
+  realOgImage: boolean,
+  edition: 'site' | 'cloud' | 'self-hosted' = 'site',
+) {
   const route = reactive({ path: '/', params: {} as { slug?: string } })
   const homeView = ref('photos')
   const head = createHead()
@@ -148,7 +156,11 @@ async function checkNavigation(realOgImage: boolean) {
     useNuxtApp: () => ({ runWithContext: (run: () => void) => run() }),
     useRequestURL: () => new URL('https://internal.example.test/'),
     useEntryContext: () =>
-      ref({ canonicalOrigin: 'https://gallery.example.test' }),
+      ref({
+        siteId: 1,
+        capabilities: { edition },
+        canonicalOrigin: 'https://gallery.example.test',
+      }),
     useUserSession: () => ({ loggedIn: ref(false) }),
     useSettingRef: (key: keyof typeof settings) => settings[key],
     useHomeView: () => ({ homeView }),
@@ -242,6 +254,11 @@ async function checkNavigation(realOgImage: boolean) {
       } else {
         const image = images.at(-1)!
         assert.equal(image.component, component, path)
+        assert.equal(
+          image.props.originSiteId,
+          edition === 'site' ? 1 : undefined,
+          path,
+        )
         if (slug) assert.equal((image.props.photo as typeof photo).id, slug)
         else assert.equal(image.props.appTitle, 'Gallery 摄影')
       }

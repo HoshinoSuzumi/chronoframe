@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 import { spawn } from 'node:child_process'
 import { once } from 'node:events'
+import { createHash, hkdfSync } from 'node:crypto'
 import {
   mkdir,
   mkdtemp,
@@ -389,6 +390,7 @@ test(
         assert.equal(url.hostname, host)
         const path = decodeURIComponent(url.pathname)
         assert.match(path, /,s_[^,/.]+\.png/)
+        assert.match(path, new RegExp(`(?:/|,)originSiteId_${id}(?:,|\\.)`))
         images.set(host, path)
         const response = await request(path)
         assert.equal(
@@ -415,6 +417,107 @@ test(
         images.get('alpha.example.test'),
         images.get('beta.example.test'),
         'different Site profiles must not share OG image props',
+      )
+      for (const [, , host] of sites) {
+        for (const [, , otherHost] of sites) {
+          if (host === otherHost) continue
+          assert.equal(
+            (await worker.fetch(`https://${otherHost}${images.get(host)}`))
+              .status,
+            403,
+            'a signed image path must not be replayed under another published Site',
+          )
+          assert.equal(
+            (
+              await worker.fetch(
+                `https://${otherHost}${images.get(host)}?originSiteId=2`,
+                {
+                  headers: { 'x-forwarded-host': host },
+                },
+              )
+            ).status,
+            403,
+            'query parameters and forwarded Host must not override the signed Site binding',
+          )
+        }
+      }
+      const alphaImage = images.get('alpha.example.test')!
+      const signed = alphaImage.match(/^(\/_og\/d\/)(.+),s_([^,/.]+)\.png$/)
+      assert.ok(signed)
+      const unscopedParams = signed[2]
+        .split(',')
+        .filter((part) => !part.startsWith('originSiteId_'))
+        .join(',')
+      assert.notEqual(unscopedParams, signed[2])
+      const signingKey = Buffer.from(
+        hkdfSync(
+          'sha256',
+          'site-worker-og-test-root'.repeat(3),
+          'nuxt',
+          'nuxt-og-image:url-signing',
+          32,
+        ),
+      ).toString('hex')
+      const sign = (params: string) =>
+        createHash('sha256')
+          .update(`${signingKey}:${params}`)
+          .digest('base64url')
+          .slice(0, 16)
+      assert.equal(
+        sign(signed[2]),
+        signed[3],
+        'the fixture signer must match the Worker signature',
+      )
+      const signature = sign(unscopedParams)
+      assert.equal(
+        (
+          await worker.fetch(
+            `https://alpha.example.test${signed[1]}${unscopedParams},s_${signature}.png`,
+          )
+        ).status,
+        403,
+        'a correctly signed path without an originating Site must fail closed',
+      )
+      await db
+        .prepare('UPDATE platform_domains SET site_id=2 WHERE hostname=?')
+        .bind('alpha.example.test')
+        .run()
+      assert.equal(
+        (await worker.fetch(`https://alpha.example.test${alphaImage}`)).status,
+        403,
+        'reassigning a Host must reject its previously cached image from the old Site',
+      )
+      assert.equal(
+        (
+          await worker.fetch(
+            `https://alpha.example.test${images.get('beta.example.test')}`,
+          )
+        ).status,
+        200,
+        'a verified alias of the same Site may serve its signed image',
+      )
+      const remappedPage = await worker.fetch('https://alpha.example.test/')
+      assert.equal(remappedPage.status, 200)
+      const remappedImage = new URL(imageUrl(await remappedPage.text()))
+        .pathname
+      assert.equal(
+        (await worker.fetch(`https://alpha.example.test${remappedImage}`))
+          .status,
+        200,
+      )
+      await db
+        .prepare('UPDATE platform_domains SET site_id=1 WHERE hostname=?')
+        .bind('alpha.example.test')
+        .run()
+      assert.equal(
+        (await worker.fetch(`https://alpha.example.test${remappedImage}`))
+          .status,
+        403,
+        'a warmed image cache must not bypass a later Site reassignment',
+      )
+      assert.equal(
+        (await worker.fetch(`https://alpha.example.test${alphaImage}`)).status,
+        200,
       )
       for (const [id, slug, hidden] of [
         [1, 'locked-album', 0],

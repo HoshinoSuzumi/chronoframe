@@ -54,6 +54,12 @@ for Worker bindings and deployment/rollback configuration, and the
 [Update Guide](../../docs/guide/updates.md#og-image-signing) for v7 signed-URL
 invalidation and cache refresh.
 
+Signed Home/Photo paths include their originating Site ID. The Site adapter
+compares it with the live, trusted Host-to-Site resolution after signature
+verification and before image cache lookup or rendering. Cross-Site replay and
+paths without Site scope return 403; verified aliases of the same Site remain valid.
+Refresh cached HTML containing older OG paths without this Site binding.
+
 ### Local app secret
 
 Site intentionally has no equivalent of `pnpm setup:cloud`: that command also
