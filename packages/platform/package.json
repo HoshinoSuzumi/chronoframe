@@ -15,7 +15,7 @@
   "dependencies": {
     "@chronoframe/contracts": "workspace:*",
     "@chronoframe/core": "workspace:*",
-    "dodopayments": "2.59.0"
+    "dodopayments": "2.61.1"
   },
   "devDependencies": {
     "typescript": "^5.9.3"
