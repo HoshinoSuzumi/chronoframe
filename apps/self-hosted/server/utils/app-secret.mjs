@@ -3,10 +3,11 @@ import {
   linkSync,
   mkdirSync,
   readFileSync,
+  symlinkSync,
   unlinkSync,
   writeFileSync,
 } from 'node:fs'
-import { dirname } from 'node:path'
+import { basename, dirname } from 'node:path'
 import { validateAppSecret } from './app-secret-validation.mjs'
 
 function validate(secret, name) {
@@ -59,11 +60,21 @@ export function ensureAppSecret(file, env = process.env) {
   if (existing) return { secret: existing, source: 'file' }
   mkdirSync(dirname(file), { recursive: true })
   const secret = 'cf_' + randomBytes(48).toString('base64url')
-  const temporary = `${file}.${randomBytes(8).toString('hex')}.tmp`
-  writeFileSync(temporary, secret, { mode: 0o600, flag: 'wx' })
+  const candidate = `${file}.${randomBytes(8).toString('hex')}.key`
+  writeFileSync(candidate, secret, { mode: 0o600, flag: 'wx' })
+  let keepTarget = false
   try {
     // Publish the complete key atomically without replacing a concurrent key.
-    linkSync(temporary, file)
+    try {
+      linkSync(candidate, file)
+    } catch (error) {
+      if (!['EPERM', 'ENOTSUP', 'EOPNOTSUPP', 'ENOSYS'].includes(error.code))
+        throw error
+      // A symlink publishes the finished private file with the same no-overwrite
+      // guarantee. Keep its relative target so the data volume remains portable.
+      symlinkSync(basename(candidate), file, 'file')
+      keepTarget = true
+    }
     return { secret, source: 'generated' }
   } catch (error) {
     if (error.code !== 'EEXIST') throw error
@@ -71,6 +82,6 @@ export function ensureAppSecret(file, env = process.env) {
     if (!concurrent) throw error
     return { secret: concurrent, source: 'file' }
   } finally {
-    unlinkSync(temporary)
+    if (!keepTarget) unlinkSync(candidate)
   }
 }

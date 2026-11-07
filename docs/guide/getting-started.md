@@ -79,6 +79,8 @@ Keep the `./data:/app/data` mount and back up the complete directory, including 
 - `/app/data/.session-password`: automatically generated session secret.
 - `/app/data/.app-secret`: automatically generated app secret for OG image signing when no explicit app secret is configured.
 
+Keep `.app-secret` and any adjacent `.app-secret.*.key` symlink target together when backing up or moving the data directory.
+
 `NUXT_APP_SECRET` is optional; supply a private value of at least 32 characters in the container environment to manage the app secret yourself. It does not replace the session password. Keep the app secret and session password consistent across replicas, and retain any environment-supplied secrets in your backup configuration. See the [update guide](/guide/updates#og-image-signing) for upgrades and rollback.
 
 With the local storage path above, originals and derived files also live under this directory.

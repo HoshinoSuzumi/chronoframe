@@ -79,6 +79,8 @@ docker run -d --name chronoframe --restart unless-stopped \
 - `/app/data/.session-password`：自动生成的会话密钥。
 - `/app/data/.app-secret`：未显式配置应用密钥时，自动生成的 OG 图片签名应用密钥。
 
+备份或移动数据目录时，应同时保留 `.app-secret` 及其可能指向的同目录 `.app-secret.*.key` 文件。
+
 `NUXT_APP_SECRET` 是可选配置；如需自行管理用于 OG 图片签名的应用密钥，可在容器环境中设置至少 32 个字符的私密值。它不会替换会话密码。多实例应使用相同的应用密钥和会话密码，通过环境变量提供的密钥也应随部署配置备份。升级和回退请参阅[升级指南](/zh/guide/updates#og-图片签名)。
 
 使用上述本地存储路径时，原图和衍生文件也在这个目录下。

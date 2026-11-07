@@ -1,7 +1,12 @@
 import assert from 'node:assert/strict'
+import fs from 'node:fs'
 import {
+  lstatSync,
   mkdtempSync,
+  readdirSync,
   readFileSync,
+  readlinkSync,
+  renameSync,
   rmSync,
   statSync,
   writeFileSync,
@@ -9,7 +14,8 @@ import {
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { createHash } from 'node:crypto'
-import test from 'node:test'
+import { syncBuiltinESMExports } from 'node:module'
+import test, { type TestContext } from 'node:test'
 import { ensureAppSecret } from '../apps/self-hosted/server/utils/app-secret.mjs'
 import { prepareSelfHostedRuntime } from '../apps/self-hosted/build/prepare-runtime.mjs'
 import { spawn } from 'node:child_process'
@@ -24,6 +30,107 @@ function fixture(run: (file: string) => void) {
     rmSync(directory, { recursive: true, force: true })
   }
 }
+
+function publicationMocks(t: TestContext) {
+  t.after(() => {
+    t.mock.restoreAll()
+    syncBuiltinESMExports()
+  })
+}
+
+test('mounts rejecting hard links publish a complete private key through a relative symlink', (t) => {
+  publicationMocks(t)
+  let code = ''
+  t.mock.method(fs, 'linkSync', () => {
+    throw Object.assign(new Error('Hard links unavailable'), { code })
+  })
+  const symlink = fs.symlinkSync
+  t.mock.method(fs, 'symlinkSync', (...args: Parameters<typeof symlink>) => {
+    const candidate = join(dirname(String(args[1])), String(args[0]))
+    assert.ok(readFileSync(candidate, 'utf8').length >= 32)
+    assert.equal(statSync(candidate).mode & 0o777, 0o600)
+    assert.throws(() => lstatSync(args[1]), { code: 'ENOENT' })
+    return symlink(...args)
+  })
+  syncBuiltinESMExports()
+  for (code of ['EPERM', 'ENOTSUP', 'EOPNOTSUPP', 'ENOSYS']) {
+    fixture((file) => {
+      const result = ensureAppSecret(file, {})
+      assert.equal(result.source, 'generated')
+      assert.equal(readFileSync(file, 'utf8'), result.secret)
+      assert.ok(lstatSync(file).isSymbolicLink())
+      assert.equal(statSync(file).mode & 0o777, 0o600)
+      assert.match(readlinkSync(file), /^\.app-secret\.[a-f0-9]+\.key$/)
+      assert.deepEqual(
+        readdirSync(dirname(file)).sort(),
+        ['.app-secret', readlinkSync(file)].sort(),
+      )
+      assert.deepEqual(ensureAppSecret(file, {}), {
+        secret: result.secret,
+        source: 'file',
+      })
+      const moved = join(dirname(dirname(file)), 'moved-data')
+      renameSync(dirname(file), moved)
+      assert.equal(
+        ensureAppSecret(join(moved, '.app-secret'), {}).secret,
+        result.secret,
+      )
+    })
+  }
+})
+
+test('the fallback reuses a concurrent winner without replacing it or retaining the losing key', (t) => {
+  publicationMocks(t)
+  const winner = 'concurrent-winner'.repeat(4)
+  t.mock.method(fs, 'linkSync', (_candidate: string, file: string) => {
+    writeFileSync(file, winner, { flag: 'wx', mode: 0o600 })
+    throw Object.assign(new Error('Hard links unavailable'), { code: 'EPERM' })
+  })
+  syncBuiltinESMExports()
+  fixture((file) => {
+    assert.deepEqual(ensureAppSecret(file, {}), {
+      secret: winner,
+      source: 'file',
+    })
+    assert.equal(readFileSync(file, 'utf8'), winner)
+    assert.deepEqual(readdirSync(dirname(file)), ['.app-secret'])
+    assert.equal(statSync(file).mode & 0o777, 0o600)
+  })
+})
+
+test('unrelated publication errors propagate without invoking the fallback', (t) => {
+  publicationMocks(t)
+  let code = ''
+  t.mock.method(fs, 'linkSync', () => {
+    throw Object.assign(new Error('Publication failed'), { code })
+  })
+  const fallback = t.mock.method(fs, 'symlinkSync')
+  syncBuiltinESMExports()
+  for (code of ['EACCES', 'EIO', 'ENOSPC', 'EXDEV']) {
+    fixture((file) => {
+      assert.throws(() => ensureAppSecret(file, {}), { code })
+      assert.deepEqual(readdirSync(dirname(file)), [])
+    })
+  }
+  assert.equal(fallback.mock.callCount(), 0)
+})
+
+test('failed symlink publication stops startup and removes the unpublished key', (t) => {
+  publicationMocks(t)
+  t.mock.method(fs, 'linkSync', () => {
+    throw Object.assign(new Error('Hard links unavailable'), {
+      code: 'ENOTSUP',
+    })
+  })
+  t.mock.method(fs, 'symlinkSync', () => {
+    throw Object.assign(new Error('Symlinks unavailable'), { code: 'EPERM' })
+  })
+  syncBuiltinESMExports()
+  fixture((file) => {
+    assert.throws(() => ensureAppSecret(file, {}), { code: 'EPERM' })
+    assert.deepEqual(readdirSync(dirname(file)), [])
+  })
+})
 
 test('an app secret persists privately across restarts without changing sessions', () => {
   fixture((file) => {
@@ -170,7 +277,13 @@ test('invalid stored keys and filesystem errors fail instead of silently rotatin
   })
 })
 
-test('the production entry initializes a single root before frozen config imports, including concurrent starts', async () => {
+test('the production entry initializes a single root before frozen config imports, including concurrent starts', () =>
+  checkProductionEntry(false))
+
+test('concurrent production entries on a mount without hard links reuse one private symlink target', () =>
+  checkProductionEntry(true))
+
+async function checkProductionEntry(rejectHardLinks: boolean) {
   const directory = mkdtempSync(join(tmpdir(), 'chronoframe-secret-entry-'))
   try {
     const serverDir = join(directory, 'server')
@@ -195,12 +308,41 @@ test('the production entry initializes a single root before frozen config import
     delete env.NITRO_APP_SECRET
     delete env.NUXT_APP_SECRET
     delete env.NUXT_OG_IMAGE_SECRET
+    const preload = join(directory, 'reject-hard-links.mjs')
+    if (rejectHardLinks) {
+      mkdirSync(join(directory, 'ready'))
+      writeFileSync(
+        preload,
+        `
+import fs from 'node:fs'
+import { syncBuiltinESMExports } from 'node:module'
+fs.linkSync = () => {
+  fs.writeFileSync(new URL('./ready/' + process.pid, import.meta.url), '')
+  const deadline = Date.now() + 10_000
+  // All eight starts reach publication before any may choose the winning key.
+  while (fs.readdirSync(new URL('./ready/', import.meta.url)).length < 8) {
+    if (Date.now() > deadline) throw new Error('Concurrent publication barrier timed out')
+    Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 5)
+  }
+  throw Object.assign(new Error('Hard links unavailable'), { code: 'ENOTSUP' })
+}
+syncBuiltinESMExports()
+`,
+      )
+    }
     const start = async (overrides: NodeJS.ProcessEnv = {}) => {
-      const child = spawn(process.execPath, [join(serverDir, 'index.mjs')], {
-        cwd: directory,
-        env: { ...env, ...overrides },
-        stdio: ['ignore', 'pipe', 'pipe'],
-      })
+      const child = spawn(
+        process.execPath,
+        [
+          ...(rejectHardLinks ? ['--import', preload] : []),
+          join(serverDir, 'index.mjs'),
+        ],
+        {
+          cwd: directory,
+          env: { ...env, ...overrides },
+          stdio: ['ignore', 'pipe', 'pipe'],
+        },
+      )
       let output = '',
         errors = ''
       child.stdout.on('data', (chunk) => {
@@ -216,6 +358,19 @@ test('the production entry initializes a single root before frozen config import
     const hashes = await Promise.all(Array.from({ length: 8 }, start))
     assert.equal(new Set(hashes).size, 1)
     assert.match(hashes[0], /^[a-f0-9]{64}$/)
+    if (rejectHardLinks) {
+      const file = join(directory, 'data/.app-secret')
+      assert.ok(lstatSync(file).isSymbolicLink())
+      assert.equal(statSync(file).mode & 0o777, 0o600)
+      assert.deepEqual(
+        readdirSync(dirname(file)).sort(),
+        ['.app-secret', readlinkSync(file)].sort(),
+      )
+      assert.equal(
+        hashes[0],
+        createHash('sha256').update(readFileSync(file)).digest('hex'),
+      )
+    }
     assert.equal(
       await start(),
       hashes[0],
@@ -241,4 +396,4 @@ test('the production entry initializes a single root before frozen config import
   } finally {
     rmSync(directory, { recursive: true, force: true })
   }
-})
+}

@@ -30,6 +30,9 @@ Explicit app secrets must be strings of at least 32 characters. An invalid
 `NITRO_APP_SECRET` stops startup even if a valid lower-priority secret exists.
 
 Keep `data/.app-secret` with the persistent data volume and back it up securely.
+On mounts that reject hard links, it is a relative symlink to an adjacent
+`.app-secret.*.key` file with mode 0600. Back up and move both together. This
+fallback requires symlink support; otherwise configure an explicit app secret.
 Replicas must use the same app secret. It does not replace the independent session
 password. Invalid explicit secrets or key-file read/write failures stop startup
 instead of silently choosing a new app secret.
