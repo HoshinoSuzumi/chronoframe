@@ -17,5 +17,6 @@ export function imageUrl(html: string) {
   const tag = html.match(/<meta\b[^>]*property="og:image"[^>]*>/)?.[0]
   const value = tag?.match(/content="([^"]+)"/)?.[1]
   assert.ok(value, 'SSR must include an OG image')
-  return value.replaceAll('&amp;', '&').replaceAll('&#x2F;', '/')
+  // Decode ampersands last so escaped entity text is not decoded twice.
+  return value.replaceAll('&#x2F;', '/').replaceAll('&amp;', '&')
 }

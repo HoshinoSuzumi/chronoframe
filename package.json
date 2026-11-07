@@ -48,7 +48,7 @@
     "check:entries": "node scripts/check-entry-boundaries.mjs",
     "smoke:cloud": "node scripts/smoke-edge-entry.mjs cloud",
     "smoke:site": "node scripts/smoke-edge-entry.mjs site",
-    "test:seo": "pnpm build:deps && pnpm build && pnpm build:site && pnpm build:cloud && node --experimental-strip-types --test tests/integration/seo-runtime.test.ts tests/integration/seo-edge.test.ts tests/og-thumbnail.test.ts tests/seo-navigation.test.ts"
+    "test:seo": "pnpm build:deps && pnpm build && pnpm build:site && pnpm build:cloud && node --experimental-strip-types --test tests/integration/seo-runtime.test.ts tests/integration/seo-edge.test.ts tests/og-thumbnail.test.ts tests/seo-navigation.test.ts tests/seo-helpers.test.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1149.0",
