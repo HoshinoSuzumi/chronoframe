@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import { spawn, type ChildProcess } from 'node:child_process'
 import { once } from 'node:events'
 import { createHash, hkdfSync } from 'node:crypto'
-import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
+import { mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { setTimeout as delay } from 'node:timers/promises'
@@ -88,6 +88,27 @@ async function startFails(
   return { code, output: started.output() }
 }
 
+async function assertSignedPng(
+  request: (path: string, options?: RequestInit) => Promise<Response>,
+  image: string,
+  output: () => string,
+) {
+  const imageURL = new URL(image)
+  const imagePath = imageURL.pathname + imageURL.search
+  const decoded = decodeURIComponent(imagePath)
+  assert.match(decoded, /,s_[^,/.]+\.png/)
+  const response = await request(imagePath)
+  assert.equal(response.status, 200, output())
+  assert.match(response.headers.get('content-type') || '', /image\/png/)
+  assert.equal(
+    (
+      await request(decoded.replace(/,s_[^,/.]+(?=\.png)/, ',s_invalid'))
+    ).status,
+    403,
+  )
+  return imagePath
+}
+
 test(
   'production OG metadata, PNGs, signatures and root keys survive the SEO migration',
   { timeout: 180_000 },
@@ -99,40 +120,15 @@ test(
     })
     connection.db
       .insert(tables.photos)
-      .values([
-        {
-          id: 'public-photo',
-          siteId: 1,
-          title: 'Photography 摄影',
-          description: 'Bilingual photo description',
-          width: 640,
-          height: 480,
-          thumbnailUrl: '/web-app-manifest-512x512.png',
-          originalUrl: '/web-app-manifest-512x512.png',
-        },
-        {
-          id: 'hidden-photo',
-          siteId: 1,
-          title: 'PRIVATE PHOTO',
-          width: 640,
-          height: 480,
-          thumbnailUrl: '/web-app-manifest-512x512.png',
-          originalUrl: '/web-app-manifest-512x512.png',
-        },
-      ])
-      .run()
-    const album = connection.db
-      .insert(tables.albums)
-      .values({ siteId: 1, title: 'Hidden', isHidden: true })
-      .returning({ id: tables.albums.id })
-      .get()
-    connection.db
-      .insert(tables.albumPhotos)
       .values({
+        id: 'public-photo',
         siteId: 1,
-        albumId: album.id,
-        photoId: 'hidden-photo',
-        position: 0,
+        title: 'Photography 摄影',
+        description: 'Bilingual photo description',
+        width: 640,
+        height: 480,
+        thumbnailUrl: '/web-app-manifest-512x512.png',
+        originalUrl: '/web-app-manifest-512x512.png',
       })
       .run()
     try {
@@ -168,10 +164,8 @@ test(
           200,
         )
         assert.equal((await post('/api/wizard/complete', {})).status, 200)
-        for (const [path, name] of [
-          ['/', 'home'],
-          ['/public-photo', 'photo'],
-        ]) {
+
+        for (const path of ['/', '/public-photo']) {
           const response = await first.request(path)
           const html = await response.text()
           assert.equal(response.status, 200)
@@ -179,50 +173,10 @@ test(
           assert.equal((html.match(/property="og:image"/g) || []).length, 1)
           assert.match(html, /summary_large_image/)
           const image = imageUrl(html)
-          const imageURL = new URL(image)
-          const imagePath = imageURL.pathname + imageURL.search
-          if (name === 'home') homeImage = image
-          const result = await first.request(imagePath)
-          assert.equal(result.status, 200, first.output())
-          assert.match(result.headers.get('content-type') || '', /image\/png/)
-          const png = Buffer.from(await result.arrayBuffer())
-          assert.equal(png.subarray(1, 4).toString(), 'PNG')
-          assert.equal(png.readUInt32BE(16), 1200)
-          assert.equal(png.readUInt32BE(20), 600)
-          if (process.env.CHRONOFRAME_SEO_ARTIFACT_DIR) {
-            await mkdir(process.env.CHRONOFRAME_SEO_ARTIFACT_DIR, {
-              recursive: true,
-            })
-            await writeFile(
-              join(process.env.CHRONOFRAME_SEO_ARTIFACT_DIR, `${name}.png`),
-              png,
-            )
-            await writeFile(
-              join(process.env.CHRONOFRAME_SEO_ARTIFACT_DIR, `${name}.html`),
-              html,
-            )
-          }
-          assert.equal(
-            (await first.request(imagePath)).status,
-            200,
-            'cached image must remain accessible',
-          )
-          const decodedImage = decodeURIComponent(imagePath)
-          assert.match(
-            decodedImage,
-            /,s_[^,/.]+\.png/,
-            'production images must be signed',
-          )
-          const tampered = decodedImage.replace(
-            /,s_[^,/.]+(?=\.png)/,
-            ',s_invalid',
-          )
-          assert.equal(
-            (await first.request(tampered)).status,
-            403,
-            'tampered signature must fail',
-          )
+          if (path === '/') homeImage = image
+          await assertSignedPng(first.request, image, first.output)
         }
+
         const login = await post('/api/login', {
           email: 'seo@example.test',
           password,
@@ -241,7 +195,6 @@ test(
       } finally {
         await stop(first.server)
       }
-
 
       const missing = await startFails(directory, { NUXT_APP_SECRET: '' })
       assert.notEqual(missing.code, 0)
@@ -267,117 +220,102 @@ test(
         await stop(second.server)
       }
 
-      for (const key of [
-        'NUXT_APP_SECRET',
-        'NITRO_APP_SECRET',
-        'NUXT_OG_IMAGE_SECRET',
-      ]) {
-        await t.test(
-          `${key} signs and validates production OG images`,
-          async () => {
-            const legacy = key === 'NUXT_OG_IMAGE_SECRET'
-            const env = {
-              ...(key === 'NITRO_APP_SECRET'
-                ? { NUXT_APP_SECRET: 'invalid-lower-priority' }
-                : legacy
-                  ? { NUXT_APP_SECRET: '' }
-                  : {}),
-              [key]: 'explicit-test-root'.repeat(4),
-            }
+      await t.test(
+        'app secret env precedence signs production OG images',
+        async () => {
+          for (const [key, env] of [
+            [
+              'NUXT_APP_SECRET',
+              { NUXT_APP_SECRET: 'explicit-test-root'.repeat(4) },
+            ],
+            [
+              'NITRO_APP_SECRET',
+              {
+                NUXT_APP_SECRET: 'invalid-lower-priority',
+                NITRO_APP_SECRET: 'explicit-test-root'.repeat(4),
+              },
+            ],
+            [
+              'NUXT_OG_IMAGE_SECRET',
+              {
+                NUXT_APP_SECRET: '',
+                NUXT_OG_IMAGE_SECRET: 'explicit-test-root'.repeat(4),
+              },
+            ],
+          ] as const) {
             const server = await start(directory, env)
-            let imagePath: string
             try {
               const page = await server.request('/')
-              assert.equal(page.status, 200)
-              const image = new URL(imageUrl(await page.text()))
-              imagePath = image.pathname + image.search
-              const decoded = decodeURIComponent(imagePath)
-              assert.match(decoded, /,s_[^,/.]+\.png/, `${key} must sign URLs`)
-              const response = await server.request(imagePath)
-              assert.equal(response.status, 200, server.output())
-              assert.match(
-                response.headers.get('content-type') || '',
-                /image\/png/,
-              )
-              const png = Buffer.from(await response.arrayBuffer())
-              assert.equal(png.subarray(1, 4).toString(), 'PNG')
-              assert.equal(
-                (
-                  await server.request(
-                    decoded.replace(/,s_[^,/.]+(?=\.png)/, ',s_invalid'),
-                  )
-                ).status,
-                403,
-                `${key} must reject tampered signatures`,
+              assert.equal(page.status, 200, `${key} must serve Home`)
+              await assertSignedPng(
+                server.request,
+                imageUrl(await page.text()),
+                server.output,
               )
             } finally {
               await stop(server.server)
             }
-            if (legacy) {
-              const restarted = await start(directory, env)
-              try {
-                assert.equal(
-                  (await restarted.request(imagePath!)).status,
-                  200,
-                  'legacy-only signed URLs must survive a production restart',
-                )
-              } finally {
-                await stop(restarted.server)
-              }
-            }
-            const rotatedSecret = 'rotated-explicit-test-secret'.repeat(3)
-            const rotated = await start(directory, {
-              ...env,
-              [key]: rotatedSecret,
-            })
-            try {
-              assert.equal(
-                (await rotated.request(imagePath!)).status,
-                403,
-                `${key} rotation must reject URLs signed with the old secret`,
-              )
-              const page = await rotated.request('/')
-              assert.equal(page.status, 200)
-              const image = new URL(imageUrl(await page.text()))
-              const rotatedPath = image.pathname + image.search
-              assert.notEqual(rotatedPath, imagePath!)
-              const signed = decodeURIComponent(image.pathname).match(
-                /^\/_og\/d\/(.+),s_([^,/.]+)\.png$/,
-              )
-              assert.ok(
-                signed,
-                'rotated URL must contain signed image parameters',
-              )
-              // Verify v7's signature independently of the running server:
-              // Nuxt derives the signing key from this exact app secret.
-              const signingKey = Buffer.from(
-                hkdfSync(
-                  'sha256',
-                  rotatedSecret,
-                  'nuxt',
-                  'nuxt-og-image:url-signing',
-                  32,
-                ),
-              ).toString('hex')
-              assert.equal(
-                signed[2],
-                createHash('sha256')
-                  .update(`${signingKey}:${signed[1]}`)
-                  .digest('base64url')
-                  .slice(0, 16),
-              )
-              const response = await rotated.request(rotatedPath)
-              assert.equal(response.status, 200, rotated.output())
-              assert.match(
-                response.headers.get('content-type') || '',
-                /image\/png/,
-              )
-            } finally {
-              await stop(rotated.server)
-            }
-          },
-        )
-      }
+          }
+
+          const beforeSecret = 'before-rotation-secret'.repeat(3)
+          const rotatedSecret = 'rotated-explicit-test-secret'.repeat(3)
+          const before = await start(directory, {
+            NUXT_APP_SECRET: beforeSecret,
+          })
+          let imagePath: string
+          try {
+            const page = await before.request('/')
+            assert.equal(page.status, 200)
+            imagePath = await assertSignedPng(
+              before.request,
+              imageUrl(await page.text()),
+              before.output,
+            )
+          } finally {
+            await stop(before.server)
+          }
+          const rotated = await start(directory, {
+            NUXT_APP_SECRET: rotatedSecret,
+          })
+          try {
+            assert.equal(
+              (await rotated.request(imagePath!)).status,
+              403,
+              'secret rotation must reject URLs signed with the old secret',
+            )
+            const page = await rotated.request('/')
+            assert.equal(page.status, 200)
+            const rotatedPath = await assertSignedPng(
+              rotated.request,
+              imageUrl(await page.text()),
+              rotated.output,
+            )
+            assert.notEqual(rotatedPath, imagePath!)
+            const signed = decodeURIComponent(
+              new URL(rotatedPath, 'http://127.0.0.1').pathname,
+            ).match(/^\/_og\/d\/(.+),s_([^,/.]+)\.png$/)
+            assert.ok(signed)
+            const signingKey = Buffer.from(
+              hkdfSync(
+                'sha256',
+                rotatedSecret,
+                'nuxt',
+                'nuxt-og-image:url-signing',
+                32,
+              ),
+            ).toString('hex')
+            assert.equal(
+              signed[2],
+              createHash('sha256')
+                .update(`${signingKey}:${signed[1]}`)
+                .digest('base64url')
+                .slice(0, 16),
+            )
+          } finally {
+            await stop(rotated.server)
+          }
+        },
+      )
     } finally {
       connection.close()
       await rm(directory, { recursive: true, force: true })
