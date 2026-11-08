@@ -238,6 +238,50 @@ function windowsExitWait(spawnTaskkill: (...args: unknown[]) => EventEmitter) {
   return fixtureExitWait({ spawn: spawnTaskkill }, { platform: 'win32' })
 }
 
+test('POSIX snapshot failure escalates SIGKILL before cancelling pending escalation', async () => {
+  const child = spawn(
+    process.execPath,
+    ['-e', "process.send('ready'); setInterval(() => {}, 1000)"],
+    { stdio: ['ignore', 'ignore', 'ignore', 'ipc'] },
+  )
+  assert.ok(child.pid)
+  const group = child.pid
+  const signals: Array<NodeJS.Signals | 0> = []
+  const snapshotError = new Error('ps failed')
+  const wait = fixtureExitWait(
+    {
+      execFile: (
+        command: string,
+        args: string[],
+        _options: unknown,
+        done: (error: Error | null, output?: string) => void,
+      ) => {
+        assert.equal(command, 'ps')
+        assert.deepEqual(args, ['-A', '-o', 'pid=,pgid=,stat='])
+        queueMicrotask(() => done(snapshotError))
+      },
+    },
+    {
+      platform: 'linux',
+      kill: (pid: number, signal: NodeJS.Signals | 0) => {
+        assert.equal(pid, -group)
+        signals.push(signal)
+        if (signal === 'SIGTERM') child.kill('SIGKILL')
+        return true
+      },
+    },
+  )
+  const controller = new AbortController()
+  const reason = new Error('Fixture cancelled')
+  await once(child, 'message')
+  const waiting = wait(child, controller.signal).catch((error) => error)
+  controller.abort(reason)
+  assert.equal(await waiting, snapshotError)
+  assert.deepEqual(signals, ['SIGTERM', 0, 'SIGKILL'])
+  assert.equal(getEventListeners(controller.signal, 'abort').length, 0)
+  await stop(child)
+})
+
 test('POSIX shutdown waits for active/stopped descendants but not zombie-only group members', async () => {
   const child = spawn(process.execPath, ['-e', 'process.exit(7)'])
   assert.ok(child.pid)

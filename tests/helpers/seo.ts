@@ -81,6 +81,9 @@ export async function waitForChildExit(
         child.stderr?.destroy()
         if (child.connected) child.disconnect()
       }
+    } else if (forceKill !== undefined) {
+      // A failed process snapshot would otherwise clearTimeout before SIGKILL.
+      signalGroup('SIGKILL')
     }
     throw error
   } finally {
