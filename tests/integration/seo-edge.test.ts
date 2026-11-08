@@ -683,6 +683,23 @@ test(
       const publicHome = await request(home)
       assert.equal(publicHome.status, 200)
       const publicHomePng = await publicHome.arrayBuffer()
+      assert.equal((await request(home)).headers.get('x-og-cache'), 'HIT')
+      // Publication changes the selected asset version, not its public URL or
+      // photo metadata/count (including the perceptual thumbnail hash).
+      await db
+        .prepare(
+          "INSERT INTO cloud_media_assets(site_id,photo_id,source_version,pipeline_version,role,connection_id,object_key,bytes,content_type) SELECT site_id,photo_id,source_version,'2',role,connection_id,'reprocessed-thumb.webp',bytes,content_type FROM cloud_media_assets WHERE site_id=1 AND photo_id='guarded-photo' AND pipeline_version='1' AND role='thumbnail'",
+        )
+        .run()
+      const reprocessedHome = await request(home)
+      assert.equal(reprocessedHome.status, 200)
+      assert.equal(
+        reprocessedHome.headers.get('x-og-cache'),
+        'MISS',
+        'a newly published thumbnail must invalidate Home even with unchanged URLs/counts',
+      )
+      await reprocessedHome.arrayBuffer()
+      assert.equal((await request(home)).headers.get('x-og-cache'), 'HIT')
       await db.batch([
         db.prepare(
           "INSERT INTO cloud_albums(site_id,id,title,hidden) VALUES(1,'1','Private',1)",
