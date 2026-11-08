@@ -9,6 +9,12 @@ const MESSAGE =
 const NON_STRING_MESSAGE =
   'Production app secret was parsed as a non-string by Nitro. Quote the value so OG signing receives a string, for example NUXT_APP_SECRET=\'"your-secret"\'.'
 
+const MISMATCH_MESSAGE =
+  'Production app secret from the environment does not match runtimeConfig.appSecret. Check NITRO_APP_SECRET / NUXT_APP_SECRET for conflicting overrides or expansion.'
+
+const EMPTY_OVERRIDE_MESSAGE =
+  'Production app secret override was set but runtimeConfig.appSecret is empty. Remove the empty override or provide a valid NUXT_APP_SECRET / NITRO_APP_SECRET string.'
+
 /** Fail fast in production before requests hit OG signing with a missing secret. */
 export default defineNitroPlugin(() => {
   if (import.meta.dev) return
@@ -20,9 +26,13 @@ export default defineNitroPlugin(() => {
     typeof candidate === 'string' ? candidate : '',
     MESSAGE,
   )
+  const hasOverride =
+    process.env.NITRO_APP_SECRET !== undefined ||
+    process.env.NUXT_APP_SECRET !== undefined
   // OG signing reads useRuntimeConfig().appSecret (or legacy NUXT_OG_IMAGE_SECRET).
-  // A coerced non-string cannot be repaired without mutating the frozen config.
   if (typeof config.appSecret !== 'string') throw new Error(NON_STRING_MESSAGE)
+  if (hasOverride && config.appSecret === '')
+    throw new Error(EMPTY_OVERRIDE_MESSAGE)
   if (config.appSecret !== '' && config.appSecret !== appSecret)
-    throw new Error(NON_STRING_MESSAGE)
+    throw new Error(MISMATCH_MESSAGE)
 })
