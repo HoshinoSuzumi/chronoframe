@@ -35,7 +35,7 @@
     "@pinia/nuxt": "^0.11.3",
     "@tailwindcss/vite": "^4.3.3",
     "@takumi-rs/core": "2.15.0",
-    "@unhead/vue": "3.4.2",
+    "@unhead/vue": "3.4.3",
     "@vingle/bmp-js": "^0.2.5",
     "@vueuse/nuxt": "14.4.0",
     "@yeger/vue-masonry-wall": "^6.1.4",

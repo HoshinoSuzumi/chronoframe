@@ -28,7 +28,7 @@
     "@nuxtjs/i18n": "10.6.0",
     "@pinia/nuxt": "^0.11.3",
     "@takumi-rs/wasm": "^2.19.0",
-    "@unhead/vue": "3.4.2",
+    "@unhead/vue": "3.4.3",
     "@vueuse/nuxt": "14.4.0",
     "better-auth": "1.7.12",
     "dayjs-nuxt": "2.1.11",
