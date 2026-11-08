@@ -3,8 +3,6 @@ import { SELF_HOSTED_CAPABILITIES } from '../../packages/contracts/src/entry'
 import pkg from '../../package.json'
 import type { AnalyticsConfig } from '../../packages/gallery/shared/types/config'
 import { dayjsLocales } from '../../packages/gallery/i18n/i18n.options'
-import { prepareSelfHostedRuntime } from './build/prepare-runtime.mjs'
-
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
   extends: ['../../packages/console', '../../packages/gallery'],
@@ -142,12 +140,6 @@ export default defineNuxtConfig({
 
   nitro: {
     preset: 'node_server',
-    hooks: {
-      async compiled(nitro) {
-        if (!nitro.options.dev && !nitro.options.static)
-          await prepareSelfHostedRuntime(nitro.options.output.serverDir)
-      },
-    },
     experimental: {
       websocket: true,
       tasks: true,

@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import { spawn, type ChildProcess } from 'node:child_process'
 import { once } from 'node:events'
 import { createHash, hkdfSync } from 'node:crypto'
-import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
+import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { setTimeout as delay } from 'node:timers/promises'
@@ -12,6 +12,7 @@ import { imageUrl, unusedPort } from '../helpers/seo.ts'
 
 const root = process.cwd()
 const password = 'isolated-seo-test-password'
+const defaultAppSecret = 'seo-runtime-test-root-secret'.repeat(2)
 
 async function stop(server: ChildProcess) {
   if (server.exitCode !== null) return
@@ -19,7 +20,10 @@ async function stop(server: ChildProcess) {
   await once(server, 'exit')
 }
 
-async function start(directory: string, envOverrides: NodeJS.ProcessEnv = {}) {
+async function spawnServer(
+  directory: string,
+  envOverrides: NodeJS.ProcessEnv = {},
+) {
   const port = await unusedPort()
   const env = { ...process.env }
   delete env.NUXT_APP_SECRET
@@ -40,6 +44,7 @@ async function start(directory: string, envOverrides: NodeJS.ProcessEnv = {}) {
         NUXT_STORAGE_PROVIDER: 'local',
         NUXT_PROVIDER_LOCAL_BASE_PATH: join(directory, 'storage'),
         NUXT_SESSION_PASSWORD: 'isolated-session-key'.repeat(3),
+        NUXT_APP_SECRET: defaultAppSecret,
         ...envOverrides,
       },
       stdio: ['ignore', 'pipe', 'pipe'],
@@ -56,17 +61,31 @@ async function start(directory: string, envOverrides: NodeJS.ProcessEnv = {}) {
       signal: AbortSignal.timeout(30_000),
       ...options,
     })
+  return { server, origin, request, output: () => output }
+}
+
+async function start(directory: string, envOverrides: NodeJS.ProcessEnv = {}) {
+  const started = await spawnServer(directory, envOverrides)
   for (let attempt = 0; attempt < 200; attempt++) {
     try {
-      await request('/api/wizard/schema')
-      return { server, origin, request, output: () => output }
+      await started.request('/api/wizard/schema')
+      return started
     } catch {
-      if (server.exitCode !== null) break
+      if (started.server.exitCode !== null) break
       await delay(50)
     }
   }
-  await stop(server)
-  throw new Error(`Isolated SEO server did not start: ${output}`)
+  await stop(started.server)
+  throw new Error(`Isolated SEO server did not start: ${started.output()}`)
+}
+
+async function startFails(
+  directory: string,
+  envOverrides: NodeJS.ProcessEnv = {},
+) {
+  const started = await spawnServer(directory, envOverrides)
+  const [code] = await once(started.server, 'exit')
+  return { code, output: started.output() }
 }
 
 test(
@@ -223,11 +242,11 @@ test(
         await stop(first.server)
       }
 
-      const persisted = await readFile(
-        join(directory, 'data/.app-secret'),
-        'utf8',
-      )
-      assert.ok(persisted.length >= 32)
+
+      const missing = await startFails(directory, { NUXT_APP_SECRET: '' })
+      assert.notEqual(missing.code, 0)
+      assert.match(missing.output, /NUXT_APP_SECRET/)
+
       const second = await start(directory)
       try {
         const oldImage =
@@ -235,11 +254,7 @@ test(
         assert.equal(
           (await second.request(oldImage)).status,
           200,
-          'old signed image must survive restart',
-        )
-        assert.equal(
-          await readFile(join(directory, 'data/.app-secret'), 'utf8'),
-          persisted,
+          'old signed image must survive restart with the same app secret',
         )
         const session = await second.request('/api/_auth/session', {
           headers: { cookie: cookie! },
@@ -261,13 +276,12 @@ test(
           `${key} signs and validates production OG images`,
           async () => {
             const legacy = key === 'NUXT_OG_IMAGE_SECRET'
-            const secretFile = join(directory, 'data/.app-secret')
-            // The legacy-only case must not be rescued by a persisted app secret.
-            if (legacy) await rm(secretFile)
             const env = {
               ...(key === 'NITRO_APP_SECRET'
                 ? { NUXT_APP_SECRET: 'invalid-lower-priority' }
-                : {}),
+                : legacy
+                  ? { NUXT_APP_SECRET: '' }
+                  : {}),
               [key]: 'explicit-test-root'.repeat(4),
             }
             const server = await start(directory, env)
@@ -296,11 +310,6 @@ test(
                 403,
                 `${key} must reject tampered signatures`,
               )
-              if (legacy) {
-                await assert.rejects(readFile(secretFile), { code: 'ENOENT' })
-              } else {
-                assert.equal(await readFile(secretFile, 'utf8'), persisted)
-              }
             } finally {
               await stop(server.server)
             }
@@ -312,7 +321,6 @@ test(
                   200,
                   'legacy-only signed URLs must survive a production restart',
                 )
-                await assert.rejects(readFile(secretFile), { code: 'ENOENT' })
               } finally {
                 await stop(restarted.server)
               }
@@ -364,11 +372,6 @@ test(
                 response.headers.get('content-type') || '',
                 /image\/png/,
               )
-              if (legacy) {
-                await assert.rejects(readFile(secretFile), { code: 'ENOENT' })
-              } else {
-                assert.equal(await readFile(secretFile, 'utf8'), persisted)
-              }
             } finally {
               await stop(rotated.server)
             }

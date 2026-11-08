@@ -19,44 +19,30 @@ source directories or copy it into build contexts.
 
 ## OG image signing
 
-Production OG signing uses an app secret in this order:
+Production OG signing requires a valid app secret (at least 32 characters):
 
 1. `NITRO_APP_SECRET`: Nitro's higher-priority environment override, if set.
 2. `NUXT_APP_SECRET`: the Nuxt app secret when no Nitro override is set.
 3. `NUXT_OG_IMAGE_SECRET`: the deprecated fallback when neither app-secret override is configured.
-4. `data/.app-secret`: automatically created with mode 0600 and reused when none of these environment variables is configured.
 
-Explicit app secrets must be strings of at least 32 characters. An invalid
-`NITRO_APP_SECRET` stops startup even if a valid lower-priority secret exists.
-
-Keep `data/.app-secret` with the persistent data volume and back it up securely.
-On mounts that reject hard links, it is a relative symlink to an adjacent
-`.app-secret.*.key` file with mode 0600. Back up and move both together. This
-fallback requires symlink support; otherwise configure an explicit app secret.
-Replicas must use the same app secret. It does not replace the independent session
-password. Invalid explicit secrets or key-file read/write failures stop startup
-instead of silently choosing a new app secret.
+Production startup fails fast when none of these provides a string of at least
+32 characters. An invalid `NITRO_APP_SECRET` stops startup even if a valid
+lower-priority secret exists. Replicas must use the same app secret. It does not
+replace the independent session password.
 
 Rename an existing `NUXT_OG_IMAGE_SECRET` to `NUXT_APP_SECRET` without changing its
 value. OG Image v7 invalidates v6 signed URLs even with the same app secret;
 refresh cached HTML containing those URLs. Rollback restores the previous image
-and environment configuration, retains the data volume and key files, and
-refreshes affected HTML again. This SEO change requires no database migration.
+and environment configuration, retains the data volume, and refreshes affected
+HTML again. This SEO change requires no database migration.
 See the [update guide](../../docs/guide/updates.md#og-image-signing).
 
 ### Development
 
-The compiled Node entry initializes the app secret before Nitro freezes runtime
-configuration; an ordinary Nitro plugin would run too late. The implementation is
-in `server/utils/app-secret.mjs` and `build/prepare-runtime.mjs`; the utility and
-its pure validator are copied into the standalone server output. Worker deployment
-tooling reuses the validator. Nuxt generates an app secret for development when
-no explicit app secret is configured.
-
-The production server resolves `data/.app-secret` from `process.cwd()`, so start
-it from the directory that contains `data/` (Docker images use `/app`). Root
-`pnpm preview` launches the built entry with `.output` as the working directory;
-keep a `data/` directory there for local preview, or set an explicit app secret.
+Nuxt generates an app secret for development when no explicit app secret is
+configured. Production builds require `NUXT_APP_SECRET` (or `NITRO_APP_SECRET`)
+in the environment. Worker deployment tooling reuses
+`server/utils/app-secret-validation.mjs`.
 
 The optional `nuxtseo-devtools-host` development dependency restores the Site
 Config and OG Image panels. It builds its client on first use. If a panel shows
