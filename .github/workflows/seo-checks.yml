@@ -1,0 +1,25 @@
+name: SEO checks
+on:
+  schedule:
+    # Weekly: catch OG/signing regressions without taxing every PR.
+    - cron: '17 6 * * 1'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  seo:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      WRANGLER_SEND_METRICS: 'false'
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.34.6
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm test:seo
