@@ -113,7 +113,7 @@ test('an already cancelled fixture terminates a newly spawned child before rejec
 test(
   'cancellation waits for build descendants and inherited stderr after the parent exits',
   { timeout: 12_000 },
-  async () => {
+  async (t) => {
     const grandchildCode = `
 process.on('SIGTERM', () => {})
 process.send(process.pid)
@@ -161,38 +161,9 @@ setInterval(() => {}, 1000)
       },
     )
     let descendants: number[] = []
-    try {
-      ;[descendants] = await once(child, 'message')
-      const exited = once(child, 'exit')
+    // Cleanup must not depend on the nested processes reporting their PIDs.
+    t.after(async () => {
       controller.abort(reason)
-      await exited
-      if (process.platform !== 'win32') {
-        await delay(100)
-        assert.equal(
-          settled,
-          false,
-          'parent exit must not release fixture cleanup',
-        )
-      }
-      assert.equal(await waiting, reason)
-      assert.equal(
-        closed,
-        true,
-        'descendants must release inherited stderr before cleanup',
-      )
-      if (process.platform === 'win32') {
-        for (const pid of descendants)
-          assert.throws(() => process.kill(pid, 0), { code: 'ESRCH' })
-      } else {
-        const active = await activeProcesses()
-        assert.ok(
-          !active.some(({ pid }) => descendants.includes(pid)),
-          'no active descendant may survive fixture shutdown',
-        )
-      }
-      assert.equal(getEventListeners(controller.signal, 'abort').length, 0)
-    } finally {
-      // Keep a failing regression from leaking the deliberately stubborn children.
       for (const pid of descendants) {
         try {
           process.kill(pid, 'SIGKILL')
@@ -200,9 +171,38 @@ setInterval(() => {}, 1000)
           assert.equal((error as NodeJS.ErrnoException).code, 'ESRCH')
         }
       }
-      await stop(child)
       await waiting
+      await stop(child)
+    })
+    ;[descendants] = await once(child, 'message', { signal: t.signal })
+    const exited = once(child, 'exit')
+    controller.abort(reason)
+    await exited
+    if (process.platform !== 'win32') {
+      await delay(100)
+      assert.equal(
+        settled,
+        false,
+        'parent exit must not release fixture cleanup',
+      )
     }
+    assert.equal(await waiting, reason)
+    assert.equal(
+      closed,
+      true,
+      'descendants must release inherited stderr before cleanup',
+    )
+    if (process.platform === 'win32') {
+      for (const pid of descendants)
+        assert.throws(() => process.kill(pid, 0), { code: 'ESRCH' })
+    } else {
+      const active = await activeProcesses()
+      assert.ok(
+        !active.some(({ pid }) => descendants.includes(pid)),
+        'no active descendant may survive fixture shutdown',
+      )
+    }
+    assert.equal(getEventListeners(controller.signal, 'abort').length, 0)
   },
 )
 
