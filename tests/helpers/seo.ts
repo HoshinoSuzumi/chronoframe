@@ -25,17 +25,23 @@ export async function waitForChildExit(
   }
   let forceKill: NodeJS.Timeout | undefined
   let windowsTermination: Promise<unknown> | undefined
+  let windowsFailure: unknown
+  const terminationFailure = Promise.withResolvers<never>()
   const terminate = () => {
     if (process.platform === 'win32' && child.pid) {
       // Windows has no POSIX process groups or graceful SIGTERM semantics.
-      windowsTermination = once(
-        spawn('taskkill', ['/pid', String(child.pid), '/T', '/F'], {
-          stdio: 'ignore',
-        }),
-        'close',
+      windowsTermination = Promise.resolve().then(() =>
+        once(
+          spawn('taskkill', ['/pid', String(child.pid), '/T', '/F'], {
+            stdio: 'ignore',
+          }),
+          'close',
+        ),
       )
-      // Observe launch errors immediately; propagate them when awaiting shutdown.
-      windowsTermination.catch(() => {})
+      windowsTermination.catch((error) => {
+        windowsFailure = error
+        terminationFailure.reject(error)
+      })
     } else {
       signalGroup('SIGTERM')
       forceKill = setTimeout(() => signalGroup('SIGKILL'), 5000)
@@ -45,12 +51,28 @@ export async function waitForChildExit(
   signal.addEventListener('abort', terminate, { once: true })
   try {
     if (signal.aborted) terminate()
-    const result = await closed
+    const result = await Promise.race([closed, terminationFailure.promise])
     // A descendant can close its pipes yet still be using the fixture directory.
     while (signalGroup(0)) await delay(25)
     await windowsTermination
     signal.throwIfAborted()
     return result
+  } catch (error) {
+    if (windowsFailure !== undefined && error === windowsFailure) {
+      // Tree shutdown failed: release this parent's handles, then let the caller
+      // report the failure and retain the fixture for any surviving descendants.
+      try {
+        if (!child.kill('SIGKILL')) child.unref()
+      } catch {
+        // Preserve the taskkill error even if direct parent termination fails.
+        child.unref()
+      } finally {
+        child.stdout?.destroy()
+        child.stderr?.destroy()
+        if (child.connected) child.disconnect()
+      }
+    }
+    throw error
   } finally {
     signal.removeEventListener('abort', terminate)
     clearTimeout(forceKill)

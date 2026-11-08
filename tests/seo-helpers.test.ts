@@ -1,7 +1,11 @@
 import assert from 'node:assert/strict'
 import { spawn } from 'node:child_process'
 import type { ChildProcess } from 'node:child_process'
-import { getEventListeners, once } from 'node:events'
+import { EventEmitter, getEventListeners, once } from 'node:events'
+import { readFileSync } from 'node:fs'
+import { createRequire } from 'node:module'
+import vm from 'node:vm'
+import ts from 'typescript'
 import test from 'node:test'
 import { setTimeout as delay } from 'node:timers/promises'
 import { imageUrl, waitForChildExit } from './helpers/seo.ts'
@@ -193,6 +197,83 @@ setInterval(() => {}, 1000)
     }
   },
 )
+
+function windowsExitWait(spawnTaskkill: (...args: unknown[]) => EventEmitter) {
+  const source = ts.transpileModule(
+    readFileSync('tests/helpers/seo.ts', 'utf8'),
+    {
+      compilerOptions: {
+        module: ts.ModuleKind.CommonJS,
+        target: ts.ScriptTarget.ES2022,
+      },
+    },
+  ).outputText
+  const exports: { waitForChildExit?: typeof waitForChildExit } = {}
+  const require = createRequire(import.meta.url)
+  vm.compileFunction(source, ['exports', 'require', 'process'])(
+    exports,
+    (name: string) =>
+      name === 'node:child_process' ? { spawn: spawnTaskkill } : require(name),
+    { platform: 'win32' },
+  )
+  assert.ok(exports.waitForChildExit)
+  return exports.waitForChildExit
+}
+
+for (const fails of [true, false]) {
+  test(`Windows taskkill ${fails ? 'launch failure rejects promptly' : 'success still waits for child close'} and releases cancellation listeners`, async () => {
+    const child = spawn(
+      process.execPath,
+      ['-e', "process.send('ready'); setInterval(() => {}, 1000)"],
+      {
+        stdio: ['ignore', 'pipe', 'pipe', 'ipc'],
+      },
+    )
+    const controller = new AbortController()
+    const failure = Object.assign(new Error('taskkill launch failed'), {
+      code: 'ENOENT',
+    })
+    const wait = windowsExitWait((command, args) => {
+      assert.equal(command, 'taskkill')
+      assert.deepEqual(args, ['/pid', String(child.pid), '/T', '/F'])
+      const taskkill = new EventEmitter()
+      queueMicrotask(() => {
+        if (fails) taskkill.emit('error', failure)
+        else {
+          child.kill('SIGKILL')
+          taskkill.emit('close', 0, null)
+        }
+      })
+      return taskkill
+    })
+    let timeout: NodeJS.Timeout | undefined
+    const waiting = wait(child, controller.signal).catch((error) => error)
+    try {
+      await once(child, 'message')
+      controller.abort()
+      const result = await Promise.race([
+        waiting,
+        new Promise((_, reject) => {
+          timeout = setTimeout(
+            () => reject(new Error('Windows shutdown wait hung')),
+            1000,
+          )
+        }),
+      ])
+      assert.equal(result, fails ? failure : controller.signal.reason)
+      assert.equal(getEventListeners(controller.signal, 'abort').length, 0)
+      if (fails) {
+        assert.equal(child.stdout?.destroyed, true)
+        assert.equal(child.stderr?.destroyed, true)
+        assert.equal(child.connected, false)
+      } else assert.ok(child.exitCode !== null || child.signalCode !== null)
+    } finally {
+      clearTimeout(timeout)
+      await stop(child)
+      await waiting
+    }
+  })
+}
 
 test('OG image extraction decodes HTML entities in a URL once', () => {
   assert.equal(

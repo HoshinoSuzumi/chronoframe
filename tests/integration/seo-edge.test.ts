@@ -106,6 +106,7 @@ test(
   { timeout: 180_000 },
   async (t) => {
     const directory = await mkdtemp(join(tmpdir(), 'chronoframe-seo-edge-'))
+    let canRemoveFixture = true
     try {
       await symlink(
         join(root, 'node_modules'),
@@ -198,7 +199,12 @@ export default config`,
         stream.on('data', (chunk) => {
           buildOutput = (buildOutput + chunk).slice(-8000)
         })
-      const [buildCode] = await waitForChildExit(build, t.signal)
+      const [buildCode] = await waitForChildExit(build, t.signal).catch(
+        (error) => {
+          if (error !== t.signal.reason) canRemoveFixture = false
+          throw error
+        },
+      )
       assert.equal(buildCode, 0, buildOutput)
       const fontEvents = JSON.parse(
         await readFile(join(directory, 'font-events.json'), 'utf8'),
@@ -238,7 +244,9 @@ export default config`,
         )
         const shutdown = new AbortController()
         const stopped = waitForChildExit(worker, shutdown.signal)
-        stopped.catch(() => {})
+        stopped.catch((error) => {
+          if (error !== shutdown.signal.reason) canRemoveFixture = false
+        })
         let output = ''
         for (const stream of [worker.stdout, worker.stderr])
           stream.on('data', (chunk) => {
@@ -337,7 +345,12 @@ export default config`,
         }
       }
     } finally {
-      await rm(directory, { recursive: true, force: true })
+      if (canRemoveFixture)
+        await rm(directory, { recursive: true, force: true })
+      else
+        console.error(
+          `Process-tree shutdown failed; retained fixture: ${directory}`,
+        )
     }
   },
 )
