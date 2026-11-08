@@ -1,1 +1,4 @@
-export { validateAppSecret } from '../../../../scripts/app-secret-validation.mjs'
+export {
+  resolveAppSecretCandidate,
+  validateAppSecret,
+} from '../../../../scripts/app-secret-validation.mjs'
