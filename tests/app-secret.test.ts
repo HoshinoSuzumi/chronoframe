@@ -48,7 +48,8 @@ test('mounts rejecting hard links publish a complete private key through a relat
   t.mock.method(fs, 'symlinkSync', (...args: Parameters<typeof symlink>) => {
     const candidate = join(dirname(String(args[1])), String(args[0]))
     assert.ok(readFileSync(candidate, 'utf8').length >= 32)
-    assert.equal(statSync(candidate).mode & 0o777, 0o600)
+    if (process.platform !== 'win32')
+      assert.equal(statSync(candidate).mode & 0o777, 0o600)
     assert.throws(() => lstatSync(args[1]), { code: 'ENOENT' })
     return symlink(...args)
   })
@@ -59,7 +60,8 @@ test('mounts rejecting hard links publish a complete private key through a relat
       assert.equal(result.source, 'generated')
       assert.equal(readFileSync(file, 'utf8'), result.secret)
       assert.ok(lstatSync(file).isSymbolicLink())
-      assert.equal(statSync(file).mode & 0o777, 0o600)
+      if (process.platform !== 'win32')
+        assert.equal(statSync(file).mode & 0o777, 0o600)
       assert.match(readlinkSync(file), /^\.app-secret\.[a-f0-9]+\.key$/)
       assert.deepEqual(
         readdirSync(dirname(file)).sort(),
@@ -94,7 +96,8 @@ test('the fallback reuses a concurrent winner without replacing it or retaining 
     })
     assert.equal(readFileSync(file, 'utf8'), winner)
     assert.deepEqual(readdirSync(dirname(file)), ['.app-secret'])
-    assert.equal(statSync(file).mode & 0o777, 0o600)
+    if (process.platform !== 'win32')
+      assert.equal(statSync(file).mode & 0o777, 0o600)
   })
 })
 
@@ -139,7 +142,8 @@ test('an app secret persists privately across restarts without changing sessions
     assert.equal(first.source, 'generated')
     const stored = readFileSync(file, 'utf8')
     assert.ok(stored.length >= 32)
-    assert.equal(statSync(file).mode & 0o777, 0o600)
+    if (process.platform !== 'win32')
+      assert.equal(statSync(file).mode & 0o777, 0o600)
     assert.equal(env.NUXT_SESSION_PASSWORD, 'session'.repeat(8))
     assert.equal(ensureAppSecret(file, {}).secret, stored)
     assert.equal(ensureAppSecret(file, {}).source, 'file')
@@ -361,7 +365,8 @@ syncBuiltinESMExports()
     if (rejectHardLinks) {
       const file = join(directory, 'data/.app-secret')
       assert.ok(lstatSync(file).isSymbolicLink())
-      assert.equal(statSync(file).mode & 0o777, 0o600)
+      if (process.platform !== 'win32')
+        assert.equal(statSync(file).mode & 0o777, 0o600)
       assert.deepEqual(
         readdirSync(dirname(file)).sort(),
         ['.app-secret', readlinkSync(file)].sort(),
