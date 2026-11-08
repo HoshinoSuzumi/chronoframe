@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import { spawn, type ChildProcess } from 'node:child_process'
+import { execFile, spawn, type ChildProcess } from 'node:child_process'
 import { once } from 'node:events'
 import { createServer } from 'node:net'
 import { setTimeout as delay } from 'node:timers/promises'
@@ -53,7 +53,13 @@ export async function waitForChildExit(
     if (signal.aborted) terminate()
     const result = await Promise.race([closed, terminationFailure.promise])
     // A descendant can close its pipes yet still be using the fixture directory.
-    while (signalGroup(0)) await delay(25)
+    // Signal 0 also succeeds for unreaped zombies, which no longer execute.
+    while (
+      group !== undefined &&
+      signalGroup(0) &&
+      (await activeProcesses()).some((member) => member.group === -group)
+    )
+      await delay(25)
     await windowsTermination
     signal.throwIfAborted()
     return result
@@ -77,6 +83,31 @@ export async function waitForChildExit(
     signal.removeEventListener('abort', terminate)
     clearTimeout(forceKill)
   }
+}
+
+/** POSIX process snapshot: stopped/sleeping processes still count; zombies do not. */
+export async function activeProcesses() {
+  const output = await new Promise<string>((resolve, reject) => {
+    execFile(
+      'ps',
+      ['-A', '-o', 'pid=,pgid=,stat='],
+      { encoding: 'utf8', timeout: 1000 },
+      (error, stdout) => {
+        if (error) reject(error)
+        else resolve(stdout)
+      },
+    )
+  })
+  return output
+    .split('\n')
+    .filter((line) => line.trim())
+    .flatMap((line) => {
+      const fields = line.match(/^\s*(\d+)\s+(\d+)\s+(\S+)\s*$/)
+      assert.ok(fields, 'ps must report each process PID, group and state')
+      return fields[3].startsWith('Z')
+        ? []
+        : [{ pid: Number(fields[1]), group: Number(fields[2]) }]
+    })
 }
 
 export async function unusedPort() {

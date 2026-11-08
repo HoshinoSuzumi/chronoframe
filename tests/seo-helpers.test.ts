@@ -8,7 +8,7 @@ import vm from 'node:vm'
 import ts from 'typescript'
 import test from 'node:test'
 import { setTimeout as delay } from 'node:timers/promises'
-import { imageUrl, waitForChildExit } from './helpers/seo.ts'
+import { activeProcesses, imageUrl, waitForChildExit } from './helpers/seo.ts'
 
 async function stop(child: ChildProcess) {
   if (child.exitCode !== null || child.signalCode !== null) return
@@ -180,8 +180,16 @@ setInterval(() => {}, 1000)
         true,
         'descendants must release inherited stderr before cleanup',
       )
-      for (const pid of descendants)
-        assert.throws(() => process.kill(pid, 0), { code: 'ESRCH' })
+      if (process.platform === 'win32') {
+        for (const pid of descendants)
+          assert.throws(() => process.kill(pid, 0), { code: 'ESRCH' })
+      } else {
+        const active = await activeProcesses()
+        assert.ok(
+          !active.some(({ pid }) => descendants.includes(pid)),
+          'no active descendant may survive fixture shutdown',
+        )
+      }
       assert.equal(getEventListeners(controller.signal, 'abort').length, 0)
     } finally {
       // Keep a failing regression from leaking the deliberately stubborn children.
@@ -198,13 +206,17 @@ setInterval(() => {}, 1000)
   },
 )
 
-function windowsExitWait(spawnTaskkill: (...args: unknown[]) => EventEmitter) {
+function fixtureExitWait(
+  childProcess: Record<string, unknown>,
+  runtimeProcess: Record<string, unknown>,
+) {
   const source = ts.transpileModule(
     readFileSync('tests/helpers/seo.ts', 'utf8'),
     {
       compilerOptions: {
         module: ts.ModuleKind.CommonJS,
         target: ts.ScriptTarget.ES2022,
+        esModuleInterop: true,
       },
     },
   ).outputText
@@ -213,12 +225,88 @@ function windowsExitWait(spawnTaskkill: (...args: unknown[]) => EventEmitter) {
   vm.compileFunction(source, ['exports', 'require', 'process'])(
     exports,
     (name: string) =>
-      name === 'node:child_process' ? { spawn: spawnTaskkill } : require(name),
-    { platform: 'win32' },
+      name === 'node:child_process'
+        ? { ...require(name), ...childProcess }
+        : require(name),
+    runtimeProcess,
   )
   assert.ok(exports.waitForChildExit)
   return exports.waitForChildExit
 }
+
+function windowsExitWait(spawnTaskkill: (...args: unknown[]) => EventEmitter) {
+  return fixtureExitWait({ spawn: spawnTaskkill }, { platform: 'win32' })
+}
+
+test('POSIX shutdown waits for active/stopped descendants but not zombie-only group members', async () => {
+  const child = spawn(process.execPath, ['-e', 'process.exit(7)'])
+  assert.ok(child.pid)
+  const group = child.pid
+  let exists = true
+  let snapshots = 0
+  const states = ['S', 'T', 'Z+']
+  const wait = fixtureExitWait(
+    {
+      execFile: (
+        command: string,
+        args: string[],
+        _options: unknown,
+        done: (error: null, output: string) => void,
+      ) => {
+        assert.equal(command, 'ps')
+        assert.deepEqual(args, ['-A', '-o', 'pid=,pgid=,stat='])
+        const state = states[Math.min(snapshots++, states.length - 1)]
+        queueMicrotask(() =>
+          done(
+            null,
+            `200 ${group} ${state}\n201 ${group} Z\n202 ${group + 1} R\n`,
+          ),
+        )
+      },
+    },
+    {
+      platform: 'linux',
+      kill: (pid: number, signal: number) => {
+        assert.equal(pid, -group)
+        assert.equal(signal, 0)
+        if (!exists)
+          throw Object.assign(new Error('No group'), { code: 'ESRCH' })
+        return true
+      },
+    },
+  )
+  const controller = new AbortController()
+  const waiting = wait(child, controller.signal)
+  let timeout: NodeJS.Timeout | undefined
+  try {
+    const [code] = await Promise.race([
+      waiting,
+      new Promise<never>((_, reject) => {
+        timeout = setTimeout(
+          () => reject(new Error('Zombie-only group blocked cleanup')),
+          1000,
+        )
+      }),
+    ])
+    assert.equal(code, 7)
+    assert.equal(
+      snapshots,
+      3,
+      'sleeping/stopped descendants must keep cleanup blocked',
+    )
+    assert.equal(
+      exists,
+      true,
+      'zombies can keep signal 0 succeeding after execution ends',
+    )
+    assert.equal(getEventListeners(controller.signal, 'abort').length, 0)
+  } finally {
+    clearTimeout(timeout)
+    exists = false
+    await stop(child)
+    await waiting
+  }
+})
 
 for (const fails of [true, false]) {
   test(`Windows taskkill ${fails ? 'launch failure rejects promptly' : 'success still waits for child close'} and releases cancellation listeners`, async () => {
