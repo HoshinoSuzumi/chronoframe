@@ -7,7 +7,7 @@ Read the [changelog](/changelog) before choosing a target version and review its
 ## Back up
 
 ::: warning Stop and back up first
-Stop the container, then back up:
+Stop every replica that shares the data directory—including any outside this Compose project—then back up:
 
 - The complete data directory and Compose file, including `app.sqlite3`, `.session-password` and `.app-secret` when present. Include hidden key files, not just the database.
 - `.env`, if your older deployment still uses it.
