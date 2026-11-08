@@ -83,6 +83,11 @@ async function checkNavigation(
 ) {
   const route = reactive({ path: '/', params: {} as { slug?: string } })
   const homeView = ref('photos')
+  const entryContext = ref({
+    siteId: 1,
+    capabilities: { edition },
+    canonicalOrigin: 'https://gallery.example.test',
+  })
   const head = createHead()
   assert.equal(head.ssr, false)
   const scope = effectScope()
@@ -155,12 +160,7 @@ async function checkNavigation(
     useRoute: () => route,
     useNuxtApp: () => ({ runWithContext: (run: () => void) => run() }),
     useRequestURL: () => new URL('https://internal.example.test/'),
-    useEntryContext: () =>
-      ref({
-        siteId: 1,
-        capabilities: { edition },
-        canonicalOrigin: 'https://gallery.example.test',
-      }),
+    useEntryContext: () => entryContext,
     useUserSession: () => ({ loggedIn: ref(false) }),
     useSettingRef: (key: keyof typeof settings) => settings[key],
     useHomeView: () => ({ homeView }),
@@ -271,6 +271,21 @@ async function checkNavigation(
     assert.ok(
       headTags.includes('rel="canonical" href="https://gallery.example.test/"'),
     )
+    if (!realOgImage && edition === 'site') {
+      const previous = images.at(-1)!
+      const registrations = images.length
+      entryContext.value.siteId = 2
+      await nextTick()
+      assert.equal(
+        images.length,
+        registrations + 1,
+        'changing siteId alone must trigger OG registration',
+      )
+      assert.deepEqual(images.at(-1), {
+        ...previous,
+        props: { ...previous.props, originSiteId: 2 },
+      })
+    }
   } finally {
     scope.stop()
   }
