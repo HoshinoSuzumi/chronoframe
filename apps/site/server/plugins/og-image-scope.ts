@@ -28,6 +28,7 @@ export default defineNitroPlugin((nitroApp) => {
         context.site,
         '/api/public/media',
       )
+      const reader = createResourceReader(repository)
       const props = options.props ?? {}
       let thumbnailVersions: ({
         sourceVersion: string
@@ -44,28 +45,21 @@ export default defineNitroPlugin((nitroApp) => {
         await authorizePublicPhoto(e, context, photo.id)
         props.photo = photo
       } else if (options.component === 'OgImageHomeTakumi') {
-        const photos =
-          props.showPhotos === true
-            ? await createResourceReader(repository).listVisiblePhotos()
-            : []
-        const thumbnails = photos
-          .filter((photo) => photo.thumbnailUrl)
-          .slice(0, 3)
-        props.thumbnails = thumbnails.map((photo) => photo.thumbnailUrl)
-        // Match the published asset selected by the media endpoint. Reprocessing
-        // keeps its public URL (and can keep its perceptual hash) unchanged.
-        thumbnailVersions = await Promise.all(
-          thumbnails.map((photo) =>
-            db
-              .prepare(
-                "SELECT a.source_version AS sourceVersion,a.pipeline_version AS pipelineVersion FROM cloud_media_assets a JOIN cloud_photos p ON p.site_id=a.site_id AND p.id=a.photo_id AND p.source_version=a.source_version WHERE a.site_id=? AND a.photo_id=? AND a.role='thumbnail' ORDER BY a.pipeline_version DESC LIMIT 1",
-              )
-              .bind(context.site.id, photo.id)
-              .first<{ sourceVersion: string; pipelineVersion: string }>(),
-          ),
-        )
-        if (props.showPhotos === true) props.photoCount = photos.length
-        else delete props.photoCount
+        if (props.showPhotos === true) {
+          const thumbnails = (
+            await reader.listVisiblePhotoPreviews(3)
+          ).filter((photo) => photo.thumbnailUrl)
+          props.thumbnails = thumbnails.map((photo) => photo.thumbnailUrl)
+          // Match the published asset selected by the media endpoint. Reprocessing
+          // keeps its public URL (and can keep its perceptual hash) unchanged.
+          thumbnailVersions = await reader.listThumbnailVersions(
+            thumbnails.map((photo) => photo.id),
+          )
+          props.photoCount = await reader.countVisiblePhotos()
+        } else {
+          props.thumbnails = []
+          delete props.photoCount
+        }
         delete props.photoCountLabel
       } else {
         throw createError({ statusCode: 404 })

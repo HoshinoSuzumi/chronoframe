@@ -13,6 +13,11 @@ export interface PhotoMembership {
   protected: boolean
 }
 
+export interface ThumbnailAssetVersion {
+  sourceVersion: string
+  pipelineVersion: string
+}
+
 /** Async boundary allows both embedded SQLite and future asynchronous adapters. */
 export interface ResourceReadRepository {
   protectedPhoto?(photo: Photo): Photo
@@ -20,6 +25,10 @@ export interface ResourceReadRepository {
     excludedIds?: string[],
     page?: { limit: number; offset: number },
   ): Promise<Photo[]>
+  countPhotos(excludedIds?: string[]): Promise<number>
+  listThumbnailVersions?(
+    photoIds: string[],
+  ): Promise<(ThumbnailAssetVersion | null)[]>
   listAlbums(): Promise<AlbumReadRecord[]>
   getAlbum(id: number): Promise<AlbumReadRecord | null>
   listAlbumPhotos(id: number): Promise<Photo[]>
@@ -40,6 +49,14 @@ export interface ReadAccess {
 export { CoreError, ResourceReadError } from './errors.ts'
 import { ResourceReadError } from './errors.ts'
 
+async function excludedPhotoIds(repository: ResourceReadRepository) {
+  return new Set(
+    (await repository.listMemberships())
+      .filter((m) => m.hidden || m.protected)
+      .map((m) => m.photoId),
+  )
+}
+
 /** Read use cases own visibility rules; repositories own query and ordering details. */
 export function createResourceReader(repository: ResourceReadRepository) {
   return {
@@ -49,12 +66,26 @@ export function createResourceReader(repository: ResourceReadRepository) {
     },
 
     async listVisiblePhotos(): Promise<Photo[]> {
-      const excluded = new Set(
-        (await repository.listMemberships())
-          .filter((m) => m.hidden || m.protected)
-          .map((m) => m.photoId),
-      )
+      const excluded = await excludedPhotoIds(repository)
       return repository.listPhotos([...excluded])
+    },
+
+    async countVisiblePhotos(): Promise<number> {
+      const excluded = await excludedPhotoIds(repository)
+      return repository.countPhotos([...excluded])
+    },
+
+    async listVisiblePhotoPreviews(limit: number): Promise<Photo[]> {
+      const excluded = await excludedPhotoIds(repository)
+      return repository.listPhotos([...excluded], { limit, offset: 0 })
+    },
+
+    async listThumbnailVersions(
+      photoIds: string[],
+    ): Promise<(ThumbnailAssetVersion | null)[]> {
+      if (!repository.listThumbnailVersions)
+        throw new Error('Thumbnail versions unavailable')
+      return repository.listThumbnailVersions(photoIds)
     },
 
     async listAlbums(

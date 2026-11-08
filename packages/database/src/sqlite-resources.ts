@@ -1,7 +1,15 @@
 import { requireSite } from './site-repository.ts'
 import { type SiteContext } from '@chronoframe/core'
 import { and as siteAnd, eq as siteEq } from 'drizzle-orm'
-import { and, asc, desc, eq, getTableColumns, notInArray } from 'drizzle-orm'
+import {
+  and,
+  asc,
+  count,
+  desc,
+  eq,
+  getTableColumns,
+  notInArray,
+} from 'drizzle-orm'
 import type { ResourceReadRepository } from '@chronoframe/core'
 import { tables, type AppDatabase } from './connection.ts'
 import { toAlbumDto, toPhotoDto } from './dto.ts'
@@ -44,6 +52,22 @@ export function createSqliteResourceRepository(
         .offset(page?.offset ?? 0)
         .all()
         .map(toPhotoDto)
+    },
+    async countPhotos(excludedIds = []) {
+      return (
+        db
+          .select({ n: count() })
+          .from(tables.photos)
+          .where(
+            siteAnd(
+              excludedIds.length
+                ? notInArray(tables.photos.id, excludedIds)
+                : undefined,
+              siteEq(tables.photos.siteId, site.id),
+            ),
+          )
+          .get()?.n ?? 0
+      )
     },
     async listAlbums() {
       return db

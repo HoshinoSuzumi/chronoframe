@@ -48,8 +48,13 @@ const memberships = [
   { albumId: 4, photoId: 'shared-locked', hidden: false, protected: true },
 ]
 const repository: ResourceReadRepository = {
-  async listPhotos(excludedIds = []) {
-    return photos.filter((photo) => !excludedIds.includes(photo.id))
+  async listPhotos(excludedIds = [], page) {
+    const visible = photos.filter((photo) => !excludedIds.includes(photo.id))
+    if (!page) return visible
+    return visible.slice(page.offset, page.offset + page.limit)
+  },
+  async countPhotos(excludedIds = []) {
+    return photos.filter((photo) => !excludedIds.includes(photo.id)).length
   },
   async listAlbums() {
     return albums
@@ -87,6 +92,8 @@ const fails = (status: number) => (error: unknown) =>
 
 test('core read boundaries hide restricted membership from public feeds and listings', async () => {
   assert.deepEqual(ids(await reader.listVisiblePhotos()), ['public'])
+  assert.equal(await reader.countVisiblePhotos(), 1)
+  assert.deepEqual(ids(await reader.listVisiblePhotoPreviews(3)), ['public'])
   await assert.rejects(reader.listPhotos(anonymous), fails(401))
   assert.deepEqual(ids(await reader.listPhotos(admin)), ids(photos))
   const listed = await reader.listAlbums(anonymous)
