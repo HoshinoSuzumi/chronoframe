@@ -36,7 +36,7 @@ For upgrades, rollback, and HTML cache refresh, see the
 Nuxt generates an app secret for development when no explicit app secret is
 configured. Production builds require `NUXT_APP_SECRET` (or `NITRO_APP_SECRET`)
 in the environment. Worker deployment tooling reuses
-`server/utils/app-secret-validation.mjs`.
+`scripts/app-secret-validation.mjs`.
 
 The optional `nuxtseo-devtools-host` development dependency restores the Site
 Config and OG Image panels. It builds its client on first use. If a panel shows

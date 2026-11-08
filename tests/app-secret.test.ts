@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { validateAppSecret } from '../apps/self-hosted/server/utils/app-secret-validation.mjs'
+import { validateAppSecret } from '../scripts/app-secret-validation.mjs'
 
 test('validateAppSecret accepts strings of at least 32 characters', () => {
   const secret = 'a'.repeat(32)

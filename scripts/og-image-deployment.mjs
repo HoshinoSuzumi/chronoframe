@@ -1,4 +1,4 @@
-import { validateAppSecret } from '../apps/self-hosted/server/utils/app-secret-validation.mjs'
+import { validateAppSecret } from './app-secret-validation.mjs'
 
 /** Read the approved environment's private Worker key, never a platform key. */
 export function edgeAppSecretForOgDeployment(entry, env = process.env) {
