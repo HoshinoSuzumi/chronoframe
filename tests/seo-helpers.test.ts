@@ -308,8 +308,14 @@ test('POSIX shutdown waits for active/stopped descendants but not zombie-only gr
   }
 })
 
-for (const fails of [true, false]) {
-  test(`Windows taskkill ${fails ? 'launch failure rejects promptly' : 'success still waits for child close'} and releases cancellation listeners`, async () => {
+for (const outcome of ['launch-error', 'nonzero-exit', 'success'] as const) {
+  test(`Windows taskkill ${
+    outcome === 'launch-error'
+      ? 'launch failure rejects promptly'
+      : outcome === 'nonzero-exit'
+        ? 'nonzero exit rejects promptly'
+        : 'success still waits for child close'
+  } and releases cancellation listeners`, async () => {
     const child = spawn(
       process.execPath,
       ['-e', "process.send('ready'); setInterval(() => {}, 1000)"],
@@ -326,7 +332,8 @@ for (const fails of [true, false]) {
       assert.deepEqual(args, ['/pid', String(child.pid), '/T', '/F'])
       const taskkill = new EventEmitter()
       queueMicrotask(() => {
-        if (fails) taskkill.emit('error', failure)
+        if (outcome === 'launch-error') taskkill.emit('error', failure)
+        else if (outcome === 'nonzero-exit') taskkill.emit('close', 1, null)
         else {
           child.kill('SIGKILL')
           taskkill.emit('close', 0, null)
@@ -348,13 +355,22 @@ for (const fails of [true, false]) {
           )
         }),
       ])
-      assert.equal(result, fails ? failure : controller.signal.reason)
+      if (outcome === 'success')
+        assert.equal(result, controller.signal.reason)
+      else if (outcome === 'launch-error') assert.equal(result, failure)
+      else {
+        assert.ok(result instanceof Error)
+        assert.match(result.message, /taskkill exited with code 1/)
+        assert.equal((result as NodeJS.ErrnoException).code, 1)
+      }
       assert.equal(getEventListeners(controller.signal, 'abort').length, 0)
-      if (fails) {
+      if (outcome === 'success')
+        assert.ok(child.exitCode !== null || child.signalCode !== null)
+      else {
         assert.equal(child.stdout?.destroyed, true)
         assert.equal(child.stderr?.destroyed, true)
         assert.equal(child.connected, false)
-      } else assert.ok(child.exitCode !== null || child.signalCode !== null)
+      }
     } finally {
       clearTimeout(timeout)
       await stop(child)

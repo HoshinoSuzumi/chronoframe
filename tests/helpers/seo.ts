@@ -30,14 +30,18 @@ export async function waitForChildExit(
   const terminate = () => {
     if (process.platform === 'win32' && child.pid) {
       // Windows has no POSIX process groups or graceful SIGTERM semantics.
-      windowsTermination = Promise.resolve().then(() =>
-        once(
+      windowsTermination = Promise.resolve().then(async () => {
+        const [code] = await once(
           spawn('taskkill', ['/pid', String(child.pid), '/T', '/F'], {
             stdio: 'ignore',
           }),
           'close',
-        ),
-      )
+        )
+        if (code !== 0)
+          throw Object.assign(new Error(`taskkill exited with code ${code}`), {
+            code,
+          })
+      })
       windowsTermination.catch((error) => {
         windowsFailure = error
         terminationFailure.reject(error)
