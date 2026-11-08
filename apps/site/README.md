@@ -59,7 +59,9 @@ invalidation and cache refresh.
 Signed Home/Photo paths include their originating Site ID. The Site adapter
 compares it with the live, trusted Host-to-Site resolution after signature
 verification and before image cache lookup or rendering. Cross-Site replay and
-paths without Site scope return 403; verified aliases of the same Site remain valid.
+paths without Site scope return 403. Verified aliases of the same Site remain valid
+only while eligible for Host resolution. After a default Host is renamed, its old
+address stops resolving after seven days even if the mapping remains verified.
 Refresh cached HTML containing older OG paths without this Site binding.
 
 ### Local app secret
