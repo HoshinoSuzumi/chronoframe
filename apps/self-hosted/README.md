@@ -53,6 +53,11 @@ its pure validator are copied into the standalone server output. Worker deployme
 tooling reuses the validator. Nuxt generates an app secret for development when
 no explicit app secret is configured.
 
+The production server resolves `data/.app-secret` from `process.cwd()`, so start
+it from the directory that contains `data/` (Docker images use `/app`). Root
+`pnpm preview` launches the built entry with `.output` as the working directory;
+keep a `data/` directory there for local preview, or set an explicit app secret.
+
 The optional `nuxtseo-devtools-host` development dependency restores the Site
 Config and OG Image panels. It builds its client on first use. If a panel shows
 **Connect to Dev Server**, enter the local server origin once (for example,
