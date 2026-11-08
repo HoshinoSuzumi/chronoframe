@@ -28,7 +28,7 @@ cp docker-compose.yml backups/docker-compose.yml
 
 ## Replace the image
 
-When upgrading to OG Image v7 across multiple replicas, stop every replica and align the effective app secret on every replica before changing the image or bringing any upgraded instance online. Stopping alone does not prevent signing mismatches when replicas retain different `NITRO_APP_SECRET`, `NUXT_APP_SECRET`, or legacy secret overrides.
+When upgrading to OG Image v7 across multiple replicas, stop every replica and configure the same valid, nonempty effective app secret on every replica before changing the image or bringing any upgraded instance online. Stopping alone does not prevent signing mismatches when replicas retain different `NITRO_APP_SECRET`, `NUXT_APP_SECRET`, or legacy secret overrides. An empty `NUXT_APP_SECRET` may still allow startup; replicas with separate data directories then generate different `data/.app-secret` signing keys.
 
 Change the image tag in Compose to the version you want, for example `v1.0.0`, then run:
 

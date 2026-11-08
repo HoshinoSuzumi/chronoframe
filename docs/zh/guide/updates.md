@@ -28,7 +28,7 @@ cp docker-compose.yml backups/docker-compose.yml
 
 ## 更新镜像
 
-跨多个副本升级到 OG Image v7 时，须在更改镜像或让任一已升级实例上线之前停止全部副本，并在每一副本上对齐有效应用密钥。仅停止副本并不能避免签名不一致：若各副本仍保留不同的 `NITRO_APP_SECRET`、`NUXT_APP_SECRET` 或旧密钥覆盖，仍会出现跨副本校验失败。
+跨多个副本升级到 OG Image v7 时，须在更改镜像或让任一已升级实例上线之前停止全部副本，并在每一副本上配置相同的、有效且非空的应用密钥。仅停止副本并不能避免签名不一致：若各副本仍保留不同的 `NITRO_APP_SECRET`、`NUXT_APP_SECRET` 或旧密钥覆盖，仍会出现跨副本校验失败。空的 `NUXT_APP_SECRET` 仍可能允许启动；若各副本使用独立的数据目录，则会各自生成不同的 `data/.app-secret` 签名密钥。
 
 在 Compose 文件中将镜像标签改为目标版本，例如 `v1.0.0`，然后执行：
 
