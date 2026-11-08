@@ -28,7 +28,7 @@ cp docker-compose.yml backups/docker-compose.yml
 
 ## Replace the image
 
-When upgrading to OG Image v7 across multiple replicas, stop every replica before changing the image or bringing any upgraded instance online so no upgraded replica serves traffic while others still run v6.
+When upgrading to OG Image v7 across multiple replicas, stop every replica and align the effective app secret on every replica before changing the image or bringing any upgraded instance online. Stopping alone does not prevent signing mismatches when replicas retain different `NITRO_APP_SECRET`, `NUXT_APP_SECRET`, or legacy secret overrides.
 
 Change the image tag in Compose to the version you want, for example `v1.0.0`, then run:
 
