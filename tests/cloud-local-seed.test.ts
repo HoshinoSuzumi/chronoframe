@@ -161,6 +161,87 @@ test('Local Cloud setup rejects short existing app secrets without changing the 
   }
 })
 
+test('Local Cloud setup rejects a short effective NITRO_APP_SECRET override', async () => {
+  const validNuxt = 'NUXT_APP_SECRET=' + 'n'.repeat(32)
+  for (const scenario of [
+    {
+      assignment: 'NITRO_APP_SECRET=short-nitro\n' + validNuxt,
+      env: undefined,
+      expose: 'short-nitro',
+    },
+    {
+      assignment: `NITRO_APP_SECRET='${JSON.stringify('k'.repeat(31))}'\n${validNuxt}`,
+      env: undefined,
+      expose: JSON.stringify('k'.repeat(31)),
+    },
+    {
+      assignment: validNuxt,
+      env: { NITRO_APP_SECRET: 'shell-short-nitro' },
+      expose: 'shell-short-nitro',
+    },
+    {
+      assignment: validNuxt,
+      env: { NITRO_APP_SECRET: JSON.stringify('s'.repeat(31)) },
+      expose: JSON.stringify('s'.repeat(31)),
+    },
+  ]) {
+    const directory = await mkdtemp(join(tmpdir(), 'chronoframe-cloud-env-'))
+    const previous = process.env.NITRO_APP_SECRET
+    try {
+      const original = `# Keep this file\n${scenario.assignment}\nKEEP=this-value\n`
+      await writeFile(join(directory, '.env'), original)
+      if (scenario.env) Object.assign(process.env, scenario.env)
+      else delete process.env.NITRO_APP_SECRET
+      await assert.rejects(seedEnvironment(directory), (error: unknown) => {
+        assert.ok(error instanceof Error)
+        assert.match(error.message, /NITRO_APP_SECRET.*at least 32/)
+        assert.match(error.message, /Replace.*rerun pnpm setup:cloud/)
+        assert.ok(!error.message.includes(scenario.expose))
+        return true
+      })
+      assert.equal(await readFile(join(directory, '.env'), 'utf8'), original)
+    } finally {
+      if (previous === undefined) delete process.env.NITRO_APP_SECRET
+      else process.env.NITRO_APP_SECRET = previous
+      await rm(directory, { recursive: true, force: true })
+    }
+  }
+})
+
+test('Local Cloud setup accepts a valid effective NITRO_APP_SECRET override', async () => {
+  const validNuxt = 'NUXT_APP_SECRET=' + 'n'.repeat(32)
+  for (const scenario of [
+    {
+      assignment: 'NITRO_APP_SECRET=' + 'a'.repeat(32) + '\n' + validNuxt,
+      env: undefined,
+    },
+    {
+      assignment:
+        `NITRO_APP_SECRET='${JSON.stringify('j'.repeat(32))}'\n` + validNuxt,
+      env: undefined,
+    },
+    {
+      assignment: validNuxt,
+      env: { NITRO_APP_SECRET: 'v'.repeat(32) },
+    },
+  ]) {
+    const directory = await mkdtemp(join(tmpdir(), 'chronoframe-cloud-env-'))
+    const previous = process.env.NITRO_APP_SECRET
+    try {
+      const original = `# Local settings\n${scenario.assignment}\nKEEP=this-value\n`
+      await writeFile(join(directory, '.env'), original)
+      if (scenario.env) Object.assign(process.env, scenario.env)
+      else delete process.env.NITRO_APP_SECRET
+      const result = await seedEnvironment(directory)
+      assert.ok(result.startsWith(original))
+    } finally {
+      if (previous === undefined) delete process.env.NITRO_APP_SECRET
+      else process.env.NITRO_APP_SECRET = previous
+      await rm(directory, { recursive: true, force: true })
+    }
+  }
+})
+
 test('Local account seeding synchronizes regenerated credentials without replacing the account', () => {
   const source = readFileSync('scripts/setup-cloud-local.mjs', 'utf8')
   const sql = source.match(/`(INSERT INTO platform_accounts[^`]+)`/)?.[1]

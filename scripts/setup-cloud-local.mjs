@@ -39,7 +39,8 @@ for (const [key, value] of Object.entries(defaults)) {
   if (!new RegExp(`^\\s*${key}\\s*=`, 'm').test(env))
     env += `\n${key}=${value}\n`
 }
-let appSecret = parseDotenv(env).NUXT_APP_SECRET
+const parsedEnv = parseDotenv(env)
+let appSecret = parsedEnv.NUXT_APP_SECRET
 try {
   appSecret = JSON.parse(appSecret)
 } catch {
@@ -49,6 +50,24 @@ validateAppSecret(
   appSecret,
   'NUXT_APP_SECRET in apps/cloud/.env must be a string with at least 32 characters. Replace the existing value and rerun pnpm setup:cloud.',
 )
+// Nitro's override wins over NUXT_APP_SECRET, including when Worker/.env bindings
+// are absent (for example CLOUDFLARE_LOAD_DEV_VARS_FROM_DOT_ENV=false).
+const nitroRaw =
+  process.env.NITRO_APP_SECRET !== undefined
+    ? process.env.NITRO_APP_SECRET
+    : parsedEnv.NITRO_APP_SECRET
+if (nitroRaw !== undefined) {
+  let nitroSecret = nitroRaw
+  try {
+    nitroSecret = JSON.parse(nitroSecret)
+  } catch {
+    // Nitro also accepts ordinary, unquoted strings.
+  }
+  validateAppSecret(
+    nitroSecret,
+    'NITRO_APP_SECRET must be a string with at least 32 characters. Replace the existing value and rerun pnpm setup:cloud.',
+  )
+}
 await writeFile(envPath, env)
 await mkdir(join(cloudApp, '.data'), { recursive: true })
 const credentialsPath = join(cloudApp, '.data', 'local-account.json')
