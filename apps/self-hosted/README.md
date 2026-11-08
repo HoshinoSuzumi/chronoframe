@@ -19,23 +19,13 @@ source directories or copy it into build contexts.
 
 ## OG image signing
 
-Production OG signing requires a valid app secret (at least 32 characters):
+Production requires a valid `NUXT_APP_SECRET` (or `NITRO_APP_SECRET`) of at least
+32 characters. `NUXT_OG_IMAGE_SECRET` remains a deprecated fallback. Replicas must
+share the same secret; it does not replace the session password. Missing or
+invalid secrets stop production startup.
 
-1. `NITRO_APP_SECRET`: Nitro's higher-priority environment override, if set.
-2. `NUXT_APP_SECRET`: the Nuxt app secret when no Nitro override is set.
-3. `NUXT_OG_IMAGE_SECRET`: the deprecated fallback when neither app-secret override is configured.
-
-Production startup fails fast when none of these provides a string of at least
-32 characters. An invalid `NITRO_APP_SECRET` stops startup even if a valid
-lower-priority secret exists. Replicas must use the same app secret. It does not
-replace the independent session password.
-
-Rename an existing `NUXT_OG_IMAGE_SECRET` to `NUXT_APP_SECRET` without changing its
-value. OG Image v7 invalidates v6 signed URLs even with the same app secret;
-refresh cached HTML containing those URLs. Rollback restores the previous image
-and environment configuration, retains the data volume, and refreshes affected
-HTML again. This SEO change requires no database migration.
-See the [update guide](../../docs/guide/updates.md#og-image-signing).
+For upgrades, rollback, and HTML cache refresh, see the
+[update guide](../../docs/guide/updates.md#og-image-signing).
 
 ### Development
 

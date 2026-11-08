@@ -43,7 +43,5 @@ persist app secrets in their filesystem. Local setup is described in the
 [Site README](../../site/README.md#local-app-secret); local `.env` files do not
 configure deployed Workers.
 
-OG Image v7 invalidates v6 signed URLs even with the same app secret. Refresh
-cached HTML containing OG URLs after upgrading or rolling back, and check share
-previews. Rollback restores the previous Worker version and environment bindings;
-this SEO change adds no database migration.
+For OG Image v7 upgrades, rollback, and HTML cache refresh, see the
+[Update Guide](../../../docs/guide/updates.md#og-image-signing).

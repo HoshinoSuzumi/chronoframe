@@ -52,9 +52,9 @@ global indexability override or make password prompts `noindex`.
 ## OG image signing
 
 See the [shared signing guide](../shared/platform/README.md#og-image-signing)
-for Worker bindings and deployment/rollback configuration, and the
-[Update Guide](../../docs/guide/updates.md#og-image-signing) for v7 signed-URL
-invalidation and cache refresh.
+for Worker bindings, and the
+[Update Guide](../../docs/guide/updates.md#og-image-signing) for the v7 upgrade
+procedure.
 
 Signed Home/Photo paths include their originating Site ID. The Site adapter
 compares it with the live, trusted Host-to-Site resolution after signature

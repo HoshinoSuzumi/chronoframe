@@ -103,11 +103,8 @@ redirects and access checks rather than adding a global indexability override.
 ## OG image signing
 
 See the [shared signing guide](../shared/platform/README.md#og-image-signing)
-for Worker bindings and deployment/rollback configuration, and the
-[Update Guide](../../docs/guide/updates.md#og-image-signing) for v7 signed-URL
-invalidation and cache refresh.
-
-For local Cloud development, Nuxt generates a development app secret when none is
-configured. Setting `NUXT_APP_SECRET` manually is optional and only needed for a
-stable local value. Site has its own
-[local app secret instructions](../site/README.md#local-app-secret).
+for Worker bindings, and the
+[Update Guide](../../docs/guide/updates.md#og-image-signing) for the v7 upgrade
+procedure. For local Cloud development, Nuxt generates a development app secret
+when none is configured; setting `NUXT_APP_SECRET` manually is optional. Site has
+its own [local app secret instructions](../site/README.md#local-app-secret).
