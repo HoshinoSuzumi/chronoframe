@@ -15,7 +15,7 @@ export function createCloudResourceRepository(
   db: MediaDatabase,
   site: SiteContext,
   mediaPrefix: string,
-): ResourceReadRepository {
+): ResourceReadRepository & { getPhoto(id: string): Promise<Photo | null> } {
   assertSiteContext(site)
   let slugRepair: Promise<void> | undefined
   const ensureSlugs = () => (slugRepair ??= ensureCloudAlbumSlugs(db, site.id))
@@ -106,6 +106,13 @@ export function createCloudResourceRepository(
   }
   return {
     protectedPhoto: (value: Photo) => value,
+    async getPhoto(id) {
+      const rows = await all<Record<string, unknown>>(
+        `SELECT ${columns} FROM cloud_photos p WHERE p.site_id=? AND p.id=? AND ${ready}`,
+        id,
+      )
+      return rows[0] ? photo(rows[0]) : null
+    },
     async listPhotos(excluded = [], page) {
       if (
         page &&

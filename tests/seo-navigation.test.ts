@@ -105,7 +105,11 @@ async function checkNavigation(
     description: 'Photo description',
     thumbnailUrl: '/fixture.png',
   }
-  const images: { component: string; props: Record<string, unknown> }[] = []
+  const images: {
+    component: string
+    props: Record<string, unknown>
+    options: Record<string, unknown>
+  }[] = []
   const defineOgImage = realOgImage
     ? loadClientOgImage({
         'nuxt/app': {
@@ -126,8 +130,11 @@ async function checkNavigation(
             new URL(path, 'https://gallery.example.test').href,
         },
       })
-    : (component: string, props: Record<string, unknown>) =>
-        images.push({ component, props })
+    : (
+        component: string,
+        props: Record<string, unknown>,
+        options: Record<string, unknown>,
+      ) => images.push({ component, props, options })
   let mounted: (() => void) | undefined
   const exports: {
     useInstanceOpenGraph?: (
@@ -259,8 +266,17 @@ async function checkNavigation(
           edition === 'site' ? 1 : undefined,
           path,
         )
-        if (slug) assert.equal((image.props.photo as typeof photo).id, slug)
+        if (slug && edition === 'site') {
+          assert.equal(image.props.photoId, slug)
+          assert.equal(image.props.photo, undefined)
+          assert.equal(image.options.alt, 'Gallery 摄影')
+        } else if (slug)
+          assert.equal((image.props.photo as typeof photo).id, slug)
         else assert.equal(image.props.appTitle, 'Gallery 摄影')
+        if (edition === 'site') {
+          assert.equal(image.props.thumbnails, undefined)
+          assert.equal(image.props.photoCount, undefined)
+        }
       }
     }
     homeView.value = 'albums'

@@ -4,6 +4,7 @@ import { resolveShareThumbnail } from '#gallery/utils/open-graph'
 const props = defineProps<{
   /** Signed Site scope, checked by the Site adapter before rendering. */
   originSiteId?: number
+  showPhotos?: boolean
   appTitle?: string
   slogan?: string
   author?: string

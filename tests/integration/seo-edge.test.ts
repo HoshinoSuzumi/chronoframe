@@ -23,6 +23,7 @@ import type { PlatformD1 } from '../../packages/platform/src/index.ts'
 import type { EntrySiteContext } from '../../packages/contracts/src/entry.ts'
 import { splitSqlQuery } from '../helpers/sql.ts'
 import { createEmailCodeCrypto } from '../../apps/shared/platform/crypto.ts'
+import { encodeVisitorGrants } from '../../apps/shared/platform/visitor.ts'
 import { galleryFontFamilies } from '../../packages/gallery/fonts.ts'
 import { imageUrl, unusedPort, waitForChildExit } from '../helpers/seo.ts'
 
@@ -591,6 +592,218 @@ test(
         (await worker.fetch(`https://alpha.example.test${image}`)).status,
         404,
         'revoking a Host mapping must also deny its previously valid OG path',
+      )
+    })
+  },
+)
+
+test(
+  'Site previews keep metadata out of URLs and enforce live photo access before caches/rendering',
+  { timeout: 120_000 },
+  async () => {
+    await withBuiltEntry('site', async (worker, db) => {
+      await db.batch([
+        db.prepare(
+          "INSERT INTO platform_workspaces(id,name) VALUES(1,'OG access')",
+        ),
+        db.prepare(
+          "INSERT INTO platform_sites(id,workspace_id,name,published,gallery_title) VALUES(1,1,'OG access',1,'OG access')",
+        ),
+        db.prepare(
+          "INSERT INTO platform_domains(hostname,site_id,verified,active) VALUES('photo.example.test',1,1,1)",
+        ),
+        ...['guarded-photo', 'uncached-photo'].map((id) =>
+          db
+            .prepare(
+              "INSERT INTO cloud_photos(site_id,id,source_version,title,metadata_json) VALUES(1,?,'1','Sensitive photo title',?)",
+            )
+            .bind(
+              id,
+              JSON.stringify({
+                description: 'Sensitive description',
+                width: 640,
+                height: 480,
+                latitude: 51.2,
+              }),
+            ),
+        ),
+        ...['guarded-photo', 'uncached-photo'].map((id) =>
+          db
+            .prepare(
+              "INSERT INTO cloud_media_assets(site_id,photo_id,source_version,pipeline_version,role,connection_id,object_key,bytes,content_type) VALUES(1,?,'1','1','thumbnail','fixture','thumb.webp',3,'image/webp')",
+            )
+            .bind(id),
+        ),
+      ])
+      const request = (path: string, options?: RequestInit) =>
+        worker.fetch(new URL(path, 'https://photo.example.test'), options)
+      const { decodeOgImageParams } = await import(
+        new URL('./runtime/shared.js', import.meta.resolve('nuxt-og-image'))
+          .href
+      )
+      const previewPath = async (pagePath: string) => {
+        const page = await request(pagePath)
+        assert.equal(page.status, 200)
+        const path = new URL(imageUrl(await page.text())).pathname
+        const segment = decodeURIComponent(path)
+          .replace(/^\/_og\/d\//, '')
+          .replace(/,s_[^,/.]+\.png$/, '')
+        const options = decodeOgImageParams(segment)
+        if (pagePath === '/') assert.equal(options.props.showPhotos, true)
+        else assert.equal(options.props.photoId, pagePath.slice(1))
+        assert.equal(options.props?.photo, undefined)
+        assert.equal(options.props?.thumbnails, undefined)
+        assert.ok(
+          !JSON.stringify(options).includes('Sensitive'),
+          'no photo title/description, including alt text, may be encoded in preview URLs',
+        )
+        assert.ok(!JSON.stringify(options).includes('latitude'))
+        return path
+      }
+      const image = await previewPath('/guarded-photo')
+      const uncached = await previewPath('/uncached-photo')
+      const home = await previewPath('/')
+      const first = await request(image)
+      assert.equal(
+        first.status,
+        200,
+        first.status === 200 ? undefined : await first.text(),
+      )
+      assert.equal(first.headers.get('x-og-cache'), 'MISS')
+      assert.equal(first.headers.get('cache-control'), 'private, no-store')
+      const initialPng = await first.arrayBuffer()
+      const cached = await request(image)
+      assert.equal(cached.status, 200)
+      assert.equal(cached.headers.get('x-og-cache'), 'HIT')
+      assert.equal(cached.headers.get('cache-control'), 'private, no-store')
+      const publicHome = await request(home)
+      assert.equal(publicHome.status, 200)
+      const publicHomePng = await publicHome.arrayBuffer()
+      await db.batch([
+        db.prepare(
+          "INSERT INTO cloud_albums(site_id,id,title,hidden) VALUES(1,'1','Private',1)",
+        ),
+        ...['guarded-photo', 'uncached-photo'].map((id) =>
+          db
+            .prepare(
+              "INSERT INTO cloud_album_photos(site_id,album_id,photo_id) VALUES(1,'1',?)",
+            )
+            .bind(id),
+        ),
+      ])
+      assert.equal(
+        (await request(image)).status,
+        404,
+        'a warmed signed preview must stop serving a newly hidden photo',
+      )
+      assert.equal(
+        (await request(uncached)).status,
+        404,
+        'a newly rendered preview must apply the same access check',
+      )
+      const privateHome = await request(home)
+      assert.equal(privateHome.status, 200)
+      assert.equal(
+        privateHome.headers.get('x-og-cache'),
+        'MISS',
+        'Home must not reuse thumbnails/counts from photos that became private',
+      )
+      assert.notDeepEqual(
+        Buffer.from(await privateHome.arrayBuffer()),
+        Buffer.from(publicHomePng),
+      )
+      await db.batch([
+        db.prepare(
+          "UPDATE cloud_albums SET hidden=0 WHERE site_id=1 AND id='1'",
+        ),
+        db
+          .prepare(
+            "INSERT INTO platform_album_access(site_id,album_id,revision,salt,password_hash) VALUES(1,1,'revision-1',?,?)",
+          )
+          .bind('ab'.repeat(16), 'cd'.repeat(32)),
+      ])
+      assert.equal(
+        (await request(image)).status,
+        404,
+        'a newly protected photo must not be public through its old URL',
+      )
+      const cookieFor = async (revision: string, host = 'photo.example.test') =>
+        '__Host-chronoframe-visitor=' +
+        (await encodeVisitorGrants(
+          'site-worker-visitor-test-root'.repeat(3),
+          host,
+          [{ siteId: 1, albumId: 1, revision, expiresAt: Date.now() + 60_000 }],
+        ))
+      const cookie = await cookieFor('revision-1')
+      assert.equal(
+        (await request(image, { headers: { cookie } })).status,
+        200,
+        'a current visitor grant still authorizes the preview',
+      )
+      assert.equal(
+        (
+          await request(image, {
+            headers: {
+              cookie: await cookieFor('revision-1', 'other.example.test'),
+            },
+          })
+        ).status,
+        404,
+      )
+      await db
+        .prepare(
+          "UPDATE platform_album_access SET revision='revision-2' WHERE site_id=1 AND album_id=1",
+        )
+        .run()
+      assert.equal(
+        (await request(image, { headers: { cookie } })).status,
+        404,
+        'a revoked visitor grant must not reuse a cached preview',
+      )
+      const currentCookie = await cookieFor('revision-2')
+      assert.equal(
+        (await request(image, { headers: { cookie: currentCookie } })).status,
+        200,
+      )
+      await db
+        .prepare("UPDATE cloud_albums SET hidden=1 WHERE site_id=1 AND id='1'")
+        .run()
+      assert.equal(
+        (await request(image, { headers: { cookie: currentCookie } })).status,
+        404,
+        'visitor grants do not bypass hidden albums',
+      )
+      await db.batch([
+        db.prepare(
+          'DELETE FROM platform_album_access WHERE site_id=1 AND album_id=1',
+        ),
+        db.prepare(
+          "UPDATE cloud_albums SET hidden=0 WHERE site_id=1 AND id='1'",
+        ),
+        db.prepare(
+          "UPDATE cloud_photos SET title='Updated photo title' WHERE site_id=1 AND id='guarded-photo'",
+        ),
+      ])
+      const updated = await request(image)
+      assert.equal(updated.status, 200)
+      assert.equal(
+        updated.headers.get('x-og-cache'),
+        'MISS',
+        'current metadata must participate in the server cache key',
+      )
+      assert.notDeepEqual(
+        Buffer.from(await updated.arrayBuffer()),
+        Buffer.from(initialPng),
+      )
+      await db
+        .prepare(
+          "UPDATE cloud_photos SET deleted=1 WHERE site_id=1 AND id='guarded-photo'",
+        )
+        .run()
+      assert.equal(
+        (await request(image)).status,
+        404,
+        'deleted photos cannot reuse an old preview',
       )
     })
   },

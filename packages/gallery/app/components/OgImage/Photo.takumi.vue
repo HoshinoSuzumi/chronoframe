@@ -9,6 +9,7 @@ initIconBundle(addIcon)
 interface PhotoProps {
   /** Signed Site scope, checked by the Site adapter before rendering. */
   originSiteId?: number
+  photoId?: string
   photo?: Photo
   appTitle?: string
   locationPreferredLevel?: string
