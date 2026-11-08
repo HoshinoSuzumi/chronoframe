@@ -64,7 +64,15 @@ fs.appendFileSync(process.env.CAPTURE, JSON.stringify({
       { mode: 0o700 },
     )
     const env = {
-      PATH: `${directory}:${dirname(process.execPath)}:/usr/bin:/bin`,
+      PATH: [
+        directory,
+        process.env.PATH,
+        dirname(process.execPath),
+        '/usr/bin',
+        '/bin',
+      ]
+        .filter(Boolean)
+        .join(':'),
       RUNNER_TEMP: directory,
       GITHUB_STEP_SUMMARY: join(directory, 'summary.md'),
       CAPTURE: capture,
