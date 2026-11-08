@@ -249,7 +249,8 @@ test(
             [
               'NUXT_OG_IMAGE_SECRET',
               {
-                NUXT_APP_SECRET: '',
+                // undefined is omitted by spawn, so hasOverride stays false.
+                NUXT_APP_SECRET: undefined,
                 NUXT_OG_IMAGE_SECRET: 'explicit-test-root'.repeat(4),
               },
             ],
