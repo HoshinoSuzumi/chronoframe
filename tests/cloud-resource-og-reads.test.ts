@@ -20,30 +20,35 @@ async function migratedD1() {
       d1Databases: ['DB'],
     }),
   )
-  const db = await mf.getD1Database('DB')
-  for (const name of (await readdir('packages/platform/migrations'))
-    .filter((n) => n.endsWith('.sql'))
-    .sort()) {
-    const sql = await readFile('packages/platform/migrations/' + name, 'utf8')
-    for (const statement of splitSqlQuery(sql.replace(/^--.*$/gm, ''))
-      .map((s) => s.trim())
-      .filter(Boolean))
-      await db.prepare(statement).run()
+  try {
+    const db = await mf.getD1Database('DB')
+    for (const name of (await readdir('packages/platform/migrations'))
+      .filter((n) => n.endsWith('.sql'))
+      .sort()) {
+      const sql = await readFile('packages/platform/migrations/' + name, 'utf8')
+      for (const statement of splitSqlQuery(sql.replace(/^--.*$/gm, ''))
+        .map((s) => s.trim())
+        .filter(Boolean))
+        await db.prepare(statement).run()
+    }
+    await db
+      .prepare(
+        "INSERT INTO platform_users(id,email,created_at) VALUES(1,'test@example.com',1)",
+      )
+      .run()
+    await db
+      .prepare("INSERT INTO platform_workspaces(id,name) VALUES(1,'Test')")
+      .run()
+    await db
+      .prepare(
+        "INSERT INTO platform_sites(id,workspace_id,name,published) VALUES(1,1,'One',0)",
+      )
+      .run()
+    return { mf, db }
+  } catch (error) {
+    await mf.dispose()
+    throw error
   }
-  await db
-    .prepare(
-      "INSERT INTO platform_users(id,email,created_at) VALUES(1,'test@example.com',1)",
-    )
-    .run()
-  await db
-    .prepare("INSERT INTO platform_workspaces(id,name) VALUES(1,'Test')")
-    .run()
-  await db
-    .prepare(
-      "INSERT INTO platform_sites(id,workspace_id,name,published) VALUES(1,1,'One',0)",
-    )
-    .run()
-  return { mf, db }
 }
 
 async function insertReadyPhoto(
