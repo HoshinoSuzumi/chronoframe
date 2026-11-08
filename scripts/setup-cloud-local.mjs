@@ -25,7 +25,7 @@ const defaults = {
 for (const [key, value] of Object.entries(defaults)) {
   if (key === 'NUXT_APP_SECRET') {
     env = env.replace(
-      /^([ \t]*(?:export[ \t]+)?NUXT_APP_SECRET[ \t]*=)[ \t]*(?:""|''|``)?[ \t]*(#[^\r\n]*)?(?=\r?$)/gm,
+      /^([ \t]*(?:export[ \t]+)?NUXT_APP_SECRET[ \t]*=)[ \t]*(?:"\s*"|'\s*'|`\s*`)?[ \t]*(#[^\r\n]*)?(?=\r?$)/gm,
       (_assignment, prefix, comment) =>
         `${prefix}${value}${comment ? ` ${comment}` : ''}`,
     )

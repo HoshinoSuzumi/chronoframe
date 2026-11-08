@@ -23,7 +23,7 @@ async function seedEnvironment(directory: string) {
   return readFile(join(directory, '.env'), 'utf8')
 }
 
-test('Local Cloud setup fills missing and empty app secrets and reuses them on rerun', async () => {
+test('Local Cloud setup fills missing and blank app secrets and reuses them on rerun', async () => {
   for (const assignment of [
     undefined,
     '',
@@ -32,6 +32,13 @@ test('Local Cloud setup fills missing and empty app secrets and reuses them on r
     'NUXT_APP_SECRET=""',
     "NUXT_APP_SECRET=''",
     'NUXT_APP_SECRET=``',
+    'NUXT_APP_SECRET=" "',
+    "NUXT_APP_SECRET=' \t '",
+    'NUXT_APP_SECRET=`  \t `',
+    'export NUXT_APP_SECRET=" \t " # signing key\r',
+    'NUXT_APP_SECRET=" \n\t "',
+    "NUXT_APP_SECRET='\r\n  '",
+    'NUXT_APP_SECRET=`\n \t `',
     'NUXT_APP_SECRET= # signing key',
     'export NUXT_APP_SECRET=',
     'NUXT_APP_SECRET=\r',
@@ -68,13 +75,15 @@ test('Local Cloud setup fills missing and empty app secrets and reuses them on r
   }
 })
 
-test('Local Cloud setup preserves non-empty app secrets and existing unrelated values', async () => {
+test('Local Cloud setup preserves nonblank app secrets and existing unrelated values', async () => {
   for (const assignment of [
     'NUXT_APP_SECRET=existing-app-secret-that-must-stay',
     'NUXT_APP_SECRET=short-but-owned',
     ' NUXT_APP_SECRET = "quoted-existing-value" # keep comment',
     "NUXT_APP_SECRET='single-quoted-value'",
-    'NUXT_APP_SECRET=" "',
+    'NUXT_APP_SECRET=" padded-existing-value "',
+    "NUXT_APP_SECRET=' \t existing-value \t '",
+    'NUXT_APP_SECRET=` padded-existing-value `',
     'export NUXT_APP_SECRET=exported-existing-value',
   ]) {
     const directory = await mkdtemp(join(tmpdir(), 'chronoframe-cloud-env-'))
@@ -90,7 +99,7 @@ test('Local Cloud setup preserves non-empty app secrets and existing unrelated v
         (result.match(/^[ \t]*(?:export[ \t]+)?NUXT_APP_SECRET[ \t]*=/gm) || [])
           .length,
         1,
-        'setup must not append an overriding assignment for a non-empty secret',
+        'setup must not append an overriding assignment for a nonblank secret',
       )
     } finally {
       await rm(directory, { recursive: true, force: true })
