@@ -4,9 +4,15 @@ import { mkdtemp, readFile, writeFile, rm } from 'node:fs/promises'
 import { randomBytes } from 'node:crypto'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { createRequire } from 'node:module'
 import vm from 'node:vm'
 import test from 'node:test'
 import Database from 'better-sqlite3'
+import { validateAppSecret } from '../apps/self-hosted/server/utils/app-secret-validation.mjs'
+
+const { parse: parseDotenv } = createRequire(
+  import.meta.resolve('nuxt/package.json'),
+)('dotenv')
 
 // Execute the actual .env read/seed/write flow without provisioning D1/accounts
 // or touching the developer's apps/cloud/.env.
@@ -17,9 +23,25 @@ async function seedEnvironment(directory: string) {
   assert.ok(start >= 0 && end > start)
   const seed = vm.compileFunction(
     `return (async () => { ${source.slice(start, end)} })()`,
-    ['cloudApp', 'join', 'readFile', 'writeFile', 'randomBytes'],
+    [
+      'cloudApp',
+      'join',
+      'readFile',
+      'writeFile',
+      'randomBytes',
+      'parseDotenv',
+      'validateAppSecret',
+    ],
   )
-  await seed(directory, join, readFile, writeFile, randomBytes)
+  await seed(
+    directory,
+    join,
+    readFile,
+    writeFile,
+    randomBytes,
+    parseDotenv,
+    validateAppSecret,
+  )
   return readFile(join(directory, '.env'), 'utf8')
 }
 
@@ -78,13 +100,14 @@ test('Local Cloud setup fills missing and blank app secrets and reuses them on r
 test('Local Cloud setup preserves nonblank app secrets and existing unrelated values', async () => {
   for (const assignment of [
     'NUXT_APP_SECRET=existing-app-secret-that-must-stay',
-    'NUXT_APP_SECRET=short-but-owned',
-    ' NUXT_APP_SECRET = "quoted-existing-value" # keep comment',
-    "NUXT_APP_SECRET='single-quoted-value'",
-    'NUXT_APP_SECRET=" padded-existing-value "',
-    "NUXT_APP_SECRET=' \t existing-value \t '",
-    'NUXT_APP_SECRET=` padded-existing-value `',
-    'export NUXT_APP_SECRET=exported-existing-value',
+    'NUXT_APP_SECRET=' + 'a'.repeat(32),
+    `NUXT_APP_SECRET='${JSON.stringify('j'.repeat(32))}'`,
+    ' NUXT_APP_SECRET = "quoted-existing-value-that-must-stay" # keep comment',
+    "NUXT_APP_SECRET='single-quoted-value-that-must-stay'",
+    'NUXT_APP_SECRET=" padded-existing-value-that-must-stay "',
+    "NUXT_APP_SECRET=' \t existing-value-that-must-stay \t '",
+    'NUXT_APP_SECRET=` padded-existing-value-that-must-stay `',
+    'export NUXT_APP_SECRET=exported-existing-value-that-must-stay',
   ]) {
     const directory = await mkdtemp(join(tmpdir(), 'chronoframe-cloud-env-'))
     try {
@@ -101,6 +124,37 @@ test('Local Cloud setup preserves nonblank app secrets and existing unrelated va
         1,
         'setup must not append an overriding assignment for a nonblank secret',
       )
+    } finally {
+      await rm(directory, { recursive: true, force: true })
+    }
+  }
+})
+
+test('Local Cloud setup rejects short existing app secrets without changing the file or exposing the value', async () => {
+  for (const assignment of [
+    'NUXT_APP_SECRET=short-but-owned',
+    'NUXT_APP_SECRET=' + 'a'.repeat(31),
+    ' NUXT_APP_SECRET = "quoted-short-value" # this long comment must not count',
+    "NUXT_APP_SECRET='single-quoted-short'",
+    'NUXT_APP_SECRET=`backtick-short`',
+    'export NUXT_APP_SECRET=exported-short-value',
+    'NUXT_APP_SECRET=" \t padded-short \t "',
+    `NUXT_APP_SECRET='${JSON.stringify('j'.repeat(31))}'`,
+  ]) {
+    const directory = await mkdtemp(join(tmpdir(), 'chronoframe-cloud-env-'))
+    try {
+      const original = `# Keep this file\n${assignment}\nKEEP=this-value\n`
+      await writeFile(join(directory, '.env'), original)
+      await assert.rejects(seedEnvironment(directory), (error: unknown) => {
+        assert.ok(error instanceof Error)
+        assert.match(error.message, /NUXT_APP_SECRET.*at least 32/)
+        assert.match(error.message, /Replace.*rerun pnpm setup:cloud/)
+        assert.ok(
+          !error.message.includes(parseDotenv(original).NUXT_APP_SECRET),
+        )
+        return true
+      })
+      assert.equal(await readFile(join(directory, '.env'), 'utf8'), original)
     } finally {
       await rm(directory, { recursive: true, force: true })
     }

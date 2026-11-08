@@ -109,5 +109,7 @@ for Worker bindings and deployment/rollback configuration, and the
 invalidation and cache refresh.
 
 For local Cloud development, `pnpm setup:cloud` fills a missing or blank app-local
-secret while preserving any nonblank value. Site has its own
+secret while preserving valid existing values. Existing values must decode to a
+string of at least 32 characters; invalid nonblank values stop setup with
+instructions to replace them and are left unchanged. Site has its own
 [local app secret instructions](../site/README.md#local-app-secret).

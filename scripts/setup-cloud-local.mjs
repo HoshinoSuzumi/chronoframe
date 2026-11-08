@@ -5,6 +5,11 @@ import { join } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { unstable_splitSqlQuery as splitSqlQuery } from 'wrangler'
 import { cloudApp, localCloudPlatform } from './cloud-local.mjs'
+import { validateAppSecret } from '../apps/self-hosted/server/utils/app-secret-validation.mjs'
+
+const { parse: parseDotenv } = createRequire(
+  import.meta.resolve('nuxt/package.json'),
+)('dotenv')
 
 const envPath = join(cloudApp, '.env')
 let env
@@ -34,6 +39,16 @@ for (const [key, value] of Object.entries(defaults)) {
   if (!new RegExp(`^\\s*${key}\\s*=`, 'm').test(env))
     env += `\n${key}=${value}\n`
 }
+let appSecret = parseDotenv(env).NUXT_APP_SECRET
+try {
+  appSecret = JSON.parse(appSecret)
+} catch {
+  // Nitro also accepts ordinary, unquoted strings.
+}
+validateAppSecret(
+  appSecret,
+  'NUXT_APP_SECRET in apps/cloud/.env must be a string with at least 32 characters. Replace the existing value and rerun pnpm setup:cloud.',
+)
 await writeFile(envPath, env)
 await mkdir(join(cloudApp, '.data'), { recursive: true })
 const credentialsPath = join(cloudApp, '.data', 'local-account.json')
