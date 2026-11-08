@@ -28,8 +28,6 @@ Each selected entry requires an app secret of at least 32 characters. Use differ
 app secrets for Cloud and Site, and for staging and production; do not reuse
 platform or session secrets.
 
-Cloud 与 Site 必须使用不同的应用密钥，测试与生产环境也必须使用不同的值；不要复用平台或会话密钥。
-
 Generate each app secret with this command:
 
 ```sh

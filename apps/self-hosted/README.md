@@ -24,6 +24,10 @@ Production requires a valid `NUXT_APP_SECRET` (or `NITRO_APP_SECRET`) of at leas
 share the same secret; it does not replace the session password. Missing or
 invalid secrets stop production startup.
 
+If you rename an existing key, keep the effective string identical on every
+replica. If the value is JSON-quoted or you are unsure, generate a new 32+
+character secret.
+
 For upgrades, rollback, and HTML cache refresh, see the
 [update guide](../../docs/guide/updates.md#og-image-signing).
 
