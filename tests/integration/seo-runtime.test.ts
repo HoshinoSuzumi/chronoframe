@@ -84,8 +84,19 @@ async function startFails(
   envOverrides: NodeJS.ProcessEnv = {},
 ) {
   const started = await spawnServer(directory, envOverrides)
-  const [code] = await once(started.server, 'exit')
-  return { code, output: started.output() }
+  if (started.server.exitCode !== null)
+    return { code: started.server.exitCode, output: started.output() }
+  const timeout = AbortSignal.timeout(15_000)
+  try {
+    const [code] = await once(started.server, 'exit', { signal: timeout })
+    return { code, output: started.output() }
+  } catch (error) {
+    if (!timeout.aborted) throw error
+    await stop(started.server)
+    throw new Error(
+      `Isolated SEO server started unexpectedly instead of exiting: ${started.output()}`,
+    )
+  }
 }
 
 async function assertSignedPng(
