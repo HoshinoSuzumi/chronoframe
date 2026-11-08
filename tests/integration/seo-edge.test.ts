@@ -1,6 +1,5 @@
 import assert from 'node:assert/strict'
 import { spawn } from 'node:child_process'
-import { once } from 'node:events'
 import { createHash, hkdfSync } from 'node:crypto'
 import {
   mkdir,
@@ -184,6 +183,7 @@ export default config`,
         ],
         {
           cwd: directory,
+          detached: process.platform !== 'win32',
           env: {
             ...childEnv,
             NUXT_SITE_URL: 'https://runtime.example.test',
@@ -231,10 +231,14 @@ export default config`,
           ],
           {
             cwd: directory,
+            detached: process.platform !== 'win32',
             env: { ...childEnv, WRANGLER_SEND_METRICS: 'false' },
             stdio: ['ignore', 'pipe', 'pipe'],
           },
         )
+        const shutdown = new AbortController()
+        const stopped = waitForChildExit(worker, shutdown.signal)
+        stopped.catch(() => {})
         let output = ''
         for (const stream of [worker.stdout, worker.stderr])
           stream.on('data', (chunk) => {
@@ -326,10 +330,10 @@ export default config`,
             )
           }
         } finally {
-          if (worker.exitCode === null) {
-            worker.kill('SIGTERM')
-            await once(worker, 'exit')
-          }
+          shutdown.abort()
+          await stopped.catch((error) => {
+            if (error !== shutdown.signal.reason) throw error
+          })
         }
       }
     } finally {

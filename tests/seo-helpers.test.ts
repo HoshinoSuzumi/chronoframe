@@ -3,6 +3,7 @@ import { spawn } from 'node:child_process'
 import type { ChildProcess } from 'node:child_process'
 import { getEventListeners, once } from 'node:events'
 import test from 'node:test'
+import { setTimeout as delay } from 'node:timers/promises'
 import { imageUrl, waitForChildExit } from './helpers/seo.ts'
 
 async function stop(child: ChildProcess) {
@@ -14,7 +15,9 @@ async function stop(child: ChildProcess) {
 
 test('child exit waiting preserves normal exit status and removes cancellation listeners', async () => {
   const controller = new AbortController()
-  const child = spawn(process.execPath, ['-e', 'process.exit(7)'])
+  const child = spawn(process.execPath, ['-e', 'process.exit(7)'], {
+    detached: process.platform !== 'win32',
+  })
   try {
     const [code, signal] = await waitForChildExit(child, controller.signal)
     assert.equal(code, 7)
@@ -37,7 +40,10 @@ process.send('ready')
 setInterval(() => {}, 1000)
 `,
     ],
-    { stdio: ['ignore', 'ignore', 'ignore', 'ipc'] },
+    {
+      detached: process.platform !== 'win32',
+      stdio: ['ignore', 'ignore', 'ignore', 'ipc'],
+    },
   )
   const waiting = waitForChildExit(child, controller.signal).then(
     () => undefined,
@@ -75,7 +81,9 @@ test('an already cancelled fixture terminates a newly spawned child before rejec
   const controller = new AbortController()
   const reason = new Error('Fixture already cancelled')
   controller.abort(reason)
-  const child = spawn(process.execPath, ['-e', 'setInterval(() => {}, 1000)'])
+  const child = spawn(process.execPath, ['-e', 'setInterval(() => {}, 1000)'], {
+    detached: process.platform !== 'win32',
+  })
   let timeout: NodeJS.Timeout | undefined
   try {
     const waiting = waitForChildExit(child, controller.signal)
@@ -99,35 +107,90 @@ test('an already cancelled fixture terminates a newly spawned child before rejec
 })
 
 test(
-  'cancellation force-kills a child that ignores graceful termination',
-  { timeout: 10_000 },
-  async (t) => {
+  'cancellation waits for build descendants and inherited stderr after the parent exits',
+  { timeout: 12_000 },
+  async () => {
+    const grandchildCode = `
+process.on('SIGTERM', () => {})
+process.send(process.pid)
+setInterval(() => {}, 1000)
+`
+    const descendantCode = `
+const { spawn } = require('node:child_process')
+process.on('SIGTERM', () => {})
+const child = spawn(process.execPath, ['-e', ${JSON.stringify(grandchildCode)}], {
+  stdio: ['ignore', 'ignore', 2, 'ipc'],
+})
+child.once('message', pid => process.send([process.pid, pid]))
+setInterval(() => {}, 1000)
+`
     const child = spawn(
       process.execPath,
       [
         '-e',
         `
-process.send('ready')
+const { spawn } = require('node:child_process')
+const child = spawn(process.execPath, ['-e', ${JSON.stringify(descendantCode)}], {
+  stdio: ['ignore', 'ignore', 2, 'ipc'],
+})
+child.once('message', pids => process.send(pids))
 setInterval(() => {}, 1000)
 `,
       ],
-      { stdio: ['ignore', 'ignore', 'ignore', 'ipc'] },
+      {
+        detached: process.platform !== 'win32',
+        stdio: ['ignore', 'ignore', 'pipe', 'ipc'],
+      },
     )
-    t.after(() => stop(child))
-    // Simulate ignored SIGTERM portably; Windows cannot install POSIX handlers.
-    const kill = child.kill.bind(child)
-    t.mock.method(child, 'kill', (signal?: NodeJS.Signals | number) =>
-      signal === 'SIGTERM' ? true : kill(signal),
-    )
-    await once(child, 'message')
     const controller = new AbortController()
     const reason = new Error('Fixture cancelled')
-    const waiting = waitForChildExit(child, controller.signal)
-    const rejected = assert.rejects(waiting, (error) => error === reason)
-    controller.abort(reason)
-    await rejected
-    assert.equal(child.signalCode, 'SIGKILL')
-    assert.equal(getEventListeners(controller.signal, 'abort').length, 0)
+    let closed = false
+    let settled = false
+    child.once('close', () => {
+      closed = true
+    })
+    child.stderr?.resume()
+    const waiting = waitForChildExit(child, controller.signal).catch(
+      (error) => {
+        settled = true
+        return error
+      },
+    )
+    let descendants: number[] = []
+    try {
+      ;[descendants] = await once(child, 'message')
+      const exited = once(child, 'exit')
+      controller.abort(reason)
+      await exited
+      if (process.platform !== 'win32') {
+        await delay(100)
+        assert.equal(
+          settled,
+          false,
+          'parent exit must not release fixture cleanup',
+        )
+      }
+      assert.equal(await waiting, reason)
+      assert.equal(
+        closed,
+        true,
+        'descendants must release inherited stderr before cleanup',
+      )
+      for (const pid of descendants)
+        assert.throws(() => process.kill(pid, 0), { code: 'ESRCH' })
+      assert.equal(getEventListeners(controller.signal, 'abort').length, 0)
+    } finally {
+      // Keep a failing regression from leaking the deliberately stubborn children.
+      for (const pid of descendants) {
+        try {
+          process.kill(pid, 'SIGKILL')
+        } catch (error) {
+          assert.equal((error as NodeJS.ErrnoException).code, 'ESRCH')
+        }
+      }
+      await stop(child)
+      await waiting
+    }
   },
 )
 
