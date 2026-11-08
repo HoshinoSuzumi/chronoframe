@@ -5,11 +5,6 @@ import { join } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { unstable_splitSqlQuery as splitSqlQuery } from 'wrangler'
 import { cloudApp, localCloudPlatform } from './cloud-local.mjs'
-import { validateAppSecret } from '../apps/self-hosted/server/utils/app-secret-validation.mjs'
-
-const { parse: parseDotenv } = createRequire(
-  import.meta.resolve('nuxt/package.json'),
-)('dotenv')
 
 const envPath = join(cloudApp, '.env')
 let env
@@ -20,7 +15,6 @@ try {
   env = ''
 }
 const defaults = {
-  NUXT_APP_SECRET: randomBytes(32).toString('base64url'),
   NUXT_PLATFORM_PORTAL_ORIGIN: 'http://localhost:3001',
   NUXT_SESSION_PASSWORD: randomBytes(32).toString('hex'),
   NUXT_PLATFORM_SECRET: randomBytes(32).toString('hex'),
@@ -28,45 +22,8 @@ const defaults = {
   NUXT_PLATFORM_EMAIL_FROM: 'verify@localhost.test',
 }
 for (const [key, value] of Object.entries(defaults)) {
-  if (key === 'NUXT_APP_SECRET') {
-    env = env.replace(
-      /^([ \t]*(?:export[ \t]+)?NUXT_APP_SECRET[ \t]*=)[ \t]*(?:"\s*"|'\s*'|`\s*`)?[ \t]*(#[^\r\n]*)?(?=\r?$)/gm,
-      (_assignment, prefix, comment) =>
-        `${prefix}${value}${comment ? ` ${comment}` : ''}`,
-    )
-    if (/^[ \t]*(?:export[ \t]+)?NUXT_APP_SECRET[ \t]*=/m.test(env)) continue
-  }
   if (!new RegExp(`^\\s*${key}\\s*=`, 'm').test(env))
     env += `\n${key}=${value}\n`
-}
-const parsedEnv = parseDotenv(env)
-let appSecret = parsedEnv.NUXT_APP_SECRET
-try {
-  appSecret = JSON.parse(appSecret)
-} catch {
-  // Nitro also accepts ordinary, unquoted strings.
-}
-validateAppSecret(
-  appSecret,
-  'NUXT_APP_SECRET in apps/cloud/.env must be a string with at least 32 characters. Replace the existing value and rerun pnpm setup:cloud.',
-)
-// Nitro's override wins over NUXT_APP_SECRET, including when Worker/.env bindings
-// are absent (for example CLOUDFLARE_LOAD_DEV_VARS_FROM_DOT_ENV=false).
-const nitroRaw =
-  process.env.NITRO_APP_SECRET !== undefined
-    ? process.env.NITRO_APP_SECRET
-    : parsedEnv.NITRO_APP_SECRET
-if (nitroRaw !== undefined) {
-  let nitroSecret = nitroRaw
-  try {
-    nitroSecret = JSON.parse(nitroSecret)
-  } catch {
-    // Nitro also accepts ordinary, unquoted strings.
-  }
-  validateAppSecret(
-    nitroSecret,
-    'NITRO_APP_SECRET must be a string with at least 32 characters. Replace the existing value and rerun pnpm setup:cloud.',
-  )
 }
 await writeFile(envPath, env)
 await mkdir(join(cloudApp, '.data'), { recursive: true })

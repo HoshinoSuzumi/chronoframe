@@ -66,11 +66,12 @@ Refresh cached HTML containing older OG paths without this Site binding.
 
 ### Local app secret
 
-Site intentionally has no equivalent of `pnpm setup:cloud`: that command also
-migrates Cloud's local D1 database and provisions its developer account. It does
-not configure Site. Site's launcher already reads `apps/site/.env` independently
-of Cloud and Self-hosted; leaving its app secret unset uses Nuxt's generated
-development app secret. No additional setup command is required for that signing mode.
+Site intentionally has no equivalent of `pnpm setup:cloud`: that command migrates
+Cloud's local D1 database and provisions its developer account. It does not
+configure Site or fill `NUXT_APP_SECRET`. Site's launcher already reads
+`apps/site/.env` independently of Cloud and Self-hosted; leaving its app secret
+unset uses Nuxt's generated development app secret. No additional setup command
+is required for that signing mode.
 
 For a stable local Site app secret, run this command from the repository root:
 

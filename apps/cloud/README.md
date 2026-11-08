@@ -66,8 +66,7 @@ unpublished sample site. Read the generated password in
 and synchronizes the local account password with that credentials file without
 resetting edited site settings or other local data. If the credentials file is
 missing, setup generates a new password and updates the existing local account.
-Existing `.env` values are preserved, except a blank `NUXT_APP_SECRET` (including
-quoted whitespace) is filled with a generated value. Ensure `NUXT_PLATFORM_PORTAL_ORIGIN` is
+Existing `.env` values are preserved. Ensure `NUXT_PLATFORM_PORTAL_ORIGIN` is
 `http://localhost:3001` and session/platform secrets contain at least 32 characters.
 Restart the development server after changing `.env`.
 
@@ -108,8 +107,7 @@ for Worker bindings and deployment/rollback configuration, and the
 [Update Guide](../../docs/guide/updates.md#og-image-signing) for v7 signed-URL
 invalidation and cache refresh.
 
-For local Cloud development, `pnpm setup:cloud` fills a missing or blank app-local
-secret while preserving valid existing values. Existing values must decode to a
-string of at least 32 characters; invalid nonblank values stop setup with
-instructions to replace them and are left unchanged. Site has its own
+For local Cloud development, Nuxt generates a development app secret when none is
+configured. Setting `NUXT_APP_SECRET` manually is optional and only needed for a
+stable local value. Site has its own
 [local app secret instructions](../site/README.md#local-app-secret).
