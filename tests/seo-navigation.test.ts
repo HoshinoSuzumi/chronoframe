@@ -83,6 +83,7 @@ async function checkNavigation(
 ) {
   const route = reactive({ path: '/', params: {} as { slug?: string } })
   const homeView = ref('photos')
+  const locale = ref('en')
   const entryContext = ref({
     siteId: 1,
     capabilities: { edition },
@@ -171,9 +172,7 @@ async function checkNavigation(
     useUserSession: () => ({ loggedIn: ref(false) }),
     useSettingRef: (key: keyof typeof settings) => settings[key],
     useHomeView: () => ({ homeView }),
-    useI18n: () => {
-      throw new Error('No i18n in this focused fixture')
-    },
+    useI18n: () => ({ locale, t: (key: string) => key }),
     useGalleryFetch: () =>
       Object.assign(Promise.resolve(), {
         data: ref(null),
@@ -272,7 +271,13 @@ async function checkNavigation(
           assert.equal(image.options.alt, 'Gallery 摄影')
         } else if (slug)
           assert.equal((image.props.photo as typeof photo).id, slug)
-        else assert.equal(image.props.appTitle, 'Gallery 摄影')
+        else {
+          assert.equal(image.props.appTitle, 'Gallery 摄影')
+          assert.equal(
+            image.props.locale,
+            edition === 'site' ? 'en' : undefined,
+          )
+        }
         if (edition === 'site') {
           assert.equal(image.props.thumbnails, undefined)
           assert.equal(image.props.photoCount, undefined)
@@ -300,6 +305,15 @@ async function checkNavigation(
       assert.deepEqual(images.at(-1), {
         ...previous,
         props: { ...previous.props, originSiteId: 2 },
+      })
+      const beforeLocaleChange = images.at(-1)!
+      const count = images.length
+      locale.value = 'zh-Hans'
+      await nextTick()
+      assert.equal(images.length, count + 1)
+      assert.deepEqual(images.at(-1), {
+        ...beforeLocaleChange,
+        props: { ...beforeLocaleChange.props, locale: 'zh-Hans' },
       })
     }
   } finally {

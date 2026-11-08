@@ -150,7 +150,7 @@ export async function useInstanceOpenGraph(photos: ComputedRef<Photo[]>) {
           author: author.value,
           avatarUrl: avatarUrl.value,
           ...(site
-            ? { showPhotos: isHome.value }
+            ? { showPhotos: isHome.value, locale: i18n?.locale.value || 'en' }
             : {
                 ...(publicPhotoCountPending
                   ? {}

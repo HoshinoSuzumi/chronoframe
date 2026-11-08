@@ -645,16 +645,20 @@ test(
         new URL('./runtime/shared.js', import.meta.resolve('nuxt-og-image'))
           .href
       )
-      const previewPath = async (pagePath: string) => {
-        const page = await request(pagePath)
+      const previewPath = async (pagePath: string, locale = 'en') => {
+        const page = await request(pagePath, {
+          headers: { cookie: `chronoframe-locale=${locale}` },
+        })
         assert.equal(page.status, 200)
         const path = new URL(imageUrl(await page.text())).pathname
         const segment = decodeURIComponent(path)
           .replace(/^\/_og\/d\//, '')
           .replace(/,s_[^,/.]+\.png$/, '')
         const options = decodeOgImageParams(segment)
-        if (pagePath === '/') assert.equal(options.props.showPhotos, true)
-        else assert.equal(options.props.photoId, pagePath.slice(1))
+        if (pagePath === '/') {
+          assert.equal(options.props.showPhotos, true)
+          assert.equal(options.props.locale, locale)
+        } else assert.equal(options.props.photoId, pagePath.slice(1))
         assert.equal(options.props?.photo, undefined)
         assert.equal(options.props?.thumbnails, undefined)
         assert.ok(
@@ -667,6 +671,12 @@ test(
       const image = await previewPath('/guarded-photo')
       const uncached = await previewPath('/uncached-photo')
       const home = await previewPath('/')
+      const chineseHome = await previewPath('/', 'zh-Hans')
+      assert.notEqual(
+        chineseHome,
+        home,
+        'page locale must be bound into the signed path',
+      )
       const first = await request(image)
       assert.equal(
         first.status,
@@ -680,9 +690,29 @@ test(
       assert.equal(cached.status, 200)
       assert.equal(cached.headers.get('x-og-cache'), 'HIT')
       assert.equal(cached.headers.get('cache-control'), 'private, no-store')
-      const publicHome = await request(home)
+      const publicHome = await request(home, {
+        headers: { cookie: 'chronoframe-locale=zh-Hans' },
+      })
       assert.equal(publicHome.status, 200)
       const publicHomePng = await publicHome.arrayBuffer()
+      const chinesePreview = await request(chineseHome, {
+        headers: { cookie: 'chronoframe-locale=en' },
+      })
+      assert.equal(chinesePreview.status, 200)
+      const chinesePng = await chinesePreview.arrayBuffer()
+      assert.notDeepEqual(
+        Buffer.from(chinesePng),
+        Buffer.from(publicHomePng),
+        'the signed English and Chinese counts must render differently under opposite visitor locales',
+      )
+      const cachedChinese = await request(chineseHome, {
+        headers: { cookie: 'chronoframe-locale=zh-Hans' },
+      })
+      assert.equal(cachedChinese.headers.get('x-og-cache'), 'HIT')
+      assert.deepEqual(
+        Buffer.from(await cachedChinese.arrayBuffer()),
+        Buffer.from(chinesePng),
+      )
       assert.equal((await request(home)).headers.get('x-og-cache'), 'HIT')
       // Publication changes the selected asset version, not its public URL or
       // photo metadata/count (including the perceptual thumbnail hash).
