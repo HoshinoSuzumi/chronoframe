@@ -95,6 +95,7 @@ test(
         .run()
       const port = await unusedPort()
       const base = `http://127.0.0.1:${port}`
+      const appSecret = 'album-http-test-app-secret'.repeat(2)
       const server = spawn(
         process.execPath,
         [join(root, 'apps/self-hosted/.output/server/index.mjs')],
@@ -105,7 +106,8 @@ test(
             DATABASE_URL: filename,
             DATABASE_MIGRATIONS: migrationsFolder,
             NUXT_SESSION_PASSWORD: '0123456789abcdef0123456789abcdef',
-            NUXT_APP_SECRET: 'album-http-test-app-secret'.repeat(2),
+            NUXT_APP_SECRET: appSecret,
+            NITRO_APP_SECRET: appSecret,
             NITRO_PORT: String(port),
           },
           stdio: ['ignore', 'pipe', 'pipe'],
