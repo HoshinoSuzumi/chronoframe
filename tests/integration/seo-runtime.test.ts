@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import { spawn, type ChildProcess } from 'node:child_process'
 import { once } from 'node:events'
 import { createHash, hkdfSync } from 'node:crypto'
-import { mkdtemp, rm } from 'node:fs/promises'
+import { mkdtemp, readFile, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { setTimeout as delay } from 'node:timers/promises'
@@ -12,7 +12,6 @@ import { imageUrl, unusedPort } from '../helpers/seo.ts'
 
 const root = process.cwd()
 const password = 'isolated-seo-test-password'
-const defaultAppSecret = 'seo-runtime-test-root-secret'.repeat(2)
 
 async function stop(server: ChildProcess) {
   if (server.exitCode !== null) return
@@ -44,7 +43,6 @@ async function spawnServer(
         NUXT_STORAGE_PROVIDER: 'local',
         NUXT_PROVIDER_LOCAL_BASE_PATH: join(directory, 'storage'),
         NUXT_SESSION_PASSWORD: 'isolated-session-key'.repeat(3),
-        NUXT_APP_SECRET: defaultAppSecret,
         ...envOverrides,
       },
       stdio: ['ignore', 'pipe', 'pipe'],
@@ -112,9 +110,8 @@ async function assertSignedPng(
   assert.equal(response.status, 200, output())
   assert.match(response.headers.get('content-type') || '', /image\/png/)
   assert.equal(
-    (
-      await request(decoded.replace(/,s_[^,/.]+(?=\.png)/, ',s_invalid'))
-    ).status,
+    (await request(decoded.replace(/,s_[^,/.]+(?=\.png)/, ',s_invalid')))
+      .status,
     403,
   )
   return imagePath
@@ -207,10 +204,11 @@ test(
         await stop(first.server)
       }
 
-      const missing = await startFails(directory, { NUXT_APP_SECRET: '' })
-      assert.notEqual(missing.code, 0)
-      assert.match(missing.output, /NUXT_APP_SECRET/)
-
+      const persisted = await readFile(
+        join(directory, 'data/.app-secret'),
+        'utf8',
+      )
+      assert.ok(persisted.length >= 32)
       const second = await start(directory)
       try {
         const oldImage =
@@ -218,7 +216,11 @@ test(
         assert.equal(
           (await second.request(oldImage)).status,
           200,
-          'old signed image must survive restart with the same app secret',
+          'old signed image must survive restart',
+        )
+        assert.equal(
+          await readFile(join(directory, 'data/.app-secret'), 'utf8'),
+          persisted,
         )
         const session = await second.request('/api/_auth/session', {
           headers: { cookie: cookie! },
@@ -230,6 +232,12 @@ test(
       } finally {
         await stop(second.server)
       }
+
+      const invalid = await startFails(directory, {
+        NUXT_APP_SECRET: 'short-invalid-secret',
+      })
+      assert.notEqual(invalid.code, 0)
+      assert.match(invalid.output, /at least 32/)
 
       await t.test(
         'app secret env precedence signs production OG images',
@@ -247,9 +255,16 @@ test(
               },
             ],
             [
-              'NUXT_OG_IMAGE_SECRET',
+              'empty NUXT_APP_SECRET with NUXT_OG_IMAGE_SECRET',
               {
-                // undefined is omitted by spawn, so hasOverride stays false.
+                // An empty app secret means "unset"; the legacy key remains valid.
+                NUXT_APP_SECRET: '',
+                NUXT_OG_IMAGE_SECRET: 'explicit-test-root'.repeat(4),
+              },
+            ],
+            [
+              'unset NUXT_APP_SECRET with NUXT_OG_IMAGE_SECRET',
+              {
                 NUXT_APP_SECRET: undefined,
                 NUXT_OG_IMAGE_SECRET: 'explicit-test-root'.repeat(4),
               },

@@ -9,7 +9,7 @@ Read the [changelog](/changelog) before choosing a target version and review its
 ::: warning Stop and back up first
 Stop every replica that shares the data directory—including any outside this Compose project—then back up:
 
-- The complete data directory and Compose file, including `app.sqlite3` and `.session-password`. Include hidden key files, not just the database.
+- The complete data directory and Compose file, including `app.sqlite3`, `.session-password`, and `.app-secret`. If `.app-secret` is a symlink, include its adjacent `.app-secret.*.key` target too. Include hidden key files, not just the database.
 - `.env`, if your older deployment still uses it.
 - Local photos outside `data`, plus files in S3 or OpenList.
 
@@ -46,10 +46,10 @@ For a `docker run` deployment, stop and remove the old container, then recreate 
 
 ## OG image signing
 
-OG Image v7 uses `NUXT_APP_SECRET` (or `NITRO_APP_SECRET` when set). All v6 signed image URLs become invalid, even when the secret is unchanged. This change requires no database migration.
+OG Image v7 uses `NUXT_APP_SECRET` (or `NITRO_APP_SECRET` when set). When neither is set, Self-hosted production loads or creates `data/.app-secret`. `NUXT_OG_IMAGE_SECRET` remains a deprecated fallback. All v6 signed image URLs become invalid, even when the secret is unchanged. This change requires no database migration.
 
 1. Stop every replica that will serve the upgraded image.
-2. Generate one secret of at least 32 characters and set the same value on every replica as `NUXT_APP_SECRET` (or `NITRO_APP_SECRET`).
+2. Prefer one shared secret of at least 32 characters as `NUXT_APP_SECRET` (or `NITRO_APP_SECRET`) on every replica. An empty `NUXT_APP_SECRET` is treated as unset. Single-node installs can rely on the persisted `data/.app-secret` file instead.
 3. If you prefer to keep an existing `NUXT_OG_IMAGE_SECRET`, rename it only when you can keep its effective value unchanged; if unsure, generate a new secret instead.
 4. Bring upgraded replicas online together, refresh cached HTML that contains OG image URLs, then check gallery and public-photo share previews.
 5. To roll back, stop every v7 replica before any v6 instance serves traffic, restore the previous image tag and environment configuration, then refresh affected HTML again.

@@ -19,10 +19,23 @@ source directories or copy it into build contexts.
 
 ## OG image signing
 
-Production requires a valid `NUXT_APP_SECRET` (or `NITRO_APP_SECRET`) of at least
-32 characters. `NUXT_OG_IMAGE_SECRET` remains a deprecated fallback. Replicas must
-share the same secret; it does not replace the session password. Missing or
-invalid secrets stop production startup.
+Production OG signing uses an app secret in this order:
+
+1. `NITRO_APP_SECRET`: Nitro's higher-priority environment override, if set.
+2. `NUXT_APP_SECRET`: the Nuxt app secret when no Nitro override is set.
+3. `NUXT_OG_IMAGE_SECRET`: the deprecated fallback when neither app-secret override is configured.
+4. `data/.app-secret`: automatically created with mode 0600 and reused when none of these environment variables is configured.
+
+Explicit app secrets must be strings of at least 32 characters. An empty
+`NUXT_APP_SECRET` is treated as unset; a non-empty invalid `NITRO_APP_SECRET` or
+`NUXT_APP_SECRET` stops startup even if a valid lower-priority secret exists.
+The production Node entry initializes the secret before Nitro freezes
+`runtimeConfig`. It does not replace the session password; keep replicas on the
+same effective secret (shared env or shared data volume).
+
+On filesystems that reject hard links, `data/.app-secret` is a relative symlink
+to an adjacent `.app-secret.<random>.key` file with mode 0600. Back up both and
+keep the relative link intact when moving the data directory.
 
 If you rename an existing key, keep the effective string identical on every
 replica. If the value is JSON-quoted or you are unsure, generate a new 32+
@@ -34,8 +47,8 @@ For upgrades, rollback, and HTML cache refresh, see the
 ### Development
 
 Nuxt generates an app secret for development when no explicit app secret is
-configured. Production builds require `NUXT_APP_SECRET` (or `NITRO_APP_SECRET`)
-in the environment. Worker deployment tooling reuses
+configured. Production builds wrap the Node entry so a missing secret is loaded
+or created under `data/.app-secret`. Worker deployment tooling reuses
 `scripts/app-secret-validation.mjs`.
 
 The optional `nuxtseo-devtools-host` development dependency restores the Site

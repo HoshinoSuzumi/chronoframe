@@ -77,8 +77,9 @@ docker run -d --name chronoframe --restart unless-stopped \
 
 - `/app/data/app.sqlite3`：照片信息和设置。
 - `/app/data/.session-password`：自动生成的会话密钥。
+- `/app/data/.app-secret`：未配置应用密钥环境变量时自动生成的 OG 签名密钥。若它是符号链接，还须备份其相邻的 `.app-secret.*.key` 目标文件。
 
-生产环境须在容器环境中配置至少 32 个字符的 `NUXT_APP_SECRET`（或 `NITRO_APP_SECRET`）。缺少有效应用密钥时启动会失败。它不会替换会话密码。多实例应使用相同的应用密钥和会话密码，环境变量提供的密钥也应随部署配置备份。升级和回退请参阅[升级指南](/zh/guide/updates#og-图片签名)。
+也可设置至少 32 个字符的 `NUXT_APP_SECRET`（或 `NITRO_APP_SECRET`）。未设置时，Self-hosted 生产环境会创建并复用 `data/.app-secret`。它不会替换会话密码。多实例应使用相同的应用密钥和会话密码，并将环境变量提供的密钥或数据目录中的密钥文件一并纳入备份。升级和回退请参阅[升级指南](/zh/guide/updates#og-图片签名)。
 
 使用上述本地存储路径时，原图和衍生文件也在这个目录下。
 

@@ -9,7 +9,7 @@
 ::: warning 先停止服务并备份
 停止所有共享该数据目录的副本（包括本 Compose 项目之外的副本）后，再备份以下内容：
 
-- 整个数据目录和 Compose 文件，包括 `app.sqlite3` 和 `.session-password`。备份时包含隐藏密钥文件，不要只复制数据库。
+- 整个数据目录和 Compose 文件，包括 `app.sqlite3`、`.session-password` 和 `.app-secret`。若 `.app-secret` 是符号链接，还须包含其相邻的 `.app-secret.*.key` 目标文件。备份时包含隐藏密钥文件，不要只复制数据库。
 - 旧部署仍在使用的 `.env`。
 - `data` 目录之外的本地照片，以及 S3 / OpenList 中的外部文件。
 
@@ -46,10 +46,10 @@ docker compose logs -f chronoframe
 
 ## OG 图片签名
 
-OG Image v7 使用 `NUXT_APP_SECRET`（若已设置则为 `NITRO_APP_SECRET`）。即使密钥不变，所有 v6 签名图片 URL 也会失效。本次变更不需要数据库迁移。
+OG Image v7 使用 `NUXT_APP_SECRET`（若已设置则为 `NITRO_APP_SECRET`）。两者都未设置时，Self-hosted 生产环境会加载或创建 `data/.app-secret`。`NUXT_OG_IMAGE_SECRET` 仍可作为已弃用的回退。即使密钥不变，所有 v6 签名图片 URL 也会失效。本次变更不需要数据库迁移。
 
 1. 停止所有将提供升级后镜像的副本。
-2. 生成一个至少 32 个字符的密钥，并在每一副本上设置相同的 `NUXT_APP_SECRET`（或 `NITRO_APP_SECRET`）。
+2. 优先在每一副本上设置相同的、至少 32 个字符的 `NUXT_APP_SECRET`（或 `NITRO_APP_SECRET`）。空的 `NUXT_APP_SECRET` 会被视为未设置。单节点安装也可依赖持久化的 `data/.app-secret`。
 3. 若希望保留现有的 `NUXT_OG_IMAGE_SECRET`，仅在能保持其有效值不变时再重命名；不确定时请直接生成新密钥。
 4. 让已升级副本一起上线，刷新包含 OG 图片 URL 的 HTML 缓存，再检查画廊及公开照片的分享预览。
 5. 回退时，须在任一 v6 实例对外提供流量之前停止全部 v7 副本，恢复旧镜像标签和环境配置，然后再次刷新相关 HTML 缓存。

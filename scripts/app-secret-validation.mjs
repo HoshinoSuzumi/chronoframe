@@ -16,7 +16,7 @@ export function resolveAppSecretCandidate(configSecret, env = process.env) {
   const raw =
     env.NITRO_APP_SECRET !== undefined
       ? env.NITRO_APP_SECRET
-      : env.NUXT_APP_SECRET !== undefined
+      : env.NUXT_APP_SECRET
         ? env.NUXT_APP_SECRET
         : undefined
   let secret = raw !== undefined ? decodeEnvAppSecret(raw) : configSecret
