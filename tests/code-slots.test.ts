@@ -121,8 +121,38 @@ function mountSlots() {
     )({ preventDefault() {}, clipboardData: { getData: () => value } })
     await vue.nextTick()
   }
-  return { app, model, status, disabled, completed, input, enter, paste }
+  return {
+    app,
+    model,
+    status,
+    disabled,
+    completed,
+    input,
+    native,
+    enter,
+    paste,
+  }
 }
+
+test('partial paste replaces the selected digits and leaves the caret after the insertion', async () => {
+  const f = mountSlots()
+  try {
+    await f.enter('12345')
+    f.native.setSelectionRange(1, 3)
+    await f.paste('9')
+    assert.equal(f.model.value, '1945')
+    assert.equal(f.native.selectionStart, 2)
+    assert.equal(f.native.selectionEnd, 2)
+    assert.deepEqual(f.completed, [])
+    await f.paste('678901')
+    assert.equal(f.model.value, '678901')
+    assert.equal(f.native.selectionStart, 6)
+    assert.equal(f.native.selectionEnd, 6)
+    assert.deepEqual(f.completed, ['678901'])
+  } finally {
+    f.app.unmount()
+  }
+})
 
 test('CodeSlots preserves native validation, sanitizes input, supports formatted paste and emits completion once', async () => {
   const f = mountSlots()

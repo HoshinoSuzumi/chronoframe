@@ -2,6 +2,7 @@
 export function useCloudCodeCooldown() {
   const remaining = ref(0)
   let timer: ReturnType<typeof setInterval> | undefined
+  /** Start a fresh sixty-second countdown after a successful send. */
   function start() {
     clearInterval(timer)
     const until = Date.now() + 60_000

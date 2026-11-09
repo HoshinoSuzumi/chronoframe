@@ -143,3 +143,42 @@ test('signup prevents duplicate requests and clears the password before verifyin
   await p.submit()
   assert.equal(p.navigations(), 1)
 })
+
+test('authenticator codes use verify-totp before navigating to the destination', async () => {
+  const calls: { url: string; body: Record<string, unknown> }[] = []
+  const p = await page('signin', async (url, options) => {
+    calls.push({ url, body: options.body })
+    return url === '/api/auth/sign-in/email'
+      ? { twoFactorRedirect: true, twoFactorMethods: ['totp'] }
+      : {}
+  })
+  await p.submit()
+  p.code.value = '123456'
+  await p.submit()
+  assert.equal(p.factor.value, 'totp')
+  assert.deepEqual(calls[1], {
+    url: '/api/auth/two-factor/verify-totp',
+    body: { code: '123456', trustDevice: false },
+  })
+  assert.equal(calls.length, 2)
+  assert.equal(p.navigations(), 1)
+  assert.equal(p.codeStatus.value, 'success')
+})
+
+test('signup resend focuses the enabled code input both when opening verification and when retrying', async () => {
+  const p = await page('signup', async () => ({}))
+  const focusedWhileBusy: boolean[] = []
+  p.email.value = 'user@example.com'
+  p.emailInput.value = { inputRef: { reportValidity: () => true } }
+  p.codeInput.value = { focus: () => focusedWhileBusy.push(p.busy.value) }
+  await p.resend()
+  assert.equal(p.sent.value, true)
+  assert.equal(p.remaining.value, 60)
+  assert.deepEqual(focusedWhileBusy, [false])
+  p.remaining.value = 0
+  p.code.value = '123'
+  await p.resend()
+  assert.equal(p.code.value, '')
+  assert.deepEqual(focusedWhileBusy, [false, false])
+  assert.equal(p.navigations(), 0)
+})

@@ -27,9 +27,11 @@ const digits = (value: string) =>
 const slots = computed(() =>
   Array.from({ length: props.length }, (_, i) => digits(model.value)[i] ?? ''),
 )
+/** Cancel delayed rejection clearing before editing or unmounting. */
 function stopDrain() {
   clearTimeout(drain)
 }
+/** Sanitize a user edit and emit completion once for each new full value. */
 function commit(value: string) {
   if (props.disabled || props.status === 'success') return
   stopDrain()
@@ -40,6 +42,7 @@ function commit(value: string) {
   active.value = Math.min(next.length, props.length - 1)
   if (changed && next.length === props.length) emit('complete', next)
 }
+/** Keep native keyboard edits and decorative slots synchronized. */
 function onInput(event: Event) {
   const target = event.target as HTMLInputElement
   commit(target.value)
@@ -49,6 +52,7 @@ function onInput(event: Event) {
     props.length - 1,
   )
 }
+/** Replace full codes or insert partial digits at the native selection. */
 function onPaste(event: ClipboardEvent) {
   if (props.disabled || props.status === 'success') return
   event.preventDefault()
@@ -57,15 +61,19 @@ function onPaste(event: ClipboardEvent) {
   // Full pasted/autofilled codes replace the entire value, including formatting.
   const start = nativeInput.value?.selectionStart ?? model.value.length
   const end = nativeInput.value?.selectionEnd ?? start
+  const fullCode = value.length === props.length
+  const caret = fullCode
+    ? props.length
+    : Math.min(start + value.length, props.length)
   commit(
-    value.length === props.length
+    fullCode
       ? value
       : model.value.slice(0, start) + value + model.value.slice(end),
   )
-  nextTick(() =>
-    nativeInput.value?.setSelectionRange(active.value + 1, active.value + 1),
-  )
+  active.value = Math.min(caret, props.length - 1)
+  nextTick(() => nativeInput.value?.setSelectionRange(caret, caret))
 }
+/** Map a pointer hit to the corresponding native input selection. */
 function selectSlot(event: PointerEvent) {
   if (props.disabled || props.status === 'success') return
   const rect =
@@ -89,6 +97,7 @@ function selectSlot(event: PointerEvent) {
   )
   active.value = position
 }
+/** Mirror native keyboard selection in the active decorative slot. */
 function syncCaret() {
   active.value = Math.min(
     nativeInput.value?.selectionStart ?? 0,

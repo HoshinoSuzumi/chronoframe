@@ -19,6 +19,7 @@ const second = ['totp', 'email'].includes(String(route.query.second))
 const step = ref<'credentials' | 'code' | 'second'>(
   second ? 'second' : 'credentials',
 )
+/** Switch credential methods and discard stale verification feedback. */
 function setMode(value: 'email' | 'password') {
   mode.value = value
   error.value = ''
@@ -35,15 +36,18 @@ const busy = ref(false),
 const codeInput = ref<{ focus(): void }>()
 const codeStatus = ref<'idle' | 'error' | 'success'>('idle')
 const { remaining, start: startCooldown } = useCloudCodeCooldown()
+/** Reset verification feedback when the user edits the code. */
 function editCode() {
   error.value = ''
   codeStatus.value = 'idle'
 }
+/** Return to email entry before the first authentication step completes. */
 function editEmail() {
   step.value = 'credentials'
   code.value = ''
   editCode()
 }
+/** Switch between recovery text and the server-required second factor. */
 function toggleRecovery() {
   factor.value =
     factor.value === 'recovery'
@@ -58,10 +62,12 @@ function toggleRecovery() {
 onMounted(() => {
   if (second === 'email') void resend()
 })
+/** Send the email second factor and start its resend cooldown. */
 async function sendSecond() {
   await $fetch('/api/auth/two-factor/send-otp', { method: 'POST', body: {} })
   startCooldown()
 }
+/** Advance the current authentication step without bypassing MFA. */
 async function submit() {
   if (
     busy.value ||
@@ -137,6 +143,7 @@ async function submit() {
     }
   }
 }
+/** Authenticate with the existing passkey adapter and destination. */
 async function passkeySignIn() {
   if (busy.value) return
   busy.value = true
@@ -151,6 +158,7 @@ async function passkeySignIn() {
     busy.value = false
   }
 }
+/** Resend the current email challenge only after the cooldown expires. */
 async function resend() {
   if (busy.value || remaining.value) return
   code.value = ''

@@ -18,10 +18,12 @@ const codeInput = ref<{ focus(): void }>()
 const emailInput = ref<{ inputRef: HTMLInputElement }>()
 const codeStatus = ref<'idle' | 'error' | 'success'>('idle')
 const { remaining, start: startCooldown } = useCloudCodeCooldown()
+/** Reset feedback when the verification code is edited. */
 function editCode() {
   error.value = ''
   codeStatus.value = 'idle'
 }
+/** Create the account or verify its email while preventing duplicate requests. */
 async function submit() {
   if (busy.value || (sent.value && !/^[0-9]{6}$/.test(code.value))) return
   busy.value = true
@@ -59,6 +61,7 @@ async function submit() {
     }
   }
 }
+/** Resend verification and focus the code only after enabling its input. */
 async function resend() {
   if (
     busy.value ||
@@ -77,12 +80,14 @@ async function resend() {
     })
     sent.value = true
     startCooldown()
-    await nextTick()
-    codeInput.value?.focus()
   } catch (cause) {
     error.value = accountError(cause, t)
   } finally {
     busy.value = false
+    if (sent.value) {
+      await nextTick()
+      codeInput.value?.focus()
+    }
   }
 }
 </script>
