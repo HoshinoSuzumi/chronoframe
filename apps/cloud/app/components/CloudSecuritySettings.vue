@@ -79,6 +79,7 @@ async function enable(method: 'otp' | 'totp') {
   })
 }
 async function confirmAuthenticator() {
+  if (!/^[0-9]{6}$/.test(code.value)) return
   await run(async () => {
     await $fetch('/api/auth/two-factor/verify-totp', {
       method: 'POST',
@@ -289,13 +290,13 @@ async function deletePasskey(id: number) {
               <label for="totp-code">{{
                 $t('cloud.messages.authenticatorCode')
               }}</label
-              ><CfInput
+              ><CfCodeSlots
                 id="totp-code"
                 v-model="code"
-                inputmode="numeric"
-                autocomplete="one-time-code"
-                pattern="[0-9]{6}"
-                maxlength="6"
+                :aria-label="$t('cloud.messages.authenticatorCode')"
+                :status="error ? 'error' : 'idle'"
+                @edit="error = ''"
+                @complete="confirmAuthenticator"
                 required
                 :disabled="busy"
               /><CfButton

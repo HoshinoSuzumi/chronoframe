@@ -3170,3 +3170,157 @@ a.cf-domain-address:hover {
 .cf-social-login-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
 .cf-social-login-grid > .cf-button { width: 100%; min-width: 0; justify-content: center; }
 .cf-auth-form > .cf-auth-footer { display: flex; flex-wrap: wrap; justify-content: center; align-items: baseline; gap: 6px; margin: 24px 0 0; font-size: 13px; line-height: 1.6; }
+/* Authentication uses the same semantic surfaces and controls in either theme. */
+.cf-auth-main {
+  gap: 32px;
+}
+.cf-auth-form {
+  max-width: 430px;
+  margin: auto;
+  padding: 32px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  box-shadow: 0 8px 32px #00000005;
+}
+.cf-auth-form h1 {
+  font-size: clamp(26px, 3vw, 32px);
+  letter-spacing: -0.8px;
+  margin-top: 18px;
+}
+.cf-auth-form > p {
+  line-height: 1.7;
+  font-size: 13px;
+}
+.cf-auth-form form {
+  gap: 12px;
+}
+.cf-auth-field {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+.cf-auth-form label {
+  font-size: 13px;
+}
+.cf-auth-form .cf-input {
+  width: 100%;
+}
+.cf-auth-form input:not(.cf-code-slots__input) {
+  min-height: 44px;
+}
+.cf-auth-form form > .cf-button[type='submit'] {
+  min-height: 44px;
+  margin-top: 8px;
+}
+.cf-auth-label-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+}
+.cf-auth-label-row .cf-text-link {
+  font-size: 12px;
+}
+.cf-auth-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--muted);
+  margin: 24px 0 4px;
+}
+.cf-auth-tabs .cf-button {
+  justify-content: center;
+  border: 0;
+  box-shadow: none;
+  min-height: 36px;
+}
+.cf-auth-tabs .cf-button[aria-pressed='true'] {
+  background: var(--card);
+  color: var(--foreground);
+  box-shadow: 0 1px 3px #0000000c;
+}
+.cf-auth-password {
+  position: relative;
+  width: 100%;
+}
+.cf-auth-password input {
+  padding-right: 46px;
+}
+.cf-auth-password > .cf-button {
+  position: absolute;
+  inset-block: 0;
+  right: 2px;
+  width: 42px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--muted-foreground);
+  cursor: pointer;
+}
+.cf-auth-password > .cf-button:hover {
+  color: var(--foreground);
+}
+.cf-auth-password > .cf-button:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: -4px;
+}
+.cf-auth-recipient {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--background);
+  font-size: 13px;
+}
+.cf-auth-recipient > span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.cf-auth-code-field {
+  gap: 14px;
+  margin-top: 4px;
+}
+.cf-auth-code-field .cf-auth-hint {
+  line-height: 1.65;
+  margin: 0;
+}
+.cf-auth-code-actions {
+  display: grid;
+  gap: 4px;
+}
+.cf-auth-code-actions .cf-button {
+  justify-content: center;
+  white-space: normal;
+}
+.cf-auth-form .cf-error-message {
+  margin: 0;
+  background: color-mix(in srgb, var(--destructive) 5%, var(--card));
+  border-color: color-mix(in srgb, var(--destructive) 35%, var(--border));
+}
+@media (max-width: 600px) {
+  .cf-auth-main {
+    padding: 20px 16px 28px;
+    gap: 24px;
+  }
+  .cf-auth-form {
+    padding: 24px 20px;
+    margin-block: 8px;
+    border-radius: 14px;
+  }
+  .cf-auth-form input:not(.cf-code-slots__input) {
+    font-size: 16px;
+  }
+  .cf-auth-form h1 {
+    font-size: 27px;
+  }
+}
+.cf-auth-form > h1:first-child { margin-top: 0; }

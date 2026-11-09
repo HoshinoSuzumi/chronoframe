@@ -15,7 +15,15 @@ const email = ref(''),
   busy = ref(false),
   error = ref('')
 const codeInput = ref<{ focus(): void }>()
+const emailInput = ref<{ inputRef: HTMLInputElement }>()
+const codeStatus = ref<'idle' | 'error' | 'success'>('idle')
+const { remaining, start: startCooldown } = useCloudCodeCooldown()
+function editCode() {
+  error.value = ''
+  codeStatus.value = 'idle'
+}
 async function submit() {
+  if (busy.value || (sent.value && !/^[0-9]{6}$/.test(code.value))) return
   busy.value = true
   error.value = ''
   try {
@@ -30,14 +38,18 @@ async function submit() {
       })
       password.value = ''
       sent.value = true
+      startCooldown()
     } else {
       await $fetch('/api/auth/email-otp/verify-email', {
         method: 'POST',
         body: { email: email.value, otp: code.value },
       })
+      codeStatus.value = 'success'
+      await new Promise((resolve) => setTimeout(resolve, 250))
       await navigateTo(destination.value, { external: true })
     }
   } catch (cause) {
+    if (sent.value) codeStatus.value = 'error'
     error.value = accountError(cause, t)
   } finally {
     busy.value = false
@@ -48,6 +60,14 @@ async function submit() {
   }
 }
 async function resend() {
+  if (
+    busy.value ||
+    remaining.value ||
+    !emailInput.value?.inputRef.reportValidity()
+  )
+    return
+  code.value = ''
+  editCode()
   busy.value = true
   error.value = ''
   try {
@@ -56,6 +76,9 @@ async function resend() {
       body: { email: email.value, type: 'email-verification' },
     })
     sent.value = true
+    startCooldown()
+    await nextTick()
+    codeInput.value?.focus()
   } catch (cause) {
     error.value = accountError(cause, t)
   } finally {
@@ -64,8 +87,7 @@ async function resend() {
 }
 </script>
 <template>
-  <CloudAuthLayout
-    ><CfBadge>ChronoFrame Cloud</CfBadge>
+  <CloudAuthLayout>
     <h1>
       {{
         sent
@@ -92,6 +114,7 @@ async function resend() {
         <label for="email">{{ $t('cloud.messages.emailAddress') }}</label
         ><CfInput
           id="email"
+          ref="emailInput"
           v-model="email"
           type="email"
           autocomplete="email"
@@ -99,10 +122,9 @@ async function resend() {
           required
         /><template v-if="!sent"
           ><label for="password">{{ $t('cloud.messages.password') }}</label
-          ><CfInput
+          ><CloudPasswordInput
             id="password"
             v-model="password"
-            type="password"
             autocomplete="new-password"
             minlength="12"
             maxlength="128"
@@ -118,14 +140,15 @@ async function resend() {
           ><label for="code">{{
             $t('cloud.messages.emailVerificationCode')
           }}</label
-          ><CfInput
+          ><CfCodeSlots
             id="code"
             ref="codeInput"
             v-model="code"
-            inputmode="numeric"
-            autocomplete="one-time-code"
-            pattern="[0-9]{6}"
-            maxlength="6"
+            :aria-label="$t('cloud.messages.emailVerificationCode')"
+            :status="codeStatus"
+            autofocus
+            @edit="editCode"
+            @complete="submit"
             :disabled="busy"
             required
         /></template>
@@ -138,6 +161,7 @@ async function resend() {
         </p>
         <CfButton
           type="submit"
+          :disabled="sent && code.length !== 6"
           :loading="busy"
           >{{
             sent
@@ -146,12 +170,14 @@ async function resend() {
           }}</CfButton
         ><CfButton
           variant="ghost"
-          :disabled="busy || !email"
+          :disabled="busy || !email || remaining > 0"
           @click="resend"
           >{{
-            sent
-              ? $t('cloud.messages.sendANewCode')
-              : $t('cloud.messages.alreadyStartedResendVerification')
+            remaining > 0
+              ? $t('cloud.auth.resendIn', { seconds: remaining })
+              : sent
+                ? $t('cloud.messages.sendANewCode')
+                : $t('cloud.messages.alreadyStartedResendVerification')
           }}</CfButton
         >
       </form>

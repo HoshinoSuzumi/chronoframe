@@ -22,6 +22,7 @@ const step = ref<'credentials' | 'code' | 'second'>(
 function setMode(value: 'email' | 'password') {
   mode.value = value
   error.value = ''
+  code.value = ''
 }
 const authenticatorRequired = ref(second === 'totp')
 const factor = ref<'email' | 'totp' | 'recovery'>(
@@ -32,14 +33,43 @@ const busy = ref(false),
     route.query.oauthError ? t('cloud.account.socialLoginFailed') : '',
   )
 const codeInput = ref<{ focus(): void }>()
+const codeStatus = ref<'idle' | 'error' | 'success'>('idle')
+const { remaining, start: startCooldown } = useCloudCodeCooldown()
+function editCode() {
+  error.value = ''
+  codeStatus.value = 'idle'
+}
+function editEmail() {
+  step.value = 'credentials'
+  code.value = ''
+  editCode()
+}
+function toggleRecovery() {
+  factor.value =
+    factor.value === 'recovery'
+      ? authenticatorRequired.value
+        ? 'totp'
+        : 'email'
+      : 'recovery'
+  code.value = ''
+  editCode()
+  nextTick(() => codeInput.value?.focus())
+}
 onMounted(() => {
   if (second === 'email') void resend()
 })
 async function sendSecond() {
   await $fetch('/api/auth/two-factor/send-otp', { method: 'POST', body: {} })
+  startCooldown()
 }
 async function submit() {
-  if (busy.value) return
+  if (
+    busy.value ||
+    (step.value !== 'credentials' &&
+      factor.value !== 'recovery' &&
+      !/^[0-9]{6}$/.test(code.value))
+  )
+    return
   busy.value = true
   error.value = ''
   try {
@@ -62,6 +92,7 @@ async function submit() {
         method: 'POST',
         body: { email: email.value, type: 'sign-in' },
       })
+      startCooldown()
       step.value = 'code'
       return
     } else {
@@ -90,8 +121,13 @@ async function submit() {
         return
       }
     }
+    if (step.value !== 'credentials' && factor.value !== 'recovery') {
+      codeStatus.value = 'success'
+      await new Promise((resolve) => setTimeout(resolve, 250))
+    }
     await navigateTo(destination.value, { external: true })
   } catch (cause) {
+    if (step.value !== 'credentials') codeStatus.value = 'error'
     error.value = accountError(cause, t)
   } finally {
     busy.value = false
@@ -102,6 +138,7 @@ async function submit() {
   }
 }
 async function passkeySignIn() {
+  if (busy.value) return
   busy.value = true
   error.value = ''
   try {
@@ -115,6 +152,9 @@ async function passkeySignIn() {
   }
 }
 async function resend() {
+  if (busy.value || remaining.value) return
+  code.value = ''
+  editCode()
   busy.value = true
   error.value = ''
   try {
@@ -124,6 +164,7 @@ async function resend() {
         method: 'POST',
         body: { email: email.value, type: 'sign-in' },
       })
+    if (step.value !== 'second') startCooldown()
   } catch (cause) {
     error.value = accountError(cause, t)
   } finally {
@@ -132,8 +173,7 @@ async function resend() {
 }
 </script>
 <template>
-  <CloudAuthLayout
-    ><CfBadge>ChronoFrame Cloud</CfBadge>
+  <CloudAuthLayout>
     <h1>
       {{
         step === 'second'
@@ -143,12 +183,14 @@ async function resend() {
             : $t('cloud.messages.welcomeBack')
       }}
     </h1>
-    <template v-if="status?.enabled"
-      ><p>
+    <template v-if="status?.enabled">
+      <p>
         {{
           step === 'second'
             ? $t('cloud.messages.completeYourSecondVerificationToContinue')
-            : $t('cloud.messages.yourPhotographsYourSpace')
+            : step === 'code'
+              ? $t('cloud.messages.enterTheCodeFromYourEmail')
+              : $t('cloud.messages.yourPhotographsYourSpace')
         }}
       </p>
       <div
@@ -158,11 +200,14 @@ async function resend() {
       >
         <CfButton
           :variant="mode === 'password' ? 'secondary' : 'ghost'"
+          :aria-pressed="mode === 'password'"
           :disabled="busy"
           @click="setMode('password')"
           >{{ $t('cloud.messages.password') }}</CfButton
-        ><CfButton
+        >
+        <CfButton
           :variant="mode === 'email' ? 'secondary' : 'ghost'"
+          :aria-pressed="mode === 'email'"
           :disabled="busy"
           @click="setMode('email')"
           >{{ $t('cloud.messages.emailCode') }}</CfButton
@@ -173,73 +218,94 @@ async function resend() {
         @submit.prevent="submit"
         :aria-busy="busy"
       >
-        <template v-if="step !== 'second'"
-          ><label for="email">{{ $t('cloud.messages.emailAddress') }}</label
-          ><CfInput
+        <div
+          v-if="step === 'credentials'"
+          class="cf-auth-field"
+        >
+          <label for="email">{{ $t('cloud.messages.emailAddress') }}</label>
+          <CfInput
             id="email"
             v-model="email"
             type="email"
             autocomplete="username"
-            :disabled="busy || step === 'code'"
-            required
-        /></template>
-        <template v-if="mode === 'password' && step === 'credentials'"
-          ><label for="password">{{ $t('cloud.messages.password') }}</label
-          ><CfInput
-            id="password"
-            v-model="password"
-            type="password"
-            autocomplete="current-password"
-            :disabled="busy"
-            required
-          /><NuxtLink
-            class="cf-text-link"
-            :to="authLink('/forgot-password')"
-            >{{ $t('cloud.messages.forgotYourPassword') }}</NuxtLink
-          ></template
-        >
-        <template v-if="step === 'second'"
-          ><label for="factor">{{
-            $t('cloud.messages.verificationMethod')
-          }}</label
-          ><CfSelect
-            id="factor"
-            v-model="factor"
-            :disabled="busy"
-            @change="code = ''"
-          >
-            <option
-              v-if="!authenticatorRequired"
-              value="email"
-            >
-              {{ $t('cloud.messages.emailCode') }}
-            </option>
-            <option value="totp">
-              {{ $t('cloud.messages.authenticatorCode') }}
-            </option>
-            <option value="recovery">
-              {{ $t('cloud.messages.recoveryCode') }}
-            </option>
-          </CfSelect></template
-        >
-        <template v-if="step !== 'credentials'"
-          ><label for="code">{{
-            factor === 'recovery' && step === 'second'
-              ? $t('cloud.messages.recoveryCode')
-              : $t('cloud.messages.verificationCode')
-          }}</label
-          ><CfInput
-            id="code"
-            ref="codeInput"
-            v-model="code"
-            autocomplete="one-time-code"
-            :inputmode="
-              factor === 'recovery' && step === 'second' ? 'text' : 'numeric'
-            "
             :disabled="busy"
             required
           />
-          <p class="cf-auth-hint">
+        </div>
+        <div
+          v-if="mode === 'password' && step === 'credentials'"
+          class="cf-auth-field"
+        >
+          <div class="cf-auth-label-row">
+            <label for="password">{{ $t('cloud.messages.password') }}</label
+            ><NuxtLink
+              class="cf-text-link"
+              :to="authLink('/forgot-password')"
+              >{{ $t('cloud.messages.forgotYourPassword') }}</NuxtLink
+            >
+          </div>
+          <CloudPasswordInput
+            id="password"
+            v-model="password"
+            autocomplete="current-password"
+            :disabled="busy"
+            required
+          />
+        </div>
+        <div
+          v-if="step === 'code'"
+          class="cf-auth-recipient"
+        >
+          <span>{{ email }}</span
+          ><CfButton
+            variant="ghost"
+            size="sm"
+            :disabled="busy"
+            @click="editEmail"
+            >{{ $t('cloud.auth.changeEmail') }}</CfButton
+          >
+        </div>
+        <div
+          v-if="step !== 'credentials'"
+          class="cf-auth-field cf-auth-code-field"
+        >
+          <label for="code">{{
+            step === 'second' && factor === 'recovery'
+              ? $t('cloud.messages.recoveryCode')
+              : step === 'second' && factor === 'totp'
+                ? $t('cloud.messages.authenticatorCode')
+                : $t('cloud.messages.verificationCode')
+          }}</label>
+          <CfInput
+            v-if="step === 'second' && factor === 'recovery'"
+            id="code"
+            ref="codeInput"
+            v-model="code"
+            autocomplete="off"
+            :disabled="busy"
+            required
+            @input="editCode"
+          />
+          <CfCodeSlots
+            v-else
+            id="code"
+            ref="codeInput"
+            v-model="code"
+            :aria-label="$t('cloud.messages.verificationCode')"
+            :status="codeStatus"
+            :disabled="busy"
+            :aria-describedby="
+              error ? 'auth-code-hint auth-error' : 'auth-code-hint'
+            "
+            required
+            autofocus
+            @edit="editCode"
+            @complete="submit"
+          />
+          <p
+            id="auth-code-hint"
+            class="cf-auth-hint"
+          >
             {{
               step === 'code' || factor === 'email'
                 ? $t('cloud.messages.enterTheCodeFromYourEmail')
@@ -247,10 +313,11 @@ async function resend() {
                     'cloud.messages.useYourAuthenticatorOrAnUnusedRecoveryCode',
                   )
             }}
-          </p></template
-        >
+          </p>
+        </div>
         <p
           v-if="error"
+          id="auth-error"
           role="alert"
           class="cf-error-message"
         >
@@ -259,21 +326,45 @@ async function resend() {
         <CfButton
           type="submit"
           :loading="busy"
+          :disabled="
+            step !== 'credentials' &&
+            (factor === 'recovery' ? !code.trim() : code.length !== 6)
+          "
           >{{
             mode === 'email' && step === 'credentials'
               ? $t('cloud.messages.sendSignInCode')
-              : $t('cloud.messages.signIn')
+              : step !== 'credentials'
+                ? $t('cloud.auth.verifyAndContinue')
+                : $t('cloud.messages.signIn')
           }}</CfButton
         >
-        <CfButton
-          v-if="
-            step !== 'credentials' && (step === 'code' || factor === 'email')
-          "
-          variant="ghost"
-          :disabled="busy"
-          @click="resend"
-          >{{ $t('cloud.messages.sendANewCode') }}</CfButton
+        <div
+          v-if="step !== 'credentials'"
+          class="cf-auth-code-actions"
         >
+          <CfButton
+            v-if="step === 'code' || factor === 'email'"
+            variant="ghost"
+            :disabled="busy || remaining > 0"
+            @click="resend"
+            >{{
+              remaining > 0
+                ? $t('cloud.auth.resendIn', { seconds: remaining })
+                : $t('cloud.messages.sendANewCode')
+            }}</CfButton
+          >
+          <CfButton
+            v-if="step === 'second'"
+            variant="ghost"
+            :disabled="busy"
+            @click="toggleRecovery"
+            >{{
+              factor === 'recovery'
+                ? $t('cloud.auth.useVerificationCode')
+                : $t('cloud.auth.useRecoveryCode')
+            }}</CfButton
+          >
+        </div>
       </form>
       <p
         v-if="error && !status.emailEnabled && step !== 'second'"
@@ -309,13 +400,13 @@ async function resend() {
           class="cf-text-link"
           >{{ $t('cloud.messages.createAnAccount') }}</NuxtLink
         >
-      </p></template
-    >
+      </p>
+    </template>
     <p
       v-else
       class="cf-notice"
     >
       {{ $t('cloud.messages.emailSignInIsNotAvailableOnThisDeployment') }}
-    </p></CloudAuthLayout
-  >
+    </p>
+  </CloudAuthLayout>
 </template>
