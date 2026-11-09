@@ -656,3 +656,87 @@ test('A failed retry-state write does not prevent later notices or cleanup', asy
     await mf.dispose()
   }
 })
+
+test('Trial history keeps the claimed workspace state when querying another workspace', async () => {
+  const { db, mf, workspace } = await fixture()
+  try {
+    const now = Date.now(),
+      offer = await workspaceTrial(db, 1, workspace.id, now)
+    await claimWorkspaceTrial(db, 1, workspace.id, offer.offer!.revision, now)
+    const other = await createD1Provisioning(db).defaultWorkspace(3)
+    await db
+      .prepare(
+        "INSERT INTO platform_memberships(user_id,workspace_id,role) VALUES(1,?,'member')",
+      )
+      .bind(other.id)
+      .run()
+    const result = await workspaceTrial(db, 1, other.id, now)
+    assert.equal(result.reason, 'not_owner')
+    assert.equal(result.trial?.workspaceId, workspace.id)
+    assert.equal(result.trial?.state, 'active')
+    assert.equal(
+      (await workspaceTrial(db, 1, other.id, now + 15 * DAY)).trial?.state,
+      'expired',
+    )
+  } finally {
+    await mf.dispose()
+  }
+})
+
+test('Revoked owner membership suppresses new and previously queued trial reminders', async () => {
+  const { db, mf, workspace } = await fixture()
+  try {
+    const now = Date.now(),
+      offer = await workspaceTrial(db, 1, workspace.id, now)
+    const claim = await claimWorkspaceTrial(
+      db,
+      1,
+      workspace.id,
+      offer.offer!.revision,
+      now,
+    )
+    const end = claim.trial!.expiresAt
+    await db
+      .prepare(
+        'DELETE FROM platform_memberships WHERE user_id=1 AND workspace_id=?',
+      )
+      .bind(workspace.id)
+      .run()
+    let sent = 0
+    const mail = {
+      async send() {
+        sent++
+        return { messageId: 'unexpected' }
+      },
+    }
+    await deliverTrialMail(db, mail, 'https://app.example.test', end - 2 * DAY)
+    assert.equal(
+      (
+        await db
+          .prepare('SELECT COUNT(*) AS n FROM platform_trial_mail')
+          .first()
+      ).n,
+      0,
+    )
+    await db
+      .prepare(
+        "INSERT INTO platform_trial_mail(id,user_id,cycle,notice_days,available_at) VALUES('before-revoke',1,?,3,?)",
+      )
+      .bind(end, end - 2 * DAY)
+      .run()
+    await deliverTrialMail(db, mail, 'https://app.example.test', end - 2 * DAY)
+    assert.equal(sent, 0)
+    assert.equal(
+      (
+        await db
+          .prepare(
+            "SELECT state FROM platform_trial_mail WHERE id='before-revoke'",
+          )
+          .first()
+      ).state,
+      'cancelled',
+    )
+  } finally {
+    await mf.dispose()
+  }
+})

@@ -20,7 +20,7 @@ export async function deliverTrialMail(
   await db
     .prepare(`INSERT OR IGNORE INTO platform_trial_mail(id,user_id,cycle,notice_days,available_at)
  SELECT CAST(t.user_id AS TEXT)||':'||CAST(t.expires_at AS TEXT)||':'||CAST(CASE WHEN t.expires_at<=? THEN 0 WHEN t.expires_at<=? THEN 1 ELSE 3 END AS TEXT),t.user_id,t.expires_at,CASE WHEN t.expires_at<=? THEN 0 WHEN t.expires_at<=? THEN 1 ELSE 3 END,?
- FROM platform_trials t JOIN platform_users u ON u.id=t.user_id
+ FROM platform_trials t JOIN platform_users u ON u.id=t.user_id JOIN platform_workspaces w ON w.id=t.workspace_id AND w.owner_user_id=u.id JOIN platform_memberships membership ON membership.workspace_id=w.id AND membership.user_id=u.id AND membership.role='admin'
  WHERE t.revoked_at IS NULL AND t.converted_at IS NULL AND t.expires_at<=? AND t.expires_at>=? AND u.email_verified=1 AND NOT EXISTS(SELECT 1 FROM platform_account_deletions d WHERE d.user_id=u.id) AND NOT EXISTS(SELECT 1 FROM platform_account_controls c WHERE c.user_id=u.id AND c.suspended=1)
  AND NOT EXISTS(SELECT 1 FROM platform_trial_mail mail WHERE mail.user_id=t.user_id AND mail.cycle=t.expires_at AND mail.notice_days=CASE WHEN t.expires_at<=? THEN 0 WHEN t.expires_at<=? THEN 1 ELSE 3 END) ORDER BY t.expires_at,t.user_id LIMIT 50`)
     .bind(
@@ -69,7 +69,7 @@ export async function deliverTrialMail(
     try {
       const record = await db
         .prepare(
-          `SELECT u.email,w.name AS workspace,p.name AS plan FROM platform_trials t JOIN platform_users u ON u.id=t.user_id JOIN platform_workspaces w ON w.id=t.workspace_id JOIN platform_plans p ON p.id=t.plan_id JOIN platform_workspace_plans assignment ON assignment.workspace_id=w.id WHERE (assignment.source='trial' AND p.active=1 AND assignment.starts_at=t.started_at AND assignment.plan_id=t.plan_id OR assignment.source='expired_default' AND assignment.starts_at=t.expires_at) AND w.owner_user_id=u.id AND t.user_id=? AND t.expires_at=? AND t.revoked_at IS NULL AND t.converted_at IS NULL AND u.email_verified=1 AND NOT EXISTS(SELECT 1 FROM platform_account_deletions d WHERE d.user_id=u.id) AND NOT EXISTS(SELECT 1 FROM platform_account_controls c WHERE c.user_id=u.id AND c.suspended=1)`,
+          `SELECT u.email,w.name AS workspace,p.name AS plan FROM platform_trials t JOIN platform_users u ON u.id=t.user_id JOIN platform_workspaces w ON w.id=t.workspace_id JOIN platform_plans p ON p.id=t.plan_id JOIN platform_workspace_plans assignment ON assignment.workspace_id=w.id JOIN platform_memberships membership ON membership.workspace_id=w.id AND membership.user_id=u.id AND membership.role='admin' WHERE (assignment.source='trial' AND p.active=1 AND assignment.starts_at=t.started_at AND assignment.plan_id=t.plan_id OR assignment.source='expired_default' AND assignment.starts_at=t.expires_at) AND w.owner_user_id=u.id AND t.user_id=? AND t.expires_at=? AND t.revoked_at IS NULL AND t.converted_at IS NULL AND u.email_verified=1 AND NOT EXISTS(SELECT 1 FROM platform_account_deletions d WHERE d.user_id=u.id) AND NOT EXISTS(SELECT 1 FROM platform_account_controls c WHERE c.user_id=u.id AND c.suspended=1)`,
         )
         .bind(row.user_id, row.cycle)
         .first<{ email: string; workspace: string; plan: string }>()

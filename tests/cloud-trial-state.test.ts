@@ -2,6 +2,10 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import ts from 'typescript'
+import { createRequire } from 'node:module'
+const { renderToString } = createRequire(
+  createRequire(import.meta.url).resolve('vue/package.json'),
+)('@vue/server-renderer')
 import {
   ref,
   shallowRef,
@@ -10,6 +14,10 @@ import {
   reactive,
   nextTick,
   effectScope,
+  createSSRApp,
+  compile,
+  h,
+  toRefs,
 } from 'vue'
 
 function component(
@@ -121,17 +129,34 @@ test('Trial confirmation includes reduced limits, billing changes refresh status
     identity = ref({ id: 1 }),
     props = reactive({
       workspaceId: 1,
+      workspaceName: 'Gallery',
+      currentAnalytics: false,
+      showUnavailable: false,
       currentLimits: { photos: 100, sites: 2 },
       subscription: 'free',
     })
   const offer = {
     eligible: true,
     serverTime: Date.now(),
-    offer: { revision: '1:1', limits: { photos: 200, sites: 1 } },
+    offer: {
+      revision: '1:1',
+      planName: 'Trial',
+      days: 14,
+      analytics: false,
+      limits: { photos: 200, sites: 1 },
+    },
+    fallback: { id: 'free', name: 'Free' },
     trial: null,
   }
-  const data = shallowRef<unknown>(offer),
-    pending = deferred<unknown>()
+  const data = shallowRef<unknown>({
+      workspaceId: 1,
+      accountId: 1,
+      value: offer,
+    }),
+    pending = deferred<unknown>(),
+    read = deferred<unknown>()
+  let load!: () => Promise<unknown>
+  let posts = 0
   let refreshes = 0,
     changes = 0
   const vm = scope.run(() =>
@@ -143,12 +168,13 @@ test('Trial confirmation includes reduced limits, billing changes refresh status
           changes++
         },
         usePortalIdentity: () => identity,
-        useRequestFetch: () => () => Promise.resolve(offer),
+        useRequestFetch: () => () => read.promise,
         useAsyncData: (
           _key: unknown,
-          _handler: unknown,
+          handler: () => Promise<unknown>,
           options: { watch: (() => unknown)[] },
         ) => {
+          load = handler
           watch(options.watch, () => {
             refreshes++
           })
@@ -161,11 +187,14 @@ test('Trial confirmation includes reduced limits, billing changes refresh status
           }
         },
         useIntervalFn: () => {},
-        $fetch: () => pending.promise,
+        $fetch: () => {
+          posts++
+          return pending.promise
+        },
         refreshNuxtData: async () => {},
-        allowance: () => '',
+        allowance: (_key: string, value: number) => String(value),
       },
-      'benefits,claim,open',
+      'benefits,claim,open,request,data,busy,error,trial,active,visible,daysLeft,endDate,reason,t,locale,allowance',
     ),
   )!
   try {
@@ -173,13 +202,57 @@ test('Trial confirmation includes reduced limits, billing changes refresh status
       ['photos', 200],
       ['sites', 1],
     ])
+    vm.open.value = true
+    const template = readFileSync(
+      'apps/cloud/app/components/CloudTrialCard.vue',
+      'utf8',
+    )
+      .split('<template>')[1]!
+      .split('</template>\n<style')[0]!
+    const app = createSSRApp({
+      setup: () => ({ ...vm, ...toRefs(props) }),
+      render: compile(template),
+    })
+    for (const name of ['CfCard', 'CfAlert', 'CfButton'])
+      app.component(name, {
+        setup(_props, context) {
+          return () => h('div', context.slots.default?.())
+        },
+      })
+    app.component('UModal', {
+      props: ['open'],
+      setup(modal, context) {
+        return () =>
+          modal.open
+            ? h('section', { role: 'dialog' }, context.slots.body?.())
+            : null
+      },
+    })
+    const html = await renderToString(app)
+    const text = html.replace(/<[^>]+>/g, ' ')
+    assert.match(text, /cloud\.billing\.sites\s+2\s*→\s*1/)
     props.subscription = 'paid'
     await nextTick()
     assert.equal(refreshes, 1)
+    const loading = load()
     const claiming = vm.claim()
     props.workspaceId = 2
     identity.value = { id: 2 }
-    const next = { ...offer, offer: { ...offer.offer, revision: '2:1' } }
+    const next = {
+      workspaceId: 2,
+      accountId: 2,
+      value: { ...offer, offer: { ...offer.offer, revision: '2:1' } },
+    }
+    assert.equal(vm.visible.value, false)
+    await nextTick()
+    await vm.claim()
+    assert.equal(changes, 0)
+    assert.equal(posts, 1)
+    read.resolve(offer)
+    data.value = await loading
+    assert.equal(vm.visible.value, false)
+    await vm.claim()
+    assert.equal(posts, 1)
     data.value = next
     await nextTick()
     pending.resolve({ ...offer, eligible: false, trial: { workspaceId: 1 } })
@@ -207,4 +280,45 @@ test('Quota notice links directly to plans when trials are disabled', () => {
   assert.equal(vm.plansLink.value, '/account/plan#plans')
   data.value = { reason: null }
   assert.equal(vm.plansLink.value, '/account/plan')
+})
+
+test('Onboarding honors the server workspace fallback after saving', async () => {
+  const scope = effectScope(),
+    user = ref({ id: 1, name: 'Alice' })
+  let mounted = () => {}
+  const state = { ...setup('Alice'), step: 2 }
+  const vm = scope.run(() =>
+    component(
+      'CloudAccountOnboarding',
+      {
+        usePortalIdentity: () => user,
+        useRequestFetch: () => async () => state,
+        useState: () => ref(null),
+        useRuntimeConfig: () => ({
+          public: { siteBaseDomain: 'example.test' },
+        }),
+        onMounted: (fn: () => void) => {
+          mounted = fn
+        },
+        onBeforeUnmount: () => {},
+        validSiteSlug: () => true,
+        $fetch: async () => ({ ...state, revision: 2 }),
+        refreshNuxtData: async () => {},
+        navigateTo: () => assert.fail('must remain in setup'),
+      },
+      'state,step,reached,save,workspace',
+    ),
+  )!
+  try {
+    mounted()
+    await nextTick()
+    await nextTick()
+    vm.workspace.value = 'Team'
+    vm.reached.value = 3
+    await vm.save()
+    assert.equal(vm.step.value, 2)
+    assert.equal(vm.reached.value, 2)
+  } finally {
+    scope.stop()
+  }
 })

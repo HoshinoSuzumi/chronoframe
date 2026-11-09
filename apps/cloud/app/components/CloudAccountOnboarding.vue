@@ -131,8 +131,8 @@ async function save(skip = false) {
     if (current === 1 && user.value)
       user.value = { ...user.value, name: name.value.trim() }
     if (result.required) {
-      step.value = Math.min(3, current + 1)
-      reached.value = Math.max(reached.value, step.value)
+      step.value = result.step
+      reached.value = result.step
     } else {
       await refreshNuxtData(
         (key) =>

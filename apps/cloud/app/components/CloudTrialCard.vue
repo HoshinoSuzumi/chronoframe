@@ -15,16 +15,26 @@ const identity = usePortalIdentity()
 const fetcher = useRequestFetch()
 const request = useAsyncData(
   () => `workspace-trial-${identity.value?.id}-${props.workspaceId}`,
-  () =>
-    props.workspaceId
-      ? fetcher<WorkspaceTrial>('/api/billing/trial', {
-          query: { workspaceId: props.workspaceId },
-          timeout: 15000,
-        })
-      : Promise.resolve(null),
+  async () => {
+    const workspaceId = props.workspaceId
+    const accountId = identity.value?.id
+    if (!workspaceId) return null
+    const value = await fetcher<WorkspaceTrial>('/api/billing/trial', {
+      query: { workspaceId },
+      timeout: 15000,
+    })
+    return { workspaceId, accountId, value }
+  },
   { watch: [() => props.workspaceId, () => props.subscription] },
 )
-const data = request.data
+// Nuxt may retain cached data while a reactive request key is changing.
+const data = computed(() => {
+  const loaded = request.data.value
+  return loaded?.workspaceId === props.workspaceId &&
+    loaded.accountId === identity.value?.id
+    ? loaded.value
+    : null
+})
 const open = ref(false),
   busy = ref(false),
   error = ref('')
@@ -115,7 +125,7 @@ async function claim() {
       timeout: 20000,
     })
     if (!current()) return
-    data.value = result
+    request.data.value = { workspaceId, accountId, value: result }
     open.value = false
     clock.value = Date.now()
     emit('changed')

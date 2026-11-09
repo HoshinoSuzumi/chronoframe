@@ -23,6 +23,11 @@ interface Claim {
   revoked_at: number | null
   converted_at: number | null
   revision: number
+  assignment_plan_id: string | null
+  assignment_active: number | null
+  assignment_source: string | null
+  assignment_starts_at: number | null
+  assignment_expires_at: number | null
 }
 interface Settings {
   enabled: number
@@ -59,7 +64,7 @@ export async function workspaceTrial(
 ): Promise<WorkspaceTrial> {
   const row = await db
     .prepare(
-      `SELECT w.owner_user_id,w.created_at,m.role,u.email_verified,CASE WHEN ${accountEligible} THEN 1 ELSE 0 END AS available,p.plan_id,p.source,p.starts_at,p.expires_at,assigned.active AS plan_active FROM platform_workspaces w JOIN platform_memberships m ON m.workspace_id=w.id AND m.user_id=? JOIN platform_users u ON u.id=m.user_id LEFT JOIN platform_workspace_plans p ON p.workspace_id=w.id LEFT JOIN platform_plans assigned ON assigned.id=p.plan_id WHERE w.id=?`,
+      `SELECT w.owner_user_id,w.created_at,m.role,u.email_verified,CASE WHEN ${accountEligible} THEN 1 ELSE 0 END AS available,p.plan_id,p.source,p.starts_at,p.expires_at FROM platform_workspaces w JOIN platform_memberships m ON m.workspace_id=w.id AND m.user_id=? JOIN platform_users u ON u.id=m.user_id LEFT JOIN platform_workspace_plans p ON p.workspace_id=w.id WHERE w.id=?`,
     )
     .bind(userId, workspaceId)
     .first<{
@@ -68,7 +73,6 @@ export async function workspaceTrial(
       role: string
       email_verified: number
       available: number
-      plan_active: number | null
       plan_id: string | null
       source: string | null
       starts_at: number | null
@@ -79,7 +83,7 @@ export async function workspaceTrial(
     trialSettings(db),
     db
       .prepare(
-        'SELECT t.*,p.name AS plan_name FROM platform_trials t JOIN platform_plans p ON p.id=t.plan_id WHERE t.user_id=?',
+        'SELECT t.*,p.name AS plan_name,assignment.plan_id AS assignment_plan_id,assigned.active AS assignment_active,assignment.source AS assignment_source,assignment.starts_at AS assignment_starts_at,assignment.expires_at AS assignment_expires_at FROM platform_trials t JOIN platform_plans p ON p.id=t.plan_id LEFT JOIN platform_workspace_plans assignment ON assignment.workspace_id=t.workspace_id LEFT JOIN platform_plans assigned ON assigned.id=assignment.plan_id WHERE t.user_id=?',
       )
       .bind(userId)
       .first<Claim>(),
@@ -173,11 +177,12 @@ export async function workspaceTrial(
             : claim.revoked_at
               ? 'revoked'
               : claim.expires_at > now &&
-                  row.plan_active === 1 &&
-                  row.plan_id === claim.plan_id &&
-                  (row.expires_at === null || row.expires_at > now) &&
-                  row.source === 'trial' &&
-                  row.starts_at === claim.started_at
+                  claim.assignment_active === 1 &&
+                  claim.assignment_plan_id === claim.plan_id &&
+                  (claim.assignment_expires_at === null ||
+                    claim.assignment_expires_at > now) &&
+                  claim.assignment_source === 'trial' &&
+                  claim.assignment_starts_at === claim.started_at
                 ? 'active'
                 : 'expired',
         }
