@@ -182,11 +182,14 @@ test('Cloud thumbnail version lookup prefers the current pipeline per photo', as
     )
     const reader = createResourceReader(repository)
     assert.deepEqual(await reader.listThumbnailVersions([]), [])
-    assert.deepEqual(await reader.listThumbnailVersions(['one', 'missing', 'two']), [
-      { sourceVersion: '1', pipelineVersion: '2' },
-      null,
-      { sourceVersion: '1', pipelineVersion: '3' },
-    ])
+    assert.deepEqual(
+      await reader.listThumbnailVersions(['one', 'missing', 'two']),
+      [
+        { sourceVersion: '1', pipelineVersion: '2' },
+        null,
+        { sourceVersion: '1', pipelineVersion: '3' },
+      ],
+    )
   } finally {
     await mf.dispose()
   }

@@ -46,9 +46,9 @@ export default defineNitroPlugin((nitroApp) => {
         props.photo = photo
       } else if (options.component === 'OgImageHomeTakumi') {
         if (props.showPhotos === true) {
-          const thumbnails = (
-            await reader.listVisiblePhotoPreviews(3)
-          ).filter((photo) => photo.thumbnailUrl)
+          const thumbnails = (await reader.listVisiblePhotoPreviews(3)).filter(
+            (photo) => photo.thumbnailUrl,
+          )
           props.thumbnails = thumbnails.map((photo) => photo.thumbnailUrl)
           // Match the published asset selected by the media endpoint. Reprocessing
           // keeps its public URL (and can keep its perceptual hash) unchanged.

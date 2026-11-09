@@ -241,9 +241,7 @@ test(
         (await worker.fetch(`https://alpha.example.test${alphaImage}`)).status,
         200,
       )
-      await db
-        .prepare('UPDATE platform_sites SET published=0 WHERE id=2')
-        .run()
+      await db.prepare('UPDATE platform_sites SET published=0 WHERE id=2').run()
       assert.equal(
         (await worker.fetch('https://beta.example.test/')).status,
         404,
@@ -388,10 +386,7 @@ test(
           [{ siteId: 1, albumId: 1, revision, expiresAt: Date.now() + 60_000 }],
         ))
       const cookie = await cookieFor('revision-1')
-      assert.equal(
-        (await request(image, { headers: { cookie } })).status,
-        200,
-      )
+      assert.equal((await request(image, { headers: { cookie } })).status, 200)
       assert.equal(
         (
           await request(image, {
