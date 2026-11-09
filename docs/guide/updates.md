@@ -50,7 +50,7 @@ OG Image v7 uses `NUXT_APP_SECRET` (or `NITRO_APP_SECRET` when set). When neithe
 
 1. Stop every replica that will serve the upgraded image.
 2. Prefer one shared secret of at least 32 characters as `NUXT_APP_SECRET` (or `NITRO_APP_SECRET`) on every replica. An empty `NUXT_APP_SECRET` is treated as unset. Single-node installs can rely on the persisted `data/.app-secret` file instead.
-3. If you prefer to keep an existing `NUXT_OG_IMAGE_SECRET`, rename it only when you can keep its effective value unchanged; if unsure, generate a new secret instead.
+3. If you keep an existing `NUXT_OG_IMAGE_SECRET` (renamed or not), it must be at least 32 characters. Rename it only when you can keep its effective value unchanged; if it is shorter than 32 characters, replace it with a new secret before upgrading. If unsure, generate a new secret instead.
 4. Bring upgraded replicas online together, refresh cached HTML that contains OG image URLs, then check gallery and public-photo share previews.
 5. To roll back, stop every v7 replica before any v6 instance serves traffic, restore the previous image tag and environment configuration, then refresh affected HTML again.
 
