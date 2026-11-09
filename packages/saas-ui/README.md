@@ -34,6 +34,10 @@ app root; the shell owns `main#main-content`.
   `type="submit"` in forms. Primary actions are neutral; amber is an accent.
 - `CfInput`, `CfSelect`, `CfRadioGroup`: preserve native forms and typed v-model.
   Supply visible labels, help text and `aria-invalid` for validation errors.
+- `CfCodeSlots`: numeric one-time-code input with native autofill, paste,
+  keyboard editing and reduced-motion support. Supply `v-model`, `aria-label`,
+  `status` and `disabled`; handle `complete` in the application. Use a text
+  input for recovery codes, which may include letters and separators.
 - `CfCard`, `CfAlert`, `CfBadge`, `CfTable`, `CfSkeleton`, `CfSeparator`,
   `CfProgress`, `CfStatCard`, `CfUsageMeter`, `CfPageHeader`: shared presentation.
 - Nuxt UI `UModal`/`UDrawer`/`UTooltip`/`UApp` provide complex overlays. They share

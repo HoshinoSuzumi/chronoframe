@@ -1,5 +1,14 @@
 {
   "cloud": {
+    "auth": {
+      "showPassword": "显示密码",
+      "hidePassword": "隐藏密码",
+      "changeEmail": "修改邮箱",
+      "verifyAndContinue": "验证并继续",
+      "resendIn": "{seconds} 秒后可重发",
+      "useVerificationCode": "使用验证码",
+      "useRecoveryCode": "使用恢复码"
+    },
     "connections": {
       "title": "第三方账号",
       "help": "绑定第三方账号，使用更多方式登录。",
@@ -33,24 +42,24 @@
     },
     "home": {
       "trialRibbon": "14 天试用",
-  "selfHostedTitle": "自部署",
-  "ctaDescription": "把照片聚在一起，打造真正属于你的图库。",
-  "detailDescription": "在专属照片查看器中打开画面，细细欣赏每处细节。",
-  "cloudDescription": "创建账号，即可开始使用托管的 ChronoFrame 图库。",
-  "storyEyebrow": "为回忆而设计",
-  "detailTitle": "靠近一点看",
-  "storyTitle": "以你的视角，呈现每一张照片。",
-  "storyCaption": "为值得珍藏的瞬间，留一个位置。",
-  "selfHostedDescription": "在自己的基础设施上运行 ChronoFrame。",
-  "waysDescription": "使用托管图库开始，或在自己的基础设施上为照片安家。",
-  "ctaEyebrow": "为照片留一处空间",
-  "ctaTitle": "从这里，开启下一章。",
-  "browseDescription": "在瀑布流图库中探索照片，或将相关的瞬间整理成相簿。",
-  "waysEyebrow": "你的图库，由你选择",
-  "storyDescription": "把照片聚在一起，用喜欢的方式浏览，细细欣赏每一张作品。",
-  "waysTitle": "选择故事安放的地方。",
-  "browseTitle": "用喜欢的方式浏览"
-},
+      "selfHostedTitle": "自部署",
+      "ctaDescription": "把照片聚在一起，打造真正属于你的图库。",
+      "detailDescription": "在专属照片查看器中打开画面，细细欣赏每处细节。",
+      "cloudDescription": "创建账号，即可开始使用托管的 ChronoFrame 图库。",
+      "storyEyebrow": "为回忆而设计",
+      "detailTitle": "靠近一点看",
+      "storyTitle": "以你的视角，呈现每一张照片。",
+      "storyCaption": "为值得珍藏的瞬间，留一个位置。",
+      "selfHostedDescription": "在自己的基础设施上运行 ChronoFrame。",
+      "waysDescription": "使用托管图库开始，或在自己的基础设施上为照片安家。",
+      "ctaEyebrow": "为照片留一处空间",
+      "ctaTitle": "从这里，开启下一章。",
+      "browseDescription": "在瀑布流图库中探索照片，或将相关的瞬间整理成相簿。",
+      "waysEyebrow": "你的图库，由你选择",
+      "storyDescription": "把照片聚在一起，用喜欢的方式浏览，细细欣赏每一张作品。",
+      "waysTitle": "选择故事安放的地方。",
+      "browseTitle": "用喜欢的方式浏览"
+    },
     "messages": {
       "visitConsole": "访问控制台",
       "skipToContent": "跳转到主要内容",
