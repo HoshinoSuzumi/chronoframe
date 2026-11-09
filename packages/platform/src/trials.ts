@@ -36,6 +36,7 @@ interface Settings {
   active: number | null
   policy_json: string | null
 }
+/** Read the offer together with the current plan revision used for confirmation. */
 export async function trialSettings(db: PlatformD1) {
   const row = await db
     .prepare(
@@ -49,6 +50,7 @@ const accountEligible =
   'u.email_verified=1 AND NOT EXISTS(SELECT 1 FROM platform_account_controls c WHERE c.user_id=u.id AND c.suspended=1) AND NOT EXISTS(SELECT 1 FROM platform_account_deletions d WHERE d.user_id=u.id)'
 const noPending =
   "NOT EXISTS(SELECT 1 FROM platform_payment_checkouts c WHERE c.workspace_id=w.id AND c.state IN('creating','open','uncertain')) AND NOT EXISTS(SELECT 1 FROM platform_payment_subscriptions s WHERE s.workspace_id=w.id AND (s.activation_state='authorized' OR s.period_end>? AND s.status IN('active','trialing','scheduled_cancel','past_due','on_hold')))"
+/** Resolve eligibility and trial state against live ownership and entitlements. */
 export async function workspaceTrial(
   db: PlatformD1,
   userId: number,
@@ -57,7 +59,7 @@ export async function workspaceTrial(
 ): Promise<WorkspaceTrial> {
   const row = await db
     .prepare(
-      `SELECT w.owner_user_id,w.created_at,m.role,u.email_verified,CASE WHEN ${accountEligible} THEN 1 ELSE 0 END AS available,p.plan_id,p.source,p.starts_at,p.expires_at FROM platform_workspaces w JOIN platform_memberships m ON m.workspace_id=w.id AND m.user_id=? JOIN platform_users u ON u.id=m.user_id LEFT JOIN platform_workspace_plans p ON p.workspace_id=w.id WHERE w.id=?`,
+      `SELECT w.owner_user_id,w.created_at,m.role,u.email_verified,CASE WHEN ${accountEligible} THEN 1 ELSE 0 END AS available,p.plan_id,p.source,p.starts_at,p.expires_at,assigned.active AS plan_active FROM platform_workspaces w JOIN platform_memberships m ON m.workspace_id=w.id AND m.user_id=? JOIN platform_users u ON u.id=m.user_id LEFT JOIN platform_workspace_plans p ON p.workspace_id=w.id LEFT JOIN platform_plans assigned ON assigned.id=p.plan_id WHERE w.id=?`,
     )
     .bind(userId, workspaceId)
     .first<{
@@ -66,6 +68,7 @@ export async function workspaceTrial(
       role: string
       email_verified: number
       available: number
+      plan_active: number | null
       plan_id: string | null
       source: string | null
       starts_at: number | null
@@ -170,6 +173,9 @@ export async function workspaceTrial(
             : claim.revoked_at
               ? 'revoked'
               : claim.expires_at > now &&
+                  row.plan_active === 1 &&
+                  row.plan_id === claim.plan_id &&
+                  (row.expires_at === null || row.expires_at > now) &&
                   row.source === 'trial' &&
                   row.starts_at === claim.started_at
                 ? 'active'
@@ -178,6 +184,7 @@ export async function workspaceTrial(
       : null,
   }
 }
+/** Grant one account trial with atomic offer, assignment and payment guards. */
 export async function claimWorkspaceTrial(
   db: PlatformD1,
   userId: number,

@@ -6,6 +6,7 @@ const props = defineProps<{
   workspaceName?: string
   currentLimits?: Record<string, number>
   currentAnalytics?: boolean
+  subscription?: string
   showUnavailable?: boolean
 }>()
 const emit = defineEmits<{ changed: [] }>()
@@ -21,12 +22,19 @@ const request = useAsyncData(
           timeout: 15000,
         })
       : Promise.resolve(null),
-  { watch: [() => props.workspaceId] },
+  { watch: [() => props.workspaceId, () => props.subscription] },
 )
 const data = request.data
 const open = ref(false),
   busy = ref(false),
   error = ref('')
+let claimGeneration = 0
+watch([() => props.workspaceId, () => identity.value?.id], () => {
+  claimGeneration++
+  open.value = false
+  busy.value = false
+  error.value = ''
+})
 const clock = ref(Date.now()),
   offset = ref(0)
 watch(
@@ -70,7 +78,7 @@ const visible = computed(
 )
 const benefits = computed(() =>
   Object.entries(data.value?.offer?.limits ?? {}).filter(
-    ([key, value]) => value > (props.currentLimits?.[key] ?? 0),
+    ([key, value]) => value !== (props.currentLimits?.[key] ?? 0),
   ),
 )
 const endDate = computed(() =>
@@ -84,20 +92,29 @@ const endDate = computed(() =>
 const reason = computed(() =>
   t('cloud.trial.reasons.' + (data.value?.reason ?? 'disabled')),
 )
+/** Confirm the current offer without letting late responses replace another workspace. */
 async function claim() {
   if (busy.value || !data.value?.eligible || !data.value.offer) return
+  const generation = ++claimGeneration
+  const workspaceId = props.workspaceId
+  const accountId = identity.value?.id
+  const current = () =>
+    generation === claimGeneration &&
+    workspaceId === props.workspaceId &&
+    accountId === identity.value?.id
   busy.value = true
   error.value = ''
   try {
     const result = await $fetch<WorkspaceTrial>('/api/billing/trial', {
       method: 'POST',
       body: {
-        workspaceId: props.workspaceId,
+        workspaceId,
         revision: data.value.offer.revision,
         confirmed: true,
       },
       timeout: 20000,
     })
+    if (!current()) return
     data.value = result
     open.value = false
     clock.value = Date.now()
@@ -107,10 +124,11 @@ async function claim() {
         key.startsWith('quota-') || key.startsWith('cloud-site-subscription-'),
     )
   } catch {
+    if (!current()) return
     error.value = t('cloud.trial.claimFailed')
     await request.refresh()
   } finally {
-    busy.value = false
+    if (current()) busy.value = false
   }
 }
 </script>
@@ -194,10 +212,19 @@ async function claim() {
           v-for="[key, value] in benefits"
           :key="key"
         >
-          {{ t('cloud.billing.' + key) }} {{ allowance(key, value, locale) }}
+          {{ t('cloud.billing.' + key) }}
+          {{ allowance(key, currentLimits?.[key] ?? 0, locale) }} →
+          {{ allowance(key, value, locale) }}
         </li>
-        <li v-if="data.offer.analytics && !currentAnalytics">
-          {{ t('cloud.billing.analytics') }}
+        <li v-if="data.offer.analytics !== !!currentAnalytics">
+          {{ t('cloud.billing.analytics') }}:
+          {{
+            t(
+              data.offer.analytics
+                ? 'cloud.trial.included'
+                : 'cloud.trial.notIncluded',
+            )
+          }}
         </li>
       </ul>
       <p class="cf-field-hint">{{ t('cloud.trial.noPayment') }}</p>
@@ -229,10 +256,19 @@ async function claim() {
             v-for="[key, value] in benefits"
             :key="key"
           >
-            {{ t('cloud.billing.' + key) }} {{ allowance(key, value, locale) }}
+            {{ t('cloud.billing.' + key) }}
+            {{ allowance(key, currentLimits?.[key] ?? 0, locale) }} →
+            {{ allowance(key, value, locale) }}
           </li>
-          <li v-if="data.offer.analytics && !currentAnalytics">
-            {{ t('cloud.billing.analytics') }}
+          <li v-if="data.offer.analytics !== !!currentAnalytics">
+            {{ t('cloud.billing.analytics') }}:
+            {{
+              t(
+                data.offer.analytics
+                  ? 'cloud.trial.included'
+                  : 'cloud.trial.notIncluded',
+              )
+            }}
           </li>
         </ul>
         <p>{{ t('cloud.trial.noPayment') }}</p>

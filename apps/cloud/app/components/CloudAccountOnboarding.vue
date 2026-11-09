@@ -8,10 +8,11 @@ import { validSiteSlug } from '@chronoframe/contracts/domains'
 const { t } = useI18n()
 const fetcher = useRequestFetch()
 const user = usePortalIdentity()
-const state = useState<AccountSetup | null>(
-  'cloud-account-setup-' + user.value?.id,
-  () => null,
-)
+const state = shallowRef<AccountSetup | null>(null)
+let generation = 0
+const currentAccount = () => user.value?.id
+const isCurrent = (id: string | number | undefined, request: number) =>
+  currentAccount() === id && generation === request
 const siteCatalog = useState<EntrySiteCatalog | null>(
   'platform-site-catalog',
   () => null,
@@ -34,6 +35,7 @@ const labels = computed(() => [
   t('cloud.setup.workspaceStep'),
   t('cloud.setup.siteStep'),
 ])
+/** Build an editable default without exceeding workspace-name limits. */
 function defaultWorkspace(value: string) {
   const suffix = t('cloud.setup.workspaceSuffix')
   return value.slice(0, 80 - suffix.length) + suffix
@@ -45,11 +47,16 @@ watch(name, (value) => {
       name: value.slice(0, 60),
     })
 })
+/** Reload setup for the current identity and reject obsolete responses. */
 async function refresh() {
+  const account = currentAccount()
+  const request = ++generation
+  if (!account) return
   loading.value = true
   error.value = ''
   try {
     const result = await fetcher<AccountSetup>('/api/onboarding')
+    if (!isCurrent(account, request)) return
     state.value = result
     step.value = result.step
     reached.value = result.step
@@ -63,12 +70,29 @@ async function refresh() {
     slug.value =
       result.site?.slug ?? 'gallery-' + crypto.randomUUID().slice(0, 8)
   } catch {
-    error.value = t('cloud.setup.loadFailed')
+    if (isCurrent(account, request)) error.value = t('cloud.setup.loadFailed')
   } finally {
-    loading.value = false
+    if (isCurrent(account, request)) loading.value = false
   }
 }
-onMounted(refresh)
+onMounted(() => {
+  watch(
+    currentAccount,
+    () => {
+      generation++
+      state.value = null
+      busy.value = false
+      error.value = ''
+      workspaceEdited.value = false
+      siteEdited.value = false
+      if (currentAccount()) void refresh()
+    },
+    { immediate: true, flush: 'sync' },
+  )
+})
+onBeforeUnmount(() => {
+  generation++
+})
 const valid = computed(() =>
   step.value === 1
     ? !!name.value.trim() && name.value.trim().length <= 80
@@ -78,11 +102,14 @@ const valid = computed(() =>
         siteName.value.trim().length <= 80 &&
         validSiteSlug(slug.value),
 )
+/** Persist a step and navigate only while its originating account is current. */
 async function save(skip = false) {
   if (busy.value || !state.value || (!skip && !valid.value)) return
   busy.value = true
   error.value = ''
   const current = step.value
+  const account = currentAccount()
+  const request = ++generation
   try {
     const result = await $fetch<AccountSetup>('/api/onboarding', {
       method: 'POST',
@@ -99,6 +126,7 @@ async function save(skip = false) {
         skip,
       },
     })
+    if (!isCurrent(account, request)) return
     state.value = result
     if (current === 1 && user.value)
       user.value = { ...user.value, name: name.value.trim() }
@@ -110,24 +138,28 @@ async function save(skip = false) {
         (key) =>
           key.startsWith('workspace-billing-') || key.startsWith('quota-'),
       )
+      if (!isCurrent(account, request)) return
       const catalog = await $fetch<{ sites: EntrySiteSummary[] }>(
         '/api/sites',
       ).catch(() => null)
+      if (!isCurrent(account, request)) return
       if (catalog && user.value)
         siteCatalog.value = { userId: user.value.id, sites: catalog.sites }
       if (result.site) await navigateTo(`/sites/${result.site.siteId}/overview`)
     }
   } catch (cause: unknown) {
+    if (!isCurrent(account, request)) return
     const status =
       typeof cause === 'object' && cause && 'statusCode' in cause
         ? cause.statusCode
         : 0
     if (status === 409) {
+      busy.value = false
       await refresh()
-      error.value = t('cloud.setup.conflict')
+      if (currentAccount() === account) error.value = t('cloud.setup.conflict')
     } else error.value = t('cloud.setup.saveFailed')
   } finally {
-    busy.value = false
+    if (isCurrent(account, request)) busy.value = false
   }
 }
 </script>

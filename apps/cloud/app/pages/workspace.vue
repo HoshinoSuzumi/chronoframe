@@ -73,6 +73,7 @@ useSeoMeta({
       :workspace-name="data?.workspace.name"
       :current-limits="data?.plan.limits"
       :current-analytics="data?.plan.analytics"
+      :subscription="JSON.stringify([data?.plan.id, data?.subscription])"
       @changed="billing.refresh()"
     />
     <section

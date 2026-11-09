@@ -75,6 +75,7 @@ const date = (time: number) => new Date(time).toLocaleString(locale.value)
       :workspace-name="data?.workspace.name"
       :current-limits="data?.plan.limits"
       :current-analytics="data?.plan.analytics"
+      :subscription="JSON.stringify([data?.plan.id, data?.subscription])"
       show-unavailable
       @changed="refresh()"
     />

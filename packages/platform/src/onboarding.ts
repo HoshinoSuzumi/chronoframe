@@ -11,6 +11,7 @@ interface SetupRow {
   site_id: number | null
   revision: number
 }
+/** Validate names using the same profile rules as account settings. */
 function setupName(value: unknown) {
   try {
     return parseAccountProfile({ name: value, image: null }).name
@@ -18,6 +19,7 @@ function setupName(value: unknown) {
     throw new ProvisioningError(400, 'Invalid name')
   }
 }
+/** Return the current account’s durable setup progress and available workspace. */
 export async function accountSetup(
   db: PlatformD1,
   userId: number,
@@ -51,7 +53,7 @@ export async function accountSetup(
     required: !!state && !state.completed_at,
     step: !state?.profile_completed_at
       ? 1
-      : !state.workspace_completed_at
+      : !state.workspace_completed_at || !workspace
         ? 2
         : 3,
     revision: state?.revision ?? 0,
@@ -64,6 +66,7 @@ export async function accountSetup(
     site,
   }
 }
+/** Persist one revision-checked step, atomically completing any site provisioning. */
 export async function saveAccountSetup(
   db: PlatformD1,
   userId: number,
@@ -87,7 +90,9 @@ export async function saveAccountSetup(
     throw new ProvisioningError(409, 'Setup changed; refresh and retry')
   if (
     (input.step > 1 && !state.profile_completed_at) ||
-    (input.step === 3 && !state.workspace_completed_at)
+    (input.step === 3 &&
+      (!state.workspace_completed_at ||
+        !(await accountSetup(db, userId)).workspace))
   )
     throw new ProvisioningError(409, 'Complete the previous step')
   const token = crypto.randomUUID()
@@ -126,20 +131,27 @@ export async function saveAccountSetup(
         .bind(name, workspace.id, userId, userId, state.revision + 1, token),
     ])
   } else {
-    const site =
-      input.skip === true
-        ? null
-        : await createD1Provisioning(db, baseDomain).create(userId, {
-            name: input.name,
-            slug: input.slug,
-            requestId: state.site_request_id,
-          })
-    await db
-      .prepare(
-        `UPDATE platform_account_onboarding SET site_id=?,completed_at=?,write_token=?,revision=revision+1 WHERE user_id=? AND revision=? AND completed_at IS NULL AND ${active}`,
+    if (input.skip === true) {
+      await db
+        .prepare(
+          `UPDATE platform_account_onboarding SET site_id=NULL,completed_at=?,write_token=?,revision=revision+1 WHERE user_id=? AND revision=? AND completed_at IS NULL AND ${active}`,
+        )
+        .bind(now, token, userId, state.revision)
+        .run()
+    } else {
+      const workspace = (await accountSetup(db, userId)).workspace
+      if (!workspace)
+        throw new ProvisioningError(409, 'Complete workspace setup')
+      await createD1Provisioning(db, baseDomain).create(
+        userId,
+        {
+          name: input.name,
+          slug: input.slug,
+          requestId: state.site_request_id,
+        },
+        { revision: state.revision, token, now, workspaceId: workspace.id },
       )
-      .bind(site?.siteId ?? null, now, token, userId, state.revision)
-      .run()
+    }
   }
   const written = await db
     .prepare(

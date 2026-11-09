@@ -272,6 +272,16 @@ test('Trial reminders deduplicate, suppress stale/converted notices and do not b
       .run()
     await deliverTrialMail(db, mail, 'https://app.example.test', end + 1)
     assert.equal(sent.length, 2)
+    assert.equal(
+      (
+        await db
+          .prepare(
+            "SELECT COUNT(*) AS n FROM platform_subscription_events WHERE kind='signup_promotion'",
+          )
+          .first()
+      ).n,
+      0,
+    )
   } finally {
     await mf.dispose()
   }
@@ -361,6 +371,278 @@ test('Trial offers enforce availability, verification, plan revision and existin
     assert.equal(
       (await workspaceTrial(db, 1, workspace.id, now + 2 * DAY)).trial?.state,
       'active',
+    )
+  } finally {
+    await mf.dispose()
+  }
+})
+
+test('Concurrent skip wins before provisioning without leaving a site, slug or domain', async () => {
+  const { db, mf } = await fixture()
+  try {
+    let setup = await accountSetup(db, 1)
+    setup = await saveAccountSetup(db, 1, {
+      step: 1,
+      revision: setup.revision,
+      name: 'Alice',
+    })
+    setup = await saveAccountSetup(db, 1, {
+      step: 2,
+      revision: setup.revision,
+      name: 'Alice Team',
+    })
+    let release!: () => void, reached!: () => void
+    const barrier = new Promise<void>((resolve) => {
+      release = resolve
+    })
+    const ready = new Promise<void>((resolve) => {
+      reached = resolve
+    })
+    const fenced = {
+      prepare: (sql: string) => db.prepare(sql),
+      batch: async (
+        statements: import('../packages/platform/src/index.ts').D1Statement[],
+      ) => {
+        reached()
+        await barrier
+        return db.batch(statements)
+      },
+    }
+    const creating = saveAccountSetup(fenced, 1, {
+      step: 3,
+      revision: setup.revision,
+      name: 'Gallery',
+      slug: 'race-gallery',
+    })
+    const rejected = assert.rejects(creating, { statusCode: 409 })
+    await ready
+    await saveAccountSetup(db, 1, {
+      step: 3,
+      revision: setup.revision,
+      skip: true,
+    })
+    release()
+    await rejected
+    for (const table of [
+      'platform_sites',
+      'platform_site_slugs',
+      'platform_domains',
+    ])
+      assert.equal(
+        (await db.prepare(`SELECT COUNT(*) AS n FROM ${table}`).first()).n,
+        0,
+      )
+    assert.equal((await accountSetup(db, 1)).required, false)
+  } finally {
+    await mf.dispose()
+  }
+})
+
+test('Setup returns to the workspace step after ownership changes; inactive plans never display an active trial', async () => {
+  const { db, mf, workspace } = await fixture()
+  try {
+    let setup = await accountSetup(db, 1)
+    setup = await saveAccountSetup(db, 1, {
+      step: 1,
+      revision: setup.revision,
+      name: 'Alice',
+    })
+    setup = await saveAccountSetup(db, 1, {
+      step: 2,
+      revision: setup.revision,
+      name: 'Alice Team',
+    })
+    await db
+      .prepare('UPDATE platform_workspaces SET owner_user_id=3 WHERE id=?')
+      .bind(workspace.id)
+      .run()
+    assert.equal((await accountSetup(db, 1)).step, 2)
+    await assert.rejects(
+      saveAccountSetup(db, 1, {
+        step: 3,
+        revision: setup.revision,
+        name: 'Gallery',
+        slug: 'no-new-workspace',
+      }),
+      { statusCode: 409 },
+    )
+    assert.equal(
+      (
+        await db
+          .prepare(
+            'SELECT COUNT(*) AS n FROM platform_workspaces WHERE owner_user_id=1',
+          )
+          .first()
+      ).n,
+      0,
+    )
+    await db
+      .prepare('UPDATE platform_workspaces SET owner_user_id=1 WHERE id=?')
+      .bind(workspace.id)
+      .run()
+    const now = Date.now(),
+      offer = await workspaceTrial(db, 1, workspace.id, now)
+    await claimWorkspaceTrial(db, 1, workspace.id, offer.offer!.revision, now)
+    await db
+      .prepare("UPDATE platform_plans SET active=0 WHERE id='creator'")
+      .run()
+    assert.equal(
+      (await workspaceEntitlements(db, workspace.id, 'platform', now)).id,
+      'free',
+    )
+    assert.equal(
+      (await workspaceTrial(db, 1, workspace.id, now)).trial?.state,
+      'expired',
+    )
+  } finally {
+    await mf.dispose()
+  }
+})
+
+test('Missing mail bindings preserve budgets; ended notices are not sent from an old backlog', async () => {
+  const { db, mf, workspace } = await fixture()
+  try {
+    const now = Date.now(),
+      offer = await workspaceTrial(db, 1, workspace.id, now)
+    const claim = await claimWorkspaceTrial(
+      db,
+      1,
+      workspace.id,
+      offer.offer!.revision,
+      now,
+    )
+    const end = claim.trial!.expiresAt,
+      reported: string[] = [],
+      sent: string[] = []
+    const mail = {
+      async send(message: { to: string }) {
+        sent.push(message.to)
+        return { messageId: 'notice' }
+      },
+    }
+    await deliverTrialMail(
+      db,
+      undefined,
+      'https://app.example.test',
+      end - DAY,
+      (stage) => reported.push(stage),
+    )
+    assert.deepEqual(reported, ['binding_unavailable'])
+    assert.equal(
+      (
+        await db
+          .prepare('SELECT COUNT(*) AS n FROM platform_trial_mail')
+          .first()
+      ).n,
+      0,
+    )
+    await db
+      .prepare(
+        "INSERT INTO platform_trial_mail(id,user_id,cycle,notice_days,available_at) VALUES('old-queued',1,?,0,?)",
+      )
+      .bind(end, end)
+      .run()
+    await deliverTrialMail(db, mail, 'https://app.example.test', end + 2 * DAY)
+    assert.equal(sent.length, 0)
+    assert.equal(
+      (
+        await db
+          .prepare(
+            "SELECT state FROM platform_trial_mail WHERE id='old-queued'",
+          )
+          .first()
+      ).state,
+      'cancelled',
+    )
+    assert.equal(
+      (
+        await db
+          .prepare('SELECT COUNT(*) AS n FROM platform_trial_mail')
+          .first()
+      ).n,
+      1,
+    )
+    assert.equal(
+      (
+        await db
+          .prepare(
+            "SELECT COUNT(*) AS n FROM platform_subscription_events WHERE kind='signup_promotion'",
+          )
+          .first()
+      ).n,
+      0,
+    )
+  } finally {
+    await mf.dispose()
+  }
+})
+
+test('A failed retry-state write does not prevent later notices or cleanup', async () => {
+  const { db, mf, workspace } = await fixture()
+  try {
+    const now = Date.now(),
+      other = await createD1Provisioning(db).defaultWorkspace(3)
+    for (const [user, id] of [
+      [1, workspace.id],
+      [3, other.id],
+    ]) {
+      const offer = await workspaceTrial(db, user!, id!, now)
+      await claimWorkspaceTrial(db, user!, id!, offer.offer!.revision, now)
+    }
+    const end = now + 14 * DAY
+    await db
+      .prepare(
+        "INSERT INTO platform_trial_mail(id,user_id,cycle,notice_days,available_at,state) VALUES('cleanup',1,?,0,?,'failed')",
+      )
+      .bind(end - 1, now - 31 * DAY)
+      .run()
+    const failure: import('../packages/platform/src/index.ts').D1Statement = {
+      bind() {
+        return this
+      },
+      async first() {
+        return null
+      },
+      async run() {
+        throw Error('Retry database unavailable')
+      },
+    }
+    const faulty = {
+      prepare: (sql: string) =>
+        sql.startsWith('UPDATE platform_trial_mail SET state=?')
+          ? failure
+          : db.prepare(sql),
+      batch: (
+        statements: import('../packages/platform/src/index.ts').D1Statement[],
+      ) => db.batch(statements),
+    }
+    const reports: string[] = [],
+      delivered: string[] = []
+    await deliverTrialMail(
+      faulty,
+      {
+        async send(message: { to: string }) {
+          if (message.to === 'alice@example.test')
+            throw Error('Provider rejected recipient')
+          delivered.push(message.to)
+          return { messageId: 'other' }
+        },
+      },
+      'https://app.example.test',
+      end - DAY,
+      (stage) => reports.push(stage),
+    )
+    assert.deepEqual(reports, ['delivery', 'retry_state'])
+    assert.deepEqual(delivered, ['social@example.test'])
+    assert.equal(
+      (
+        await db
+          .prepare(
+            "SELECT COUNT(*) AS n FROM platform_trial_mail WHERE id='cleanup'",
+          )
+          .first()
+      ).n,
+      0,
     )
   } finally {
     await mf.dispose()
