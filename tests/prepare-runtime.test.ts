@@ -40,8 +40,10 @@ export default { kind: 'default-export' }
     const previous = process.cwd()
     const previousNitro = process.env.NITRO_APP_SECRET
     const previousNuxt = process.env.NUXT_APP_SECRET
+    const previousLegacy = process.env.NUXT_OG_IMAGE_SECRET
     delete process.env.NITRO_APP_SECRET
     delete process.env.NUXT_APP_SECRET
+    delete process.env.NUXT_OG_IMAGE_SECRET
     process.chdir(root)
     try {
       const mod = await import(
@@ -56,6 +58,8 @@ export default { kind: 'default-export' }
       else process.env.NITRO_APP_SECRET = previousNitro
       if (previousNuxt === undefined) delete process.env.NUXT_APP_SECRET
       else process.env.NUXT_APP_SECRET = previousNuxt
+      if (previousLegacy === undefined) delete process.env.NUXT_OG_IMAGE_SECRET
+      else process.env.NUXT_OG_IMAGE_SECRET = previousLegacy
     }
   })
 })
