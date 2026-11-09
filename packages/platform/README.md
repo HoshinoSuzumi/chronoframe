@@ -78,3 +78,5 @@ Trials use the existing expiring subscription mechanism and configured expiry pl
 Trial reminders use a separate leased queue, with three-day, one-day and expiry notices. Suppressed accounts, converted or revoked trials, outdated extension cycles and duplicate notices are excluded. Configure the existing email binding and scheduled trigger to deliver notices.
 
 Ended trial notices are eligible for one day after expiry; older queued notices are cancelled. Missing email bindings leave retry budgets untouched. Queue IDs deduplicate scheduling and concurrent leases, but Cloudflare's structured `send()` binding does not expose a provider idempotency key. Delivery remains at least once: a provider-accepted message followed by an acknowledgement failure or worker termination can be delivered again. Do not claim exactly-once delivery or add unsupported headers/parameters.
+
+Migration `0047_onboarding_workspace.sql` retains the workspace selected in setup. Replacing or transferring it returns an unfinished setup to the workspace step, even if a later sign-in automatically provisions a new default workspace.

@@ -7,6 +7,7 @@ interface SetupRow {
   site_request_id: string
   profile_completed_at: number | null
   workspace_completed_at: number | null
+  workspace_id: number | null
   completed_at: number | null
   site_id: number | null
   revision: number
@@ -37,9 +38,13 @@ export async function accountSetup(
     .first<SetupRow>()
   const workspace = await db
     .prepare(
-      "SELECT w.id,w.name FROM platform_workspaces w JOIN platform_memberships m ON m.workspace_id=w.id AND m.user_id=w.owner_user_id AND m.role='admin' WHERE w.owner_user_id=?",
+      "SELECT w.id,w.name FROM platform_workspaces w JOIN platform_memberships m ON m.workspace_id=w.id AND m.user_id=w.owner_user_id AND m.role='admin' WHERE w.owner_user_id=? AND (?=0 OR w.id=?)",
     )
-    .bind(userId)
+    .bind(
+      userId,
+      state?.workspace_completed_at ? 1 : 0,
+      state?.workspace_id ?? null,
+    )
     .first<{ id: number; name: string }>()
   const site = state
     ? await db
@@ -121,9 +126,17 @@ export async function saveAccountSetup(
     await db.batch([
       db
         .prepare(
-          `UPDATE platform_account_onboarding SET workspace_completed_at=?,write_token=?,revision=revision+1 WHERE user_id=? AND revision=? AND completed_at IS NULL AND ${active} AND EXISTS(SELECT 1 FROM platform_memberships WHERE workspace_id=? AND user_id=? AND role='admin')`,
+          `UPDATE platform_account_onboarding SET workspace_completed_at=?,workspace_id=?,write_token=?,revision=revision+1 WHERE user_id=? AND revision=? AND completed_at IS NULL AND ${active} AND EXISTS(SELECT 1 FROM platform_memberships WHERE workspace_id=? AND user_id=? AND role='admin')`,
         )
-        .bind(now, token, userId, state.revision, workspace.id, userId),
+        .bind(
+          now,
+          workspace.id,
+          token,
+          userId,
+          state.revision,
+          workspace.id,
+          userId,
+        ),
       db
         .prepare(
           'UPDATE platform_workspaces SET name=? WHERE id=? AND owner_user_id=? AND EXISTS(SELECT 1 FROM platform_account_onboarding WHERE user_id=? AND revision=? AND write_token=?)',

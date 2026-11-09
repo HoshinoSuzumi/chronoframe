@@ -180,13 +180,14 @@ export function createD1Provisioning(
             ? [
                 db
                   .prepare(
-                    `UPDATE platform_account_onboarding SET completed_at=?,write_token=?,revision=revision+1 WHERE user_id=? AND revision=? AND completed_at IS NULL AND profile_completed_at IS NOT NULL AND workspace_completed_at IS NOT NULL AND EXISTS(SELECT 1 FROM platform_users u WHERE u.id=? AND u.email_verified=1 AND NOT EXISTS(SELECT 1 FROM platform_account_controls c WHERE c.user_id=u.id AND c.suspended=1) AND NOT EXISTS(SELECT 1 FROM platform_account_deletions d WHERE d.user_id=u.id)) AND EXISTS(SELECT 1 FROM platform_workspaces w JOIN platform_memberships m ON m.workspace_id=w.id AND m.user_id=w.owner_user_id AND m.role='admin' WHERE w.id=? AND w.owner_user_id=?) AND (EXISTS(SELECT 1 FROM platform_sites WHERE workspace_id=? AND provision_key=?) OR (SELECT COUNT(*) FROM platform_sites WHERE workspace_id=?)<?)`,
+                    `UPDATE platform_account_onboarding SET completed_at=?,write_token=?,revision=revision+1 WHERE user_id=? AND revision=? AND completed_at IS NULL AND profile_completed_at IS NOT NULL AND workspace_completed_at IS NOT NULL AND workspace_id=? AND EXISTS(SELECT 1 FROM platform_users u WHERE u.id=? AND u.email_verified=1 AND NOT EXISTS(SELECT 1 FROM platform_account_controls c WHERE c.user_id=u.id AND c.suspended=1) AND NOT EXISTS(SELECT 1 FROM platform_account_deletions d WHERE d.user_id=u.id)) AND EXISTS(SELECT 1 FROM platform_workspaces w JOIN platform_memberships m ON m.workspace_id=w.id AND m.user_id=w.owner_user_id AND m.role='admin' WHERE w.id=? AND w.owner_user_id=?) AND (EXISTS(SELECT 1 FROM platform_sites WHERE workspace_id=? AND provision_key=?) OR (SELECT COUNT(*) FROM platform_sites WHERE workspace_id=?)<?)`,
                   )
                   .bind(
                     setup.now,
                     setup.token,
                     userId,
                     setup.revision,
+                    workspace.id,
                     userId,
                     workspace.id,
                     userId,

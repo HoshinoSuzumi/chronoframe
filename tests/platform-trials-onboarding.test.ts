@@ -33,7 +33,7 @@ async function fixture(legacy = false) {
   for (const name of (
     await readdir(new URL('../packages/platform/migrations', import.meta.url))
   )
-    .filter((n) => n.endsWith('.sql') && (!legacy || !n.startsWith('0046_')))
+    .filter((n) => n.endsWith('.sql') && (!legacy || !/^004[67]_/.test(n)))
     .sort())
     for (const sql of splitSqlQuery(
       (
@@ -50,18 +50,19 @@ async function fixture(legacy = false) {
     )
     .run()
   if (legacy)
-    for (const sql of splitSqlQuery(
-      (
-        await readFile(
-          new URL(
-            '../packages/platform/migrations/0046_trials_onboarding.sql',
-            import.meta.url,
-          ),
-          'utf8',
-        )
-      ).replace(/^--.*$/gm, ''),
-    ))
-      if (sql.trim()) await db.prepare(sql).run()
+    for (const name of [
+      '0046_trials_onboarding.sql',
+      '0047_onboarding_workspace.sql',
+    ])
+      for (const sql of splitSqlQuery(
+        (
+          await readFile(
+            new URL('../packages/platform/migrations/' + name, import.meta.url),
+            'utf8',
+          )
+        ).replace(/^--.*$/gm, ''),
+      ))
+        if (sql.trim()) await db.prepare(sql).run()
   await db
     .prepare(
       "INSERT INTO platform_accounts(id,account_id,provider_id,user_id,created_at,updated_at) VALUES(3,'provider-user','github',3,1,1)",
@@ -457,6 +458,9 @@ test('Setup returns to the workspace step after ownership changes; inactive plan
       .bind(workspace.id)
       .run()
     assert.equal((await accountSetup(db, 1)).step, 2)
+    const replacement = await createD1Provisioning(db).defaultWorkspace(1)
+    assert.notEqual(replacement.id, workspace.id)
+    assert.equal((await accountSetup(db, 1)).step, 2)
     await assert.rejects(
       saveAccountSetup(db, 1, {
         step: 3,
@@ -474,8 +478,12 @@ test('Setup returns to the workspace step after ownership changes; inactive plan
           )
           .first()
       ).n,
-      0,
+      1,
     )
+    await db
+      .prepare('UPDATE platform_workspaces SET owner_user_id=2 WHERE id=?')
+      .bind(replacement.id)
+      .run()
     await db
       .prepare('UPDATE platform_workspaces SET owner_user_id=1 WHERE id=?')
       .bind(workspace.id)
