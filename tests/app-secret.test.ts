@@ -198,7 +198,6 @@ test('invalid Nitro app secrets fail before lower-priority secrets without leaki
       '',
       'short-nitro-value',
       'x'.repeat(31),
-      '1'.repeat(40),
       JSON.stringify(['private'.repeat(8)]),
     ]) {
       assert.throws(
@@ -270,14 +269,31 @@ test('app-secret environment values follow Nitro string parsing and reject non-s
       ensureAppSecret(file, { NUXT_APP_SECRET: JSON.stringify(secret) }).secret,
       secret,
     )
-    for (const value of ['1'.repeat(40), JSON.stringify(['a'.repeat(40)])])
+    const numeric = '1'.repeat(40)
+    assert.deepEqual(ensureAppSecret(file, { NUXT_APP_SECRET: numeric }), {
+      secret: numeric,
+      source: 'env',
+    })
+    assert.deepEqual(
+      ensureAppSecret(file, {
+        NITRO_APP_SECRET: numeric,
+        NUXT_APP_SECRET: 'ignored-lower-priority',
+      }),
+      { secret: numeric, source: 'env' },
+    )
+    for (const value of [
+      JSON.stringify(['a'.repeat(40)]),
+      'true',
+      'null',
+      '{}',
+    ])
       assert.throws(
         () => ensureAppSecret(file, { NUXT_APP_SECRET: value }),
         /string/,
       )
     assert.equal(
-      ensureAppSecret(file, { NUXT_OG_IMAGE_SECRET: '1'.repeat(40) }).secret,
-      '1'.repeat(40),
+      ensureAppSecret(file, { NUXT_OG_IMAGE_SECRET: numeric }).secret,
+      numeric,
       'the legacy fallback is read directly, without Nitro JSON parsing',
     )
   })
@@ -434,6 +450,19 @@ syncBuiltinESMExports()
       }),
       createHash('sha256').update(nitroSecret).digest('hex'),
       'bootstrap must validate the secret Nitro actually selects before config freezes',
+    )
+    // Digit-only env secrets must be re-quoted before Nitro parses them.
+    const numericEnvSecret = '2'.repeat(40)
+    assert.equal(
+      await start({ NUXT_APP_SECRET: numericEnvSecret }),
+      createHash('sha256').update(numericEnvSecret).digest('hex'),
+    )
+    assert.equal(
+      await start({
+        NITRO_APP_SECRET: numericEnvSecret,
+        NUXT_APP_SECRET: 'invalid-nuxt-secret',
+      }),
+      createHash('sha256').update(numericEnvSecret).digest('hex'),
     )
   } finally {
     rmSync(directory, { recursive: true, force: true })

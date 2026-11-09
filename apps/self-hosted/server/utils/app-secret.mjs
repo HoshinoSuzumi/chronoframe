@@ -27,15 +27,19 @@ function readSecret(file) {
 }
 
 function environmentSecret(value, name) {
-  let parsed = value
+  let parsed
   try {
     parsed = JSON.parse(value)
   } catch {
     // Unquoted ordinary strings are also supported by Nitro's env parser.
+    return validate(value, name)
   }
-  if (typeof parsed !== 'string')
-    throw new Error(`${name} must be a string with at least 32 characters.`)
-  return validate(parsed, name)
+  if (typeof parsed === 'string') return validate(parsed, name)
+  // Nitro/destr parses long digit-only strings as numbers. Preserve the original
+  // spelling so the bootstrap can re-quote it before Nitro initializes; reject
+  // arrays, objects, booleans and null, which are not valid secret strings.
+  if (typeof parsed === 'number') return validate(value, name)
+  throw new Error(`${name} must be a string with at least 32 characters.`)
 }
 
 /** Standalone Node utility: resolve the app secret before Nitro freezes runtime config. */
