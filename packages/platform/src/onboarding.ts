@@ -82,7 +82,9 @@ export async function saveAccountSetup(
   if (
     !Number.isSafeInteger(input.revision) ||
     typeof input.step !== 'number' ||
-    ![1, 2, 3].includes(input.step)
+    ![1, 2, 3].includes(input.step) ||
+    (input.reconfirmWorkspace !== undefined &&
+      typeof input.reconfirmWorkspace !== 'boolean')
   )
     throw new ProvisioningError(400, 'Invalid setup step')
   const state = await db
@@ -108,9 +110,15 @@ export async function saveAccountSetup(
     await db.batch([
       db
         .prepare(
-          `UPDATE platform_account_onboarding SET profile_completed_at=?,write_token=?,revision=revision+1 WHERE user_id=? AND revision=? AND completed_at IS NULL AND ${active}`,
+          `UPDATE platform_account_onboarding SET profile_completed_at=?,workspace_completed_at=CASE WHEN ?=1 THEN NULL ELSE workspace_completed_at END,write_token=?,revision=revision+1 WHERE user_id=? AND revision=? AND completed_at IS NULL AND ${active}`,
         )
-        .bind(now, token, userId, state.revision),
+        .bind(
+          now,
+          input.reconfirmWorkspace === true ? 1 : 0,
+          token,
+          userId,
+          state.revision,
+        ),
       db
         .prepare(
           'UPDATE platform_users SET name=?,updated_at=? WHERE id=? AND EXISTS(SELECT 1 FROM platform_account_onboarding WHERE user_id=? AND revision=? AND write_token=?)',

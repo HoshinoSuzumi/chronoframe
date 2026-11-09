@@ -322,3 +322,86 @@ test('Onboarding honors the server workspace fallback after saving', async () =>
     scope.stop()
   }
 })
+
+test('Changing the account name reconfirms a regenerated default workspace but preserves a custom name', async () => {
+  for (const originalName of ["Alice's workspace", 'Photo Team']) {
+    const scope = effectScope(),
+      user = ref({ id: 1, name: 'Alice' }),
+      calls: Record<string, unknown>[] = []
+    const initial = {
+      ...setup('Alice'),
+      step: 3,
+      workspace: { id: 1, name: originalName },
+    }
+    let mounted = () => {}
+    const vm = scope.run(() =>
+      component(
+        'CloudAccountOnboarding',
+        {
+          usePortalIdentity: () => user,
+          useRequestFetch: () => async () => initial,
+          useState: () => ref(null),
+          useRuntimeConfig: () => ({
+            public: { siteBaseDomain: 'example.test' },
+          }),
+          onMounted: (fn: () => void) => {
+            mounted = fn
+          },
+          onBeforeUnmount: () => {},
+          validSiteSlug: () => true,
+          useI18n: () => ({
+            t: (key: string) =>
+              key.endsWith('workspaceSuffix') ? "'s workspace" : key,
+          }),
+          $fetch: async (
+            _url: string,
+            options: { body: Record<string, unknown> },
+          ) => {
+            calls.push(options.body)
+            return {
+              ...initial,
+              name: 'Bob',
+              revision: calls.length + 1,
+              step: options.body.reconfirmWorkspace ? 2 : 3,
+              workspace: options.body.reconfirmWorkspace
+                ? null
+                : {
+                    id: 1,
+                    name:
+                      options.body.step === 2
+                        ? String(options.body.name)
+                        : originalName,
+                  },
+            }
+          },
+          refreshNuxtData: async () => {},
+          navigateTo: () => assert.fail('setup is unfinished'),
+        },
+        'name,workspace,step,save',
+      ),
+    )!
+    try {
+      mounted()
+      await nextTick()
+      await nextTick()
+      vm.step.value = 1
+      vm.name.value = 'Bob'
+      await nextTick()
+      await vm.save()
+      if (originalName === "Alice's workspace") {
+        assert.equal(calls[0]!.reconfirmWorkspace, true)
+        assert.equal(vm.step.value, 2)
+        assert.equal(vm.workspace.value, "Bob's workspace")
+        await vm.save()
+        assert.equal(calls[1]!.name, "Bob's workspace")
+        assert.equal(vm.step.value, 3)
+      } else {
+        assert.equal(calls[0]!.reconfirmWorkspace, false)
+        assert.equal(vm.step.value, 3)
+        assert.equal(vm.workspace.value, 'Photo Team')
+      }
+    } finally {
+      scope.stop()
+    }
+  }
+})

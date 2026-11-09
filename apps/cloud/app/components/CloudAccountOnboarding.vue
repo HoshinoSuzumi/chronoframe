@@ -61,7 +61,9 @@ async function refresh() {
     step.value = result.step
     reached.value = result.step
     name.value = result.name
-    workspaceEdited.value = !!result.workspace
+    workspaceEdited.value =
+      !!result.workspace &&
+      result.workspace.name !== defaultWorkspace(result.name)
     siteEdited.value = !!result.site
     workspace.value = result.workspace?.name ?? defaultWorkspace(result.name)
     siteName.value =
@@ -124,6 +126,10 @@ async function save(skip = false) {
               : siteName.value,
         slug: slug.value,
         skip,
+        reconfirmWorkspace:
+          current === 1 &&
+          !!state.value.workspace &&
+          workspace.value.trim() !== state.value.workspace.name,
       },
     })
     if (!isCurrent(account, request)) return

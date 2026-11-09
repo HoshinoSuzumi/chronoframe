@@ -49,11 +49,8 @@ async function fixture(legacy = false) {
       "INSERT INTO platform_users(id,email,name,created_at,email_verified) VALUES(1,'alice@example.test','alice@example.test',1,1),(2,'member@example.test','Member',1,1),(3,'social@example.test','Social Nick',1,1)",
     )
     .run()
-  if (legacy)
-    for (const name of [
-      '0046_trials_onboarding.sql',
-      '0047_onboarding_workspace.sql',
-    ])
+  if (legacy) {
+    const apply = async (name: string) => {
       for (const sql of splitSqlQuery(
         (
           await readFile(
@@ -63,6 +60,22 @@ async function fixture(legacy = false) {
         ).replace(/^--.*$/gm, ''),
       ))
         if (sql.trim()) await db.prepare(sql).run()
+    }
+    await apply('0046_trials_onboarding.sql')
+    // This pending account already confirmed a workspace before the new FK exists.
+    await db
+      .prepare(
+        "INSERT INTO platform_users(id,email,name,created_at,email_verified) VALUES(99,'upgrade@example.test','Upgrade',1,1)",
+      )
+      .run()
+    await createD1Provisioning(db).defaultWorkspace(99)
+    await db
+      .prepare(
+        'UPDATE platform_account_onboarding SET profile_completed_at=1,workspace_completed_at=1 WHERE user_id=99',
+      )
+      .run()
+    await apply('0047_onboarding_workspace.sql')
+  }
   await db
     .prepare(
       "INSERT INTO platform_accounts(id,account_id,provider_id,user_id,created_at,updated_at) VALUES(3,'provider-user','github',3,1,1)",
@@ -292,6 +305,22 @@ test('Upgrade preserves existing accounts and only prompts newly registered acco
   const { db, mf } = await fixture(true)
   try {
     assert.equal((await accountSetup(db, 1)).required, false)
+    const restored = await accountSetup(db, 99)
+    const owned = await db
+      .prepare('SELECT id FROM platform_workspaces WHERE owner_user_id=99')
+      .first()
+    assert.equal(restored.step, 3)
+    assert.equal(restored.workspace?.id, owned.id)
+    assert.equal(
+      (
+        await db
+          .prepare(
+            'SELECT workspace_id FROM platform_account_onboarding WHERE user_id=99',
+          )
+          .first()
+      ).workspace_id,
+      owned.id,
+    )
     await db
       .prepare(
         "INSERT INTO platform_users(id,email,name,created_at,email_verified) VALUES(4,'new@example.test','new@example.test',1,1)",
@@ -735,6 +764,126 @@ test('Revoked owner membership suppresses new and previously queued trial remind
           .first()
       ).state,
       'cancelled',
+    )
+  } finally {
+    await mf.dispose()
+  }
+})
+
+test('Workspace reconfirmation after a profile change survives refresh and blocks premature site creation', async () => {
+  const { db, mf } = await fixture()
+  try {
+    let state = await accountSetup(db, 1)
+    state = await saveAccountSetup(db, 1, {
+      step: 1,
+      revision: state.revision,
+      name: 'Alice',
+    })
+    state = await saveAccountSetup(db, 1, {
+      step: 2,
+      revision: state.revision,
+      name: "Alice's workspace",
+    })
+    state = await saveAccountSetup(db, 1, {
+      step: 1,
+      revision: state.revision,
+      name: 'Bob',
+      reconfirmWorkspace: true,
+    })
+    assert.equal(state.step, 2)
+    assert.equal((await accountSetup(db, 1)).step, 2)
+    await assert.rejects(
+      saveAccountSetup(db, 1, {
+        step: 3,
+        revision: state.revision,
+        name: 'Gallery',
+        slug: 'pending-workspace',
+      }),
+      { statusCode: 409 },
+    )
+    state = await saveAccountSetup(db, 1, {
+      step: 2,
+      revision: state.revision,
+      name: "Bob's workspace",
+    })
+    assert.equal(state.step, 3)
+    assert.equal(state.workspace?.name, "Bob's workspace")
+    state = await saveAccountSetup(db, 1, {
+      step: 2,
+      revision: state.revision,
+      name: 'Custom Team',
+    })
+    state = await saveAccountSetup(db, 1, {
+      step: 1,
+      revision: state.revision,
+      name: 'Charlie',
+      reconfirmWorkspace: false,
+    })
+    assert.equal(state.step, 3)
+    assert.equal(state.workspace?.name, 'Custom Team')
+  } finally {
+    await mf.dispose()
+  }
+})
+
+test('Ineligible assignments cannot consume enqueue capacity ahead of a valid reminder', async () => {
+  const { db, mf, workspace } = await fixture()
+  try {
+    const now = Date.now(),
+      offer = await workspaceTrial(db, 1, workspace.id, now)
+    const claim = await claimWorkspaceTrial(
+        db,
+        1,
+        workspace.id,
+        offer.offer!.revision,
+        now,
+      ),
+      end = claim.trial!.expiresAt
+    await db.batch([
+      db
+        .prepare(
+          "WITH RECURSIVE ids(id) AS(SELECT 10 UNION ALL SELECT id+1 FROM ids WHERE id<60) INSERT INTO platform_users(id,email,created_at,email_verified) SELECT id,'inactive-'||id||'@example.test',?,1 FROM ids",
+        )
+        .bind(now),
+      db
+        .prepare(
+          "INSERT INTO platform_workspaces(id,name,owner_user_id,created_at) SELECT id,'Inactive '||id,id,? FROM platform_users WHERE id BETWEEN 10 AND 60",
+        )
+        .bind(now),
+      db.prepare(
+        "INSERT INTO platform_memberships(user_id,workspace_id,role) SELECT id,id,'admin' FROM platform_users WHERE id BETWEEN 10 AND 60",
+      ),
+      db
+        .prepare(
+          "INSERT INTO platform_workspace_plans(workspace_id,plan_id,starts_at,source) SELECT id,'free',?,'manual' FROM platform_users WHERE id BETWEEN 10 AND 60",
+        )
+        .bind(now),
+      db
+        .prepare(
+          "INSERT INTO platform_trials(user_id,workspace_id,plan_id,settings_revision,started_at,expires_at) SELECT id,id,'creator',1,?,? FROM platform_users WHERE id BETWEEN 10 AND 60",
+        )
+        .bind(now, end - 1),
+    ])
+    const sent: string[] = []
+    await deliverTrialMail(
+      db,
+      {
+        async send(message: { to: string }) {
+          sent.push(message.to)
+          return { messageId: 'valid-reminder' }
+        },
+      },
+      'https://app.example.test',
+      end - 2 * DAY,
+    )
+    assert.deepEqual(sent, ['alice@example.test'])
+    assert.equal(
+      (
+        await db
+          .prepare('SELECT COUNT(*) AS n FROM platform_trial_mail')
+          .first()
+      ).n,
+      1,
     )
   } finally {
     await mf.dispose()
