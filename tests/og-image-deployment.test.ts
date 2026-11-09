@@ -4,6 +4,7 @@ import { readFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import { edgeAppSecretForOgDeployment } from '../scripts/og-image-deployment.mjs'
 
+/** Parse deploy-saas.yml for structural secret-scoping assertions. */
 function deploySaasWorkflow() {
   const require = createRequire(import.meta.url)
   const { parse } = createRequire(require.resolve('wrangler/package.json'))(

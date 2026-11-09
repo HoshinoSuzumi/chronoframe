@@ -25,7 +25,9 @@ export interface ResourceReadRepository {
     excludedIds?: string[],
     page?: { limit: number; offset: number },
   ): Promise<Photo[]>
+  /** Count photos after applying the caller's exclusion set. */
   countPhotos(excludedIds?: string[]): Promise<number>
+  /** Optional current thumbnail asset versions keyed by photo id order. */
   listThumbnailVersions?(
     photoIds: string[],
   ): Promise<(ThumbnailAssetVersion | null)[]>
@@ -49,6 +51,7 @@ export interface ReadAccess {
 export { CoreError, ResourceReadError } from './errors.ts'
 import { ResourceReadError } from './errors.ts'
 
+/** Collect photo IDs hidden or protected by album membership. */
 async function excludedPhotoIds(repository: ResourceReadRepository) {
   return new Set(
     (await repository.listMemberships())
@@ -70,16 +73,19 @@ export function createResourceReader(repository: ResourceReadRepository) {
       return repository.listPhotos([...excluded])
     },
 
+    /** Count public photos after excluding hidden and protected memberships. */
     async countVisiblePhotos(): Promise<number> {
       const excluded = await excludedPhotoIds(repository)
       return repository.countPhotos([...excluded])
     },
 
+    /** List a short page of public photos for OG Home previews. */
     async listVisiblePhotoPreviews(limit: number): Promise<Photo[]> {
       const excluded = await excludedPhotoIds(repository)
       return repository.listPhotos([...excluded], { limit, offset: 0 })
     },
 
+    /** Resolve current thumbnail source/pipeline versions for cache identity. */
     async listThumbnailVersions(
       photoIds: string[],
     ): Promise<(ThumbnailAssetVersion | null)[]> {

@@ -14,6 +14,7 @@ import { imageUrl } from '../helpers/seo.ts'
 
 const root = process.cwd()
 
+/** Collect lowercase robots meta tokens from rendered HTML. */
 function robots(html: string) {
   return [...html.matchAll(/<meta\b[^>]*name="robots"[^>]*>/gi)]
     .flatMap(
@@ -22,6 +23,7 @@ function robots(html: string) {
     .map((value) => value.toLowerCase())
 }
 
+/** Boot a built edge Worker against a temporary D1 database for one check. */
 async function withBuiltEntry(
   entry: 'site',
   check: (worker: TestHarness, db: PlatformD1) => Promise<void>,

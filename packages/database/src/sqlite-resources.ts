@@ -53,6 +53,7 @@ export function createSqliteResourceRepository(
         .all()
         .map(toPhotoDto)
     },
+    /** Count site photos, optionally excluding ids. */
     async countPhotos(excludedIds = []) {
       return (
         db

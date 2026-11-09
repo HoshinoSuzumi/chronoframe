@@ -106,6 +106,7 @@ export function createCloudResourceRepository(
   }
   return {
     protectedPhoto: (value: Photo) => value,
+    /** Load one ready photo by id within the current Site. */
     async getPhoto(id) {
       const rows = await all<Record<string, unknown>>(
         `SELECT ${columns} FROM cloud_photos p WHERE p.site_id=? AND p.id=? AND ${ready}`,
@@ -132,6 +133,7 @@ export function createCloudResourceRepository(
         )
       ).map(photo)
     },
+    /** Count ready photos, optionally excluding ids. */
     async countPhotos(excluded = []) {
       const row = (
         await all<{ n: number }>(
@@ -141,6 +143,7 @@ export function createCloudResourceRepository(
       )[0]
       return Number(row?.n ?? 0)
     },
+    /** Current thumbnail asset versions for the given photo ids. */
     async listThumbnailVersions(photoIds) {
       if (photoIds.length === 0) return []
       const rows = await all<{

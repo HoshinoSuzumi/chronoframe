@@ -59,6 +59,7 @@ export async function waitForChildExit(
   }
 }
 
+/** Bind an ephemeral loopback port for isolated SEO fixture servers. */
 export async function unusedPort() {
   const listener = createServer()
   listener.listen(0, '127.0.0.1')
@@ -70,6 +71,7 @@ export async function unusedPort() {
   return address.port
 }
 
+/** Read `og:image` from SSR HTML and decode a single pass of HTML entities. */
 export function imageUrl(html: string) {
   const tag = html.match(/<meta\b[^>]*property="og:image"[^>]*>/)?.[0]
   const value = tag?.match(/content="([^"]+)"/)?.[1]
