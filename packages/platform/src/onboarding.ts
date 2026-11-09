@@ -8,6 +8,7 @@ interface SetupRow {
   profile_completed_at: number | null
   workspace_completed_at: number | null
   workspace_id: number | null
+  workspace_name_customized: number
   completed_at: number | null
   site_id: number | null
   revision: number
@@ -67,7 +68,10 @@ export async function accountSetup(
       : user.social && user.name
         ? user.name
         : user.email.split('@')[0]!,
-    workspace: state?.workspace_completed_at ? workspace : null,
+    workspace:
+      state?.workspace_completed_at && workspace
+        ? { ...workspace, customized: !!state.workspace_name_customized }
+        : null,
     site,
   }
 }
@@ -84,7 +88,9 @@ export async function saveAccountSetup(
     typeof input.step !== 'number' ||
     ![1, 2, 3].includes(input.step) ||
     (input.reconfirmWorkspace !== undefined &&
-      typeof input.reconfirmWorkspace !== 'boolean')
+      typeof input.reconfirmWorkspace !== 'boolean') ||
+    (input.workspaceCustomized !== undefined &&
+      typeof input.workspaceCustomized !== 'boolean')
   )
     throw new ProvisioningError(400, 'Invalid setup step')
   const state = await db
@@ -134,11 +140,12 @@ export async function saveAccountSetup(
     await db.batch([
       db
         .prepare(
-          `UPDATE platform_account_onboarding SET workspace_completed_at=?,workspace_id=?,write_token=?,revision=revision+1 WHERE user_id=? AND revision=? AND completed_at IS NULL AND ${active} AND EXISTS(SELECT 1 FROM platform_memberships WHERE workspace_id=? AND user_id=? AND role='admin')`,
+          `UPDATE platform_account_onboarding SET workspace_completed_at=?,workspace_id=?,workspace_name_customized=?,write_token=?,revision=revision+1 WHERE user_id=? AND revision=? AND completed_at IS NULL AND ${active} AND EXISTS(SELECT 1 FROM platform_memberships WHERE workspace_id=? AND user_id=? AND role='admin')`,
         )
         .bind(
           now,
           workspace.id,
+          input.workspaceCustomized === false ? 0 : 1,
           token,
           userId,
           state.revision,

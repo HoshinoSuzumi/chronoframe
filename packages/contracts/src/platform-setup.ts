@@ -3,7 +3,7 @@ export interface AccountSetup {
   step: 1 | 2 | 3
   revision: number
   name: string
-  workspace: { id: number; name: string } | null
+  workspace: { id: number; name: string; customized: boolean } | null
   site: { siteId: number; name: string; slug: string | null } | null
 }
 export type TrialBlock =

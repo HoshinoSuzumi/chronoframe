@@ -33,7 +33,7 @@ async function fixture(legacy = false) {
   for (const name of (
     await readdir(new URL('../packages/platform/migrations', import.meta.url))
   )
-    .filter((n) => n.endsWith('.sql') && (!legacy || !/^004[67]_/.test(n)))
+    .filter((n) => n.endsWith('.sql') && (!legacy || n < '0046_'))
     .sort())
     for (const sql of splitSqlQuery(
       (
@@ -65,16 +65,30 @@ async function fixture(legacy = false) {
     // This pending account already confirmed a workspace before the new FK exists.
     await db
       .prepare(
-        "INSERT INTO platform_users(id,email,name,created_at,email_verified) VALUES(99,'upgrade@example.test','Upgrade',1,1)",
+        "INSERT INTO platform_users(id,email,name,created_at,email_verified) VALUES(99,'upgrade@example.test','Upgrade',1,1),(98,'upgrade-zh@example.test','阿明',1,1),(97,'upgrade-custom@example.test','Custom',1,1)",
       )
       .run()
-    await createD1Provisioning(db).defaultWorkspace(99)
+    for (const id of [97, 98, 99])
+      await createD1Provisioning(db).defaultWorkspace(id)
     await db
       .prepare(
-        'UPDATE platform_account_onboarding SET profile_completed_at=1,workspace_completed_at=1 WHERE user_id=99',
+        'UPDATE platform_account_onboarding SET profile_completed_at=1,workspace_completed_at=1 WHERE user_id IN(97,98,99)',
       )
       .run()
     await apply('0047_onboarding_workspace.sql')
+    await db
+      .prepare('UPDATE platform_workspaces SET name=? WHERE owner_user_id=99')
+      .bind("Upgrade's workspace")
+      .run()
+    await db
+      .prepare('UPDATE platform_workspaces SET name=? WHERE owner_user_id=98')
+      .bind('阿明的工作空间')
+      .run()
+    await db
+      .prepare('UPDATE platform_workspaces SET name=? WHERE owner_user_id=97')
+      .bind('Custom Studio')
+      .run()
+    await apply('0048_onboarding_workspace_name.sql')
   }
   await db
     .prepare(
@@ -310,6 +324,9 @@ test('Upgrade preserves existing accounts and only prompts newly registered acco
       .prepare('SELECT id FROM platform_workspaces WHERE owner_user_id=99')
       .first()
     assert.equal(restored.step, 3)
+    assert.equal(restored.workspace?.customized, false)
+    assert.equal((await accountSetup(db, 98)).workspace?.customized, false)
+    assert.equal((await accountSetup(db, 97)).workspace?.customized, true)
     assert.equal(restored.workspace?.id, owned.id)
     assert.equal(
       (
@@ -885,6 +902,43 @@ test('Ineligible assignments cannot consume enqueue capacity ahead of a valid re
       ).n,
       1,
     )
+  } finally {
+    await mf.dispose()
+  }
+})
+
+test('Confirmed workspace naming intent is persisted independently of the name text', async () => {
+  const { db, mf } = await fixture()
+  try {
+    let state = await accountSetup(db, 1)
+    state = await saveAccountSetup(db, 1, {
+      step: 1,
+      revision: state.revision,
+      name: 'Alice',
+    })
+    state = await saveAccountSetup(db, 1, {
+      step: 2,
+      revision: state.revision,
+      name: "Alice's workspace",
+      workspaceCustomized: false,
+    })
+    assert.equal(state.workspace?.customized, false)
+    assert.equal((await accountSetup(db, 1)).workspace?.customized, false)
+    // Explicit customization remains custom even when the text equals a default.
+    state = await saveAccountSetup(db, 1, {
+      step: 2,
+      revision: state.revision,
+      name: "Alice's workspace",
+      workspaceCustomized: true,
+    })
+    assert.equal((await accountSetup(db, 1)).workspace?.customized, true)
+    // Older clients omit the flag; preserve their names conservatively.
+    state = await saveAccountSetup(db, 1, {
+      step: 2,
+      revision: state.revision,
+      name: 'Old client name',
+    })
+    assert.equal(state.workspace?.customized, true)
   } finally {
     await mf.dispose()
   }

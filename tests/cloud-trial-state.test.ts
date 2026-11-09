@@ -331,7 +331,11 @@ test('Changing the account name reconfirms a regenerated default workspace but p
     const initial = {
       ...setup('Alice'),
       step: 3,
-      workspace: { id: 1, name: originalName },
+      workspace: {
+        id: 1,
+        name: originalName,
+        customized: originalName !== "Alice's workspace",
+      },
     }
     let mounted = () => {}
     const vm = scope.run(() =>
@@ -367,6 +371,7 @@ test('Changing the account name reconfirms a regenerated default workspace but p
                 ? null
                 : {
                     id: 1,
+                    customized: options.body.workspaceCustomized,
                     name:
                       options.body.step === 2
                         ? String(options.body.name)
@@ -400,6 +405,76 @@ test('Changing the account name reconfirms a regenerated default workspace but p
         assert.equal(vm.step.value, 3)
         assert.equal(vm.workspace.value, 'Photo Team')
       }
+    } finally {
+      scope.stop()
+    }
+  }
+})
+
+test('Workspace customization survives reloading an English default in a Chinese UI', async () => {
+  for (const customized of [false, true]) {
+    const scope = effectScope(),
+      user = ref({ id: 1, name: 'Alice' }),
+      calls: Record<string, unknown>[] = []
+    const initial = {
+      ...setup('Alice'),
+      step: 3,
+      workspace: { id: 1, name: "Alice's workspace", customized },
+    }
+    let mounted = () => {}
+    const vm = scope.run(() =>
+      component(
+        'CloudAccountOnboarding',
+        {
+          usePortalIdentity: () => user,
+          useRequestFetch: () => async () => initial,
+          useState: () => ref(null),
+          useRuntimeConfig: () => ({
+            public: { siteBaseDomain: 'example.test' },
+          }),
+          onMounted: (fn: () => void) => {
+            mounted = fn
+          },
+          onBeforeUnmount: () => {},
+          validSiteSlug: () => true,
+          useI18n: () => ({
+            t: (key: string) =>
+              key.endsWith('workspaceSuffix') ? '的工作空间' : key,
+          }),
+          $fetch: async (
+            _url: string,
+            options: { body: Record<string, unknown> },
+          ) => {
+            calls.push(options.body)
+            return {
+              ...initial,
+              name: 'Bob',
+              revision: 2,
+              step: options.body.reconfirmWorkspace ? 2 : 3,
+            }
+          },
+          refreshNuxtData: async () => {},
+          navigateTo: () => assert.fail('unfinished setup'),
+        },
+        'workspaceEdited,name,workspace,step,save',
+      ),
+    )!
+    try {
+      mounted()
+      await nextTick()
+      await nextTick()
+      assert.equal(vm.workspaceEdited.value, customized)
+      vm.step.value = 1
+      vm.name.value = 'Bob'
+      await nextTick()
+      await vm.save()
+      assert.equal(calls[0]!.workspaceCustomized, customized)
+      assert.equal(calls[0]!.reconfirmWorkspace, !customized)
+      assert.equal(vm.step.value, customized ? 3 : 2)
+      assert.equal(
+        vm.workspace.value,
+        customized ? "Alice's workspace" : 'Bob的工作空间',
+      )
     } finally {
       scope.stop()
     }
