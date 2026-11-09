@@ -105,6 +105,7 @@ test(
             DATABASE_URL: filename,
             DATABASE_MIGRATIONS: migrationsFolder,
             NUXT_SESSION_PASSWORD: '0123456789abcdef0123456789abcdef',
+            NUXT_APP_SECRET: 'album-http-test-app-secret'.repeat(2),
             NITRO_PORT: String(port),
           },
           stdio: ['ignore', 'pipe', 'pipe'],
