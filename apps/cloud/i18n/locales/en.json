@@ -1,5 +1,14 @@
 {
   "cloud": {
+    "auth": {
+      "showPassword": "Show password",
+      "hidePassword": "Hide password",
+      "changeEmail": "Change",
+      "verifyAndContinue": "Verify and continue",
+      "resendIn": "Resend in {seconds}s",
+      "useVerificationCode": "Use a verification code",
+      "useRecoveryCode": "Use a recovery code"
+    },
     "connections": {
       "title": "Connected accounts",
       "help": "Connect a third-party account for more ways to sign in.",
@@ -33,24 +42,24 @@
     },
     "home": {
       "trialRibbon": "14-day trial",
-  "selfHostedTitle": "Self-hosted",
-  "ctaDescription": "Bring your photographs together and make a gallery that feels like yours.",
-  "detailDescription": "Open a photograph in the dedicated viewer and spend time with the details.",
-  "cloudDescription": "Create an account and get started with a hosted ChronoFrame gallery.",
-  "storyEyebrow": "MADE FOR LOOKING BACK",
-  "detailTitle": "Take a closer look",
-  "storyTitle": "A gallery made for the way you see.",
-  "storyCaption": "A place for the moments that stay with you.",
-  "selfHostedDescription": "Run ChronoFrame on your own infrastructure.",
-  "waysDescription": "Start with a hosted gallery or make a home for your photographs on your own infrastructure.",
-  "ctaEyebrow": "MAKE SPACE FOR YOUR PHOTOGRAPHS",
-  "ctaTitle": "Your next chapter starts here.",
-  "browseDescription": "Explore photographs in a masonry gallery, or bring related moments together in albums.",
-  "waysEyebrow": "YOUR GALLERY, YOUR WAY",
-  "storyDescription": "Bring your photographs together, explore them your way, and enjoy each image in detail.",
-  "waysTitle": "Choose where your story lives.",
-  "browseTitle": "Browse your way"
-},
+      "selfHostedTitle": "Self-hosted",
+      "ctaDescription": "Bring your photographs together and make a gallery that feels like yours.",
+      "detailDescription": "Open a photograph in the dedicated viewer and spend time with the details.",
+      "cloudDescription": "Create an account and get started with a hosted ChronoFrame gallery.",
+      "storyEyebrow": "MADE FOR LOOKING BACK",
+      "detailTitle": "Take a closer look",
+      "storyTitle": "A gallery made for the way you see.",
+      "storyCaption": "A place for the moments that stay with you.",
+      "selfHostedDescription": "Run ChronoFrame on your own infrastructure.",
+      "waysDescription": "Start with a hosted gallery or make a home for your photographs on your own infrastructure.",
+      "ctaEyebrow": "MAKE SPACE FOR YOUR PHOTOGRAPHS",
+      "ctaTitle": "Your next chapter starts here.",
+      "browseDescription": "Explore photographs in a masonry gallery, or bring related moments together in albums.",
+      "waysEyebrow": "YOUR GALLERY, YOUR WAY",
+      "storyDescription": "Bring your photographs together, explore them your way, and enjoy each image in detail.",
+      "waysTitle": "Choose where your story lives.",
+      "browseTitle": "Browse your way"
+    },
     "messages": {
       "visitConsole": "Open console",
       "skipToContent": "Skip to content",

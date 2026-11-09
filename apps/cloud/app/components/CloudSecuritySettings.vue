@@ -16,6 +16,7 @@ const password = ref(''),
   passkeyName = ref('')
 const busy = ref(false),
   error = ref(''),
+  authenticatorError = ref(''),
   notice = ref(''),
   qr = ref(''),
   totpURI = ref(''),
@@ -66,6 +67,7 @@ async function enable(method: 'otp' | 'totp') {
     )
     password.value = ''
     if (result.totpURI) {
+      authenticatorError.value = ''
       totpURI.value = result.totpURI
       backupCodes.value = result.backupCodes ?? []
       const QRCode = await import('qrcode')
@@ -78,12 +80,20 @@ async function enable(method: 'otp' | 'totp') {
       notice.value = t('cloud.messages.emailSecondStepVerificationIsEnabled')
   })
 }
+/** Mark only failed authenticator verification as an invalid code. */
 async function confirmAuthenticator() {
+  if (busy.value || !/^[0-9]{6}$/.test(code.value)) return
+  authenticatorError.value = ''
   await run(async () => {
-    await $fetch('/api/auth/two-factor/verify-totp', {
-      method: 'POST',
-      body: { code: code.value },
-    })
+    try {
+      await $fetch('/api/auth/two-factor/verify-totp', {
+        method: 'POST',
+        body: { code: code.value },
+      })
+    } catch (cause) {
+      authenticatorError.value = accountError(cause, t)
+      throw cause
+    }
     code.value = ''
     qr.value = ''
     totpURI.value = ''
@@ -289,13 +299,13 @@ async function deletePasskey(id: number) {
               <label for="totp-code">{{
                 $t('cloud.messages.authenticatorCode')
               }}</label
-              ><CfInput
+              ><CfCodeSlots
                 id="totp-code"
                 v-model="code"
-                inputmode="numeric"
-                autocomplete="one-time-code"
-                pattern="[0-9]{6}"
-                maxlength="6"
+                :aria-label="$t('cloud.messages.authenticatorCode')"
+                :status="authenticatorError ? 'error' : 'idle'"
+                @edit="authenticatorError = ''"
+                @complete="confirmAuthenticator"
                 required
                 :disabled="busy"
               /><CfButton
