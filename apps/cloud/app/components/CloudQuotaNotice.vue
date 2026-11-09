@@ -29,7 +29,7 @@ const emit = defineEmits<{ retry: [] }>()
         v-else-if="reason === 'upgrade'"
         variant="secondary"
         size="sm"
-        to="/account/plan#plans"
+        to="/account/plan"
         >{{ $t('cloud.dashboard.viewPlans') }}</CfButton
       ></template
     ></CfAlert

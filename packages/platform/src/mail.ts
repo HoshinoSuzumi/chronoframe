@@ -5,6 +5,8 @@ export const MAIL_KINDS = [
   'second-factor',
   'deletion-warning',
   'account-deleted',
+  'trial-ending',
+  'trial-ended',
 ] as const
 export type MailKind = (typeof MAIL_KINDS)[number]
 export type MailTemplate = {
@@ -18,6 +20,18 @@ export type MailTemplate = {
   accent: string
 }
 const content: Record<MailKind, [string, string, string, string]> = {
+  'trial-ending': [
+    'Your ChronoFrame Cloud trial ends soon',
+    'Trial ending',
+    'The {{trialPlan}} trial for {{workspace}} ends on {{trialEndsAt}}. Review your plan to continue using these features.',
+    'View plan',
+  ],
+  'trial-ended': [
+    'Your ChronoFrame Cloud trial has ended',
+    'Trial ended',
+    'The {{trialPlan}} trial for {{workspace}} ended on {{trialEndsAt}}. Existing photos are preserved. Your current plan determines upload and feature availability.',
+    'View plan',
+  ],
   verification: [
     'Your ChronoFrame Cloud verification code',
     'Your verification code',
@@ -63,8 +77,9 @@ export function defaultMailTemplate(
     heading: c[1],
     body: c[2],
     button: c[3],
-    footer:
-      'ChronoFrame Cloud · Your photography. Your perspective.\nNeed help? support@chronoframe.art',
+    footer: kind.startsWith('trial-')
+      ? 'ChronoFrame Cloud\nsupport@chronoframe.art'
+      : 'ChronoFrame Cloud · Your photography. Your perspective.\nNeed help? support@chronoframe.art',
     accent: '#354d38',
   }
 }
@@ -78,6 +93,9 @@ const placeholders = new Set([
   'reason',
   'action',
   'retentionDays',
+  'trialPlan',
+  'trialEndsAt',
+  'workspace',
 ])
 export function validateMailTemplate(value: unknown): MailTemplate {
   const t = value as MailTemplate
@@ -127,7 +145,9 @@ export function validateMailContent(kind: MailKind, value: unknown) {
         ? ['reason', 'deletionAt', 'purgeAt', 'action']
         : kind === 'account-deleted'
           ? ['reason', 'purgeAt', 'retentionDays']
-          : []
+          : kind.startsWith('trial-')
+            ? ['trialPlan', 'trialEndsAt', 'workspace']
+            : []
   for (const name of required)
     if (!new RegExp('\\{\\{\\s*' + name + '\\s*\\}\\}').test(t.body))
       throw new Error('Required mail variable missing: ' + name)

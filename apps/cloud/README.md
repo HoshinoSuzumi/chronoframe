@@ -94,3 +94,9 @@ fallbacks. Dynamic OG remains disabled until a compatible renderer is selected.
 The marketing host and portal share this app; trusted Host/session/Membership checks
 still gate platform APIs. Default Site provisioning and media management remain P4.
 The public Site Worker and Self-hosted application retain their own presentation.
+
+### First account setup and trials
+
+New accounts see a resumable three-step modal after entering the portal: account name, owned workspace name, then site name and slug. Social names come from the provider; email registrations start with the email local part. The workspace default follows the selected account name until edited. Existing accounts are not prompted after migration. Setup APIs require the signed-in account and same-origin writes.
+
+Trial offers appear on the workspace overview and account plan page when eligible. Activation requires a confirmation showing duration, expiry behavior and the absence of automatic billing. Apply platform migration 0046 before deploying this portal, then enable the offer in Admin. Trials do not replace registration promotions.

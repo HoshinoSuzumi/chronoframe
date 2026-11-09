@@ -66,3 +66,13 @@ only after password verification. Grants are scoped to Host, Site, album, passwo
 revision and expiry. Configure an independent `NUXT_PLATFORM_SECRET` on the Site
 Worker and its Preview. Policy provisioning and photo repositories remain P4 work;
 these endpoints never infer a default album or reuse a platform session.
+
+### Account setup and explicit trials
+
+Migration `0046_trials_onboarding.sql` marks existing accounts as already set up and initializes three-step setup for new accounts. Profile and owned-workspace names are saved independently. Site creation reuses a stable provisioning request key so retries do not consume another site slot. Users can finish without a site when they need to create one later.
+
+New accounts retain the configured signup plan and registration promotions. Trial activation is a separate, explicit action by a verified workspace owner. The offer is disabled by default; configure an active non-Free plan, duration (1–90 days) and optional availability window in Admin. Each account can claim once. Concurrent claims, pending payments and current paid or promotional entitlements are protected by database guards. Offer confirmation includes both settings and plan revisions.
+
+Trials use the existing expiring subscription mechanism and configured expiry plan. Expiry does not delete photos. Verified paid assignments mark conversion and prevent trial administration or expiry from replacing paid access. Trial records survive workspace deletion. Administrative extension and revocation require an audit reason and revision checks.
+
+Trial reminders use a separate leased queue, with three-day, one-day and expiry notices. Suppressed accounts, converted or revoked trials, outdated extension cycles and duplicate notices are excluded. Configure the existing email binding and scheduled trigger to deliver notices.

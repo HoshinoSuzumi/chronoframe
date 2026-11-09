@@ -67,6 +67,14 @@ useSeoMeta({
         ></template
       ></CfAlert
     >
+    <CloudTrialCard
+      v-if="billing.selected.value"
+      :workspace-id="billing.selected.value"
+      :workspace-name="data?.workspace.name"
+      :current-limits="data?.plan.limits"
+      :current-analytics="data?.plan.analytics"
+      @changed="billing.refresh()"
+    />
     <section
       class="cf-workspace-metrics"
       :aria-label="$t('cloud.dashboard.resources')"

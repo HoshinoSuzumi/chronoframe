@@ -69,6 +69,15 @@ const date = (time: number) => new Date(time).toLocaleString(locale.value)
 </script>
 <template>
   <div class="cf-plan-page">
+    <CloudTrialCard
+      v-if="selected"
+      :workspace-id="selected"
+      :workspace-name="data?.workspace.name"
+      :current-limits="data?.plan.limits"
+      :current-analytics="data?.plan.analytics"
+      show-unavailable
+      @changed="refresh()"
+    />
     <div class="cf-page-heading">
       <div>
         <h1 class="cf-page-title">{{ $t('cloud.billing.plan') }}</h1>
