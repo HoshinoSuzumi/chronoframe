@@ -61,3 +61,74 @@ test('The body cap counts bytes, not characters, and rejects malformed/non-objec
   })
   await assert.rejects(readSiteBody(null), { statusCode: 400 })
 })
+
+/** Run the real H3 adapter with an original Worker request and no synthetic body. */
+async function managementBody(
+  event: unknown,
+  h3Stream: () => ReadableStream<Uint8Array> | undefined,
+) {
+  const { readFile } = await import('node:fs/promises')
+  const ts = await import('typescript')
+  const source = (
+    await readFile('apps/cloud/server/utils/site-management.ts', 'utf8')
+  ).replace(/^import[\s\S]*?from ['"][^'"]+['"]\s*\n/gm, '')
+  const code = ts.default.transpileModule(source, {
+    compilerOptions: {
+      module: ts.default.ModuleKind.CommonJS,
+      target: ts.default.ScriptTarget.ES2022,
+    },
+  }).outputText
+  const { createError } = await import('h3')
+  return new Function(
+    'exports',
+    'getHeader',
+    'getRequestWebStream',
+    'readSiteBody',
+    'createError',
+    code + ';return exports.siteManagementBody',
+  )(
+    {},
+    () => 'application/json',
+    h3Stream,
+    readSiteBody,
+    createError,
+  )(event)
+}
+
+test('DELETE JSON uses the original Worker body instead of waiting on an empty H3 stream', async () => {
+  const request = new Request(
+    'https://app.example.test/api/account/connections',
+    { method: 'DELETE', body: JSON.stringify({ id: '5' }) },
+  )
+  const body = await managementBody(
+    { method: 'DELETE', context: { cloudflare: { request } } },
+    () => {
+      throw Error('Dropped H3 body must not be read')
+    },
+  )
+  assert.deepEqual(body, { id: '5' })
+  await assert.rejects(
+    managementBody(
+      { method: 'DELETE', context: { cloudflare: { request } } },
+      () => undefined,
+    ),
+    { statusCode: 400 },
+  )
+})
+
+test('Buffered PATCH and Node DELETE requests retain the bounded H3 stream path', async () => {
+  for (const method of ['PATCH', 'DELETE']) {
+    const request =
+      method === 'PATCH'
+        ? new Request('https://app.example.test', { method, body: '{}' })
+        : undefined
+    if (request) await request.text()
+    assert.deepEqual(
+      await managementBody(
+        { method, context: { cloudflare: { request } } },
+        () => chunks([encode('{"id":"7"}')]),
+      ),
+      { id: '7' },
+    )
+  }
+})

@@ -29,6 +29,12 @@ export async function siteManagementBody(event: H3Event, limit = 4096) {
     Number(getHeader(event, 'content-length')) > limit
   )
     throw createError({ statusCode: 400 })
-  // Nitro may already hold the original Cloudflare Request; read H3's active stream.
+  // Nitro buffers POST/PUT/PATCH, but does not forward DELETE bodies to H3.
+  // Read the original Worker stream while it is still available; otherwise use H3.
+  const request = event.context.cloudflare?.request as Request | undefined
+  if (request && event.method === 'DELETE') {
+    if (request.bodyUsed) throw createError({ statusCode: 400 })
+    return readSiteBody(request.body, limit)
+  }
   return readSiteBody(getRequestWebStream(event), limit)
 }
