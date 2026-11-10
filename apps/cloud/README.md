@@ -129,3 +129,11 @@ writes and an optimistic workspace revision. Apply platform migration
 `0049_workspace_settings.sql` before deploying. Name changes preserve explicit
 customization intent in account setup. This page currently contains only general
 settings, with no membership or role-management UI or API.
+
+Connected social accounts display the provider's own public username (GitHub and
+Discord) or account display name (Google), captured from a verified OAuth
+callback rather than the editable local nickname. Apply platform migration
+`0050_social_account_username.sql` before deploying. Existing bindings have no
+stored provider label until the next successful provider authorization; opaque
+account IDs and private email addresses are not substituted as usernames.
+

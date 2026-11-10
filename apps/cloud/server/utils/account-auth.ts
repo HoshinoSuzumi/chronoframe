@@ -1,3 +1,7 @@
+import {
+  socialAccountProfile,
+  saveSocialAccountProfile,
+} from '../../../../packages/platform/src/social-account-profile.ts'
 import { sendMail } from '../../../../packages/platform/src/mail.ts'
 import { signupOfferForRegistration } from '../../../../packages/platform/src/subscriptions.ts'
 import type { PlatformD1 } from '@chronoframe/platform'
@@ -27,6 +31,20 @@ export function accountAuthOptions(
 ) {
   const origin = new URL(config.portalOrigin)
   const db = database as unknown as PlatformD1
+  // This capture belongs to one auth request, never a process-wide user cache.
+  const providerProfiles = new Map<string, string | null>()
+  const recordProviderProfile = async (account: {
+    id: string
+    userId: string
+    providerId: string
+    accountId: string
+  }) => {
+    const key = `${account.providerId}:${account.accountId}`
+    if (!providerProfiles.has(key)) return
+    const username = providerProfiles.get(key) ?? null
+    providerProfiles.delete(key)
+    await saveSocialAccountProfile(db, account, username)
+  }
   const recordSessionActivity = async (session: {
     userId: string
     id: string
@@ -53,6 +71,10 @@ export function accountAuthOptions(
     appName: 'ChronoFrame Cloud',
     socialProviders: config.socialProviders ?? {},
     databaseHooks: {
+      account: {
+        create: { after: recordProviderProfile },
+        update: { after: recordProviderProfile },
+      },
       user: {
         create: {
           before: async (user) => {
@@ -126,6 +148,18 @@ export function accountAuthOptions(
     },
     user: {
       modelName: 'platform_users',
+      validateUserInfo: ({ source }) => {
+        if (source.method !== 'oauth' || !source.oauth) return
+        const profile = socialAccountProfile(
+          source.oauth.providerId,
+          source.oauth.profile,
+        )
+        if (profile)
+          providerProfiles.set(
+            `${source.oauth.providerId}:${profile.subject}`,
+            profile.username,
+          )
+      },
       additionalFields: {
         signupOffer: {
           type: 'string',

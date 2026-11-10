@@ -4,13 +4,19 @@ import { socialLoginProviders } from './social-login.ts'
 export type LinkedLoginAccount = {
   id: string
   provider: string
+  username: string | null
   canUnlink: boolean
 }
-type AccountRow = { id: number; provider: string; hasPassword: number }
+type AccountRow = {
+  id: number
+  provider: string
+  username: string | null
+  hasPassword: number
+}
 async function accounts(db: PlatformD1, userId: number) {
   const row = await db
     .prepare(
-      "SELECT COALESCE(json_group_array(json_object('id',id,'provider',provider_id,'hasPassword',CASE WHEN password IS NOT NULL AND password<>'' THEN 1 ELSE 0 END)), '[]') AS items FROM (SELECT id,provider_id,password FROM platform_accounts WHERE user_id=? ORDER BY id)",
+      "SELECT COALESCE(json_group_array(json_object('id',id,'provider',provider_id,'username',provider_username,'hasPassword',CASE WHEN password IS NOT NULL AND password<>'' THEN 1 ELSE 0 END)), '[]') AS items FROM (SELECT id,provider_id,provider_username,password FROM platform_accounts WHERE user_id=? ORDER BY id)",
     )
     .bind(userId)
     .first<{ items: string }>()
@@ -36,6 +42,7 @@ export async function accountConnections(
       .map((a) => ({
         id: String(a.id),
         provider: a.provider,
+        username: a.username,
         canUnlink: linked.some((other) => other.id !== a.id && usable(other)),
       })),
   }

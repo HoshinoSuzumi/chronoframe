@@ -5,7 +5,12 @@ const { t } = useI18n()
 const route = useRoute()
 const identity = usePortalIdentity()
 type Provider = { id: string; name: string; icon: string }
-type Connection = { id: string; provider: string; canUnlink: boolean }
+type Connection = {
+  id: string
+  provider: string
+  username: string | null
+  canUnlink: boolean
+}
 const {
   data,
   error: loadError,
@@ -157,7 +162,7 @@ async function unlink() {
           />
           <div>
             <h3>{{ row.provider.name }}</h3>
-            <p class="cf-field-hint">
+            <p class="cf-field-hint cf-connection-status">
               {{
                 row.account
                   ? row.enabled
@@ -165,6 +170,11 @@ async function unlink() {
                     : $t('cloud.connections.disabled')
                   : $t('cloud.connections.notLinked')
               }}
+              <span
+                v-if="row.account?.username"
+                class="cf-connection-username"
+                >{{ row.account.username }}</span
+              >
             </p>
           </div>
         </div>
@@ -251,6 +261,18 @@ async function unlink() {
 }
 .cf-connection-row + .cf-connection-row {
   border-top: 1px solid var(--border);
+}
+.cf-connection-row > div {
+  min-width: 0;
+}
+.cf-connection-status {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 8px;
+}
+.cf-connection-username {
+  overflow-wrap: anywhere;
 }
 .cf-connection-row h3 {
   font-size: 14px;

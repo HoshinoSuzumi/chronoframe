@@ -320,6 +320,7 @@ test('credentials are root-only, encrypted, redacted, revision fenced and disabl
     )
     let email = 'existing@example.com',
       githubId = 101,
+      githubLogin = 'test-user',
       verified = true
     const originalFetch = globalThis.fetch
     globalThis.fetch = async (input, init) => {
@@ -333,7 +334,7 @@ test('credentials are root-only, encrypted, redacted, revision fenced and disabl
       if (url === 'https://api.github.com/user')
         return Response.json({
           id: githubId,
-          login: 'test-user',
+          login: githubLogin,
           name: 'OAuth name',
           email,
           avatar_url: 'https://example.com/avatar.png',
@@ -520,6 +521,27 @@ test('credentials are root-only, encrypted, redacted, revision fenced and disabl
       const listing = await accountConnections(db, secret, 42)
       assert.equal(listing.providers.length, 1)
       assert.equal(listing.providers[0]?.id, 'github')
+      assert.equal(
+        listing.accounts.find((account) => account.id === String(linked.id))
+          ?.username,
+        'test-user',
+      )
+      githubLogin = 'renamed-user'
+      await connect('connection=updated')
+      assert.equal(
+        (await accountConnections(db, secret, 42)).accounts.find(
+          (account) => account.id === String(linked.id),
+        )?.username,
+        'renamed-user',
+      )
+      assert.equal(
+        (
+          await db
+            .prepare('SELECT name FROM platform_users WHERE id=42')
+            .first()
+        ).name,
+        'Updated nickname',
+      )
       assert(!JSON.stringify(listing).includes('oauth-token'))
       assert.equal(
         (await accountConnections(db, secret, 43)).accounts.length,
