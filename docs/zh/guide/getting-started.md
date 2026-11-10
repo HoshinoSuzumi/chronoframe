@@ -73,7 +73,15 @@ docker run -d --name chronoframe --restart unless-stopped \
 
 ## 保存数据
 
-`./data:/app/data` 是部署中必须保留的挂载。默认数据库为 `/app/data/app.sqlite3`，会话密钥自动生成并保存在 `/app/data/.session-password`。使用上述本地路径时，原图和衍生文件也在这个目录下。
+保留 `./data:/app/data` 挂载，并备份整个目录，包括隐藏的密钥文件：
+
+- `/app/data/app.sqlite3`：照片信息和设置。
+- `/app/data/.session-password`：自动生成的会话密钥。
+- `/app/data/.app-secret`：未配置应用密钥环境变量时自动生成的 OG 签名密钥。若它是符号链接，还须备份其相邻的 `.app-secret.*.key` 目标文件。
+
+也可设置至少 32 个字符的 `NUXT_APP_SECRET`（或 `NITRO_APP_SECRET`）。未设置时，Self-hosted 生产环境会创建并复用 `data/.app-secret`。它不会替换会话密码。多实例应使用相同的应用密钥和会话密码，并将环境变量提供的密钥或数据目录中的密钥文件一并纳入备份。升级和回退请参阅[升级指南](/zh/guide/updates#og-图片签名)。
+
+使用上述本地存储路径时，原图和衍生文件也在这个目录下。
 
 ::: warning 更新时保留数据
 不要删除数据目录来更新应用。S3 和 OpenList 的文件存放在外部服务中，需要另外备份；只备份数据库无法恢复丢失的原图。

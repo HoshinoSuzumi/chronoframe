@@ -66,7 +66,7 @@ unpublished sample site. Read the generated password in
 and synchronizes the local account password with that credentials file without
 resetting edited site settings or other local data. If the credentials file is
 missing, setup generates a new password and updates the existing local account.
-Existing `.env` values are preserved; ensure `NUXT_PLATFORM_PORTAL_ORIGIN` is
+Existing `.env` values are preserved. Ensure `NUXT_PLATFORM_PORTAL_ORIGIN` is
 `http://localhost:3001` and session/platform secrets contain at least 32 characters.
 Restart the development server after changing `.env`.
 
@@ -89,11 +89,16 @@ never the Self-hosted root `.env`. Generated output is local to this app.
 Production targets Cloudflare Workers (`cloudflare-module`). Building never deploys;
 the approved SaaS workflow publishes code and isolated environment bindings. Native
 SQLite/media processors, filesystem storage and embedded queues are not Cloud
-fallbacks. Dynamic OG remains disabled until a compatible renderer is selected.
+fallbacks. Shared OG Image rendering uses Takumi WASM on Workers; it does not
+enable additional gallery routes or bypass platform authorization.
 
 The marketing host and portal share this app; trusted Host/session/Membership checks
 still gate platform APIs. Default Site provisioning and media management remain P4.
 The public Site Worker and Self-hosted application retain their own presentation.
+
+Keep indexing route-specific: marketing pages remain discoverable; authentication
+and rendered private portal pages retain `noindex`. Preserve authentication
+redirects and access checks rather than adding a global indexability override.
 
 ### First account setup and trials
 
@@ -104,3 +109,12 @@ Trial offers appear on the workspace overview and account plan page when eligibl
 While setup is unfinished, changing an accepted default workspace name requires workspace confirmation again. This pending confirmation is saved server-side so refreshing cannot skip it; custom workspace names remain unchanged.
 
 Workspace naming intent is persisted as an explicit customization flag. A saved default remains a default after a language change; a manually edited name remains custom, even when its text matches a generated default.
+
+## OG image signing
+
+See the [shared signing guide](../shared/platform/README.md#og-image-signing)
+for Worker bindings, and the
+[Update Guide](../../docs/guide/updates.md#og-image-signing) for the v7 upgrade
+procedure. For local Cloud development, Nuxt generates a development app secret
+when none is configured; setting `NUXT_APP_SECRET` manually is optional. Site has
+its own [local app secret instructions](../site/README.md#local-app-secret).

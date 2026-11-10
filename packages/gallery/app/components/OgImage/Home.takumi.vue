@@ -2,6 +2,10 @@
 import { resolveShareThumbnail } from '#gallery/utils/open-graph'
 
 const props = defineProps<{
+  /** Signed Site scope, checked by the Site adapter before rendering. */
+  originSiteId?: number
+  showPhotos?: boolean
+  locale?: string
   appTitle?: string
   slogan?: string
   author?: string
@@ -11,6 +15,8 @@ const props = defineProps<{
   thumbnails?: string[]
 }>()
 const { $i18n } = useNuxtApp()
+// The signed page locale can differ from this image request's visitor locale.
+if (props.locale) await $i18n.loadLocaleMessages(props.locale)
 const title = computed(() => props.appTitle || 'ChronoFrame')
 const avatar = computed(
   () => props.avatarUrl || '/web-app-manifest-512x512.png',
@@ -18,7 +24,11 @@ const avatar = computed(
 const countLabel = computed(() => {
   if (props.photoCountLabel) return props.photoCountLabel
   if (typeof props.photoCount !== 'number') return ''
-  return $i18n.t('plural.photo', { count: props.photoCount }, props.photoCount)
+  return $i18n.t(
+    'plural.photo',
+    { count: props.photoCount },
+    { locale: props.locale, plural: props.photoCount },
+  )
 })
 const capabilities = useEntryCapabilities()
 const covers = computed(() =>

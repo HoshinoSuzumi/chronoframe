@@ -106,13 +106,23 @@ export async function useInstanceOpenGraph(photos: ComputedRef<Photo[]>) {
 
   function updateOgImage() {
     const id = photoId.value
+    const currentEntry = entryContext.value
+    const site = currentEntry?.capabilities.edition === 'site'
+    const siteProps = site ? { originSiteId: currentEntry.siteId } : {}
     nuxtApp.runWithContext(() => {
       if (id) {
         defineOgImage(
           'Photo',
           {
-            photo:
-              currentPhoto.value?.id === id ? currentPhoto.value : undefined,
+            ...siteProps,
+            ...(site
+              ? { photoId: id }
+              : {
+                  photo:
+                    currentPhoto.value?.id === id
+                      ? currentPhoto.value
+                      : undefined,
+                }),
             appTitle: siteName.value,
             locationPreferredLevel: String(
               locationPreferredLevel.value || 'city',
@@ -121,7 +131,7 @@ export async function useInstanceOpenGraph(photos: ComputedRef<Photo[]>) {
               locationFallbackOrder.value || defaultLocationFallback,
             ),
           },
-          { alt: shareTitle.value },
+          { alt: site ? siteName.value : shareTitle.value },
         )
         return
       }
@@ -134,22 +144,29 @@ export async function useInstanceOpenGraph(photos: ComputedRef<Photo[]>) {
       defineOgImage(
         'Home',
         {
+          ...siteProps,
           appTitle: siteName.value,
           slogan: slogan.value,
           author: author.value,
           avatarUrl: avatarUrl.value,
-          ...(publicPhotoCountPending
-            ? {}
+          ...(site
+            ? { showPhotos: isHome.value, locale: i18n?.locale.value || 'en' }
             : {
-                photoCount: isHome.value ? visiblePhotos.length : undefined,
-                photoCountLabel: isHome.value
-                  ? photoCountLabel(i18n, visiblePhotos.length)
-                  : '',
+                ...(publicPhotoCountPending
+                  ? {}
+                  : {
+                      photoCount: isHome.value
+                        ? visiblePhotos.length
+                        : undefined,
+                      photoCountLabel: isHome.value
+                        ? photoCountLabel(i18n, visiblePhotos.length)
+                        : '',
+                    }),
+                thumbnails: visiblePhotos
+                  .map((photo) => photo.thumbnailUrl)
+                  .filter((url): url is string => Boolean(url))
+                  .slice(0, 3),
               }),
-          thumbnails: visiblePhotos
-            .map((photo) => photo.thumbnailUrl)
-            .filter((url): url is string => Boolean(url))
-            .slice(0, 3),
         },
         { alt: siteName.value },
       )
@@ -170,6 +187,7 @@ export async function useInstanceOpenGraph(photos: ComputedRef<Photo[]>) {
       locationFallbackOrder,
       shareTitle,
       () => i18n?.locale.value,
+      () => entryContext.value?.siteId,
     ],
     updateOgImage,
   )

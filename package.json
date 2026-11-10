@@ -47,7 +47,8 @@
     "prepare:site": "node scripts/saas-entry.mjs site prepare",
     "check:entries": "node scripts/check-entry-boundaries.mjs",
     "smoke:cloud": "node scripts/smoke-edge-entry.mjs cloud",
-    "smoke:site": "node scripts/smoke-edge-entry.mjs site"
+    "smoke:site": "node scripts/smoke-edge-entry.mjs site",
+    "test:seo": "pnpm build:deps && pnpm build && pnpm build:site && pnpm build:cloud && node --experimental-strip-types --test tests/integration/seo-runtime.test.ts tests/integration/seo-edge.test.ts tests/og-thumbnail.test.ts tests/seo-navigation.test.ts tests/seo-helpers.test.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1149.0",
@@ -73,7 +74,7 @@
     "@pinia/nuxt": "^0.11.3",
     "@tailwindcss/vite": "^4.3.3",
     "@takumi-rs/core": "2.15.0",
-    "@unhead/vue": "^2.1.17",
+    "@unhead/vue": "3.4.3",
     "@vingle/bmp-js": "^0.2.5",
     "@vueuse/nuxt": "14.4.0",
     "@yeger/vue-masonry-wall": "^6.1.4",
@@ -93,8 +94,8 @@
     "nuxt-gtag": "4.1.0",
     "nuxt-mapbox": "1.6.4",
     "nuxt-maplibre": "^1.2.2",
-    "nuxt-og-image": "6.10.3",
-    "nuxt-site-config": "4.2.3",
+    "nuxt-og-image": "7.0.7",
+    "nuxt-site-config": "5.0.3",
     "pinia": "^3.0.4",
     "reka-ui": "^2.11.0",
     "sharp": "^0.35.5",
@@ -130,6 +131,7 @@
     "drizzle-kit": "^0.31.11",
     "mapbox-gl": "^3.32.0",
     "npm-run-all2": "^9.0.3",
+    "nuxtseo-devtools-host": "1.0.2",
     "oxfmt": "^0.72.0",
     "oxlint": "^1.87.0",
     "sass-embedded": "^1.105.1",

@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
+import { createRequire } from 'node:module'
 import test from 'node:test'
 import vm from 'node:vm'
 import { parse, compileScript } from 'vue/compiler-sfc'
@@ -8,12 +9,20 @@ import * as vue from 'vue'
 import ts from 'typescript'
 import { resolveShareThumbnail } from '../packages/gallery/app/utils/open-graph.ts'
 
+const { createI18n } = createRequire(
+  new URL('../packages/gallery/package.json', import.meta.url),
+)('vue-i18n')
+
 type Edition = 'self-hosted' | 'cloud' | 'site'
 
 async function render(
   template: 'Photo' | 'Home',
   edition: Edition,
   props: Record<string, unknown>,
+  i18n = {
+    t: (key: string, ..._args: unknown[]) => key,
+    loadLocaleMessages: async (_locale: string) => {},
+  },
 ) {
   const filename = `packages/gallery/app/components/OgImage/${template}.takumi.vue`
   const { descriptor } = parse(readFileSync(filename, 'utf8'), { filename })
@@ -32,7 +41,7 @@ async function render(
     exports,
     computed: vue.computed,
     useEntryCapabilities: () => ({ edition }),
-    useNuxtApp: () => ({ $i18n: { t: (key: string) => key } }),
+    useNuxtApp: () => ({ $i18n: i18n }),
     useLocationLabel: () => () => '',
     getSetting: () => '',
     require: (name: string) => {
@@ -74,6 +83,18 @@ for (const edition of ['site', 'cloud', 'self-hosted'] as const) {
     const html = await render('Home', edition, { thumbnails: [url] })
     assert.ok(html.includes(`src="${resolveShareThumbnail(url, edition)}"`))
   })
+
+  test(`${edition}: home OG without avatar or thumbnails uses the default avatar and no empty frames`, async () => {
+    const html = await render('Home', edition, {
+      appTitle: 'Empty Gallery 摄影',
+      avatarUrl: '',
+      thumbnails: [],
+    })
+    assert.ok(html.includes('src="/web-app-manifest-512x512.png"'))
+    assert.ok(html.includes('Empty Gallery 摄影'))
+    assert.ok(!html.includes('og-home__gallery'))
+    assert.ok(!html.includes('src=""'))
+  })
 }
 
 test('photo OG without a thumbnail keeps its text fallback', async () => {
@@ -97,3 +118,43 @@ test('self-hosted external and protected thumbnails keep using the authorized JP
   }
   assert.equal(resolveShareThumbnail(undefined, 'site'), undefined)
 })
+
+for (const [locale, labels] of [
+  ['en', ['no photos', 'one photo', '2 photos']],
+  ['zh-Hans', ['没有照片', '一张照片', '2 张照片']],
+] as const) {
+  test(`Site Home uses signed ${locale} for live count despite the visitor locale`, async () => {
+    const visitorLocale = locale === 'en' ? 'zh-Hans' : 'en'
+    const messages = (code: string) =>
+      JSON.parse(
+        readFileSync(`packages/gallery/i18n/locales/${code}.json`, 'utf8'),
+      )
+    const composer = createI18n({
+      legacy: false,
+      locale: visitorLocale,
+      messages: { [visitorLocale]: messages(visitorLocale) },
+    }).global
+    const loaded: string[] = []
+    const i18n = {
+      t: composer.t,
+      loadLocaleMessages: async (code: string) => {
+        loaded.push(code)
+        composer.setLocaleMessage(code, messages(code))
+      },
+    }
+    for (const [count, label] of labels.entries()) {
+      const html = await render(
+        'Home',
+        'site',
+        { locale, photoCount: count },
+        i18n,
+      )
+      assert.ok(
+        html.includes(label),
+        `live count ${count} must use signed locale ${locale}`,
+      )
+    }
+    assert.deepEqual(loaded, [locale, locale, locale])
+    assert.equal(composer.locale.value, visitorLocale)
+  })
+}

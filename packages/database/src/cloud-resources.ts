@@ -15,7 +15,7 @@ export function createCloudResourceRepository(
   db: MediaDatabase,
   site: SiteContext,
   mediaPrefix: string,
-): ResourceReadRepository {
+): ResourceReadRepository & { getPhoto(id: string): Promise<Photo | null> } {
   assertSiteContext(site)
   let slugRepair: Promise<void> | undefined
   const ensureSlugs = () => (slugRepair ??= ensureCloudAlbumSlugs(db, site.id))
@@ -106,6 +106,14 @@ export function createCloudResourceRepository(
   }
   return {
     protectedPhoto: (value: Photo) => value,
+    /** Load one ready photo by id within the current Site. */
+    async getPhoto(id) {
+      const rows = await all<Record<string, unknown>>(
+        `SELECT ${columns} FROM cloud_photos p WHERE p.site_id=? AND p.id=? AND ${ready}`,
+        id,
+      )
+      return rows[0] ? photo(rows[0]) : null
+    },
     async listPhotos(excluded = [], page) {
       if (
         page &&
@@ -124,6 +132,38 @@ export function createCloudResourceRepository(
           page?.offset ?? 0,
         )
       ).map(photo)
+    },
+    /** Count ready photos, optionally excluding ids. */
+    async countPhotos(excluded = []) {
+      const row = (
+        await all<{ n: number }>(
+          `SELECT COUNT(*) AS n FROM cloud_photos p WHERE p.site_id=? AND ${ready} ${excluded.length ? 'AND p.id NOT IN (SELECT value FROM json_each(?))' : ''}`,
+          ...(excluded.length ? [JSON.stringify(excluded)] : []),
+        )
+      )[0]
+      return Number(row?.n ?? 0)
+    },
+    /** Current thumbnail asset versions for the given photo ids. */
+    async listThumbnailVersions(photoIds) {
+      if (photoIds.length === 0) return []
+      const rows = await all<{
+        photoId: string
+        sourceVersion: string
+        pipelineVersion: string
+      }>(
+        `SELECT a.photo_id AS photoId,a.source_version AS sourceVersion,a.pipeline_version AS pipelineVersion FROM cloud_media_assets a JOIN cloud_photos p ON p.site_id=a.site_id AND p.id=a.photo_id AND p.source_version=a.source_version WHERE a.site_id=? AND a.role='thumbnail' AND a.photo_id IN (SELECT value FROM json_each(?)) AND NOT EXISTS(SELECT 1 FROM cloud_media_assets newer WHERE newer.site_id=a.site_id AND newer.photo_id=a.photo_id AND newer.source_version=a.source_version AND newer.role='thumbnail' AND newer.pipeline_version>a.pipeline_version)`,
+        JSON.stringify(photoIds),
+      )
+      const byId = new Map(
+        rows.map((row) => [
+          row.photoId,
+          {
+            sourceVersion: row.sourceVersion,
+            pipelineVersion: row.pipelineVersion,
+          },
+        ]),
+      )
+      return photoIds.map((id) => byId.get(id) ?? null)
     },
     async listAlbums() {
       await ensureSlugs()

@@ -7,6 +7,9 @@ import { resolveShareThumbnail } from '#gallery/utils/open-graph'
 initIconBundle(addIcon)
 
 interface PhotoProps {
+  /** Signed Site scope, checked by the Site adapter before rendering. */
+  originSiteId?: number
+  photoId?: string
   photo?: Photo
   appTitle?: string
   locationPreferredLevel?: string

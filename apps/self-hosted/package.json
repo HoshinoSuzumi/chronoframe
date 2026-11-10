@@ -35,7 +35,7 @@
     "@pinia/nuxt": "^0.11.3",
     "@tailwindcss/vite": "^4.3.3",
     "@takumi-rs/core": "2.15.0",
-    "@unhead/vue": "^2.1.17",
+    "@unhead/vue": "3.4.3",
     "@vingle/bmp-js": "^0.2.5",
     "@vueuse/nuxt": "14.4.0",
     "@yeger/vue-masonry-wall": "^6.1.4",
@@ -55,8 +55,8 @@
     "nuxt-gtag": "4.1.0",
     "nuxt-mapbox": "1.6.4",
     "nuxt-maplibre": "^1.2.2",
-    "nuxt-og-image": "6.10.3",
-    "nuxt-site-config": "4.2.3",
+    "nuxt-og-image": "7.0.7",
+    "nuxt-site-config": "5.0.3",
     "pinia": "^3.0.4",
     "reka-ui": "^2.11.0",
     "sharp": "^0.35.5",
@@ -73,6 +73,7 @@
     "zod": "^4.6.6"
   },
   "devDependencies": {
+    "nuxtseo-devtools-host": "1.0.2",
     "safe-stable-stringify": "2.5.0"
   }
 }

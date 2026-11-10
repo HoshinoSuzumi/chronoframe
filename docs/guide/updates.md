@@ -7,9 +7,9 @@ Read the [changelog](/changelog) before choosing a target version and review its
 ## Back up
 
 ::: warning Stop and back up first
-Stop the container, then back up:
+Stop every replica that shares the data directory—including any outside this Compose project—then back up:
 
-- The complete data directory and Compose file.
+- The complete data directory and Compose file, including `app.sqlite3`, `.session-password`, and `.app-secret`. If `.app-secret` is a symlink, include its adjacent `.app-secret.*.key` target too. Include hidden key files, not just the database.
 - `.env`, if your older deployment still uses it.
 - Local photos outside `data`, plus files in S3 or OpenList.
 
@@ -28,6 +28,8 @@ cp docker-compose.yml backups/docker-compose.yml
 
 ## Replace the image
 
+When upgrading to OG Image v7 across multiple replicas, stop every replica and set the same app secret on every replica before bringing any upgraded instance online. See [OG image signing](#og-image-signing).
+
 Change the image tag in Compose to the version you want, for example `v1.0.0`, then run:
 
 ```bash
@@ -42,6 +44,20 @@ Database migrations run automatically at startup. Manual migration commands are 
 
 For a `docker run` deployment, stop and remove the old container, then recreate it with the new tag and the same data mount. Preserve your ports, networks and any deployment environment variables you still need.
 
+## OG image signing
+
+OG Image v7 uses `NUXT_APP_SECRET` (or `NITRO_APP_SECRET` when set). When neither is set, Self-hosted production loads or creates `data/.app-secret`. `NUXT_OG_IMAGE_SECRET` remains a deprecated fallback. All v6 signed image URLs become invalid, even when the secret is unchanged. This change requires no database migration.
+
+1. Stop every replica that will serve the upgraded image.
+2. Prefer one shared secret of at least 32 characters as `NUXT_APP_SECRET` (or `NITRO_APP_SECRET`) on every replica. An empty `NUXT_APP_SECRET` is treated as unset. Single-node installs can rely on the persisted `data/.app-secret` file instead.
+3. If you keep an existing `NUXT_OG_IMAGE_SECRET` (renamed or not), it must be at least 32 characters. Rename it only when you can keep its effective value unchanged; if it is shorter than 32 characters, replace it with a new secret before upgrading. If unsure, generate a new secret instead.
+4. Bring upgraded replicas online together, refresh cached HTML that contains OG image URLs, then check gallery and public-photo share previews.
+5. To roll back, stop every v7 replica before any v6 instance serves traffic, restore the previous image tag and environment configuration, then refresh affected HTML again.
+
+::: tip
+If the legacy value is JSON-quoted or contains Compose-special characters, prefer generating a new secret.
+:::
+
 ## From v0.14.1 to 1.0.0
 
 - Use `v1.0.0` to pin this release or `latest` to follow stable releases.
@@ -53,7 +69,7 @@ For a `docker run` deployment, stop and remove the old container, then recreate 
 ## Roll back
 
 ::: danger Restore the database when rolling back
-Migrations may change the database schema. To roll back, stop the new container, restore the complete backup from before the upgrade and start the original image tag. Downgrading only the image while retaining a migrated database is not a reliable rollback.
+If the upgrade applied database schema migrations, stop the new container, restore the complete backup from before the upgrade and start the original image tag with its previous environment configuration. Downgrading only the image while retaining a migrated database is not a reliable rollback. For the SEO-only change above, preserve the existing data volume and key files when reverting the image and environment.
 
 :::
 

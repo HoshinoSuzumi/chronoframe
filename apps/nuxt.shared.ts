@@ -14,7 +14,7 @@ export const workerRuntimeSettings = {
   },
 }
 const nuxtRequire = createRequire(require.resolve('nuxt/package.json'))
-// Fully bundled Workers must use Nuxt's Unhead version, not the legacy root v2.
+// Fully bundled Workers must resolve Unhead subpaths to Nuxt's runtime instance.
 const unheadAliases = Object.fromEntries(
   [
     '/stream/server',
