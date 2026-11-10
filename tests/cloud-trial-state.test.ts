@@ -194,7 +194,7 @@ test('Trial confirmation includes reduced limits, billing changes refresh status
         refreshNuxtData: async () => {},
         allowance: (_key: string, value: number) => String(value),
       },
-      'benefits,claim,open,request,data,busy,error,trial,active,visible,daysLeft,endDate,reason,t,locale,allowance',
+      'benefits,previewBenefits,claim,open,request,data,busy,error,trial,active,visible,daysLeft,endDate,reason,t,locale,allowance',
     ),
   )!
   try {
@@ -213,7 +213,14 @@ test('Trial confirmation includes reduced limits, billing changes refresh status
       setup: () => ({ ...vm, ...toRefs(props) }),
       render: compile(template),
     })
-    for (const name of ['CfCard', 'CfAlert', 'CfButton'])
+    for (const name of [
+      'CfCard',
+      'CfAlert',
+      'CfButton',
+      'CfBorderGlow',
+      'CfProgress',
+      'UIcon',
+    ])
       app.component(name, {
         setup(_props, context) {
           return () => h('div', context.slots.default?.())
@@ -478,5 +485,47 @@ test('Workspace customization survives reloading an English default in a Chinese
     } finally {
       scope.stop()
     }
+  }
+})
+
+test('Trial countdown samples the server offset and clock together at activation', (context) => {
+  const serverTime = 1800000000000
+  let now = serverTime
+  context.mock.method(Date, 'now', () => ++now)
+  const scope = effectScope()
+  try {
+    const vm = scope.run(() =>
+      component(
+        'CloudTrialCard',
+        {
+          defineProps: () => ({ workspaceId: 1 }),
+          defineEmits: () => () => {},
+          usePortalIdentity: () => ref({ id: 1 }),
+          useRequestFetch: () => () => {},
+          useIntervalFn: () => {},
+          useAsyncData: () => ({
+            data: shallowRef({
+              workspaceId: 1,
+              accountId: 1,
+              value: {
+                serverTime,
+                eligible: false,
+                trial: {
+                  workspaceId: 1,
+                  state: 'active',
+                  startedAt: serverTime,
+                  expiresAt: serverTime + 14 * 86400000,
+                },
+              },
+            }),
+          }),
+        },
+        'daysLeft,active',
+      ),
+    )!
+    assert.equal(vm.daysLeft.value, 14)
+    assert.equal(vm.active.value, true)
+  } finally {
+    scope.stop()
   }
 })

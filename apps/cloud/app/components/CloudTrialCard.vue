@@ -50,7 +50,11 @@ const clock = ref(Date.now()),
 watch(
   data,
   (value) => {
-    if (value) offset.value = value.serverTime - Date.now()
+    if (value) {
+      const now = Date.now()
+      clock.value = now
+      offset.value = value.serverTime - now
+    }
   },
   { immediate: true },
 )
@@ -91,6 +95,16 @@ const benefits = computed(() =>
     ([key, value]) => value !== (props.currentLimits?.[key] ?? 0),
   ),
 )
+const previewBenefits = computed(() => {
+  const priority = ['storageBytes', 'photos', 'sites']
+  return [...benefits.value]
+    .sort(([a], [b]) => {
+      const rank = (key: string) =>
+        priority.includes(key) ? priority.indexOf(key) : priority.length
+      return rank(a) - rank(b)
+    })
+    .slice(0, 3)
+})
 const endDate = computed(() =>
   trial.value
     ? new Intl.DateTimeFormat(locale.value === 'en' ? 'en' : 'zh-CN', {
@@ -156,12 +170,34 @@ async function claim() {
       ></template
     ></CfAlert
   >
-  <CfCard
+  <CfBorderGlow
     v-else-if="visible && data"
+    :active="data.eligible || active"
+    :animated="data.eligible"
     class="cloud-trial-card"
   >
-    <div class="cloud-trial-heading">
-      <div>
+    <div class="cloud-trial-layout">
+      <div class="cloud-trial-summary">
+        <div class="cloud-trial-eyebrow">
+          <UIcon
+            :name="
+              active
+                ? 'i-lucide-sparkles'
+                : data.eligible
+                  ? 'i-lucide-gift'
+                  : trial?.state === 'converted'
+                    ? 'i-lucide-circle-check'
+                    : 'i-lucide-circle-minus'
+            "
+            aria-hidden="true"
+          />
+          {{ t('cloud.trial.label') }}
+          <span
+            v-if="active"
+            class="cloud-trial-status"
+            >{{ t('cloud.trial.inProgress') }}</span
+          >
+        </div>
         <h2>
           {{
             active
@@ -184,62 +220,86 @@ async function claim() {
           }}
         </h2>
         <p
-          v-if="active"
-          class="cf-field-hint"
-        >
-          {{ t('cloud.trial.remainingDays', { days: daysLeft }) }}
-        </p>
-        <p
-          v-else-if="!trial && !data.eligible"
-          class="cf-field-hint"
+          v-if="!trial && !data.eligible"
+          class="cloud-trial-description"
         >
           {{ reason }}
         </p>
       </div>
-      <CfButton
-        v-if="data.eligible"
-        size="sm"
-        @click="open = true"
-        >{{ t('cloud.trial.viewOffer') }}</CfButton
+      <div
+        v-if="active && trial"
+        class="cloud-trial-countdown"
       >
-      <CfButton
-        v-else-if="!trial || trial.state !== 'converted'"
-        size="sm"
-        variant="secondary"
-        to="/pricing?portal=1"
-        >{{ t('cloud.trial.viewPlans') }}</CfButton
-      >
-    </div>
-    <p
-      v-if="trial && active"
-      class="cf-field-hint"
-    >
-      {{ t('cloud.trial.endsAt', { date: endDate }) }}
-    </p>
-    <template v-if="data.eligible && data.offer">
-      <ul class="cloud-trial-benefits">
-        <li
-          v-for="[key, value] in benefits"
-          :key="key"
-        >
-          {{ t('cloud.billing.' + key) }}
-          {{ allowance(key, currentLimits?.[key] ?? 0, locale) }} →
-          {{ allowance(key, value, locale) }}
-        </li>
-        <li v-if="data.offer.analytics !== !!currentAnalytics">
-          {{ t('cloud.billing.analytics') }}:
-          {{
-            t(
-              data.offer.analytics
-                ? 'cloud.trial.included'
-                : 'cloud.trial.notIncluded',
+        <p class="cloud-trial-days">
+          <strong>{{ daysLeft }}</strong
+          ><span>{{ t('cloud.trial.days') }}</span>
+        </p>
+        <CfProgress
+          :value="
+            Math.max(
+              0,
+              Math.min(
+                100,
+                ((trial.expiresAt - clock - offset) /
+                  Math.max(1, trial.expiresAt - trial.startedAt)) *
+                  100,
+              ),
             )
-          }}
-        </li>
-      </ul>
-      <p class="cf-field-hint">{{ t('cloud.trial.noPayment') }}</p>
-    </template>
-  </CfCard>
+          "
+          :aria-label="t('cloud.trial.remainingDays', { days: daysLeft })"
+        />
+        <p class="cloud-trial-expiry">
+          {{ t('cloud.trial.endsAt', { date: endDate }) }}
+        </p>
+      </div>
+      <div
+        v-else-if="data.eligible && data.offer && previewBenefits.length"
+        class="cloud-trial-upgrades"
+      >
+        <dl class="cloud-trial-metrics">
+          <div
+            v-for="[key, value] in previewBenefits"
+            :key="key"
+            class="cloud-trial-metric"
+          >
+            <dt>{{ t('cloud.billing.' + key) }}</dt>
+            <dd>
+              <span class="cloud-trial-previous">{{
+                allowance(key, currentLimits?.[key] ?? 0, locale)
+              }}</span
+              ><span class="cloud-trial-arrow"> → </span
+              ><strong>{{ allowance(key, value, locale) }}</strong>
+            </dd>
+          </div>
+        </dl>
+      </div>
+      <div class="cloud-trial-actions">
+        <CfButton
+          v-if="data.eligible"
+          size="sm"
+          @click="open = true"
+        >
+          {{ t('cloud.trial.start', { days: data.offer?.days }) }}
+          <UIcon
+            name="i-lucide-arrow-up-right"
+            aria-hidden="true"
+          />
+        </CfButton>
+        <CfButton
+          v-else-if="!trial || trial.state !== 'converted'"
+          size="sm"
+          variant="secondary"
+          to="/pricing?portal=1"
+          >{{ t('cloud.trial.viewPlans') }}</CfButton
+        >
+        <span
+          v-if="data.eligible"
+          class="cloud-trial-reassurance"
+          >{{ t('cloud.trial.noPayment') }}</span
+        >
+      </div>
+    </div>
+  </CfBorderGlow>
   <UModal
     v-model:open="open"
     :dismissible="!busy"
@@ -316,28 +376,138 @@ async function claim() {
   </UModal>
 </template>
 <style scoped>
-.cloud-trial-card,
+.cloud-trial-layout {
+  display: flex;
+  align-items: center;
+  gap: 28px;
+  padding: 18px 22px;
+  min-width: 0;
+}
+.cloud-trial-summary {
+  flex: 1;
+  min-width: 0;
+}
+.cloud-trial-eyebrow {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  color: var(--accent);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  margin-bottom: 5px;
+}
+.cloud-trial-eyebrow :deep(.iconify) {
+  width: 13px;
+  height: 13px;
+  flex-shrink: 0;
+}
+.cloud-trial-status {
+  color: var(--success);
+  font-size: 10px;
+  letter-spacing: 0;
+}
+.cloud-trial-status::before {
+  content: '·';
+  margin-right: 6px;
+}
+.cloud-trial-summary h2 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: -0.025em;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+.cloud-trial-description {
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: var(--muted-foreground);
+}
+.cloud-trial-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+  flex-shrink: 0;
+}
+.cloud-trial-reassurance {
+  font-size: 10px;
+  color: var(--muted-foreground);
+}
+.cloud-trial-upgrades {
+  min-width: 0;
+}
+.cloud-trial-metrics {
+  display: flex;
+  gap: 24px;
+  margin: 0;
+}
+.cloud-trial-metric {
+  min-width: 0;
+}
+.cloud-trial-metric dt {
+  font-size: 11px;
+  color: var(--muted-foreground);
+  margin-bottom: 4px;
+}
+.cloud-trial-metric dd {
+  margin: 0;
+  font-size: 11px;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.cloud-trial-metric strong {
+  font-size: 14px;
+  font-weight: 600;
+}
+.cloud-trial-previous,
+.cloud-trial-arrow {
+  color: var(--muted-foreground);
+}
+.cloud-trial-arrow {
+  padding: 0 2px;
+}
+.cloud-trial-countdown {
+  display: grid;
+  grid-template-columns: auto minmax(100px, 1fr);
+  align-items: center;
+  gap: 4px 14px;
+  min-width: 0;
+}
+.cloud-trial-days {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+  margin: 0;
+  grid-row: span 2;
+}
+.cloud-trial-days strong {
+  font-size: 30px;
+  font-weight: 500;
+  line-height: 1;
+  letter-spacing: -0.05em;
+  font-variant-numeric: tabular-nums;
+}
+.cloud-trial-days span {
+  font-size: 12px;
+  color: var(--muted-foreground);
+}
+.cloud-trial-expiry {
+  margin: 0;
+  font-size: 11px;
+  color: var(--muted-foreground);
+}
+.cloud-trial-actions:empty {
+  display: none;
+}
 .cloud-trial-confirm {
   display: grid;
   gap: 14px;
-  padding: 20px;
   min-width: 0;
-}
-.cloud-trial-confirm {
-  padding: 0;
   font-size: 13px;
-}
-.cloud-trial-heading {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  flex-wrap: wrap;
-}
-.cloud-trial-heading h2 {
-  font-size: 15px;
-  font-weight: 600;
-  margin: 0 0 4px;
 }
 .cloud-trial-benefits {
   display: flex;
@@ -348,5 +518,42 @@ async function claim() {
   list-style: none;
   font-size: 13px;
   color: var(--muted-foreground);
+}
+@media (max-width: 1100px) {
+  .cloud-trial-layout {
+    flex-wrap: wrap;
+    gap: 16px 24px;
+  }
+  .cloud-trial-summary {
+    flex-basis: 45%;
+  }
+  .cloud-trial-upgrades {
+    order: 3;
+    flex-basis: 100%;
+  }
+  .cloud-trial-metrics {
+    gap: 24px;
+  }
+}
+@media (max-width: 600px) {
+  .cloud-trial-layout {
+    padding: 16px;
+    gap: 14px;
+  }
+  .cloud-trial-summary {
+    flex-basis: 100%;
+  }
+  .cloud-trial-actions {
+    align-items: flex-start;
+    order: 4;
+  }
+  .cloud-trial-metrics {
+    flex-wrap: wrap;
+    gap: 12px 20px;
+  }
+  .cloud-trial-countdown {
+    flex-basis: 100%;
+    grid-template-columns: auto minmax(0, 1fr);
+  }
 }
 </style>
