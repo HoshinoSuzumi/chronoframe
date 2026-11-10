@@ -137,3 +137,8 @@ callback rather than the editable local nickname. Apply platform migration
 stored provider label until the next successful provider authorization; opaque
 account IDs and private email addresses are not substituted as usernames.
 
+The portal rechecks its session when the tab regains focus and every minute while
+visible. An expired session or account switch clears prior account state and
+reloads the appropriate authentication boundary. Network failures and a valid
+but non-fresh session do not trigger logout; sensitive-operation freshness
+errors instead ask the user to authenticate again.

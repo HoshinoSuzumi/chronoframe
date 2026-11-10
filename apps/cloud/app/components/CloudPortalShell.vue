@@ -30,6 +30,7 @@ const section = computed(() => {
   return t(keys[leaf] ?? 'cloud.messages.overview')
 })
 useCloudSiteSubscription()
+usePortalSessionSync()
 </script>
 <template>
   <CfAppShell

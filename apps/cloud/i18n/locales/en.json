@@ -406,6 +406,7 @@
       "thisCodeIsInvalidOrExpiredCheckItAnd": "This code is invalid or expired. Check it and try again, or request a new code.",
       "theEmailOrPasswordIsIncorrectCheckYourDetails": "The email or password is incorrect. Check your details or reset your password.",
       "thisLinkIsInvalidOrExpiredPleaseRequestA": "This link is invalid or expired. Please request a new password reset email.",
+      "sessionExpiredSignInAgain": "Your session is no longer valid. Please sign in again.",
       "pleaseSignOutAndSignInAgainBeforeChanging": "Please sign out and sign in again before changing security settings.",
       "weCouldNotCompleteThisRequestPleaseTryAgain": "We could not complete this request. Please try again.",
       "hidden": "Hidden",

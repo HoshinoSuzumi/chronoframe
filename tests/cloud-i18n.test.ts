@@ -103,3 +103,30 @@ test('Authentication failures are localized without reflecting provider messages
     )
   }
 })
+
+test('Sensitive-operation freshness errors remain actionable in native and H3 response shapes', () => {
+  for (const locale of ['en', 'zh-Hans']) {
+    const t = translate(locale)
+    for (const cause of [
+      { data: { code: 'SESSION_NOT_FRESH' } },
+      { data: { data: { code: 'SESSION_IS_NOT_FRESH' } } },
+      { code: 'FRESH_SESSION_REQUIRED' },
+    ])
+      assert.equal(
+        accountError(cause, t),
+        t('cloud.messages.pleaseSignOutAndSignInAgainBeforeChanging'),
+      )
+  }
+})
+
+test('An expired session is distinguished from freshness and browser numeric error codes stay safe', () => {
+  const t = translate('zh-Hans')
+  assert.equal(
+    accountError({ statusCode: 401 }, t),
+    t('cloud.messages.sessionExpiredSignInAgain'),
+  )
+  assert.equal(
+    accountError({ code: 20 }, t),
+    t('cloud.messages.weCouldNotCompleteThisRequestPleaseTryAgain'),
+  )
+})

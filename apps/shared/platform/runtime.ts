@@ -178,10 +178,24 @@ export function definePlatformHandler<T>(
         503: 'Platform service unavailable',
       }
       const statusCode = code && Object.hasOwn(messages, code) ? code : 503
+      const authCode = (error as { data?: { code?: unknown } })?.data?.code
+      const publicCode =
+        typeof authCode === 'string' &&
+        [
+          'SESSION_IS_NOT_FRESH',
+          'SESSION_NOT_FRESH',
+          'LOGIN_METHOD_REQUIRED',
+        ].includes(authCode)
+          ? authCode
+          : undefined
       setResponseHeader(event, 'Cache-Control', 'no-store')
       sendError(
         event,
-        createError({ statusCode, statusMessage: messages[statusCode] }),
+        createError({
+          statusCode,
+          statusMessage: messages[statusCode],
+          data: publicCode ? { code: publicCode } : undefined,
+        }),
         false,
       )
     }

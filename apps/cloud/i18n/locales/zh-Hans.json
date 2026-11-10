@@ -406,6 +406,7 @@
       "thisCodeIsInvalidOrExpiredCheckItAnd": "此验证码无效或已过期，请检查后重试，或获取新验证码。",
       "theEmailOrPasswordIsIncorrectCheckYourDetails": "邮箱或密码不正确，请检查输入信息或重设密码。",
       "thisLinkIsInvalidOrExpiredPleaseRequestA": "此链接无效或已过期，请重新申请密码重设邮件。",
+      "sessionExpiredSignInAgain": "当前会话已失效，请重新登录。",
       "pleaseSignOutAndSignInAgainBeforeChanging": "请退出并重新登录后再更改安全设置。",
       "weCouldNotCompleteThisRequestPleaseTryAgain": "无法完成此请求，请重试。",
       "hidden": "隐藏",

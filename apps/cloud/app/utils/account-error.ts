@@ -2,11 +2,17 @@
 export function accountError(cause: unknown, t: (key: string) => string) {
   const error = cause as {
     statusCode?: number
-    data?: { message?: string; code?: string }
+    status?: number
+    data?: { message?: string; code?: string; data?: { code?: string } }
   }
-  if (error.statusCode === 429)
+  const status = error.statusCode ?? error.status
+  if (status === 429)
     return t('cloud.messages.tooManyAttemptsPleaseWaitBeforeTryingAgain')
-  const code = error.data?.code ?? (cause as { code?: string }).code ?? ''
+  const rawCode =
+    error.data?.code ??
+    error.data?.data?.code ??
+    (cause as { code?: unknown }).code
+  const code = typeof rawCode === 'string' ? rawCode : ''
   if (code === 'ACCOUNT_SUSPENDED')
     return (
       t('cloud.enforcement.accountSuspended') +
@@ -31,7 +37,12 @@ export function accountError(cause: unknown, t: (key: string) => string) {
     return t('cloud.messages.theEmailOrPasswordIsIncorrectCheckYourDetails')
   if (code.includes('TOKEN'))
     return t('cloud.messages.thisLinkIsInvalidOrExpiredPleaseRequestA')
-  if (code.includes('FRESH_SESSION') || code.includes('SESSION_IS_NOT_FRESH'))
+  if (
+    code === 'SESSION_NOT_FRESH' ||
+    code.includes('FRESH_SESSION') ||
+    code.includes('SESSION_IS_NOT_FRESH')
+  )
     return t('cloud.messages.pleaseSignOutAndSignInAgainBeforeChanging')
+  if (status === 401) return t('cloud.messages.sessionExpiredSignInAgain')
   return t('cloud.messages.weCouldNotCompleteThisRequestPleaseTryAgain')
 }
