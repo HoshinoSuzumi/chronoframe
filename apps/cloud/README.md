@@ -118,3 +118,14 @@ for Worker bindings, and the
 procedure. For local Cloud development, Nuxt generates a development app secret
 when none is configured; setting `NUXT_APP_SECRET` manually is optional. Site has
 its own [local app secret instructions](../site/README.md#local-app-secret).
+
+## Workspace settings
+
+`/workspace/settings` contains workspace-specific settings, linked from the portal
+sidebar and overview. Current members can read the workspace name; current
+administrators can rename it through the workspace-scoped settings API. Names
+use the existing 1–80-character rules. Saves require a live session, same-origin
+writes and an optimistic workspace revision. Apply platform migration
+`0049_workspace_settings.sql` before deploying. Name changes preserve explicit
+customization intent in account setup. This page currently contains only general
+settings, with no membership or role-management UI or API.

@@ -23,7 +23,8 @@
     "./processor": "./src/processor.ts",
     "./social-login": "./src/social-login.ts",
     "./account-profile": "./src/account-profile.ts",
-    "./platform-setup": "./src/platform-setup.ts"
+    "./platform-setup": "./src/platform-setup.ts",
+    "./workspace-settings": "./src/workspace-settings.ts"
   },
   "scripts": {
     "type-check": "tsc --noEmit"

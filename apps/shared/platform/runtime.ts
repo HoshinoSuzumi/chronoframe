@@ -1,3 +1,4 @@
+import { WorkspaceSettingsError } from '../../../packages/platform/src/workspace-settings.ts'
 import { SubscriptionError } from '../../../packages/platform/src/subscriptions.ts'
 import { DomainError } from '../../../packages/platform/src/domains.ts'
 import { StorageConnectionError } from '@chronoframe/storage/connection-probe'
@@ -80,6 +81,12 @@ export function definePlatformHandler<T>(
     try {
       return await handler(event)
     } catch (error) {
+      if (error instanceof WorkspaceSettingsError)
+        throw createError({
+          statusCode: error.statusCode,
+          statusMessage: 'Workspace settings request could not be completed',
+          data: { code: error.code },
+        })
       if (error instanceof SubscriptionError)
         throw createError({
           statusCode: error.statusCode,

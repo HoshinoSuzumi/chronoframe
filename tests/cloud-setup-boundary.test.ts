@@ -38,11 +38,18 @@ test('Cloud boundary exposes setup and trial endpoints while keeping self-hosted
   for (const path of ['/api/onboarding', '/api/billing/trial'])
     for (const method of ['GET', 'POST'])
       assert.doesNotThrow(() => handler({ path, method }))
+  for (const method of ['GET', 'PATCH'])
+    assert.doesNotThrow(() =>
+      handler({ path: '/api/workspaces/1/settings', method }),
+    )
   for (const path of [
     '/api/_auth/session',
     '/api/onboarding/admin',
     '/api/billing/trial/other',
     '/api/wizard/submit',
+    '/api/workspaces/1/members',
+    '/api/workspaces/1/settings/roles',
+    '/api/workspaces/01/settings',
   ])
     assert.throws(
       () => handler({ path, method: 'POST' }),

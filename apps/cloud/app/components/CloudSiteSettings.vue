@@ -122,6 +122,12 @@ watch(
     toast.add({ title: text, color: failed.value ? 'error' : 'success' }),
   { flush: 'sync' },
 )
+/** Confirm before replacing unsaved identity, presentation and social-link drafts. */
+async function recover() {
+  if (busy.value || iconBusy.value) return
+  if (!window.confirm(t('cloud.messages.discardSiteDrafts'))) return
+  await reload()
+}
 async function reload() {
   await refresh()
   name.value = data.value?.site.name ?? ''
@@ -213,6 +219,21 @@ async function save() {
       >
     </div>
     <template v-else-if="data">
+      <CfAlert
+        v-if="failed && message"
+        tone="error"
+      >
+        {{ message }}
+        <template #actions
+          ><CfButton
+            size="sm"
+            variant="secondary"
+            :disabled="busy"
+            @click="recover"
+            >{{ $t('cloud.messages.retry') }}</CfButton
+          ></template
+        >
+      </CfAlert>
       <div class="cf-panel-body">
         <form
           v-if="data.site.role === 'admin'"
@@ -454,12 +475,6 @@ async function save() {
                   ? $t('cloud.messages.saving')
                   : $t('cloud.messages.saveChanges')
               }}</CfButton
-            ><CfButton
-              type="button"
-              variant="ghost"
-              :disabled="busy"
-              @click="reload"
-              >{{ $t('cloud.messages.reloadSettings') }}</CfButton
             >
           </div>
         </form>

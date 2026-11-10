@@ -22,6 +22,26 @@ watch(message, (text) => {
       color: text === saveFailed ? 'error' : 'success',
     })
 })
+/** Refresh the revision after failure, retaining edits unless the initial load failed. */
+async function recover() {
+  if (busy.value) return
+  const loadFailed = !!error.value
+  const selected = erase.value
+  busy.value = true
+  try {
+    await refresh()
+    if (error.value || !data.value) return
+    erase.value = loadFailed ? !!data.value.eraseLocation : selected
+    message.value = loadFailed
+      ? ''
+      : t(
+          'Latest settings loaded. Your selection is preserved; save again to apply it.',
+          '已加载最新设置，已保留你的选择，请再次保存以应用。',
+        )
+  } finally {
+    busy.value = false
+  }
+}
 async function save() {
   if (!data.value || busy.value) return
   busy.value = true
@@ -69,26 +89,30 @@ async function save() {
             )
           }}</span></label
         >
-        <p
-          v-if="error"
-          role="alert"
+        <CfAlert
+          v-if="error || message === saveFailed"
+          tone="error"
         >
-          {{ t('Unable to load processing settings.', '无法加载处理设置。') }}
-        </p>
+          {{
+            error
+              ? t('Unable to load processing settings.', '无法加载处理设置。')
+              : message
+          }}
+          <template #actions
+            ><CfButton
+              size="sm"
+              variant="secondary"
+              :disabled="busy"
+              @click="recover"
+              >{{ t('Retry', '重试') }}</CfButton
+            ></template
+          >
+        </CfAlert>
         <div class="cf-site-actions">
           <CfButton
             type="submit"
             :disabled="busy || !!error"
             >{{ t('Save settings', '保存设置') }}</CfButton
-          ><CfButton
-            variant="outline"
-            :disabled="busy"
-            @click="
-              refresh().then(() => {
-                erase = !!data?.eraseLocation
-              })
-            "
-            >{{ t('Reload', '重新加载') }}</CfButton
           >
         </div>
       </form>

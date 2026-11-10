@@ -186,6 +186,7 @@
       "galleryIdentity": "Gallery identity",
       "useTheSameTitleAuthorAndIconShownIn": "Use the same title, author and icon shown in your public gallery.",
       "settingsCouldNotBeLoaded": "Settings could not be loaded.",
+      "discardSiteDrafts": "Discard unsaved site name, profile, appearance and social links and load the saved settings?",
       "reloadSettings": "Reload settings",
       "workspaceSiteName": "Workspace site name",
       "theWorkspaceNameIdentifiesThisSiteInYourConsole": "The workspace name identifies this site in your console. Leave the public title blank to use this name.",
@@ -965,6 +966,25 @@
       "loadFailed": "Unable to load initial setup.",
       "saveFailed": "Unable to save this step. Please retry.",
       "conflict": "The settings or site address changed. Review the current values and retry."
+    },
+    "workspaceSettings": {
+      "title": "Workspace settings",
+      "description": "Manage the details of your current workspace.",
+      "navigationHelp": "Update your workspace name and basic details.",
+      "general": "General",
+      "generalHelp": "The name that identifies this workspace in the portal.",
+      "name": "Workspace name",
+      "nameHelp": "Use 1–80 characters. This does not change site names or addresses.",
+      "invalidName": "Enter a name of 1–80 characters without control characters.",
+      "readOnly": "This workspace’s settings are read-only for your account.",
+      "saved": "Workspace name saved.",
+      "saveFailed": "Unable to save the workspace name. Please try again.",
+      "loadFailed": "Unable to load workspace settings. Please try again.",
+      "unavailable": "This workspace is no longer available for editing. Reload the page to check your access.",
+      "conflict": "The workspace changed since you opened this page. Reload its current details before saving.",
+      "reload": "Reload details",
+      "cancel": "Cancel",
+      "noWorkspace": "No workspace is available. Return to the workspace overview to get started."
     },
     "trial": {
       "label": "Workspace trial",
