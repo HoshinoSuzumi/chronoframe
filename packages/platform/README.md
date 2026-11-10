@@ -66,3 +66,19 @@ only after password verification. Grants are scoped to Host, Site, album, passwo
 revision and expiry. Configure an independent `NUXT_PLATFORM_SECRET` on the Site
 Worker and its Preview. Policy provisioning and photo repositories remain P4 work;
 these endpoints never infer a default album or reuse a platform session.
+
+### Account setup and explicit trials
+
+Migration `0046_trials_onboarding.sql` marks existing accounts as already set up and initializes three-step setup for new accounts. Profile and owned-workspace names are saved independently. Site creation reuses a stable provisioning request key so retries do not consume another site slot. Users can finish without a site when they need to create one later.
+
+New accounts retain the configured signup plan and registration promotions. Trial activation is a separate, explicit action by a verified workspace owner. The offer is disabled by default; configure an active non-Free plan, duration (1–90 days) and optional availability window in Admin. Each account can claim once. Concurrent claims, pending payments and current paid or promotional entitlements are protected by database guards. Offer confirmation includes both settings and plan revisions.
+
+Trials use the existing expiring subscription mechanism and configured expiry plan. Expiry does not delete photos. Verified paid assignments mark conversion and prevent trial administration or expiry from replacing paid access. Trial records survive workspace deletion. Administrative extension and revocation require an audit reason and revision checks.
+
+Trial reminders use a separate leased queue, with three-day, one-day and expiry notices. Suppressed accounts, converted or revoked trials, outdated extension cycles and duplicate notices are excluded. Configure the existing email binding and scheduled trigger to deliver notices.
+
+Ended trial notices are eligible for one day after expiry; older queued notices are cancelled. Missing email bindings leave retry budgets untouched. Queue IDs deduplicate scheduling and concurrent leases, but Cloudflare's structured `send()` binding does not expose a provider idempotency key. Delivery uses bounded retries: a provider-accepted message followed by an acknowledgement failure or worker termination can be delivered again, and eventual delivery is not guaranteed. Do not claim exactly-once delivery or add unsupported headers/parameters.
+
+Migration `0047_onboarding_workspace.sql` retains the workspace selected in setup. Replacing or transferring it returns an unfinished setup to the workspace step, even if a later sign-in automatically provisions a new default workspace.
+
+Migration `0048_onboarding_workspace_name.sql` records whether the user customized the workspace name. Existing recognized English and Simplified Chinese defaults are backfilled; other legacy names are retained as custom. New clients send the explicit flag with workspace confirmation, while an older client that omits the flag preserves the stored intent for an unchanged name and treats a changed name as custom. The legacy backfill follows the client’s UTF-16 truncation, including a split surrogate stored by D1 as a replacement character.

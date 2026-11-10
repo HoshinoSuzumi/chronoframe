@@ -62,6 +62,7 @@ useCloudSiteSubscription()
     <template #footer><CloudUserMenu /></template>
     <slot />
   </CfAppShell>
+  <CloudAccountOnboarding />
 </template>
 
 <style scoped>
