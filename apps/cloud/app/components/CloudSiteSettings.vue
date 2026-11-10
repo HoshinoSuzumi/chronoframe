@@ -213,6 +213,21 @@ async function save() {
       >
     </div>
     <template v-else-if="data">
+      <CfAlert
+        v-if="failed && message"
+        tone="error"
+      >
+        {{ message }}
+        <template #actions
+          ><CfButton
+            size="sm"
+            variant="secondary"
+            :disabled="busy"
+            @click="reload"
+            >{{ $t('cloud.messages.retry') }}</CfButton
+          ></template
+        >
+      </CfAlert>
       <div class="cf-panel-body">
         <form
           v-if="data.site.role === 'admin'"
@@ -454,12 +469,6 @@ async function save() {
                   ? $t('cloud.messages.saving')
                   : $t('cloud.messages.saveChanges')
               }}</CfButton
-            ><CfButton
-              type="button"
-              variant="ghost"
-              :disabled="busy"
-              @click="reload"
-              >{{ $t('cloud.messages.reloadSettings') }}</CfButton
             >
           </div>
         </form>

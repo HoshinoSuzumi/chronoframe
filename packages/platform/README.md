@@ -82,3 +82,13 @@ Ended trial notices are eligible for one day after expiry; older queued notices 
 Migration `0047_onboarding_workspace.sql` retains the workspace selected in setup. Replacing or transferring it returns an unfinished setup to the workspace step, even if a later sign-in automatically provisions a new default workspace.
 
 Migration `0048_onboarding_workspace_name.sql` records whether the user customized the workspace name. Existing recognized English and Simplified Chinese defaults are backfilled; other legacy names are retained as custom. New clients send the explicit flag with workspace confirmation, while an older client that omits the flag preserves the stored intent for an unchanged name and treats a changed name as custom. The legacy backfill follows the client’s UTF-16 truncation, including a split surrogate stored by D1 as a replacement character.
+
+### Workspace settings
+
+Migration `0049_workspace_settings.sql` adds the workspace revision and invalidates
+stale settings when existing name writers (including account setup) rename a
+workspace. The settings adapter reads current membership, permits renaming only
+for current administrators, and guards each write against revision changes and
+revoked access. Renaming also marks an already-confirmed setup name as custom
+and invalidates pending setup submissions. No membership-management operations
+are introduced.

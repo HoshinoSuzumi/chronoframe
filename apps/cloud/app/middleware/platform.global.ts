@@ -29,6 +29,7 @@ export default defineNuxtRouteMiddleware(async (to) => {
         to.query.portal === '1')) ||
     path === '/analytics' ||
     path === '/workspace' ||
+    path.startsWith('/workspace/') ||
     path === '/account' ||
     path.startsWith('/account/') ||
     path === '/sites' ||

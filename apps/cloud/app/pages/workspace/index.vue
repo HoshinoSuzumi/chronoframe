@@ -9,8 +9,8 @@ import {
   CreditCard,
 } from 'lucide-vue-next'
 import type { EntrySiteCatalog } from '@chronoframe/contracts/entry'
-import { allowance } from '../utils/billing-format'
-import { quotaGate } from '../utils/quota-gate'
+import { allowance } from '../../utils/billing-format'
+import { quotaGate } from '../../utils/quota-gate'
 definePageMeta({ layout: 'portal' })
 const { t, locale } = useI18n(),
   billing = useWorkspaceBilling()
@@ -190,6 +190,22 @@ useSeoMeta({
       :aria-label="$t('cloud.dashboard.workspaceTools')"
     >
       <h2>{{ $t('cloud.dashboard.workspaceTools') }}</h2>
+      <NuxtLink
+        to="/workspace/settings"
+        class="cf-dashboard-tool"
+      >
+        <Settings
+          :size="16"
+          aria-hidden="true"
+        />
+        <span
+          ><strong>{{ $t('cloud.workspaceSettings.title') }}</strong
+          ><small>{{
+            $t('cloud.workspaceSettings.navigationHelp')
+          }}</small></span
+        >
+        <ChevronRight :size="15" />
+      </NuxtLink>
       <NuxtLink
         to="/account/plan"
         class="cf-dashboard-tool"

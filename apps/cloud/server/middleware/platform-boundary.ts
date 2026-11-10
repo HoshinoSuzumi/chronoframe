@@ -37,6 +37,7 @@ export default defineEventHandler((event) => {
       '/api/webhooks/creem',
       '/api/workspaces/default',
     ].includes(path) ||
+    /^\/api\/workspaces\/[1-9][0-9]*\/settings$/.test(path) ||
     /^\/api\/webhooks\/dodo\/[a-z][a-z0-9_-]{0,63}$/.test(path) ||
     /^\/api\/sites\/[1-9][0-9]*\/(?:context|events|settings|domains|map)$/.test(
       path,

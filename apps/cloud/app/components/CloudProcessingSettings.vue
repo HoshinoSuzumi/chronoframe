@@ -69,26 +69,35 @@ async function save() {
             )
           }}</span></label
         >
-        <p
-          v-if="error"
-          role="alert"
+        <CfAlert
+          v-if="error || message === saveFailed"
+          tone="error"
         >
-          {{ t('Unable to load processing settings.', '无法加载处理设置。') }}
-        </p>
+          {{
+            error
+              ? t('Unable to load processing settings.', '无法加载处理设置。')
+              : message
+          }}
+          <template #actions
+            ><CfButton
+              size="sm"
+              variant="secondary"
+              :disabled="busy"
+              @click="
+                refresh().then(() => {
+                  erase = !!data?.eraseLocation
+                  message = ''
+                })
+              "
+              >{{ t('Retry', '重试') }}</CfButton
+            ></template
+          >
+        </CfAlert>
         <div class="cf-site-actions">
           <CfButton
             type="submit"
             :disabled="busy || !!error"
             >{{ t('Save settings', '保存设置') }}</CfButton
-          ><CfButton
-            variant="outline"
-            :disabled="busy"
-            @click="
-              refresh().then(() => {
-                erase = !!data?.eraseLocation
-              })
-            "
-            >{{ t('Reload', '重新加载') }}</CfButton
           >
         </div>
       </form>

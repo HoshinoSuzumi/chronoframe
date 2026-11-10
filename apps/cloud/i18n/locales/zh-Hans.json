@@ -966,6 +966,25 @@
       "saveFailed": "无法保存这一步，请重试。",
       "conflict": "设置或站点地址已发生变化，请核对当前内容后重试。"
     },
+    "workspaceSettings": {
+      "title": "工作区设置",
+      "description": "管理当前工作区的基本信息。",
+      "navigationHelp": "修改工作区名称与基本信息。",
+      "general": "基本信息",
+      "generalHelp": "工作区名称用于在控制台中识别当前工作区。",
+      "name": "工作区名称",
+      "nameHelp": "请输入 1–80 个字符，不会更改站点名称或地址。",
+      "invalidName": "请输入 1–80 个字符的名称，不可包含控制字符。",
+      "readOnly": "你当前只能查看此工作区的设置。",
+      "saved": "工作区名称已保存。",
+      "saveFailed": "工作区名称保存失败，请重试。",
+      "loadFailed": "工作区设置加载失败，请重试。",
+      "unavailable": "当前工作区已不可编辑，请重新加载页面以确认访问权限。",
+      "conflict": "工作区信息已在其他位置更新，请重新加载最新信息后再保存。",
+      "reload": "重新加载信息",
+      "cancel": "取消",
+      "noWorkspace": "暂无可用工作区，请返回工作区概览开始设置。"
+    },
     "trial": {
       "label": "工作空间试用",
       "inProgress": "试用中",

@@ -143,6 +143,15 @@ watch(mode, (next) => {
                 $t('cloud.billing.analytics')
               }}</NuxtLink
             >
+            <NuxtLink
+              to="/workspace/settings"
+              :class="{ active: route.path === '/workspace/settings' }"
+              :aria-current="
+                route.path === '/workspace/settings' ? 'page' : undefined
+              "
+            >
+              <Settings :size="17" />{{ $t('cloud.workspaceSettings.title') }}
+            </NuxtLink>
           </nav></template
         >
       </div></Transition

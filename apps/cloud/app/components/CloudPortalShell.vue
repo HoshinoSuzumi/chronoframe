@@ -25,6 +25,7 @@ const section = computed(() => {
     redeem: 'cloud.billing.redeem',
     account: 'cloud.messages.accountSecurity',
     security: 'cloud.messages.accountSecurity',
+    settings: 'cloud.workspaceSettings.title',
   }
   return t(keys[leaf] ?? 'cloud.messages.overview')
 })
