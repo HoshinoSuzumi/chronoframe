@@ -22,7 +22,8 @@
     "./domains": "./src/domains.ts",
     "./processor": "./src/processor.ts",
     "./social-login": "./src/social-login.ts",
-    "./account-profile": "./src/account-profile.ts"
+    "./account-profile": "./src/account-profile.ts",
+    "./platform-setup": "./src/platform-setup.ts"
   },
   "scripts": {
     "type-check": "tsc --noEmit"

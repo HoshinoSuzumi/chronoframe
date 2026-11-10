@@ -132,6 +132,12 @@ export function createD1Provisioning(
     async create(
       userId: number,
       input: { name: unknown; slug: unknown; requestId: unknown },
+      setup?: {
+        revision: number
+        token: string
+        now: number
+        workspaceId: number
+      },
     ) {
       const identity = siteIdentity(input.name, input.slug)
       if (
@@ -139,7 +145,17 @@ export function createD1Provisioning(
         !/^[a-f0-9-]{36}$/.test(input.requestId)
       )
         throw new ProvisioningError(400, 'Invalid request identifier')
-      const workspace = await defaultWorkspace(userId)
+      // Setup must use the workspace the user named, never provision a replacement here.
+      const workspace = setup
+        ? await db
+            .prepare(
+              "SELECT w.id,w.name,m.role FROM platform_workspaces w JOIN platform_memberships m ON m.workspace_id=w.id AND m.user_id=w.owner_user_id AND m.role='admin' WHERE w.id=? AND w.owner_user_id=?",
+            )
+            .bind(setup.workspaceId, userId)
+            .first<{ id: number; name: string; role: string }>()
+        : await defaultWorkspace(userId)
+      if (!workspace)
+        throw new ProvisioningError(409, 'Complete workspace setup')
       const existing = await db
         .prepare(`SELECT ${fields} FROM platform_sites s
         JOIN platform_memberships m ON m.workspace_id = s.workspace_id
@@ -149,15 +165,44 @@ export function createD1Provisioning(
       if (existing) {
         if (existing.name !== identity.name || existing.slug !== identity.slug)
           throw new ProvisioningError(409, 'Request identifier already used')
-        return decodedSite(existing)
+        if (!setup) return decodedSite(existing)
       }
       const entitlement = await workspaceEntitlements(db, workspace.id)
+      const setupGuard = setup
+        ? ' AND EXISTS(SELECT 1 FROM platform_account_onboarding o WHERE o.user_id=? AND o.write_token=? AND o.revision=? AND o.completed_at=?)'
+        : ''
+      const setupArgs = setup
+        ? [userId, setup.token, setup.revision + 1, setup.now]
+        : []
       try {
-        await db.batch([
+        const results = await db.batch([
+          ...(setup
+            ? [
+                db
+                  .prepare(
+                    `UPDATE platform_account_onboarding SET completed_at=?,write_token=?,revision=revision+1 WHERE user_id=? AND revision=? AND completed_at IS NULL AND profile_completed_at IS NOT NULL AND workspace_completed_at IS NOT NULL AND workspace_id=? AND EXISTS(SELECT 1 FROM platform_users u WHERE u.id=? AND u.email_verified=1 AND NOT EXISTS(SELECT 1 FROM platform_account_controls c WHERE c.user_id=u.id AND c.suspended=1) AND NOT EXISTS(SELECT 1 FROM platform_account_deletions d WHERE d.user_id=u.id)) AND EXISTS(SELECT 1 FROM platform_workspaces w JOIN platform_memberships m ON m.workspace_id=w.id AND m.user_id=w.owner_user_id AND m.role='admin' WHERE w.id=? AND w.owner_user_id=?) AND (EXISTS(SELECT 1 FROM platform_sites WHERE workspace_id=? AND provision_key=?) OR (SELECT COUNT(*) FROM platform_sites WHERE workspace_id=?)<?)`,
+                  )
+                  .bind(
+                    setup.now,
+                    setup.token,
+                    userId,
+                    setup.revision,
+                    workspace.id,
+                    userId,
+                    workspace.id,
+                    userId,
+                    workspace.id,
+                    input.requestId,
+                    workspace.id,
+                    entitlement.limits.sites,
+                  ),
+              ]
+            : []),
           db
             .prepare(`INSERT INTO platform_sites(workspace_id, name, slug, created_at, provision_key, published)
           SELECT ?, ?, ?, ?, ?, 1 WHERE EXISTS(SELECT 1 FROM platform_memberships WHERE workspace_id = ? AND user_id = ? AND role = 'admin')
           AND (SELECT COUNT(*) FROM platform_sites WHERE workspace_id = ?) < ?
+          ${setupGuard}
           ON CONFLICT(workspace_id, provision_key) DO UPDATE SET provision_key = excluded.provision_key`)
             .bind(
               workspace.id,
@@ -169,23 +214,42 @@ export function createD1Provisioning(
               userId,
               workspace.id,
               entitlement.limits.sites,
+              ...setupArgs,
             ),
           db
             .prepare(`INSERT INTO platform_site_slugs(slug,site_id)
-            SELECT slug,id FROM platform_sites WHERE workspace_id=? AND provision_key=? AND slug=?
+            SELECT slug,id FROM platform_sites WHERE workspace_id=? AND provision_key=? AND slug=?${setupGuard}
             ON CONFLICT(slug) DO UPDATE SET site_id=CASE WHEN platform_site_slugs.site_id=excluded.site_id THEN platform_site_slugs.site_id ELSE NULL END`)
-            .bind(workspace.id, input.requestId, identity.slug),
+            .bind(workspace.id, input.requestId, identity.slug, ...setupArgs),
           db
             .prepare(`INSERT INTO platform_domains(hostname,site_id,verified,active,kind)
-            SELECT ?,id,1,1,'default' FROM platform_sites WHERE workspace_id=? AND provision_key=? AND slug=?
+            SELECT ?,id,1,1,'default' FROM platform_sites WHERE workspace_id=? AND provision_key=? AND slug=?${setupGuard}
             ON CONFLICT(hostname) DO UPDATE SET site_id=CASE WHEN platform_domains.site_id=excluded.site_id THEN platform_domains.site_id ELSE NULL END`)
             .bind(
               defaultSiteHost(identity.slug, baseDomain),
               workspace.id,
               input.requestId,
               identity.slug,
+              ...setupArgs,
             ),
+          ...(setup
+            ? [
+                db
+                  .prepare(
+                    `UPDATE platform_account_onboarding SET site_id=(SELECT id FROM platform_sites WHERE workspace_id=? AND provision_key=?) WHERE user_id=? AND write_token=? AND revision=?`,
+                  )
+                  .bind(
+                    workspace.id,
+                    input.requestId,
+                    userId,
+                    setup.token,
+                    setup.revision + 1,
+                  ),
+              ]
+            : []),
         ])
+        if (setup && !results[0]?.meta.changes)
+          throw new ProvisioningError(409, 'Setup changed; refresh and retry')
         const site = await db
           .prepare(
             `SELECT ${fields} FROM platform_sites s WHERE workspace_id=? AND provision_key=?`,

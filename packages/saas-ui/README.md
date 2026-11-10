@@ -66,3 +66,5 @@ quota denial in a modal only after the user requests creation.
 logic, Cloud uses shared primitives, and a future Admin entry extends the same
 layer. Verify desktop/mobile, light/dark, body-teleported overlays, keyboard focus,
 pending/empty/error states and actual server-enforced quotas when changing it.
+
+`CfStepper` provides labeled numbered steps, reached-step navigation, directional transitions and content-height animation. It respects reduced-motion preferences and uses shared theme tokens. Callers own validation, persistence and API requests.
