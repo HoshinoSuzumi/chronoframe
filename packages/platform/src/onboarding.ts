@@ -140,12 +140,25 @@ export async function saveAccountSetup(
     await db.batch([
       db
         .prepare(
-          `UPDATE platform_account_onboarding SET workspace_completed_at=?,workspace_id=?,workspace_name_customized=?,write_token=?,revision=revision+1 WHERE user_id=? AND revision=? AND completed_at IS NULL AND ${active} AND EXISTS(SELECT 1 FROM platform_memberships WHERE workspace_id=? AND user_id=? AND role='admin')`,
+          `UPDATE platform_account_onboarding SET workspace_completed_at=?,workspace_id=?,workspace_name_customized=CASE WHEN ? IS NOT NULL THEN ? WHEN workspace_id=? AND EXISTS(SELECT 1 FROM platform_workspaces w WHERE w.id=? AND w.owner_user_id=? AND w.name=?) THEN workspace_name_customized ELSE 1 END,write_token=?,revision=revision+1 WHERE user_id=? AND revision=? AND completed_at IS NULL AND ${active} AND EXISTS(SELECT 1 FROM platform_memberships WHERE workspace_id=? AND user_id=? AND role='admin')`,
         )
         .bind(
           now,
           workspace.id,
-          input.workspaceCustomized === false ? 0 : 1,
+          input.workspaceCustomized === undefined
+            ? null
+            : input.workspaceCustomized
+              ? 1
+              : 0,
+          input.workspaceCustomized === undefined
+            ? null
+            : input.workspaceCustomized
+              ? 1
+              : 0,
+          workspace.id,
+          workspace.id,
+          userId,
+          name,
           token,
           userId,
           state.revision,

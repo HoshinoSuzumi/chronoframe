@@ -88,6 +88,30 @@ async function fixture(legacy = false) {
       .prepare('UPDATE platform_workspaces SET name=? WHERE owner_user_id=97')
       .bind('Custom Studio')
       .run()
+    for (const [id, name, suffix] of [
+      [96, '😀'.repeat(40), "'s workspace"],
+      [95, '😀'.repeat(40), '的工作空间'],
+      [94, 'a'.repeat(67) + '😀' + 'b'.repeat(11), "'s workspace"],
+      [93, 'c'.repeat(74) + '😀' + 'd'.repeat(4), '的工作空间'],
+    ] as const) {
+      await db
+        .prepare(
+          'INSERT INTO platform_users(id,email,name,created_at,email_verified) VALUES(?,?,?,1,1)',
+        )
+        .bind(id, `astral-${id}@example.test`, name)
+        .run()
+      const owned = await createD1Provisioning(db).defaultWorkspace(id)
+      await db
+        .prepare('UPDATE platform_workspaces SET name=? WHERE id=?')
+        .bind(name.slice(0, 80 - suffix.length) + suffix, owned.id)
+        .run()
+      await db
+        .prepare(
+          'UPDATE platform_account_onboarding SET profile_completed_at=1,workspace_completed_at=1,workspace_id=? WHERE user_id=?',
+        )
+        .bind(owned.id, id)
+        .run()
+    }
     await apply('0048_onboarding_workspace_name.sql')
   }
   await db
@@ -327,6 +351,12 @@ test('Upgrade preserves existing accounts and only prompts newly registered acco
     assert.equal(restored.workspace?.customized, false)
     assert.equal((await accountSetup(db, 98)).workspace?.customized, false)
     assert.equal((await accountSetup(db, 97)).workspace?.customized, true)
+    for (const id of [93, 94, 95, 96])
+      assert.equal(
+        (await accountSetup(db, id)).workspace?.customized,
+        false,
+        `UTF-16 default ${id}`,
+      )
     assert.equal(restored.workspace?.id, owned.id)
     assert.equal(
       (
@@ -924,12 +954,24 @@ test('Confirmed workspace naming intent is persisted independently of the name t
     })
     assert.equal(state.workspace?.customized, false)
     assert.equal((await accountSetup(db, 1)).workspace?.customized, false)
+    state = await saveAccountSetup(db, 1, {
+      step: 2,
+      revision: state.revision,
+      name: "Alice's workspace",
+    })
+    assert.equal((await accountSetup(db, 1)).workspace?.customized, false)
     // Explicit customization remains custom even when the text equals a default.
     state = await saveAccountSetup(db, 1, {
       step: 2,
       revision: state.revision,
       name: "Alice's workspace",
       workspaceCustomized: true,
+    })
+    assert.equal((await accountSetup(db, 1)).workspace?.customized, true)
+    state = await saveAccountSetup(db, 1, {
+      step: 2,
+      revision: state.revision,
+      name: "Alice's workspace",
     })
     assert.equal((await accountSetup(db, 1)).workspace?.customized, true)
     // Older clients omit the flag; preserve their names conservatively.
