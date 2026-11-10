@@ -122,6 +122,12 @@ watch(
     toast.add({ title: text, color: failed.value ? 'error' : 'success' }),
   { flush: 'sync' },
 )
+/** Confirm before replacing unsaved identity, presentation and social-link drafts. */
+async function recover() {
+  if (busy.value || iconBusy.value) return
+  if (!window.confirm(t('cloud.messages.discardSiteDrafts'))) return
+  await reload()
+}
 async function reload() {
   await refresh()
   name.value = data.value?.site.name ?? ''
@@ -223,7 +229,7 @@ async function save() {
             size="sm"
             variant="secondary"
             :disabled="busy"
-            @click="reload"
+            @click="recover"
             >{{ $t('cloud.messages.retry') }}</CfButton
           ></template
         >

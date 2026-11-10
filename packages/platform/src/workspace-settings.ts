@@ -15,6 +15,7 @@ export class WorkspaceSettingsError extends Error {
 }
 // Recheck live membership and account availability for both reads and writes.
 const available = `EXISTS(SELECT 1 FROM platform_users u WHERE u.id=? AND NOT EXISTS(SELECT 1 FROM platform_account_controls c WHERE c.user_id=u.id AND c.suspended=1) AND NOT EXISTS(SELECT 1 FROM platform_account_deletions d WHERE d.user_id=u.id)) AND NOT EXISTS(SELECT 1 FROM platform_account_controls c WHERE c.user_id=w.owner_user_id AND c.suspended=1) AND NOT EXISTS(SELECT 1 FROM platform_account_deletions d WHERE d.user_id=w.owner_user_id)`
+/** Read settings for a live member without exposing other workspace metadata. */
 export async function workspaceSettings(
   db: PlatformD1,
   userId: number,
@@ -34,6 +35,7 @@ export async function workspaceSettings(
     canEdit: row.role === 'admin',
   }
 }
+/** Rename through a revision-checked write, rechecking access and preserving setup naming intent. */
 export async function updateWorkspaceSettings(
   db: PlatformD1,
   userId: number,

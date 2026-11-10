@@ -22,6 +22,26 @@ watch(message, (text) => {
       color: text === saveFailed ? 'error' : 'success',
     })
 })
+/** Refresh the revision after failure, retaining edits unless the initial load failed. */
+async function recover() {
+  if (busy.value) return
+  const loadFailed = !!error.value
+  const selected = erase.value
+  busy.value = true
+  try {
+    await refresh()
+    if (error.value || !data.value) return
+    erase.value = loadFailed ? !!data.value.eraseLocation : selected
+    message.value = loadFailed
+      ? ''
+      : t(
+          'Latest settings loaded. Your selection is preserved; save again to apply it.',
+          '已加载最新设置，已保留你的选择，请再次保存以应用。',
+        )
+  } finally {
+    busy.value = false
+  }
+}
 async function save() {
   if (!data.value || busy.value) return
   busy.value = true
@@ -83,12 +103,7 @@ async function save() {
               size="sm"
               variant="secondary"
               :disabled="busy"
-              @click="
-                refresh().then(() => {
-                  erase = !!data?.eraseLocation
-                  message = ''
-                })
-              "
+              @click="recover"
               >{{ t('Retry', '重试') }}</CfButton
             ></template
           >

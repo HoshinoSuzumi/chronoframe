@@ -11,6 +11,7 @@ export interface WorkspaceSettingsUpdate {
   name: string
   revision: number
 }
+/** Validate a name-only settings update and its positive optimistic revision. */
 export function parseWorkspaceSettingsUpdate(
   value: unknown,
 ): WorkspaceSettingsUpdate {

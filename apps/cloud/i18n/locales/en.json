@@ -186,6 +186,7 @@
       "galleryIdentity": "Gallery identity",
       "useTheSameTitleAuthorAndIconShownIn": "Use the same title, author and icon shown in your public gallery.",
       "settingsCouldNotBeLoaded": "Settings could not be loaded.",
+      "discardSiteDrafts": "Discard unsaved site name, profile, appearance and social links and load the saved settings?",
       "reloadSettings": "Reload settings",
       "workspaceSiteName": "Workspace site name",
       "theWorkspaceNameIdentifiesThisSiteInYourConsole": "The workspace name identifies this site in your console. Leave the public title blank to use this name.",

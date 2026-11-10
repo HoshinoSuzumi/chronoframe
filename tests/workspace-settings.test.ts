@@ -21,6 +21,7 @@ const { Miniflare, convertV4MiniflareOptions } = createRequire(
   require.resolve('wrangler/package.json'),
 )('miniflare')
 const migration = '0049_workspace_settings.sql'
+/** Create a real D1 database, optionally pausing before the workspace revision migration. */
 async function fixture(upgrade = false) {
   const mf = new Miniflare(
     convertV4MiniflareOptions({

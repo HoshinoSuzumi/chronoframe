@@ -6,6 +6,7 @@ import {
   platformPortalOrigin,
 } from '../../../shared/platform/runtime'
 
+/** Resolve the authenticated actor and canonical workspace ID, requiring Origin on writes. */
 export async function workspaceSettingsContext(
   event: H3Event,
   mutation = false,

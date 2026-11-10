@@ -186,6 +186,7 @@
       "galleryIdentity": "图库信息",
       "useTheSameTitleAuthorAndIconShownIn": "设置公开图库中展示的标题、作者和图标。",
       "settingsCouldNotBeLoaded": "无法加载设置。",
+      "discardSiteDrafts": "放弃尚未保存的站点名称、资料、外观和社交链接，并加载已保存的设置？",
       "reloadSettings": "重新加载设置",
       "workspaceSiteName": "工作区中的站点名称",
       "theWorkspaceNameIdentifiesThisSiteInYourConsole": "此名称用于在控制台中识别站点。公开标题留空时将使用此名称。",
