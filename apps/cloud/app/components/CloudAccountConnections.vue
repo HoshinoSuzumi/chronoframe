@@ -248,7 +248,9 @@ async function unlink() {
   justify-content: space-between;
   gap: 16px;
   padding-block: 12px;
-  border-bottom: 1px solid var(--border);
+}
+.cf-connection-row + .cf-connection-row {
+  border-top: 1px solid var(--border);
 }
 .cf-connection-row h3 {
   font-size: 14px;
