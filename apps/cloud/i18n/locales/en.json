@@ -967,6 +967,9 @@
       "conflict": "The settings or site address changed. Review the current values and retry."
     },
     "trial": {
+      "label": "Workspace trial",
+      "inProgress": "Active",
+      "days": "days",
       "offerTitle": "Try {plan} free for {days} days",
       "activeTitle": "{plan} trial",
       "remainingDays": "{days} days remaining",

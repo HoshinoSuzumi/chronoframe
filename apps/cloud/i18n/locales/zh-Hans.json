@@ -967,6 +967,9 @@
       "conflict": "设置或站点地址已发生变化，请核对当前内容后重试。"
     },
     "trial": {
+      "label": "工作空间试用",
+      "inProgress": "试用中",
+      "days": "天",
       "offerTitle": "免费试用 {plan} {days} 天",
       "activeTitle": "{plan} 试用中",
       "remainingDays": "剩余 {days} 天",

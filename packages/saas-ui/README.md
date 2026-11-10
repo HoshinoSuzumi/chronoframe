@@ -38,6 +38,11 @@ app root; the shell owns `main#main-content`.
   keyboard editing and reduced-motion support. Supply `v-model`, `aria-label`,
   `status` and `disabled`; handle `complete` in the application. Use a text
   input for recovery codes, which may include letters and separators.
+- `CfBorderGlow`: Vue adaptation of [React Bits BorderGlow](https://reactbits.dev/components/border-glow) for highlighted cards,
+  using semantic theme colors, pointer-following edge light, keyboard focus, and
+  reduced-motion support. Use `active` for emphasis and `animated` for a brief
+  entrance sweep; keep content and business state in the consuming app. The adapted
+  component retains its [upstream license notice](third-party/react-bits-LICENSE.md).
 - `CfCard`, `CfAlert`, `CfBadge`, `CfTable`, `CfSkeleton`, `CfSeparator`,
   `CfProgress`, `CfStatCard`, `CfUsageMeter`, `CfPageHeader`: shared presentation.
 - Nuxt UI `UModal`/`UDrawer`/`UTooltip`/`UApp` provide complex overlays. They share
