@@ -7,6 +7,15 @@ export default <RouterConfig>{
       return savedPosition
     }
 
+    // Closing before the opening navigation commits replaces the current wall
+    // with itself. Vue Router still runs scrollBehavior for that duplicate.
+    if (
+      to.fullPath &&
+      to.fullPath === from.fullPath &&
+      (to.path === '/' || to.path === '/photos')
+    )
+      return false
+
     if (to.name === 'slug') {
       return false
     }
