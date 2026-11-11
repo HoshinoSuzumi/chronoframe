@@ -233,3 +233,31 @@ test('unconfigured alternatives cannot be selected or send an email', async () =
   assert.equal(p.factor.value, 'totp')
   assert.equal(calls.length, 1)
 })
+
+test('email-code login waits for an authenticator challenge when the account has TOTP', async () => {
+  const calls: string[] = []
+  const p = await page('signin', async (url) => {
+    calls.push(url)
+    return url === '/api/auth/sign-in/email-otp'
+      ? {
+          twoFactorRedirect: true,
+          twoFactorMethods: ['totp'],
+          preferredTwoFactorMethod: 'totp',
+          hasRecoveryCodes: true,
+        }
+      : {}
+  })
+  p.mode.value = 'email'
+  p.email.value = 'user@example.com'
+  await p.submit()
+  p.code.value = '123456'
+  await p.submit()
+  assert.equal(p.step.value, 'second')
+  assert.equal(p.factor.value, 'totp')
+  assert.equal(p.code.value, '')
+  assert.equal(p.navigations(), 0)
+  p.code.value = '654321'
+  await p.submit()
+  assert.equal(calls.at(-1), '/api/auth/two-factor/verify-totp')
+  assert.equal(p.navigations(), 1)
+})

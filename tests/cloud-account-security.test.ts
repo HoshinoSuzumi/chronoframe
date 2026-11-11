@@ -179,6 +179,18 @@ test('Cloud account migration preserves identities and enforces verified registr
       'email-only recovery codes are encrypted at rest',
     )
     await call('/sign-out', {})
+    await call('/email-otp/send-verification-otp', { email, type: 'sign-in' })
+    const emailOnlyPrimaryCode = messages.at(-1)!.text.match(/\b[0-9]{6}\b/)![0]
+    const emailOnlyPrimary = await call('/sign-in/email-otp', {
+      email,
+      otp: emailOnlyPrimaryCode,
+    })
+    assert.equal(emailOnlyPrimary.data.twoFactorRedirect, undefined)
+    assert.ok(
+      (await call('/get-session')).data.user,
+      'email-only accounts complete sign-in with one email code',
+    )
+    await call('/sign-out', {})
     const unavailablePolicyDb = new Proxy(db, {
       get(target, property) {
         if (property === 'prepare')
@@ -329,6 +341,21 @@ test('Cloud account migration preserves identities and enforces verified registr
       403,
       'a pending login cannot use an unconfigured email factor',
     )
+    await db
+      .prepare(
+        "DELETE FROM platform_verifications WHERE identifier LIKE 'account-primary:%'",
+      )
+      .run()
+    assert.equal(
+      (
+        await call('/two-factor/verify-totp', {
+          code: totp(setup.data.totpURI),
+        })
+      ).response.status,
+      401,
+      'a challenge without server-side primary-proof metadata fails closed',
+    )
+    await call('/sign-in/email', { email, password })
     assert.equal(
       (
         await call('/two-factor/verify-totp', {
@@ -372,6 +399,64 @@ test('Cloud account migration preserves identities and enforces verified registr
       200,
       'configured email works even with an authenticator connected',
     )
+    await call('/sign-out', {})
+    await call('/email-otp/send-verification-otp', { email, type: 'sign-in' })
+    const outageEmailCode = messages.at(-1)!.text.match(/\b[0-9]{6}\b/)![0]
+    const failedEmailChallenge = await unavailablePolicyAuth.handler(
+      new Request('https://app.chronoframe.art/api/auth/sign-in/email-otp', {
+        method: 'POST',
+        headers: {
+          origin: 'https://app.chronoframe.art',
+          'content-type': 'application/json',
+          'cf-connecting-ip': '192.0.2.249',
+        },
+        body: JSON.stringify({ email, otp: outageEmailCode }),
+      }),
+    )
+    assert.equal(failedEmailChallenge.status, 500)
+    assert.equal(
+      (
+        await db
+          .prepare(
+            'SELECT COUNT(*) AS count FROM platform_auth_sessions WHERE user_id=(SELECT id FROM platform_users WHERE email=?)',
+          )
+          .bind(email)
+          .first()
+      ).count,
+      0,
+      'email policy lookup failures also revoke the new primary session',
+    )
+    await call('/email-otp/send-verification-otp', { email, type: 'sign-in' })
+    const primaryEmailCode = messages.at(-1)!.text.match(/\b[0-9]{6}\b/)![0]
+    const emailWithAuthenticator = await call('/sign-in/email-otp', {
+      email,
+      otp: primaryEmailCode,
+    })
+    assert.equal(emailWithAuthenticator.data.twoFactorRedirect, true)
+    assert.deepEqual(emailWithAuthenticator.data.twoFactorMethods, ['totp'])
+    assert.equal(
+      emailWithAuthenticator.data.preferredTwoFactorMethod,
+      'totp',
+      'email preference cannot repeat the first factor',
+    )
+    assert.equal((await call('/get-session')).data, null)
+    assert.deepEqual((await call('/two-factor/methods', {})).data.methods, [
+      'totp',
+    ])
+    assert.equal((await call('/two-factor/send-otp', {})).response.status, 403)
+    assert.equal(
+      (await call('/two-factor/verify-otp', { code: primaryEmailCode }))
+        .response.status,
+      403,
+    )
+    assert.equal(
+      (
+        await call('/two-factor/verify-backup-code', {
+          code: setup.data.backupCodes[9],
+        })
+      ).response.status,
+      200,
+    )
     const removedEmail = await call('/two-factor/remove-method', {
       method: 'otp',
       password,
@@ -393,11 +478,31 @@ test('Cloud account migration preserves identities and enforces verified registr
         type === 'sign-in' ? '/sign-in/email-otp' : '/email-otp/verify-email',
         { email, otp: emailCode },
       )
-      assert.equal(entry.data.twoFactorRedirect, undefined)
-      assert.ok(
-        (await call('/get-session')).data.user,
-        'direct email-code login stays a complete sign-in even when 2FA is enabled',
+      assert.equal(entry.data.twoFactorRedirect, true)
+      assert.deepEqual(entry.data.twoFactorMethods, ['totp'])
+      assert.equal(
+        (await call('/get-session')).data,
+        null,
+        'email proof cannot create a session before authenticator verification',
       )
+      assert.equal(
+        (await call('/two-factor/send-otp', {})).response.status,
+        403,
+      )
+      assert.equal(
+        (await call('/two-factor/verify-otp', { code: emailCode })).response
+          .status,
+        403,
+      )
+      assert.equal(
+        (
+          await call('/two-factor/verify-totp', {
+            code: totp(setup.data.totpURI),
+          })
+        ).response.status,
+        200,
+      )
+      assert.ok((await call('/get-session')).data.user)
       await call('/sign-out', {})
     }
     await call('/sign-out', {})

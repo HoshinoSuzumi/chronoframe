@@ -8,6 +8,7 @@ import {
 } from 'better-auth/api'
 import { generateRandomString, symmetricEncrypt } from 'better-auth/crypto'
 import { z } from 'zod'
+import { parseSetCookieHeader } from 'better-auth/cookies'
 import type { PlatformD1 } from '../../../../packages/platform/src/index.ts'
 import { accountTwoFactorPolicy } from '../../../../packages/platform/src/account-security.ts'
 import { isSocialLoginProvider } from '../../../../packages/contracts/src/social-login.ts'
@@ -21,6 +22,8 @@ export function accountFactors(
   const credentialGate = plugin.hooks.after[0]!
   type Context = Parameters<typeof credentialGate.handler>[0] & DispatchContext
   const method = z.enum(['totp', 'otp'])
+  const emailEntry = (path: string | undefined) =>
+    ['/sign-in/email-otp', '/email-otp/verify-email'].includes(path ?? '')
   const socialEntry = (ctx: {
     path?: string
     params?: Record<string, unknown>
@@ -72,7 +75,33 @@ export function accountFactors(
       await ctx.context.internalAdapter.findVerificationValue(identifier)
     if (!pending || new Date(pending.expiresAt).getTime() <= Date.now())
       return null
-    return pending.value
+    return { userId: pending.value, identifier }
+  }
+
+  /** Bind allowed factors to the server-recorded primary proof for this challenge. */
+  async function pendingPolicy(
+    ctx: Context,
+    pending: { userId: string; identifier: string },
+  ) {
+    const primary = await ctx.context.internalAdapter.findVerificationValue(
+      `account-primary:${pending.identifier}`,
+    )
+    if (
+      !primary ||
+      new Date(primary.expiresAt).getTime() <= Date.now() ||
+      !['email', 'other'].includes(primary.value)
+    )
+      throw new APIError('UNAUTHORIZED')
+    const policy = await accountTwoFactorPolicy(db, pending.userId)
+    if (primary.value === 'email') {
+      policy.methods = policy.methods.filter((method) => method !== 'otp')
+      policy.preferredMethod =
+        policy.preferredMethod === 'totp' && policy.methods.includes('totp')
+          ? 'totp'
+          : null
+      policy.defaultMethod = policy.methods.includes('totp') ? 'totp' : null
+    }
+    return policy
   }
 
   /** Email-only users also receive encrypted, single-use recovery codes. */
@@ -103,9 +132,9 @@ export function accountFactors(
         '/two-factor/methods',
         { method: 'POST' },
         async (ctx) => {
-          const userId = await pendingUser(ctx)
-          if (!userId) throw new APIError('UNAUTHORIZED')
-          const policy = await accountTwoFactorPolicy(db, userId)
+          const pending = await pendingUser(ctx)
+          if (!pending) throw new APIError('UNAUTHORIZED')
+          const policy = await pendingPolicy(ctx, pending)
           if (!policy.methods.length) throw new APIError('UNAUTHORIZED')
           return ctx.json(policy)
         },
@@ -245,9 +274,9 @@ export function accountFactors(
             )
               return
             const session = await getAuthoritativeSessionFromCtx(ctx)
-            const userId = session ? null : await pendingUser(ctx)
-            if (userId) {
-              const policy = await accountTwoFactorPolicy(db, userId)
+            const pending = session ? null : await pendingUser(ctx)
+            if (pending) {
+              const policy = await pendingPolicy(ctx, pending)
               const required = ctx.path?.endsWith('totp') ? 'totp' : 'otp'
               if (
                 ctx.path === '/two-factor/verify-backup-code'
@@ -314,11 +343,30 @@ export function accountFactors(
           matcher: (ctx: Parameters<typeof credentialGate.matcher>[0]) =>
             ctx.path === '/sign-in/social' ||
             credentialGate.matcher(ctx) ||
+            emailEntry(ctx.path) ||
             socialEntry(ctx),
           handler: Object.assign(
             async (input: Parameters<typeof credentialGate.handler>[0]) => {
               const ctx = input as Context
-              const userId = ctx.context.newSession?.user.id
+              const user = ctx.context.newSession?.user
+              const userId = user?.id
+              if (emailEntry(ctx.path)) {
+                if (
+                  !user ||
+                  !('twoFactorEnabled' in user) ||
+                  !user.twoFactorEnabled
+                )
+                  return { response: undefined, headers: undefined }
+                try {
+                  const policy = await accountTwoFactorPolicy(db, user.id)
+                  if (!policy.methods.includes('totp'))
+                    return { response: undefined, headers: undefined }
+                } catch (error) {
+                  // A failed policy lookup must still revoke the primary session.
+                  await credentialGate.handler(ctx)
+                  throw error
+                }
+              }
               const callback = ctx.context.responseHeaders?.get('location')
               const result: unknown = await credentialGate.handler(ctx)
               if (
@@ -338,7 +386,32 @@ export function accountFactors(
                 return result
               // Gate first: a failed preference lookup must never leave the
               // primary sign-in session authenticated without a second factor.
-              const policy = await accountTwoFactorPolicy(db, userId)
+              const headers = new Headers(
+                'headers' in result && result.headers instanceof Headers
+                  ? result.headers
+                  : undefined,
+              )
+              const cookieName = ctx.context.createAuthCookie('two_factor').name
+              const signedCookie = parseSetCookieHeader(
+                headers.get('set-cookie') ?? '',
+              ).get(cookieName)?.value
+              const identifier = signedCookie?.slice(
+                0,
+                signedCookie.lastIndexOf('.'),
+              )
+              const verification = identifier
+                ? await ctx.context.internalAdapter.findVerificationValue(
+                    identifier,
+                  )
+                : null
+              if (!identifier || !verification || verification.value !== userId)
+                throw new APIError('UNAUTHORIZED')
+              await ctx.context.internalAdapter.createVerificationValue({
+                identifier: `account-primary:${identifier}`,
+                value: emailEntry(ctx.path) ? 'email' : 'other',
+                expiresAt: verification.expiresAt,
+              })
+              const policy = await pendingPolicy(ctx, { userId, identifier })
               if (socialEntry(ctx)) {
                 const target = new URL('/signin', ctx.context.baseURL)
                 target.searchParams.set(
@@ -355,11 +428,6 @@ export function accountFactors(
                         destination.hash,
                     )
                 }
-                const headers = new Headers(
-                  'headers' in result && result.headers instanceof Headers
-                    ? result.headers
-                    : undefined,
-                )
                 headers.set('location', target.toString())
                 return {
                   response: new APIError('FOUND', undefined, {
