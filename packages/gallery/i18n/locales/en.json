@@ -690,7 +690,7 @@
         "description": "Drag and drop or select files. Photos will be automatically processed and added to the library.",
         "album": {
           "label": "Add to album (optional)",
-          "description": "All successful uploads go into this album.",
+          "description": "All successfully uploaded photos go into this album.",
           "none": "No album",
           "empty": "No albums available yet.",
           "hidden": "Hidden",
