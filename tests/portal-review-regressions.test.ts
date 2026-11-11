@@ -284,7 +284,11 @@ test('public navigation accepts case-preserving photo IDs while rejecting invali
     '/albums/my-gallery',
     '/albums/' + 'a'.repeat(80),
   ])
-    assert.equal(await module.default({ path }), undefined, path)
+    assert.equal(
+      await module.default({ path }, { matched: [] }),
+      undefined,
+      path,
+    )
   for (const path of [
     '/bad!',
     '/' + 'A'.repeat(129),
@@ -294,7 +298,11 @@ test('public navigation accepts case-preserving photo IDs while rejecting invali
     '/albums/' + 'a'.repeat(81),
     '/dashboard',
   ])
-    assert.equal((await module.default({ path })).statusCode, 404, path)
+    assert.equal(
+      (await module.default({ path }, { matched: [] })).statusCode,
+      404,
+      path,
+    )
 })
 
 test('Overview data stays unknown before the first response and retains counts during background refresh failures', async () => {
