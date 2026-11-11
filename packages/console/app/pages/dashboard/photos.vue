@@ -2070,90 +2070,96 @@ onUnmounted(() => {
           :can-upload="canUseSelectedUploadAlbum"
           @upload="handleUpload"
         >
-          <UCard
-            variant="soft"
-            class="border border-neutral-200/80 dark:border-neutral-800/80"
-          >
-            <UFormField
-              :label="$t('dashboard.photos.slideover.album.label')"
-              :description="$t('dashboard.photos.slideover.album.description')"
+          <template #options>
+            <UCard
+              variant="soft"
+              class="border border-neutral-200/80 dark:border-neutral-800/80"
             >
-              <USelectMenu
-                v-model="selectedUploadAlbumId"
-                :items="uploadAlbumItems"
-                value-key="value"
-                label-key="label"
-                :loading="isLoadingUploadAlbums"
-                :disabled="isLoadingUploadAlbums"
-                :aria-label="$t('dashboard.photos.slideover.album.label')"
-                class="w-full"
-              />
-            </UFormField>
-            <p
-              v-if="
-                !isLoadingUploadAlbums &&
-                !uploadAlbumsLoadFailed &&
-                uploadAlbums.length === 0
-              "
-              class="mt-2 text-xs text-neutral-500 dark:text-neutral-400"
-            >
-              {{ $t('dashboard.photos.slideover.album.empty') }}
-            </p>
-            <p
-              v-if="selectedUploadAlbumUnavailable"
-              role="alert"
-              class="mt-2 text-sm text-error-600 dark:text-error-400"
-            >
-              {{
-                $t(
-                  requestedUploadAlbumId === selectedUploadAlbumId
-                    ? 'dashboard.photos.slideover.album.requestedUnavailable'
-                    : 'dashboard.photos.slideover.album.unavailable',
-                )
-              }}
-            </p>
-            <div
-              v-if="uploadAlbumsLoadFailed"
-              role="alert"
-              class="mt-2 flex items-center justify-between gap-2 text-sm text-error-600 dark:text-error-400"
-            >
-              <span>{{
-                $t('dashboard.photos.slideover.album.loadFailedUpload')
-              }}</span>
-              <UButton
-                size="xs"
-                variant="soft"
-                @click="loadUploadAlbums"
+              <UFormField
+                :label="$t('dashboard.photos.slideover.album.label')"
+                :description="
+                  $t('dashboard.photos.slideover.album.description')
+                "
               >
-                {{ $t('dashboard.photos.slideover.album.retry') }}
-              </UButton>
-            </div>
-          </UCard>
-
-          <UCard
-            variant="soft"
-            class="border border-neutral-200/80 dark:border-neutral-800/80"
-          >
-            <div class="flex items-start justify-between gap-4">
-              <div class="space-y-1">
-                <p
-                  class="text-sm font-medium text-neutral-800 dark:text-neutral-100"
+                <USelectMenu
+                  v-model="selectedUploadAlbumId"
+                  :items="uploadAlbumItems"
+                  value-key="value"
+                  label-key="label"
+                  :loading="isLoadingUploadAlbums"
+                  :disabled="isLoadingUploadAlbums"
+                  :aria-label="$t('dashboard.photos.slideover.album.label')"
+                  class="w-full"
+                />
+              </UFormField>
+              <p
+                v-if="
+                  !isLoadingUploadAlbums &&
+                  !uploadAlbumsLoadFailed &&
+                  uploadAlbums.length === 0
+                "
+                class="mt-2 text-xs text-neutral-500 dark:text-neutral-400"
+              >
+                {{ $t('dashboard.photos.slideover.album.empty') }}
+              </p>
+              <p
+                v-if="selectedUploadAlbumUnavailable"
+                role="alert"
+                class="mt-2 text-sm text-error-600 dark:text-error-400"
+              >
+                {{
+                  $t(
+                    requestedUploadAlbumId === selectedUploadAlbumId
+                      ? 'dashboard.photos.slideover.album.requestedUnavailable'
+                      : 'dashboard.photos.slideover.album.unavailable',
+                  )
+                }}
+              </p>
+              <div
+                v-if="uploadAlbumsLoadFailed"
+                role="alert"
+                class="mt-2 flex items-center justify-between gap-2 text-sm text-error-600 dark:text-error-400"
+              >
+                <span>{{
+                  $t('dashboard.photos.slideover.album.loadFailedUpload')
+                }}</span>
+                <UButton
+                  size="xs"
+                  variant="soft"
+                  @click="loadUploadAlbums"
                 >
-                  {{
-                    $t('dashboard.photos.slideover.options.eraseLocation.label')
-                  }}
-                </p>
-                <p class="text-xs text-neutral-500 dark:text-neutral-400">
-                  {{
-                    $t(
-                      'dashboard.photos.slideover.options.eraseLocation.description',
-                    )
-                  }}
-                </p>
+                  {{ $t('dashboard.photos.slideover.album.retry') }}
+                </UButton>
               </div>
-              <USwitch v-model="uploadEraseLocationEnabled" />
-            </div>
-          </UCard>
+            </UCard>
+
+            <UCard
+              variant="soft"
+              class="border border-neutral-200/80 dark:border-neutral-800/80"
+            >
+              <div class="flex items-start justify-between gap-4">
+                <div class="space-y-1">
+                  <p
+                    class="text-sm font-medium text-neutral-800 dark:text-neutral-100"
+                  >
+                    {{
+                      $t(
+                        'dashboard.photos.slideover.options.eraseLocation.label',
+                      )
+                    }}
+                  </p>
+                  <p class="text-xs text-neutral-500 dark:text-neutral-400">
+                    {{
+                      $t(
+                        'dashboard.photos.slideover.options.eraseLocation.description',
+                      )
+                    }}
+                  </p>
+                </div>
+                <USwitch v-model="uploadEraseLocationEnabled" />
+              </div>
+            </UCard>
+          </template>
         </PhotoUploadSlideover>
 
         <!-- 统合容器：工具栏 + 照片列表 -->

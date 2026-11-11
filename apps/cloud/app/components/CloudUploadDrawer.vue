@@ -115,29 +115,31 @@ async function startUpload() {
         @retry="quota.refresh()"
       />
     </template>
-    <UCard
-      variant="soft"
-      class="border border-neutral-200/80 dark:border-neutral-800/80"
-    >
-      <UFormField
-        :label="$t('cloud.transfer.albums')"
-        :description="$t('cloud.transfer.albumHelp')"
+    <template #options>
+      <UCard
+        variant="soft"
+        class="border border-neutral-200/80 dark:border-neutral-800/80"
       >
-        <USelectMenu
-          v-model="selectedAlbumIds"
-          multiple
-          value-key="value"
-          :items="
-            albums.map((album) => ({
-              label: album.title,
-              value: Number(album.id),
-            }))
-          "
-          :placeholder="$t('cloud.transfer.selectAlbums')"
-          :disabled="selectionLocked || !admin"
-          class="w-full"
-        />
-      </UFormField>
-    </UCard>
+        <UFormField
+          :label="$t('cloud.transfer.albums')"
+          :description="$t('cloud.transfer.albumHelp')"
+        >
+          <USelectMenu
+            v-model="selectedAlbumIds"
+            multiple
+            value-key="value"
+            :items="
+              albums.map((album) => ({
+                label: album.title,
+                value: Number(album.id),
+              }))
+            "
+            :placeholder="$t('cloud.transfer.selectAlbums')"
+            :disabled="selectionLocked || !admin"
+            class="w-full"
+          />
+        </UFormField>
+      </UCard>
+    </template>
   </PhotoUploadSlideover>
 </template>

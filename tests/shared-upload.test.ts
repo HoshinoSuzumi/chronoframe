@@ -81,12 +81,22 @@ function transport(globals: Record<string, unknown> = {}) {
 }
 
 test('both editions render the same upload controls and Cloud mounts its queue outside routed layouts', () => {
+  const slideover = readFileSync(
+    'packages/console/app/components/ui/PhotoUploadSlideover.vue',
+    'utf8',
+  )
+  assert.match(slideover, /#footer[\s\S]*\$slots\.options[\s\S]*name="options"/)
+  assert.match(
+    slideover,
+    /#footer[\s\S]*name="options"[\s\S]*slideover\.buttons\.clear/,
+  )
   for (const path of [
     'packages/console/app/pages/dashboard/photos.vue',
     'apps/cloud/app/components/CloudUploadDrawer.vue',
   ]) {
     const source = readFileSync(path, 'utf8')
     assert.match(source, /<PhotoUploadSlideover/)
+    assert.match(source, /#options/)
     assert.doesNotMatch(source, /<UFileUpload|type="file"/)
   }
   const cloud = readFileSync('apps/cloud/app/app.vue', 'utf8')
