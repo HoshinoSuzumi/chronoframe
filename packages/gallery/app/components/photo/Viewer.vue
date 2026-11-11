@@ -25,6 +25,7 @@ interface Props {
 }
 
 const props = defineProps<Props>()
+useViewerScrollLock(toRef(props, 'isOpen'))
 const emit = defineEmits<{
   close: []
   indexChange: [index: number]
@@ -318,10 +319,7 @@ watch(
         clearTimeout(zoomLevelTimer.value)
         zoomLevelTimer.value = null
       }
-      // TODO: 实现自定义的 ScrollArea 后移除
-      document.body.style.overflow = ''
     } else {
-      document.body.style.overflow = 'hidden'
       // Process current LivePhoto when viewer opens
       nextTick(() => {
         processCurrentLivePhoto()
