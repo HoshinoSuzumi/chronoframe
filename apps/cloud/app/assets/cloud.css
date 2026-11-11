@@ -3206,6 +3206,9 @@ a.cf-domain-address:hover {
 .cf-auth-form .cf-input {
   width: 100%;
 }
+.cf-auth-form form .cf-code-slots {
+  max-width: none;
+}
 .cf-auth-form input:not(.cf-code-slots__input) {
   min-height: 44px;
 }
