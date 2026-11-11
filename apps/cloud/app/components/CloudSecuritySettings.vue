@@ -7,6 +7,7 @@ import { KeyRound, Fingerprint } from 'lucide-vue-next'
 import type { AccountSecurity } from '@chronoframe/contracts/account-security'
 const { data: security, refresh } =
   await useFetch<AccountSecurity>('/api/auth/security')
+const passkeyCount = computed(() => security.value?.passkeys.length ?? 0)
 const password = ref(''),
   newPassword = ref(''),
   passkeyName = ref('')
@@ -200,9 +201,11 @@ async function deletePasskey(id: number) {
           <h3>{{ $t('cloud.messages.passkeys') }}</h3>
           <p>
             {{
-              $t('cloud.security.passkeyCount', {
-                count: security?.passkeys.length ?? 0,
-              })
+              $t(
+                'cloud.security.passkeyCount',
+                { count: passkeyCount },
+                passkeyCount,
+              )
             }}
           </p>
         </div>

@@ -13,6 +13,7 @@ async function security(
   ) => Promise<unknown>,
   refresh = async () => {},
   component = 'CloudTwoFactorSettings',
+  methods = ['totp', 'otp'],
 ) {
   const source = readFileSync(
     `apps/cloud/app/components/${component}.vue`,
@@ -30,7 +31,7 @@ async function security(
   const props = {
     security: {
       hasPassword: true,
-      methods: ['totp', 'otp'],
+      methods,
       preferredMethod: null,
     },
     refresh,
@@ -126,19 +127,27 @@ test('changing a preference waits for explicit confirmation and clears its passw
   assert.equal(refreshed, 1)
 })
 
-test('email enrollment displays recovery codes and removing one of several factors does not authorize disabling 2FA', async () => {
-  const calls: { url: string; body?: Record<string, unknown> }[] = []
-  const p = await security(async (url, options) => {
-    calls.push({ url, body: options?.body })
-    return url.endsWith('/enable')
-      ? { backupCodes: ['one-use-recovery'] }
-      : { methods: [] }
-  })
+test('email-only enrollment displays newly issued recovery codes', async () => {
+  const p = await security(
+    async () => ({ backupCodes: ['one-use-recovery'] }),
+    async () => {},
+    'CloudTwoFactorSettings',
+    [],
+  )
   p.requestAction('enable', 'otp')
   p.password.value = 'current-password'
   await p.submitAction()
   assert.equal(p.modal.value, 'recovery')
   assert.deepEqual(p.backupCodes.value, ['one-use-recovery'])
+})
+
+test('removing one of several factors retains recovery codes and does not authorize disabling 2FA', async () => {
+  const calls: { url: string; body?: Record<string, unknown> }[] = []
+  const p = await security(async (url, options) => {
+    calls.push({ url, body: options?.body })
+    return { methods: ['totp'] }
+  })
+  p.backupCodes.value = ['one-use-recovery']
   p.totpURI.value = 'otpauth://pending-enrollment'
   p.requestAction('remove', 'otp')
   p.password.value = 'current-password'
@@ -146,5 +155,24 @@ test('email enrollment displays recovery codes and removing one of several facto
   assert.equal(calls.at(-1)?.url, '/api/auth/two-factor/remove-method')
   assert.equal(calls.at(-1)?.body?.confirmDisable, false)
   assert.equal(p.totpURI.value, '')
+  assert.deepEqual(p.backupCodes.value, ['one-use-recovery'])
+})
+
+test('removing the final factor explicitly confirms disabling 2FA and clears displayed recovery codes', async () => {
+  let body: Record<string, unknown> | undefined
+  const p = await security(
+    async (_url, options) => {
+      body = options?.body
+      return { methods: [] }
+    },
+    async () => {},
+    'CloudTwoFactorSettings',
+    ['otp'],
+  )
+  p.backupCodes.value = ['old-recovery-code']
+  p.requestAction('remove', 'otp')
+  p.password.value = 'current-password'
+  await p.submitAction()
+  assert.equal(body?.confirmDisable, true)
   assert.deepEqual(p.backupCodes.value, [])
 })

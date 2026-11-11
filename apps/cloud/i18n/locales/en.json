@@ -1066,7 +1066,7 @@
       "backToSignIn": "Back to sign in",
       "notConfigured": "Not configured",
       "changePassword": "Change password",
-      "passkeyCount": "{count} passkeys configured",
+      "passkeyCount": "{count} passkey configured | {count} passkeys configured",
       "manage": "Manage",
       "factorChanged": "Your configured methods have changed. Reload the page and confirm whether to turn off two-factor authentication."
     }
