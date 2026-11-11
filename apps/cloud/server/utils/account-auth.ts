@@ -282,41 +282,45 @@ export function accountAuthOptions(
           )
         },
       }),
-      accountFactors({
-        issuer: 'ChronoFrame Cloud',
-        schema: {
-          user: { fields: { twoFactorEnabled: 'two_factor_enabled' } },
-          twoFactor: {
-            modelName: 'platform_two_factors',
-            fields: {
-              userId: 'user_id',
-              backupCodes: 'backup_codes',
-              failedVerificationCount: 'failed_verification_count',
-              lockedUntil: 'locked_until',
+      accountFactors(
+        {
+          issuer: 'ChronoFrame Cloud',
+          allowPasswordless: true,
+          schema: {
+            user: { fields: { twoFactorEnabled: 'two_factor_enabled' } },
+            twoFactor: {
+              modelName: 'platform_two_factors',
+              fields: {
+                userId: 'user_id',
+                backupCodes: 'backup_codes',
+                failedVerificationCount: 'failed_verification_count',
+                lockedUntil: 'locked_until',
+              },
             },
           },
-        },
-        otpOptions: {
-          storeOTP: {
-            hash: async (otp) =>
-              (await createEmailCodeCrypto(config.secret)).mac([
-                'account-second-factor',
-                otp,
-              ]),
+          otpOptions: {
+            storeOTP: {
+              hash: async (otp) =>
+                (await createEmailCodeCrypto(config.secret)).mac([
+                  'account-second-factor',
+                  otp,
+                ]),
+            },
+            async sendOTP({ user, otp }) {
+              await sendMail(db, email, 'second-factor', user.email, {
+                code: otp,
+                minutes: '3',
+              })
+            },
           },
-          async sendOTP({ user, otp }) {
-            await sendMail(db, email, 'second-factor', user.email, {
-              code: otp,
-              minutes: '3',
-            })
+          accountLockout: {
+            enabled: true,
+            maxFailedAttempts: 5,
+            durationSeconds: 900,
           },
         },
-        accountLockout: {
-          enabled: true,
-          maxFailedAttempts: 5,
-          durationSeconds: 900,
-        },
-      }),
+        db,
+      ),
       passkey({
         rpName: 'ChronoFrame Cloud',
         rpID: origin.hostname,

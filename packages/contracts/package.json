@@ -24,7 +24,8 @@
     "./social-login": "./src/social-login.ts",
     "./account-profile": "./src/account-profile.ts",
     "./platform-setup": "./src/platform-setup.ts",
-    "./workspace-settings": "./src/workspace-settings.ts"
+    "./workspace-settings": "./src/workspace-settings.ts",
+    "./account-security": "./src/account-security.ts"
   },
   "scripts": {
     "type-check": "tsc --noEmit"

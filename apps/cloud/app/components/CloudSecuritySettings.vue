@@ -2,25 +2,19 @@
 const { t } = useI18n()
 
 import { accountError } from '../utils/account-error'
+import { KeyRound, Fingerprint } from 'lucide-vue-next'
 
-const { data: security, refresh } = await useFetch<{
-  email: string
-  hasPassword: boolean
-  twoFactorEnabled: boolean
-  hasAuthenticator: boolean
-  passkeys: { id: number; name: string | null; createdAt: string }[]
-}>('/api/auth/security')
+import type { AccountSecurity } from '@chronoframe/contracts/account-security'
+const { data: security, refresh } =
+  await useFetch<AccountSecurity>('/api/auth/security')
 const password = ref(''),
   newPassword = ref(''),
-  code = ref(''),
   passkeyName = ref('')
 const busy = ref(false),
   error = ref(''),
-  authenticatorError = ref(''),
-  notice = ref(''),
-  qr = ref(''),
-  totpURI = ref(''),
-  backupCodes = ref<string[]>([])
+  notice = ref('')
+const passwordOpen = ref(false)
+const passkeysOpen = ref(false)
 const toast = useToast()
 watch(error, (text) => text && toast.add({ title: text, color: 'error' }), {
   flush: 'sync',
@@ -42,6 +36,12 @@ async function run(action: () => Promise<void>) {
     busy.value = false
   }
 }
+/** Expand password management without retaining an earlier password draft. */
+function togglePassword() {
+  passwordOpen.value = !passwordOpen.value
+  password.value = ''
+  newPassword.value = ''
+}
 async function changePassword() {
   await run(async () => {
     await $fetch('/api/auth/change-password', {
@@ -54,77 +54,9 @@ async function changePassword() {
     })
     newPassword.value = ''
     password.value = ''
+    passwordOpen.value = false
     notice.value = t(
       'cloud.messages.passwordUpdatedOtherSessionsHaveBeenSignedOut',
-    )
-  })
-}
-async function enable(method: 'otp' | 'totp') {
-  await run(async () => {
-    const result = await $fetch<{ totpURI?: string; backupCodes?: string[] }>(
-      '/api/auth/two-factor/enable',
-      { method: 'POST', body: { password: password.value, method } },
-    )
-    password.value = ''
-    if (result.totpURI) {
-      authenticatorError.value = ''
-      totpURI.value = result.totpURI
-      backupCodes.value = result.backupCodes ?? []
-      const QRCode = await import('qrcode')
-      qr.value = await QRCode.toDataURL(result.totpURI, {
-        width: 240,
-        margin: 2,
-      })
-      notice.value = t('cloud.messages.scanTheQrCodeSaveYourRecoveryCodesAnd')
-    } else
-      notice.value = t('cloud.messages.emailSecondStepVerificationIsEnabled')
-  })
-}
-/** Mark only failed authenticator verification as an invalid code. */
-async function confirmAuthenticator() {
-  if (busy.value || !/^[0-9]{6}$/.test(code.value)) return
-  authenticatorError.value = ''
-  await run(async () => {
-    try {
-      await $fetch('/api/auth/two-factor/verify-totp', {
-        method: 'POST',
-        body: { code: code.value },
-      })
-    } catch (cause) {
-      authenticatorError.value = accountError(cause, t)
-      throw cause
-    }
-    code.value = ''
-    qr.value = ''
-    totpURI.value = ''
-    notice.value = t(
-      'cloud.messages.authenticatorVerifiedAndEnabledKeepYourRecoveryCodesSomewhere',
-    )
-  })
-}
-async function disable() {
-  await run(async () => {
-    await $fetch('/api/auth/two-factor/disable', {
-      method: 'POST',
-      body: { password: password.value },
-    })
-    password.value = ''
-    backupCodes.value = []
-    qr.value = ''
-    totpURI.value = ''
-    notice.value = t('cloud.messages.twoStepVerificationHasBeenDisabled')
-  })
-}
-async function regenerate() {
-  await run(async () => {
-    const result = await $fetch<{ backupCodes: string[] }>(
-      '/api/auth/two-factor/generate-backup-codes',
-      { method: 'POST', body: { password: password.value } },
-    )
-    backupCodes.value = result.backupCodes
-    password.value = ''
-    notice.value = t(
-      'cloud.messages.newRecoveryCodesGeneratedYourPreviousCodesNoLonger',
     )
   })
 }
@@ -161,21 +93,55 @@ async function deletePasskey(id: number) {
           id="security-heading"
           class="cf-page-title"
         >
-          {{ $t('cloud.messages.security') }}
+          {{ $t('cloud.security.signInMethods') }}
         </h2>
         <p class="cf-page-description">
-          {{ $t('cloud.ui.securityFor', { email: security?.email || '' }) }}
+          {{ $t('cloud.security.signInHelp') }}
         </p>
       </div>
     </div>
-    <CfCard class="cf-security-card"
-      ><div class="cf-settings-intro">
-        <h2>{{ $t('cloud.messages.password') }}</h2>
-        <p>
-          {{ $t('cloud.messages.useAUniquePasswordWithAtLeast12Characters') }}
-        </p>
+    <CfCard class="cf-signin-methods">
+      <div class="cf-signin-method-row">
+        <KeyRound
+          :size="20"
+          aria-hidden="true"
+        />
+        <div>
+          <h3>{{ $t('cloud.messages.password') }}</h3>
+          <p>
+            {{
+              $t(
+                security?.hasPassword
+                  ? 'cloud.security.configured'
+                  : 'cloud.security.notConfigured',
+              )
+            }}
+          </p>
+        </div>
+        <CfButton
+          variant="outline"
+          size="sm"
+          :disabled="busy"
+          :aria-expanded="passwordOpen"
+          aria-controls="password-settings"
+          @click="togglePassword"
+        >
+          {{
+            $t(
+              passwordOpen
+                ? 'cloud.messages.cancel'
+                : security?.hasPassword
+                  ? 'cloud.security.changePassword'
+                  : 'cloud.security.configure',
+            )
+          }}
+        </CfButton>
       </div>
-      <div class="cf-settings-body">
+      <div
+        v-if="passwordOpen"
+        id="password-settings"
+        class="cf-signin-method-editor"
+      >
         <form
           v-if="security?.hasPassword"
           @submit.prevent="changePassword"
@@ -224,151 +190,40 @@ async function deletePasskey(id: number) {
             ></template
           >
         </i18n-t>
-      </div></CfCard
-    >
-    <CfCard class="cf-security-card"
-      ><div class="cf-settings-intro">
+      </div>
+      <div class="cf-signin-method-row">
+        <Fingerprint
+          :size="20"
+          aria-hidden="true"
+        />
         <div>
-          <h2>{{ $t('cloud.messages.twoStepVerification') }}</h2>
+          <h3>{{ $t('cloud.messages.passkeys') }}</h3>
           <p>
             {{
-              $t(
-                'cloud.messages.addACodeAfterPasswordSignInConnectedAuthenticators',
-              )
+              $t('cloud.security.passkeyCount', {
+                count: security?.passkeys.length ?? 0,
+              })
             }}
           </p>
         </div>
-        <CfBadge :tone="security?.twoFactorEnabled ? 'success' : 'neutral'">{{
-          security?.twoFactorEnabled
-            ? $t('cloud.messages.enabled')
-            : $t('cloud.messages.off')
-        }}</CfBadge>
-      </div>
-      <div class="cf-settings-body">
-        <template v-if="security?.hasPassword"
-          ><label for="security-password">{{
-            $t('cloud.messages.confirmYourPasswordToChangeSecuritySettings')
-          }}</label
-          ><CfInput
-            id="security-password"
-            v-model="password"
-            type="password"
-            autocomplete="current-password"
-            :disabled="busy"
-          />
-          <div class="cf-security-actions">
-            <CfButton
-              v-if="!security.twoFactorEnabled"
-              :disabled="busy || !password"
-              @click="enable('otp')"
-              >{{ $t('cloud.messages.enableEmailVerification') }}</CfButton
-            ><CfButton
-              v-if="!security.hasAuthenticator"
-              variant="secondary"
-              :disabled="busy || !password"
-              @click="enable('totp')"
-              >{{ $t('cloud.messages.setUpAuthenticator') }}</CfButton
-            ><CfButton
-              v-if="security.twoFactorEnabled"
-              variant="destructive"
-              :disabled="busy || !password"
-              @click="disable"
-              >{{ $t('cloud.messages.disableTwoStepVerification') }}</CfButton
-            >
-          </div>
-          <div
-            v-if="totpURI"
-            class="cf-totp-setup"
-          >
-            <img
-              v-if="qr"
-              :src="qr"
-              width="240"
-              height="240"
-              :alt="
-                $t(
-                  'cloud.messages.scanThisPrivateQrCodeWithYourAuthenticatorApp',
-                )
-              "
-            />
-            <details>
-              <summary>{{ $t('cloud.messages.cannotScanTheQrCode') }}</summary>
-              <p class="cf-secret-value">{{ totpURI }}</p>
-            </details>
-            <form @submit.prevent="confirmAuthenticator">
-              <label for="totp-code">{{
-                $t('cloud.messages.authenticatorCode')
-              }}</label
-              ><CfCodeSlots
-                id="totp-code"
-                v-model="code"
-                :aria-label="$t('cloud.messages.authenticatorCode')"
-                :status="authenticatorError ? 'error' : 'idle'"
-                @edit="authenticatorError = ''"
-                @complete="confirmAuthenticator"
-                required
-                :disabled="busy"
-              /><CfButton
-                type="submit"
-                :loading="busy"
-                >{{ $t('cloud.messages.verifyAndEnable') }}</CfButton
-              >
-            </form>
-          </div>
-          <div v-if="security.hasAuthenticator">
-            <p>
-              {{
-                $t(
-                  'cloud.messages.authenticatorConnectedRecoveryCodesAreSingleUseGeneratingNew',
-                )
-              }}
-            </p>
-            <CfButton
-              variant="secondary"
-              :disabled="busy || !password"
-              @click="regenerate"
-              >{{ $t('cloud.messages.replaceRecoveryCodes') }}</CfButton
-            >
-          </div>
-          <div
-            v-if="backupCodes.length"
-            class="cf-notice"
-          >
-            <strong>{{
-              $t('cloud.messages.saveTheseRecoveryCodesPrivately')
-            }}</strong>
-            <p>
-              {{
-                $t('cloud.messages.theseAreOnlyShownHereKeepThemOutsideThis')
-              }}
-            </p>
-            <ul class="cf-recovery-codes">
-              <li
-                v-for="item in backupCodes"
-                :key="item"
-              >
-                <code>{{ item }}</code>
-              </li>
-            </ul>
-            <CfButton
-              variant="secondary"
-              @click="backupCodes = []"
-              >{{ $t('cloud.messages.iHaveSavedMyCodes') }}</CfButton
-            >
-          </div></template
+        <CfButton
+          variant="outline"
+          size="sm"
+          :disabled="busy"
+          :aria-expanded="passkeysOpen"
+          aria-controls="passkey-settings"
+          @click="passkeysOpen = !passkeysOpen"
         >
-      </div></CfCard
-    >
-    <CfCard class="cf-security-card"
-      ><div class="cf-settings-intro">
-        <h2>{{ $t('cloud.messages.passkeys') }}</h2>
-        <p>
           {{
-            $t('cloud.messages.useYourDeviceLockFingerprintOrSecurityKeyYour')
+            $t(passkeysOpen ? 'cloud.messages.cancel' : 'cloud.security.manage')
           }}
-        </p>
+        </CfButton>
       </div>
-      <div class="cf-settings-body">
+      <div
+        v-if="passkeysOpen"
+        id="passkey-settings"
+        class="cf-signin-method-editor"
+      >
         <form @submit.prevent="addPasskey">
           <label for="passkey-name">{{
             $t('cloud.messages.passkeyName')
@@ -415,7 +270,72 @@ async function deletePasskey(id: number) {
         >
           {{ $t('cloud.messages.noPasskeysYet') }}
         </p>
-      </div></CfCard
-    >
+      </div>
+    </CfCard>
+    <CloudAccountConnections />
+    <CloudTwoFactorSettings
+      :security="security ?? null"
+      :refresh="refresh"
+    />
   </section>
 </template>
+
+<style scoped>
+.cf-signin-methods {
+  overflow: hidden;
+  margin-block: 16px;
+}
+.cf-signin-method-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 18px;
+}
+.cf-signin-method-row + .cf-signin-method-row,
+.cf-signin-method-editor + .cf-signin-method-row {
+  border-top: 1px solid var(--border);
+}
+.cf-signin-method-row > svg {
+  color: var(--muted-foreground);
+  flex-shrink: 0;
+}
+.cf-signin-method-row > div {
+  flex: 1;
+  min-width: 0;
+}
+.cf-signin-method-row h3 {
+  font-size: 14px;
+  font-weight: 600;
+}
+.cf-signin-method-row p {
+  font-size: 13px;
+  color: var(--muted-foreground);
+  margin-top: 4px;
+}
+.cf-signin-method-editor {
+  border-top: 1px solid var(--border);
+  padding: 18px;
+}
+.cf-signin-method-editor form {
+  display: grid;
+  gap: 10px;
+  max-width: 440px;
+}
+.cf-signin-method-editor form > button {
+  justify-self: start;
+}
+.cf-signin-method-editor > p {
+  font-size: 13px;
+  color: var(--muted-foreground);
+}
+@media (max-width: 600px) {
+  .cf-signin-method-row {
+    gap: 12px;
+    padding: 16px;
+  }
+  .cf-signin-method-row button {
+    max-width: 45%;
+    white-space: normal;
+  }
+}
+</style>

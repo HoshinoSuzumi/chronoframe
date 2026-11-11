@@ -19,6 +19,11 @@ export function accountError(cause: unknown, t: (key: string) => string) {
       ' ' +
       (error.data?.message ?? (cause as { message?: string }).message ?? '')
     )
+  if (code === 'LAST_FACTOR') return t('cloud.security.factorChanged')
+  if (code === 'FACTOR_NOT_ENABLED')
+    return t('cloud.security.methodUnavailable')
+  if (code === 'INVALID_TWO_FACTOR_COOKIE')
+    return t('cloud.security.challengeExpired')
   if (code === 'AUTHENTICATOR_REQUIRED')
     return t('cloud.messages.useYourAuthenticatorOrAnUnusedRecoveryCodeTo')
   if (code.includes('PASSWORD_TOO_SHORT'))

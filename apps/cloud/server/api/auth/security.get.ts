@@ -1,3 +1,4 @@
+import { accountTwoFactorPolicy } from '../../../../../packages/platform/src/account-security'
 import {
   definePlatformHandler,
   platformDatabase,
@@ -32,11 +33,14 @@ export default definePlatformHandler(async (event) => {
     )
     .bind(session.userId)
     .first<{ items: string }>()
+  const policy = await accountTwoFactorPolicy(db, session.userId)
   return {
+    ...policy,
     email: user!.email,
     hasPassword: !!credential,
     twoFactorEnabled: !!user!.twoFactorEnabled,
     hasAuthenticator: !!factor?.verified,
+    emailTwoFactorEnabled: policy.methods.includes('otp'),
     passkeys: JSON.parse(passkeys?.items ?? '[]') as {
       id: number
       name: string | null
