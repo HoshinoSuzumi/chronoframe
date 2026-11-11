@@ -10,6 +10,7 @@ function setup({
   gutter = '',
   computedGutter = 'auto',
   overflow = '',
+  supported = true,
 } = {}) {
   const root = {
     clientWidth: 1400 - scrollbar,
@@ -30,7 +31,9 @@ function setup({
       require: () => ({ watch }),
       document: { documentElement: root, body },
       window: { innerWidth: 1400 },
-      getComputedStyle: () => ({ scrollbarGutter: computedGutter }),
+      getComputedStyle: () => ({
+        scrollbarGutter: supported ? computedGutter : undefined,
+      }),
     },
   )
   const open = ref(false)
@@ -82,4 +85,17 @@ test('viewer preserves overlay scrollbars, short pages and existing gutter polic
     assert.equal(root.style.scrollbarGutter, options.gutter ?? '')
     assert.equal(body.style.overflow, '')
   }
+})
+
+// Older browsers must still open the viewer even without scrollbar-gutter.
+test('viewer keeps working when the computed gutter property is unavailable', async () => {
+  const { body, open, scope } = setup({ supported: false })
+  try {
+    open.value = true
+    await nextTick()
+    assert.equal(body.style.overflow, 'hidden')
+  } finally {
+    scope.stop()
+  }
+  assert.equal(body.style.overflow, '')
 })

@@ -15,7 +15,7 @@ export function useViewerScrollLock(isOpen: Readonly<Ref<boolean>>) {
       // Keep existing stable/both-edges policies and overlay scrollbars intact.
       if (
         window.innerWidth > root.clientWidth &&
-        !getComputedStyle(root).scrollbarGutter.includes('stable')
+        !getComputedStyle(root).scrollbarGutter?.includes('stable')
       )
         root.style.scrollbarGutter = 'stable'
       body.style.overflow = 'hidden'
