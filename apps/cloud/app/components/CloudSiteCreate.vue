@@ -138,9 +138,7 @@ async function create() {
         <UFormField
           :label="$t('cloud.messages.siteAddress')"
           :help="
-            $t('cloud.messages.use340LowercaseLettersNumbersOrHyphensSome', {
-              domain: siteBaseDomain,
-            })
+            $t('cloud.messages.use340LowercaseLettersNumbersOrHyphensSome')
           "
           name="slug"
         >

@@ -174,7 +174,7 @@
       "siteName": "站点名称",
       "siteNamePlaceholder": "例如：我的摄影集",
       "siteAddress": "站点地址",
-      "use340LowercaseLettersNumbersOrHyphensSome": "使用 3–40 个小写字母、数字或连字符。部分地址已被保留，此处暂不支持修改地址。地址后缀为 .{domain}。",
+      "use340LowercaseLettersNumbersOrHyphensSome": "使用 3–40 个小写字母、数字或连字符。",
       "viewSite": "访问站点",
       "loadingSiteAddress": "正在加载站点地址…",
       "siteAddressCouldNotBeLoaded": "无法加载站点地址。",
