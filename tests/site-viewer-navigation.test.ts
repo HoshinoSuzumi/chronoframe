@@ -119,6 +119,16 @@ test('Site viewer route keeps scroll on open/close and preserves normal navigati
       'closing while the open navigation is pending must keep the wall scroll',
     )
   }
+  for (const path of ['/', '/photos']) {
+    const anchorRoute = { path, fullPath: `${path}#summer`, hash: '#summer' }
+    assert.deepEqual(
+      JSON.parse(
+        JSON.stringify(router.scrollBehavior(anchorRoute, anchorRoute, null)),
+      ),
+      { el: '#summer' },
+      'revisiting the same wall anchor must scroll back to that anchor',
+    )
+  }
   const saved = { left: 0, top: 900 }
   assert.equal(
     router.scrollBehavior({ path: '/' }, { name: 'slug' }, saved),
