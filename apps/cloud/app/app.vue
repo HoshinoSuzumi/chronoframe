@@ -17,6 +17,7 @@ useHead(() => ({
     :locale="componentLocale"
     :toaster="{
       ui: {
+        base: 'items-center',
         viewport:
           'bottom-[calc(1.5rem+env(safe-area-inset-bottom,0px))] right-6 w-[calc(100%-3rem)] sm:w-96',
       },

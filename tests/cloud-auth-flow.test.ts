@@ -1,3 +1,4 @@
+import { defaultTwoFactorMethod } from '../packages/contracts/src/account-security.ts'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import test from 'node:test'
@@ -13,7 +14,7 @@ async function page(
   const source = readFileSync(`apps/cloud/app/pages/${name}.vue`, 'utf8')
     .split('<script setup lang="ts">')[1]!
     .split('</script>')[0]!
-    .replace(/^import[^\n]*\n/gm, '')
+    .replace(/^import[\s\S]*?from ['"][^'"]+['"]\s*$/gm, '')
   const code = ts.transpileModule(source, {
     compilerOptions: {
       target: ts.ScriptTarget.ES2022,
@@ -26,6 +27,7 @@ async function page(
     ref,
     nextTick,
     accountError,
+    defaultTwoFactorMethod,
     useI18n: () => ({ t: (key: string) => key }),
     useCloudAuthDestination: () => ({
       destination: ref('/workspace'),
@@ -56,7 +58,7 @@ async function page(
   const result = await new AsyncFunction(
     ...Object.keys(deps),
     code +
-      `;return { submit, resend, email, password, code, busy, error, codeInput, codeStatus, ${name === 'signin' ? 'step, mode, factor, authenticatorRequired, toggleRecovery, editEmail' : 'sent, emailInput'} }`,
+      `;return { submit, resend, email, password, code, busy, error, codeInput, codeStatus, ${name === 'signin' ? 'step, mode, factor, availableMethods, hasRecoveryCodes, choosingFactor, preferredFactor, chooseFactor, startChallenge, editEmail' : 'sent, emailInput'} }`,
   )(...Object.values(deps))
   return { ...result, remaining, navigations: () => navigations }
 }
@@ -89,14 +91,18 @@ test('password sign-in with an authenticator cannot skip the second factor; reco
   const p = await page('signin', async (url, options) => {
     calls.push({ url, body: options.body })
     return url === '/api/auth/sign-in/email'
-      ? { twoFactorRedirect: true, twoFactorMethods: ['totp'] }
+      ? {
+          twoFactorRedirect: true,
+          twoFactorMethods: ['totp'],
+          hasRecoveryCodes: true,
+        }
       : {}
   })
   await p.submit()
   assert.equal(p.factor.value, 'totp')
   assert.equal(p.navigations(), 0)
   assert.equal(calls.length, 1)
-  p.toggleRecovery()
+  await p.chooseFactor('recovery')
   p.code.value = 'backup-code-with-letters'
   await p.submit()
   assert.equal(calls.at(-1)?.url, '/api/auth/two-factor/verify-backup-code')
@@ -149,7 +155,11 @@ test('authenticator codes use verify-totp before navigating to the destination',
   const p = await page('signin', async (url, options) => {
     calls.push({ url, body: options.body })
     return url === '/api/auth/sign-in/email'
-      ? { twoFactorRedirect: true, twoFactorMethods: ['totp'] }
+      ? {
+          twoFactorRedirect: true,
+          twoFactorMethods: ['totp'],
+          hasRecoveryCodes: true,
+        }
       : {}
   })
   await p.submit()
@@ -181,4 +191,73 @@ test('signup resend focuses the enabled code input both when opening verificatio
   assert.equal(p.code.value, '')
   assert.deepEqual(focusedWhileBusy, [false, false])
   assert.equal(p.navigations(), 0)
+})
+
+test('preferred email factor can switch to a configured authenticator without reusing a code', async () => {
+  const calls: { url: string; body: Record<string, unknown> }[] = []
+  const p = await page('signin', async (url, options) => {
+    calls.push({ url, body: options.body })
+    return url === '/api/auth/sign-in/email'
+      ? {
+          twoFactorRedirect: true,
+          twoFactorMethods: ['totp', 'otp'],
+          preferredTwoFactorMethod: 'otp',
+          hasRecoveryCodes: true,
+        }
+      : {}
+  })
+  await p.submit()
+  assert.equal(p.factor.value, 'email')
+  assert.equal(calls.at(-1)?.url, '/api/auth/two-factor/send-otp')
+  p.code.value = '123456'
+  p.choosingFactor.value = true
+  await p.chooseFactor('totp')
+  assert.equal(p.code.value, '')
+  assert.equal(p.choosingFactor.value, false)
+  p.code.value = '654321'
+  await p.submit()
+  assert.equal(calls.at(-1)?.url, '/api/auth/two-factor/verify-totp')
+  assert.equal(calls.at(-1)?.body.code, '654321')
+  assert.equal(p.navigations(), 1)
+})
+
+test('unconfigured alternatives cannot be selected or send an email', async () => {
+  const calls: string[] = []
+  const p = await page('signin', async (url) => {
+    calls.push(url)
+    return { twoFactorRedirect: true, twoFactorMethods: ['totp'] }
+  })
+  await p.submit()
+  await p.chooseFactor('email')
+  await p.chooseFactor('recovery')
+  assert.equal(p.factor.value, 'totp')
+  assert.equal(calls.length, 1)
+})
+
+test('email-code login waits for an authenticator challenge when the account has TOTP', async () => {
+  const calls: string[] = []
+  const p = await page('signin', async (url) => {
+    calls.push(url)
+    return url === '/api/auth/sign-in/email-otp'
+      ? {
+          twoFactorRedirect: true,
+          twoFactorMethods: ['totp'],
+          preferredTwoFactorMethod: 'totp',
+          hasRecoveryCodes: true,
+        }
+      : {}
+  })
+  p.mode.value = 'email'
+  p.email.value = 'user@example.com'
+  await p.submit()
+  p.code.value = '123456'
+  await p.submit()
+  assert.equal(p.step.value, 'second')
+  assert.equal(p.factor.value, 'totp')
+  assert.equal(p.code.value, '')
+  assert.equal(p.navigations(), 0)
+  p.code.value = '654321'
+  await p.submit()
+  assert.equal(calls.at(-1), '/api/auth/two-factor/verify-totp')
+  assert.equal(p.navigations(), 1)
 })

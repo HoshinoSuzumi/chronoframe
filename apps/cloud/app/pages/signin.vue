@@ -3,6 +3,11 @@ const { t } = useI18n()
 const { destination, authLink } = useCloudAuthDestination()
 
 import { accountError } from '../utils/account-error'
+import { defaultTwoFactorMethod } from '@chronoframe/contracts/account-security'
+import type {
+  TwoFactorMethod,
+  TwoFactorPolicy,
+} from '@chronoframe/contracts/account-security'
 const { data: status } = await useFetch('/api/auth/status')
 useSeoMeta({
   title: t('cloud.messages.signInChronoframeCloud'),
@@ -25,7 +30,10 @@ function setMode(value: 'email' | 'password') {
   error.value = ''
   code.value = ''
 }
-const authenticatorRequired = ref(second === 'totp')
+const availableMethods = ref<TwoFactorMethod[]>([])
+const hasRecoveryCodes = ref(false)
+const choosingFactor = ref(false)
+const preferredFactor = ref<TwoFactorMethod | null>(null)
 const factor = ref<'email' | 'totp' | 'recovery'>(
   second === 'totp' ? 'totp' : 'email',
 )
@@ -47,20 +55,48 @@ function editEmail() {
   code.value = ''
   editCode()
 }
-/** Switch between recovery text and the server-required second factor. */
-function toggleRecovery() {
-  factor.value =
-    factor.value === 'recovery'
-      ? authenticatorRequired.value
-        ? 'totp'
-        : 'email'
-      : 'recovery'
+/** Switch only to a configured factor and clear stale codes and feedback. */
+async function chooseFactor(value: 'email' | 'totp' | 'recovery') {
+  const method = value === 'email' ? 'otp' : value
+  if (
+    method === 'recovery'
+      ? !hasRecoveryCodes.value
+      : !availableMethods.value.includes(method)
+  )
+    return
+  factor.value = value
+  choosingFactor.value = false
   code.value = ''
   editCode()
+  if (value === 'email' && remaining.value === 0) await resend()
   nextTick(() => codeInput.value?.focus())
 }
-onMounted(() => {
-  if (second === 'email') void resend()
+/** Apply the server's configured methods and preferred/default factor. */
+async function startChallenge(policy: TwoFactorPolicy) {
+  availableMethods.value = policy.methods
+  hasRecoveryCodes.value = policy.hasRecoveryCodes
+  preferredFactor.value = defaultTwoFactorMethod(
+    policy.methods,
+    policy.defaultMethod,
+  )
+  factor.value = preferredFactor.value === 'totp' ? 'totp' : 'email'
+  step.value = 'second'
+  if (preferredFactor.value === 'otp') await sendSecond()
+}
+onMounted(async () => {
+  if (!second) return
+  busy.value = true
+  try {
+    await startChallenge(
+      await $fetch<TwoFactorPolicy>('/api/auth/two-factor/methods', {
+        method: 'POST',
+      }),
+    )
+  } catch (cause) {
+    error.value = accountError(cause, t)
+  } finally {
+    busy.value = false
+  }
 })
 /** Send the email second factor and start its resend cooldown. */
 async function sendSecond() {
@@ -104,7 +140,9 @@ async function submit() {
     } else {
       const result = await $fetch<{
         twoFactorRedirect?: boolean
-        twoFactorMethods?: string[]
+        twoFactorMethods?: TwoFactorMethod[]
+        preferredTwoFactorMethod?: TwoFactorMethod
+        hasRecoveryCodes?: boolean
       }>(
         mode.value === 'password'
           ? '/api/auth/sign-in/email'
@@ -118,12 +156,13 @@ async function submit() {
         },
       )
       if (result.twoFactorRedirect) {
-        step.value = 'second'
         code.value = ''
-        authenticatorRequired.value =
-          !!result.twoFactorMethods?.includes('totp')
-        factor.value = authenticatorRequired.value ? 'totp' : 'email'
-        if (!authenticatorRequired.value) await sendSecond()
+        await startChallenge({
+          methods: result.twoFactorMethods ?? [],
+          preferredMethod: null,
+          defaultMethod: result.preferredTwoFactorMethod ?? null,
+          hasRecoveryCodes: result.hasRecoveryCodes ?? false,
+        })
         return
       }
     }
@@ -221,8 +260,46 @@ async function resend() {
           >{{ $t('cloud.messages.emailCode') }}</CfButton
         >
       </div>
+      <div
+        v-if="step === 'second' && choosingFactor"
+        class="cf-auth-factor-picker"
+      >
+        <h2>{{ $t('cloud.security.otherWays') }}</h2>
+        <p class="cf-auth-hint">{{ $t('cloud.security.chooseMethod') }}</p>
+        <CfButton
+          v-for="method in availableMethods"
+          :key="method"
+          variant="outline"
+          :disabled="busy"
+          @click="chooseFactor(method === 'otp' ? 'email' : 'totp')"
+        >
+          {{
+            $t(
+              method === 'totp'
+                ? 'cloud.messages.authenticatorCode'
+                : 'cloud.messages.emailVerificationCode',
+            )
+          }}
+          <span aria-hidden="true">→</span>
+        </CfButton>
+        <CfButton
+          v-if="hasRecoveryCodes"
+          variant="outline"
+          :disabled="busy"
+          @click="chooseFactor('recovery')"
+        >
+          {{ $t('cloud.auth.useRecoveryCode')
+          }}<span aria-hidden="true">→</span>
+        </CfButton>
+        <CfButton
+          variant="ghost"
+          :disabled="busy"
+          @click="choosingFactor = false"
+          >{{ $t('cloud.messages.cancel') }}</CfButton
+        >
+      </div>
       <form
-        v-if="status.emailEnabled || step === 'second'"
+        v-else-if="status.emailEnabled || step === 'second'"
         @submit.prevent="submit"
         :aria-busy="busy"
       >
@@ -331,12 +408,19 @@ async function resend() {
         >
           {{ error }}
         </p>
+        <NuxtLink
+          v-if="step === 'second' && error && !availableMethods.length"
+          class="cf-text-link"
+          :to="authLink('/signin')"
+          >{{ $t('cloud.security.backToSignIn') }}</NuxtLink
+        >
         <CfButton
           type="submit"
           :loading="busy"
           :disabled="
-            step !== 'credentials' &&
-            (factor === 'recovery' ? !code.trim() : code.length !== 6)
+            (step === 'second' && !availableMethods.length) ||
+            (step !== 'credentials' &&
+              (factor === 'recovery' ? !code.trim() : code.length !== 6))
           "
           >{{
             mode === 'email' && step === 'credentials'
@@ -362,16 +446,16 @@ async function resend() {
             }}</CfButton
           >
           <CfButton
-            v-if="step === 'second'"
+            v-if="
+              step === 'second' &&
+              (availableMethods.length > 1 || hasRecoveryCodes)
+            "
             variant="ghost"
             :disabled="busy"
-            @click="toggleRecovery"
-            >{{
-              factor === 'recovery'
-                ? $t('cloud.auth.useVerificationCode')
-                : $t('cloud.auth.useRecoveryCode')
-            }}</CfButton
+            @click="choosingFactor = true"
           >
+            {{ $t('cloud.security.otherWays') }}
+          </CfButton>
         </div>
       </form>
       <p
@@ -418,3 +502,23 @@ async function resend() {
     </p>
   </CloudAuthLayout>
 </template>
+
+<style scoped>
+.cf-auth-factor-picker {
+  display: grid;
+  gap: 12px;
+}
+.cf-auth-factor-picker h2 {
+  font-size: 16px;
+  font-weight: 600;
+}
+.cf-auth-factor-picker > button {
+  justify-content: space-between;
+  text-align: left;
+  min-height: 52px;
+}
+.cf-auth-factor-picker > button:last-child {
+  justify-content: center;
+  min-height: 40px;
+}
+</style>

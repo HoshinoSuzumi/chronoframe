@@ -403,11 +403,15 @@ test('credentials are root-only, encrypted, redacted, revision fenced and disabl
               { method: 'POST', headers: headers(), body: '{}' },
             ),
           )
-          assert.equal(otp.status, 403)
-          assert.equal(
-            ((await otp.json()) as { code: string }).code,
-            'AUTHENTICATOR_REQUIRED',
-          )
+          if (expectedRedirect.includes('second=email')) {
+            assert.equal(otp.status, 200)
+          } else {
+            assert.equal(otp.status, 403)
+            assert.equal(
+              ((await otp.json()) as { code: string }).code,
+              'FACTOR_NOT_ENABLED',
+            )
+          }
         }
         assert.equal(callback.status, 302)
         assert(
@@ -455,6 +459,51 @@ test('credentials are root-only, encrypted, redacted, revision fenced and disabl
         'cf-connecting-ip': `192.0.2.${++attempt}`,
         cookie: [...loginCookies].map(([k, v]) => `${k}=${v}`).join('; '),
       })
+      // Social-only accounts can configure factors after a recent sign-in.
+      const enableEmail = await auth.handler(
+        new Request('https://app.chronoframe.art/api/auth/two-factor/enable', {
+          method: 'POST',
+          headers: connectionHeaders(),
+          body: JSON.stringify({ method: 'otp' }),
+        }),
+      )
+      assert.equal(enableEmail.status, 200)
+      captureConnectionCookies(enableEmail)
+      const removeEmail = await auth.handler(
+        new Request(
+          'https://app.chronoframe.art/api/auth/two-factor/remove-method',
+          {
+            method: 'POST',
+            headers: connectionHeaders(),
+            body: JSON.stringify({ method: 'otp', confirmDisable: true }),
+          },
+        ),
+      )
+      assert.equal(removeEmail.status, 200)
+      captureConnectionCookies(removeEmail)
+      await db
+        .prepare(
+          'UPDATE platform_auth_sessions SET created_at=0 WHERE user_id=42',
+        )
+        .run()
+      const staleSettings = await auth.handler(
+        new Request('https://app.chronoframe.art/api/auth/two-factor/enable', {
+          method: 'POST',
+          headers: connectionHeaders(),
+          body: JSON.stringify({ method: 'otp' }),
+        }),
+      )
+      assert.equal(staleSettings.status, 403)
+      assert.equal(
+        ((await staleSettings.json()) as { code: string }).code,
+        'SESSION_NOT_FRESH',
+      )
+      await db
+        .prepare(
+          'UPDATE platform_auth_sessions SET created_at=? WHERE user_id=42',
+        )
+        .bind(Date.now())
+        .run()
       assert.equal(
         (
           await auth.handler(
@@ -643,6 +692,16 @@ test('credentials are root-only, encrypted, redacted, revision fenced and disabl
         pending,
         null,
         'OAuth must not leave an authenticated session before MFA',
+      )
+      await db
+        .prepare(
+          "UPDATE platform_users SET email_two_factor_enabled=1, preferred_two_factor_method='otp' WHERE id=43",
+        )
+        .run()
+      assert.equal(
+        await login('second=email'),
+        null,
+        'OAuth honors the configured email preference while withholding the session',
       )
       email = 'new@example.com'
       githubId = 103

@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import test from 'node:test'
+import { createRequire } from 'node:module'
 import { resolveCloudLocale } from '../apps/cloud/i18n/locale.ts'
 import { accountError } from '../apps/cloud/app/utils/account-error.ts'
 
@@ -129,4 +130,29 @@ test('An expired session is distinguished from freshness and browser numeric err
     accountError({ code: 20 }, t),
     t('cloud.messages.weCouldNotCompleteThisRequestPleaseTryAgain'),
   )
+})
+
+test('passkey counts use correct English plurals and retain Chinese count interpolation', () => {
+  const require = createRequire(import.meta.url)
+  const i18nRequire = createRequire(
+    require.resolve('@nuxtjs/i18n/package.json'),
+  )
+  const { createI18n } = i18nRequire('vue-i18n')
+  for (const locale of ['en', 'zh-Hans']) {
+    const i18n = createI18n({ legacy: false, locale, messages })
+    for (const count of [0, 1, 2]) {
+      const text = i18n.global.t(
+        'cloud.security.passkeyCount',
+        { count },
+        count,
+      )
+      assert.equal(
+        text,
+        locale === 'en'
+          ? `${count} ${count === 1 ? 'passkey' : 'passkeys'} configured`
+          : `已配置 ${count} 个通行密钥`,
+      )
+    }
+    i18n.dispose()
+  }
 })
