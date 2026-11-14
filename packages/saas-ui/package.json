@@ -8,17 +8,17 @@
     ".": "./nuxt.config.ts"
   },
   "dependencies": {
-    "@internationalized/date": "3.12.0",
+    "@internationalized/date": "3.12.4",
     "echarts": "6.1.0",
     "lucide-vue-next": "^1.0.0",
     "markdown-it": "^14.3.3",
-    "vue": "3.5.43",
+    "vue": "3.5.45",
     "vue-echarts": "8.3.2"
   },
   "devDependencies": {
-    "@types/markdown-it": "^14.1.2"
+    "@types/markdown-it": "^14.2.0"
   },
   "peerDependencies": {
-    "@nuxt/ui": "^4.11.3"
+    "@nuxt/ui": "^4.12.0"
   }
 }
