@@ -80,41 +80,49 @@ const summary = computed(() =>
       </div>
     </template>
     <template #footer>
-      <div
-        class="flex w-full flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"
-      >
+      <div class="flex w-full flex-col gap-4">
         <div
-          class="flex flex-col gap-1 text-sm text-neutral-500 dark:text-neutral-400"
+          v-if="$slots.options"
+          class="flex w-full flex-col gap-4"
         >
-          <span>{{ summary }}</span>
+          <slot name="options" />
         </div>
-        <div class="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
-          <UButton
-            variant="soft"
-            color="neutral"
-            class="w-full sm:w-auto"
-            :disabled="disabled || !files.length"
-            @click="files = []"
+        <div
+          class="flex w-full flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"
+        >
+          <div
+            class="flex flex-col gap-1 text-sm text-neutral-500 dark:text-neutral-400"
           >
-            {{ $t('dashboard.photos.slideover.buttons.clear') }}
-          </UButton>
-          <UButton
-            color="primary"
-            size="lg"
-            class="w-full sm:w-auto"
-            icon="tabler:upload"
-            :loading="loading"
-            :disabled="disabled || !files.length || !canUpload"
-            @click="emit('upload')"
-          >
-            {{
-              files.length
-                ? $t('dashboard.photos.slideover.buttons.upload', {
-                    count: files.length,
-                  })
-                : $t('dashboard.photos.buttons.upload')
-            }}
-          </UButton>
+            <span>{{ summary }}</span>
+          </div>
+          <div class="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
+            <UButton
+              variant="soft"
+              color="neutral"
+              class="w-full sm:w-auto"
+              :disabled="disabled || !files.length"
+              @click="files = []"
+            >
+              {{ $t('dashboard.photos.slideover.buttons.clear') }}
+            </UButton>
+            <UButton
+              color="primary"
+              size="lg"
+              class="w-full sm:w-auto"
+              icon="tabler:upload"
+              :loading="loading"
+              :disabled="disabled || !files.length || !canUpload"
+              @click="emit('upload')"
+            >
+              {{
+                files.length
+                  ? $t('dashboard.photos.slideover.buttons.upload', {
+                      count: files.length,
+                    })
+                  : $t('dashboard.photos.buttons.upload')
+              }}
+            </UButton>
+          </div>
         </div>
       </div>
     </template>
