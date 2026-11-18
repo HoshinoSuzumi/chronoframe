@@ -3,6 +3,8 @@ const title = defineModel<string>('title', { required: true })
 const description = defineModel<string>('description', { required: true })
 const tags = defineModel<string[]>('tags', { required: true })
 const rating = defineModel<number | null>('rating', { required: true })
+/** Local wall clock in `datetime-local` format; converted to an instant on save. */
+const dateTaken = defineModel<string>('dateTaken', { required: true })
 </script>
 <template>
   <div class="space-y-5">
@@ -23,6 +25,19 @@ const rating = defineModel<number | null>('rating', { required: true })
       <UTextarea
         v-model="description"
         :rows="3"
+        class="w-full"
+      />
+    </UFormField>
+
+    <UFormField
+      :label="$t('dashboard.photos.editModal.fields.dateTaken')"
+      name="dateTaken"
+      :help="$t('dashboard.photos.editModal.fields.dateTakenHint')"
+    >
+      <UInput
+        v-model="dateTaken"
+        type="datetime-local"
+        step="1"
         class="w-full"
       />
     </UFormField>

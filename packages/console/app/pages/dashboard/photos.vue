@@ -127,6 +127,7 @@ interface EditFormState {
   description: string
   tags: string[]
   rating: number | null
+  dateTaken: string
 }
 
 const editingPhoto = ref<Photo | null>(null)
@@ -138,6 +139,7 @@ const editFormState = reactive<EditFormState>({
   description: '',
   tags: [],
   rating: null,
+  dateTaken: '',
 })
 
 const originalMetadata = ref<{
@@ -146,13 +148,42 @@ const originalMetadata = ref<{
   tags: string[]
   location: { latitude: number; longitude: number } | null
   rating: number | null
+  dateTaken: string
 }>({
   title: '',
   description: '',
   tags: [],
   location: null,
   rating: null,
+  dateTaken: '',
 })
+
+const pad2 = (value: number): string => String(value).padStart(2, '0')
+
+/** Instant -> local `datetime-local` value, the format the native input expects. */
+const toDateTimeLocal = (instant: string | null | undefined): string => {
+  if (!instant) return ''
+  const date = new Date(instant)
+  if (Number.isNaN(date.getTime())) return ''
+  const day = [
+    date.getFullYear(),
+    pad2(date.getMonth() + 1),
+    pad2(date.getDate()),
+  ].join('-')
+  const time = [
+    pad2(date.getHours()),
+    pad2(date.getMinutes()),
+    pad2(date.getSeconds()),
+  ].join(':')
+  return `${day}T${time}`
+}
+
+/** Local `datetime-local` value -> UTC instant, or undefined when unusable. */
+const fromDateTimeLocal = (value: string): string | undefined => {
+  if (!value) return undefined
+  const date = new Date(value)
+  return Number.isNaN(date.getTime()) ? undefined : date.toISOString()
+}
 
 const locationSelection = ref<{ latitude: number; longitude: number } | null>(
   null,
@@ -228,13 +259,18 @@ const ratingChanged = computed(
   () => editFormState.rating !== originalMetadata.value.rating,
 )
 
+const dateTakenChanged = computed(
+  () => editFormState.dateTaken !== originalMetadata.value.dateTaken,
+)
+
 const isMetadataDirty = computed(
   () =>
     titleChanged.value ||
     descriptionChanged.value ||
     tagsChanged.value ||
     locationChanged.value ||
-    ratingChanged.value,
+    ratingChanged.value ||
+    dateTakenChanged.value,
 )
 
 const formattedCoordinates = computed(() => {
@@ -670,12 +706,14 @@ watch(isEditModalOpen, (open) => {
     editFormState.description = ''
     editFormState.tags = []
     editFormState.rating = null
+    editFormState.dateTaken = ''
     originalMetadata.value = {
       title: '',
       description: '',
       tags: [],
       location: null,
       rating: null,
+      dateTaken: '',
     }
     locationSelection.value = null
     locationTouched.value = false
@@ -1219,6 +1257,7 @@ const openMetadataEditor = (photo: Photo) => {
   const initialTitle = photo.title?.trim() ?? ''
   const initialDescription = photo.description?.trim() ?? ''
   const initialTags = normalizeTagList(photo.tags ?? [])
+  const initialDateTaken = toDateTimeLocal(photo.dateTaken)
   const hasCoordinates =
     typeof photo.latitude === 'number' && typeof photo.longitude === 'number'
 
@@ -1228,6 +1267,7 @@ const openMetadataEditor = (photo: Photo) => {
   editFormState.tags = [...initialTags]
   editFormState.rating =
     typeof photo.exif?.Rating === 'number' ? photo.exif.Rating : null
+  editFormState.dateTaken = initialDateTaken
 
   const initialLocation = hasCoordinates
     ? {
@@ -1242,6 +1282,7 @@ const openMetadataEditor = (photo: Photo) => {
     tags: [...initialTags],
     location: initialLocation ? { ...initialLocation } : null,
     rating: typeof photo.exif?.Rating === 'number' ? photo.exif.Rating : null,
+    dateTaken: initialDateTaken,
   }
 
   locationSelection.value = initialLocation ? { ...initialLocation } : null
@@ -1290,6 +1331,20 @@ const saveMetadataChanges = async () => {
     return
   }
 
+  // An emptied date is an edit, not a no-op: reject it instead of dropping it
+  // from the payload and closing the editor as if the save succeeded.
+  const dateTakenInstant = dateTakenChanged.value
+    ? fromDateTimeLocal(editFormState.dateTaken)
+    : undefined
+  if (dateTakenChanged.value && !dateTakenInstant) {
+    toast.add({
+      title: $t('dashboard.photos.messages.invalidDateTaken'),
+      description: '',
+      color: 'error',
+    })
+    return
+  }
+
   isSavingMetadata.value = true
   try {
     const payload: {
@@ -1298,6 +1353,7 @@ const saveMetadataChanges = async () => {
       tags?: string[]
       location?: { latitude: number; longitude: number } | null
       rating?: number | null
+      dateTaken?: string
     } = {}
 
     if (titleChanged.value) {
@@ -1324,6 +1380,10 @@ const saveMetadataChanges = async () => {
 
     if (ratingChanged.value) {
       payload.rating = editFormState.rating
+    }
+
+    if (dateTakenInstant) {
+      payload.dateTaken = dateTakenInstant
     }
 
     let hasAnySuccessfulAction = false
@@ -2444,6 +2504,7 @@ onUnmounted(() => {
                   v-model:description="editFormState.description"
                   v-model:tags="tagsModel"
                   v-model:rating="editFormState.rating"
+                  v-model:date-taken="editFormState.dateTaken"
                 />
 
                 <div class="space-y-3">

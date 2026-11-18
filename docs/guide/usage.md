@@ -10,7 +10,7 @@ If duplicate handling is set to **Skip** and the photo is already in the library
 - Sort and filter the photo table and choose which columns to show. ChronoFrame remembers column visibility and supports sorting by upload date.
 - Select photos to delete, download, reindex or add them to albums in batches. You can also use Shift + click range selection.
 - For **Add to album**, select photos in Dashboard → Photos, choose an album, and confirm. Photos already in that album are skipped.
-- Edit photo metadata such as title, description and rating.
+- Edit photo metadata such as title, description, rating and the date it was taken.
 - Motion Photos with embedded video are also supported. The WebGL viewer provides zoom, pan and tiled rendering for large images.
 
 ::: tip Pairing Live Photos

@@ -3,11 +3,91 @@ import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { exiftool } from 'exiftool-vendored'
+import sharp from 'sharp'
 import type { Photo } from '@chronoframe/contracts/resources'
 import { CoreError, type PhotoMetadataInput } from '@chronoframe/core'
 import type { StorageProvider } from '../storage/interfaces'
 import { extractExifData } from '../image/exif'
 import { logger } from '../../utils/logger'
+
+const pad2 = (value: number): string => String(value).padStart(2, '0')
+
+/** Extensions exiftool can annotate, keyed by sharp's detected format. */
+const WRITABLE_EXTENSIONS: Record<string, string> = {
+  jpeg: '.jpg',
+  png: '.png',
+  webp: '.webp',
+  gif: '.gif',
+  tiff: '.tiff',
+  avif: '.avif',
+  heif: '.heic',
+}
+
+/** MIME types for the extensions an edit can publish. */
+const CONTENT_TYPES: Record<string, string> = {
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.png': 'image/png',
+  '.webp': 'image/webp',
+  '.gif': 'image/gif',
+  '.bmp': 'image/bmp',
+  '.tif': 'image/tiff',
+  '.tiff': 'image/tiff',
+  '.avif': 'image/avif',
+  '.heic': 'image/heic',
+  '.heif': 'image/heif',
+  '.hif': 'image/heif',
+}
+
+/**
+ * exiftool validates a file's content against its extension and refuses to
+ * write on a mismatch ("Not a valid JPG (looks more like a PNG)"). Uploads keep
+ * the client-supplied file name, so a renamed or re-encoded file can carry an
+ * extension that contradicts its bytes. Derive the working extension from the
+ * content to keep editing such photos possible.
+ */
+async function resolveWorkingExtension(
+  buffer: Buffer,
+  declaredExtension: string,
+): Promise<string> {
+  try {
+    const { format } = await sharp(buffer).metadata()
+    const detected = format ? WRITABLE_EXTENSIONS[format] : undefined
+    if (detected) return detected
+  } catch (error) {
+    logger.image.warn(
+      'Failed to detect image format before metadata edit',
+      error,
+    )
+  }
+  return declaredExtension
+}
+
+/**
+ * EXIF has no time zone: `DateTimeOriginal` carries the wall clock of the
+ * capture, so format the instant in the server's zone rather than as UTC.
+ */
+function formatExifDateTime(date: Date): string {
+  const day = [
+    date.getFullYear(),
+    pad2(date.getMonth() + 1),
+    pad2(date.getDate()),
+  ].join(':')
+  const time = [
+    pad2(date.getHours()),
+    pad2(date.getMinutes()),
+    pad2(date.getSeconds()),
+  ].join(':')
+  return `${day} ${time}`
+}
+
+/** `OffsetTimeOriginal` records the zone the wall clock was read in. */
+function formatExifOffset(date: Date): string {
+  const totalMinutes = -date.getTimezoneOffset()
+  const sign = totalMinutes >= 0 ? '+' : '-'
+  const absolute = Math.abs(totalMinutes)
+  return `${sign}${pad2(Math.floor(absolute / 60))}:${pad2(absolute % 60)}`
+}
 
 /** Keep temporary files, EXIF tooling and object I/O in the application adapter. */
 export async function editPhotoMetadata(
@@ -74,36 +154,46 @@ export async function editPhotoMetadata(
     exifUpdates.Rating = payload.rating !== null ? payload.rating : null
   }
 
+  if (payload.dateTaken !== undefined) {
+    const capturedAt = new Date(payload.dateTaken)
+    const stamp = formatExifDateTime(capturedAt)
+    exifUpdates.DateTimeOriginal = stamp
+    exifUpdates.CreateDate = stamp
+    exifUpdates.DateTimeDigitized = stamp
+    exifUpdates.OffsetTimeOriginal = formatExifOffset(capturedAt)
+    exifUpdates.OffsetTimeDigitized = exifUpdates.OffsetTimeOriginal
+  }
+
   const tempRoot = tmpdir()
   await mkdir(tempRoot, { recursive: true })
   const tempDir = await mkdtemp(path.join(tempRoot, 'cframe-edit-'))
   const stagedKey = `.generated/metadata/${randomUUID()}/${path.posix.basename(photo.storageKey)}`
   let cleanupKey = stagedKey
   const ext = path.extname(photo.storageKey).toLowerCase() || '.jpg'
-  const contentType =
-    (
-      {
-        '.jpg': 'image/jpeg',
-        '.jpeg': 'image/jpeg',
-        '.png': 'image/png',
-        '.webp': 'image/webp',
-        '.gif': 'image/gif',
-        '.bmp': 'image/bmp',
-        '.tif': 'image/tiff',
-        '.tiff': 'image/tiff',
-        '.avif': 'image/avif',
-        '.heic': 'image/heic',
-        '.heif': 'image/heif',
-        '.hif': 'image/heif',
-      } as Record<string, string>
-    )[ext] ?? 'application/octet-stream'
-  const tempFile = path.join(tempDir, `edited${ext}`)
+  // The stored object keeps its original key; only the working copy has to
+  // carry an extension exiftool agrees with.
+  const workingExt = await resolveWorkingExtension(originalBuffer, ext)
+  // Publish the bytes under their real MIME; the stored key may disagree.
+  const contentType = CONTENT_TYPES[workingExt] ?? 'application/octet-stream'
+  const tempFile = path.join(tempDir, `edited${workingExt}`)
 
   try {
     await writeFile(tempFile, originalBuffer)
 
     if (Object.keys(exifUpdates).length > 0) {
-      await exiftool.write(tempFile, exifUpdates, ['-overwrite_original'])
+      try {
+        await exiftool.write(tempFile, exifUpdates, ['-overwrite_original'])
+      } catch (error) {
+        logger.image.error(
+          `Cannot annotate photo ${photo.id} (${photo.storageKey})`,
+          error,
+        )
+        throw new CoreError(
+          400,
+          'Photo file cannot be annotated',
+          'dashboard.photos.messages.metadataFileUnsupported',
+        )
+      }
     }
 
     const updatedBuffer = await readFile(tempFile)
@@ -139,6 +229,9 @@ export async function editPhotoMetadata(
       )
     }
     logger.image.error('Failed to update photo metadata', error)
+    // Preserve actionable failures (e.g. an unannotatable file) instead of
+    // collapsing every cause into an opaque 500.
+    if (error instanceof CoreError) throw error
     throw new CoreError(
       500,
       'Failed to update photo metadata',

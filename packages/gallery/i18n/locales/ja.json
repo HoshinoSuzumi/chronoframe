@@ -703,6 +703,8 @@
         "livePhotoNotFound": "ライブフォトではありません",
         "livePhotoLoadError": "ライブフォト情報を読み込めません",
         "metadataUpdateSuccess": "写真のメタデータを更新しました",
+        "metadataFileUnsupported": "この写真にはメタデータを書き込めません。形式が未対応か、拡張子が実際の内容と一致していません。",
+        "invalidDateTaken": "撮影日時が正しくありません。",
         "metadataUpdateFailed": "写真のメタデータを更新できませんでした",
         "photoNotFound": "写真が見つかりません",
         "photoFileMissing": "写真ファイルが見つかりません",
@@ -752,7 +754,7 @@
       },
       "editModal": {
         "title": "写真情報を編集",
-        "description": "タイトル・説明・タグ・撮影場所を更新します。",
+        "description": "タイトル・説明・撮影日時・タグ・撮影場所を更新します。",
         "fields": {
           "title": "タイトル",
           "description": "説明",
@@ -763,6 +765,8 @@
           "clearLocation": "位置情報を抹消",
           "coordinates": "座標",
           "noLocation": "位置情報が未設定です",
+          "dateTaken": "撮影日時",
+          "dateTakenHint": "写真を撮影した日時。",
           "rating": "評価",
           "ratingHint": "星をクリックして写真の評価を設定します（0～5つ星）。",
           "noRating": "未評価"
