@@ -253,6 +253,7 @@ defineExpose<WebGLImageViewerRef>({
     <DebugInfoComponent
       v-if="config.debug && debugInfo"
       :debug-info="debugInfo"
+      :labels="props.debugLabels"
     />
   </div>
 </template>

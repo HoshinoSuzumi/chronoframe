@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import type { DebugInfoLabels } from '@chronoframe/webgl-image'
 import { LoadingState, WebGLImageViewer } from '@chronoframe/webgl-image'
 import type { LoadingIndicatorRef } from './LoadingIndicator.vue'
 import type { ImageLoaderManager } from '#gallery/libs/image-loader-manager'
@@ -44,6 +45,53 @@ const props = withDefaults(defineProps<Props>(), {
   livePhotoVideoUrl: '',
   isHDR: false,
 })
+
+const debugLabels = computed<DebugInfoLabels>(() => ({
+  zoomInfo: $t('debug.viewer.diagnostics.zoomInfo'),
+  scale: $t('debug.viewer.diagnostics.scale'),
+  relativeScale: $t('debug.viewer.diagnostics.relativeScale'),
+  positionInfo: $t('debug.viewer.diagnostics.positionInfo'),
+  translateX: $t('debug.viewer.diagnostics.translateX'),
+  translateY: $t('debug.viewer.diagnostics.translateY'),
+  canvasInfo: $t('debug.viewer.diagnostics.canvasInfo'),
+  width: $t('debug.viewer.diagnostics.width'),
+  height: $t('debug.viewer.diagnostics.height'),
+  devicePixelRatio: $t('debug.viewer.diagnostics.devicePixelRatio'),
+  imageInfo: $t('debug.viewer.diagnostics.imageInfo'),
+  originalWidth: $t('debug.viewer.diagnostics.originalWidth'),
+  originalHeight: $t('debug.viewer.diagnostics.originalHeight'),
+  tileInfo: $t('debug.viewer.diagnostics.tileInfo'),
+  tileEnabled: $t('debug.viewer.diagnostics.tileEnabled'),
+  useTiles: $t('debug.viewer.diagnostics.useTiles'),
+  totalTiles: $t('debug.viewer.diagnostics.totalTiles'),
+  visibleTiles: $t('debug.viewer.diagnostics.visibleTiles'),
+  tileSize: $t('debug.viewer.diagnostics.tileSize'),
+  webglInfo: $t('debug.viewer.diagnostics.webglInfo'),
+  maxTextureSize: $t('debug.viewer.diagnostics.maxTextureSize'),
+  loadingInfo: $t('debug.viewer.diagnostics.loadingInfo'),
+  isLoading: $t('debug.viewer.diagnostics.isLoading'),
+  loadingState: $t('debug.viewer.diagnostics.loadingState'),
+  currentQuality: $t('debug.viewer.diagnostics.currentQuality'),
+  imageSrc: $t('debug.viewer.diagnostics.imageSrc'),
+  yes: $t('debug.viewer.diagnostics.yes'),
+  no: $t('debug.viewer.diagnostics.no'),
+  loadingStates: {
+    idle: $t('debug.viewer.diagnostics.loadingStates.idle'),
+    'image-loading': $t('debug.viewer.diagnostics.loadingStates.image-loading'),
+    'texture-loading': $t(
+      'debug.viewer.diagnostics.loadingStates.texture-loading',
+    ),
+    'tile-loading': $t('debug.viewer.diagnostics.loadingStates.tile-loading'),
+    complete: $t('debug.viewer.diagnostics.loadingStates.complete'),
+    error: $t('debug.viewer.diagnostics.loadingStates.error'),
+  },
+  qualities: {
+    high: $t('debug.viewer.diagnostics.qualities.high'),
+    medium: $t('debug.viewer.diagnostics.qualities.medium'),
+    low: $t('debug.viewer.diagnostics.qualities.low'),
+    unknown: $t('debug.viewer.diagnostics.qualities.unknown'),
+  },
+}))
 
 const containerRef = ref<HTMLDivElement>()
 
@@ -354,6 +402,7 @@ onUnmounted(() => {
       :double-click="{ mode: 'toggle', step: 2.4, animationTime: 400 }"
       :panning="{ velocityDisabled: false }"
       :debug="showDebugInfo"
+      :debug-labels="debugLabels"
       @zoom-change="handleZoomChange"
       @loading-state-change="handleWebGLStateChange"
     />
