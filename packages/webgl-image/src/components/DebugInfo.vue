@@ -1,36 +1,15 @@
 <script setup lang="ts">
-import type { DebugInfo, LoadingState } from '../types'
+import type { DebugInfo, DebugInfoLabels } from '../types'
+import { DEFAULT_DEBUG_LABELS } from '../debug-labels'
 
 interface DebugInfoProps {
   debugInfo: DebugInfo
+  labels?: DebugInfoLabels
 }
 
-defineProps<DebugInfoProps>()
-
-// 工具函数
-const getLoadingStateText = (state: LoadingState): string => {
-  const stateMap = {
-    idle: '空闲',
-    'image-loading': '图片加载中',
-    'texture-loading': '纹理加载中',
-    'tile-loading': '瓦片加载中',
-    complete: '加载完成',
-    error: '加载错误',
-  }
-  return stateMap[state as keyof typeof stateMap] || state
-}
-
-const getQualityText = (
-  quality: 'high' | 'medium' | 'low' | 'unknown',
-): string => {
-  const qualityMap = {
-    high: '高',
-    medium: '中',
-    low: '低',
-    unknown: '未知',
-  }
-  return qualityMap[quality] || quality
-}
+withDefaults(defineProps<DebugInfoProps>(), {
+  labels: () => DEFAULT_DEBUG_LABELS,
+})
 
 const getShortImageSrc = (src: string): string => {
   if (src.length <= 30) return src
@@ -41,54 +20,74 @@ const getShortImageSrc = (src: string): string => {
 <template>
   <div class="webgl-debug-info">
     <div class="debug-section">
-      <h4>缩放信息</h4>
-      <div>缩放比例: {{ debugInfo.scale.toFixed(3) }}</div>
-      <div>相对比例: {{ debugInfo.relativeScale.toFixed(3) }}</div>
+      <h4>{{ labels.zoomInfo }}</h4>
+      <div>{{ labels.scale }}: {{ debugInfo.scale.toFixed(3) }}</div>
+      <div>
+        {{ labels.relativeScale }}: {{ debugInfo.relativeScale.toFixed(3) }}
+      </div>
     </div>
 
     <div class="debug-section">
-      <h4>位置信息</h4>
-      <div>X轴平移: {{ debugInfo.translateX.toFixed(2) }}</div>
-      <div>Y轴平移: {{ debugInfo.translateY.toFixed(2) }}</div>
+      <h4>{{ labels.positionInfo }}</h4>
+      <div>{{ labels.translateX }}: {{ debugInfo.translateX.toFixed(2) }}</div>
+      <div>{{ labels.translateY }}: {{ debugInfo.translateY.toFixed(2) }}</div>
     </div>
 
     <div class="debug-section">
-      <h4>Canvas信息</h4>
-      <div>宽度: {{ debugInfo.canvasWidth }}</div>
-      <div>高度: {{ debugInfo.canvasHeight }}</div>
-      <div>设备像素比: {{ debugInfo.devicePixelRatio }}</div>
+      <h4>{{ labels.canvasInfo }}</h4>
+      <div>{{ labels.width }}: {{ debugInfo.canvasWidth }}</div>
+      <div>{{ labels.height }}: {{ debugInfo.canvasHeight }}</div>
+      <div>{{ labels.devicePixelRatio }}: {{ debugInfo.devicePixelRatio }}</div>
     </div>
 
     <div class="debug-section">
-      <h4>图像信息</h4>
-      <div>原始宽度: {{ debugInfo.imageWidth }}</div>
-      <div>原始高度: {{ debugInfo.imageHeight }}</div>
+      <h4>{{ labels.imageInfo }}</h4>
+      <div>{{ labels.originalWidth }}: {{ debugInfo.imageWidth }}</div>
+      <div>{{ labels.originalHeight }}: {{ debugInfo.imageHeight }}</div>
     </div>
 
     <div class="debug-section">
-      <h4>瓦片信息</h4>
-      <div>启用瓦片: {{ debugInfo.tileEnabled ? '是' : '否' }}</div>
-      <div>使用瓦片渲染: {{ debugInfo.useTiles ? '是' : '否' }}</div>
-      <div>总瓦片数: {{ debugInfo.totalTiles }}</div>
-      <div>可见瓦片数: {{ debugInfo.visibleTiles }}</div>
-      <div>配置瓦片尺寸: {{ debugInfo.tileSize }}</div>
+      <h4>{{ labels.tileInfo }}</h4>
+      <div>
+        {{ labels.tileEnabled }}:
+        {{ debugInfo.tileEnabled ? labels.yes : labels.no }}
+      </div>
+      <div>
+        {{ labels.useTiles }}: {{ debugInfo.useTiles ? labels.yes : labels.no }}
+      </div>
+      <div>{{ labels.totalTiles }}: {{ debugInfo.totalTiles }}</div>
+      <div>{{ labels.visibleTiles }}: {{ debugInfo.visibleTiles }}</div>
+      <div>{{ labels.tileSize }}: {{ debugInfo.tileSize }}</div>
     </div>
 
     <div class="debug-section">
-      <h4>WebGL信息</h4>
-      <div>最大纹理尺寸: {{ debugInfo.maxTextureSize }}</div>
+      <h4>{{ labels.webglInfo }}</h4>
+      <div>{{ labels.maxTextureSize }}: {{ debugInfo.maxTextureSize }}</div>
     </div>
 
     <div class="debug-section">
-      <h4>加载状态</h4>
-      <div>正在加载: {{ debugInfo.isLoading ? '是' : '否' }}</div>
-      <div>加载状态: {{ getLoadingStateText(debugInfo.loadingState) }}</div>
-      <div>当前质量: {{ getQualityText(debugInfo.currentQuality) }}</div>
+      <h4>{{ labels.loadingInfo }}</h4>
+      <div>
+        {{ labels.isLoading }}:
+        {{ debugInfo.isLoading ? labels.yes : labels.no }}
+      </div>
+      <div>
+        {{ labels.loadingState }}:
+        {{
+          labels.loadingStates[debugInfo.loadingState] || debugInfo.loadingState
+        }}
+      </div>
+      <div>
+        {{ labels.currentQuality }}:
+        {{
+          labels.qualities[debugInfo.currentQuality] || debugInfo.currentQuality
+        }}
+      </div>
       <div
         v-if="debugInfo.imageSrc"
         class="image-src"
       >
-        图片源: {{ getShortImageSrc(debugInfo.imageSrc) }}
+        {{ labels.imageSrc }}: {{ getShortImageSrc(debugInfo.imageSrc) }}
       </div>
     </div>
   </div>

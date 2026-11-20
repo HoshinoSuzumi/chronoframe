@@ -15,6 +15,7 @@ export type {
   Animation,
   Bounds,
   DebugInfo,
+  DebugInfoLabels,
   TouchState,
   EngineConfig,
 } from './types'

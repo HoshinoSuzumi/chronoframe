@@ -17,6 +17,8 @@ export interface WebGLImageViewerProps {
   centerOnInit?: boolean
   /** Debug mode */
   debug?: boolean
+  /** Localized diagnostic labels; defaults to Simplified Chinese. */
+  debugLabels?: DebugInfoLabels
   /** Limit to bounds */
   limitToBounds?: boolean
   /** Smooth processing */
@@ -106,6 +108,39 @@ export interface Bounds {
   top: number
   right: number
   bottom: number
+}
+
+export interface DebugInfoLabels {
+  zoomInfo: string
+  scale: string
+  relativeScale: string
+  positionInfo: string
+  translateX: string
+  translateY: string
+  canvasInfo: string
+  width: string
+  height: string
+  devicePixelRatio: string
+  imageInfo: string
+  originalWidth: string
+  originalHeight: string
+  tileInfo: string
+  tileEnabled: string
+  useTiles: string
+  totalTiles: string
+  visibleTiles: string
+  tileSize: string
+  webglInfo: string
+  maxTextureSize: string
+  loadingInfo: string
+  isLoading: string
+  loadingState: string
+  currentQuality: string
+  imageSrc: string
+  yes: string
+  no: string
+  loadingStates: Record<LoadingState, string>
+  qualities: Record<DebugInfo['currentQuality'], string>
 }
 
 export interface DebugInfo {
