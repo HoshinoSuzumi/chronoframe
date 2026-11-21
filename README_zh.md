@@ -49,6 +49,8 @@ ChronoFrame 是一个可以自行部署的照片画廊。上传照片后，应�
 
 ## 🐳 部署
 
+[![Deploy on Railway](https://railway.com/button.svg)](https://railway.com/template/chronoframe)
+
 推荐使用 Docker。创建 `docker-compose.yml`：
 
 ```yaml
