@@ -849,7 +849,7 @@ const confirmStorageDelete = async () => {
                     :title="$t('settings.storage.fnosDirectoryError')"
                     :actions="[
                       {
-                        label: $t('common.retry'),
+                        label: $t('settings.storage.actions.retry'),
                         onClick: () => refreshFnosStorage(),
                       },
                     ]"
