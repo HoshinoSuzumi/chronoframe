@@ -5,7 +5,10 @@ export function useWorkspaceBilling(adminOnly = false) {
   // including the sidebar's subscription to the same data.
   const server = useRoute().path.replace(/\/+$/, '') !== '/workspace'
   const key = `workspace-billing-${user.value?.id}`
-  const provisioning = useState(`${key}-provisioning`, () => false)
+  const provisioning = useState<'idle' | 'pending' | 'denied'>(
+    `${key}-provisioning`,
+    () => 'idle',
+  )
   type Workspace = { id: number; name: string; role: string; owned?: number }
   const billing = useAsyncData(
     key,
@@ -43,15 +46,17 @@ export function useWorkspaceBilling(adminOnly = false) {
         billing.status.value === 'success' &&
         billing.data.value?.membershipCount === 0,
       async (empty) => {
-        if (!empty || provisioning.value) return
-        provisioning.value = true
+        if (!empty || provisioning.value !== 'idle') return
+        provisioning.value = 'pending'
         try {
           await $fetch('/api/billing/workspaces', { method: 'POST' })
           await billing.refresh()
-        } catch {
-          /* Do not restore revoked memberships. */
+        } catch (error) {
+          // A revoked membership cannot be restored by polling.
+          if ((error as { statusCode?: number })?.statusCode === 403)
+            provisioning.value = 'denied'
         } finally {
-          provisioning.value = false
+          if (provisioning.value === 'pending') provisioning.value = 'idle'
         }
       },
       { immediate: true },

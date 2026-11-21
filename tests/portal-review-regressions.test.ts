@@ -434,7 +434,7 @@ test('Primary billing workspace consistently prefers ownership then administrati
     { id: 2, name: 'Managed', role: 'admin', owned: 0 },
   ]
   const module = load('apps/cloud/app/composables/useWorkspaceBilling.ts', {
-    useState: () => ref(false),
+    useState: () => ref('idle'),
     usePortalIdentity: () => ref({ id: 3 }),
     useRoute: () => ({ path: routePath }),
     useRequestFetch: () => async (url: string, options: any) => {
@@ -470,49 +470,58 @@ test('Primary billing workspace consistently prefers ownership then administrati
   assert.deepEqual(serverOptions, [true, false, false])
 })
 
-test('workspace billing waits for client data and provisions once across subscribers', async () => {
-  const data = ref<{ membershipCount: number }>()
-  const status = ref('pending')
-  const provisioning = ref(false)
-  let posts = 0
-  let refreshes = 0
-  const module = load('apps/cloud/app/composables/useWorkspaceBilling.ts', {
-    usePortalIdentity: () => ref({ id: 3 }),
-    useRoute: () => ({ path: '/workspace/' }),
-    useRequestFetch: () => () => {},
-    useState: () => provisioning,
-    useAsyncData: () =>
-      Object.assign(Promise.resolve(), {
-        data,
-        status,
-        error: ref(null),
-        refresh: async () => {
-          refreshes++
-          data.value = { membershipCount: 1 }
-        },
-      }),
-    onMounted: (callback: () => void) => callback(),
-    $fetch: async () => {
-      posts++
-    },
-  })
-  const scope = effectScope()
-  try {
-    scope.run(() => {
-      module.useWorkspaceBilling()
-      module.useWorkspaceBilling()
+for (const failure of [null, 403, 503]) {
+  test(`deferred billing deduplicates provisioning with result ${failure ?? 'success'}`, async () => {
+    const data = ref<{ membershipCount: number }>()
+    const status = ref('pending')
+    const provisioning = ref('idle')
+    let posts = 0
+    let refreshes = 0
+    const module = load('apps/cloud/app/composables/useWorkspaceBilling.ts', {
+      usePortalIdentity: () => ref({ id: 3 }),
+      useRoute: () => ({ path: '/workspace/' }),
+      useRequestFetch: () => () => {},
+      useState: () => provisioning,
+      useAsyncData: () =>
+        Object.assign(Promise.resolve(), {
+          data,
+          status,
+          error: ref(null),
+          refresh: async () => {
+            refreshes++
+            data.value = { membershipCount: 1 }
+          },
+        }),
+      onMounted: (callback: () => void) => callback(),
+      $fetch: async () => {
+        posts++
+        if (posts === 1 && failure) throw { statusCode: failure }
+      },
     })
-    await nextTick()
-    assert.equal(posts, 0)
-    data.value = { membershipCount: 0 }
-    status.value = 'success'
-    await new Promise<void>((resolve) => setImmediate(resolve))
-    assert.equal(posts, 1)
-    assert.equal(refreshes, 1)
-  } finally {
-    scope.stop()
-  }
-})
+    const scope = effectScope()
+    try {
+      scope.run(() => {
+        module.useWorkspaceBilling()
+        module.useWorkspaceBilling()
+      })
+      await nextTick()
+      assert.equal(posts, 0)
+      data.value = { membershipCount: 0 }
+      status.value = 'success'
+      await new Promise<void>((resolve) => setImmediate(resolve))
+      assert.equal(posts, 1)
+      assert.equal(refreshes, failure ? 0 : 1)
+      status.value = 'pending'
+      await nextTick()
+      status.value = 'success'
+      await new Promise<void>((resolve) => setImmediate(resolve))
+      assert.equal(posts, failure === 503 ? 2 : 1)
+      assert.equal(refreshes, failure === 403 ? 0 : 1)
+    } finally {
+      scope.stop()
+    }
+  })
+}
 
 test('billing refresh aborts stalled workspace, plan and payment reads', async () => {
   const require = createRequire(import.meta.url)
@@ -548,7 +557,7 @@ test('billing refresh aborts stalled workspace, plan and payment reads', async (
     const billingModule = load(
       'apps/cloud/app/composables/useWorkspaceBilling.ts',
       {
-        useState: () => ref(false),
+        useState: () => ref('idle'),
         usePortalIdentity: () => ref({ id: 1 }),
         useRequestFetch: () => fetcher,
         useRoute: () => ({ path: '/workspace' }),
