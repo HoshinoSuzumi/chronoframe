@@ -134,6 +134,7 @@
     "nuxtseo-devtools-host": "1.0.2",
     "oxfmt": "^0.72.0",
     "oxlint": "^1.87.0",
+    "parse5": "8.1.0",
     "sass-embedded": "^1.105.1",
     "typescript": "^5.9.3",
     "vitepress": "2.0.0-alpha.20",

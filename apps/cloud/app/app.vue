@@ -8,7 +8,11 @@ const componentLocale = computed(() =>
 )
 useHead(() => ({
   htmlAttrs: { lang: locale.value === 'zh-Hans' ? 'zh-CN' : 'en' },
-  link: [{ rel: 'icon', type: 'image/x-icon', href: '/favicon.ico' }],
+  link: [
+    { rel: 'icon', type: 'image/x-icon', href: '/favicon.ico' },
+    { rel: 'manifest', href: '/portal.webmanifest' },
+    { rel: 'apple-touch-icon', href: '/apple-touch-icon.png' },
+  ],
   bodyAttrs: { class: 'cf-cloud-body' },
 }))
 </script>

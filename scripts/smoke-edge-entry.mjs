@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import { parse } from 'parse5'
 import { spawn } from 'node:child_process'
 import { createRequire } from 'node:module'
 import { dirname, resolve } from 'node:path'
@@ -91,7 +92,50 @@ try {
       entry === 'cloud' ? /Every frame\./ : /service unavailable/i,
     )
   if (entry === 'cloud') {
-    assert.equal((await fetch(base + '/signin')).status, 200)
+    const signin = await fetch(base + '/signin')
+    assert.equal(signin.status, 200)
+    const document = parse(await signin.text())
+    const head = document.childNodes
+      .find((node) => node.tagName === 'html')
+      ?.childNodes.find((node) => node.tagName === 'head')
+    const manifestLink = head?.childNodes.find(
+      (node) =>
+        node.tagName === 'link' &&
+        node.attrs
+          .find(({ name }) => name === 'rel')
+          ?.value.toLowerCase()
+          .split(/[\t\n\f\r ]+/)
+          .includes('manifest'),
+    )
+    const manifestHref = manifestLink?.attrs.find(
+      ({ name }) => name === 'href',
+    )?.value
+    assert.ok(
+      manifestHref?.trim(),
+      'Sign-in head must link to a web app manifest',
+    )
+    const manifestUrl = new URL(manifestHref, signin.url)
+    assert.equal(manifestUrl.origin, new URL(signin.url).origin)
+    const manifestResponse = await fetch(manifestUrl)
+    assert.equal(manifestResponse.status, 200)
+    const manifest = await manifestResponse.json()
+    assert.equal(manifest.display, 'standalone')
+    assert.equal(manifest.start_url, '/workspace')
+    const iconUrls = manifest.icons.map(
+      ({ src }) => new URL(src, manifestResponse.url),
+    )
+    iconUrls.push(new URL('/apple-touch-icon.png', signin.url))
+    for (const url of iconUrls) {
+      const icon = await fetch(url)
+      assert.equal(icon.status, 200, url.href)
+      assert.match(icon.headers.get('content-type'), /^image\/png\b/, url.href)
+    }
+    const launch = await fetch(base + manifest.start_url, {
+      redirect: 'manual',
+    })
+    assert.equal(launch.status, 302)
+    const signInUrl = new URL(launch.headers.get('location'), base)
+    assert.equal(signInUrl.pathname, '/signin')
     const dashboard = await fetch(base + '/dashboard/photos', {
       redirect: 'manual',
     })
