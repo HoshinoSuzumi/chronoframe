@@ -52,7 +52,7 @@ EOF
 # Exercise the staged runtime on the same CPU architecture as the package.
 mkdir -p "$work/var" "$work/share" "$work/external library"
 export TRIM_PKGVAR="$work/var" TRIM_APPDEST="$stage/app"
-export DATABASE_URL="$work/var/data/app.sqlite3"
+export DATABASE_URL="$work/unexpected.sqlite3"
 export TRIM_DATA_SHARE_PATHS="$work/share" TRIM_SERVICE_PORT=13000
 export TRIM_DATA_ACCESSIBLE_PATHS="$work/external library:$work/unavailable"
 trap '"$stage/cmd/main" stop; rm -rf -- "$work"' EXIT
@@ -67,7 +67,15 @@ curl --fail --silent --show-error http://127.0.0.1:13000/api/wizard/fnos-directo
     ])
   '
 "$stage/cmd/main" stop
-test -s "$work/var/data/app.sqlite3"
+test -s "$work/share/data/app.sqlite3"
+test ! -e "$DATABASE_URL"
+# Model an upgrade from a trial package that used the private runtime directory.
+mv -- "$work/share/data" "$work/var/data"
+"$stage/cmd/main" start
+"$stage/cmd/main" stop
+test -s "$work/share/data/app.sqlite3"
+cmp "$work/var/data/.app-secret" "$work/share/data/.app-secret"
+cmp "$work/var/data/.session-password" "$work/share/data/.session-password"
 trap 'rm -rf -- "$work"' EXIT
 
 fnpack_version=1.3.3

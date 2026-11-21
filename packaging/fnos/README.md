@@ -6,8 +6,11 @@ Manual releases include both packages when **打包 FPK** is checked (the defaul
 
 Install the FPK in the fnOS App Center, start ChronoFrame, and open its desktop
 icon to run the setup wizard. The service uses TCP port 13000. SQLite, secrets
-and logs live in the application's private persistent directory. The default
-photo storage uses the ChronoFrame application share. For another volume, grant
+and logs live in **Application Files / ChronoFrame / data**. Stop ChronoFrame
+before copying this directory and keep its hidden files. During the first startup
+after upgrading from a trial package, ChronoFrame copies the previous private
+runtime data if the destination does not already exist and retains the original
+copy. The default photo storage uses the ChronoFrame application share. For another volume, grant
 write access in the fnOS application settings, restart ChronoFrame, and select
 that directory in the setup wizard or storage settings. Create a separate storage
 configuration when switching directories so existing photos retain their storage

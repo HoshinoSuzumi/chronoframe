@@ -12,17 +12,35 @@ running() {
   grep -Fxq -- "$entry" < <(tr '\0' '\n' < "/proc/$pid/cmdline")
 }
 
+prepare_data() {
+  local destination="$CFRAME_FNOS_STORAGE_ROOT/data"
+  local previous="$TRIM_PKGVAR/data"
+  if [[ ! -e "$destination" && ! -L "$destination" && -d "$previous" ]]; then
+    (
+      local staging
+      staging=$(mktemp -d "$CFRAME_FNOS_STORAGE_ROOT/.data-migration.XXXXXXXX")
+      trap 'rm -rf -- "$staging"' EXIT
+      cp -a -- "$previous/." "$staging/"
+      mv -T -- "$staging" "$destination"
+    )
+  else
+    mkdir -p -- "$destination"
+  fi
+}
+
 case "$1" in
   start)
     if running; then exit 0; fi
-    cd "$TRIM_PKGVAR"
     export NODE_ENV=production NITRO_HOST=0.0.0.0 NITRO_PORT="${TRIM_SERVICE_PORT:-13000}"
     export DATABASE_MIGRATIONS="$TRIM_APPDEST/server/migrations"
     export CFRAME_FNOS_STORAGE_ROOT="${TRIM_DATA_SHARE_PATHS%%:*}"
     [[ -n "$CFRAME_FNOS_STORAGE_ROOT" && -d "$CFRAME_FNOS_STORAGE_ROOT" ]]
     umask 077
-    mkdir -p data
-    "$node" "$entry" </dev/null >> "$TRIM_PKGVAR/chronoframe-service.log" 2>&1 &
+    prepare_data
+    cd "$CFRAME_FNOS_STORAGE_ROOT"
+    export DATABASE_URL="$PWD/data/app.sqlite3"
+    service_log="$PWD/data/chronoframe-service.log"
+    "$node" "$entry" </dev/null >> "$service_log" 2>&1 &
     pid=$!
     printf '%s\n' "$pid" > "$pidfile"
     for ((i=0; i<60; i++)); do
@@ -31,7 +49,7 @@ case "$1" in
       sleep 1
     done
     if running; then kill -TERM "$pid"; fi
-    tail -n 20 "$TRIM_PKGVAR/chronoframe-service.log" >&2
+    tail -n 20 "$service_log" >&2
     exit 1
     ;;
   stop)
