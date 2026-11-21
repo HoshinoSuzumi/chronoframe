@@ -1,0 +1,52 @@
+#!/bin/bash
+set -eu
+
+pidfile="$TRIM_PKGVAR/chronoframe.pid"
+entry="$TRIM_APPDEST/server/.output/server/index.mjs"
+node="$TRIM_APPDEST/server/bin/node"
+
+running() {
+  [[ -r "$pidfile" ]] || return 1
+  read -r pid < "$pidfile" || return 1
+  [[ "$pid" =~ ^[1-9][0-9]*$ && -r "/proc/$pid/cmdline" ]] || return 1
+  grep -Fxq -- "$entry" < <(tr '\0' '\n' < "/proc/$pid/cmdline")
+}
+
+case "$1" in
+  start)
+    if running; then exit 0; fi
+    cd "$TRIM_PKGVAR"
+    export NODE_ENV=production NITRO_HOST=0.0.0.0 NITRO_PORT="${TRIM_SERVICE_PORT:-13000}"
+    export DATABASE_MIGRATIONS="$TRIM_APPDEST/server/migrations"
+    export CFRAME_FNOS_STORAGE_ROOT="${TRIM_DATA_SHARE_PATHS%%:*}"
+    [[ -n "$CFRAME_FNOS_STORAGE_ROOT" && -d "$CFRAME_FNOS_STORAGE_ROOT" ]]
+    umask 077
+    mkdir -p data
+    "$node" "$entry" </dev/null >> "$TRIM_PKGVAR/chronoframe-service.log" 2>&1 &
+    pid=$!
+    printf '%s\n' "$pid" > "$pidfile"
+    for ((i=0; i<60; i++)); do
+      kill -0 "$pid" 2>/dev/null || break
+      if (exec 3<>"/dev/tcp/127.0.0.1/$NITRO_PORT") 2>/dev/null; then exit 0; fi
+      sleep 1
+    done
+    if running; then kill -TERM "$pid"; fi
+    tail -n 20 "$TRIM_PKGVAR/chronoframe-service.log" >&2
+    exit 1
+    ;;
+  stop)
+    if running; then
+      kill -TERM "$pid"
+      for ((i=0; i<30; i++)); do
+        if ! running; then break; fi
+        sleep 1
+      done
+      if running; then exit 1; fi
+    fi
+    rm -f -- "$pidfile"
+    ;;
+  status)
+    if ! running; then exit 3; fi
+    ;;
+  *) exit 1 ;;
+esac

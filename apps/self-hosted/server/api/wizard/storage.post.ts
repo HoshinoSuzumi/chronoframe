@@ -1,3 +1,4 @@
+import { validateFnosStorageDirectory } from '../../utils/fnos-storage'
 import { defineWizardHandler } from '../../utils/wizard-handler'
 import { z } from 'zod'
 import { settingsManager } from '~~/server/services/settings/settingsManager'
@@ -11,6 +12,10 @@ export default defineWizardHandler(async (event) => {
       config: storageConfigSchema,
     }).parse,
   )
+
+  if (body.config.provider === 'local') {
+    await validateFnosStorageDirectory(body.config.basePath)
+  }
 
   const id = await settingsManager.storage.addProvider({
     name: body.name,

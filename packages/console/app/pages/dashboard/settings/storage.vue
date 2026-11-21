@@ -33,6 +33,10 @@ const {
   '/api/system/settings/storage-config',
 )
 
+const { data: fnosStorage } = await useConsoleFetch<{
+  directories: string[] | null
+}>('/api/system/settings/fnos-directories')
+
 const PROVIDER_ICON = {
   s3: 'tabler:brand-aws',
   local: 'tabler:database',
@@ -233,7 +237,7 @@ const getStorageConfigDefaults = (provider: string): Partial<StorageConfig> => {
     case 'local':
       return {
         provider: 'local',
-        basePath: '/data/storage',
+        basePath: fnosStorage.value?.directories?.[0] || '/data/storage',
         baseUrl: '/storage',
         prefix: '',
       } as any
@@ -277,6 +281,7 @@ const storageFieldsConfig = computed<Record<string, any>>(() => {
       return {
         provider: { hidden: true },
         basePath: {
+          hidden: Boolean(fnosStorage.value?.directories),
           label: $t(`${baseKey}.basePath.label`),
           description: $t(`${baseKey}.basePath.description`),
         },
@@ -828,6 +833,21 @@ const confirmStorageDelete = async () => {
                     />
                     <USeparator />
                   </div>
+                  <UFormField
+                    v-if="
+                      storageConfigState.config.provider === 'local' &&
+                      fnosStorage?.directories
+                    "
+                    name="basePath"
+                    :label="$t('settings.storage.local.basePath.label')"
+                    :help="$t('settings.storage.fnosDirectoryHelp')"
+                  >
+                    <USelect
+                      v-model="storageConfigState.config.basePath"
+                      :items="fnosStorage.directories"
+                      class="w-full"
+                    />
+                  </UFormField>
                 </template>
                 <UButton
                   class="mt-5"

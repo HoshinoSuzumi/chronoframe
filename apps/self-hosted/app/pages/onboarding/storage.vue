@@ -9,6 +9,9 @@ definePageMeta({
 
 const router = useRouter()
 const wizardStore = useWizardStore()
+const { data: fnosStorage } = useFetch<{ directories: string[] | null }>(
+  '/api/wizard/fnos-directories',
+)
 
 // Mark this step as accessible when entering the page
 wizardStore.markStepAccessible(3)
@@ -133,8 +136,20 @@ function onSubmit() {
             :required="field.ui.required"
             :help="$t(field.ui.help || '')"
           >
+            <template
+              v-if="field.key === 'local.basePath' && fnosStorage?.directories"
+            >
+              <USelect
+                v-model="state[field.key]"
+                :items="fnosStorage.directories"
+                class="w-full"
+              />
+              <p class="mt-1 text-sm text-muted">
+                {{ $t('settings.storage.fnosDirectoryHelp') }}
+              </p>
+            </template>
             <WizardInput
-              v-if="field.ui.type === 'password'"
+              v-else-if="field.ui.type === 'password'"
               v-model="state[field.key]"
               type="password"
               :placeholder="$t(field.ui.placeholder || '')"
