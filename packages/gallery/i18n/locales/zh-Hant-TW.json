@@ -699,6 +699,8 @@
         "livePhotoNotFound": "不是原況照片",
         "livePhotoLoadError": "無法載入原況照片資訊",
         "metadataUpdateSuccess": "照片資訊已更新",
+        "metadataFileUnsupported": "無法寫入此相片的元資料：檔案格式不受支援，或副檔名與實際內容不一致。",
+        "invalidDateTaken": "拍攝時間無效。",
         "metadataUpdateFailed": "更新照片資訊失敗",
         "photoNotFound": "找不到照片",
         "photoFileMissing": "找不到照片檔案",
@@ -748,7 +750,7 @@
       },
       "editModal": {
         "title": "編輯照片資訊",
-        "description": "更新標題、描述、標籤與拍攝位置。",
+        "description": "更新標題、描述、拍攝時間、標籤與拍攝位置。",
         "fields": {
           "title": "標題",
           "description": "描述",
@@ -759,6 +761,8 @@
           "clearLocation": "抹除位置資訊",
           "coordinates": "座標",
           "noLocation": "未選擇位置",
+          "dateTaken": "拍攝時間",
+          "dateTakenHint": "相片拍攝的日期和時間。",
           "rating": "評分",
           "ratingHint": "點擊星星為照片設定評分（0-5 星）。",
           "noRating": "未評分"

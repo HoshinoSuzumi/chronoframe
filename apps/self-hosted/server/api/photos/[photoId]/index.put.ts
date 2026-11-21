@@ -30,6 +30,13 @@ const bodySchema = z.object({
     ])
     .optional(),
   rating: z.union([z.number().int().min(0).max(5), z.null()]).optional(),
+  dateTaken: z
+    .string()
+    .trim()
+    .refine((value) => !Number.isNaN(new Date(value).getTime()), {
+      message: 'Invalid capture date',
+    })
+    .optional(),
 })
 
 export default eventHandler(async (event) => {

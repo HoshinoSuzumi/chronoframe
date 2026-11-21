@@ -781,6 +781,8 @@
         "livePhotoNotFound": "Not a Live Photo",
         "livePhotoLoadError": "Unable to load Live Photo information",
         "metadataUpdateSuccess": "Photo metadata updated",
+        "metadataFileUnsupported": "This photo cannot be annotated: its file format is unsupported, or the extension does not match the file content.",
+        "invalidDateTaken": "Invalid shooting date.",
         "metadataUpdateFailed": "Failed to update photo metadata",
         "photoNotFound": "Photo not found",
         "photoFileMissing": "Photo file is missing",
@@ -830,7 +832,7 @@
       },
       "editModal": {
         "title": "Edit photo details",
-        "description": "Update the title, description, tags and shooting location.",
+        "description": "Update the title, description, shooting date, tags and location.",
         "fields": {
           "title": "Title",
           "description": "Description",
@@ -841,6 +843,8 @@
           "clearLocation": "Erase location info",
           "coordinates": "Coordinates",
           "noLocation": "No location selected",
+          "dateTaken": "Shooting date",
+          "dateTakenHint": "The date and time the photo was taken.",
           "rating": "Rating",
           "ratingHint": "Click on the stars to set the photo rating (0-5 stars).",
           "noRating": "No rating"

@@ -132,6 +132,8 @@ export interface PhotoMetadataInput {
   tags?: string[]
   location?: { latitude: number; longitude: number } | null
   rating?: number | null
+  /** ISO 8601 instant; normalized to UTC before persistence. */
+  dateTaken?: string
 }
 export type PhotoUpdate = Partial<
   Pick<
@@ -150,6 +152,7 @@ export type PhotoUpdate = Partial<
     | 'city'
     | 'locationName'
     | 'geocoding'
+    | 'dateTaken'
   >
 >
 export type PhotoRecord = Photo & {
@@ -199,6 +202,16 @@ export function normalizePhotoMetadata(
         seen.add(key)
         return true
       })
+  }
+  if (input.dateTaken !== undefined) {
+    const date = new Date(input.dateTaken)
+    if (Number.isNaN(date.getTime()))
+      throw new CoreError(
+        400,
+        'Invalid capture date',
+        'dashboard.photos.messages.invalidDateTaken',
+      )
+    normalized.dateTaken = date.toISOString()
   }
   return normalized
 }
@@ -261,6 +274,7 @@ export function createPhotoWriter(deps: {
       if (input.description !== undefined)
         update.description = input.description || null
       if (input.tags !== undefined) update.tags = input.tags
+      if (input.dateTaken !== undefined) update.dateTaken = input.dateTaken
       if (input.location !== undefined) {
         Object.assign(update, {
           latitude: input.location?.latitude ?? null,
