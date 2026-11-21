@@ -1437,6 +1437,8 @@
       "sectionDescription": "Manage data privacy policies for photo uploads. It is recommended to enable location data removal on public sites."
     },
     "storage": {
+      "fnosDirectoryEmpty": "No writable fnOS directories are available. Restore the volume or authorize a folder in fnOS, then restart ChronoFrame.",
+      "fnosDirectoryError": "Could not load storage directories.",
       "fnosDirectoryHelp": "Authorize a writable folder in the fnOS application settings, then restart ChronoFrame to refresh the list.",
       "name": {
         "label": "Provider Name",

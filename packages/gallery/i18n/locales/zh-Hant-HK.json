@@ -1355,6 +1355,8 @@
       "sectionDescription": "管理相片上傳時的資料隱私策略。建議在公開站點啟用位置資訊抹除。"
     },
     "storage": {
+      "fnosDirectoryEmpty": "沒有可寫入的飛牛目錄。請恢復儲存空間或在飛牛授權目錄，然後重新啟動 ChronoFrame。",
+      "fnosDirectoryError": "無法載入儲存目錄。",
       "fnosDirectoryHelp": "在飛牛應用設定中授權可寫目錄，然後重新啟動 ChronoFrame 更新清單。",
       "name": {
         "label": "配置名稱",

@@ -140,12 +140,19 @@ function onSubmit() {
               v-if="field.key === 'local.basePath' && fnosStorage?.directories"
             >
               <USelect
+                v-if="fnosStorage.directories.length"
                 v-model="state[field.key]"
                 :items="fnosStorage.directories"
                 class="w-full"
               />
               <p class="mt-1 text-sm text-muted">
-                {{ $t('settings.storage.fnosDirectoryHelp') }}
+                {{
+                  $t(
+                    fnosStorage.directories.length
+                      ? 'settings.storage.fnosDirectoryHelp'
+                      : 'settings.storage.fnosDirectoryEmpty',
+                  )
+                }}
               </p>
             </template>
             <WizardInput
