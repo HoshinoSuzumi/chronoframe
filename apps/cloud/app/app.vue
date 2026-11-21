@@ -42,7 +42,7 @@ useHead(() => ({
         height="56"
         alt=""
       />
-      <span>{{ $t('cloud.messages.loading') }}</span>
+      <span>{{ locale === 'zh-Hans' ? '加载中…' : 'Loading…' }}</span>
     </div>
     <div class="cf-root">
       <a
