@@ -13,6 +13,14 @@ background uploading: select the same files again to resume a retained reservati
 Multipart initialization uses the same unsupported-operation fallback to signed
 PUT as Self-hosted, without proxying file bodies through the edge application.
 
+## Installable portal
+
+The Cloud portal can be installed from a browser's install menu. On iPhone and
+iPad, use Safari's **Add to Home Screen**. The installed app opens the workspace
+in its own window, and signed-out users continue through the normal sign-in flow.
+Photo management requires an internet connection. The portal does not register a
+service worker or store authenticated pages, uploads or photos for offline use.
+
 ## Design language
 
 Cloud uses the shared [SaaS UI layer](../../packages/saas-ui/README.md), also the

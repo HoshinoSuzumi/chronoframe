@@ -91,7 +91,28 @@ try {
       entry === 'cloud' ? /Every frame\./ : /service unavailable/i,
     )
   if (entry === 'cloud') {
-    assert.equal((await fetch(base + '/signin')).status, 200)
+    const signin = await fetch(base + '/signin')
+    assert.equal(signin.status, 200)
+    assert.match(await signin.text(), /href="\/portal\.webmanifest"/)
+    const manifestResponse = await fetch(base + '/portal.webmanifest')
+    assert.equal(manifestResponse.status, 200)
+    const manifest = await manifestResponse.json()
+    assert.equal(manifest.display, 'standalone')
+    assert.equal(manifest.start_url, '/workspace')
+    for (const path of [
+      ...manifest.icons.map((icon) => icon.src),
+      '/apple-touch-icon.png',
+    ]) {
+      const icon = await fetch(base + path)
+      assert.equal(icon.status, 200, path)
+      assert.match(icon.headers.get('content-type'), /^image\/png\b/, path)
+    }
+    const launch = await fetch(base + manifest.start_url, {
+      redirect: 'manual',
+    })
+    assert.equal(launch.status, 302)
+    const signInUrl = new URL(launch.headers.get('location'), base)
+    assert.equal(signInUrl.pathname, '/signin')
     const dashboard = await fetch(base + '/dashboard/photos', {
       redirect: 'manual',
     })
