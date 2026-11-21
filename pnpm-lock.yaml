@@ -267,6 +267,9 @@ importers:
       oxlint:
         specifier: ^1.87.0
         version: 1.87.0
+      parse5:
+        specifier: 8.1.0
+        version: 8.1.0
       sass-embedded:
         specifier: ^1.105.1
         version: 1.105.1
