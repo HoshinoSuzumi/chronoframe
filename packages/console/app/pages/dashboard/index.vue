@@ -12,15 +12,17 @@ const appTitle = useSettingRef('app:title')
 const appSlogan = useSettingRef('app:slogan')
 const { photos } = usePhotos()
 
-const { data: dashboardStats, refresh: refreshStats } =
-  await useConsoleFetch('/api/system/stats')
+const { data: dashboardStats, refresh: refreshStats } = await useConsoleFetch(
+  '/api/system/stats',
+  { timeout: 15000, retry: 0 },
+)
 
 const isLoading = ref(false)
 
 const refreshData = async () => {
   isLoading.value = true
   try {
-    await refreshStats()
+    await refreshStats({ dedupe: 'defer' })
   } finally {
     isLoading.value = false
   }

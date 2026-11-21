@@ -1,3 +1,4 @@
+import { validateFnosStorageDirectory } from '../../../../utils/fnos-storage'
 import { toStorageProviderDto } from '../../../../utils/dto'
 import { z } from 'zod'
 import { settingsManager } from '~~/server/services/settings/settingsManager'
@@ -57,6 +58,16 @@ export default eventHandler(async (event) => {
           }),
         ]).parse,
       )
+
+      if (updatedStorageConfig.provider === 'local') {
+        const previousPath =
+          storageConfig.config.provider === 'local'
+            ? storageConfig.config.basePath
+            : undefined
+        await validateFnosStorageDirectory(
+          updatedStorageConfig.config.basePath ?? previousPath,
+        )
+      }
 
       await settingsManager.storage.updateProvider(
         storageConfigId,

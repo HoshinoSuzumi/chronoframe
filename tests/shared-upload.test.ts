@@ -112,10 +112,11 @@ test('both editions render the same upload controls and Cloud mounts its queue o
   )
 })
 
-test('shared scheduler limits all batches to three files and discards cancelled waiting entries', async () => {
+test('shared scheduler works over HTTP, limits concurrency and discards cancelled entries', async () => {
   const scope = effectScope()
   const module = loadUploadCode(
     'packages/console/app/composables/useUploadQueue.ts',
+    { crypto: {} },
   )
   const queue = scope.run(() => module.useUploadQueue())!
   const started: string[] = []

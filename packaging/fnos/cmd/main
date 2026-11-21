@@ -1,0 +1,82 @@
+#!/bin/bash
+set -eu
+
+pidfile="$TRIM_PKGVAR/chronoframe.pid"
+entry="$TRIM_APPDEST/server/.output/server/index.mjs"
+node="$TRIM_APPDEST/server/bin/node"
+
+running() {
+  [[ -r "$pidfile" ]] || return 1
+  read -r pid < "$pidfile" || return 1
+  [[ "$pid" =~ ^[1-9][0-9]*$ && -r "/proc/$pid/cmdline" ]] || return 1
+  grep -Fxq -- "$entry" < <(tr '\0' '\n' < "/proc/$pid/cmdline")
+}
+
+stop_process() {
+  if ! running; then return 0; fi
+  local target="$pid"
+  kill -TERM "$target" 2>/dev/null || true
+  for ((i=0; i<10; i++)); do
+    if ! running || [[ "$pid" != "$target" ]]; then return 0; fi
+    sleep 1
+  done
+  if running && [[ "$pid" == "$target" ]]; then
+    echo 'ChronoFrame did not exit after SIGTERM; sending SIGKILL.' >&2
+    kill -KILL "$target" 2>/dev/null || true
+  fi
+  for ((i=0; i<5; i++)); do
+    if ! running || [[ "$pid" != "$target" ]]; then return 0; fi
+    sleep 1
+  done
+  ! running || [[ "$pid" != "$target" ]]
+}
+
+prepare_data() {
+  local destination="$CFRAME_FNOS_STORAGE_ROOT/data"
+  local previous="$TRIM_PKGVAR/data"
+  if [[ ! -e "$destination" && ! -L "$destination" && -d "$previous" ]]; then
+    (
+      local staging
+      staging=$(mktemp -d "$CFRAME_FNOS_STORAGE_ROOT/.data-migration.XXXXXXXX")
+      trap 'rm -rf -- "$staging"' EXIT
+      cp -a -- "$previous/." "$staging/"
+      mv -T -- "$staging" "$destination"
+    )
+  else
+    mkdir -p -- "$destination"
+  fi
+}
+
+case "$1" in
+  start)
+    if running; then exit 0; fi
+    export NODE_ENV=production NITRO_HOST=0.0.0.0 NITRO_PORT="${TRIM_SERVICE_PORT:-13000}"
+    export DATABASE_MIGRATIONS="$TRIM_APPDEST/server/migrations"
+    export CFRAME_FNOS_STORAGE_ROOT="${TRIM_DATA_SHARE_PATHS%%:*}"
+    [[ -n "$CFRAME_FNOS_STORAGE_ROOT" && -d "$CFRAME_FNOS_STORAGE_ROOT" ]]
+    umask 077
+    prepare_data
+    cd "$CFRAME_FNOS_STORAGE_ROOT"
+    export DATABASE_URL="$PWD/data/app.sqlite3"
+    service_log="$PWD/data/chronoframe-service.log"
+    "$node" "$entry" </dev/null >> "$service_log" 2>&1 &
+    pid=$!
+    printf '%s\n' "$pid" > "$pidfile"
+    for ((i=0; i<60; i++)); do
+      kill -0 "$pid" 2>/dev/null || break
+      if (exec 3<>"/dev/tcp/127.0.0.1/$NITRO_PORT") 2>/dev/null; then exit 0; fi
+      sleep 1
+    done
+    stop_process || true
+    tail -n 20 "$service_log" >&2
+    exit 1
+    ;;
+  stop)
+    stop_process
+    rm -f -- "$pidfile"
+    ;;
+  status)
+    if ! running; then exit 3; fi
+    ;;
+  *) exit 1 ;;
+esac

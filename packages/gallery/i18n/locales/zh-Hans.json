@@ -1433,6 +1433,9 @@
       "sectionDescription": "管理照片上传时的数据隐私策略。建议在公开站点启用位置信息抹除。"
     },
     "storage": {
+      "fnosDirectoryEmpty": "没有可写的飞牛目录。请恢复存储空间或在飞牛中授权目录，然后重启 ChronoFrame。",
+      "fnosDirectoryError": "无法加载存储目录。",
+      "fnosDirectoryHelp": "在飞牛应用设置中授权可写目录，然后重启 ChronoFrame 刷新列表。",
       "name": {
         "label": "配置名称",
         "description": "存储提供者配置的名称"

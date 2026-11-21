@@ -1,0 +1,67 @@
+name: Build fnOS FPK
+
+on:
+  workflow_call:
+    inputs:
+      commit:
+        required: true
+        type: string
+      version:
+        required: true
+        type: string
+    secrets:
+      FNPACK_DEVELOPER_KEY:
+        required: true
+      FNPACK_DEVELOPER_CERT:
+        required: true
+  pull_request:
+    paths:
+      - '.github/workflows/build-fpk.yml'
+      - '.github/workflows/publish-images.yml'
+      - 'packaging/fnos/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-24.04
+            arch: x86_64
+          - runner: ubuntu-24.04-arm
+            arch: arm64
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.commit || github.sha }}
+          persist-credentials: false
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.23.4
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build:deps
+      - run: pnpm build
+        env:
+          NODE_OPTIONS: --max-old-space-size=4096
+      - name: Build FPK
+        env:
+          FNPACK_DEVELOPER_KEY: ${{ inputs.version != '' && secrets.FNPACK_DEVELOPER_KEY || '' }}
+          FNPACK_DEVELOPER_CERT: ${{ inputs.version != '' && secrets.FNPACK_DEVELOPER_CERT || '' }}
+          FNPACK_REQUIRE_SIGNATURE: ${{ inputs.version != '' }}
+          RELEASE_VERSION: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+          version="${RELEASE_VERSION:-$(node -p 'require("./package.json").version')}"
+          bash packaging/fnos/build.sh "$version" "$RUNNER_TEMP/fpk"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: fnos-${{ matrix.arch }}
+          path: ${{ runner.temp }}/fpk/*
+          if-no-files-found: error
