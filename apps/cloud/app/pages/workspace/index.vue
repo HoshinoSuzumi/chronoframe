@@ -14,7 +14,6 @@ import { quotaGate } from '../../utils/quota-gate'
 definePageMeta({ layout: 'portal' })
 const { t, locale } = useI18n(),
   billing = useWorkspaceBilling()
-await billing.ready
 useIntervalFn(() => {
   if (
     document.visibilityState === 'visible' &&

@@ -427,18 +427,23 @@ test('Dodo scheduler isolates provider failures and local retention without expo
 
 test('Primary billing workspace consistently prefers ownership then administrative membership', async () => {
   let selected = 0
+  let routePath = '/account/plan'
+  const serverOptions: boolean[] = []
   const list = [
     { id: 1, name: 'Read only', role: 'member', owned: 0 },
     { id: 2, name: 'Managed', role: 'admin', owned: 0 },
   ]
   const module = load('apps/cloud/app/composables/useWorkspaceBilling.ts', {
+    useState: () => ref('idle'),
     usePortalIdentity: () => ref({ id: 3 }),
+    useRoute: () => ({ path: routePath }),
     useRequestFetch: () => async (url: string, options: any) => {
       if (url.endsWith('/workspaces')) return { workspaces: list }
       selected = options.query.workspaceId
       return { workspace: { role: list.find((w) => w.id === selected)?.role } }
     },
-    useAsyncData: (_key: string, run: any) => {
+    useAsyncData: (_key: string, run: any, options: { server: boolean }) => {
+      serverOptions.push(options.server)
       const data = ref<any>(),
         ready = run().then((value: any) => {
           data.value = value
@@ -456,10 +461,67 @@ test('Primary billing workspace consistently prefers ownership then administrati
   assert.equal(selected, 2)
   assert.equal(state.selected.value, 2)
   list[0].owned = 1
-  state = module.useWorkspaceBilling()
-  await state.ready
-  assert.equal(selected, 1)
+  for (const path of ['/workspace', '/workspace/']) {
+    routePath = path
+    state = module.useWorkspaceBilling()
+    await state.ready
+    assert.equal(selected, 1)
+  }
+  assert.deepEqual(serverOptions, [true, false, false])
 })
+
+for (const failure of [null, 403, 503]) {
+  test(`deferred billing deduplicates provisioning with result ${failure ?? 'success'}`, async () => {
+    const data = ref<{ membershipCount: number }>()
+    const status = ref('pending')
+    const provisioning = ref('idle')
+    let posts = 0
+    let refreshes = 0
+    const module = load('apps/cloud/app/composables/useWorkspaceBilling.ts', {
+      usePortalIdentity: () => ref({ id: 3 }),
+      useRoute: () => ({ path: '/workspace/' }),
+      useRequestFetch: () => () => {},
+      useState: () => provisioning,
+      useAsyncData: () =>
+        Object.assign(Promise.resolve(), {
+          data,
+          status,
+          error: ref(null),
+          refresh: async () => {
+            refreshes++
+            data.value = { membershipCount: 1 }
+          },
+        }),
+      onMounted: (callback: () => void) => callback(),
+      $fetch: async () => {
+        posts++
+        if (posts === 1 && failure) throw { statusCode: failure }
+      },
+    })
+    const scope = effectScope()
+    try {
+      scope.run(() => {
+        module.useWorkspaceBilling()
+        module.useWorkspaceBilling()
+      })
+      await nextTick()
+      assert.equal(posts, 0)
+      data.value = { membershipCount: 0 }
+      status.value = 'success'
+      await new Promise<void>((resolve) => setImmediate(resolve))
+      assert.equal(posts, 1)
+      assert.equal(refreshes, failure ? 0 : 1)
+      status.value = 'pending'
+      await nextTick()
+      status.value = 'success'
+      await new Promise<void>((resolve) => setImmediate(resolve))
+      assert.equal(posts, failure === 503 ? 2 : 1)
+      assert.equal(refreshes, failure === 403 ? 0 : 1)
+    } finally {
+      scope.stop()
+    }
+  })
+}
 
 test('billing refresh aborts stalled workspace, plan and payment reads', async () => {
   const require = createRequire(import.meta.url)
@@ -495,8 +557,10 @@ test('billing refresh aborts stalled workspace, plan and payment reads', async (
     const billingModule = load(
       'apps/cloud/app/composables/useWorkspaceBilling.ts',
       {
+        useState: () => ref('idle'),
         usePortalIdentity: () => ref({ id: 1 }),
         useRequestFetch: () => fetcher,
+        useRoute: () => ({ path: '/workspace' }),
         useAsyncData: (_key: string, run: any) => ({
           data: ref(null),
           error: ref(null),

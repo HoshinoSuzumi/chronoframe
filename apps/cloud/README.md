@@ -18,6 +18,7 @@ PUT as Self-hosted, without proxying file bodies through the edge application.
 The Cloud portal can be installed from a browser's install menu. On iPhone and
 iPad, use Safari's **Add to Home Screen**. The installed app opens the workspace
 in its own window, and signed-out users continue through the normal sign-in flow.
+A startup indicator appears in standalone mode while the initial page initializes.
 Photo management requires an internet connection. The portal does not register a
 service worker or store authenticated pages, uploads or photos for offline use.
 

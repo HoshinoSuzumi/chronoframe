@@ -1,9 +1,17 @@
 export function useWorkspaceBilling(adminOnly = false) {
   const user = usePortalIdentity(),
     fetcher = useRequestFetch()
+  // The overview has its own loading state. Keep billing off its SSR path,
+  // including the sidebar's subscription to the same data.
+  const server = useRoute().path.replace(/\/+$/, '') !== '/workspace'
+  const key = `workspace-billing-${user.value?.id}`
+  const provisioning = useState<'idle' | 'pending' | 'denied'>(
+    `${key}-provisioning`,
+    () => 'idle',
+  )
   type Workspace = { id: number; name: string; role: string; owned?: number }
   const billing = useAsyncData(
-    `workspace-billing-${user.value?.id}`,
+    key,
     async () => {
       const list = await fetcher<{ workspaces: Workspace[] }>(
         '/api/billing/workspaces',
@@ -27,20 +35,32 @@ export function useWorkspaceBilling(adminOnly = false) {
         plan,
       }
     },
+    { server },
   )
   const permitted = computed(
     () => !adminOnly || billing.data.value?.plan?.workspace.role === 'admin',
   )
-  onMounted(async () => {
-    await billing
-    if (billing.data.value?.membershipCount === 0 && !billing.error.value) {
-      try {
-        await $fetch('/api/billing/workspaces', { method: 'POST' })
-        await billing.refresh()
-      } catch {
-        /* Do not restore revoked memberships. */
-      }
-    }
+  onMounted(() => {
+    watch(
+      () =>
+        billing.status.value === 'success' &&
+        billing.data.value?.membershipCount === 0,
+      async (empty) => {
+        if (!empty || provisioning.value !== 'idle') return
+        provisioning.value = 'pending'
+        try {
+          await $fetch('/api/billing/workspaces', { method: 'POST' })
+          await billing.refresh()
+        } catch (error) {
+          // A revoked membership cannot be restored by polling.
+          if ((error as { statusCode?: number })?.statusCode === 403)
+            provisioning.value = 'denied'
+        } finally {
+          if (provisioning.value === 'pending') provisioning.value = 'idle'
+        }
+      },
+      { immediate: true },
+    )
   })
   return {
     workspaces: computed(() =>
