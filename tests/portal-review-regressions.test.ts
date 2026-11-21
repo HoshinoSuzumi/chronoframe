@@ -434,6 +434,7 @@ test('Primary billing workspace consistently prefers ownership then administrati
     { id: 2, name: 'Managed', role: 'admin', owned: 0 },
   ]
   const module = load('apps/cloud/app/composables/useWorkspaceBilling.ts', {
+    useState: () => ref(false),
     usePortalIdentity: () => ref({ id: 3 }),
     useRoute: () => ({ path: routePath }),
     useRequestFetch: () => async (url: string, options: any) => {
@@ -460,11 +461,57 @@ test('Primary billing workspace consistently prefers ownership then administrati
   assert.equal(selected, 2)
   assert.equal(state.selected.value, 2)
   list[0].owned = 1
-  routePath = '/workspace'
-  state = module.useWorkspaceBilling()
-  await state.ready
-  assert.equal(selected, 1)
-  assert.deepEqual(serverOptions, [true, false])
+  for (const path of ['/workspace', '/workspace/']) {
+    routePath = path
+    state = module.useWorkspaceBilling()
+    await state.ready
+    assert.equal(selected, 1)
+  }
+  assert.deepEqual(serverOptions, [true, false, false])
+})
+
+test('workspace billing waits for client data and provisions once across subscribers', async () => {
+  const data = ref<{ membershipCount: number }>()
+  const status = ref('pending')
+  const provisioning = ref(false)
+  let posts = 0
+  let refreshes = 0
+  const module = load('apps/cloud/app/composables/useWorkspaceBilling.ts', {
+    usePortalIdentity: () => ref({ id: 3 }),
+    useRoute: () => ({ path: '/workspace/' }),
+    useRequestFetch: () => () => {},
+    useState: () => provisioning,
+    useAsyncData: () =>
+      Object.assign(Promise.resolve(), {
+        data,
+        status,
+        error: ref(null),
+        refresh: async () => {
+          refreshes++
+          data.value = { membershipCount: 1 }
+        },
+      }),
+    onMounted: (callback: () => void) => callback(),
+    $fetch: async () => {
+      posts++
+    },
+  })
+  const scope = effectScope()
+  try {
+    scope.run(() => {
+      module.useWorkspaceBilling()
+      module.useWorkspaceBilling()
+    })
+    await nextTick()
+    assert.equal(posts, 0)
+    data.value = { membershipCount: 0 }
+    status.value = 'success'
+    await new Promise<void>((resolve) => setImmediate(resolve))
+    assert.equal(posts, 1)
+    assert.equal(refreshes, 1)
+  } finally {
+    scope.stop()
+  }
 })
 
 test('billing refresh aborts stalled workspace, plan and payment reads', async () => {
@@ -501,6 +548,7 @@ test('billing refresh aborts stalled workspace, plan and payment reads', async (
     const billingModule = load(
       'apps/cloud/app/composables/useWorkspaceBilling.ts',
       {
+        useState: () => ref(false),
         usePortalIdentity: () => ref({ id: 1 }),
         useRequestFetch: () => fetcher,
         useRoute: () => ({ path: '/workspace' }),

@@ -4,6 +4,10 @@ import { provideCloudUploads } from './composables/useCloudUploads'
 const { locale } = useI18n()
 provideCloudUploads()
 const starting = ref(true)
+const announceStartup = ref(false)
+onMounted(() => {
+  announceStartup.value = true
+})
 onNuxtReady(() => {
   starting.value = false
 })
@@ -37,13 +41,18 @@ useHead(() => ({
     <div
       v-if="starting"
       class="cloud-pwa-startup"
-      role="status"
-      :aria-label="locale === 'zh-Hans' ? '加载中…' : 'Loading…'"
     >
       <span
         class="cloud-pwa-spinner"
         aria-hidden="true"
       />
+      <span
+        class="sr-only"
+        role="status"
+        >{{
+          announceStartup ? (locale === 'zh-Hans' ? '加载中…' : 'Loading…') : ''
+        }}</span
+      >
     </div>
     <div class="cf-root">
       <a
