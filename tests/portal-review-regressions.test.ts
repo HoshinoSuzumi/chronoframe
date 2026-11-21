@@ -427,18 +427,22 @@ test('Dodo scheduler isolates provider failures and local retention without expo
 
 test('Primary billing workspace consistently prefers ownership then administrative membership', async () => {
   let selected = 0
+  let routePath = '/account/plan'
+  const serverOptions: boolean[] = []
   const list = [
     { id: 1, name: 'Read only', role: 'member', owned: 0 },
     { id: 2, name: 'Managed', role: 'admin', owned: 0 },
   ]
   const module = load('apps/cloud/app/composables/useWorkspaceBilling.ts', {
     usePortalIdentity: () => ref({ id: 3 }),
+    useRoute: () => ({ path: routePath }),
     useRequestFetch: () => async (url: string, options: any) => {
       if (url.endsWith('/workspaces')) return { workspaces: list }
       selected = options.query.workspaceId
       return { workspace: { role: list.find((w) => w.id === selected)?.role } }
     },
-    useAsyncData: (_key: string, run: any) => {
+    useAsyncData: (_key: string, run: any, options: { server: boolean }) => {
+      serverOptions.push(options.server)
       const data = ref<any>(),
         ready = run().then((value: any) => {
           data.value = value
@@ -456,9 +460,11 @@ test('Primary billing workspace consistently prefers ownership then administrati
   assert.equal(selected, 2)
   assert.equal(state.selected.value, 2)
   list[0].owned = 1
+  routePath = '/workspace'
   state = module.useWorkspaceBilling()
   await state.ready
   assert.equal(selected, 1)
+  assert.deepEqual(serverOptions, [true, false])
 })
 
 test('billing refresh aborts stalled workspace, plan and payment reads', async () => {
@@ -497,6 +503,7 @@ test('billing refresh aborts stalled workspace, plan and payment reads', async (
       {
         usePortalIdentity: () => ref({ id: 1 }),
         useRequestFetch: () => fetcher,
+        useRoute: () => ({ path: '/workspace' }),
         useAsyncData: (_key: string, run: any) => ({
           data: ref(null),
           error: ref(null),
