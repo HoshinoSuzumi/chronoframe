@@ -17,6 +17,9 @@ useHead(() => ({
     { rel: 'manifest', href: '/portal.webmanifest' },
     { rel: 'apple-touch-icon', href: '/apple-touch-icon.png' },
   ],
+  noscript: [
+    { innerHTML: '<style>.cloud-pwa-startup{display:none!important}</style>' },
+  ],
   bodyAttrs: { class: 'cf-cloud-body' },
 }))
 </script>
@@ -35,14 +38,12 @@ useHead(() => ({
       v-if="starting"
       class="cloud-pwa-startup"
       role="status"
+      :aria-label="locale === 'zh-Hans' ? '加载中…' : 'Loading…'"
     >
-      <img
-        src="/web-app-manifest-192x192.png"
-        width="56"
-        height="56"
-        alt=""
+      <span
+        class="cloud-pwa-spinner"
+        aria-hidden="true"
       />
-      <span>{{ locale === 'zh-Hans' ? '加载中…' : 'Loading…' }}</span>
     </div>
     <div class="cf-root">
       <a
@@ -62,35 +63,43 @@ useHead(() => ({
   display: none;
 }
 
-@media (display-mode: standalone) and (scripting: enabled) {
+@media (display-mode: standalone) {
   .cloud-pwa-startup {
     position: fixed;
     inset: 0;
     z-index: 100;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 1rem;
+    display: grid;
+    place-items: center;
     background: #202123;
     color: #f4f4f5;
-    font-size: 0.875rem;
+    /* Reveal the server-rendered page if the client bundle never starts. */
+    animation: cloud-pwa-release 15s steps(1, end) forwards;
+  }
+
+  .cloud-pwa-spinner {
+    width: 2rem;
+    height: 2rem;
+    border: 3px solid rgb(255 255 255 / 20%);
+    border-top-color: currentColor;
+    border-radius: 50%;
   }
 
   @media (prefers-reduced-motion: no-preference) {
-    .cloud-pwa-startup img {
-      animation: cloud-pwa-pulse 1.4s ease-in-out infinite alternate;
+    .cloud-pwa-spinner {
+      animation: cloud-pwa-spin 0.8s linear infinite;
     }
   }
 }
 
-@keyframes cloud-pwa-pulse {
-  from {
-    opacity: 0.55;
-  }
-
+@keyframes cloud-pwa-spin {
   to {
-    opacity: 1;
+    transform: rotate(1turn);
+  }
+}
+
+@keyframes cloud-pwa-release {
+  to {
+    visibility: hidden;
   }
 }
 </style>

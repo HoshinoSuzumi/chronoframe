@@ -1,6 +1,9 @@
 export function useWorkspaceBilling(adminOnly = false) {
   const user = usePortalIdentity(),
     fetcher = useRequestFetch()
+  // The overview has its own loading state. Keep billing off its SSR path,
+  // including the sidebar's subscription to the same data.
+  const server = useRoute().path !== '/workspace'
   type Workspace = { id: number; name: string; role: string; owned?: number }
   const billing = useAsyncData(
     `workspace-billing-${user.value?.id}`,
@@ -27,6 +30,7 @@ export function useWorkspaceBilling(adminOnly = false) {
         plan,
       }
     },
+    { server },
   )
   const permitted = computed(
     () => !adminOnly || billing.data.value?.plan?.workspace.role === 'admin',
