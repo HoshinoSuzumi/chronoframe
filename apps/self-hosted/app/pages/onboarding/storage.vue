@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { z } from 'zod'
+import { wizardFieldBase } from '~/components/Wizard/field-style'
 import type { ProviderOption } from '~/components/Wizard/ProviderSelector.vue'
 import { useWizardStore } from '~/stores/wizard'
 
@@ -143,7 +144,8 @@ function onSubmit() {
                 v-if="fnosStorage.directories.length"
                 v-model="state[field.key]"
                 :items="fnosStorage.directories"
-                class="w-full"
+                variant="none"
+                :ui="{ base: wizardFieldBase }"
               />
               <p class="mt-1 text-sm text-muted">
                 {{

@@ -16,6 +16,7 @@ export function useUploadQueue() {
   }> = []
   const controllers = new Map<string, AbortController>()
   let active = 0
+  let nextFileId = 0
   let disposed = false
 
   const notify = () => {
@@ -60,7 +61,7 @@ export function useUploadQueue() {
       const entry: UploadingFile = {
         file,
         fileName: file.name,
-        fileId: crypto.randomUUID(),
+        fileId: String(++nextFileId),
         status: UploadQueueStatus.Waiting,
         canAbort: false,
         abortUpload: () => controller.abort(),
