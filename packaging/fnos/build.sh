@@ -76,6 +76,11 @@ mv -- "$work/share/data" "$work/var/data"
 test -s "$work/share/data/app.sqlite3"
 cmp "$work/var/data/.app-secret" "$work/share/data/.app-secret"
 cmp "$work/var/data/.session-password" "$work/share/data/.session-password"
+# A suspended service cannot handle SIGTERM. Confirm the fallback stops it.
+"$stage/cmd/main" start
+kill -STOP "$(cat "$TRIM_PKGVAR/chronoframe.pid")"
+"$stage/cmd/main" stop
+test ! -e "$TRIM_PKGVAR/chronoframe.pid"
 trap 'rm -rf -- "$work"' EXIT
 
 fnpack_version=1.3.3

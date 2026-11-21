@@ -12,6 +12,25 @@ running() {
   grep -Fxq -- "$entry" < <(tr '\0' '\n' < "/proc/$pid/cmdline")
 }
 
+stop_process() {
+  if ! running; then return 0; fi
+  local target="$pid"
+  kill -TERM "$target" 2>/dev/null || true
+  for ((i=0; i<10; i++)); do
+    if ! running || [[ "$pid" != "$target" ]]; then return 0; fi
+    sleep 1
+  done
+  if running && [[ "$pid" == "$target" ]]; then
+    echo 'ChronoFrame did not exit after SIGTERM; sending SIGKILL.' >&2
+    kill -KILL "$target" 2>/dev/null || true
+  fi
+  for ((i=0; i<5; i++)); do
+    if ! running || [[ "$pid" != "$target" ]]; then return 0; fi
+    sleep 1
+  done
+  ! running || [[ "$pid" != "$target" ]]
+}
+
 prepare_data() {
   local destination="$CFRAME_FNOS_STORAGE_ROOT/data"
   local previous="$TRIM_PKGVAR/data"
@@ -48,19 +67,12 @@ case "$1" in
       if (exec 3<>"/dev/tcp/127.0.0.1/$NITRO_PORT") 2>/dev/null; then exit 0; fi
       sleep 1
     done
-    if running; then kill -TERM "$pid"; fi
+    stop_process || true
     tail -n 20 "$service_log" >&2
     exit 1
     ;;
   stop)
-    if running; then
-      kill -TERM "$pid"
-      for ((i=0; i<30; i++)); do
-        if ! running; then break; fi
-        sleep 1
-      done
-      if running; then exit 1; fi
-    fi
+    stop_process
     rm -f -- "$pidfile"
     ;;
   status)
