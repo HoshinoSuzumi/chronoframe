@@ -13,7 +13,7 @@
   },
   "dependencies": {
     "@chronoframe/contracts": "workspace:*",
-    "transliteration": "2.6.1"
+    "transliteration": "2.7.0"
   },
   "devDependencies": {
     "typescript": "^5.9.3"
