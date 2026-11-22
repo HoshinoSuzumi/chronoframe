@@ -19,7 +19,6 @@ const WRITABLE_EXTENSIONS: Record<string, string> = {
   webp: '.webp',
   gif: '.gif',
   tiff: '.tiff',
-  avif: '.avif',
   heif: '.heic',
 }
 
@@ -51,7 +50,8 @@ async function resolveWorkingExtension(
   declaredExtension: string,
 ): Promise<string> {
   try {
-    const { format } = await sharp(buffer).metadata()
+    const { format, compression } = await sharp(buffer).metadata()
+    if (format === 'heif' && compression === 'av1') return '.avif'
     const detected = format ? WRITABLE_EXTENSIONS[format] : undefined
     if (detected) return detected
   } catch (error) {
@@ -162,13 +162,15 @@ export async function editPhotoMetadata(
     exifUpdates.DateTimeDigitized = stamp
     exifUpdates.OffsetTimeOriginal = formatExifOffset(capturedAt)
     exifUpdates.OffsetTimeDigitized = exifUpdates.OffsetTimeOriginal
+    exifUpdates.SubSecTimeOriginal = null
+    exifUpdates.SubSecTimeDigitized = null
   }
 
   const tempRoot = tmpdir()
   await mkdir(tempRoot, { recursive: true })
   const tempDir = await mkdtemp(path.join(tempRoot, 'cframe-edit-'))
   const stagedKey = `.generated/metadata/${randomUUID()}/${path.posix.basename(photo.storageKey)}`
-  let cleanupKey = stagedKey
+  let cleanupKey: string | undefined
   const ext = path.extname(photo.storageKey).toLowerCase() || '.jpg'
   // The stored object keeps its original key; only the working copy has to
   // carry an extension exiftool agrees with.
@@ -200,6 +202,18 @@ export async function editPhotoMetadata(
     // Publish to a unique object. The original stays untouched until the
     // database atomically selects this revision and enqueues follow-up work.
     const exifData = await extractExifData(updatedBuffer)
+    if (
+      payload.dateTaken !== undefined &&
+      Date.parse(exifData?.DateTimeOriginal ?? '') !==
+        Date.parse(payload.dateTaken)
+    ) {
+      throw new CoreError(
+        400,
+        'Photo file cannot store the capture date',
+        'dashboard.photos.messages.metadataFileUnsupported',
+      )
+    }
+    cleanupKey = stagedKey
     const staged = await storageProvider.create(
       stagedKey,
       updatedBuffer,
@@ -220,13 +234,15 @@ export async function editPhotoMetadata(
       discard: () => storageProvider.delete(staged.key),
     }
   } catch (error) {
-    try {
-      await storageProvider.delete(cleanupKey)
-    } catch (cleanupError) {
-      logger.image.warn(
-        'Failed to discard staged metadata object',
-        cleanupError,
-      )
+    if (cleanupKey) {
+      try {
+        await storageProvider.delete(cleanupKey)
+      } catch (cleanupError) {
+        logger.image.warn(
+          'Failed to discard staged metadata object',
+          cleanupError,
+        )
+      }
     }
     logger.image.error('Failed to update photo metadata', error)
     // Preserve actionable failures (e.g. an unannotatable file) instead of

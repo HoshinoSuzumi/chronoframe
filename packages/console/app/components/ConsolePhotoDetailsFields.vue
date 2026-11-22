@@ -4,7 +4,7 @@ const description = defineModel<string>('description', { required: true })
 const tags = defineModel<string[]>('tags', { required: true })
 const rating = defineModel<number | null>('rating', { required: true })
 /** Local wall clock in `datetime-local` format; converted to an instant on save. */
-const dateTaken = defineModel<string>('dateTaken', { required: true })
+const dateTaken = defineModel<string>('dateTaken')
 </script>
 <template>
   <div class="space-y-5">
@@ -30,6 +30,7 @@ const dateTaken = defineModel<string>('dateTaken', { required: true })
     </UFormField>
 
     <UFormField
+      v-if="dateTaken !== undefined"
       :label="$t('dashboard.photos.editModal.fields.dateTaken')"
       name="dateTaken"
       :help="$t('dashboard.photos.editModal.fields.dateTakenHint')"

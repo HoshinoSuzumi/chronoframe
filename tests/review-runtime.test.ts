@@ -329,6 +329,85 @@ test('native metadata editing stages a unique object and discard preserves origi
   }
 })
 
+test('capture-date edits publish AVIF with a reindexable date and reject GIF readback failures', async () => {
+  const { mkdtemp, rm } = await import('node:fs/promises')
+  const { tmpdir } = await import('node:os')
+  const { join } = await import('node:path')
+  const { CoreError, normalizePhotoMetadata } =
+    await import('@chronoframe/core')
+  const { ExifTool } = await import('exiftool-vendored')
+  const { createExifService } = await import('@chronoframe/media/exif')
+  const input = normalizePhotoMetadata({
+    dateTaken: '2026-11-19T12:34:56.789+08:00',
+  })
+  assert.equal(input.dateTaken, '2026-11-19T04:34:56.000Z')
+
+  const create = {
+    width: 2,
+    height: 3,
+    channels: 3 as const,
+    background: 'blue',
+  }
+  const originals = new Map([
+    ['photos/sample.avif', await sharp({ create }).avif().toBuffer()],
+    ['photos/sample.gif', await sharp({ create }).gif().toBuffer()],
+  ])
+  const writes = new Map<string, { bytes: Buffer; mime: string }>()
+  const storage = {
+    get: async (key: string) => originals.get(key),
+    create: async (key: string, bytes: Buffer, mime: string) => {
+      writes.set(key, { bytes, mime })
+      return { key }
+    },
+    delete: async (key: string) => {
+      writes.delete(key)
+    },
+    getPublicUrl: (key: string) => key,
+  }
+  const tempDir = await mkdtemp(join(tmpdir(), 'capture-date-edit-'))
+  const exiftool = new ExifTool({ maxProcs: 1 })
+  try {
+    const exif = createExifService({ exiftool, tempDir })
+    const adapter = load(
+      'apps/self-hosted/server/services/resources/photo-metadata.ts',
+      {
+        '@chronoframe/core': { CoreError },
+        'exiftool-vendored': { exiftool },
+        '../image/exif': exif,
+        '../../utils/logger': {
+          logger: { image: { error: () => {}, warn: () => {} } },
+        },
+      },
+    ).editPhotoMetadata
+    await assert.rejects(
+      () => adapter({ storageKey: 'photos/sample.gif' }, input, storage),
+      (error) =>
+        error instanceof CoreError &&
+        error.statusCode === 400 &&
+        error.message === 'Photo file cannot store the capture date',
+    )
+    assert.equal(writes.size, 0)
+
+    const staged = await adapter(
+      { storageKey: 'photos/sample.avif' },
+      input,
+      storage,
+    )
+    const published = writes.get(staged.storageKey)!
+    assert.equal(published.mime, 'image/avif')
+    const reindexed = exif.extractPhotoInfo(
+      staged.storageKey,
+      await exif.extractExifData(published.bytes),
+    )
+    assert.equal(reindexed.dateTaken, input.dateTaken)
+    await staged.discard()
+    assert.equal(writes.size, 0)
+  } finally {
+    await exiftool.end()
+    await rm(tempDir, { recursive: true, force: true })
+  }
+})
+
 test('S3 metadata publication uses image MIME and the returned prefixed key for both cleanup paths', async () => {
   const { S3StorageProvider } = await import('@chronoframe/storage')
   const original = await sharp({

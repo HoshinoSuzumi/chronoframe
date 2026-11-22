@@ -132,7 +132,7 @@ export interface PhotoMetadataInput {
   tags?: string[]
   location?: { latitude: number; longitude: number } | null
   rating?: number | null
-  /** ISO 8601 instant; normalized to UTC before persistence. */
+  /** ISO 8601 instant; normalized to whole seconds in UTC before persistence. */
   dateTaken?: string
 }
 export type PhotoUpdate = Partial<
@@ -211,6 +211,7 @@ export function normalizePhotoMetadata(
         'Invalid capture date',
         'dashboard.photos.messages.invalidDateTaken',
       )
+    date.setUTCMilliseconds(0)
     normalized.dateTaken = date.toISOString()
   }
   return normalized
