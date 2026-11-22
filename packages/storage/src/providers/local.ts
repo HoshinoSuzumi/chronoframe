@@ -128,7 +128,9 @@ export class LocalStorageProvider implements StorageProvider {
 
   async listImages(): Promise<StorageObject[]> {
     const all = await this.listAll()
-    return all.filter((o) => /\.(png|jpe?g|webp|gif|bmp|tiff?)$/i.test(o.key))
+    return all.filter((o) =>
+      /\.(png|jpe?g|jxl|webp|gif|bmp|tiff?)$/i.test(o.key),
+    )
   }
 
   async getFileMeta(key: string): Promise<StorageObject | null> {

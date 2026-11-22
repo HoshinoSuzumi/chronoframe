@@ -5,6 +5,7 @@ const consoleApi = useConsoleApi()
 
 import type { FormSubmitEvent, TableColumn, DropdownMenuItem } from '@nuxt/ui'
 import type { UploadPreparationResponse } from '@chronoframe/contracts/upload'
+import { resolveUploadContentType } from '@chronoframe/contracts/upload'
 import type { Album, Photo } from '@chronoframe/contracts/resources'
 import {
   MAX_ALBUM_PHOTOS_PER_REQUEST,
@@ -297,7 +298,7 @@ const uploadImage = async (
         method: 'POST',
         body: {
           fileName: file.name,
-          contentType: file.type,
+          contentType: resolveUploadContentType(file.name, file.type),
           fileSize: file.size,
           chunked: true,
         },
@@ -1098,10 +1099,13 @@ const validateFile = (
     'image/png',
     'image/heic',
     'image/heif',
+    'image/jxl',
     'video/quicktime', // MOV 文件
   ]
 
-  const isValidImageType = allowedTypes.includes(file.type)
+  const isValidImageType = allowedTypes.includes(
+    resolveUploadContentType(file.name, file.type),
+  )
   const isValidImageExtension = ['.heic', '.heif'].some((ext) =>
     file.name.toLowerCase().endsWith(ext),
   )

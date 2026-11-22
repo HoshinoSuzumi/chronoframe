@@ -29,6 +29,7 @@ const types: Record<string, string> = {
   png: 'image/png',
   webp: 'image/webp',
   heic: 'image/heic',
+  jxl: 'image/jxl',
   heif: 'image/heif',
   avif: 'image/avif',
   gif: 'image/gif',

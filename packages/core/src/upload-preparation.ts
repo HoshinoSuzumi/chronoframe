@@ -2,6 +2,7 @@ import type {
   UploadPlan,
   UploadDuplicateSummary,
 } from '@chronoframe/contracts/upload'
+import { resolveUploadContentType } from '@chronoframe/contracts/upload'
 import { CoreError } from './errors.ts'
 
 export type DuplicatePhoto = UploadDuplicateSummary
@@ -47,6 +48,7 @@ const imageExtensions = new Set([
   '.heif',
   '.jpeg',
   '.jpg',
+  '.jxl',
   '.png',
   '.tif',
   '.tiff',
@@ -79,7 +81,8 @@ export function createUploadPreparer(deps: {
         'File name is required',
         'upload.error.required.title',
       )
-    const { fileName, fileSize, chunked, contentType } = input
+    const { fileName, fileSize, chunked } = input
+    const contentType = resolveUploadContentType(fileName, input.contentType)
     if (!Number.isSafeInteger(fileSize) || fileSize! <= 0)
       throw new CoreError(400, 'Invalid file size')
     if (fileSize! > policy.maxBytes)
@@ -91,7 +94,7 @@ export function createUploadPreparer(deps: {
     if (
       policy.mimeWhitelistEnabled &&
       policy.mimeWhitelist.length &&
-      !policy.mimeWhitelist.includes(contentType || 'application/octet-stream')
+      !policy.mimeWhitelist.includes(contentType)
     )
       throw new CoreError(
         415,
@@ -126,7 +129,7 @@ export function createUploadPreparer(deps: {
       owner,
       fileKey,
       fileSize,
-      contentType || 'application/octet-stream',
+      contentType,
       Boolean(chunked),
     )
     return { skipped: false as const, existingPhoto, fileKey, upload }

@@ -123,6 +123,37 @@ test(
   },
 )
 
+test('JPEG XL rejects a mismatched signature before invoking native tools', async () => {
+  await assert.rejects(
+    createImageProcessor(logger).preprocessImageBuffer(
+      Buffer.alloc(16),
+      'input.JXL',
+    ),
+    /Invalid JPEG XL signature/,
+  )
+})
+
+test(
+  'JPEG XL generates a JPEG and enforces pixel limits before decoding',
+  { skip: !process.env.CHRONOFRAME_JXL_FIXTURE },
+  async () => {
+    const input = await readFile(process.env.CHRONOFRAME_JXL_FIXTURE!)
+    const jpeg = await createImageProcessor(logger).preprocessImageBuffer(
+      input,
+      'sample.JXL',
+    )
+    const { format, width, height } = await sharp(jpeg).metadata()
+    assert.equal(format, 'jpeg')
+    assert.ok(width && height)
+    await assert.rejects(
+      createImageProcessor(logger, {
+        limitInputPixels: 1,
+      }).preprocessImageBuffer(input, 'sample.JXL'),
+      /pixel limit/,
+    )
+  },
+)
+
 test('media input limits and cancellation are explicit and leave defaults unchanged', async () => {
   const buffer = Buffer.alloc(16)
   await assert.rejects(

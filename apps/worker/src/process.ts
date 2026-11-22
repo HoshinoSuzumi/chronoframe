@@ -161,7 +161,14 @@ export async function processWork(
   const exiftool = new ExifTool({ maxProcs: 1, taskTimeoutMillis: 30000 })
   const derivatives: Derivative[] = []
   try {
-    if (!['.heic', '.heif', '.hif', '.bmp'].includes(ext)) {
+    const dimensionsViaExif = [
+      '.heic',
+      '.heif',
+      '.hif',
+      '.bmp',
+      '.jxl',
+    ].includes(ext)
+    if (!dimensionsViaExif) {
       const dimensions = await sharp(input, {
         limitInputPixels: false,
       }).metadata()
@@ -196,7 +203,7 @@ export async function processWork(
         buffer: input,
       })
     }
-    if (['.heic', '.heif', '.hif', '.bmp'].includes(ext)) {
+    if (dimensionsViaExif) {
       const sourceFile = path.join(directory, 'source' + ext)
       await writeFile(sourceFile, input)
       const tags = await exiftool.read(sourceFile),

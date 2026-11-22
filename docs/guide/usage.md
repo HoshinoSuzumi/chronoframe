@@ -4,6 +4,8 @@
 
 Sign in and open `/dashboard`. Select files or drag them onto the Photos page to upload a batch. After upload, background tasks extract EXIF, create thumbnails and identify locations. The task queue shows progress, errors and retry results.
 
+ChronoFrame supports still JPEG XL (`.jxl`) photos. It stores the original file and uses a JPEG for display, with transparency composited onto white. The official container images include the JPEG XL tools. For a source installation, put `djxl` and `jxlinfo` on `PATH` or set `DJXL_PATH` and `JXLINFO_PATH` to their executable paths. If you override the upload MIME allowlist, include `image/jxl`.
+
 Administrators can choose an existing album in the upload form to add successfully processed photos to it. From an album page or its row in Dashboard → Albums, use **Upload to this album** to open the form with that album selected.
 If duplicate handling is set to **Skip** and the photo is already in the library, ChronoFrame adds the existing photo to the selected album without uploading the duplicate file.
 

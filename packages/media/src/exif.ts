@@ -10,6 +10,7 @@ import { photoTitleFromFileName } from '@chronoframe/contracts/photo'
 import type { ExifDateTime, Tags } from 'exiftool-vendored'
 import { noop } from 'es-toolkit'
 import { withRetry, RetryPresets, RetryConditions } from './retry.ts'
+import { isJpegXl } from './jpeg-xl.ts'
 
 /** Create EXIF helpers using a caller-owned ExifTool instance and temporary directory. */
 export function createExifService({
@@ -280,7 +281,7 @@ export function createExifService({
     }
   }
 
-  const processExifData = (exifData: Tags, metadata: Metadata): NeededExif => {
+  const processExifData = (exifData: Tags, metadata?: Metadata): NeededExif => {
     const date = {
       DateTimeOriginal: formatExifDate(exifData.DateTimeOriginal),
       DateTimeDigitized: formatExifDate(exifData.DateTimeDigitized),
@@ -290,8 +291,10 @@ export function createExifService({
     }
 
     const size = {
-      ImageWidth: exifData.ExifImageWidth || metadata.width,
-      ImageHeight: exifData.ExifImageHeight || metadata.height,
+      ImageWidth:
+        exifData.ExifImageWidth || metadata?.width || exifData.ImageWidth,
+      ImageHeight:
+        exifData.ExifImageHeight || metadata?.height || exifData.ImageHeight,
     }
 
     const result: any = structuredClone(exifData)
@@ -303,7 +306,7 @@ export function createExifService({
     }
 
     // 优先从 metadata 推断颜色空间
-    const inferredColorSpace = inferColorSpaceFromMetadata(metadata)
+    const inferredColorSpace = metadata && inferColorSpaceFromMetadata(metadata)
     if (inferredColorSpace) {
       result.ColorSpace = inferredColorSpace
     } else if (!result.ColorSpace) {
@@ -323,6 +326,8 @@ export function createExifService({
     rawImageBuffer?: Buffer,
     logger?: MediaLogger,
   ): Promise<NeededExif | null> => {
+    const source = rawImageBuffer ?? imageBuffer
+    const jpegXl = isJpegXl(source)
     try {
       return await withRetry(
         async () => {
@@ -330,10 +335,12 @@ export function createExifService({
 
           try {
             // 提取基础元数据
-            let metadata = await sharp(imageBuffer).metadata()
+            let metadata = jpegXl
+              ? undefined
+              : await sharp(imageBuffer).metadata()
 
             // 如果主buffer没有EXIF，尝试原始buffer
-            if (!metadata.exif && rawImageBuffer) {
+            if (!jpegXl && !metadata?.exif && rawImageBuffer) {
               try {
                 metadata = await sharp(rawImageBuffer).metadata()
               } catch (err) {
@@ -344,7 +351,7 @@ export function createExifService({
               }
             }
 
-            if (!metadata.exif) {
+            if (!jpegXl && !metadata?.exif) {
               logger?.warn('No EXIF data found in image metadata')
               return null
             }
@@ -354,10 +361,14 @@ export function createExifService({
             // 创建临时工作目录
             // The application owns the work directory and ExifTool lifecycle.
             await mkdir(tempDir, { recursive: true })
-            tempImagePath = path.resolve(tempDir, `${randomUUID()}.jpg`)
+            const extension = jpegXl ? 'jxl' : 'jpg'
+            tempImagePath = path.resolve(
+              tempDir,
+              `${randomUUID()}.${extension}`,
+            )
 
             // 写入临时文件
-            await writeFile(tempImagePath, rawImageBuffer || imageBuffer)
+            await writeFile(tempImagePath, source)
 
             // 使用 exiftool 读取详细 EXIF 数据
             const exifData = await exiftool.read(tempImagePath)

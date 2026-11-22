@@ -214,6 +214,7 @@ export function createCloudExecutionRepository(
             'image/webp',
             'image/heic',
             'image/heif',
+            'image/jxl',
             'image/avif',
             'image/gif',
             'image/bmp',

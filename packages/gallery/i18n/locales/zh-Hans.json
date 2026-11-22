@@ -606,7 +606,7 @@
       "layouts": { "label": "照片库布局", "list": "列表", "masonry": "瀑布流" },
       "title": "照片上传",
       "subtitle": "上传后照片会自动处理并添加到库中。您可以随后在 {0} 中组织您的照片。",
-      "supportedFormats": "JPEG / PNG / HEIC / 实况视频 / Motion Photo",
+      "supportedFormats": "JPEG / PNG / HEIC / JPEG XL / 实况视频 / Motion Photo",
       "maxFileSize": "最大 {size}MB",
       "buttons": {
         "upload": "上传照片",
@@ -614,7 +614,7 @@
       },
       "uploader": {
         "label": "拖放或点击选择照片",
-        "description": "支持 JPEG、PNG、HEIC 格式照片，以及 MOV 格式 Live Photo 视频，单个文件最大 {maxSize}MB"
+        "description": "支持 JPEG、PNG、HEIC、JPEG XL 格式照片，以及 MOV 格式 Live Photo 视频，单个文件最大 {maxSize}MB"
       },
       "toolbar": {
         "title": "照片管理",
@@ -799,7 +799,7 @@
         "allFilesTooLarge": "所选 {count} 个文件均超过最大大小限制（{maxSize}MB）。",
         "filesTooLargeSkipped": "已跳过 {count} 个超大文件（上限 {maxSize}MB），其余文件继续上传。",
         "filesUnsupportedSkipped": "已跳过 {count} 个不支持格式的文件，其余文件继续上传。",
-        "unsupportedFormat": "不支持的文件格式: {type}。请选择 JPEG、PNG、HEIC 格式的图片或 MOV 格式的 Live Photo 视频。",
+        "unsupportedFormat": "不支持的文件格式: {type}。请选择 JPEG、PNG、HEIC、JPEG XL 格式的图片或 MOV 格式的 Live Photo 视频。",
         "fileTooLarge": "文件太大: {size}MB。最大支持 {maxSize}MB。",
         "uploadFailed": "上传失败",
         "uploadNetworkError": "网络连接失败或 CORS 错误。请检查网络连接和存储配置。",

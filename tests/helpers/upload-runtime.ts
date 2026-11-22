@@ -4,7 +4,7 @@ import vm from 'node:vm'
 import ts from 'typescript'
 import * as vue from 'vue'
 import * as statuses from '../../packages/gallery/shared/utils/upload-status.ts'
-import { UPLOAD_CHUNK_SIZE } from '../../packages/contracts/src/upload.ts'
+import * as upload from '../../packages/contracts/src/upload.ts'
 
 export function loadUploadCode(
   file: string,
@@ -46,7 +46,8 @@ export function loadUploadCode(
         if (name === '@chronoframe/gallery/shared/utils/upload-status')
           return statuses
         if (name === '@chronoframe/gallery/shared/utils/upload')
-          return { UPLOAD_CHUNK_SIZE }
+          return { UPLOAD_CHUNK_SIZE: upload.UPLOAD_CHUNK_SIZE }
+        if (name === '@chronoframe/contracts/upload') return upload
         assert.ok(name in imports, `Missing test import: ${name}`)
         return imports[name]
       },

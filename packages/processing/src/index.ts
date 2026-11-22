@@ -78,14 +78,12 @@ export function createPhotoProcessor(deps: {
     const sourceHash = createHash('sha256').update(raw).digest('hex')
     await input.sourceRead?.(sourceHash)
     const storageObject = await storage.getFileMeta(storageKey)
-    let processed = raw,
-      originalDerivedKey: string | null = null
-    const ext = path.extname(storageKey).toLowerCase()
-    if (['.heic', '.heif', '.hif'].includes(ext)) {
-      processed = await media.convertHeicToJpeg(raw)
+    const processed = await media.preprocessImageBuffer(raw, storageKey)
+    let originalDerivedKey: string | null = null
+    if (processed !== raw) {
       originalDerivedKey = (
         await storage.create(
-          `${path.basename(storageKey, ext)}.jpeg`,
+          `${path.basename(storageKey, path.extname(storageKey))}.jpeg`,
           processed,
           'image/jpeg',
         )

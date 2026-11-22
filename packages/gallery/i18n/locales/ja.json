@@ -532,7 +532,7 @@
       },
       "title": "写真をアップロード",
       "subtitle": "アップロードされた写真は自動的に処理され、ライブラリに追加されます。その後、{0}セクションで写真を整理できます。",
-      "supportedFormats": "JPEG / PNG / HEIC / ライブフォト / モーションフォト",
+      "supportedFormats": "JPEG / PNG / HEIC / JPEG XL / ライブフォト / モーションフォト",
       "maxFileSize": "最大 {size}MB",
       "buttons": {
         "upload": "写真をアップロード",
@@ -540,7 +540,7 @@
       },
       "uploader": {
         "label": "ドラッグアンドドロップするか、クリックして写真を選択します",
-        "description": "JPEG、PNG、HEIC形式の写真、およびMOV形式のライブフォトビデオをサポート。ファイルあたりの最大サイズ：{maxSize}MB"
+        "description": "JPEG、PNG、HEIC、JPEG XL形式の写真、およびMOV形式のライブフォトビデオをサポート。ファイルあたりの最大サイズ：{maxSize}MB"
       },
       "toolbar": {
         "title": "写真管理",
@@ -725,7 +725,7 @@
         "allFilesTooLarge": "選択した {count} 件のファイルはすべて最大サイズ制限（{maxSize}MB）を超えています。",
         "filesTooLargeSkipped": "サイズ超過のファイルを {count} 件スキップしました（上限 {maxSize}MB）。残りのファイルはアップロードを続行します。",
         "filesUnsupportedSkipped": "未対応形式のファイルを {count} 件スキップしました。残りのファイルはアップロードを続行します。",
-        "unsupportedFormat": "サポートされていないファイル形式：{type}。JPEG、PNG、またはHEIC写真、またはMOV形式のライブフォトビデオを選択してください。",
+        "unsupportedFormat": "サポートされていないファイル形式：{type}。JPEG、PNG、HEIC、またはJPEG XL写真、またはMOV形式のライブフォトビデオを選択してください。",
         "fileTooLarge": "ファイルが大きすぎます：{size}MB。最大サポート：{maxSize}MB。",
         "uploadFailed": "アップロードに失敗しました",
         "uploadNetworkError": "ネットワーク接続に失敗したか、CORSエラーが発生しました。ネットワークとストレージ設定を確認してください。",

@@ -304,6 +304,7 @@ const downloadOriginalImage = async () => {
       'image/gif': 'gif',
       'image/avif': 'avif',
       'image/heic': 'heic',
+      'image/jxl': 'jxl',
       'image/heif': 'heif',
       'image/bmp': 'bmp',
       'image/tiff': 'tiff',

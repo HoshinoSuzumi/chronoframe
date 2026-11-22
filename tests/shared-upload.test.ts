@@ -8,6 +8,23 @@ import {
 } from './helpers/upload-runtime.ts'
 import { canFallbackToSingleUpload } from '../packages/storage/src/multipart-fallback.ts'
 import { photoTitleFromFileName } from '../packages/contracts/src/photo.ts'
+import { resolveUploadContentType } from '../packages/contracts/src/upload.ts'
+
+test('JPEG XL upload resolves missing and generic MIME types by filename', () => {
+  assert.equal(resolveUploadContentType('photo.JXL'), 'image/jxl')
+  assert.equal(
+    resolveUploadContentType('photo.jxl', 'application/octet-stream'),
+    'image/jxl',
+  )
+  assert.equal(
+    resolveUploadContentType('photo.jxl', 'image/jpeg'),
+    'image/jpeg',
+  )
+  assert.equal(
+    resolveUploadContentType('photo.bin'),
+    'application/octet-stream',
+  )
+})
 
 const tick = () => new Promise<void>((resolve) => setImmediate(resolve))
 const context = {

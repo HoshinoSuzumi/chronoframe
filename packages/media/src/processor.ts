@@ -4,6 +4,7 @@ import bmp from '@vingle/bmp-js'
 import heicConvert from 'heic-convert'
 import sharp, { type Sharp } from 'sharp'
 import { withRetry, RetryPresets, RetryConditions } from './retry.ts'
+import { convertJpegXlToJpeg } from './jpeg-xl.ts'
 
 export interface ProcessedImageData {
   sharpInst: Sharp
@@ -226,6 +227,15 @@ export function createImageProcessor(
   ): Promise<Buffer> => {
     checkInput(buffer)
     const extName = path.extname(key).toLowerCase()
+
+    if (extName === '.jxl')
+      return convertJpegXlToJpeg(
+        buffer,
+        typeof options.limitInputPixels === 'number'
+          ? options.limitInputPixels
+          : 100_000_000,
+        options.signal,
+      )
 
     if (['.heic', '.heif', '.hif'].includes(extName)) {
       logger.info('HEIC image detected', key)

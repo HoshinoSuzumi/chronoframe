@@ -95,6 +95,7 @@ export async function editPhotoMetadata(
         '.heic': 'image/heic',
         '.heif': 'image/heif',
         '.hif': 'image/heif',
+        '.jxl': 'image/jxl',
       } as Record<string, string>
     )[ext] ?? 'application/octet-stream'
   const tempFile = path.join(tempDir, `edited${ext}`)
@@ -121,8 +122,8 @@ export async function editPhotoMetadata(
       exif: exifData,
       fileSize: updatedBuffer.length,
       storageKey: staged.key,
-      // HEIC originals retain their separately generated browser-readable JPEG.
-      originalUrl: /\.(?:heic|heif|hif)$/i.test(photo.storageKey)
+      // Converted originals retain their browser-readable JPEG.
+      originalUrl: /\.(?:heic|heif|hif|jxl)$/i.test(photo.storageKey)
         ? photo.originalDerivedKey
           ? storageProvider.getPublicUrl(photo.originalDerivedKey)
           : photo.originalUrl

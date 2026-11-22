@@ -32,6 +32,19 @@ export type UploadPlan =
 
 export const UPLOAD_CHUNK_SIZE = 8 * 1024 * 1024
 
+/** Browsers may omit a MIME type for JPEG XL, depending on the operating system. */
+export function resolveUploadContentType(
+  fileName: string,
+  contentType?: string,
+) {
+  if (
+    (!contentType || contentType === 'application/octet-stream') &&
+    /\.jxl$/i.test(fileName)
+  )
+    return 'image/jxl'
+  return contentType || 'application/octet-stream'
+}
+
 /** Public duplicate summary returned by upload preparation, without internal columns. */
 export type UploadDuplicateSummary = Pick<
   Photo,
