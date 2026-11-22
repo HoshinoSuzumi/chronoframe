@@ -44,10 +44,11 @@ export async function eraseJpegXlLocation(
 ): Promise<Buffer> {
   const directory = await mkdtemp(path.join(tmpdir(), 'chronoframe-jxl-exif-'))
   const input = path.join(directory, 'source.jxl')
-  const hasLocation = async () => {
+  const readLocationKeys = async () => {
     const tags = await exiftool.read(input, {
       readArgs: [],
       ignoreMinorErrors: false,
+      struct: 0,
     })
     if (
       !['JXL', 'JXL Codestream'].includes(tags.FileType ?? '') ||
@@ -57,19 +58,28 @@ export async function eraseJpegXlLocation(
       throw new Error(
         'JPEG XL metadata could not be read completely for location erasure',
       )
-    return Object.keys(tags).some(
-      (key) => /^GPS/i.test(key) && tags[key as keyof Tags] != null,
+    return Object.keys(tags).filter(
+      (key) => /GPS/i.test(key) && tags[key as keyof Tags] != null,
     )
   }
   try {
     await writeFile(input, buffer)
-    if (!(await hasLocation())) return buffer
+    const locationKeys = await readLocationKeys()
+    if (!locationKeys.length) return buffer
+    const nestedLocationArgs = locationKeys
+      .filter((key) => /^Location(?:Created|Shown)GPS[A-Za-z]+$/.test(key))
+      .map((key) => `-XMP-iptcExt:${key}=`)
     const update = await exiftool.write(
       input,
       Object.fromEntries(EXIF_LOCATION_KEYS.map((key) => [key, null])),
-      ['-GPS:all=', '-XMP-exif:GPS*=', '-overwrite_original'],
+      [
+        '-GPS:all=',
+        '-XMP-exif:GPS*=',
+        ...nestedLocationArgs,
+        '-overwrite_original',
+      ],
     )
-    if (update.warnings?.length || (await hasLocation()))
+    if (update.warnings?.length || (await readLocationKeys()).length)
       throw new Error('JPEG XL location erasure failed')
     return await readFile(input)
   } finally {

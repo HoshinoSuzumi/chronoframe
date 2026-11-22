@@ -280,6 +280,36 @@ export class QueueManager {
           { resourceUpdated: true, warningCode: () => warning },
         )
         published = publication.published
+        if (
+          published &&
+          sanitizedSourceKey &&
+          sanitizedSourceKey !== payload.storageKey
+        ) {
+          try {
+            const original = await provider.get(payload.storageKey)
+            const current = db
+              .select({ version: tables.resourceVersions.version })
+              .from(tables.resourceVersions)
+              .where(
+                and(
+                  eq(tables.resourceVersions.siteId, lease.siteId),
+                  eq(tables.resourceVersions.resourceId, lease.resourceId),
+                ),
+              )
+              .get()
+            if (
+              current?.version === lease.sourceVersion + 1 &&
+              original &&
+              createHash('sha256').update(original).digest('hex') === sourceHash
+            )
+              await provider.delete(payload.storageKey)
+          } catch (error) {
+            this.logger.warn(
+              'Original JPEG XL cleanup failed',
+              error instanceof Error ? error.message : 'storage error',
+            )
+          }
+        }
         return
       }
       if (payload.type === 'photo-reverse-geocoding') {

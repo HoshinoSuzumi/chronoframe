@@ -158,6 +158,36 @@ test(
   },
 )
 
+test('JPEG XL erasure checks flattened XMP and verifies GPS is gone', async () => {
+  const cleared = Buffer.from('sanitized')
+  const tool = {
+    read: async <T extends import('exiftool-vendored').Tags>(
+      _file: string,
+      options?: { struct?: string | number },
+    ) => {
+      assert.equal(options?.struct, 0)
+      return {
+        FileType: 'JXL',
+        LocationCreatedGPSLatitude: removed ? undefined : 10,
+      } as unknown as T
+    },
+    write: async (file: string, _tags: object, args?: string[] | object) => {
+      assert.ok(
+        Array.isArray(args) &&
+          args.includes('-XMP-iptcExt:LocationCreatedGPSLatitude='),
+      )
+      await writeFile(file, cleared)
+      removed = true
+      return { created: 0, updated: 1, unchanged: 0 }
+    },
+  }
+  let removed = false
+  assert.deepEqual(
+    await eraseJpegXlLocation(Buffer.from('source'), tool),
+    cleared,
+  )
+})
+
 test(
   'JPEG XL generates a JPEG and enforces pixel limits before decoding',
   { skip: !process.env.CHRONOFRAME_JXL_FIXTURE },
