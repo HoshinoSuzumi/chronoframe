@@ -1,12 +1,12 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { mkdtemp, rm, readdir, readFile } from 'node:fs/promises'
+import { mkdtemp, rm, readdir, readFile, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import sharp from 'sharp'
 import { ExifTool } from 'exiftool-vendored'
 import { createImageProcessor } from '@chronoframe/media/processor'
-import { createExifService } from '@chronoframe/media/exif'
+import { createExifService, eraseJpegXlLocation } from '@chronoframe/media/exif'
 import { generateThumbnailAndHash } from '@chronoframe/media/thumbnail'
 import { calculateHistogramFromBuffer } from '@chronoframe/media/histogram'
 import { processMotionPhotoFromXmp } from '@chronoframe/media/motion-photo'
@@ -132,6 +132,31 @@ test('JPEG XL rejects a mismatched signature before invoking native tools', asyn
     /Invalid JPEG XL signature/,
   )
 })
+
+test(
+  'JPEG XL removes GPS metadata from the downloaded source and retains other EXIF',
+  { skip: !process.env.CHRONOFRAME_JXL_GPS_FIXTURE },
+  async () => {
+    const directory = await mkdtemp(path.join(tmpdir(), 'chronoframe-jxl-gps-'))
+    const tool = new ExifTool({ maxProcs: 1 })
+    try {
+      const fixture = process.env.CHRONOFRAME_JXL_GPS_FIXTURE!
+      const before = await tool.read(fixture)
+      assert.ok(before.GPSLatitude != null && before.Make)
+      const source = await readFile(fixture)
+      const sanitized = await eraseJpegXlLocation(source, tool)
+      const output = path.join(directory, 'sanitized.jxl')
+      await writeFile(output, sanitized)
+      const after = await tool.read(output)
+      assert.equal(after.GPSLatitude, undefined)
+      assert.equal(after.GPSLongitude, undefined)
+      assert.equal(after.Make, before.Make)
+    } finally {
+      await tool.end()
+      await rm(directory, { recursive: true, force: true })
+    }
+  },
+)
 
 test(
   'JPEG XL generates a JPEG and enforces pixel limits before decoding',

@@ -1945,7 +1945,7 @@ const handleBatchDownload = async () => {
   try {
     for (const photo of photosWithUrl) {
       try {
-        const response = await fetch(photo.originalUrl!)
+        const response = await fetch(photo.downloadUrl || photo.originalUrl!)
         if (!response.ok) {
           failureCount++
           continue
@@ -1955,7 +1955,10 @@ const handleBatchDownload = async () => {
         const url = window.URL.createObjectURL(blob)
         const link = document.createElement('a')
         link.href = url
-        const extension = photo.originalUrl!.split('.').pop() || 'jpg'
+        const extension =
+          blob.type === 'image/jxl'
+            ? 'jxl'
+            : photo.originalUrl!.split('.').pop() || 'jpg'
         link.download = `${photo.title || `photo-${photo.id}`}.${extension}`
         document.body.appendChild(link)
         link.click()

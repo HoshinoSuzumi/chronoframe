@@ -27,6 +27,11 @@ export function toPhotoDto(photo: PhotoRow): Photo {
       photo.storageConnectionId != null && photo.originalUrl
         ? `/image/__photo__/${encodeURIComponent(photo.id)}/original`
         : photo.originalUrl,
+    ...(photo.storageKey && /\.jxl$/i.test(photo.storageKey)
+      ? {
+          downloadUrl: `/image/__photo__/${encodeURIComponent(photo.id)}/source`,
+        }
+      : {}),
     thumbnailUrl:
       photo.storageConnectionId != null && photo.thumbnailUrl
         ? `/image/__photo__/${encodeURIComponent(photo.id)}/thumbnail`

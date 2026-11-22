@@ -14,7 +14,7 @@ import {
   EXIF_LOCATION_KEYS,
   stripLocationFromExif,
 } from '@chronoframe/processing'
-import { createExifService } from '@chronoframe/media'
+import { createExifService, eraseJpegXlLocation } from '@chronoframe/media'
 import type { StorageProvider } from '@chronoframe/storage'
 import type { CloudLease, CloudMediaResult } from '@chronoframe/core'
 export interface WorkItem {
@@ -128,7 +128,7 @@ export async function processWork(
 }> {
   const { limits } = configuration
   let lastModified: Date | undefined
-  let input = await boundedDownload(
+  let input: Buffer = await boundedDownload(
     item.sourceUrl,
     item.lease.expectedBytes,
     signal,
@@ -181,7 +181,9 @@ export async function processWork(
           dimensions.width * dimensions.height,
         )
     }
-    if (eraseLocation) {
+    if (eraseLocation && ext === '.jxl') {
+      input = await eraseJpegXlLocation(input, exiftool)
+    } else if (eraseLocation) {
       const file = path.join(directory, sourceKey)
       await writeFile(file, input)
       const locationTags = await exiftool.read(file)
@@ -196,6 +198,8 @@ export async function processWork(
           ['-overwrite_original'],
         )
       input = await readFile(file)
+    }
+    if (eraseLocation) {
       derivatives.push({
         role: 'sanitized-original',
         bytes: input.length,

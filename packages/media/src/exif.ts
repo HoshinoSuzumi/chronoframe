@@ -2,7 +2,15 @@ import type { MediaLogger } from './logger.ts'
 import type { ExifTool } from 'exiftool-vendored'
 import { randomUUID } from 'node:crypto'
 import path from 'node:path'
-import { mkdir, unlink, writeFile } from 'node:fs/promises'
+import {
+  mkdir,
+  mkdtemp,
+  readFile,
+  rm,
+  unlink,
+  writeFile,
+} from 'node:fs/promises'
+import { tmpdir } from 'node:os'
 import type { Metadata } from 'sharp'
 import sharp from 'sharp'
 import type { NeededExif, PhotoInfo } from '@chronoframe/contracts/photo'
@@ -11,6 +19,63 @@ import type { ExifDateTime, Tags } from 'exiftool-vendored'
 import { noop } from 'es-toolkit'
 import { withRetry, RetryPresets, RetryConditions } from './retry.ts'
 import { isJpegXl } from './jpeg-xl.ts'
+
+export const EXIF_LOCATION_KEYS = [
+  'GPSAltitude',
+  'GPSAltitudeRef',
+  'GPSLatitude',
+  'GPSLatitudeRef',
+  'GPSLongitude',
+  'GPSLongitudeRef',
+  'GPSPosition',
+  'GPSCoordinates',
+  'GPSDateStamp',
+  'GPSTimeStamp',
+  'GPSImgDirection',
+  'GPSImgDirectionRef',
+  'GPSDestBearing',
+  'GPSDestBearingRef',
+] as const
+
+/** Only publish a JPEG XL source as sanitized after a complete metadata read. */
+export async function eraseJpegXlLocation(
+  buffer: Buffer,
+  exiftool: Pick<ExifTool, 'read' | 'write'>,
+): Promise<Buffer> {
+  const directory = await mkdtemp(path.join(tmpdir(), 'chronoframe-jxl-exif-'))
+  const input = path.join(directory, 'source.jxl')
+  const hasLocation = async () => {
+    const tags = await exiftool.read(input, {
+      readArgs: [],
+      ignoreMinorErrors: false,
+    })
+    if (
+      !['JXL', 'JXL Codestream'].includes(tags.FileType ?? '') ||
+      tags.errors?.length ||
+      tags.warnings?.length
+    )
+      throw new Error(
+        'JPEG XL metadata could not be read completely for location erasure',
+      )
+    return Object.keys(tags).some(
+      (key) => /^GPS/i.test(key) && tags[key as keyof Tags] != null,
+    )
+  }
+  try {
+    await writeFile(input, buffer)
+    if (!(await hasLocation())) return buffer
+    const update = await exiftool.write(
+      input,
+      Object.fromEntries(EXIF_LOCATION_KEYS.map((key) => [key, null])),
+      ['-GPS:all=', '-XMP-exif:GPS*=', '-overwrite_original'],
+    )
+    if (update.warnings?.length || (await hasLocation()))
+      throw new Error('JPEG XL location erasure failed')
+    return await readFile(input)
+  } finally {
+    await rm(directory, { recursive: true, force: true })
+  }
+}
 
 /** Create EXIF helpers using a caller-owned ExifTool instance and temporary directory. */
 export function createExifService({

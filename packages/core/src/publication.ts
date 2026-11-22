@@ -7,6 +7,7 @@ export function validatePhotoPublication(
   expected: {
     resourceId: string
     sourceKey: string
+    sanitizedSourceKey?: string
     generatedKeys: ReadonlySet<string>
     linkedVideoKeys: ReadonlySet<string>
     publicUrl(key: string): string
@@ -15,9 +16,11 @@ export function validatePhotoPublication(
   const reject = () => {
     throw new CoreError(409, 'Processing result does not match its resource')
   }
+  const sourceKey = expected.sanitizedSourceKey ?? expected.sourceKey
   if (
     photo.id !== expected.resourceId ||
-    photo.storageKey !== expected.sourceKey
+    photo.storageKey !== sourceKey ||
+    (expected.sanitizedSourceKey && !expected.generatedKeys.has(sourceKey))
   )
     reject()
   if (
@@ -45,7 +48,7 @@ export function validatePhotoPublication(
     reject()
   if (
     photo.originalUrl !==
-      expected.publicUrl(photo.originalDerivedKey ?? expected.sourceKey) ||
+      expected.publicUrl(photo.originalDerivedKey ?? sourceKey) ||
     photo.thumbnailUrl !== expected.publicUrl(photo.thumbnailKey!)
   )
     reject()
