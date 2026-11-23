@@ -629,7 +629,7 @@ export default definePlatformHandler(async (event) => {
         name = 'display.jpeg'
       else if (
         asset.role === 'sanitized-original' &&
-        /^image\/(jpeg|png|webp|heic|heif|avif|gif|bmp|tiff)$/.test(
+        /^image\/(jpeg|png|webp|heic|heif|jxl|avif|gif|bmp|tiff)$/.test(
           asset.contentType,
         )
       )

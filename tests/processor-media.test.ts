@@ -26,6 +26,66 @@ const lease = {
   expectedBytes: 0,
 } satisfies CloudLease
 
+test('JPEG XL location erasure fails closed when Brotli metadata cannot be read', async (t) => {
+  const input = Buffer.from('ff0a', 'hex')
+  t.mock.method(globalThis, 'fetch', async () => new Response(input))
+  t.mock.method(ExifTool.prototype, 'read', async () => ({
+    FileType: 'JXL',
+    warnings: [
+      'Install IO::Uncompress::Brotli to decode Brotli-compressed metadata',
+    ],
+  }))
+  const write = t.mock.method(ExifTool.prototype, 'write', async () => {
+    throw new Error('Unexpected metadata write')
+  })
+  await assert.rejects(
+    processWork(
+      {
+        lease: {
+          ...lease,
+          objectKey: 'source.jxl',
+          expectedBytes: input.length,
+        },
+        sourceUrl: 'https://storage.example/source',
+        fileName: 'source.jxl',
+        contentType: 'image/jxl',
+        eraseLocation: true,
+      },
+      new AbortController().signal,
+    ),
+    /processing_error/,
+  )
+  assert.equal(write.mock.callCount(), 0)
+})
+
+test(
+  'processing node produces JPEG display and WebP thumbnail for JPEG XL',
+  { skip: !process.env.CHRONOFRAME_JXL_FIXTURE },
+  async (t) => {
+    const input = await readFile(process.env.CHRONOFRAME_JXL_FIXTURE!)
+    t.mock.method(globalThis, 'fetch', async () => new Response(input))
+    const { derivatives, result } = await processWork(
+      {
+        lease: {
+          ...lease,
+          objectKey: 'source.JXL',
+          expectedBytes: input.length,
+        },
+        sourceUrl: 'https://storage.example/source',
+        fileName: 'source.JXL',
+        contentType: 'image/jxl',
+      },
+      new AbortController().signal,
+    )
+    const display = derivatives.find((asset) => asset.role === 'display')
+    const thumbnail = derivatives.find((asset) => asset.role === 'thumbnail')
+    assert.ok(display && thumbnail)
+    assert.equal((await sharp(display.buffer).metadata()).format, 'jpeg')
+    assert.equal((await sharp(thumbnail.buffer).metadata()).format, 'webp')
+    assert.ok(result.metadata.width > 0 && result.metadata.height > 0)
+  },
+)
+
 test('Docker processing path persists actual GPS, creates thumbnails and physically erases location from downloads', async () => {
   const dir = await mkdtemp(path.join(tmpdir(), 'processor-test-')),
     tool = new ExifTool({ maxProcs: 1 }),

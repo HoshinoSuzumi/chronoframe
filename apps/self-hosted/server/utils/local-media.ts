@@ -9,6 +9,8 @@ const guessContentType = (filePath: string): string => {
     case 'jpg':
     case 'jpeg':
       return 'image/jpeg'
+    case 'jxl':
+      return 'image/jxl'
     case 'png':
       return 'image/png'
     case 'webp':

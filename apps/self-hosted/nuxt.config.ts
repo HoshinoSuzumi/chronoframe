@@ -128,7 +128,7 @@ export default defineNuxtConfig({
       mime: {
         whitelistEnabled: true,
         whitelist:
-          'image/jpeg,image/png,image/webp,image/gif,image/bmp,image/tiff,image/heic,image/heif,video/quicktime,video/mp4',
+          'image/jpeg,image/png,image/webp,image/gif,image/bmp,image/tiff,image/heic,image/heif,image/jxl,video/quicktime,video/mp4',
       },
       duplicateCheck: {
         enabled: true,

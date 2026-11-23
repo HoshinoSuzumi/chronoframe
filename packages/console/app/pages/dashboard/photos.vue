@@ -5,6 +5,7 @@ const consoleApi = useConsoleApi()
 
 import type { FormSubmitEvent, TableColumn, DropdownMenuItem } from '@nuxt/ui'
 import type { UploadPreparationResponse } from '@chronoframe/contracts/upload'
+import { resolveUploadContentType } from '@chronoframe/contracts/upload'
 import type { Album, Photo } from '@chronoframe/contracts/resources'
 import {
   MAX_ALBUM_PHOTOS_PER_REQUEST,
@@ -297,7 +298,7 @@ const uploadImage = async (
         method: 'POST',
         body: {
           fileName: file.name,
-          contentType: file.type,
+          contentType: resolveUploadContentType(file.name, file.type),
           fileSize: file.size,
           chunked: true,
         },
@@ -1098,10 +1099,13 @@ const validateFile = (
     'image/png',
     'image/heic',
     'image/heif',
+    'image/jxl',
     'video/quicktime', // MOV 文件
   ]
 
-  const isValidImageType = allowedTypes.includes(file.type)
+  const isValidImageType = allowedTypes.includes(
+    resolveUploadContentType(file.name, file.type),
+  )
   const isValidImageExtension = ['.heic', '.heif'].some((ext) =>
     file.name.toLowerCase().endsWith(ext),
   )
@@ -1941,7 +1945,7 @@ const handleBatchDownload = async () => {
   try {
     for (const photo of photosWithUrl) {
       try {
-        const response = await fetch(photo.originalUrl!)
+        const response = await fetch(photo.downloadUrl || photo.originalUrl!)
         if (!response.ok) {
           failureCount++
           continue
@@ -1951,7 +1955,10 @@ const handleBatchDownload = async () => {
         const url = window.URL.createObjectURL(blob)
         const link = document.createElement('a')
         link.href = url
-        const extension = photo.originalUrl!.split('.').pop() || 'jpg'
+        const extension =
+          blob.type === 'image/jxl'
+            ? 'jxl'
+            : photo.originalUrl!.split('.').pop() || 'jpg'
         link.download = `${photo.title || `photo-${photo.id}`}.${extension}`
         document.body.appendChild(link)
         link.click()

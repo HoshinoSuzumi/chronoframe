@@ -528,7 +528,7 @@
       "layouts": { "label": "相片庫版面", "list": "列表", "masonry": "瀑布流" },
       "title": "上傳相片",
       "subtitle": "上傳後相片會自動處理並新增到您的圖庫。您稍後可以在 {0} 中組織您的相片。",
-      "supportedFormats": "JPEG / PNG / HEIC / 實況相片 / 動態相片",
+      "supportedFormats": "JPEG / PNG / HEIC / JPEG XL / 實況相片 / 動態相片",
       "maxFileSize": "最大 {size}MB",
       "buttons": {
         "upload": "上傳相片",
@@ -536,7 +536,7 @@
       },
       "uploader": {
         "label": "拖曳或點擊選擇相片",
-        "description": "支援 JPEG、PNG、HEIC 格式的相片，以及 MOV 格式的實況相片影片。每個檔案的最大大小：{maxSize}MB"
+        "description": "支援 JPEG、PNG、HEIC、JPEG XL 格式的相片，以及 MOV 格式的實況相片影片。每個檔案的最大大小：{maxSize}MB"
       },
       "toolbar": {
         "title": "相片管理",
@@ -721,7 +721,7 @@
         "allFilesTooLarge": "所選 {count} 個檔案皆超過最大大小限制（{maxSize}MB）。",
         "filesTooLargeSkipped": "已略過 {count} 個過大檔案（上限 {maxSize}MB），其餘檔案將繼續上傳。",
         "filesUnsupportedSkipped": "已略過 {count} 個不支援格式的檔案，其餘檔案將繼續上傳。",
-        "unsupportedFormat": "不支援的檔案格式：{type}。請選擇 JPEG、PNG 或 HEIC 相片，或 MOV 格式的實況相片影片。",
+        "unsupportedFormat": "不支援的檔案格式：{type}。請選擇 JPEG、PNG、HEIC 或 JPEG XL 相片，或 MOV 格式的實況相片影片。",
         "fileTooLarge": "檔案過大：{size}MB。最大支援：{maxSize}MB。",
         "uploadFailed": "上傳失敗",
         "uploadNetworkError": "網路連線失敗或 CORS 錯誤。請檢查網路和儲存配置。",

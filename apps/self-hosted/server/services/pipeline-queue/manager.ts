@@ -21,7 +21,7 @@ import {
   EXIF_LOCATION_KEYS,
   stripLocationFromExif,
 } from '@chronoframe/processing'
-import { createExifService } from '@chronoframe/media'
+import { createExifService, eraseJpegXlLocation } from '@chronoframe/media'
 import type { PipelineQueuePayload } from '@chronoframe/contracts/queue'
 import { QueueWarningCode } from '@chronoframe/contracts/queue'
 import {
@@ -219,6 +219,7 @@ export class QueueManager {
           }),
           parseGPS: parseGPSCoordinates,
           reverseGeocode: extractLocationFromGPS,
+          sanitizeJpegXl: (buffer) => eraseJpegXlLocation(buffer, exiftool),
         })
         const erase =
           payload.eraseLocation ??
@@ -227,7 +228,7 @@ export class QueueManager {
             'upload.autoEraseLocation',
           )) ??
           false
-        const { photo, sourceHash } = await process({
+        const { photo, sourceHash, sanitizedSourceKey } = await process({
           photoId: lease.resourceId,
           storageKey: payload.storageKey,
           eraseLocation: erase,
@@ -250,6 +251,7 @@ export class QueueManager {
         validatePhotoPublication(photo, {
           resourceId: lease.resourceId,
           sourceKey: payload.storageKey,
+          sanitizedSourceKey,
           generatedKeys: generated,
           linkedVideoKeys: linked,
           publicUrl: (key) => provider.getPublicUrl(key),
@@ -278,6 +280,36 @@ export class QueueManager {
           { resourceUpdated: true, warningCode: () => warning },
         )
         published = publication.published
+        if (
+          published &&
+          sanitizedSourceKey &&
+          sanitizedSourceKey !== payload.storageKey
+        ) {
+          try {
+            const original = await provider.get(payload.storageKey)
+            const current = db
+              .select({ version: tables.resourceVersions.version })
+              .from(tables.resourceVersions)
+              .where(
+                and(
+                  eq(tables.resourceVersions.siteId, lease.siteId),
+                  eq(tables.resourceVersions.resourceId, lease.resourceId),
+                ),
+              )
+              .get()
+            if (
+              current?.version === lease.sourceVersion + 1 &&
+              original &&
+              createHash('sha256').update(original).digest('hex') === sourceHash
+            )
+              await provider.delete(payload.storageKey)
+          } catch (error) {
+            this.logger.warn(
+              'Original JPEG XL cleanup failed',
+              error instanceof Error ? error.message : 'storage error',
+            )
+          }
+        }
         return
       }
       if (payload.type === 'photo-reverse-geocoding') {
@@ -374,15 +406,22 @@ export class QueueManager {
             directory,
             'source' + (path.extname(photo.storageKey) || '.jpg'),
           )
-          await writeFile(file, original)
           const tags = Object.fromEntries(
             EXIF_LOCATION_KEYS.map((key) => [key, null]),
           )
-          await exiftool.write(file, tags, ['-overwrite_original'])
-          const buffer = await readFile(file)
+          const jpegXl = /\.jxl$/i.test(photo.storageKey)
+          let buffer: Buffer
+          if (jpegXl) {
+            buffer = await eraseJpegXlLocation(original, exiftool)
+          } else {
+            await writeFile(file, original)
+            await exiftool.write(file, tags, ['-overwrite_original'])
+            buffer = await readFile(file)
+          }
           const object = await staged.create(
             'source' + (path.extname(photo.storageKey) || '.jpg'),
             buffer,
+            jpegXl ? 'image/jxl' : undefined,
           )
           let derived = photo.originalDerivedKey
           if (derived) {

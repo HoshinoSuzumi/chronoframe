@@ -387,7 +387,7 @@ export class OpenListStorageProvider implements StorageProvider {
   async listImages(): Promise<StorageObject[]> {
     const all = await this.listAll()
     return all.filter((obj) =>
-      /\.(jpe?g|png|webp|gif|bmp|tiff?|heic|heif)$/i.test(obj.key),
+      /\.(jpe?g|jxl|png|webp|gif|bmp|tiff?|heic|heif)$/i.test(obj.key),
     )
   }
 }

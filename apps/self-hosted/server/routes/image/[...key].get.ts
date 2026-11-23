@@ -1,4 +1,7 @@
-import { storageForPhoto } from '../../utils/object-storage'
+import {
+  storageForPhoto,
+  storageForReference,
+} from '../../utils/object-storage'
 import { and as siteAnd, eq as siteEq } from 'drizzle-orm'
 import { DEFAULT_SITE } from '@chronoframe/core'
 import { serveLocalMedia } from '../../utils/local-media'
@@ -26,9 +29,8 @@ export default eventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: 'Invalid key' })
   }
 
-  const protectedMatch = /^__photo__\/([^/]+)\/(original|thumbnail|live)$/.exec(
-    decodedKey,
-  )
+  const protectedMatch =
+    /^__photo__\/([^/]+)\/(original|thumbnail|live|source)$/.exec(decodedKey)
   if (protectedMatch) {
     const [, photoId, kind] = protectedMatch
     const photo = useDB()
@@ -44,6 +46,23 @@ export default eventHandler(async (event) => {
     if (!photo) {
       throw createError({ statusCode: 404, statusMessage: 'Photo not found' })
     }
+    if (kind === 'source') {
+      const sourceKey = photo.storageKey
+      if (!sourceKey || !/\.jxl$/i.test(sourceKey))
+        throw createError({ statusCode: 404, statusMessage: 'Photo not found' })
+      const accessKey = sourceKey.replace(/^\/+/, '')
+      await assertPhotoAccess(event, accessKey, true)
+      storageProvider = await storageForReference(photo, storageProvider)
+      if (storageProvider.config?.provider === 'local')
+        return serveLocalMedia(event, storageProvider.config, accessKey, true)
+      const source = await storageProvider.get(sourceKey)
+      if (!source)
+        throw createError({ statusCode: 404, statusMessage: 'Photo not found' })
+      setHeader(event, 'Cache-Control', 'private, no-store')
+      setHeader(event, 'Content-Type', 'image/jxl')
+      return source
+    }
+
     const restricted = await assertPhotoAccess(event, photo.id)
     storageProvider = await storageForPhoto(photo.id, storageProvider)
 

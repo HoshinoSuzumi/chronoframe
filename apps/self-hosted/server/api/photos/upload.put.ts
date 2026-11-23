@@ -8,6 +8,7 @@ import path from 'node:path'
 import { useStorageProvider } from '~~/server/utils/useStorageProvider'
 import { logger } from '~~/server/utils/logger'
 import { settingsManager } from '~~/server/services/settings/settingsManager'
+import { resolveUploadContentType } from '@chronoframe/contracts/upload'
 
 export default eventHandler(async (event) => {
   await requireUserSession(event)
@@ -31,8 +32,10 @@ export default eventHandler(async (event) => {
     await providerForUpload(key, storageProvider),
   )
 
-  const contentType =
-    getHeader(event, 'content-type') || 'application/octet-stream'
+  const contentType = resolveUploadContentType(
+    key,
+    getHeader(event, 'content-type'),
+  )
 
   // MIME 类型白名单验证（可通过环境变量配置）
   const config = useRuntimeConfig(event)

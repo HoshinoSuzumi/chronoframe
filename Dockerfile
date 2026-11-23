@@ -30,10 +30,12 @@ RUN pnpm run prepare \
     && find ./apps/self-hosted/.output -type f -name '*.map' -delete
 
 FROM node:22.23.4-alpine AS runtime_deps
-RUN apk add --no-cache ca-certificates perl exiftool \
+RUN apk add --no-cache ca-certificates perl exiftool libjxl-tools \
 	&& install -Dm755 "$(readlink -f /usr/bin/perl)" /opt/runtime-bin/perl \
 	&& install -Dm755 "$(readlink -f /usr/bin/env)" /opt/runtime-bin/env \
 	&& install -Dm755 "$(readlink -f /usr/bin/exiftool)" /opt/runtime-bin/exiftool \
+	&& install -Dm755 "$(readlink -f /usr/bin/djxl)" /opt/runtime-bin/djxl \
+	&& install -Dm755 "$(readlink -f /usr/bin/jxlinfo)" /opt/runtime-bin/jxlinfo \
 	&& mkdir -p /opt/runtime-tmp \
 	&& chmod 1777 /opt/runtime-tmp
 
@@ -44,6 +46,8 @@ COPY --from=runtime_deps /usr/local/bin/node /usr/bin/node
 COPY --from=runtime_deps /opt/runtime-bin/perl /usr/bin/perl
 COPY --from=runtime_deps /opt/runtime-bin/env /usr/bin/env
 COPY --from=runtime_deps /opt/runtime-bin/exiftool /usr/bin/exiftool
+COPY --from=runtime_deps /opt/runtime-bin/djxl /usr/bin/djxl
+COPY --from=runtime_deps /opt/runtime-bin/jxlinfo /usr/bin/jxlinfo
 COPY --from=runtime_deps /usr/lib /usr/lib
 COPY --from=runtime_deps /usr/share /usr/share
 COPY --from=runtime_deps /lib /lib
@@ -65,5 +69,7 @@ ENV DATABASE_URL=./data/app.sqlite3
 ENV SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt
 ENV NODE_EXTRA_CA_CERTS=/etc/ssl/certs/ca-certificates.crt
 ENV EXIFTOOL_PATH=/usr/bin/exiftool
+ENV DJXL_PATH=/usr/bin/djxl
+ENV JXLINFO_PATH=/usr/bin/jxlinfo
 
 CMD ["/usr/bin/node", ".output/server/index.mjs"]

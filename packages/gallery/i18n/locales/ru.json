@@ -610,7 +610,7 @@
       },
       "title": "Загрузка фотографий",
       "subtitle": "Фотографии будут автоматически обработаны и добавлены в вашу библиотеку. После этого их можно упорядочить в разделе {0}.",
-      "supportedFormats": "JPEG / PNG / HEIC / Live Photo / Motion Photo",
+      "supportedFormats": "JPEG / PNG / HEIC / JPEG XL / Live Photo / Motion Photo",
       "maxFileSize": "Не более {size} МБ",
       "buttons": {
         "upload": "Загрузить фотографии",
@@ -618,7 +618,7 @@
       },
       "uploader": {
         "label": "Перетащите фотографии сюда или нажмите, чтобы выбрать их",
-        "description": "Поддерживаются фотографии JPEG, PNG и HEIC, а также видео Live Photo в формате MOV. Максимальный размер одного файла: {maxSize} МБ"
+        "description": "Поддерживаются фотографии JPEG, PNG, HEIC и JPEG XL, а также видео Live Photo в формате MOV. Максимальный размер одного файла: {maxSize} МБ"
       },
       "toolbar": {
         "title": "Управление фотографиями",
@@ -803,7 +803,7 @@
         "allFilesTooLarge": "Все выбранные файлы ({count}) превышают максимальный размер ({maxSize} МБ).",
         "filesTooLargeSkipped": "Пропущены слишком большие файлы: {count} (ограничение: {maxSize} МБ). Остальные файлы продолжат загружаться.",
         "filesUnsupportedSkipped": "Пропущены файлы неподдерживаемых форматов: {count}. Остальные файлы продолжат загружаться.",
-        "unsupportedFormat": "Неподдерживаемый формат файла: {type}. Выберите фотографии JPEG, PNG или HEIC либо видео Live Photo в формате MOV.",
+        "unsupportedFormat": "Неподдерживаемый формат файла: {type}. Выберите фотографии JPEG, PNG, HEIC или JPEG XL либо видео Live Photo в формате MOV.",
         "fileTooLarge": "Файл слишком большой: {size} МБ. Максимальный поддерживаемый размер: {maxSize} МБ.",
         "uploadFailed": "Не удалось загрузить файл",
         "uploadNetworkError": "Ошибка подключения к сети или CORS. Проверьте настройки сети и хранилища.",

@@ -3,7 +3,7 @@ FROM node:22.23.4-alpine AS base
 RUN --mount=type=secret,id=proxy_ca --mount=type=secret,id=ca_bundle \
     if [ -f /run/secrets/ca_bundle ]; then export SSL_CERT_FILE=/run/secrets/ca_bundle; fi; \
     if [ -f /run/secrets/proxy_ca ]; then export NODE_EXTRA_CA_CERTS=/run/secrets/proxy_ca; fi; \
-    apk add --no-cache ca-certificates perl exiftool && corepack enable
+    apk add --no-cache ca-certificates perl exiftool libjxl-tools && corepack enable
 WORKDIR /app
 FROM base AS dependencies
 COPY . .

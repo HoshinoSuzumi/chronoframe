@@ -610,7 +610,7 @@
       },
       "title": "Photo Upload",
       "subtitle": "Photos will be automatically processed and added to your library. You can organize your photos in the {0} section afterwards.",
-      "supportedFormats": "JPEG / PNG / HEIC / Live Photo / Motion Photo",
+      "supportedFormats": "JPEG / PNG / HEIC / JPEG XL / Live Photo / Motion Photo",
       "maxFileSize": "Max {size}MB",
       "buttons": {
         "upload": "Upload Photos",
@@ -618,7 +618,7 @@
       },
       "uploader": {
         "label": "Drag and drop or click to select photos",
-        "description": "Supports JPEG, PNG, HEIC format photos, and MOV format Live Photo videos. Maximum file size: {maxSize}MB per file"
+        "description": "Supports JPEG, PNG, HEIC, and JPEG XL format photos, and MOV format Live Photo videos. Maximum file size: {maxSize}MB per file"
       },
       "toolbar": {
         "title": "Photo Management",
@@ -803,7 +803,7 @@
         "allFilesTooLarge": "All {count} selected files exceed the maximum size limit ({maxSize}MB).",
         "filesTooLargeSkipped": "Skipped {count} oversized file(s) (limit {maxSize}MB). Remaining files will continue uploading.",
         "filesUnsupportedSkipped": "Skipped {count} file(s) with unsupported formats. Remaining files will continue uploading.",
-        "unsupportedFormat": "Unsupported file format: {type}. Please select JPEG, PNG, or HEIC photos, or MOV format Live Photo videos.",
+        "unsupportedFormat": "Unsupported file format: {type}. Please select JPEG, PNG, HEIC, or JPEG XL photos, or MOV format Live Photo videos.",
         "fileTooLarge": "File too large: {size}MB. Maximum supported: {maxSize}MB.",
         "uploadFailed": "Upload failed",
         "uploadNetworkError": "Network connection failed or CORS error. Please check network and storage configuration.",

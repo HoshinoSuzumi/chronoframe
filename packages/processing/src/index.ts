@@ -2,6 +2,7 @@ import path from 'node:path'
 import { createHash } from 'node:crypto'
 import {
   createImageProcessor,
+  EXIF_LOCATION_KEYS,
   generateThumbnailAndHash,
   processMotionPhotoFromXmp,
   type createExifService,
@@ -14,22 +15,7 @@ import type { Photo } from '@chronoframe/contracts/resources'
 import type { LocationInfo } from '@chronoframe/geocoding'
 import type { ProcessingStage } from '@chronoframe/contracts/queue'
 
-export const EXIF_LOCATION_KEYS = [
-  'GPSAltitude',
-  'GPSAltitudeRef',
-  'GPSLatitude',
-  'GPSLatitudeRef',
-  'GPSLongitude',
-  'GPSLongitudeRef',
-  'GPSPosition',
-  'GPSCoordinates',
-  'GPSDateStamp',
-  'GPSTimeStamp',
-  'GPSImgDirection',
-  'GPSImgDirectionRef',
-  'GPSDestBearing',
-  'GPSDestBearingRef',
-] as const
+export { EXIF_LOCATION_KEYS } from '@chronoframe/media'
 export function stripLocationFromExif<
   T extends Record<string, any> | null | undefined,
 >(exif: T): T {
@@ -38,6 +24,7 @@ export function stripLocationFromExif<
   for (const key of EXIF_LOCATION_KEYS) delete result[key]
   return result as T
 }
+
 export type ProcessedPhoto = Photo & { originalDerivedKey: string | null }
 export interface PhotoProcessingInput {
   photoId: string
@@ -58,11 +45,16 @@ export function createPhotoProcessor(deps: {
     latitude: number,
     longitude: number,
   ): Promise<LocationInfo | null>
+  sanitizeJpegXl?(buffer: Buffer): Promise<Buffer>
   now?: () => Date
 }) {
   return async (
     input: PhotoProcessingInput,
-  ): Promise<{ photo: ProcessedPhoto; sourceHash: string }> => {
+  ): Promise<{
+    photo: ProcessedPhoto
+    sourceHash: string
+    sanitizedSourceKey?: string
+  }> => {
     const { storage, storageKey, photoId } = input
     const stage = async (value: ProcessingStage) => {
       input.signal?.throwIfAborted()
@@ -77,15 +69,33 @@ export function createPhotoProcessor(deps: {
     if (!raw) throw new Error('Source object not found')
     const sourceHash = createHash('sha256').update(raw).digest('hex')
     await input.sourceRead?.(sourceHash)
-    const storageObject = await storage.getFileMeta(storageKey)
-    let processed = raw,
-      originalDerivedKey: string | null = null
-    const ext = path.extname(storageKey).toLowerCase()
-    if (['.heic', '.heif', '.hif'].includes(ext)) {
-      processed = await media.convertHeicToJpeg(raw)
+    let source = raw
+    let sanitizedSourceKey: string | undefined
+    if (
+      input.eraseLocation &&
+      deps.sanitizeJpegXl &&
+      /\.jxl$/i.test(storageKey)
+    ) {
+      await stage('location-erase')
+      source = await deps.sanitizeJpegXl(raw)
+      if (source !== raw) {
+        sanitizedSourceKey = (
+          await storage.create(
+            `source/${path.basename(storageKey)}`,
+            source,
+            'image/jxl',
+          )
+        ).key
+      }
+    }
+    const sourceKey = sanitizedSourceKey ?? storageKey
+    const storageObject = await storage.getFileMeta(sourceKey)
+    const processed = await media.preprocessImageBuffer(source, storageKey)
+    let originalDerivedKey: string | null = null
+    if (processed !== source) {
       originalDerivedKey = (
         await storage.create(
-          `${path.basename(storageKey, ext)}.jpeg`,
+          `${path.basename(storageKey, path.extname(storageKey))}.jpeg`,
           processed,
           'image/jpeg',
         )
@@ -111,7 +121,7 @@ export function createPhotoProcessor(deps: {
     await stage('exif')
     const extracted = await deps.exif.extractExifData(
       imageBuffer,
-      raw,
+      source,
       deps.logger,
     )
     const exif = input.eraseLocation
@@ -138,7 +148,7 @@ export function createPhotoProcessor(deps: {
     const motion = await processMotionPhotoFromXmp({
       photoId,
       storageKey,
-      rawImageBuffer: raw,
+      rawImageBuffer: source,
       exifData: exif,
       storageProvider: storage,
       logger: deps.logger,
@@ -156,6 +166,7 @@ export function createPhotoProcessor(deps: {
     input.signal?.throwIfAborted()
     return {
       sourceHash,
+      sanitizedSourceKey,
       photo: {
         id: photoId,
         title: info.title,
@@ -165,13 +176,13 @@ export function createPhotoProcessor(deps: {
         width: metadata.width,
         height: metadata.height,
         aspectRatio: metadata.width / metadata.height,
-        storageKey,
+        storageKey: sourceKey,
         thumbnailKey: thumbnail.key,
-        fileSize: storageObject?.size ?? raw.length,
+        fileSize: storageObject?.size ?? source.length,
         lastModified:
           storageObject?.lastModified?.toISOString() ??
           (deps.now?.() ?? new Date()).toISOString(),
-        originalUrl: storage.getPublicUrl(originalDerivedKey ?? storageKey),
+        originalUrl: storage.getPublicUrl(originalDerivedKey ?? sourceKey),
         originalDerivedKey,
         thumbnailUrl: storage.getPublicUrl(thumbnail.key),
         thumbnailHash: thumbnailHash

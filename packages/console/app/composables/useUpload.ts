@@ -1,4 +1,5 @@
 import { UPLOAD_CHUNK_SIZE } from '@chronoframe/gallery/shared/utils/upload'
+import { resolveUploadContentType } from '@chronoframe/contracts/upload'
 import {
   UploadTransportStatus,
   isInFlightTransportStatus,
@@ -286,7 +287,10 @@ export function useUpload(options: UseUploadOptions = {}) {
               requestXHR.setRequestHeader(
                 'Content-Type',
                 filePayload
-                  ? contentType || file.type || 'application/octet-stream'
+                  ? resolveUploadContentType(
+                      file.name,
+                      contentType || file.type,
+                    )
                   : 'application/json',
               )
             Object.entries({ ...headers, ...requestHeaders }).forEach(

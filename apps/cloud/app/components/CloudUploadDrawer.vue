@@ -57,7 +57,7 @@ async function startUpload() {
     :disabled="selectionLocked || !uploadAllowed || !admin"
     :loading="selectionLocked"
     :can-upload="uploadAllowed && admin"
-    accept="image/*,.heic,.heif,.hif,.bmp,.tif,.tiff,.mov"
+    accept="image/*,.heic,.heif,.hif,.bmp,.jxl,.tif,.tiff,.mov"
     @upload="startUpload"
   >
     <template #before-files>

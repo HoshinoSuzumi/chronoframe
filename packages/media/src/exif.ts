@@ -2,7 +2,15 @@ import type { MediaLogger } from './logger.ts'
 import type { ExifTool } from 'exiftool-vendored'
 import { randomUUID } from 'node:crypto'
 import path from 'node:path'
-import { mkdir, unlink, writeFile } from 'node:fs/promises'
+import {
+  mkdir,
+  mkdtemp,
+  readFile,
+  rm,
+  unlink,
+  writeFile,
+} from 'node:fs/promises'
+import { tmpdir } from 'node:os'
 import type { Metadata } from 'sharp'
 import sharp from 'sharp'
 import type { NeededExif, PhotoInfo } from '@chronoframe/contracts/photo'
@@ -10,6 +18,74 @@ import { photoTitleFromFileName } from '@chronoframe/contracts/photo'
 import type { ExifDateTime, Tags } from 'exiftool-vendored'
 import { noop } from 'es-toolkit'
 import { withRetry, RetryPresets, RetryConditions } from './retry.ts'
+import { isJpegXl } from './jpeg-xl.ts'
+
+export const EXIF_LOCATION_KEYS = [
+  'GPSAltitude',
+  'GPSAltitudeRef',
+  'GPSLatitude',
+  'GPSLatitudeRef',
+  'GPSLongitude',
+  'GPSLongitudeRef',
+  'GPSPosition',
+  'GPSCoordinates',
+  'GPSDateStamp',
+  'GPSTimeStamp',
+  'GPSImgDirection',
+  'GPSImgDirectionRef',
+  'GPSDestBearing',
+  'GPSDestBearingRef',
+] as const
+
+/** Only publish a JPEG XL source as sanitized after a complete metadata read. */
+export async function eraseJpegXlLocation(
+  buffer: Buffer,
+  exiftool: Pick<ExifTool, 'read' | 'write'>,
+): Promise<Buffer> {
+  const directory = await mkdtemp(path.join(tmpdir(), 'chronoframe-jxl-exif-'))
+  const input = path.join(directory, 'source.jxl')
+  const readLocationKeys = async () => {
+    const tags = await exiftool.read(input, {
+      readArgs: [],
+      ignoreMinorErrors: false,
+      struct: 0,
+    })
+    if (
+      !['JXL', 'JXL Codestream'].includes(tags.FileType ?? '') ||
+      tags.errors?.length ||
+      tags.warnings?.length
+    )
+      throw new Error(
+        'JPEG XL metadata could not be read completely for location erasure',
+      )
+    return Object.keys(tags).filter(
+      (key) => /GPS/i.test(key) && tags[key as keyof Tags] != null,
+    )
+  }
+  try {
+    await writeFile(input, buffer)
+    const locationKeys = await readLocationKeys()
+    if (!locationKeys.length) return buffer
+    const nestedLocationArgs = locationKeys
+      .filter((key) => /^Location(?:Created|Shown)GPS[A-Za-z]+$/.test(key))
+      .map((key) => `-XMP-iptcExt:${key}=`)
+    const update = await exiftool.write(
+      input,
+      Object.fromEntries(EXIF_LOCATION_KEYS.map((key) => [key, null])),
+      [
+        '-GPS:all=',
+        '-XMP-exif:GPS*=',
+        ...nestedLocationArgs,
+        '-overwrite_original',
+      ],
+    )
+    if (update.warnings?.length || (await readLocationKeys()).length)
+      throw new Error('JPEG XL location erasure failed')
+    return await readFile(input)
+  } finally {
+    await rm(directory, { recursive: true, force: true })
+  }
+}
 
 /** Create EXIF helpers using a caller-owned ExifTool instance and temporary directory. */
 export function createExifService({
@@ -280,7 +356,7 @@ export function createExifService({
     }
   }
 
-  const processExifData = (exifData: Tags, metadata: Metadata): NeededExif => {
+  const processExifData = (exifData: Tags, metadata?: Metadata): NeededExif => {
     const date = {
       DateTimeOriginal: formatExifDate(exifData.DateTimeOriginal),
       DateTimeDigitized: formatExifDate(exifData.DateTimeDigitized),
@@ -290,8 +366,10 @@ export function createExifService({
     }
 
     const size = {
-      ImageWidth: exifData.ExifImageWidth || metadata.width,
-      ImageHeight: exifData.ExifImageHeight || metadata.height,
+      ImageWidth:
+        exifData.ExifImageWidth || metadata?.width || exifData.ImageWidth,
+      ImageHeight:
+        exifData.ExifImageHeight || metadata?.height || exifData.ImageHeight,
     }
 
     const result: any = structuredClone(exifData)
@@ -303,7 +381,7 @@ export function createExifService({
     }
 
     // 优先从 metadata 推断颜色空间
-    const inferredColorSpace = inferColorSpaceFromMetadata(metadata)
+    const inferredColorSpace = metadata && inferColorSpaceFromMetadata(metadata)
     if (inferredColorSpace) {
       result.ColorSpace = inferredColorSpace
     } else if (!result.ColorSpace) {
@@ -323,6 +401,8 @@ export function createExifService({
     rawImageBuffer?: Buffer,
     logger?: MediaLogger,
   ): Promise<NeededExif | null> => {
+    const source = rawImageBuffer ?? imageBuffer
+    const jpegXl = isJpegXl(source)
     try {
       return await withRetry(
         async () => {
@@ -330,10 +410,12 @@ export function createExifService({
 
           try {
             // 提取基础元数据
-            let metadata = await sharp(imageBuffer).metadata()
+            let metadata = jpegXl
+              ? undefined
+              : await sharp(imageBuffer).metadata()
 
             // 如果主buffer没有EXIF，尝试原始buffer
-            if (!metadata.exif && rawImageBuffer) {
+            if (!jpegXl && !metadata?.exif && rawImageBuffer) {
               try {
                 metadata = await sharp(rawImageBuffer).metadata()
               } catch (err) {
@@ -344,7 +426,7 @@ export function createExifService({
               }
             }
 
-            if (!metadata.exif) {
+            if (!jpegXl && !metadata?.exif) {
               logger?.warn('No EXIF data found in image metadata')
               return null
             }
@@ -354,10 +436,14 @@ export function createExifService({
             // 创建临时工作目录
             // The application owns the work directory and ExifTool lifecycle.
             await mkdir(tempDir, { recursive: true })
-            tempImagePath = path.resolve(tempDir, `${randomUUID()}.jpg`)
+            const extension = jpegXl ? 'jxl' : 'jpg'
+            tempImagePath = path.resolve(
+              tempDir,
+              `${randomUUID()}.${extension}`,
+            )
 
             // 写入临时文件
-            await writeFile(tempImagePath, rawImageBuffer || imageBuffer)
+            await writeFile(tempImagePath, source)
 
             // 使用 exiftool 读取详细 EXIF 数据
             const exifData = await exiftool.read(tempImagePath)

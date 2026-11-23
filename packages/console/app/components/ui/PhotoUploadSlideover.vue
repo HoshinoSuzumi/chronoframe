@@ -9,7 +9,8 @@ withDefaults(
   }>(),
   {
     canUpload: true,
-    accept: 'image/jpeg,image/png,image/heic,image/heif,video/quicktime,.mov',
+    accept:
+      'image/jpeg,image/png,image/heic,image/heif,image/jxl,.jxl,video/quicktime,.mov',
   },
 )
 const open = defineModel<boolean>('open', { required: true })
