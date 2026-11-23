@@ -45,7 +45,9 @@ ChronoFrame is a self-hosted photo gallery. Upload your photos and it extracts E
 
 ## ☁️ ChronoFrame Cloud
 
-Use [ChronoFrame Cloud](https://chronoframe.art/?utm_source=github&utm_medium=social&utm_campaign=github_traffic&utm_content=readme_link) without deploying or maintaining a server. Sign up or sign in on the website, create a gallery, and upload and organize your photos in the browser.
+Use ChronoFrame Cloud without deploying or maintaining a server. Sign up or sign in on the website, create a gallery, and upload and organize your photos in the browser.
+
+[![Try ChronoFrame Cloud](./.github/assets/chronoframe-cloud-badge.svg)](https://chronoframe.art/?utm_source=github&utm_medium=social&utm_campaign=github_traffic&utm_content=readme_link)
 
 ## 🐳 Deployment
 

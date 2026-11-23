@@ -45,7 +45,9 @@ ChronoFrame 是一个可以自行部署的照片画廊。上传照片后，应�
 
 ## ☁️ ChronoFrame Cloud
 
-[ChronoFrame Cloud](https://chronoframe.art/?utm_source=github&utm_medium=social&utm_campaign=github_traffic&utm_content=readme_link) 无需部署或维护服务器。在官网注册或登录账号，创建画廊，即可在浏览器中上传和管理照片。
+ChronoFrame Cloud 无需部署或维护服务器。在官网注册或登录账号，创建画廊，即可在浏览器中上传和管理照片。
+
+[![试用 ChronoFrame Cloud](./.github/assets/chronoframe-cloud-badge.svg)](https://chronoframe.art/?utm_source=github&utm_medium=social&utm_campaign=github_traffic&utm_content=readme_link)
 
 ## 🐳 部署
 
