@@ -1,3 +1,4 @@
+import { fnosStorageRoot } from '../../utils/fnos-storage'
 import { defineWizardHandler } from '../../utils/wizard-handler'
 import { z } from 'zod'
 import { settingsManager } from '~~/server/services/settings/settingsManager'
@@ -82,7 +83,7 @@ export default defineWizardHandler(async (event) => {
       {
         key: 'local.basePath',
         type: 'string',
-        defaultValue: './data/storage',
+        defaultValue: fnosStorageRoot() || './data/storage',
         label: 'settings.storage.local.basePath.label',
       },
       {

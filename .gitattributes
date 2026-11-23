@@ -1,0 +1,2 @@
+packaging/fnos/build.sh text eol=lf
+packaging/fnos/cmd/* text eol=lf

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { z } from 'zod'
+import { wizardFieldBase } from '~/components/Wizard/field-style'
 import type { ProviderOption } from '~/components/Wizard/ProviderSelector.vue'
 import { useWizardStore } from '~/stores/wizard'
 
@@ -9,6 +10,9 @@ definePageMeta({
 
 const router = useRouter()
 const wizardStore = useWizardStore()
+const { data: fnosStorage } = useFetch<{ directories: string[] | null }>(
+  '/api/wizard/fnos-directories',
+)
 
 // Mark this step as accessible when entering the page
 wizardStore.markStepAccessible(3)
@@ -133,8 +137,28 @@ function onSubmit() {
             :required="field.ui.required"
             :help="$t(field.ui.help || '')"
           >
+            <template
+              v-if="field.key === 'local.basePath' && fnosStorage?.directories"
+            >
+              <USelect
+                v-if="fnosStorage.directories.length"
+                v-model="state[field.key]"
+                :items="fnosStorage.directories"
+                variant="none"
+                :ui="{ base: wizardFieldBase }"
+              />
+              <p class="mt-1 text-sm text-muted">
+                {{
+                  $t(
+                    fnosStorage.directories.length
+                      ? 'settings.storage.fnosDirectoryHelp'
+                      : 'settings.storage.fnosDirectoryEmpty',
+                  )
+                }}
+              </p>
+            </template>
             <WizardInput
-              v-if="field.ui.type === 'password'"
+              v-else-if="field.ui.type === 'password'"
               v-model="state[field.key]"
               type="password"
               :placeholder="$t(field.ui.placeholder || '')"

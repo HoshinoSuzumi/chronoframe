@@ -33,6 +33,14 @@ const {
   '/api/system/settings/storage-config',
 )
 
+const {
+  data: fnosStorage,
+  error: fnosStorageError,
+  refresh: refreshFnosStorage,
+} = await useConsoleFetch<{
+  directories: string[] | null
+}>('/api/system/settings/fnos-directories')
+
 const PROVIDER_ICON = {
   s3: 'tabler:brand-aws',
   local: 'tabler:database',
@@ -233,7 +241,10 @@ const getStorageConfigDefaults = (provider: string): Partial<StorageConfig> => {
     case 'local':
       return {
         provider: 'local',
-        basePath: '/data/storage',
+        basePath: fnosStorage.value
+          ? (fnosStorage.value.directories?.[0] ??
+            (fnosStorage.value.directories === null ? '/data/storage' : ''))
+          : '',
         baseUrl: '/storage',
         prefix: '',
       } as any
@@ -277,6 +288,7 @@ const storageFieldsConfig = computed<Record<string, any>>(() => {
       return {
         provider: { hidden: true },
         basePath: {
+          hidden: fnosStorage.value?.directories !== null,
           label: $t(`${baseKey}.basePath.label`),
           description: $t(`${baseKey}.basePath.description`),
         },
@@ -828,6 +840,42 @@ const confirmStorageDelete = async () => {
                     />
                     <USeparator />
                   </div>
+                  <UAlert
+                    v-if="
+                      storageConfigState.provider === 'local' &&
+                      fnosStorageError
+                    "
+                    color="error"
+                    :title="$t('settings.storage.fnosDirectoryError')"
+                    :actions="[
+                      {
+                        label: $t('settings.storage.actions.retry'),
+                        onClick: () => refreshFnosStorage(),
+                      },
+                    ]"
+                  />
+                  <UFormField
+                    v-else-if="
+                      storageConfigState.config.provider === 'local' &&
+                      fnosStorage?.directories
+                    "
+                    name="basePath"
+                    :label="$t('settings.storage.local.basePath.label')"
+                    :help="
+                      $t(
+                        fnosStorage.directories.length
+                          ? 'settings.storage.fnosDirectoryHelp'
+                          : 'settings.storage.fnosDirectoryEmpty',
+                      )
+                    "
+                  >
+                    <USelect
+                      v-if="fnosStorage.directories.length"
+                      v-model="storageConfigState.config.basePath"
+                      :items="fnosStorage.directories"
+                      class="w-full"
+                    />
+                  </UFormField>
                 </template>
                 <UButton
                   class="mt-5"
@@ -865,7 +913,11 @@ const confirmStorageDelete = async () => {
                 type="submit"
                 form="storageConfigForm"
                 :loading="isSavingStorage"
-                :disabled="!isEditorDirty"
+                :disabled="
+                  !isEditorDirty ||
+                  (storageConfigState.provider === 'local' &&
+                    (!fnosStorage || fnosStorage.directories?.length === 0))
+                "
               >
                 {{
                   $t(

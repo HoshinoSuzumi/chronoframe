@@ -23,6 +23,11 @@ on:
         type: boolean
         default: true
 
+      package_fpk:
+        description: 打包 FPK
+        type: boolean
+        default: true
+
 permissions:
   contents: read
 
@@ -99,12 +104,13 @@ jobs:
           MANUAL: ${{ github.event_name == 'workflow_dispatch' }}
           PUBLISH_GHCR: ${{ inputs.publish_ghcr }}
           PUBLISH_DOCKERHUB: ${{ inputs.publish_dockerhub }}
+          PACKAGE_FPK: ${{ inputs.package_fpk }}
         run: |
           set -euo pipefail
           if [[ "$MANUAL" == true ]]; then
             git check-ref-format "refs/heads/$RELEASE_BRANCH"
-            if [[ "$PUBLISH_GHCR" != true && "$PUBLISH_DOCKERHUB" != true ]]; then
-              echo "::error::Select at least one registry."
+            if [[ "$PUBLISH_GHCR" != true && "$PUBLISH_DOCKERHUB" != true && "$PACKAGE_FPK" != true ]]; then
+              echo "::error::Select at least one release target."
               exit 1
             fi
           else
@@ -119,6 +125,17 @@ jobs:
           if (!regex.test(version) || /\s/.test(version) || version.length > 121) throw new Error('Expected Docker-compatible SemVer without build metadata, at most 121 characters')
           fs.appendFileSync(process.env.GITHUB_OUTPUT, `version=${version}\ntag=v${version}\nprerelease=${version.includes('-')}\n`)
           NODE
+
+      - name: Validate FPK signing credentials
+        if: github.event_name == 'workflow_dispatch' && inputs.package_fpk
+        env:
+          FNPACK_DEVELOPER_KEY: ${{ secrets.FNPACK_DEVELOPER_KEY }}
+          FNPACK_DEVELOPER_CERT: ${{ secrets.FNPACK_DEVELOPER_CERT }}
+        run: |
+          if [[ -z "$FNPACK_DEVELOPER_KEY" || -z "$FNPACK_DEVELOPER_CERT" ]]; then
+            echo "::error::Configure FNPACK_DEVELOPER_KEY and FNPACK_DEVELOPER_CERT to publish FPK packages."
+            exit 1
+          fi
 
       - name: Commit version and create release tag
         if: github.event_name == 'workflow_dispatch'
@@ -223,7 +240,7 @@ jobs:
 
   build-and-push:
     needs: prepare
-    if: needs.prepare.outputs.publish == 'true'
+    if: needs.prepare.outputs.publish == 'true' && (github.event_name == 'push' || inputs.publish_ghcr || inputs.publish_dockerhub)
     strategy:
       matrix:
         include:
@@ -372,10 +389,26 @@ jobs:
             fi
           done
 
+  package-fpk:
+    needs: prepare
+    if: needs.prepare.outputs.publish == 'true' && github.event_name == 'workflow_dispatch' && inputs.package_fpk
+    uses: ./.github/workflows/build-fpk.yml
+    secrets:
+      FNPACK_DEVELOPER_KEY: ${{ secrets.FNPACK_DEVELOPER_KEY }}
+      FNPACK_DEVELOPER_CERT: ${{ secrets.FNPACK_DEVELOPER_CERT }}
+    with:
+      commit: ${{ needs.prepare.outputs.commit }}
+      version: ${{ needs.prepare.outputs.version }}
+
   release:
     needs:
       - prepare
       - manifest
+      - package-fpk
+    if: >-
+      ${{ !cancelled() && needs.prepare.result == 'success' && needs.prepare.outputs.publish == 'true' &&
+      ((github.event_name == 'workflow_dispatch' && !inputs.publish_ghcr && !inputs.publish_dockerhub) || needs.manifest.result == 'success') &&
+      ((github.event_name == 'push' || !inputs.package_fpk) || needs.package-fpk.result == 'success') }}
     runs-on: ubuntu-24.04
     permissions:
       contents: write
@@ -391,6 +424,14 @@ jobs:
           name: release-notes
           path: ${{ runner.temp }}
 
+      - name: Download FPK artifacts
+        if: needs.package-fpk.result == 'success'
+        uses: actions/download-artifact@v4
+        with:
+          pattern: fnos-*
+          path: ${{ runner.temp }}/fpk
+          merge-multiple: true
+
       - name: 📝 Create Release
         uses: softprops/action-gh-release@v2
         with:
@@ -400,3 +441,5 @@ jobs:
           body_path: ${{ runner.temp }}/release-notes.md
           prerelease: ${{ env.IS_PRERELEASE == 'true' }}
           draft: true
+          files: ${{ needs.package-fpk.result == 'success' && format('{0}/fpk/*', runner.temp) || '' }}
+          fail_on_unmatched_files: ${{ needs.package-fpk.result == 'success' }}

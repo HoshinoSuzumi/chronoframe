@@ -25,9 +25,9 @@ const {
   data: activityData,
   pending,
   refresh,
-} = await useConsoleFetch('/api/queue/recent')
+} = await useConsoleFetch('/api/queue/recent', { timeout: 15000, retry: 0 })
 
-useIntervalFn(refresh, 5000)
+useIntervalFn(() => refresh({ dedupe: 'defer' }), 5000)
 
 const items = computed<ActivityItem[]>(
   () => (activityData.value?.tasks as ActivityItem[] | undefined) || [],
