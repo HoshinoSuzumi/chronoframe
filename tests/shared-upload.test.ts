@@ -129,6 +129,33 @@ test('both editions render the same upload controls and Cloud mounts its queue o
   )
 })
 
+test('shared queue starts uploads when crypto.randomUUID is unavailable', async () => {
+  const scope = effectScope()
+  const module = loadUploadCode(
+    'packages/console/app/composables/useUploadQueue.ts',
+    { crypto: { getRandomValues: crypto.getRandomValues.bind(crypto) } },
+  )
+  const queue = scope.run(() => module.useUploadQueue())!
+  const file = new File(['x'], 'photo.jpg')
+  const started: string[] = []
+  try {
+    await queue.enqueue([file, file], async (entry: { fileId: string }) => {
+      started.push(entry.fileId)
+    })
+    assert.equal(started.length, 2)
+    assert.equal(new Set(started).size, 2)
+    assert.deepEqual(started, [...queue.uploadingFiles.value.keys()])
+    for (const id of started) {
+      assert.match(
+        id,
+        /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
+      )
+    }
+  } finally {
+    scope.stop()
+  }
+})
+
 test('shared scheduler limits all batches to three files and discards cancelled waiting entries', async () => {
   const scope = effectScope()
   const module = loadUploadCode(
