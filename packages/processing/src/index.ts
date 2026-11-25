@@ -157,11 +157,20 @@ export function createPhotoProcessor(deps: {
     let videoKey = motion?.livePhotoVideoKey ?? null
     if (!motion?.isMotionPhoto) {
       const base = storageKey.slice(0, -path.extname(storageKey).length)
-      for (const candidate of [`${base}.MOV`, `${base}.mov`])
-        if (await storage.getFileMeta(candidate)) {
-          videoKey = candidate
-          break
+      for (const candidate of [`${base}.MOV`, `${base}.mov`]) {
+        try {
+          if (await storage.getFileMeta(candidate)) {
+            videoKey = candidate
+            break
+          }
+        } catch {
+          // A missing LivePhoto video (or a storage error while probing
+          // for one, e.g. OpenList returning 500 "object not found" for
+          // a file that does not exist) must not fail the whole photo
+          // task; treat it as "no video" and keep processing the photo.
+          continue
         }
+      }
     }
     input.signal?.throwIfAborted()
     return {
