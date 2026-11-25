@@ -136,7 +136,7 @@
     "oxlint": "^1.87.0",
     "parse5": "8.1.0",
     "sass-embedded": "^1.105.1",
-    "typescript": "^5.9.3",
+    "typescript": "^7.0.2",
     "vitepress": "2.0.0-alpha.20",
     "wrangler": "4.151.3"
   },
